@@ -1,0 +1,129 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts
+
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_1c03a71d59a84078b4accf7c01c95756 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FMUEgf
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FMUEgf nonceSha256=48457e2a97fa22e7540620bf924008b75908d90dfe5f7bf8ba17271f68d976c9
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FMUEgf dev=16777229 ino=63859077 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FMUEgf
+✔ attachment comment producer default denies before INSERT and freezes absence at factory creation (293.452459ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_113750888934438989782e01ffc345c9 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Vv8osr
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Vv8osr nonceSha256=861c626befe324a1ed56864f2b7db1256a791fe51d85b1cba7879d520df3b91e
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Vv8osr dev=16777229 ino=63859088 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Vv8osr
+✔ attachment comment producer preserves legacy appendComment whitespace and empty rejection exactly (232.806041ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_655106951211485a9d7be314a9530f9d pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yJstHx
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yJstHx nonceSha256=62373fec0660a2d781f090da6b902821bd9c43af760898baa881b43c6f7a20a9
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yJstHx dev=16777229 ino=63859205 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yJstHx
+✔ attachment comment producer attachment-only actual ready originals emits one event and sole009 subtree fanout (531.882458ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_12ce6323b0404373a3e385fb3f4c04bb pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GeDJOR
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GeDJOR nonceSha256=ca01a4cafb66f8e9da4e9c7ddffd81a33a37a0d68e0f9ad86d2036c1eab65156
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GeDJOR dev=16777229 ino=63859276 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GeDJOR
+✔ attachment comment producer mixed input and whitespace with actual originals preserve supplied text (387.226083ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_29122ece134a4a6f9d2b5f198ee23926 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-N1jinY
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-N1jinY nonceSha256=4e0e1e0ce667515605fa1b2a84ed1db1d04d5e3582763262626ddff717e1c5a2
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-N1jinY dev=16777229 ino=63859306 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-N1jinY
+✔ attachment comment producer rejects empty whitespace invalid type and over max without client allowEmpty authority (199.708375ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_6962c855ea2f4459a9bb5ac325bf89a1 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTAgEl
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTAgEl nonceSha256=dbd1828e0ac1852e1a61b851a63ddf55bbe58b33b6838e4de4c80086989d63ba
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTAgEl dev=16777229 ino=63859313 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTAgEl
+✔ attachment comment producer accepts exact max text with trusted empty selection (219.162542ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_81a63d566952481fabd269e91cbe7f64 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZTbacH
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZTbacH nonceSha256=a1707a67075a5e6f715a44c19906a7d27ca7a43373972fe8d2f6bcb273209506
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZTbacH dev=16777229 ino=63859321 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZTbacH
+✔ attachment comment producer fake IDs unavailable and reserved originals cannot authorize attachment-only text (274.894917ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_32dcb692d82341f3b1597421a9c93f26 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kVkd9a
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kVkd9a nonceSha256=d067665eb337c506b6b2533aae2c6413b7e2cadc64af38505c2044fe38b413e9
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kVkd9a dev=16777229 ino=63859337 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kVkd9a
+✔ attachment comment producer callback failure rolls back inserted comment links event and existing009 fanout (236.683333ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_5ed2a774a333466abf5f44109ac1f99d pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1wabwM
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1wabwM nonceSha256=6dedee62eb8346446fa1c312405ec1593c6354be42ebc7879de3c078abc0c87f
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1wabwM dev=16777229 ino=63859352 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1wabwM
+✔ attachment comment producer captured linker cannot be replaced through caller dependency mutation (236.297542ms)
+comment producer resource container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 port=55491 database=crew_v2_test_8ad58e4e619343ce990cc208faf8d450 pid=45507 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y3NPKq
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y3NPKq nonceSha256=211f4c932a073fb60d3f5247253541f085c9ce81dfa7ea13ec153dbfabc4b5b7
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y3NPKq dev=16777229 ino=63859447 uid=501
+comment producer restore created container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 database=crew_v2_test_07e8b2c2cb844babb2fb9e4ee4640f02 prefix=9
+comment producer restore removed container=bfa79b3f5cc4dc52116d14131de550338d2e89009324a01813d1892b73aefae0 database=crew_v2_test_07e8b2c2cb844babb2fb9e4ee4640f02
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y3NPKq
+✖ attachment comment migration010 forward upgrade and private backup restore preserve comments prefix hashes and009 triggers (587.877292ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3318.594167
+
+✖ failing tests:
+
+test at test/attachments-comment-factory.test.ts:398:1
+✖ attachment comment migration010 forward upgrade and private backup restore preserve comments prefix hashes and009 triggers (587.877292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Result(6) [
+      {
+  +     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_38041" AFTER DELETE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_restrict_del"()',
+  +     tgname: 'RI_ConstraintTrigger_a_38041'
+  -     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_36135" AFTER DELETE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_restrict_del"()',
+  -     tgname: 'RI_ConstraintTrigger_a_36135'
+      },
+      {
+  +     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_38042" AFTER UPDATE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_noaction_upd"()',
+  +     tgname: 'RI_ConstraintTrigger_a_38042'
+  -     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_36136" AFTER UPDATE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_noaction_upd"()',
+  -     tgname: 'RI_ConstraintTrigger_a_36136'
+      },
+      {
+  +     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_38193" AFTER INSERT ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_ins"()',
+  +     tgname: 'RI_ConstraintTrigger_c_38193'
+  -     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_34762" AFTER INSERT ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_ins"()',
+  -     tgname: 'RI_ConstraintTrigger_c_34762'
+      },
+      {
+  +     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_38194" AFTER UPDATE ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_upd"()',
+  +     tgname: 'RI_ConstraintTrigger_c_38194'
+  -     definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_34763" AFTER UPDATE ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_upd"()',
+  -     tgname: 'RI_ConstraintTrigger_c_34763'
+      },
+      {
+        definition: 'CREATE TRIGGER attachment_comments_revision_before_insert BEFORE INSERT ON public.comments FOR EACH ROW EXECUTE FUNCTION attachment_comment_revision()',
+        tgname: 'attachment_comments_revision_before_insert'
+      },
+  
+      at restore (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:448:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:469:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:55:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:39:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { tgname: 'RI_ConstraintTrigger_a_38041', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_38041" AFTER DELETE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_restrict_del"()' }, { tgname: 'RI_ConstraintTrigger_a_38042', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_38042" AFTER UPDATE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_noaction_upd"()' }, { tgname: 'RI_ConstraintTrigger_c_38193', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_38193" AFTER INSERT ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_ins"()' }, { tgname: 'RI_ConstraintTrigger_c_38194', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_38194" AFTER UPDATE ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_upd"()' }, { tgname: 'attachment_comments_revision_before_insert', definition: 'CREATE TRIGGER attachment_comments_revision_before_insert BEFORE INSERT ON public.comments FOR EACH ROW EXECUTE FUNCTION attachment_comment_revision()' }, { tgname: 'attachment_original_comment_immutable', definition: 'CREATE TRIGGER attachment_original_comment_immutable BEFORE DELETE OR UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION attachment_immutable_record()' } ],
+    expected: [ { tgname: 'RI_ConstraintTrigger_a_36135', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_36135" AFTER DELETE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_restrict_del"()' }, { tgname: 'RI_ConstraintTrigger_a_36136', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_a_36136" AFTER UPDATE ON public.comments FROM attachment_links NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_noaction_upd"()' }, { tgname: 'RI_ConstraintTrigger_c_34762', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_34762" AFTER INSERT ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_ins"()' }, { tgname: 'RI_ConstraintTrigger_c_34763', definition: 'CREATE CONSTRAINT TRIGGER "RI_ConstraintTrigger_c_34763" AFTER UPDATE ON public.comments FROM tickets NOT DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION "RI_FKey_check_upd"()' }, { tgname: 'attachment_comments_revision_before_insert', definition: 'CREATE TRIGGER attachment_comments_revision_before_insert BEFORE INSERT ON public.comments FOR EACH ROW EXECUTE FUNCTION attachment_comment_revision()' }, { tgname: 'attachment_original_comment_immutable', definition: 'CREATE TRIGGER attachment_original_comment_immutable BEFORE DELETE OR UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION attachment_immutable_record()' } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

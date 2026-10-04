@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "tar-stream": [
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/node_modules/.pnpm/@types+tar-stream@3.1.4/node_modules/@types/tar-stream/index.d.ts"
+      ]
+    }
+  }
+}

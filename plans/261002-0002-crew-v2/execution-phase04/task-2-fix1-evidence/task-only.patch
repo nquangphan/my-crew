@@ -1,0 +1,1173 @@
+diff --git a/v2/docs/flows/gateway-models.md b/v2/docs/flows/gateway-models.md
+index 471c5c0..e292672 100644
+--- a/v2/docs/flows/gateway-models.md
++++ b/v2/docs/flows/gateway-models.md
+@@ -8,7 +8,7 @@ Gateway tiêu thụ SourceConfig của machine, SourcePin/ProjectionPin phase03
+ 
+ - `ModelInventory.collectInventory(config,workflows)` giữ nguyên API model list của owner, chỉ quan sát pair đang current và cùng source tree. Catalogue CLI từ trusted composition port chỉ là catalogue; thiếu binary hay isolated-home authentication chưa đo vẫn UNVERIFIED. Không thực thi CLI hoặc đọc/copy HOME owner.
+ - `ModelProber.probeModel(key,pair,mode)` đối chiếu context với runtime/source/projection/derivation/policy. `executableContext` hash byte executable qua no-follow FD, không hash version string. Mỗi lần collect đọc lại context, không reuse PASS/certificate local. Thay binary/projection/derivation dẫn context mới; server008 đối chiếu receipt/certificate exact context.
+-- `ModelReporter.reconnect` gọi machine GET desired trước collect. `currentBoot` là bootId/generation của producer007; module không đăng ký boot khác. AtomicRecords riêng cấp một sequence tăng chung inventory/applied mỗi boot. Counter fsync trước report: crash có thể bỏ qua số nhưng không cấp lại số. Report và HttpOperationJournal giữ reportId, operation ID, route, key và body trước HTTP; `replay(reportId)` dùng nguyên input lịch sử. Source status applied là observation caller, không tự suy ready. Digest applied phải khớp inventory body của cùng boot/revision. Reporter không đọc/ACK ba command workflow007 hoặc tạo sync_models completion; composition Task03 giữ command routing chung.
++- `ModelReporter.reconnect` gọi machine GET desired rồi chụp bất biến config và boot trước collect; collection chồng nhau hoặc boot đổi trong await không gắn revision/boot mới lên observation cũ. Body cũng được chụp trước await journal; server vẫn quyết định chấp nhận context lịch sử. `currentBoot` là bootId/generation của producer007; module không đăng ký boot khác. AtomicRecords riêng cấp một sequence tăng chung inventory/applied mỗi boot. Counter fsync trước report: crash có thể bỏ qua số nhưng không cấp lại số. Report và HttpOperationJournal giữ reportId, operation ID, route, key và body trước HTTP; `replay(reportId)` dùng nguyên input lịch sử. Source status applied là observation caller, không tự suy ready. Digest applied phải khớp inventory body của cùng boot/revision. Reporter không đọc/ACK ba command workflow007 hoặc tạo sync_models completion; composition Task03 giữ command routing chung.
+ 
+ ## Các bước
+ 
+@@ -20,17 +20,17 @@ Gateway tiêu thụ SourceConfig của machine, SourcePin/ProjectionPin phase03
+ 
+ ABI: dedicated FD3, bốn uint32 network-endian `{operation,serviceLength,accountLength,valueLength}` rồi bytes; operation 1=put, 2=read, 3=remove. Reply `{status,valueLength}` rồi bytes; 0=success, 1=not-found, -1=failure. Một operation/process, không secret argv/env/stdout/stderr; tối đa secret8192 bytes, reply8200 bytes, deadline3 giây. Source có thật và đã compile syntax/link development; chưa chạy helper Security.framework trên Keychain owner. Test mặc định fake SecurityBridge; fake native C helper chỉ kiểm FD ABI và không link Security.framework.
+ 
+-`CredentialProvisioning` lưu X25519 PKCS8 private bytes trong Keychain namespace riêng machine, journal chỉ giữ keyId/public SPKI/state. Registration/confirmation dùng actual008 routes, encrypted challenge/AAD canonical và SHA-256 clear challenge. Rotation giữ retired private keys để hoàn tất pending envelope cũ; key loss không tự tạo ACK thành công. Secret envelope kiểm own machine/provider/current revision, canonical base64, X25519, nonce12/tag16, ciphertext SHA256 và AAD `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. HKDF info `crew-v2-secret-envelope-v1`, salt nonce12, AES-256-GCM. Put theo envelope ID và read-back hoàn tất trước fsync ACK intent và HTTP operation. Lost ACK replay cùng key/body/ref/operation; `replayAck(envelopeId)` chỉ dùng ACK intent đã fsync sau write/read-back, kiểm credentialRef vẫn còn trong Keychain rồi replay metadata, không cần transport private key hoặc gia hạn expiry. Server008 quyết định ACK lịch sử hay từ chối pending expired/key_lost/stale; không có intent thì không được ACK. không thay bằng provider state mới nhất hoặc UUID order. Host không lưu current provider ref pointer; authority current provisioning operation thuộc server008.
++`CredentialProvisioning` lưu X25519 PKCS8 private bytes trong Keychain namespace riêng machine, journal chỉ giữ keyId/public SPKI/state. Registration/confirmation dùng actual008 routes, encrypted challenge/AAD canonical và SHA-256 clear challenge. Rotation giữ retired private keys để hoàn tất pending envelope cũ; key loss không tự tạo ACK thành công. Secret envelope kiểm own machine/provider/current revision, canonical base64, X25519, nonce12/tag16, ciphertext SHA256 và AAD `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. HKDF info `crew-v2-secret-envelope-v1`, salt nonce12, AES-256-GCM. Put theo envelope ID và read-back hoàn tất trước fsync ACK intent và HTTP operation. Automatic `syncPending` tìm immutable ACK intent trước kiểm revision/expiry/decrypt của provisioning mới. Lost ACK replay cùng key/body/ref/operation; `replayAck(envelopeId)` chỉ dùng ACK intent đã fsync sau write/read-back, kiểm credentialRef vẫn còn trong Keychain rồi replay metadata, không cần transport private key hoặc gia hạn expiry. Server008 quyết định ACK lịch sử hay từ chối pending expired/key_lost/stale; không có intent thì không được ACK. không thay bằng provider state mới nhất hoặc UUID order. Host không lưu current provider ref pointer; authority current provisioning operation thuộc server008.
+ 
+-`syncPending(readMachine)` GET own desired trước GET own pending envelopes, dùng decimal cursor008 và serverTime response. Mọi encrypted envelope durable trước cursor advance; failed ACK giữ queue, state pending và cần owner cấp lại khi key mất/expired/stale. Source API OFF trả disabled trước đọc envelope. ServerReceiptClock dùng server receipt + elapsed monotonic; host wall clock không kéo dài expiry, replay/backwards receipt không quay estimate lùi. Không có server receipt thì từ chối secret/challenge. TTL/admission cuối cùng vẫn do server quyết định. Plaintext/private key không đi vào generic HTTP journal, gateway journal, renderer, exception hay model child.
++`syncPending(readMachine)` GET own desired trước GET own pending envelopes, dùng decimal cursor008 và serverTime response. Mọi encrypted envelope durable trước cursor advance; failed ACK giữ queue. ACK lịch sử thành công chỉ dọn đúng queue cũ; desired còn pending thì state vẫn pending đến GET xác nhận stored. Lịch sử stale của provider khác/đã stored không hạ trạng thái credential mới. Thiếu intent hoặc local ref vẫn từ chối; owner cần cấp lại khi pending key mất/expired/stale. Source API OFF trả disabled trước đọc envelope. ServerReceiptClock dùng server receipt + elapsed monotonic cho cả now và upper TTL bound 5 phút; challenge phát hành sau GET vẫn hợp lệ, còn receipt quá 5 phút hoặc actual expiry vẫn bị từ chối; host wall clock không kéo dài expiry, replay/backwards receipt không quay estimate lùi. Không có server receipt thì từ chối secret/challenge. TTL/admission cuối cùng vẫn do server quyết định. Plaintext/private key không đi vào generic HTTP journal, gateway journal, renderer, exception hay model child.
+ 
+ ### Protocol và HTTP
+ 
+-Responses và Chat Completions có parser riêng: exact model ID, terminal protocol, function name/arguments và call ID không trùng. SSE yêu cầu bounded complete framing, terminal event/[DONE], exact model và correlated tool fragments. Offline shape evidence không cấp PASS. Authorized-live chỉ qua trusted authorization + call port; một call/probe, deadline tối đa30 giây, không retry model call ngầm. Capabilities chỉ đến từ observation đã đo: text riêng, tools cần execution/result correlation, stream cần observed framing, vision cần explicit measured image observation. Không suy file_pdf/docx/xlsx/csv từ vision. Producer verified derivative/provenance phase05 chưa nối vào module; không tự nhận đã consume hay ép native MIME khi extraction/OCR tương lai đã được review.
++Responses và Chat Completions có parser riêng: exact model ID, terminal protocol, function name/arguments và call ID không trùng. SSE kiểm raw UTF-8 bound 1 MiB trước bỏ BOM và chuẩn hóa LF/CRLF/bare CR, rồi yêu cầu frame cuối hoàn chỉnh và terminal event/[DONE]. Responses giữ tối đa4096 event,64 item/part; đối chiếu response/item/output index, call ID/name, toàn bộ argument/text fragments và done với completed. failed/incomplete/error kết thúc thất bại ngay. Metadata lifecycle, logprobs/usage, annotation nullable và function item thiếu status theo tài liệu được xử lý; event/modality ngoài subset text/function bị từ chối. completed-only body vẫn hỗ trợ như trước; khi đã có lifecycle/fragments thì phải hoàn tất và khớp toàn bộ tracked output. Offline shape evidence không cấp PASS. Authorized-live chỉ qua trusted authorization + call port; một call/probe, deadline tối đa30 giây, không retry model call ngầm. Capabilities chỉ đến từ observation đã đo: text riêng, tools cần execution/result correlation, stream cần observed framing, vision cần explicit measured image observation. Không suy file_pdf/docx/xlsx/csv từ vision. Producer verified derivative/provenance phase05 chưa nối vào module; không tự nhận đã consume hay ép native MIME khi extraction/OCR tương lai đã được review.
+ 
+ `PinnedProviderTransport` ghim provider/model/protocol, request token cap128, một request in flight, nhận credential qua trusted one-use callback. Endpoint normalization khớp server008. HTTPS không literal-IP/localhost/credential/query/hash; HTTP chỉ loopback origin exact có localHttp explicit. Mỗi request resolve toàn bộ DNS answers, từ chối private/reserved/mapped/transition/documentation addresses, pin lookup socket về một allowed address và giữ hostname TLS. Không follow redirect. Body bound1 MiB, idle3 giây; caller ModelProber cấp absolute deadline/abort. DNS callback giữ đúng Node `all` contract. Transport thực hiện bounded protocol call; live tool/vision observation phải được trusted probe port cấp bằng measurement, không lấy catalogue/declared flag làm proof.
+ 
+-AUTH (401/403): owner kiểm endpoint/token rồi cấp secret mới; gateway giữ pending nếu không lưu/ACK được. QUOTA (429): dừng admission mới và chờ Retry-After/backoff bounded1s–5min, không suy quota từ CLI catalogue hoặc tự gọi lại phí. 5xx/network/timeout → TRANSIENT; malformed tool → TOOL_PROTOCOL. Body/key/error provider không nằm trong ProbeResult/evidence digest. Probe receipt hết hạn theo server clock → unavailable dù host observedAt đi tới tương lai; explicit probe/config/binary/pin/auth/quota changes phải collect/report observation mới. Không mint certificate hoặc dispatch choice từ observation local.
++AUTH (401/403): owner kiểm endpoint/token rồi cấp secret mới; gateway giữ pending nếu không lưu/ACK được. QUOTA (429): dừng admission mới và chờ Retry-After/backoff bounded1s–5min, không suy quota từ CLI catalogue hoặc tự gọi lại phí. 5xx/network/timeout → TRANSIENT; malformed tool → TOOL_PROTOCOL. Trusted transport giữ kết quả lỗi bằng closed union TOOL_PROTOCOL/MODEL_MISMATCH/PROTOCOL/STREAM_PROTOCOL/RESPONSE_TOO_LARGE/SSRF_DENIED/TRANSIENT bên trong operation trước broker; arbitrary callback vẫn chỉ ra CREDENTIAL_TRANSPORT_FAILED. Body/key/error provider không nằm trong ProbeResult/evidence digest. Probe receipt hết hạn theo server clock → unavailable dù host observedAt đi tới tương lai; explicit probe/config/binary/pin/auth/quota changes phải collect/report observation mới. Không mint certificate hoặc dispatch choice từ observation local.
+ 
+ ### Binding credential hiện hành
+ 
+@@ -75,3 +75,5 @@ Journal lưu metadata key/report/operation, encrypted pending envelope và immut
+ Focused tests dùng fake in-memory Security bridge, actual crypto, actual AtomicRecords/HttpOperationJournal restart và fake loopback HTTP listener; native FD fake compiled riêng trong fixture. Native source compile syntax bằng SDK hiện hành. Signed app/helper ACL, CLI subscription isolated-home authentication, paid/provider live calls, native runtime isolation và server dispatch authority đều UNVERIFIED. Không sửa host composition, journals007/005, migration008/009, dependencies, global HOME hoặc source v1. PM ánh xạ các file mới vào flow manifest và chạy generate/check sau khi tích hợp, rồi review spec/quality độc lập.
+ 
+ Apple primary references: [generic password](https://developer.apple.com/documentation/security/ksecclassgenericpassword), [AfterFirstUnlockThisDeviceOnly](https://developer.apple.com/documentation/security/ksecattraccessibleafterfirstunlockthisdeviceonly); local SDK LAContext.h dòng350 xác nhận interactionNotAllowed available macOS10.13.
++
++FIX1 protocol references: [WHATWG SSE](https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation), [Responses streaming events](https://developers.openai.com/api/reference/resources/responses/streaming-events), [function calling streaming](https://developers.openai.com/api/docs/guides/function-calling#streaming), [Chat streaming events](https://developers.openai.com/api/reference/resources/chat/subresources/completions/streaming-events). Fixtures dùng protocol nội bộ bounded, không gọi provider thật.
+diff --git a/v2/gateway/src/models/credential-provisioning.ts b/v2/gateway/src/models/credential-provisioning.ts
+index 2684448..03e65d0 100644
+--- a/v2/gateway/src/models/credential-provisioning.ts
++++ b/v2/gateway/src/models/credential-provisioning.ts
+@@ -37,7 +37,7 @@ export class ServerReceiptClock {
+       elapsed < 0 ||
+       elapsed > 300000 ||
+       expires <= this.anchor.server + elapsed ||
+-      expires > this.anchor.server + 300000
++      expires > this.anchor.server + elapsed + 300000
+     )
+       throw new Error('SECRET_EXPIRED');
+   }
+@@ -208,15 +208,16 @@ export class CredentialProvisioning {
+     currentRevision: number,
+     allowedProviders: readonly string[],
+   ): Promise<string> {
+-    if (envelope.machineId !== this.machineId || !allowedProviders.includes(envelope.providerId))
+-      throw new Error('ENVELOPE_SCOPE_INVALID');
+-    if (envelope.configRevision !== currentRevision) throw new Error('CONFIG_REVISION_CONFLICT');
+-    this.clock.assertFresh(envelope.expiresAt);
++    if (envelope.machineId !== this.machineId) throw new Error('ENVELOPE_SCOPE_INVALID');
+     const digest = hash(canonicalJson(envelope));
+     return this.store.transaction(async () => {
+       const old = await this.store.get<AckIntent>(envelope.id);
+       if (old && old.envelopeHash !== digest) throw new Error('ENVELOPE_INVALID');
+       if (old) return this.replayAck(envelope.id);
++      // Historical ACK intent is immutable recovery, not fresh provisioning authority.
++      if (!allowedProviders.includes(envelope.providerId)) throw new Error('ENVELOPE_SCOPE_INVALID');
++      if (envelope.configRevision !== currentRevision) throw new Error('CONFIG_REVISION_CONFLICT');
++      this.clock.assertFresh(envelope.expiresAt);
+       const privateBytes = await this.bridge.read(this.service(), envelope.keyId);
+       if (!privateBytes) {
+         const operationId = `credential-key-lost:${envelope.id}`;
+@@ -325,11 +326,12 @@ export class CredentialProvisioning {
+       // Cursor advances only after every encrypted envelope is durable; failed ACKs remain queued.
+       await this.store.put('envelope-cursor', { formatVersion: 1, cursor: batch.nextCursor });
+     });
+-    let pending = false;
++    // Only a fresh desired read may confirm current provider storage, never a historical ACK.
++    let pending = config.apiProviders.some((p) => p.credentialStatus !== 'stored');
+     try {
+       await this.registerKey();
+     } catch {
+-      pending = true;
++      pending = config.apiProviders.some((p) => p.credentialStatus !== 'stored');
+     }
+     const providers = config.apiProviders.map((p) => p.id);
+     for (const row of await this.store.all<{ formatVersion: 1; envelope?: SecretEnvelope | null }>()) {
+@@ -338,7 +340,9 @@ export class CredentialProvisioning {
+         await this.accept(row.envelope, config.revision, providers);
+         await this.store.put(`pending-envelope:${row.envelope.id}`, { formatVersion: 1, envelope: null });
+       } catch {
+-        pending = true;
++        // Keep encrypted history for re-entry/replay; it cannot demote a different current stored secret.
++        const current = config.apiProviders.find((p) => p.id === row.envelope?.providerId);
++        if (current && current.credentialStatus !== 'stored') pending = true;
+       }
+     }
+     return { state: pending ? 'pending' : 'stored', nextCursor: batch.nextCursor };
+diff --git a/v2/gateway/src/models/model-reporter.ts b/v2/gateway/src/models/model-reporter.ts
+index 3eed54b..e8ec787 100644
+--- a/v2/gateway/src/models/model-reporter.ts
++++ b/v2/gateway/src/models/model-reporter.ts
+@@ -14,6 +14,7 @@ export type ReporterPorts = {
+   getDesired: () => Promise<SourceConfig | null>;
+   currentBoot: () => { bootId: string; bootGeneration: string } | null;
+ };
++type Snapshot = { config: SourceConfig; boot: { bootId: string; bootGeneration: string } };
+ type Report = {
+   formatVersion: 1;
+   kind: 'inventory' | 'applied';
+@@ -36,16 +37,26 @@ export class ModelReporter {
+     workflows: Record<Workflow, WorkflowStatus>,
+     collect: (config: SourceConfig, workflows: Record<Workflow, WorkflowStatus>) => Promise<ProbeResult[]>,
+   ): Promise<string> {
+-    this.desired = await this.ports.getDesired();
+-    if (!this.desired) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
+-    const snapshot = structuredClone(this.desired);
+-    const entries = await collect(snapshot, workflows);
+-    // A subsequent desired GET is required on the next reconnect; no owner-session revision.
+-    return this.sendInventory({ entries });
++    const desired = await this.ports.getDesired();
++    if (!desired) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
++    this.desired = structuredClone(desired);
++    const snapshot = this.snapshot();
++    const entries = await collect(structuredClone(snapshot.config), structuredClone(workflows));
++    // Collection keeps its original revision and boot even if another reconnect wins meanwhile.
++    return this.inventory({ entries }, snapshot);
+   }
+   async sendInventory(body: ModelInventoryBody): Promise<string> {
+-    const config = this.desired;
++    return this.inventory(body, this.snapshot());
++  }
++  private snapshot(): Snapshot {
++    const config = this.desired,
++      boot = this.ports.currentBoot();
+     if (!config) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
++    if (!boot || !/^[1-9][0-9]*$/.test(boot.bootGeneration)) throw new Error('BOOT_NOT_CONFIGURED');
++    return structuredClone({ config, boot });
++  }
++  private inventory(body: ModelInventoryBody, snapshot: Snapshot): Promise<string> {
++    const config = snapshot.config;
+     for (const entry of body.entries) {
+       if (!config.enabled[entry.key.runtime]) throw new Error('SOURCE_DISABLED');
+       if (
+@@ -56,33 +67,40 @@ export class ModelReporter {
+       )
+         throw new Error('MODEL_NOT_CONFIGURED');
+     }
+-    return this.send('inventory', body);
++    return this.send('inventory', body, snapshot);
+   }
+   async sendApplied(body: ModelAppliedBody): Promise<string> {
+-    const inventory = await this.store.get<Report>(body.inventoryReportId),
+-      boot = this.ports.currentBoot();
++    const snapshot = this.snapshot(),
++      { config, boot } = snapshot;
++    body = structuredClone(body);
++    const inventory = await this.store.get<Report>(body.inventoryReportId);
+     if (
+       inventory?.kind !== 'inventory' ||
+-      inventory.envelope.configRevision !== this.desired?.revision ||
+-      inventory.envelope.bootId !== boot?.bootId ||
++      inventory.envelope.configRevision !== config.revision ||
++      inventory.envelope.bootId !== boot.bootId ||
+       inventory.envelope.bootGeneration !== boot.bootGeneration ||
+       hash(canonicalJson(inventory.envelope.body)) !== body.observationDigest
+     )
+       throw new Error('INVENTORY_MISMATCH');
+     for (const runtime of ['claude', 'codex', 'api'] as const) {
+-      if (!this.desired.enabled[runtime] && body.sourceStatus[runtime].state !== 'disabled')
++      if (!config.enabled[runtime] && body.sourceStatus[runtime].state !== 'disabled')
+         throw new Error('SOURCE_DISABLED');
+-      if (this.desired.enabled[runtime] && body.sourceStatus[runtime].state === 'disabled')
++      if (config.enabled[runtime] && body.sourceStatus[runtime].state === 'disabled')
+         throw new Error('APPLIED_MISMATCH');
+     }
+     // Caller supplies measured source observation; this reporter never synthesizes ready.
+-    return this.send('applied', body);
++    return this.send('applied', body, snapshot);
+   }
+-  private async send(kind: Report['kind'], body: ModelInventoryBody | ModelAppliedBody): Promise<string> {
+-    const boot = this.ports.currentBoot(),
+-      revision = this.desired?.revision;
+-    if (!boot || !/^[1-9][0-9]*$/.test(boot.bootGeneration) || !revision)
+-      throw new Error('BOOT_NOT_CONFIGURED');
++  private async send(
++    kind: Report['kind'],
++    body: ModelInventoryBody | ModelAppliedBody,
++    snapshot: Snapshot,
++  ): Promise<string> {
++    const {
++      boot,
++      config: { revision },
++    } = snapshot;
++    const capturedBody = JSON.parse(canonicalJson(body));
+     const id = await this.store.transaction(async () => {
+       const counterId = `sequence:${boot.bootId}:${boot.bootGeneration}`;
+       const old = await this.store.get<{ formatVersion: 1; sequence: string }>(counterId);
+@@ -95,7 +113,7 @@ export class ModelReporter {
+           ...boot,
+           sequence,
+           configRevision: revision,
+-          body: JSON.parse(canonicalJson(body)),
++          body: capturedBody,
+         };
+       await this.store.put(reportId, { formatVersion: 1, kind, envelope });
+       return reportId;
+diff --git a/v2/gateway/src/models/probe.ts b/v2/gateway/src/models/probe.ts
+index 717b42a..d4baa77 100644
+--- a/v2/gateway/src/models/probe.ts
++++ b/v2/gateway/src/models/probe.ts
+@@ -314,12 +314,238 @@ export async function executableContext(
+     await fd?.close();
+   }
+ }
++type StreamPart = { text: string; textDone: boolean; closed: boolean; annotations: Map<number, unknown> };
++type StreamItem = {
++  initial: Record<string, unknown>;
++  arguments: string;
++  argumentsDone: boolean;
++  parts: Map<number, StreamPart>;
++  closed: boolean;
++};
++/** Bounded Responses text/function subset. Unsupported modalities never count as a valid probe. */
++class ResponseStream {
++  private readonly modelId: string;
++  private responseId: string | null = null;
++  private sequence = -1;
++  private events = 0;
++  private readonly lifecycle = new Set<string>();
++  private readonly items = new Map<number, StreamItem>();
++  private readonly ids = new Set<string>();
++  private readonly callIds = new Set<string>();
++  constructor(modelId: string) {
++    this.modelId = modelId;
++  }
++  private index(value: unknown): number {
++    if (!Number.isSafeInteger(value) || Number(value) < 0 || Number(value) >= 64)
++      throw new Error('STREAM_PROTOCOL');
++    return Number(value);
++  }
++  private id(value: unknown): string {
++    if (typeof value !== 'string' || !value || value.length > 1024) throw new Error('STREAM_PROTOCOL');
++    return value;
++  }
++  private matchResponse(value: unknown, terminal: boolean): Record<string, unknown> {
++    const response = object(value);
++    if (response.model !== this.modelId) throw new Error('MODEL_MISMATCH');
++    if (this.responseId !== null && response.id !== this.responseId) throw new Error('STREAM_PROTOCOL');
++    if (!terminal) {
++      const id = this.id(response.id);
++      this.responseId = id;
++      if (
++        !['queued', 'in_progress'].includes(String(response.status)) ||
++        !Array.isArray(response.output) ||
++        response.output.length
++      )
++        throw new Error('STREAM_PROTOCOL');
++    }
++    return response;
++  }
++  private item(event: Record<string, unknown>): StreamItem {
++    const item = this.items.get(this.index(event.output_index));
++    if (!item || item.closed || event.item_id !== item.initial.id) throw new Error('STREAM_PROTOCOL');
++    return item;
++  }
++  private part(event: Record<string, unknown>, item: StreamItem): StreamPart {
++    const part = item.parts.get(this.index(event.content_index));
++    if (item.initial.type !== 'message' || !part || part.closed) throw new Error('STREAM_PROTOCOL');
++    return part;
++  }
++  private matchPart(value: unknown, part: StreamPart): void {
++    const content = object(value);
++    if (content.type !== 'output_text' || content.text !== part.text || !part.textDone)
++      throw new Error('STREAM_PROTOCOL');
++    if (
++      part.annotations.size &&
++      canonicalJson(content.annotations) !== canonicalJson([...part.annotations.values()])
++    )
++      throw new Error('STREAM_PROTOCOL');
++  }
++  private matchItem(value: unknown, item: StreamItem): void {
++    const output = object(value);
++    if (
++      output.id !== item.initial.id ||
++      output.type !== item.initial.type ||
++      (output.status !== 'completed' && !(output.type === 'function_call' && output.status === undefined))
++    )
++      throw new Error('STREAM_PROTOCOL');
++    if (output.type === 'function_call') {
++      if (
++        output.call_id !== item.initial.call_id ||
++        output.name !== item.initial.name ||
++        output.arguments !== item.arguments ||
++        !item.argumentsDone
++      )
++        throw new Error('TOOL_PROTOCOL');
++    } else {
++      if (
++        output.role !== 'assistant' ||
++        !Array.isArray(output.content) ||
++        output.content.length !== item.parts.size
++      )
++        throw new Error('STREAM_PROTOCOL');
++      for (const [index, part] of item.parts) {
++        if (!part.closed) throw new Error('STREAM_PROTOCOL');
++        this.matchPart(output.content[index], part);
++      }
++    }
++  }
++  accept(event: Record<string, unknown>): unknown {
++    if (++this.events > 4096) throw new Error('STREAM_PROTOCOL');
++    if (event.sequence_number !== undefined) {
++      if (!Number.isSafeInteger(event.sequence_number) || Number(event.sequence_number) <= this.sequence)
++        throw new Error('STREAM_PROTOCOL');
++      this.sequence = Number(event.sequence_number);
++    }
++    if (event.response_id !== undefined) {
++      if (this.responseId === null && event.type === 'response.output_item.added')
++        this.responseId = this.id(event.response_id);
++      if (event.response_id !== this.responseId) throw new Error('STREAM_PROTOCOL');
++    }
++    if (event.model !== undefined && event.model !== this.modelId) throw new Error('MODEL_MISMATCH');
++    const type = event.type;
++    if (type === 'error' || type === 'response.failed' || type === 'response.incomplete')
++      throw new Error('STREAM_PROTOCOL');
++    if (type === 'response.created' || type === 'response.queued' || type === 'response.in_progress') {
++      if (this.lifecycle.has(type) || this.items.size) throw new Error('STREAM_PROTOCOL');
++      const response = this.matchResponse(event.response, false);
++      if (type !== 'response.created' && response.status !== type.slice('response.'.length))
++        throw new Error('STREAM_PROTOCOL');
++      this.lifecycle.add(type);
++      return;
++    }
++    if (type === 'response.completed') {
++      const response = this.matchResponse(event.response, true);
++      if (this.responseId !== null || this.items.size) {
++        if (!Array.isArray(response.output) || response.output.length !== this.items.size)
++          throw new Error('STREAM_PROTOCOL');
++        for (const [index, item] of this.items) {
++          if (!item.closed) throw new Error('STREAM_PROTOCOL');
++          this.matchItem(response.output[index], item);
++        }
++      }
++      parseProtocol('responses', response, this.modelId);
++      return response;
++    }
++    if (this.responseId === null) throw new Error('STREAM_PROTOCOL');
++    if (type === 'response.output_item.added') {
++      const index = this.index(event.output_index),
++        item = object(event.item),
++        id = this.id(item.id);
++      if (
++        index !== this.items.size ||
++        this.ids.has(id) ||
++        (item.status !== 'in_progress' && !(item.type === 'function_call' && item.status === undefined))
++      )
++        throw new Error('STREAM_PROTOCOL');
++      if (item.type === 'function_call') {
++        const callId = this.id(item.call_id);
++        if (this.callIds.has(callId) || typeof item.name !== 'string' || typeof item.arguments !== 'string')
++          throw new Error('TOOL_PROTOCOL');
++        this.callIds.add(callId);
++      } else if (
++        item.type !== 'message' ||
++        item.role !== 'assistant' ||
++        !Array.isArray(item.content) ||
++        item.content.length
++      )
++        throw new Error('STREAM_PROTOCOL');
++      this.ids.add(id);
++      this.items.set(index, {
++        initial: item,
++        arguments: item.type === 'function_call' ? String(item.arguments) : '',
++        argumentsDone: false,
++        parts: new Map(),
++        closed: false,
++      });
++      return;
++    }
++    if (type === 'response.output_item.done') {
++      const item = this.items.get(this.index(event.output_index));
++      if (!item || item.closed) throw new Error('STREAM_PROTOCOL');
++      this.matchItem(event.item, item);
++      item.closed = true;
++      return;
++    }
++    const item = this.item(event);
++    if (
++      type === 'response.function_call_arguments.delta' ||
++      type === 'response.function_call_arguments.done'
++    ) {
++      if (
++        item.initial.type !== 'function_call' ||
++        item.argumentsDone ||
++        (event.name !== undefined && event.name !== item.initial.name)
++      )
++        throw new Error('TOOL_PROTOCOL');
++      if (type.endsWith('.delta')) {
++        if (typeof event.delta !== 'string') throw new Error('TOOL_PROTOCOL');
++        item.arguments += event.delta;
++      } else {
++        if (event.arguments !== item.arguments) throw new Error('TOOL_PROTOCOL');
++        item.argumentsDone = true;
++      }
++      return;
++    }
++    if (type === 'response.content_part.added') {
++      const index = this.index(event.content_index),
++        content = object(event.part);
++      if (
++        item.initial.type !== 'message' ||
++        index !== item.parts.size ||
++        content.type !== 'output_text' ||
++        content.text !== ''
++      )
++        throw new Error('STREAM_PROTOCOL');
++      item.parts.set(index, { text: '', textDone: false, closed: false, annotations: new Map() });
++      return;
++    }
++    const part = this.part(event, item);
++    if (type === 'response.output_text.delta') {
++      if (part.textDone || typeof event.delta !== 'string') throw new Error('STREAM_PROTOCOL');
++      part.text += event.delta;
++    } else if (type === 'response.output_text.done') {
++      if (part.textDone || event.text !== part.text) throw new Error('STREAM_PROTOCOL');
++      part.textDone = true;
++    } else if (type === 'response.content_part.done') {
++      this.matchPart(event.part, part);
++      part.closed = true;
++    } else if (type === 'response.output_text.annotation.added') {
++      const index = this.index(event.annotation_index);
++      if (index !== part.annotations.size) throw new Error('STREAM_PROTOCOL');
++      part.annotations.set(index, event.annotation === null ? null : object(event.annotation));
++    } else throw new Error('STREAM_PROTOCOL');
++  }
++}
++
+ export function parseStream(
+   protocol: 'responses' | 'chat-completions',
+   text: string,
+   modelId: string,
+ ): unknown {
+-  if (Buffer.byteLength(text) > 1048576 || !text.endsWith('\n\n')) throw new Error('STREAM_PROTOCOL');
++  if (Buffer.byteLength(text) > 1048576) throw new Error('STREAM_PROTOCOL');
++  text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
++  if (!text.endsWith('\n\n')) throw new Error('STREAM_PROTOCOL');
++  const responses = new ResponseStream(modelId);
+   let completed: unknown;
+   let done = false,
+     model: string | undefined,
+@@ -333,7 +559,7 @@ export function parseStream(
+     const data = frame
+       .split('\n')
+       .filter((line) => line.startsWith('data:'))
+-      .map((line) => line.slice(5).trimStart())
++      .map((line) => line.slice(5).replace(/^ /, ''))
+       .join('\n');
+     if (!data) continue;
+     if (done) throw new Error('STREAM_PROTOCOL');
+@@ -348,12 +574,18 @@ export function parseStream(
+       throw new Error('STREAM_PROTOCOL');
+     }
+     if (protocol === 'responses') {
+-      if (o.type === 'response.completed') {
+-        if (completed) throw new Error('STREAM_PROTOCOL');
+-        completed = o.response;
++      const label = frame
++        .split('\n')
++        .filter((line) => line.startsWith('event:'))
++        .at(-1)
++        ?.slice(6)
++        .replace(/^ /, '');
++      if (label && label !== o.type) throw new Error('STREAM_PROTOCOL');
++      const result = responses.accept(o);
++      if (result !== undefined) {
++        completed = result;
+         done = true;
+-      } else if (typeof o.type !== 'string' || !o.type.startsWith('response.'))
+-        throw new Error('STREAM_PROTOCOL');
++      }
+     } else {
+       if (o.model !== modelId || (model && model !== o.model)) throw new Error('MODEL_MISMATCH');
+       model = String(o.model);
+diff --git a/v2/gateway/src/models/provider-transport.ts b/v2/gateway/src/models/provider-transport.ts
+index d614c13..18cdb96 100644
+--- a/v2/gateway/src/models/provider-transport.ts
++++ b/v2/gateway/src/models/provider-transport.ts
+@@ -7,6 +7,22 @@ import type { ApiProviderConfig } from './contracts.ts';
+ import type { CredentialBroker, SecretTransport } from './credential-broker.ts';
+ import type { CurrentCredentialResolver } from './current-credential-resolver.ts';
+ import { type ProbeResponse, parseProtocol, parseStream, validateEndpoint } from './probe.ts';
++
++const safeTransportCodes = [
++  'TOOL_PROTOCOL',
++  'MODEL_MISMATCH',
++  'PROTOCOL',
++  'STREAM_PROTOCOL',
++  'RESPONSE_TOO_LARGE',
++  'SSRF_DENIED',
++  'TRANSIENT',
++] as const;
++type TransportCode = (typeof safeTransportCodes)[number];
++function transportCode(error: unknown): TransportCode {
++  return error instanceof Error && safeTransportCodes.some((code) => code === error.message)
++    ? (error.message as TransportCode)
++    : 'TRANSIENT';
++}
+ export function assertPublicAddress(address: string): void {
+   if (isIP(address) === 4) {
+     const [a, b, c] = address.split('.').map(Number);
+@@ -164,6 +180,7 @@ export class PinnedProviderTransport {
+     body: unknown;
+     signal: AbortSignal;
+     response: ProbeResponse | null;
++    failure: TransportCode | null;
+     assertCurrent?: () => Promise<void>;
+   } | null = null;
+   readonly deliver: SecretTransport;
+@@ -194,6 +211,9 @@ export class PinnedProviderTransport {
+             operation.signal,
+             operation.assertCurrent,
+           );
++        } catch (error) {
++          // Only this controlled send boundary can retain a closed code. Broker still redacts all callbacks.
++          operation.failure = transportCode(error);
+         } finally {
+           bytes.fill(0);
+         }
+@@ -227,12 +247,14 @@ export class PinnedProviderTransport {
+       signal,
+       assertCurrent,
+       response: null as ProbeResponse | null,
++      failure: null as TransportCode | null,
+     };
+     this.pending = operation;
+     try {
+       await broker.withSecret(credentialRef, this.deliver);
+       await assertCurrent?.();
+       signal.throwIfAborted();
++      if (operation.failure) throw new Error(operation.failure);
+       if (!operation.response) throw new Error('TRANSIENT');
+       return operation.response;
+     } finally {
+diff --git a/v2/gateway/test/credential-provisioning.test.ts b/v2/gateway/test/credential-provisioning.test.ts
+index beb4b2f..b684110 100644
+--- a/v2/gateway/test/credential-provisioning.test.ts
++++ b/v2/gateway/test/credential-provisioning.test.ts
+@@ -188,3 +188,155 @@ test('credential broker reconnect gets own desired/serverTime before secret enve
+     await removeModelFixture(root);
+   }
+ });
++
++test('FIX1 R1 registration TTL upper bound uses estimated current server time without extending expired receipts', () => {
++  let mono = 0;
++  const clock = new ServerReceiptClock(() => mono);
++  const base = Date.parse('2026-10-02T07:00:00.000Z');
++  clock.observe(new Date(base).toISOString());
++  mono = 50;
++  assert.doesNotThrow(() => clock.assertFresh(new Date(base + 300050).toISOString()));
++  assert.throws(() => clock.assertFresh(new Date(base + 300051).toISOString()), /EXPIRED/);
++  clock.observe(new Date(base - 60000).toISOString());
++  assert.throws(() => clock.assertFresh(new Date(base + 49).toISOString()), /EXPIRED/);
++  mono = 300051;
++  assert.throws(() => clock.assertFresh(new Date(base + 300050).toISOString()), /EXPIRED/);
++  assert.throws(() => clock.assertFresh(new Date(base + 600000).toISOString()), /EXPIRED/);
++});
++
++test('FIX1 R2 public reconnect replays committed lost ACK after expiry and revision change without rewriting secret', async () => {
++  const root = await modelFixtureRoot('fix1-ack-reconnect');
++  const machineId = randomUUID(),
++    providerId = randomUUID(),
++    values = new Map<string, Buffer>();
++  let writes = 0,
++    mono = 0,
++    keyId = '',
++    publicKey = '',
++    lose = true,
++    revision = 1,
++    batches = 0,
++    currentStored = false;
++  const base = Date.parse('2026-10-02T07:00:00Z');
++  const bridge: SecurityBridge = {
++    read: async (s, a) => {
++      const b = values.get(s + a);
++      return b ? Buffer.from(b) : null;
++    },
++    put: async (s, a, b) => {
++      writes++;
++      values.set(s + a, Buffer.from(b));
++    },
++    remove: async (s, a) => {
++      values.delete(s + a);
++    },
++  };
++  const broker = new CredentialBroker(machineId, bridge, []),
++    clock = new ServerReceiptClock(() => mono);
++  clock.observe(new Date(base).toISOString());
++  const acks: HttpRequest[] = [];
++  let committed: Readonly<HttpRequest> | undefined;
++  const wire = async (request: Readonly<HttpRequest>) => {
++    if (request.route === '/v2/machine/credential-keys') {
++      const b = request.canonicalBody as { keyId: string; publicKeyX25519: string };
++      keyId = b.keyId;
++      publicKey = b.publicKeyX25519;
++      mono += 50; // Registration response was created after the preceding receipt.
++      const challengeId = randomUUID(),
++        expiresAt = new Date(base + mono + 300000).toISOString();
++      return {
++        status: 200,
++        body: {
++          challengeId,
++          expiresAt,
++          encryptedChallenge: seal(publicKey, 'fixture-challenge', {
++            machineId,
++            keyId,
++            challengeId,
++            expiresAt,
++          }),
++        },
++      };
++    }
++    if (request.route.endsWith('/ack')) {
++      acks.push(structuredClone(request));
++      if (committed) assert.deepEqual(request, committed);
++      else committed = structuredClone(request);
++      if (lose) throw new Error('lost committed receipt');
++      return { status: 200, body: { status: 'acked' } };
++    }
++    return { status: 200, body: { status: 'active' } };
++  };
++  let http = await HttpOperationJournal.open(root, wire);
++  let provisioning = await CredentialProvisioning.open(root, machineId, bridge, broker, http, clock);
++  try {
++    await provisioning.registerKey();
++    const meta = {
++      id: randomUUID(),
++      machineId,
++      providerId,
++      keyId,
++      configRevision: 1,
++      operationId: randomUUID(),
++      expiresAt: new Date(base + 300000).toISOString(),
++    };
++    const envelope = {
++      ...meta,
++      ...seal(publicKey, 'fixture-reconnect-secret', {
++        machineId,
++        providerId,
++        keyId,
++        configRevision: 1,
++        operationId: meta.operationId,
++        expiresAt: meta.expiresAt,
++      }),
++    };
++    const read = async (route: string) =>
++      route === '/v2/machine/model-sources'
++        ? {
++            revision,
++            enabled: { api: true, claude: false, codex: false },
++            apiProviders: [{ id: providerId, credentialStatus: currentStored ? 'stored' : 'pending' }],
++          }
++        : {
++            items: batches++ === 0 ? [envelope] : [],
++            nextCursor: '1',
++            serverTime: new Date(base + mono).toISOString(),
++          };
++    assert.equal((await provisioning.syncPending(read)).state, 'pending');
++    assert.equal(acks.length, 1);
++    const storedWrites = writes;
++    await provisioning.close();
++    await http.close();
++    mono = 300001;
++    revision = 2;
++    lose = false;
++    http = await HttpOperationJournal.open(root, wire);
++    provisioning = await CredentialProvisioning.open(root, machineId, bridge, broker, http, clock);
++    assert.equal((await provisioning.syncPending(read)).state, 'pending'); // Historical ACK cannot promote the newer desired credential.
++    currentStored = true;
++    assert.equal((await provisioning.syncPending(read)).state, 'stored');
++    assert.equal(acks.length, 2);
++    assert.deepEqual(acks[0], acks[1]);
++    assert.equal(writes, storedWrites);
++    await assert.rejects(
++      provisioning.accept({ ...envelope, ciphertextSha256: '0'.repeat(64) }, 2, [providerId]),
++      /ENVELOPE_INVALID/,
++    );
++    const firstAck = acks[0];
++    assert.ok(firstAck);
++    const ref = (firstAck.canonicalBody as { credentialRef: string }).credentialRef;
++    await broker.remove(ref);
++    await assert.rejects(provisioning.accept(envelope, 2, [providerId]), /CREDENTIAL_MISSING/);
++    assert.equal(acks.length, 2);
++    await assert.rejects(
++      provisioning.accept({ ...envelope, id: randomUUID() }, 2, [providerId]),
++      /CONFIG_REVISION_CONFLICT/,
++    );
++    assert.equal(writes, storedWrites);
++  } finally {
++    await provisioning.close();
++    await http.close();
++    await removeModelFixture(root);
++  }
++});
+diff --git a/v2/gateway/test/model-probe.test.ts b/v2/gateway/test/model-probe.test.ts
+index 0e67c75..173af28 100644
+--- a/v2/gateway/test/model-probe.test.ts
++++ b/v2/gateway/test/model-probe.test.ts
+@@ -437,3 +437,333 @@ test('model probe pinned DNS socket lookup honors Node all-address contract with
+     assert.equal(family, 4);
+   });
+ });
++
++function responseStreamEvents(): Record<string, unknown>[] {
++  const fn = {
++    id: 'fc-fixture',
++    type: 'function_call',
++    call_id: 'call-fixture',
++    name: 'crew_probe_echo',
++    arguments: '{"value":"fixture"}',
++    status: 'completed',
++  };
++  const part = { type: 'output_text', text: 'fixture', annotations: [], logprobs: [] };
++  const msg = { id: 'msg-fixture', type: 'message', role: 'assistant', status: 'completed', content: [part] };
++  const response = { id: 'resp-fixture', model: 'chosen', status: 'in_progress', output: [] };
++  return [
++    { type: 'response.created', response },
++    { type: 'response.in_progress', response },
++    {
++      type: 'response.output_item.added',
++      output_index: 0,
++      item: { ...fn, arguments: '', status: 'in_progress' },
++    },
++    { type: 'response.function_call_arguments.delta', item_id: fn.id, output_index: 0, delta: '{"value":' },
++    { type: 'response.function_call_arguments.delta', item_id: fn.id, output_index: 0, delta: '"fixture"}' },
++    {
++      type: 'response.function_call_arguments.done',
++      item_id: fn.id,
++      output_index: 0,
++      arguments: fn.arguments,
++    },
++    { type: 'response.output_item.done', output_index: 0, item: fn },
++    {
++      type: 'response.output_item.added',
++      output_index: 1,
++      item: { ...msg, status: 'in_progress', content: [] },
++    },
++    {
++      type: 'response.content_part.added',
++      item_id: msg.id,
++      output_index: 1,
++      content_index: 0,
++      part: { ...part, text: '' },
++    },
++    {
++      type: 'response.output_text.delta',
++      item_id: msg.id,
++      output_index: 1,
++      content_index: 0,
++      delta: 'fix',
++      logprobs: [],
++    },
++    {
++      type: 'response.output_text.delta',
++      item_id: msg.id,
++      output_index: 1,
++      content_index: 0,
++      delta: 'ture',
++      logprobs: [],
++    },
++    {
++      type: 'response.output_text.done',
++      item_id: msg.id,
++      output_index: 1,
++      content_index: 0,
++      text: 'fixture',
++      logprobs: [],
++    },
++    { type: 'response.content_part.done', item_id: msg.id, output_index: 1, content_index: 0, part },
++    { type: 'response.output_item.done', output_index: 1, item: msg },
++    {
++      type: 'response.completed',
++      response: { ...response, status: 'completed', output: [fn, msg], usage: { total_tokens: 5 } },
++    },
++  ];
++}
++function responseWire(events: Record<string, unknown>[]): string {
++  return events
++    .map(
++      (event, sequence_number) =>
++        `event: ${event.type}\ndata: ${JSON.stringify({ sequence_number, ...event })}\n\n`,
++    )
++    .join('');
++}
++test('FIX1 R4 SSE accepts LF CRLF CR mixed endings and BOM but retains raw bound and final blank frame', () => {
++  const responses = `data: ${JSON.stringify({ type: 'response.completed', response: reply })}\n\n`;
++  const chat = `data: ${JSON.stringify({ model: 'chosen', choices: [{ index: 0, delta: { content: 'fixture' }, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`;
++  for (const [protocol, wire] of [
++    ['responses', responses],
++    ['chat-completions', chat],
++  ] as const) {
++    for (const ending of ['\n', '\r\n', '\r'])
++      assert.doesNotThrow(() => parseStream(protocol, wire.replaceAll('\n', ending), 'chosen'));
++    assert.doesNotThrow(() => parseStream(protocol, `\ufeff${wire.replace('\n', '\r\n')}`, 'chosen'));
++    assert.throws(() => parseStream(protocol, wire.slice(0, -1), 'chosen'), /STREAM_PROTOCOL/);
++    assert.throws(
++      () => parseStream(protocol, `:${'x'.repeat(1048576)}\r\n\r\n${wire}`, 'chosen'),
++      /STREAM_PROTOCOL/,
++    );
++  }
++});
++test('FIX1 R5 Responses correlates multi-fragment tool and text with lifecycle metadata and terminal body', () => {
++  const events = responseStreamEvents(),
++    completed = events.at(-1)?.response;
++  assert.deepEqual(parseStream('responses', responseWire(events), 'chosen'), completed);
++  assert.deepEqual(parseProtocol('responses', completed, 'chosen'), ['tools', 'text']);
++});
++test('FIX1 R5 nullable annotation metadata is correlated with final text', () => {
++  const events = responseStreamEvents();
++  for (const e of events) {
++    const part = e.part as Record<string, unknown> | undefined;
++    if (part) part.annotations = [null];
++  }
++  const msg = events[13]?.item as Record<string, unknown>;
++  const content = (msg.content as Record<string, unknown>[])[0];
++  assert.ok(content);
++  content.annotations = [null];
++  events.splice(11, 0, {
++    type: 'response.output_text.annotation.added',
++    item_id: msg.id,
++    output_index: 1,
++    content_index: 0,
++    annotation_index: 0,
++    annotation: null,
++  });
++  assert.doesNotThrow(() => parseStream('responses', responseWire(events), 'chosen'));
++});
++test('FIX1 R5 Responses rejects orphan duplicate conflicting and terminal-failure sequences', () => {
++  const mutations: ((events: Record<string, unknown>[]) => void)[] = [
++    (e) => {
++      e.splice(3, 0, {
++        type: 'response.function_call_arguments.delta',
++        item_id: 'orphan',
++        output_index: 99,
++        delta: 'bad',
++      });
++    },
++    (e) => {
++      e.splice(3, 0, structuredClone(e[2] ?? {}));
++    },
++    (e) => {
++      const r = e[1]?.response as Record<string, unknown>;
++      r.id = 'other-response';
++    },
++    (e) => {
++      const r = e[1]?.response as Record<string, unknown>;
++      r.model = 'wrong';
++    },
++    (e) => {
++      e[3] = { ...e[3], item_id: 'other-item' };
++    },
++    (e) => {
++      e[4] = { ...e[4], delta: '"different"}' };
++    },
++    (e) => {
++      e[5] = { ...e[5], arguments: '{"value":"different"}' };
++    },
++    (e) => {
++      const item = e[6]?.item as Record<string, unknown>;
++      item.call_id = 'other-call';
++    },
++    (e) => {
++      e[10] = { ...e[10], delta: 'different' };
++    },
++    (e) => {
++      const r = e.at(-1)?.response as Record<string, unknown>;
++      r.id = 'other-response';
++    },
++    (e) => {
++      e.splice(2, 0, {
++        type: 'response.failed',
++        response: { id: 'resp-fixture', model: 'chosen', status: 'failed' },
++      });
++    },
++    (e) => {
++      e.splice(2, 0, {
++        type: 'response.incomplete',
++        response: { id: 'resp-fixture', model: 'chosen', status: 'incomplete' },
++      });
++    },
++    (e) => {
++      e.splice(2, 0, { type: 'error', code: 'fixture-failed', message: 'fixture-sensitive' });
++    },
++    (e) => {
++      e[4] = { ...e[4], sequence_number: 2 };
++    },
++    (e) => {
++      e.splice(5, 1);
++    },
++    (e) => {
++      e[3] = { ...e[3], response_id: 'other-response' };
++    },
++    (e) => {
++      const r = e.at(-1)?.response as Record<string, unknown>;
++      r.output = [];
++    },
++  ];
++  for (const [index, mutate] of mutations.entries()) {
++    const events = structuredClone(responseStreamEvents());
++    mutate(events);
++    assert.throws(
++      () => parseStream('responses', responseWire(events), 'chosen'),
++      /STREAM_PROTOCOL|TOOL_PROTOCOL|MODEL_MISMATCH|PROTOCOL/,
++      `mutation ${index}`,
++    );
++  }
++});
++
++test('FIX1 R6 broker transport prober preserves closed protocol/size/SSRF outcomes and redacts unknown errors', async () => {
++  let mode = 'tool',
++    hits = 0;
++  const server = createServer((req, res) => {
++    hits++;
++    if (mode === 'network') {
++      req.socket.destroy();
++      return;
++    }
++    if (mode === '401' || mode === '429' || mode === '503') {
++      res.statusCode = Number(mode);
++      res.end('fixture-sensitive-response');
++      return;
++    }
++    res.setHeader('content-type', 'application/json');
++    const body =
++      mode === 'tool'
++        ? {
++            ...reply,
++            output: [
++              {
++                type: 'function_call',
++                name: 'crew_probe_echo',
++                call_id: 'x',
++                arguments: 'fixture-sensitive-invalid-json',
++              },
++            ],
++          }
++        : mode === 'model'
++          ? { ...reply, model: 'wrong' }
++          : mode === 'size'
++            ? { ...reply, padding: 'x'.repeat(1048576) }
++            : reply;
++    res.end(JSON.stringify(body));
++  });
++  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
++  const address = server.address();
++  assert.ok(address && typeof address !== 'string');
++  const origin = `http://127.0.0.1:${address.port}`,
++    p = {
++      ...provider,
++      endpoint: `${origin}/v1/`,
++      localHttp: { enabled: true as const, allowedOrigin: origin },
++    };
++  const local = new PinnedProviderTransport(p),
++    denied = new PinnedProviderTransport({ ...provider, endpoint: 'https://localhost./v1/' });
++  const values = new Map<string, Buffer>(),
++    readBuffers: Buffer[] = [];
++  const unsafe = async () => {
++    throw new Error('fixture-sensitive-callback');
++  };
++  const broker = new CredentialBroker(
++    randomUUID(),
++    {
++      read: async (s, a) => {
++        const v = values.get(s + a);
++        if (!v) return null;
++        const b = Buffer.from(v);
++        readBuffers.push(b);
++        return b;
++      },
++      put: async (s, a, b) => {
++        values.set(s + a, Buffer.from(b));
++      },
++      remove: async (s, a) => {
++        values.delete(s + a);
++      },
++    },
++    [local.deliver, denied.deliver, unsafe],
++  );
++  try {
++    const ref = await broker.put(randomUUID(), Buffer.from('fixture-sensitive-secret'));
++    for (const [kind, expected] of [
++      ['tool', 'TOOL_PROTOCOL'],
++      ['model', 'MODEL_MISMATCH'],
++      ['size', 'RESPONSE_TOO_LARGE'],
++      ['401', 'AUTH'],
++      ['429', 'QUOTA'],
++      ['503', 'TRANSIENT'],
++      ['network', 'TRANSIENT'],
++    ] as const) {
++      mode = kind;
++      const before = hits;
++      const prober = new ModelProber({
++        ...ports,
++        provider: () => p,
++        offline: (_key, signal) => local.call('chosen', broker, ref, signal),
++        deadlineMs: 2000,
++      });
++      const result = await prober.probeModel(key, { source, projection }, 'offline');
++      assert.equal(result.errorCode, expected, kind);
++      assert.equal(hits, before + 1);
++      assert.equal(JSON.stringify(result).includes('fixture-sensitive'), false);
++      assert.ok(readBuffers.every((b) => b.every((n) => n === 0)));
++    }
++    const prober = new ModelProber({
++      ...ports,
++      provider: () => ({ ...provider, endpoint: 'https://localhost./v1/' }),
++      offline: (_key, signal) => denied.call('chosen', broker, ref, signal),
++      deadlineMs: 2000,
++    });
++    assert.equal((await prober.probeModel(key, { source, projection }, 'offline')).errorCode, 'SSRF_DENIED');
++    await assert.rejects(broker.withSecret(ref, unsafe), /^Error: CREDENTIAL_TRANSPORT_FAILED$/);
++    assert.ok(readBuffers.every((b) => b.every((n) => n === 0)));
++  } finally {
++    server.closeAllConnections();
++    await new Promise<void>((resolve) => server.close(() => resolve()));
++  }
++});
++
++test('FIX1 R5 documented response_id and optional function status remain correlated', () => {
++  const events = structuredClone(responseStreamEvents()).slice(2);
++  for (const event of events) {
++    event.response_id = 'resp-fixture';
++    const item = event.item as Record<string, unknown> | undefined;
++    if (item?.type === 'function_call') delete item.status;
++  }
++  const response = events.at(-1)?.response as Record<string, unknown>;
++  for (const item of response.output as Record<string, unknown>[])
++    if (item.type === 'function_call') delete item.status;
++  assert.doesNotThrow(() => parseStream('responses', responseWire(events), 'chosen'));
++  events[1] = { ...events[1], response_id: 'foreign' };
++  assert.throws(() => parseStream('responses', responseWire(events), 'chosen'), /STREAM_PROTOCOL/);
++});
+diff --git a/v2/gateway/test/model-reporter.test.ts b/v2/gateway/test/model-reporter.test.ts
+index b1f0025..fd6de5b 100644
+--- a/v2/gateway/test/model-reporter.test.ts
++++ b/v2/gateway/test/model-reporter.test.ts
+@@ -85,3 +85,123 @@ test('model reporter gets current desired before reconnect and restart replays e
+     await removeModelFixture(root);
+   }
+ });
++
++test('FIX1 R3 overlapping collections keep immutable config and boot instead of relabelling stale observations', async () => {
++  const root = await modelFixtureRoot('fix1-reporter-race'),
++    sent: HttpRequest[] = [];
++  const http = await HttpOperationJournal.open(root, async (request) => {
++    sent.push(structuredClone(request));
++    return {
++      status: 200,
++      body: {
++        reportId: (request.canonicalBody as ModelReportEnvelope<ModelInventoryBody>).reportId,
++        accepted: true,
++      },
++    };
++  });
++  let revision = 1;
++  const boot = { bootId: randomUUID(), bootGeneration: '1' },
++    originalBoot = structuredClone(boot),
++    providerId = randomUUID();
++  const desired = () => ({
++    revision,
++    enabled: { api: true, claude: false, codex: false },
++    apiProviders: [
++      {
++        id: providerId,
++        endpoint: `https://revision${revision}.example/v1/`,
++        protocol: 'responses' as const,
++        models: [{ id: 'chosen', declared: ['text' as const] }],
++        credentialStatus: 'stored' as const,
++        localHttp: null,
++      },
++    ],
++  });
++  const reporter = await ModelReporter.open(root, http, {
++    getDesired: async () => desired(),
++    currentBoot: () => boot,
++  });
++  let start = () => {},
++    release = () => {};
++  const started = new Promise<void>((r) => {
++      start = r;
++    }),
++    barrier = new Promise<void>((r) => {
++      release = r;
++    });
++  const entry = (marker: string) => ({
++    key: { machineId: randomUUID(), runtime: 'api' as const, providerId, modelId: 'chosen' },
++    context: {
++      sourceTreeSha256: 'a'.repeat(64),
++      projectionManifestSha256: 'b'.repeat(64),
++      projectionTreeSha256: 'c'.repeat(64),
++      derivationSha256: 'd'.repeat(64),
++      binarySha256: 'e'.repeat(64),
++      policySha256: 'f'.repeat(64),
++      osVersion: 'fixture',
++    },
++    observedAt: '2026-10-02T07:00:00Z',
++    status: 'unverified' as const,
++    capabilities: [],
++    evidenceDigest: hash(marker),
++    errorCode: 'OFFLINE_UNVERIFIED',
++    runtimeVersion: null,
++  });
++  const oldEntry = entry('old'),
++    newEntry = entry('new');
++  try {
++    const first = reporter.reconnect(initialStatus().workflows, async (config) => {
++      assert.equal(config.revision, 1);
++      assert.equal(config.apiProviders[0]?.endpoint, 'https://revision1.example/v1/');
++      start();
++      await barrier;
++      return [oldEntry];
++    });
++    await started;
++    revision = 2;
++    await reporter.reconnect(initialStatus().workflows, async () => [newEntry]);
++    release();
++    await first;
++    const old = sent.find(
++      (x) =>
++        (x.canonicalBody as ModelReportEnvelope<ModelInventoryBody>).body.entries[0]?.evidenceDigest ===
++        oldEntry.evidenceDigest,
++    )?.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
++    assert.equal(old.configRevision, 1);
++    assert.equal(old.bootId, originalBoot.bootId);
++    assert.equal(old.sequence, '2');
++    let collectStart = () => {},
++      collectRelease = () => {};
++    const collecting = new Promise<void>((r) => {
++        collectStart = r;
++      }),
++      hold = new Promise<void>((r) => {
++        collectRelease = r;
++      });
++    const changing = reporter.reconnect(initialStatus().workflows, async () => {
++      collectStart();
++      await hold;
++      return [newEntry];
++    });
++    await collecting;
++    boot.bootId = randomUUID();
++    boot.bootGeneration = '2';
++    collectRelease();
++    await changing;
++    const captured = sent.at(-1)?.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
++    assert.equal(captured.bootId, originalBoot.bootId);
++    assert.equal(captured.bootGeneration, '1');
++    assert.equal(captured.sequence, '3');
++    await reporter.replay(old.reportId); // immutable journal reuses original body and does not allocate sequence
++    const next = await reporter.reconnect(initialStatus().workflows, async () => [newEntry]);
++    const fresh = sent.find((x) => (x.canonicalBody as { reportId: string }).reportId === next)
++      ?.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
++    assert.equal(fresh.bootId, boot.bootId);
++    assert.equal(fresh.sequence, '1');
++  } finally {
++    release();
++    await reporter.close();
++    await http.close();
++    await removeModelFixture(root);
++  }
++});

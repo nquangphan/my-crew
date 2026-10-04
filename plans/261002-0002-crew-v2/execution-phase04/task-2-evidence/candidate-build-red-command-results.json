@@ -1,0 +1,12 @@
+[
+  {
+    "log": "candidate-build.log",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-candidate-94792f8e-0415-460a-bf1f-913f2a37a24d/v2/gateway",
+      "build"
+    ],
+    "exit": 2
+  }
+]

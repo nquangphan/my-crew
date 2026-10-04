@@ -1,0 +1,21 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-V2J6Ub","device":"16777229","inode":"63488864","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-V2J6Ub","device":"16777229","inode":"63488864","uid":501,"deleted":true}
+✖ sync event pump persists only reconciled SSE cursor and polls after stream failure across reopen (2.287958ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.90975
+
+✖ failing tests:
+
+test at test/event-pump.test.ts:5:1
+✖ sync event pump persists only reconciled SSE cursor and polls after stream failure across reopen (2.287958ms)
+  Error: EVENT_SYNC_NOT_IMPLEMENTED
+      at GatewayEventPump.once (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/sync/event-pump.ts:3:35)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/event-pump.test.ts:9:17)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)

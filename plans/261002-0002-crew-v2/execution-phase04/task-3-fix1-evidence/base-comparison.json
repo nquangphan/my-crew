@@ -1,0 +1,11 @@
+{
+  "base": "d438ce1",
+  "trackedFiles": 125,
+  "capturedFiles": 125,
+  "onlyDifferences": [
+    "v2/gateway/test/effect-ledger.test.ts",
+    "v2/gateway/test/runtime-workspace.test.ts",
+    "v2/gateway/src/runtime/isolation.ts"
+  ],
+  "missing": []
+}

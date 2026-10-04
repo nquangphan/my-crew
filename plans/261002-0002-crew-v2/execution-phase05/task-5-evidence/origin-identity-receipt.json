@@ -1,0 +1,17 @@
+{
+  "kind": "host pure runtime only; no dependency or native execution",
+  "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+  "argv": [
+    "node",
+    "--test",
+    "--test-name-pattern=presentation metadata",
+    "v2/server/test/attachments-pdf-image.unit.test.ts"
+  ],
+  "redExit": 1,
+  "greenExit": 0,
+  "logs": [
+    "origin-identity-red.log",
+    "origin-identity-green.log"
+  ],
+  "sourceSha256": "4f90fde1217beff3bb6f87fe035af23552c2e9027b4063208473ddd56714e7a0"
+}

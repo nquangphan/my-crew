@@ -1,0 +1,24 @@
+{
+  "acceptedBase": "d438ce1",
+  "status": "DONE_WITH_CONCERNS",
+  "time": "2026-10-03T17:07:44.263643+07:00",
+  "sourceDriftSinceCover": [],
+  "files": {
+    "v2/gateway/src/runtime/isolation.ts": {
+      "sha256": "baa2dc21eca119cabfb2e3e303d31da249e806a75157b0bb0a074d01f3a6aefb",
+      "bytes": 9149
+    },
+    "v2/gateway/test/runtime-workspace.test.ts": {
+      "sha256": "0c1cafcba802d8c095da4743412a2ebbb4ee7c66e62104d7e8d205ef73e6cf69",
+      "bytes": 10083
+    },
+    "v2/gateway/test/effect-ledger.test.ts": {
+      "sha256": "a6adfc9c8b0eca65718adc178e1776f1a789e2dbefa2fbca283afbb711feb2ca",
+      "bytes": 5944
+    },
+    "v2/docs/flows/gateway-runtime.md": {
+      "sha256": "da8c825aee274f3c61ad7dcf3ac735bcbc671b66325469ebb6d5663c444fcfeb",
+      "bytes": 11034
+    }
+  }
+}

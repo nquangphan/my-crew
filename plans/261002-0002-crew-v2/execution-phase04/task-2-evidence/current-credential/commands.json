@@ -1,0 +1,56 @@
+[
+  {
+    "label": "gateway-build",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-460e1513-855d-48f3-b7c1-049b066d3b8e/v2/gateway",
+      "build"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931258.493251,
+    "exit": 0,
+    "finished": 1790931258.924159
+  },
+  {
+    "label": "gateway-types",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-460e1513-855d-48f3-b7c1-049b066d3b8e/v2/gateway",
+      "typecheck"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931258.924588,
+    "exit": 0,
+    "finished": 1790931259.295158
+  },
+  {
+    "label": "server-types",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-801ae8dd-600c-45a9-8618-6fdb7048ccfe/v2/server",
+      "typecheck"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931259.2954729,
+    "exit": 0,
+    "finished": 1790931260.149281
+  },
+  {
+    "label": "server-covering",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-801ae8dd-600c-45a9-8618-6fdb7048ccfe/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-801ae8dd-600c-45a9-8618-6fdb7048ccfe/v2/server/test/task2-covering.test.ts"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931260.1501288,
+    "exit": 1,
+    "finished": 1790931306.068248
+  }
+]

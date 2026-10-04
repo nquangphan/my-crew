@@ -1,0 +1,64 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=assistant FIX2|assistant FIX1 S1|assistant store rejects (claiming|acknowledging)|assistant store claims once|assistant store uncertain turn", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-affected-cover-dwxrt2lv/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-2b112b48-a8f3-4655-9275-4ea2ea5394be", "--label", "crew.phase06.task1=501d37b3-f913-4b75-a27e-bb3e9ebfa75c", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8", "name": "crew-v2-test-2b112b48-a8f3-4655-9275-4ea2ea5394be", "mapping": "127.0.0.1:60323"}
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mh7j92
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mh7j92 nonceSha256=28a50e442bf5ee6e81d74f9f68480fb6a3500d0cb2a1ca22c5d6332c5b09dbcc
+attachment DB scratch identity dev=16777229 ino=64475253 uid=501 pid=26198
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mh7j92
+✔ assistant store rejects claiming work with an unpersisted turn fence and preserves pending delivery (362.164792ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WT68oO
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WT68oO nonceSha256=63321c6a1c9904685fa4f9cbc02bf39cafee2a40d93540084f3a9b61080047d1
+attachment DB scratch identity dev=16777229 ino=64475260 uid=501 pid=26198
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WT68oO
+✔ assistant store rejects acknowledging mere delivery without persisted turn authority (236.411917ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ukuCh
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ukuCh nonceSha256=2a3a9774ac403a2bded3e02fd56edeb73bc9a7b4d63550fa9eb5fa74465931a4
+attachment DB scratch identity dev=16777229 ino=64475267 uid=501 pid=26198
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ukuCh
+✔ assistant store claims once and acknowledges only its exact current persisted fence (268.062625ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ai4vF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ai4vF nonceSha256=e04198bff2488dc17a0effc7eae796eccbb67d7a276afae2dc43c5d1c61a824a
+attachment DB scratch identity dev=16777229 ino=64475274 uid=501 pid=26198
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ai4vF
+✔ assistant store uncertain turn retains singleton guard and claimed work across restart (254.441ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rKlyBz
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rKlyBz nonceSha256=3f56b0aa51852c45c82f07f75520addd8ceb29ef3284f7d0e70d54c294bb718e
+attachment DB scratch identity dev=16777229 ino=64475281 uid=501 pid=26198
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rKlyBz
+✔ assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay (302.440208ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9noTfE
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9noTfE nonceSha256=b571a46ce89f9fa410e007d747afedea127bbd8262e3974a64d73fea1e8e3e95
+attachment DB scratch identity dev=16777229 ino=64475288 uid=501 pid=26198
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9noTfE
+✔ assistant FIX1 S1 monitor turn needs an unexpired explicit root scope for ticket work (237.773417ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wuu1Ag
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wuu1Ag nonceSha256=ef69caf5a4a130ab1bd78f09459d6de52c6cda3aded76a3ede3bfcd9db73cec7
+attachment DB scratch identity dev=16777229 ino=64475295 uid=501 pid=26198
+assistant FIX2 DB expiry witness {"state":"pending","operation":"claim","transaction_started_at":"2026-10-03T11:52:16.268Z","expires_at":"2026-10-03T11:52:16.369Z","checked_at":"2026-10-03T11:52:16.373Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wuu1Ag
+✔ assistant FIX2 expired scope rejects claim from pending after DB wall-clock deadline (343.343459ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ayvzE6
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ayvzE6 nonceSha256=8388fafe60c590e8a9d4b5fe354fab34ff9ca21b4702ec79a5c72cd28b5911b0
+attachment DB scratch identity dev=16777229 ino=64475302 uid=501 pid=26198
+assistant FIX2 DB expiry witness {"state":"claimed","operation":"claim","transaction_started_at":"2026-10-03T11:52:16.634Z","expires_at":"2026-10-03T11:52:16.735Z","checked_at":"2026-10-03T11:52:16.742Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ayvzE6
+✔ assistant FIX2 expired scope rejects claim from claimed after DB wall-clock deadline (374.896208ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oHcK8M
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oHcK8M nonceSha256=55fc07d6dea1442e15767a7859c5d23fe8f5857d50d47e9af01a12d866b5e380
+attachment DB scratch identity dev=16777229 ino=64475309 uid=501 pid=26198
+assistant FIX2 DB expiry witness {"state":"claimed","operation":"ack","transaction_started_at":"2026-10-03T11:52:17.017Z","expires_at":"2026-10-03T11:52:17.118Z","checked_at":"2026-10-03T11:52:17.128Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oHcK8M
+✔ assistant FIX2 expired scope rejects ack from claimed after DB wall-clock deadline (383.615375ms)
+attachment DB container d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tVP0Ca
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tVP0Ca nonceSha256=c61089bbce6bc25a9e96fc8648cc094fa8a3fbc12905bedf277fa2d66be8cd2f
+attachment DB scratch identity dev=16777229 ino=64475316 uid=501 pid=26198
+assistant FIX2 DB expiry witness {"state":"acked","operation":"ack","transaction_started_at":"2026-10-03T11:52:17.398Z","expires_at":"2026-10-03T11:52:17.498Z","checked_at":"2026-10-03T11:52:17.506Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tVP0Ca
+✔ assistant FIX2 expired scope rejects ack from acked after DB wall-clock deadline (377.077416ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3217.085208

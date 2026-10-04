@@ -1,0 +1,43 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=derived route consent|prelaunch hook|retirement tombstone", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-r3-exact-red-jki6h2wz/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-73c42d6d-94fd-4d71-aec4-251550f5c069", "--label", "crew.phase06.task1=9acc7896-39f5-4895-8fb1-39791acb5e22", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "f0c59a4479972b28233f0e613b672a4e59bab74d9ab3f8fbdf16c80dde5d7d70", "name": "crew-v2-test-73c42d6d-94fd-4d71-aec4-251550f5c069", "mapping": "127.0.0.1:49668"}
+attachment DB container f0c59a4479972b28233f0e613b672a4e59bab74d9ab3f8fbdf16c80dde5d7d70 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FsDMuP
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FsDMuP nonceSha256=a0cdd361fb683d48f7cb034d62feefd57213b43abcb844082431a95b5b295fb7
+attachment DB scratch identity dev=16777229 ino=64419741 uid=501 pid=67338
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FsDMuP
+✔ assistant store prelaunch hook rejects missing or different process identity and binds a matching claim atomically (368.195292ms)
+attachment DB container f0c59a4479972b28233f0e613b672a4e59bab74d9ab3f8fbdf16c80dde5d7d70 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nRrLs7
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nRrLs7 nonceSha256=b68d7bec03e8338992af8aab3968aef9735104df6da3c40bf7a29cd85b1e2353
+attachment DB scratch identity dev=16777229 ino=64419748 uid=501 pid=67338
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nRrLs7
+✔ assistant store retirement tombstone blocks claim and unclaimed release needs exact never-authorized proof (255.935167ms)
+attachment DB container f0c59a4479972b28233f0e613b672a4e59bab74d9ab3f8fbdf16c80dde5d7d70 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VjJJUy
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VjJJUy nonceSha256=8c423b4d112f2afa8989d261dd8479b21b24295ac5d9ad48c106a8457a81d847
+attachment DB scratch identity dev=16777229 ino=64419755 uid=501 pid=67338
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VjJJUy
+✖ assistant store derived route consent cannot extend parent expiry or widen original access (236.132333ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 937.790792
+
+✖ failing tests:
+
+test at v2/server/.task-1-assistant-r3-exact-red-jki6h2wz/v2/server/test/assistant-store.test.ts:741:1
+✖ assistant store derived route consent cannot extend parent expiry or widen original access (236.132333ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-r3-exact-red-jki6h2wz/v2/server/test/assistant-store.test.ts:765:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-r3-exact-red-jki6h2wz/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_ROUTE_CONSENT_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

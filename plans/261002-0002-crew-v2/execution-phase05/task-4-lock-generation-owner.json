@@ -1,0 +1,64 @@
+{
+  "stage": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-extractor-lock-h661zjtn",
+  "dev": 16777229,
+  "ino": 63925182,
+  "uid": 501,
+  "nonce": "ba49e80ca7fd3551a5465c4d",
+  "name": "crew-v2-lock-ba49e80ca7fd3551a5465c4d",
+  "image": "node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8",
+  "purpose": "initial target Linux lock-only generation; no host install; frozen image uses separately reviewed output",
+  "baselineLockSha256": "7b052be3d22a686fa2a19135194aae23d09832d6b6f624ffde6be10383462139",
+  "packageSha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+  "argv": [
+    "docker",
+    "create",
+    "--platform",
+    "linux/amd64",
+    "--name",
+    "crew-v2-lock-ba49e80ca7fd3551a5465c4d",
+    "--label",
+    "crew.v2.owner=ba49e80ca7fd3551a5465c4d",
+    "--memory",
+    "512m",
+    "--memory-swap",
+    "512m",
+    "--cpus",
+    "1",
+    "--pids-limit",
+    "64",
+    "--mount",
+    "type=bind,src=/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-extractor-lock-h661zjtn,dst=/app",
+    "--workdir",
+    "/app",
+    "node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8",
+    "sh",
+    "-c",
+    "set -eu\nnode --version\nnpm install --global --prefix /opt/pnpm --ignore-scripts --no-audit --no-fund pnpm@10.32.1\n/opt/pnpm/bin/pnpm --version\n/opt/pnpm/bin/pnpm install --lockfile-only --ignore-scripts --config.manage-package-manager-versions=false\n"
+  ],
+  "createExit": 0,
+  "containerId": "f797a289814fdcf8e8bb47e4923ad8405c76fd7dde2249de00baf12a12440eec",
+  "package.json": {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-4-linux-package.json",
+    "sha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+    "bytes": 843
+  },
+  "pnpm-lock.yaml": {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-4-linux-pnpm-lock.yaml",
+    "sha256": "2b828b05f94774ed27baa1d2883f7ded6d93fcce0824f1d519ca6b72bf5ede77",
+    "bytes": 25548
+  },
+  "result": {
+    "exitCode": 0,
+    "finishedAt": "2026-10-02T10:43:24.702523006Z",
+    "architecture": "linux/amd64",
+    "node": "v24.14.0",
+    "pnpm": "10.32.1",
+    "hostDependenciesTouched": false,
+    "containerRunning": false
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "stageRemoved": true,
+    "verifiedActualExitBeforeRemoval": true
+  }
+}

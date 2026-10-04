@@ -1,0 +1,82 @@
+{
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-report.md": {
+    "sha256": "ebc5f868f4b2522eb1cba7332306009499437c0eb78bb299997dc46be1860b9b",
+    "bytes": 6793
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/base-comparison.json": {
+    "sha256": "3c44948ca58c58633be08ea77af3d576a6b337d695ea2fdeae0fb7490ee1fad2",
+    "bytes": 252
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/biome-final.log": {
+    "sha256": "6819a52313b0bb2d5d0d35d99c0dab0b7feeb20f23c4a813d0617e603efcb2d8",
+    "bytes": 43
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/biome-format.log": {
+    "sha256": "a15640ae472f4889bf01840d7bf54a0b311f519555e53b92f360575fa7fa5f41",
+    "bytes": 39
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/build.log": {
+    "sha256": "aadf4d20898dca7912925e28bcff7ebd44174c38d2d8106a50ed9b505b098be4",
+    "bytes": 189
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/expiry-red.log": {
+    "sha256": "367e1eb7a41d71ba3d2aa5e6227bec6a31396795c63eafc430633a6dca21db6a",
+    "bytes": 5668
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/green-commands.json": {
+    "sha256": "93eac5709bfc927e4959ab8c578205b69829e767425f90492e64bc62e0bd0841",
+    "bytes": 1366
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/green-runner.log": {
+    "sha256": "d5bbbe1b1118c2c350fd74be8b2a8cb6f555ffb0a1fa310781e7920f771045f7",
+    "bytes": 1272
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/green-source.json": {
+    "sha256": "c677552c6f3910ee93aa28f0c5bdfffe316a50060431a7034d5dc0ea6932d595",
+    "bytes": 19242
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/owned-final-sha.json": {
+    "sha256": "29d628a2b4d9bdea48db6d30461ce9d3289e82f3f622cddd48c2006115668dac",
+    "bytes": 791
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/red-commands.json": {
+    "sha256": "4688ba3099289d88e90ac222d717c22bae626b3e8980fd240d3bd87dfa45a393",
+    "bytes": 452
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/red-runner.log": {
+    "sha256": "14aab587e4b40f3c8b7087605c67311438a9aadf78b974d3d07b2726397ddbe8",
+    "bytes": 530
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/red-source.json": {
+    "sha256": "29bab79b4e672309cfc7ede780d03a2abc96731d54119785091516cb9a8a661d",
+    "bytes": 19242
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/resource-closure.json": {
+    "sha256": "6d6237d6a6c133b1741252f865be38c929f7729ae23c1704dfffcf93e17a0744",
+    "bytes": 9948
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/resource-gates.jsonl": {
+    "sha256": "11084a82a20cecbe54a1f7c482c4982b9957a364b7dcbdbd8d7a4b334f2ce0e0",
+    "bytes": 1083
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/root.json": {
+    "sha256": "0bc8f940cf64241c33eb4f65cc7375022fdeeab39f4e3779a59d757fd0186543",
+    "bytes": 269
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/source-stability.json": {
+    "sha256": "46026a5671e340e06897395d51b9972c69b6bf0f7bb206d2322dd97bdd16f735",
+    "bytes": 44
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/strict.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/targeted-cover.log": {
+    "sha256": "99f0f252d7ee8311884617467110387610587d3909e353cb02e234c7ce5e95d8",
+    "bytes": 12599
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-fix1-evidence/verify-fix1.py": {
+    "sha256": "b3415cb91d9d672bb50316e003daa7932f923aa210ce3e24729a59ad62c9d7fe",
+    "bytes": 5350
+  }
+}

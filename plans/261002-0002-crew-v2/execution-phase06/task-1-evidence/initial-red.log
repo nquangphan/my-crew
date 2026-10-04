@@ -1,0 +1,35 @@
+✖ assistant store schema has a durable empty inbox in the actual PostgreSQL migration prefix (217.832208ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 300.2505
+
+✖ failing tests:
+
+test at test/assistant-store.test.ts:13:1
+✖ assistant store schema has a durable empty inbox in the actual PostgreSQL migration prefix (217.832208ms)
+  PostgresError: relation "assistant_work_inbox" does not exist
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f/v2/server/test/assistant-store.test.ts:18:29 {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42P01',
+    position: '40',
+    file: 'parse_relation.c',
+    line: '1498',
+    routine: 'parserOpenTable'
+  }

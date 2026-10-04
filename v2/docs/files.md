@@ -23,6 +23,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `desktop/tsconfig.json` | [desktop-shell](flows/desktop-shell.md) (file) |
 | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/assistant/render-artifacts.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
 | `gateway/src/assistant/workflow-manifest.ts` | [assistant-workflows](flows/assistant-workflows.md) (điểm vào) |
 | `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/commands/http-client.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -106,6 +107,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/model-probe.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/model-reporter.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/pin-retirement.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/render-artifacts.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/resources.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/retirement-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/runtime-boundary.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
@@ -174,6 +176,18 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/extract/csv.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/docx.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/formats.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/image.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/index.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/pdf.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/text.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/verify.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/xlsx.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/xml.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/yauzl.d.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/extract/zip.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
 | `server/src/attachments/grants.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/jobs.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
 | `server/src/attachments/messages.ts` | [server-attachments](flows/server-attachments.md) (file) |
@@ -234,6 +248,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
 | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+| `server/src/tickets/assistant-access.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/authorization.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/completion.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
@@ -246,6 +261,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+| `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
 | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
@@ -253,13 +269,17 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-formats.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-ooxml.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/attachments-pdf-image.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/attachments-routing.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-snapshots.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-staging.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-storage.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-submissions.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-text-csv.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/attachments-worker-live.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/attachments-worker.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/attempts.test.ts` | [server-execution](flows/server-execution.md) (test) |
@@ -274,6 +294,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/docs-read.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/execution-events.unit.test.ts` | [server-execution](flows/server-execution.md) (test) |
+| `server/test/fixtures/attachments/README.md` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/embedded-executable.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/encrypted.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/javascript.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/launch-compressed.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/launch-escaped.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/launch-incremental.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/launch.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/make-fixtures.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/mixed.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/orientation-6.jpg` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/portfolio.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/rotated.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/scan.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/fixtures/attachments/text.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/gateway.test.ts` | [server-gateway](flows/server-gateway.md) (test) |
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
@@ -315,4 +350,18 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+| `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/index.html` | [web-shell](flows/web-shell.md) (file) |
+| `web/package.json` | [web-shell](flows/web-shell.md) (file) |
+| `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
+| `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+| `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
+| `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
+| `web/vite.config.ts` | [web-shell](flows/web-shell.md) (file) |
 <!-- crew-docs:files:end -->

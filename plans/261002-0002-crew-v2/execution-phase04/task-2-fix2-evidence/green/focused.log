@@ -1,0 +1,22 @@
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-RDDEZt","dev":16777229,"ino":63870445,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-RDDEZt","dev":16777229,"ino":63870445,"uid":501}
+✔ credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss (229.641375ms)
+✔ credential broker expiry needs bounded server receipt clock and ignores host wall clock (0.1325ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-FszitI","dev":16777229,"ino":63870464,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-FszitI","dev":16777229,"ino":63870464,"uid":501}
+✔ credential broker reconnect gets own desired/serverTime before secret envelopes and rejects disabled source (44.379334ms)
+✔ FIX1 R1 registration TTL upper bound uses estimated current server time without extending expired receipts (0.758208ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-ack-reconnect-Shcocr","dev":16777229,"ino":63870471,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-ack-reconnect-Shcocr","dev":16777229,"ino":63870471,"uid":501}
+✔ FIX1 R2 public reconnect replays committed lost ACK after expiry and revision change without rewriting secret (244.339625ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix2-current-credential-hARU1f","dev":16777229,"ino":63870496,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix2-current-credential-hARU1f","dev":16777229,"ino":63870496,"uid":501}
+✔ FIX2 public sync distinguishes missing current A from healthy current B and historical ACK without promotion (703.979541ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1309.750042

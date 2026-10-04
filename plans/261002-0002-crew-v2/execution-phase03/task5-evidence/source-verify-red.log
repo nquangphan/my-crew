@@ -1,0 +1,30 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l5CtMn","device":"16777229","inode":"63579906","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l5CtMn","device":"16777229","inode":"63579906","uid":501,"deleted":true}
+✖ sync verifies cached source bytes even when every desired projection is null (1607.27775ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1691.149625
+
+✖ failing tests:
+
+test at test/sync.test.ts:272:1
+✖ sync verifies cached source bytes even when every desired projection is null (1607.27775ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'current' !== 'error'
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/sync.test.ts:285:51)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'current',
+    expected: 'error',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

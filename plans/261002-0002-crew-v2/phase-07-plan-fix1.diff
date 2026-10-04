@@ -1,0 +1,433 @@
+--- a/phase-07-web.md
++++ b/phase-07-web.md
+@@ -3,7 +3,7 @@
+ description: "Web Jira/Confluence, hội thoại và sơ đồ ticket trên hợp đồng server v2, với cổng producer và nghiệm thu API/DB thật."
+ status: pending
+ priority: P2
+-effort: 72h
++effort: 112h
+ branch: codex/crew-v2-server
+ tags: [crew-v2, web, ticket-graph, attachments, accessibility]
+ created: 2026-10-03
+@@ -19,7 +19,7 @@
+ 
+ **Tech Stack:** Node ≥24.12, TypeScript 7.0.2 strict, pnpm 10.32.1; React 19.3.0/Vite 8.3.2, TanStack Router/Query, React Flow, Radix Dialog, Markdown an toàn; node:test logic thuần và Playwright browser thật. Exact pins ở Task1.
+ 
+-**Spec:** bản hiện hành worktree `/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md`, SHA256 `14085723bba15c1c00de52eab437cf83af58efef8943b761fd029f36f2523165`; roadmap hiện hành cùng worktree `plans/261002-0002-crew-v2/plan.md`. Canonical project chỉ là nơi lưu Markdown mới; main gốc cũ hơn, không dùng để bỏ bổ sung Sơ đồ ticket 03/10.
++**Spec:** bản hiện hành worktree `/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md`, SHA256 `14085723bba15c1c00de52eab437cf83af58efef8943b761fd029f36f2523165`; roadmap hiện hành cùng worktree `plans/261002-0002-crew-v2/plan.md`. Plan/report FIX1 được sửa tại managed worktree theo quyền owner; bản canonical main f473… là lịch sử, không sửa đồng thời. Main gốc cũ hơn không thay spec managed hoặc bổ sung Sơ đồ ticket03/10.
+ 
+ ## Global Constraints
+ 
+@@ -29,8 +29,8 @@
+ - Ticket request→step→task, bảy trạng thái; lý do chờ không là trạng thái mới. Server giữ review ≤5 vòng, workflow/version/run và completion authority.
+ - Superpowers mặc định; BMAD do owner chọn. Không gắn cứng chuỗi ví dụ BMAD/Superpowers hoặc prompt PM/dev/QC.
+ - Migration 001–010 immutable;011/schema/store đang triển khai, chưa freeze. Runtime/native/parser/corpus/merge08/updater09 có gate riêng.
+-- Mỗi source task có docs cùng commit. Flow đúng 7H2: Mục đích, Điểm vào, Các bước, Files, Dữ liệu, Flow liên quan, Tests. Controller map R2/R3/generated/Git index/commit/shared files; worker không stage dirty tree.
+-- Manifest `v2/docs/flows.yaml:2` chưa include web/src. Controller phải có bằng chứng quyền R6 coverage trước source đầu tiên; không tự sửa source/shared/unassigned hoặc dùng trailer giả. Markdown mới chỉ canonical `plans/` hoặc `docs/`; controller mirror sang managed worktree.
++- Mỗi source task có docs cùng commit; source milestone S được ghi acceptance pending khi A chưa đạt, không tự mở producer gate. Flow đúng 7H2: Mục đích, Điểm vào, Các bước, Files, Dữ liệu, Flow liên quan, Tests. Controller map R2/R3/generated/Git index/commit/shared files; worker không stage dirty tree.
++- Manifest `v2/docs/flows.yaml:2` chưa include web/src. Controller phải có bằng chứng quyền R6 coverage trước source đầu tiên; không tự sửa source/shared/unassigned hoặc dùng trailer giả. Markdown chỉ nằm trong `plans/` hoặc `docs/` đã được owner cho phép; lượt FIX1 sửa plan/report ở managed worktree đã được owner cho phép; canonical main là bản lịch sử, không sửa cả hai bản.
+ - Trước mỗi dispatch mới kiểm quota tuần; còn ≤25% hoặc quota không đọc được thì dừng giao mới, chỉ khép inflight. Trước implement/review/fix lấy telemetry mới; thiếu/critical thì chờ. WARN heavy chỉ khi controller xác nhận available ≥4GiB, CPU idle ≥50%, disk ≥8GiB, sole slot; Node heap không phải RSS cây process.
+ - Lượt này STATIC; schema giữ sole heavy slot; không install/build/DB/browser/native/container hoặc child agents.
+ 
+@@ -89,7 +89,7 @@
+ 
+ | Dữ liệu vào | Biến đổi trong web | Đầu ra |
+ |---|---|---|
+-| Cookie/GET session | CSRF memory, validatedDTO, QueryClient theo session | Authenticated ownerGET/mutation; logout abort/cache clear |
++| Cookie/GET session | CSRF memory, validatedDTO, QueryClient theo session | Owner GET/mutation; logout abort/cache clear, giữ tombstone unresolved |
+ | Ticket list/detail/graph đầy đủ theo root | ID/revision sharedquerykeys; parentId→hierarchy, predecessorId→ticket dependency, checkStep→fix repair | Same board/list/map/dialog state, no readiness inference |
+ | Clipboard/drop/File | policy→hash tuần tự→reserve→bytes→selection chính xác→atomic submission | Server ticket/comment/messageID, durable refs, cache invalidate |
+ | Event cursor/type/IDs | bounded invalidation/dedup→refetch DTO | Event content không merge thành nghiệp vụ; reconnect current view |
+@@ -130,48 +130,93 @@
+ 
+ Effort engineering chưa gồm producer wait. Source files mới đều [planned]. Controller owns package/lock/config/main/router/styles/docsmanifest/generated/index/Git/index/commit; mỗi worker owns listed modules+canonical docs draft, không peer edits. Library interfaces freeze trước consumer song song. Additional sharedwrite báo/transfer exactfile; không duplicateclient/modal để tránh ownership.
+ 
+-| Task | h | Blockers | Parallel phù hợp | Ownership |
++| Task | Base h | Source blockers | Integration acceptance blockers | Ownership/test files |
+ |---|---:|---|---|---|
+-|1 Shell/toolchain/evidence |8|G0/reviewplan|Bootstrap tuần tự|webpackage/config/main/router/shell/styles/workspacetest |
+-|2 Transport/query/events |10|1,002–008|Không shared writes|web/src/lib/**,contracts/**,client/events tests |
+-|3 Tickets/detail/history |10|2,G1/G3,G4/G5 actions|4pure,5,6docs,7|web/src/tickets/**,tickets.test.ts |
+-|4 Graph/map |10|2,dialog3,G1|5/6/7|web/src/graph/**,graph/state tests |
+-|5 Composer/attachment |10|2,G2;statictrước gate|3/4/6/7|web/src/compose/**,attachments/**,compose.test.ts |
+-|6 Docs/Assistant |10|2,006;Assistant5/G3|Phần docs song song với7|web/src/docs/**,assistant/**,docs-links.test.ts |
+-|7 Machines/model/workflows |8|2,007/008,G3/G4|3/4/5/6|web/src/machines/**,model-config.test.ts |
+-|8 Actions/update/E2E |6|3/7,mọi feature,G5/G6|Không heavy song song|web/src/operations/**,e2e/**,fixture/config |
+-
+-Tổng72h. Mỗi source task cập nhật canonical `docs/v2/web-<flow>.md` đúng 7H2 cùng handback; controller mirror `v2/docs/flows/`+R2/R3/generate/check/commit. Không tạo Markdown mới managed worktree. Không đánh dấu phase complete từ pure/static pass khi producer chưa accepted.
++|1 Shell/toolchain/harness |14|G0, review plan|A1: isolated harness identity/API baseline và shell screenshot|Controller: shell/config/fixture/support only|
++|2 Auth/transport/query/events |14|S1/G0|A1;002–008 accepted baseline → A2|auth/lib/contracts, unit tests, auth/SSE E2E|
++|3 Tickets/request form/detail/history |12|S2; S3a read/detail interfaces trước S3b compose integration|A2,G1; S5a+G2 cho create/comment → A3; G3 cho history/question projections|tickets files/unit/create tests/tickets E2E|
++|4 Graph/map |10|S2+S3a; pure graph không cần composer|A2+G1+A3 để kiểm shared dialog/composer → A4|graph files/unit/map E2E|
++|5 Shared composer/attachment |12|S2,G0 exact DTO; không phụ thuộc Task3 source|A2+G2 → A5; message receipts/replies còn G3|compose/attachments files/unit/compose E2E|
++|6 Docs/Assistant/attention |12|S2; docs006 độc lập; Assistant compose sau S5a|A2+006 cho docs; A5+G3 cho Assistant/attention → A6|docs/assistant files/unit/feature E2E|
++|7 Onboarding/machines/model/workflows |12|S2; baseline identity/project002/003|A2 cho onboarding; G3/G4 cho designation/status/install → A7|machines/projects files/unit/onboarding/machine E2E|
++|8 Actions/update/final integration |10|S3b/S7,G5/G6; harness đã có từ1|A3/A4/A5/A6/A7+G5/G6 → A8|operations files/action E2E/final integration spec|
++
++Base estimate96h gồm harness và acceptance riêng từng feature. Allowance16h cho review/fix và integration delta: planning budget112h, thay estimate cũ72h. Đây là phân bổ kỹ thuật chưa đo năng suất, không phải benchmark hay cam kết thời gian; producer wait/native acceptance không nằm trong con số. Task1 thêm harness, Task2 thêm auth/recovery, Task3 thêm create form, Task6 thêm attention và Task7 thêm onboarding; Task8 không còn gánh tạo harness/E2E của các task trước.
++
++### DAG nguồn và DAG nghiệm thu, không có vòng
++
++`S` là mốc source/interface review; `A` là real integration acceptance. Chỉ đạt S không được claim task hoặc phase đã hoàn tất. Controller có thể commit source đã review với báo cáo acceptance pending để consumer tiếp tục; không dùng commit đó mở G0–G6. Các node gate là external producer handoff, không phải node UI quay lại phụ thuộc task sau.
++
++- Source topo hợp lệ (chỉ là một thứ tự, các node độc lập có thể song song): G0 → S1 → S2 → S3a → S5a → S6docs → S7basic → S3b → S4 → S6assistant → S7full → S8actions. Predecessors chính xác: S1={G0}; S2={S1}; S3a/S5a/S6docs/S7basic={S2}; S3b={S3a,S5a}; S4={S2,S3a}; S6assistant={S6docs,S5a,G3}; S7full={S7basic,G3,G4}; S8actions={S3b,S7full,G5,G6}. Không coi S8actions song song trước S7full.
++- Acceptance predecessors chính xác: A1={S1,G0}; A2={S2,A1}; A5={S5a,A2,G2}; A6docs={S6docs,A2,006}; A7basic={S7basic,A2}; A3={S3b,A2,A5,G1}, history/question phần Task3 còn G3 riêng; A4={S4,A3,G1}; A6full={S6assistant,A6docs,A5,G3}; A7full={S7full,A7basic,G3,G4}; A8={S8actions,A3,A4,A5,A6full,A7full,G3-history,G5,G6}. A2 dùng project baseline để không chờ A5; atomic ticket/comment recovery thuộc A5/A3. G3-history là handoff history của G3, không một UI task quay ngược lại. Full Task3 acceptance ghi pending nếu G3-history chưa đạt; A8 không quên mốc đó.
++- Acceptance topo: A1 (harness real API/PG baseline, shell preview) → A2 (login/reauth/recovery/SSE) → {A5 (G2 composer), A6docs (006), A7basic (onboarding)} → A3 (G1 read plus A5 create/comment composition) → A4 (G1 graph + A3 dialog/composer) → {A6full (A5/G3 Assistant/attention), A7full (G3/G4 config/install)} → A8 (mọi feature acceptance và G5/G6 actions/update).
++- A5 không chờ A3: Task5 test shared composer trên fixture host trong `compose.spec.ts` của chính Task5, sử dụng actual production HTTP và DB. Host chỉ mount component để nhận form input, không mock network/entity/receipt; Task3 kiểm integration form/board/dialog sau A5. Task4 pure tests có thể chạy sau S3a; screenshot map/dialog và acceptance cuối chờ A3.
++- A1 không chờ login UI Task2: fixture lifecycle test bootstrap owner tại DB fixture và gọi HTTP login baseline bằng test-only fetch. Task1 shell screenshot chỉ guest/static preview có nhãn; login/reauth screenshot thuộc2, board/detail thuộc3, map/dialog thuộc4, compose thuộc5, docs/Assistant/attention thuộc6, machines/setup thuộc7, actions/update thuộc8.
++- Harness files chỉ controller Task1 sở hữu: `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts`, `v2/web/playwright.config.ts`, `v2/web/test/fixture-lifecycle.test.ts`. Feature worker sở hữu spec riêng được liệt kê trong Files; cần sửa harness thì gửi controller delta, không tạo runner thứ hai. G2/G3/G5/G6 chưa mount thì scenario tương ứng blocked; harness không cắm authority giả vào production để đạt acceptance.
++
++Mỗi source task cập nhật docs flow đúng7H2 cùng handback; controller quản lý R2/R3/generated/Git/index/commit và shared files. Source phase không complete từ static/unit pass khi producer hay real acceptance còn pending.
+ 
+ ## Task 1: Shell độc lập và bằng chứng hướng UI
+ 
+-**Files mới:** `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json`, `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/src/main.tsx`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css`, `v2/web/test/workspace.test.ts`. Controller sở hữu config/lock/router/styles. Docs canonical `docs/v2/web-shell.md`.
++**Files mới:** `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json`, `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/src/main.tsx`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css`, `v2/web/test/workspace.test.ts`, `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts`, `v2/web/playwright.config.ts`, `v2/web/test/fixture-lifecycle.test.ts`. Controller sở hữu config/lock/router/styles. Docs canonical `docs/v2/web-shell.md`.
+ 
+ **Interfaces:** SPA base `/crew-v2/`, API prefix `/v2`; shell có outlet, project navigation và loading/error/empty panels. QueryClient là một instance mỗi authenticated browser app, không singleton process/SSR. Draft và graph view có lifetime per tab/root/ticket, không module-global user state. Source không import server runtime/DB hoặc v1.
++
++```ts
++type OwnedResource = { kind: 'database' | 'container' | 'listener' | 'scratch' | 'browser';
++  id: string; ownershipNonce: string; startIdentity: string };
++type CleanupResult = { resourceId: string; state: 'removed' | 'stopped' | 'unknown'; reason: string | null };
++interface FixtureHandle {
++  readonly apiOrigin: string; readonly webOrigin: string;
++  readonly ownerPassword: string; readonly dbName: string;
++  readonly resources: readonly OwnedResource[];
++  close(): Promise<readonly CleanupResult[]>;
++}
++function withFixture(run: (handle: FixtureHandle) => Promise<void>): Promise<void>;
++```
++
++FixtureHandle/OwnedResource/CleanupResult/withFixture là interface mới Task1 trong e2e/support/fixture.ts, process-lifetime của một isolated test run; ownerPassword không được serialize handle/log. Test spec tiêu thụ cùng handle. withFixture giữ callback databaseFixture mở suốt feature run, không return handle ra ngoài callback rồi để helper drop DB sớm. close dừng và đối chiếu listener/browser/process trước khi callback kết thúc để helper đóng pool/drop riêng DB. Test unknown identity giữ run/resource để controller reconcile, không return vào cleanup force khi STOP chưa rõ. close xác minh resource registry/ownership trước mutation và idempotent; không suy STOP từ port đóng đơn thuần.
++
+ 
+ - [ ] Kiểm G0, R6 coverage, quota/telemetry trước source. Read spec+roadmap hiện hành và producer ledger, không bắt đầu package từ main cũ.
+ - [ ] Pin registry chính thức đã đọc ngày 03/10: `react/react-dom@19.3.0`, `@tanstack/react-router@1.170.41`, `@tanstack/react-query@5.104.1`, `@xyflow/react@12.12.0`, `@radix-ui/react-dialog@1.1.23`, `react-markdown@10.1.0`, `remark-gfm@4.0.1`; dev `vite@8.3.2`, `@vitejs/plugin-react@6.1.1`, `typescript@7.0.2`, `@types/react/@types/react-dom@19.3.0`, `@types/node@26.6.3`, `@playwright/test@1.63.0`. Recheck official peer/engines/security notices tại implementation; pnpm `--ignore-workspace` chỉ trong web, không đổi lock server/domain. Biome dùng runner đã ghim repo, không thêm formatter.
+ - [ ] Write workspace isolation RED test trước scaffold: parse package/scripts/base và scan imports cấm `apps/`, `packages/shared`, v1 roles. Missing package phải fail rõ. Sau scaffold test pass không thay acceptance chức năng.
+ - [ ] Định nghĩa script thực thi: `dev: vite --host 127.0.0.1`, `build: tsc --noEmit && vite build`, `typecheck: tsc --noEmit`, `test: node --test test/*.test.ts`, `test:e2e: playwright test`. Strict/JSX react-jsx/noEmit; pure tests `.ts` không JSX. Vite API proxy vào owned listener controller cấp; production same-origin, không gọi v1.
++- [ ] Controller tạo harness sớm trong task này: dùng `buildApp`, `v2/server/src/app.ts:30` (caller sở hữu migrate/listener/pool), `captureMigrations`, `v2/server/src/db/migrate.ts:20`, và `databaseFixture`, `v2/server/test/support/db.ts:11`, sau G0 freeze migration prefix/assembly đã accepted. `FixtureHandle` gồm apiOrigin, webOrigin, ownerPassword chỉ memory, dbName, resource identities và close() idempotent; `e2e/support/fixture.ts` cấp handle cho từng feature spec. Playwright config workers=1, webServer.reuseExistingServer=false, listener loopback do fixture sở hữu. Không dùng backend chung hoặc đóng pool/server của peer.
++- [ ] A1 test fixture lifecycle trên API–PostgreSQL18.6 thật, cổng loopback được OS cấp khác5432/55432 và DB `crew_v2_` riêng: gọi `bootstrapOwner`, `v2/server/src/auth/bootstrap.ts:7`, trên DB fixture với password runtime-generated; HTTP login/current session rồi close/verify owned resources. Không có endpoint bootstrap mới và không cần UI login để khép A1. Registry trước launch ghi scratch nonce/dev/ino, exact container/DB ID, listener PID/start identity, browser context và staging. Finally abort requests, đóng browser/listener/pool, xác nhận STOP trước drop DB/rm exact stopped container/scratch; UNKNOWN giữ lại/report. Test interrupt/crash/repeated cleanup không xóa peer assets. Không broad prune/rm/tmp/git clean.
+ - [ ] Viết shell/tokens mới theo hướng Jira/Confluence: sidebar theo dự án, toolbar gọn, status có chữ+icon, docs tree/content, responsive1280/768/390. Có focus-visible/reduced-motion/semantic landmarks; mobile không overflow ngoài map. Icon action có accessible name.
+-- [ ] Chụp actual rendered shell board/docs/map/dialog desktop/mobile bằng Playwright MCP sau resource gate. Trước real producer, preview fixture ghi “Bản minh họa”; screenshot không là API/DB acceptance. Controller lưu PNG/path/hash tại canonical plan folder, đối chiếu ảnh owner đã xem; không hỏi duyệt lại hướng UI.
++- [ ] Chụp shell guest/static preview desktop/mobile bằng Playwright MCP sau resource gate, ghi “Bản minh họa” nếu có fixture content. Task1 không chờ board/docs/map/dialog chưa được tạo. Screenshot của từng feature nằm ở task sinh feature, lưu path/hash và đối chiếu ảnh owner đã xem; không hỏi lại hướng UI.
+ - [ ] Chạy web typecheck/build/scoped Biome và workspace test; docs7H2/map/check qua controller. Independent spec/quality review trước commit Conventional Commit exact owned files.
+ 
+-**Success:** Build độc lập, không import v1; viewport390px không overflow nội dung; zoom200% vẫn mở ticket được; có screenshot evidence đúng nguồn. **Risk:** M×M toolchain drift, mitigation exact pins/peer/lock check. **Rollback:** tháo riêng static web entry/bundle; không đổi DB/API/v1.
++**Success:** Build độc lập, không import v1; viewport390px không overflow nội dung; zoom200% vẫn dùng shell được; A1 có actual fixture baseline và screenshot shell đúng nguồn. Ticket/map acceptance thuộc task sau. **Risk:** M×M toolchain drift, mitigation exact pins/peer/lock check; H×H cleanup nhầm tài nguyên được giảm bằng registry exact identity, interrupt/repeated-close/UNKNOWN tests trong A1. **Rollback:** tháo riêng static web entry/bundle; không đổi DB/API/v1.
+ 
+ Nguồn primary: [React versions](https://react.dev/versions), [Vite guide](https://vite.dev/guide/), [React Flow accessibility](https://reactflow.dev/learn/advanced-use/accessibility), [TanStack query keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys), [WAI modal dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/). Exact publisher version/peer metadata đọc trực tiếp `https://registry.npmjs.org/<encoded-package>/<version>`; chưa build thử stack mới trong lượt STATIC.
+ 
+ ## Task 2: Transport, cache và event resync
+ 
+-**Files mới:** `v2/web/src/contracts/http.ts`, `v2/web/src/contracts/tickets.ts`, `v2/web/src/contracts/docs.ts`, `v2/web/src/contracts/machines.ts`, `v2/web/src/contracts/attachments.ts`, `v2/web/src/lib/api.ts`, `v2/web/src/lib/session.ts`, `v2/web/src/lib/query-keys.ts`, `v2/web/src/lib/events.ts`, `v2/web/src/lib/pending-operation.ts`, `v2/web/test/client.test.ts`, `v2/web/test/events.test.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-data.md`.
++**Files mới:** `v2/web/src/contracts/http.ts`, `v2/web/src/contracts/tickets.ts`, `v2/web/src/contracts/docs.ts`, `v2/web/src/contracts/machines.ts`, `v2/web/src/contracts/attachments.ts`, `v2/web/src/lib/api.ts`, `v2/web/src/lib/session.ts`, `v2/web/src/lib/query-keys.ts`, `v2/web/src/lib/events.ts`, `v2/web/src/lib/pending-operation.ts`, `v2/web/test/client.test.ts`, `v2/web/test/events.test.ts`, `v2/web/src/auth/login.tsx`, `v2/web/src/auth/session-boundary.tsx`, `v2/web/test/auth-recovery.test.ts`, `v2/web/e2e/auth.spec.ts`, `v2/web/e2e/events.spec.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-data.md`.
+ 
+ **Interfaces mới được định nghĩa trong task:**
+ 
+ ```ts
+ type PendingOperation = {
+-  id: string; method: 'POST' | 'PUT' | 'DELETE'; path: string;
+-  bodyJson: string; storage: 'tab' | 'memory'; state: 'pending' | 'ambiguous' | 'accepted' | 'rejected';
++  id: string; intentId: string; ownerId: 'owner';
++  method: 'POST' | 'PUT' | 'DELETE'; path: string;
++  bodyJson: string; storage: 'tab' | 'memory';
++  state: 'pending' | 'ambiguous' | 'suspended' | 'accepted' | 'rejected';
+ };
++type RecoveryTombstone = {
++  id: string; intentId: string; ownerId: 'owner';
++  method: PendingOperation['method']; path: string; targetId: string | null;
++  expectedRevision: number | null; state: 'needs_payload';
++};
++type SessionDto = { owner: { id: 'owner' }; csrfToken: string };
++type SessionState = 'bootstrapping' | 'guest' | 'authenticated' | 'expired' | 'logging_out';
++interface SessionClient {
++  restore(signal?: AbortSignal): Promise<SessionDto>;
++  login(password: string, signal?: AbortSignal): Promise<SessionDto>;
++  logout(signal?: AbortSignal): Promise<void>;
++}
+ type RequestOptions = { signal?: AbortSignal; operation?: PendingOperation };
+ interface OwnerClient {
+   get<T>(path: string, options?: RequestOptions): Promise<T>;
+@@ -182,11 +227,12 @@
+ type JournalEvent = { cursor: string; type: string; projectId: string | null;
+   ticketId: string | null; audienceMachineId: string | null; occurredAt: string; data: Record<string, unknown> };
+ function compareCursor(a: string, b: string): -1 | 0 | 1;
+-function invalidations(event: JournalEvent): chỉ đọc (chỉ đọc unknown[])[];
++function invalidations(event: JournalEvent): readonly (readonly unknown[])[];
+ const queryKeys = {
+   ticket: (id: string) => ['v2', 'ticket', id] as const,
+   graph: (rootId: string) => ['v2', 'graph', rootId] as const,
+   tickets: (filters: Record<string, string>) => ['v2', 'tickets', filters] as const,
++  attention: (filters: Record<string, string>) => ['v2', 'attention', filters] as const,
+   docsPage: (projectId: string, snapshotId: string, path: string) =>
+     ['v2', 'docs', projectId, snapshotId, path] as const,
+ };
+@@ -205,18 +251,22 @@
+ });
+ ```
+ 
+-- [ ] Implement OwnerClient chỉ same-origin `/v2/`; encode bodyJson một lần mỗi PendingOperation. Mutate retry giữ cùng id/body; sửa ý định phải operation mới sau explicit reapply. Session owner/CSRF memory-only; password/token/API secret không query cache/logger/persist. Pending operation có storage=tab chỉ cho payload không chứa secret và có version trong sessionStorage của tab; payload secret bắt buộc storage=memory. Clear cả hai khi logout/auth boundary. Test serializer phải từ chối lưu operation memory dù caller đưa vào cùng collection.
++- [ ] Implement OwnerClient chỉ same-origin `/v2/`; freeze bodyJson một lần mỗi PendingOperation, giữ ownerId/intentId và cùng id/body khi retry. Sửa ý định chỉ tạo operation mới sau terminal rejection hoặc confirmed acceptance của ý định cũ; ambiguous/suspended/tombstone chưa giải quyết không cấp key mới cho cùng intent. Password/token/API secret không query cache/logger/persist. Payload không secret có storage=tab, version trong sessionStorage của tab; payload secret storage=memory. Serializer từ chối operation memory, response token, secret và hash của secret.
++- [ ] Session state machine: bootstrapping → GET session → authenticated hoặc guest; authenticated gặp401 → expired; expired → UI login → restore cùng owner → authenticated. Khi401, abort GET/stream, khóa writes, xóa CSRF/password/sensitive cache, chuyển operation unresolved sang suspended. GIỮ original key/body/compose IDs/revision của payload nonsecret; secret giữ nguyên payload chỉ trong memory của tab hiện tại và bị chặn gửi tới khi reauth. Không xóa pending operation vì hết phiên. Guest/expired screen không hiển thị payload khôi phục; sau login GET session xác minh đúng ownerId, đồng thời route vẫn được producer authorize trước replay, thì mở panel “Tiếp tục yêu cầu chưa xác nhận”, replay cùng key/body với CSRF mới. Không tự sửa payload hoặc đổi key; draft chỉ clear sau confirmed acceptance. Server `getSession`, `v2/server/src/auth/session.ts:95`, hết phiên trả401; `createMutator`, `v2/server/src/journal/mutation.ts:29`, scope replay là actor/route/key, không session.
++- [ ] Logout chủ động là nhánh riêng: DELETE session với CSRF rồi đóng stream/abort requests, wipe CSRF/password/token/API secret/all payload và cache nhạy cảm trong memory/sessionStorage. Với unresolved intents, giữ CHỈ RecoveryTombstone: key/intentId/ownerId/method/path/target IDs/revision, không title/text/files/secret/hash/response bytes. Tab reload hoặc đóng secret form cũng chuyển memory operation unresolved thành tombstone và wipe secret. UI chặn tạo key mới cho intent đó; sau same-owner login owner phải nhập lại exact input để retry bằng key cũ, server so body hash. IDEMPOTENCY_CONFLICT giữ tombstone và báo input khác; không đổi key để thoát lỗi. Nếu không còn exact payload, hiển thị “Chưa thể xác nhận yêu cầu cũ” và giữ recovery pending, không bịa receipt lookup endpoint hoặc báo thành công từ provider status. Logout không tự clear pending receipt/tạo entity mới.
++- [ ] Login/reauth UI thuộc Task2: `src/auth/login.tsx` có password input và invalid-credentials/throttle/bootstrap-unavailable states; `session-boundary.tsx` chặn protected routes, hiển thị reauth và safe return route. SessionClient.login là ngoại lệ unauthenticated POST `/v2/auth/session` `{password}` (Origin, không CSRF/Idempotency-Key/PendingOperation); restore là GET; logout là DELETE có CSRF, không journal key. Password giới hạn1–4096 và chỉ memory, xóa sau request/close/logout;429 không blind retry. Return route chỉ là path nội bộ `/crew-v2/` đã validate, không external redirect. Controller wiring login/guest/expired outlet và logout action vào shell sau S2.
++- [ ] A2 real API/PG recovery chạy trên POSTproject baseline: commit rồi mất response → session hết hạn/revoke bằng fixture clock/DB test support → UI reauth same owner → replay original key/body → DB một project/receipt; controller Task1 fixture có API baseline, không chờ composer hoặcG2. A5/A3 bổ sung đúng atomic ticket/comment lost-response→expiry→reauth cases khi G2 mở; hai acceptance đó dùng session recovery đã đạt A2, không quay lại chặn A2. Negative cases expired writes blocked, logout tombstone không payload/secret, secret manual retry không persist, wrong-body same-key409 không sinh key mới. Screenshot login/expired/recovery thuộc Task2, dùng harness1; không chờ Task8.
+ - [ ] SSE dùng fetch streaming để gửi Last-Event-ID, parse named `event:`; không onmessage-only vì server gửi typed events. UTF8 incremental/CRLF/multiline/comments/chunk split, frame≤1MiB; malformed/overflow đóng và resync, không loop vô hạn.
+ - [ ] Listener bắt đầu trước initial GET; event đánh query stale. Reconnect đọc `/events?after=<applied>&limit=100` tới empty rồi stream; dedup cursor BigInt/string. Cursor persist sau invalidation enqueue; refetch failure giữ stale/retry visible. Unknown metadata event broad invalidation trong scope, không silent drop. Event không chứa comment/decision body.
+-- [ ] Refetch graph/list/detail/docs/model/status khi reconnect/focus. Old GET bị cancel hoặc revision guard từ chối row cũ; graph dirty marker refetch whole graph. Không patch subset edges. Snapshot coherence G1, client race guard không chữa torn server transaction.
++- [ ] Refetch graph/list/detail/docs/model/status/attention khi reconnect/focus. Old GET bị cancel hoặc revision guard từ chối row cũ; graph dirty marker refetch whole graph. Không patch subset edges. Snapshot coherence G1, client race guard không chữa torn server transaction.
+ - [ ] Tests event trùng/out-of-order, auth expiry closes stream, unknown type, aborted GET cũ after newer response, invalidation đang chờ during disconnect. Run scoped unit/types/Biome; actual auth/SSE HTTP private fixture before approval, không mocked browser completion.
+ - [ ] Controller freeze library interfaces và docs/map/commit. Recheck lifetime: QueryClient theo app/session, operation theo tab, AbortController theo request; không thêm state vào cấu trúc server hiện hữu.
+ 
+-**Success:** Mỗi app/session có một stream; events không tạo mutation trùng; cursor decimal giữ chính xác; logout xóa cache và đóng stream. **Risk:** H×H stale/duplicate actions, mitigation immutable operation +auth/revision/race matrix. **Rollback:** Revert bundle, giữ server idempotency/events; ambiguous pending ID vẫn để replay/reconcile, không xóa accepted data.
++**Success:** Mỗi app/session có một stream; events không tạo mutation trùng; cursor decimal giữ chính xác; logout xóa credential/payload/cache, đóng stream; expired vẫn khôi phục exact key/body cho same owner. **Risk:** H×H stale/duplicate actions, mitigation immutable operation, session recovery/tombstone và auth/revision/race matrix; auth recovery có risk M×H, kiểm lost-reply→expiry→reauth trên real DB. **Rollback:** Revert bundle, giữ server idempotency/events; ambiguous pending ID vẫn để replay/reconcile, không xóa accepted data.
+ 
+ ## Task 3: Board/list/request, detail chung và timeline
+ 
+-**Files mới:** `v2/web/src/tickets/board.tsx`, `v2/web/src/tickets/list.tsx`, `v2/web/src/tickets/requests.tsx`, `v2/web/src/tickets/detail.tsx`, `v2/web/src/tickets/dialog.tsx`, `v2/web/src/tickets/status.ts`, `v2/web/src/tickets/history.tsx`, `v2/web/src/tickets/queries.ts`, `v2/web/test/tickets.test.ts`. Controller chỉ wiring router; worker không sửa graph/composer. Docs canonical `docs/v2/web-tickets.md`.
++**Files mới:** `v2/web/src/tickets/board.tsx`, `v2/web/src/tickets/list.tsx`, `v2/web/src/tickets/requests.tsx`, `v2/web/src/tickets/detail.tsx`, `v2/web/src/tickets/dialog.tsx`, `v2/web/src/tickets/status.ts`, `v2/web/src/tickets/history.tsx`, `v2/web/src/tickets/queries.ts`, `v2/web/test/tickets.test.ts`, `v2/web/src/tickets/create-request.tsx`, `v2/web/src/tickets/create-request-state.ts`, `v2/web/test/create-request.test.ts`, `v2/web/e2e/tickets.spec.ts`. Controller chỉ wiring router; worker không sửa graph/composer. Docs canonical `docs/v2/web-tickets.md`.
+ 
+ **Interfaces:**
+ 
+@@ -226,25 +276,31 @@
+ type TicketDialogProps = { ticketId: string | null; onClose: () => void;
+   returnFocus: HTMLElement | null };
+ function TicketDialog(props: TicketDialogProps): React.JSX.Element;
+-function requestRoots(tickets: chỉ đọc Ticket[]): Ticket[];
++function requestRoots(tickets: readonly Ticket[]): Ticket[];
++type RequestFormFields = { projectId: string; kind: 'code' | 'research' | 'docs' | 'deploy';
++  title: string; description: string; workflowChoice: 'superpowers' | 'bmad' };
++function makeRequestSubmission(fields: RequestFormFields): Extract<ComposeSubmission, { kind: 'ticket' }>;
+ const statusLabels = { pending: 'Chờ thực hiện', ready: 'Sẵn sàng', running: 'Đang chạy',
+   needs_input: 'Chờ bạn', paused: 'Tạm dừng', done: 'Hoàn thành', cancelled: 'Đã hủy' } as const;
+ ```
+ 
++- [ ] S3a chỉ tạo board/list/detail/dialog/status/history/queries read interfaces sau S2, không import compose module hoặc tạo create-request files khi S5a chưa có. create-request/create-request-state và compose import thuộc S3b sau S5a. S3b và A3 chỉ khép sau S5a/A5: inject shared AttachmentComposer vào create-request và detail/comment; Task3 không sở hữu/clone upload client/composer. Task4 dùng S3a cho pure map, nhưng dialog/comment acceptance chờ A3.
++- [ ] Owner Task3 tạo create-request.tsx và create-request-state.ts. Board/list/request có action “Tạo yêu cầu”, form project/kind/title/workflow và textarea description của shared composer. Superpowers mặc định, BMAD explicit; giữ field khi đổi view/reauth/retry. makeRequestSubmission map chính xác `{projectId,parentId:null,level:'request',kind,title,description,mandatory:true,criteria:{workflowChoice},inputs:{},outputs:{},skill:null,workflowPin:null,deployApprovalDecisionId:null}` và target `{purpose:'ticket',projectId,ticketId:null}`. Độ dài/enum theo strict producer; không lấy field bắt buộc từ preview. Root preference ở `v2/server/src/tickets/service.ts:141` không thay run pin/certificate G3.
++- [ ] RED create-form tests và real A3 browser/DB: chọn code/research và Superpowers/BMAD, title/description tiếng Việt, có/không PNG, lost-response→reauth→same-key replay. Kiểm persisted title/kind/description/criteria.workflowChoice/attachment IDs và một entity/receipt; sau accept mở ticket.id trả về. Form khóa khi ambiguous/suspended, không đổi metadata/selection để gửi body mới cùng key.
+ - [ ] RED tests đủ7labels; root `level==='request' && id===rootId && parentId===null`; duplicate ID lấy revision mới. Fixture có hai root cùngtitle, orphan step, mandatory child, done/cancelled; không infer root từ trang đầu/title.
+ - [ ] List/board dùng exact supported filters, UUIDnextCursor đến null hoặc tải thêm rõ. Filters URL giữ qua đổi chế độ xem. Request-root pagination G1; tạm filter từng trang chỉ khi label chưa đủ/tải tiếp, không claim full danh sách root. Group status bằng chữ+icon, arbitrary status drag disabled.
+ - [ ] Shared detail load ticket/comments/decisions/attachments/docs refs cùng IDs. Máy/model/difficulty/attempt hiện tại/evidence chỉ từ G1/G3 typed projection; không key criteria tự quy ước hoặc prose thành typed fact. Unknown/missing rõ, không vendor strength table.
+ - [ ] Timeline chronological cursor từ G1/G3: decision/owner answer/review/fallback/intervention/artifact/commit/docs sync có actor/kind/time/source/rationale. Legacy comments/decisions phải đọc hết pages trước sort createdAt/id, không UUIDorder=chronology. Transcript không thay decision/evidence history.
+-- [ ] Radix dialog dùng chính TicketDetail, Title/Description/focus trap/inert/Escape/X. Returnfocus node trigger hoặc map container nếu node mất; realtime không giành textbox focus. Draft giữ per ticket khi close; explicit discard mới abandon. Inject một composer Task5, không clone forms.
++- [ ] Radix dialog dùng chính TicketDetail, Title/Description/focus trap/inert/Escape/X. Returnfocus node trigger hoặc map container nếu node mất; realtime không giành textbox focus. Draft giữ per ticket khi close; explicit discard mới abandon. Inject một composer Task5 ở S3b sau S5a/A5, không clone forms.
+ - [ ] Enumerate six new callers: board card, list row, request selection, graph node, docs related-ticket link, Assistant ticket link. Controller wiring tất cả vào shared detail/query/dialog; review danh sách callsites thực tế file:line sau source tạo.
+-- [ ] Actual browser tests deep link/reload404, keyboard/200%, draft comment retained during event, terminal read-only, needs_input/repair5 reason. Pause/cancel cần G4/G5 receipts; ACK không báo stopped. Request done đọc server evidence, không clienttoggle.
++- [ ] A3 browser tests qua harness Task1 sau A2/A5/G1: deep link/reload404, keyboard/200%, draft comment retained during event, terminal read-only, needs_input/repair5 reason. Pause/cancel cần G4/G5 receipts; ACK không báo stopped. Request done đọc server evidence, không clienttoggle.
+ - [ ] Scoped test/types/Biome, canonical 7H2 docs+controller mapping/commit; independent reviewer kiểm authority và sáu callers.
+ 
+ **Success:** Board/list/dialog đọc cùng ticket/status/revision; draft được giữ khi đóng; deep link và reload hoạt động. **Risk:** M×H sai approval/status, mitigation typed producer authority. **Rollback:** Revert views/router, giữ comments/decisions accepted, không undo bằng xóa DB.
+ 
+ ## Task 4: Sơ đồ ticket và viewport
+ 
+-**Files mới:** `v2/web/src/graph/project.ts`, `v2/web/src/graph/layout.ts`, `v2/web/src/graph/state.ts`, `v2/web/src/graph/ticket-map.tsx`, `v2/web/src/graph/ticket-node.tsx`, `v2/web/src/graph/ticket-edge.tsx`, `v2/web/test/graph.test.ts`, `v2/web/test/graph-state.test.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-ticket-map.md`.
++**Files mới:** `v2/web/src/graph/project.ts`, `v2/web/src/graph/layout.ts`, `v2/web/src/graph/state.ts`, `v2/web/src/graph/ticket-map.tsx`, `v2/web/src/graph/ticket-node.tsx`, `v2/web/src/graph/ticket-edge.tsx`, `v2/web/test/graph.test.ts`, `v2/web/test/graph-state.test.ts`, `v2/web/e2e/ticket-map.spec.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-ticket-map.md`.
+ 
+ **Interfaces:**
+ 
+@@ -280,13 +336,13 @@
+ ```
+ 
+ - [ ] G1 real API/PG race: GET graph từ ticket con phải đủ root; child/dependency tạo đồng thời không dangling edges; board/list/map cùng revision cuối. Browser mở dialog task để paste ảnh/comment, đóng ở zoom1.7: x/y delta≤1px, delta zoom≤0.001; realtime không tự fit. Dataset200 steps/600 tasks, đo first usable≤2s trên fixture machine ghi cấu hình; không claim latency trên máy owner chưa đo.
+-- [ ] Scoped node:test/types/Biome; Playwright MCP screenshot root/fork/join/repair/dialog/viewport được khôi phục; reviewer đối chiếu ảnh owner và mọi cạnh test. Controller 7H2 docs/map/commit.
++- [ ] Scoped node:test/types/Biome ở S4; A4 sau A3/G1 dùng Playwright MCP screenshot root/fork/join/repair/dialog/viewport được khôi phục; reviewer đối chiếu ảnh owner và mọi cạnh test. Controller 7H2 docs/map/commit.
+ 
+ **Success:** Không suy cạnh hoặc mất cạnh; root luôn nhận diện được; viewport sau khi đóng dialog được đo thật. **Risk:** H×H torn/edge loss; mitigation G1/coherent full root/collapse/cycle/large tests. **Rollback:** Revert route map sang danh sách request đọc được; không đổi ticket graph/schema/workflow.
+ 
+ ## Task 5: Composer chung cho create/comment/hội thoại
+ 
+-**Files mới:** `v2/web/src/compose/state.ts`, `v2/web/src/compose/controller.ts`, `v2/web/src/compose/composer.tsx`, `v2/web/src/compose/file-hash.worker.ts`, `v2/web/src/compose/file-hash.ts`, `v2/web/src/attachments/preview.tsx`, `v2/web/src/attachments/queries.ts`, `v2/web/test/compose.test.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-attachments.md`.
++**Files mới:** `v2/web/src/compose/state.ts`, `v2/web/src/compose/controller.ts`, `v2/web/src/compose/composer.tsx`, `v2/web/src/compose/file-hash.worker.ts`, `v2/web/src/compose/file-hash.ts`, `v2/web/src/attachments/preview.tsx`, `v2/web/src/attachments/queries.ts`, `v2/web/test/compose.test.ts`, `v2/web/test/compose-submit.test.ts`, `v2/web/e2e/compose.spec.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-attachments.md`.
+ 
+ **Interfaces:**
+ 
+@@ -294,34 +350,59 @@
+ type DraftFile = { localId: string; name: string; size: number; sha256: string | null;
+   uploadId: string | null; state: 'selected' | 'hashing' | 'reserved' | 'uploading'
+     | 'ready' | 'failed' | 'removing' | 'unknown'; errorCode: string | null };
+-type ComposeDraft = { purpose: 'ticket' | 'comment' | 'assistant_message'; targetId: string;
+-  sessionId: string | null; selectionRevision: number | null; text: string; files: DraftFile[];
+-  submitOperation: PendingOperation | null; state: 'editing' | 'sending' | 'ambiguous' | 'accepted' };
++type ComposeSubmission =
++  | { kind: 'ticket'; target: Extract<ComposeTarget, { purpose: 'ticket' }>; ticket: CreateTicket }
++  | { kind: 'comment'; target: Extract<ComposeTarget, { purpose: 'comment' }>; text: string }
++  | { kind: 'assistant_message'; target: Extract<ComposeTarget, { purpose: 'assistant_message' }>;
++      conversationId: string; clientMessageId: string; text: string };
++type ComposeDraft = {
++  submission: ComposeSubmission; sessionId: string | null; selectionRevision: number | null;
++  files: DraftFile[]; submitOperation: PendingOperation | null;
++  state: 'editing' | 'sending' | 'ambiguous' | 'suspended' | 'accepted';
++};
++type ComposeReceipt =
++  | { kind: 'ticket'; ticket: Ticket; attachmentIds: string[] }
++  | { kind: 'comment'; comment: Comment; attachmentIds: string[] }
++  | { kind: 'assistant_message'; message: AssistantMessage };
+ function canSubmit(draft: ComposeDraft): boolean;
+-type ComposerProps = { draftKey: string; target: ComposeTarget;
+-  onAccepted: (targetId: string) => void };
++function freezeSubmission(input: { submission: ComposeSubmission; selection: Selection;
++  assistantRead: 'none' | 'selected-inputs'; operationId: string; intentId: string }): PendingOperation;
++type ComposerProps = { draftKey: string; submission: ComposeSubmission;
++  onSubmissionChange: (next: ComposeSubmission) => void;
++  onStateChange: (state: ComposeDraft['state']) => void;
++  onAccepted: (receipt: ComposeReceipt) => void };
+ function AttachmentComposer(props: ComposerProps): React.JSX.Element;
+ ```
+ 
+-ComposeTarget/ComposeSession/Attachment/Selection mirror009 `v2/server/src/attachments/contracts.ts:28`,32,47,56 vào contracts của Task2. PendingOperation dùng đúng Task2, không duplicate state/client.
++ComposeTarget/ComposeSession/Attachment/Selection/AssistantMessage mirror009 `v2/server/src/attachments/contracts.ts:28`,32,47,56,270 vào contracts của Task2. PendingOperation dùng đúng Task2, không duplicate state/client. ComposeSubmission là controlled discriminated input: Task3/Task6 giữ một submission object và onSubmissionChange cập nhật cùng object; Task5 giữ file/session/operation state theo draftKey. Không shadow-copy title/kind/workflow/description vào form hoặc client khác. Textarea của shared composer sửa ticket.description hoặc text qua onSubmissionChange. Task5 onStateChange cấp trạng thái đọc cho form Task3/Task6 để khóa field; controller Task5 vẫn kiểm state và từ chối submission/selection change khi không editing. Form/textarea readonly khi sending/ambiguous/suspended; frozen payload không đổi khi props hoặc realtime đổi.
++
++| Kind | Form owner/fields | Exact body do Task5 freeze | Result |
++|---|---|---|---|
++|ticket|Task3 create-request: project/kind/title/workflow; composer edit description/files. makeRequestSubmission tạo full CreateTicket.|POST `/v2/attachment-submissions/tickets` `{ticket,selection,assistantRead}`. Không file vẫn dùng open compose/attachmentIds=[]; retry không đổi endpoint.|201 `{ticket,attachmentIds}`→ComposeReceipt.ticket|
++|comment|Task3 detail cấp projectId/ticketId; composer edit text/files.|POST `/v2/tickets/:ticketId/attachment-comments` `{text,selection,assistantRead}`; text rỗng + readyfile hợp lệ.|201 `{comment,attachmentIds}`→ComposeReceipt.comment|
++|assistant_message|Task6 cấp conversationId/clientMessageId cố định cho ý định; composer edit text/files.|POST `/v2/attachment-submissions/messages` `{conversationId,clientMessageId,text,selection,assistantRead}`.|201 AssistantMessage→ComposeReceipt.assistant_message; receipt input không phải reply|
++
++freezeSubmission kiểm target.purpose/project/ticket/conversation khớp body, current selectionRevision và toàn bộ active uploads ready; serialize body một lần thành PendingOperation POST/ownerId từ session/storage=tab, giữ route/key/intentId. Không gửi kind/target/draftKey/onAccepted trong HTTP body. clientMessageId/operationId tạo một lần, không tạo lại sau retry/reauth. Validate ticket title1–200, description≤65536 và kind/workflow enum; comment/message text≤32768, text/files không cùng rỗng. Task3 không gửi partial ticket; Task5 không suy title/kind/workflow từ ComposeTarget hoặc description. Sources: `CreateTicket`, `v2/server/src/tickets/contracts.ts:7`; strict atomic schema `v2/server/src/attachments/routes.ts:117`; routes453/461/685.
++
++- [ ] RED tests freezeSubmission đủ ba discriminants, exact body/path, metadata giữ qua paste/retry, invalid target bị chặn, empty selection hợp lệ cho ticket không file. Kiểm frozen body không đổi khi form/realtime đổi, original key/clientMessageId giữ sau reauth.
+ 
+ - [ ] RED tests file lỗi blocks send dù có text, chỉ ảnh ready comment allowed, text và files cùng rỗng bị từ chối, reserve/remove queue revision, mất phản hồi sau commit replay oneID, receipt partial không show “đã đọc”.
+ - [ ] Dùng một luồng nhận file cho clipboard.items, drop và input multiple. Paste có text và ảnh phải giữ cả hai; preventDefault chỉ phần đã xử lý, không chặn paste thường. Clipboard unnamed image tên local dễ hiểu/extension. Count/bytes/extensions/MIME theo policy visible trước hashing; server sniff lại. Không gắn cứng25MiB khi policy khác.
+ - [ ] Hash một File mỗi lượt trong owned worker bằng subtle.digest trên policy-bounded bytes; không bản sao base64, release arrays sau hash. Cancel/close dừng worker, bỏ listeners và revoke object URLs. Hash+size trùng local đưa lựa chọn bỏ file, server ID authoritative. Ngân sách memory trước hash; nếu policy vượt browser budget thì báo giới hạn xử lý client, không bỏ qua âm thầm hash/file.
+ - [ ] Create compose trước ticket; reserves serialized revision hiện hành. PUT cùng upload ID, tiến độ theo XHR thật upload event nếu cần, credentials/CSRF cùng contract, không tạo phần trăm giả. Abort/ambiguous GET compose: ready thắng; receiving/busy/unknown chờ và retry cùng bytes, không reservation mới khi writer chưa phân giải.
+ - [ ] Remove abort local rồi DELETEupload expectedRevision/refetch khi409. Confirmed rejected terminal có thể abandon reservation cũ rồi reserve new; kết quả transport chưa xác nhận giữ original reservation. Selection phải bằng mọi active upload ready; không filter file lỗi và gửi ticket thiếu file. Đổi target/project dùng compose mới sau giữ/abandon compose cũ rõ ràng, không reuse target.
+-- [ ] Atomic ticket/comment payload đúng bảng HTTP. Owner consent giải thích selected inputs cho Trợ lý; chỉ gửi selected-inputs khi owner chọn phạm vi đó, không suy consent từ config/test flag. While sending/ambiguous lock edits; ID đã accept clear draft đúng một lần/invalidate.
+-- [ ] Retry submit cùng PendingOperation. Reload metadata của tab giữ session/IDs/revision/pending body không có secret, không File bytes; GET compose reconcile. File không còn/ chưa ready yêu cầu reselect đúng SHA/size trước đó, không attachment trùng. Password/API secret/credential thô không qua persistence/composer.
++- [ ] Atomic ticket/comment/message payload theo freezeSubmission ở bảng contract; metadata/form và selection đóng băng cùng một ý định trước transport. Owner consent giải thích selected inputs cho Trợ lý; chỉ gửi selected-inputs khi owner chọn phạm vi đó, không suy consent từ config/test flag. While sending/ambiguous lock edits; ID đã accept clear draft đúng một lần/invalidate.
++- [ ] Retry submit cùng PendingOperation. Reload khi còn session hoặc sau same-owner reauth giữ compose IDs/revision/pending body nonsecret và original operation key; không File bytes. GET compose reconcile sau authentication; khi deliberate logout chỉ tombstone theo Task2, không tạo compose/key mới cho intent unresolved. File không còn/ chưa ready yêu cầu reselect đúng SHA/size trước đó, không attachment trùng. Password/API secret/credential thô không qua persistence/composer.
+ - [ ] Hiển thị refs kế thừa và nhóm refs theo comment bằng projection G2. Nhãn child nguồn request/step/comment; flattened attachment order không suy commentId. Preview chỉ authorized bytes safe raster/verified normalized derivative/ảnh từ Blob local. Original PDF/OOXML download; no iframe HTML/SVG/PDF cùng origin; text escape và giới hạn size, formulas/macros literal. Check original/derivative SHA/MIME from manifest, not filename.
+ - [ ] Extraction UI actual pending/running/complete/partial/encrypted/corrupt/unsupported/blocked/failed, problems/coverage còn thiếu/page/sheet/cell/span and mức tin cậy đã đọc. Byte đã verify không là model đã đọc/hiểu. Source links survive resume/runtime fallback bằng IDs, không copy upload cho descendants.
+-- [ ] Real G2 E2E: paste hai PNG và PDF trước create, bỏ một file, transport lỗi thật rồi retry, mất phản hồi sau commit→one ticket/links. Same comment trong dialog text rỗng + ảnh và conversation. Assert IDs trả về/DB thật commentId refs, wake/input revision tăng đúng một lần; producer receiver/corpus/native evidence riêng. Mock upload smoke không chứng minh hoàn thành.
++- [ ] A5 real G2 E2E trong compose.spec.ts với fixture host và API/DB thật, không chờ Task3/8: commit ticket/comment rồi mất response và expire session, UI reauth cùng owner replay đúng key/body chỉ tạo một entity/receipt; paste hai PNG và PDF trước create, bỏ một file, transport lỗi thật rồi retry, mất phản hồi sau commit→one ticket/links. Same comment trong dialog text rỗng + ảnh và conversation. Assert IDs trả về/DB thật commentId refs, wake/input revision tăng đúng một lần; producer receiver/corpus/native evidence riêng. Mock upload smoke không chứng minh hoàn thành.
+ - [ ] Scoped unit/types/Biome; canonical 7H2 docs+mapping/commit; independent reviewer kiểm lifetime/retry/access/render.
+ 
+ **Success:** Không gửi thiếu file đã chọn; một accepted operation chỉ tạo một ticket/comment/message; target sai bị từ chối; preview không thực thi script hoặc tự gọi mạng. **Risk:** H×H dataloss/duplicate/XSS, mitigation selection chính xác/idempotency/safebytes. **Rollback:** Revertcomposer; accepted originals/refs/receipts giữ. Compose đang mở thuộc lượt này abandon qua API; không delete storage/cleanup coi TTL là STOP.
+ 
+ ## Task 6: Docs space và Assistant/questions
+ 
+-**Files mới:** `v2/web/src/docs/space.tsx`, `v2/web/src/docs/page.tsx`, `v2/web/src/docs/search.tsx`, `v2/web/src/docs/links.ts`, `v2/web/src/assistant/conversation.tsx`, `v2/web/src/assistant/configuration.tsx`, `v2/web/src/assistant/questions.tsx`, `v2/web/src/assistant/queries.ts`, `v2/web/src/assistant/contracts.ts`, `v2/web/test/docs-links.test.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-docs.md` và `docs/v2/web-assistant.md`.
++**Files mới:** `v2/web/src/docs/space.tsx`, `v2/web/src/docs/page.tsx`, `v2/web/src/docs/search.tsx`, `v2/web/src/docs/links.ts`, `v2/web/src/assistant/conversation.tsx`, `v2/web/src/assistant/configuration.tsx`, `v2/web/src/assistant/questions.tsx`, `v2/web/src/assistant/queries.ts`, `v2/web/src/assistant/contracts.ts`, `v2/web/test/docs-links.test.ts`, `v2/web/src/assistant/attention.tsx`, `v2/web/src/assistant/attention-state.ts`, `v2/web/test/attention.test.ts`, `v2/web/e2e/docs-assistant.spec.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-docs.md` và `docs/v2/web-assistant.md`.
+ 
+ **Interfaces:** DocsTree/DocsPage exact006 read.ts:9/21; link resolver mới:
+ 
+@@ -340,15 +421,19 @@
+ - [ ] Ticket-doc links snapshot thật/paths CAS,409 giữ draft. Unverified/invalid view import warning; docs stale không thành current chỉ vì HTTP200. UTF8 không hợp lệ trả422 visible, không decode làm mất dữ liệu.
+ - [ ] Sau G3 accepted, Assistant config với machine chính xác/ModelKey đầy đủ từ routing candidates có routing authority, không workflow pool làm certificate. Disabled/unavailable choice blocked/reason hiển thị rõ. Superpowers mặc định/BMAD tùy chọn/project preferences persist qua wire đã accept, không extra fields vào schema strict của messages.
+ - [ ] Owner message accepted/queued/offline/đang đọc input/reply/partial failure theo producer,HTTP201 cho input không chứng minh Assistant reply. Browser không gọi model/inference hay chạy monitor mỗi năm phút; server owns attention bền vững/dedup. Offline máy đã chỉ định chờ, không tự đổi máy; fallback old/new key và rationale từ intervention đã ghi, không reuse runtime khác sessionID.
++- [ ] Task6 sở hữu attention.tsx/attention-state.ts, “Việc cần bạn xử lý” trong Assistant và shell navigation entry controller wiring. Sau G3 freeze exact owner attention DTO/list pagination/events/resolution authority, map actual server data sang display rows; không suy schema hay URL từ OwnerQuestion hoặc tự viết backend monitor. Loading/empty/error/offline-stale/pagination phải rõ; UUID/item identity và order/cursor theo frozen producer, không biến count của một page thành total.
++- [ ] Attention row bao gồm label nguyên nhân/trạng thái từ server, thời điểm, đối tượng được bảo vệ theo scope và action đã được producer review. Bao phủ question lẫn docs/model/machine/version/intervention/cleanup issues không có question. Deep link ticket qua shared TicketDetail/dialog; máy qua machine detail; app/deploy action chỉ tới view G5/G6 đã có. Row không có target hợp lệ hiển thị lý do, không đoán target. Chọn row giữ filters/page/scroll; realtime không giành focus đang trả lời. Chỉ resolution/server state mới đổi trạng thái item; local close panel/dismiss không là approval/resolution. Nếu có ack/dismiss action, cần exact G3 method/body/revision/auth/idempotency review trước gửi, không bịa route.
++- [ ] State giữ rows dedup bằng producer itemId/revision; reconnect/focus/GET race dùng Task2 event invalidation và refetch, không tự biến offline thành resolved. Server-resolution cập nhật row theo revision mới; item vẫn có trong history khi producer hỗ trợ history. Local notification không lặp mỗi heartbeat hoặc replay event. Persist tối đa view filters/scroll không chứa question/issue payload trước auth; payload chỉ query cache authenticated, scrub theo Task2.
++- [ ] RED attention projection tests question+nonquestion, duplicated/out-of-order events, stale page/partial pagination và resolution revision. A6full API/PG+Playwright MCP: actual question item và actual nonquestion docs/cleanup/model issue từ accepted producer → reload/reconnect vẫn đúng item không trùng → server resolve cập nhật view → wrong-scope target/action denied; dismiss không duyệt ticket/deploy. Thiếu G3 owner attention wire thì acceptance blocked, không tạo dữ liệu giả để PASS.
+ - [ ] Questions bound question ID/scopeSha256/revision/gate/artifact/run theo G3. Explicit lựa chọn trả lời/reason gửi API chính xác; comment không approval. Source OFF turn hiện tại drain/chờ theo server, UI không áp fallback ngay.
+ - [ ] Real API/PG+Playwright: docs Unicode/tree/link/commit/class/stale flags; offline→online một reply; input/comment while running/needs_input wake đúng một lần, không tạo attempt trùng; files mới read receipts before reply; question stale trả409, giữ answer và tải scope mới. Native/multimodal proof phase05/06, không dùng reply giả để nghiệm thu.
+ - [ ] Scoped test/types/Biome; controller 7H2/mapping/commit; reviewer examines authorization stale and read gắn đúng source.
+ 
+-**Success:** Link giữ đúng snapshot và an toàn; Owner answer không cấp quyền cho artifact cũ; Máy/model được chỉ định có trạng thái chờ đúng. **Risk:** H×H quyền stale hoặc input bị bỏ qua; mitigation question scope và read receipts ở G3. **Rollback:** Revert UI, giữ conversations/answers/designation/inbox, không clear work chỉ vì frontend đổi.
++**Success:** Attention question/nonquestion còn đúng sau reload/reconnect và chỉ resolution từ server cập nhật. Link giữ đúng snapshot và an toàn; Owner answer không cấp quyền cho artifact cũ; Máy/model được chỉ định có trạng thái chờ đúng. **Risk:** H×H quyền stale hoặc input bị bỏ qua; mitigation question scope và read receipts ở G3; attention risk M×M được giảm bằng ID/revision/pagination và server resolution tests. **Rollback:** Revert UI, giữ conversations/answers/designation/inbox, không clear work chỉ vì frontend đổi.
+ 
+ ## Task 7: Máy/model, ba switches và workflow version
+ 
+-**Files mới:** `v2/web/src/machines/list.tsx`, `v2/web/src/machines/detail.tsx`, `v2/web/src/machines/source-config.ts`, `v2/web/src/machines/source-switches.tsx`, `v2/web/src/machines/model-pool.tsx`, `v2/web/src/machines/api-provider.tsx`, `v2/web/src/machines/workflow-install.tsx`, `v2/web/test/model-config.test.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-machines.md`.
++**Files mới:** `v2/web/src/machines/list.tsx`, `v2/web/src/machines/detail.tsx`, `v2/web/src/machines/source-config.ts`, `v2/web/src/machines/source-switches.tsx`, `v2/web/src/machines/model-pool.tsx`, `v2/web/src/machines/api-provider.tsx`, `v2/web/src/machines/workflow-install.tsx`, `v2/web/test/model-config.test.ts`, `v2/web/src/machines/onboarding.tsx`, `v2/web/src/projects/setup.tsx`, `v2/web/test/onboarding.test.ts`, `v2/web/e2e/machines.spec.ts`. Worker chỉ sửa các file đã liệt kê; controller tích hợp shared files. Docs canonical `docs/v2/web-machines.md`.
+ 
+ **Interfaces:**
+ 
+@@ -360,6 +445,10 @@
+ 
+ SourceConfig/Input/ModelKey/PoolEntry mirror exact008 `models/contracts.ts:98`,103,20,40; GatewayStatus/ConfigInput exact007 `gateway/contracts.ts:126`,36. sourceChange chỉ bỏ credentialStatus, giữ provider ID/endpoint/protocol/models/localHttp; OFF không xóa provider/runtime.
+ 
++- [ ] S7basic/A7basic giao UI onboarding cho Task7 sau A2: entry “Máy” → “Đăng ký máy”, và project navigation → “Tạo dự án/Gắn máy”. Không phụ thuộc G3/G4 cho những baseline API đã accepted. src/machines/onboarding.tsx nhập name1–200, POST `/v2/machines` `{name}` bằng PendingOperation; nhận `{machine,token}` từ `provisionMachine`, `v2/server/src/auth/machine.ts:9`. Token chỉ trong memory authenticated result, explicit copy để owner đưa vào app local; không query cache/persist/log/screenshot, clear khi close/logout. Kết quả transport chưa rõ replay original key/body sau reauth, không đăng ký máy thứ hai; session expiry scrub token đã nhận, cần explicit authorized replay để xem lại chứ không auto display guest.
++- [ ] src/projects/setup.tsx tạo project bằng POST `/v2/projects` `{key,name,repositoryUrl}`: key regex `^[A-Z][A-Z0-9_-]{1,31}$`, name1–200, repositoryUrl null hoặc HTTPS/SSH hợp lệ không embedded credential; PROJECT_KEY_CONFLICT409 giữ draft. Gắn/rebind bằng PUT `/v2/projects/:id/binding` `{machineId,checkoutPath,expectedRevision}` lấy bindingRevision thật từ Project, path tuyệt đối trên máy đã chọn (text input, không OS picker), tối đa4096, không NUL. Bound machine tồn tại/chưa revoked;409REVISION_CONFLICT refetch/giữ ý định để explicit reapply key mới khi operation cũ đã rejected.
++- [ ] Rebind không bypass ACTIVE_EXECUTION409. Trace: `bindProject`, `v2/server/src/projects/service.ts:85`, root row lock → CAS103 → live machine105 → bindingGuard107 khi đã bound → update bindingRevision109. `buildApp`, `v2/server/src/app.ts:73`, inject `assertNoActiveProjectExecution`, `v2/server/src/execution/attempts.ts:354`, chặn active/uncertain/finalizing hoặc active guard. UI hiển thị lý do cần đối chiếu, không tự pause/cancel/kill để rebind. Empty machine/project và owner chưa bootstrap có hướng dẫn trạng thái thật, không tự lấy fixture IDs hoặc token v1.
++- [ ] A7basic real clean-browser journey qua harness1: login bằng UI Task2 → đăng ký máy test → tạo project → bind checkout → reload giữ đúng machine/path/revision. Hai tab stale binding409 giữ field; active/uncertain execution fixture làm rebind409 và DB binding không đổi. Assert token/password vắng trong storage/cache/log/evidence; screenshot setup không có token. G3/G4 scenarios còn pending không được dùng để chặn baseline onboarding hoặc claim fullA7.
+ - [ ] RED tests: từng nguồn đổi độc lập; cùng modelId khác runtime/provider/machine vẫn riêng; revision conflict; OFF chặn lựa chọn dù applied còn cũ; một workflow cài lỗi không báo cả hai current. Assert secret không vào persistent operation/logger/query cache.
+ - [ ] Trang máy đọc metadata+gateway status+project binding. Online theo serverConnection/receivedAt, không hoạt động Trợ lý. Refetch mỗi30s khi trang visible để heartbeat hết hạn không xanh mãi. appVersion/hostVersion/telemetry chờ G4; hiện “Chưa có dữ liệu” trước producer, không lấy version frontend làm app version.
+ - [ ] Công tắc gửi toàn SourceConfigInput với expectedRevision. Giữ provider config, hiển thị desired/applied/sourceStatus/report riêng. 409 refetch và giữ ý định owner để áp lại trên bản mới bằng key mới; không overwrite cấu hình từ tab khác. OFF giải thích attempt hiện tại tiếp tục; pause riêng. Tắt cả ba có NO_SOURCE_ENABLED rõ ràng.
+@@ -369,11 +458,11 @@
+ - [ ] 007/008 thật HTTP+Playwright: bật/tắt từng nguồn online/offline/all OFF; probe stale/unverified; full key trùng tên; CAS hai tab; provider giữ nguyên/secret redacted; hai workflow partial failure; old run pin giữ sau update. OFF chặn dispatch/fallback/Assistant chọn nguồn thật cần phase04/06 producer evidence, DOM checkbox không chứng minh.
+ - [ ] Scoped tests/types/Biome, canonical flow7H2; controller mapping/commit, independent review config preservation và current authority.
+ 
+-**Success:** Ba desired switches persist độc lập; pending khác applied; model unavailable không chọn được; partial install/old pin đúng. **Risk:** H×H overwrite/config authority; mitigation preserving CAS/full key. **Rollback:** Revert bundle; muốn đảo desired config dùng mutation mới có revision hiện hành, không rewrite receipt hoặc uninstall runtime.
++**Success:** Clean browser login/register-machine/create-project/bind/reload đạt A7basic; CAS/active rebind bị chặn. Ba desired switches persist độc lập; pending khác applied; model unavailable không chọn được; partial install/old pin đúng. **Risk:** H×H overwrite/config authority; mitigation preserving CAS/full key; onboarding risk M×H, mitigation token transient và actual active-binding guard test. **Rollback:** Revert bundle; muốn đảo desired config dùng mutation mới có revision hiện hành, không rewrite receipt hoặc uninstall runtime.
+ 
+ ## Task 8: Owner actions, app update và nghiệm thu thật
+ 
+-**Files mới:** `v2/web/src/operations/ticket-actions.tsx`, `v2/web/src/operations/deploy-approval.tsx`, `v2/web/src/operations/app-update.tsx`, `v2/web/src/operations/contracts.ts`, `v2/web/e2e/auth.spec.ts`, `v2/web/e2e/tickets.spec.ts`, `v2/web/e2e/ticket-map.spec.ts`, `v2/web/e2e/compose.spec.ts`, `v2/web/e2e/docs-assistant.spec.ts`, `v2/web/e2e/machines.spec.ts`, `v2/web/e2e/operations.spec.ts`, `v2/web/scripts/e2e-fixture.ts`, `v2/web/playwright.config.ts`. Controller sở hữu runner/config và producer composition sau khi transfer rõ ràng. Docs canonical `docs/v2/web-operations.md`.
++**Files mới:** `v2/web/src/operations/ticket-actions.tsx`, `v2/web/src/operations/deploy-approval.tsx`, `v2/web/src/operations/app-update.tsx`, `v2/web/src/operations/contracts.ts`, `v2/web/e2e/operations.spec.ts`, `v2/web/e2e/integration.spec.ts`. Worker sở hữu operations và hai spec operations/integration; controller Task1 giữ harness/config. Producer composition thuộc controller sau handoff riêng. Docs canonical `docs/v2/web-operations.md`.
+ 
+ **Interfaces:** Tiêu thụ G5/G6 owner DTO sau freeze. Action có operationId, target/scope/artifact fingerprint, revision, lifecycle/result theo accepted producer. Không tạo method/URL tương lai chưa định nghĩa; UI projection không cấp authority từ nút.
+ 
+@@ -381,8 +470,8 @@
+ - [ ] Pause/cancel ghi owner decision đúng scope bound current ticket/attempt qua G5, POST commands005 exact body, đọc owner command/attempt/result trước “đã dừng”. Resume theo workflow gate, không arbitrary start. Confirmation hiển thị operation/target/version/artifact cụ thể; authorization đã có giữ qua transport retry.
+ - [ ] Deploy approval hiển thị target/input/commit/artifact fingerprint và gửi exact G5. Changed target/commit làm approval cũ invalid; không feature approval=deploy approval, không Approve-all. Merge/docs panel hiển thị reported/verified evidence, actual merged commit và docs snapshot match từ08; không done toggle client.
+ - [ ] App update G6 hiển thị signed release version/checksum/compatibility và lifecycle thực: queued/download/verify/drain/apply/health/rollback/result được mapping từ frozen DTO. Download không success; active jobs chờ; quyền macOS cần cấp trực tiếp có hướng dẫn. Workflow install và app update riêng; không URL bịa/skipSignature boolean.
+-- [ ] Runner mới dùng accepted buildApp và captured immutable migration prefix, owned listener; real PostgreSQL18.6 trên loopback random port khác5432/55432, DB `crew_v2_`, một worker. Không shared backend restart. Fixture-only seed/proof đứng ngoài production; kiểm HTTP production assembly thật. Test authority không certificate native/live. Password runtime-generated, không credential trong source/log/screenshot.
+-- [ ] Registry tài nguyên trước launch: scratch nonce/dev/ino, exact DB/container ID, listener PID/start identity, browser context và staging của lượt này. Finally abort request, đóng browser/listener/pool, verify STOP rồi drop own DB/rm exact stopped container/scratch. UNKNOWN giữ/report; không broad prune/rm/tmp/git clean. Interrupt/crash runner cũng phải kiểm cleanup.
++- [ ] Dùng harness controller Task1 đã đạt A1; không tạo runner/config mới ở Task8. Revalidate frozen producer prefix/assembly và resource registry trước integrated run. Fixture-only seeds/proofs nằm ngoài production; production HTTP vẫn dùng authority đã accepted, không certificate native/live giả. Password runtime-generated chỉ memory, không trong source/log/screenshot.
++- [ ] Task8 xác nhận close() và cleanup policy A1 được gọi trong success/failure/interrupt; controller xử lý harness delta nếu có. Kiểm exact owned handles và UNKNOWN retention, không ghi lại registry/cleanup implementation ở operations worker.
+ - [ ] Unit một lượt trên final owned source; strict/build/scoped Biome; actual API/PG integration theo task; Playwright MCP user journeys thật. Mock DTO/browser smoke chỉ unit/preview. Thiếu G2/G3/G5/G6 ghi scenario blocked và producer cụ thể, không PASS/skipped-as-done. Native/paid calls chỉ khi scope fixture/quota được controller cấp.
+ - [ ] Evidence desktop/mobile390, keyboard/200%, Chromium và WebKit clipboard/file behavior nơi có. Chụp map root/fork/join/repair, image-only dialog comment và restored viewport; lưu HTTP IDs và isolated DB counts/revisions để prove no duplicate. Record machine/browser/time/HEAD/hash; không secret/request bytes.
+ - [ ] Independent task review và integrated spec/quality review; controller nested crew-docs --all/staged/range đúng integration view, content review7H2 so source. Exact owned source+flow/generated commit; không deploy trong phase07 acceptance.
+@@ -393,16 +482,16 @@
+ 
+ | Area/task | Unit | API+PostgreSQL thực | Playwright MCP thực |
+ |---|---|---|---|
+-| Shell1/auth2 | import isolation/request/decoders/retry | login/CSRF/revoke/session replay | login/reload/logout,390px/200%/keyboard |
++| Shell1/auth2 | import isolation/request/decoder/retry/session recovery | baseline fixture; login/CSRF/revoke; commit→lostreply→expiry→same-owner replay | guest login/reauth/recovery/logout,390px/200%/keyboard; no secret storage |
+ | Event2 | multiline/CRLF/chunks/bounds/bigint/race | named SSE/backlog/reconnect/credential expiry | event trong GET, cùng revision cuối, một stream |
+-| Ticket3 | root/status/chronology grouping | >100 pagination, unsupported filter, scoped409 | board/list/request/deep link/dialog, needs_input/repair5 |
++| Ticket3 | root/status/chronology; makeRequestSubmission exact fields | pagination/filter/scoped409; exact title/kind/description/workflowChoice/file refs | code/research × BMAD/Superpowers × with/without file; retry/reauth one entity; board/dialog |
+ | Graph4 | full edges/cycles/collapse/state | child full root/coherent race/inherited descendants | root/fork/join/repair, zoom/pan/fit, viewport restore,800nodes đo |
+ | Attachment5 | send guard/revision/hash/retry states | ready/closedACK/atomic link/replay/comment refs/ACL | paste/drop/multiple/remove/retry/image-only dialog, count bằng1 |
+ | Docs6 | URL/Unicode/snapshot safety | actual import/tree/page/search/docs-links | current/stale/class/commit, ticket-page links |
+-| Assistant6 | pending/question scope projection |011 inbox/designation/read receipt/answer | offline→online reply một lần, new input consumed, fallback compatible |
+-| Machines7 | CAS/full key/OFF/partial workflow |007/008 desired/applied/probe/report |3switches online/offline/all OFF, old run pin |
++| Assistant/attention6 | pending/question scope, attention dedup/revision |011 inbox/designation/read receipt/answer; question+nonquestion attention/resolution | offline→online reply một lần; attention reload/reconnect/no duplicate/server resolution |
++| Machines7 | onboarding validation/token secrecy/CAS/full key/OFF | machine/project/binding stale+active409;007/008 config/probe | clean browser register/create/bind/reload; switches/workflow old pin |
+ | Actions8 | ACK/download không success | stop/fence/approval08/updater09 result | actual stop, stale deploy denied, drain/health/rollback |
+-| Fixture8 | ownership lifecycle | restore/prefix/resource identities | browser/PID/DB/container cleanup, UNKNOWN retained |
++| Fixture1/integration8 | ownership lifecycle/close idempotent | A1 accepted prefix/owned identities; reused byA2–A8 | browser/PID/DB/container cleanup; UNKNOWN retained; no late harness cycle |
+ 
+ Nghiệm thu cần web strict/build/scoped Biome không lỗi, meaningful tests trên source freeze; đủ actual isolated API/PG và Playwright; independent review không blocking; flow7H2/mapping/generated/content review; screenshot evidence/source HEAD/hash. Không union targeted runs thành PASS toàn coverage. Mỗi report ghi actual runs/count/failure/skip/blocker riêng. Native/parser/production certificates thuộc producer; nếu UI chưa có actual producer thì phần đó chưa nghiệm thu dù render tốt.
+ 
+@@ -422,29 +511,29 @@
+ |5 workflow versions/install/isolation display |3/4/7/G4 |
+ |6 hierarchy/status/reason/repair5/completion |3/4/8/G1/G3/G5 |
+ |7 idempotency/STOP/merge/deploy/recovery |2/3/5/8/G4/G5 |
+-|8 monitoring/attention/telemetry/resource |6/7/8, server monitoringG3 |
++|8 monitoring/attention/telemetry/resource |6 attention consumer/G3;7 status;1 harness cleanup;8 integration |
+ |9 docs current/commit/artifact/gates |6/8/006/08 |
+ |10 Jira/Confluence/map/clipboard/comment |1/3/4/5/6/7, reference đã kiểm tra ảnh trực tiếp |
+ |11 signed update |8/G6 |
+ |12 full acceptance |Matrix+producer live/native08/09 |
+ 
+-Self-review đã kiểm tra các source path/symbol ổn định bằng search giới hạn và đọc source, trace thứ tự authorize/replay và mutation, dependencies G0–G6, lifetime state, test cho năm ReviewFocus, ownership và rollback từng task. Các file web mới là planned interfaces; DTO Assistant được ghi rõ đang đổi, chưa accepted. Các producer questions chưa có wire không được đổi thành URL hoặc method giả. Plan chưa independent review; chưa web source/E2E. Nếu controller đổi status chạy `ak plan --help` theo CLI, không sửa ô status trực tiếp.
++Self-review đã kiểm tra các source path/symbol ổn định bằng search giới hạn và đọc source, trace thứ tự authorize/replay và mutation, dependencies G0–G6, lifetime state, test cho năm ReviewFocus, ownership và rollback từng task. Các file web mới là planned interfaces; DTO Assistant được ghi rõ đang đổi, chưa accepted. Các producer questions chưa có wire không được đổi thành URL hoặc method giả. Independent review bc3c1bd0 đã nêu Issues Found; FIX1 sửa R1–R5 và chờ reviewer scoped-review delta. Chưa web source/E2E. Nếu controller đổi status chạy `ak plan --help` theo CLI, không sửa ô status trực tiếp.
+ 
+ Questions chỉ ở producer, không hỏi lại owner UX: G0 R6/web coverage và ledger DTO; G1 coherent graph/root pagination/history/current attempt; G2 mounted attachment/comment grouping/parser/read authority; G3 accepted011 và owner Assistant/routing/question wire; G4 version/telemetry/catalogue/install retry/active key/owner receipts; G5 target-bound08 actions; G6 signed updater09 wire. Không phát minh URL hoặc boolean bypass cho phần chưa accepted.
+ 
+ ## Lệnh kiểm chứng theo task
+ 
+-Chạy từ managed repository sau khi controller mở đúng resource gate. Mỗi task chạy riêng test đã viết trước source để thấy RED, rồi chạy lại sau implementation để thấy GREEN; không chạy broad suites lặp lại khi không có thay đổi mới.
++Chạy từ managed repository sau khi controller mở đúng resource gate. A1 harness baseline chạy ở Task1; từng Task2–7 chạy API/PG và Playwright MCP trong spec do chính task sở hữu theo DAG, không dời nghiệm thu sang Task8. Ví dụ runner `pnpm --dir v2/web exec playwright test e2e/auth.spec.ts e2e/events.spec.ts` cho Task2, rồi các feature spec tương ứng; MCP dùng cùng origins/DB fixture, không mock HTTP. Mỗi task chạy riêng test đã viết trước source để thấy RED, rồi chạy lại sau implementation để thấy GREEN; không chạy broad suites lặp lại khi không có thay đổi mới.
+ 
+ | Task | Lệnh test có phạm vi | Kiểm chung sau GREEN |
+ |---|---|---|
+-|1|`pnpm --dir v2/web exec node --test test/workspace.test.ts`|`pnpm --dir v2/web typecheck`, `pnpm --dir v2/web build`|
+-|2|`pnpm --dir v2/web exec node --test test/client.test.ts test/events.test.ts`|Typecheck và Biome trên lib/contracts/test đã sở hữu|
+-|3|`pnpm --dir v2/web exec node --test test/tickets.test.ts`|Typecheck và Biome trên tickets/test đã sở hữu|
++|1|`pnpm --dir v2/web exec node --test test/workspace.test.ts test/fixture-lifecycle.test.ts`|`pnpm --dir v2/web typecheck`, `pnpm --dir v2/web build`|
++|2|`pnpm --dir v2/web exec node --test test/client.test.ts test/events.test.ts test/auth-recovery.test.ts`|Typecheck và Biome trên lib/contracts/test đã sở hữu|
++|3|`pnpm --dir v2/web exec node --test test/tickets.test.ts test/create-request.test.ts`|Typecheck và Biome trên tickets/test đã sở hữu|
+ |4|`pnpm --dir v2/web exec node --test test/graph.test.ts test/graph-state.test.ts`|Typecheck và Biome trên graph/test đã sở hữu|
+-|5|`pnpm --dir v2/web exec node --test test/compose.test.ts`|Typecheck và Biome trên compose/attachments/test đã sở hữu|
+-|6|`pnpm --dir v2/web exec node --test test/docs-links.test.ts`|Typecheck và Biome trên docs/assistant/test đã sở hữu|
+-|7|`pnpm --dir v2/web exec node --test test/model-config.test.ts`|Typecheck và Biome trên machines/test đã sở hữu|
++|5|`pnpm --dir v2/web exec node --test test/compose.test.ts test/compose-submit.test.ts`|Typecheck và Biome trên compose/attachments/test đã sở hữu|
++|6|`pnpm --dir v2/web exec node --test test/docs-links.test.ts test/attention.test.ts`|Typecheck và Biome trên docs/assistant/test đã sở hữu|
++|7|`pnpm --dir v2/web exec node --test test/model-config.test.ts test/onboarding.test.ts`|Typecheck và Biome trên machines/test đã sở hữu|
+ |8|`pnpm --dir v2/web test`, `pnpm --dir v2/web typecheck`, `pnpm --dir v2/web build`, `pnpm --dir v2/web test:e2e`|Playwright MCP chạy cùng isolated fixture và lưu evidence; CI Playwright runner không thay yêu cầu MCP|
+ 
+ Controller dùng `pnpm exec biome check` với exact owned paths, cấu hình Biome gốc. Docs gate dùng bundled crew-docs của v2, đúng flow trong `v2/docs/flows.yaml`, rồi `check --all`, `check --staged` và range check theo integration view. Nếu Playwright MCP không có trong runtime, báo browser acceptance blocked và giữ phase pending; không tự thay bằng mocked smoke.

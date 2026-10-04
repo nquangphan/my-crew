@@ -1,0 +1,162 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-access.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-api.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-grants.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-b97df1c4-ba89-4abc-93d1-c554529c5892", "--label", "crew.phase05.task3=ec8afb31-ff8f-49bb-8013-a88c524e5a4b", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587", "name": "crew-v2-test-b97df1c4-ba89-4abc-93d1-c554529c5892", "mapping": "127.0.0.1:56582"}
+attachment DB container 45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3dsYMf
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3dsYMf nonceSha256=f73eb429785ae6919eba803cb1a4242e3c502418782ce450e7a3e33b98803397
+attachment DB scratch identity dev=16777229 ino=64084773 uid=501 pid=75165
+✖ attachment access never follows a matching checksum across projects (1679.507ms)
+attachment DB container 45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y9AHLM
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y9AHLM nonceSha256=b4850f38cce0a38410daebe40ccbb0db824dea48abf8a7acc5f851cf7477907f
+attachment DB scratch identity dev=16777229 ino=64084797 uid=501 pid=75165
+✖ attachment references require a live ancestor in the exact tree and reuse original identity (435.088917ms)
+attachment DB container 45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XqM4Li
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XqM4Li nonceSha256=7c3586ce8a917e2a1e606aa94046ba25681c187e5f0ef9a5bfff6c8a557740cf
+attachment DB scratch identity dev=16777229 ino=64084772 uid=501 pid=75166
+✖ attachment routes raw upload, CSRF, strict schema, metered replay and private responses (1679.355667ms)
+attachment DB container 45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hDQsp7
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hDQsp7 nonceSha256=1a7520c8f4fbfc2ae2537aba2b68012b3c8bb33d30cf0bc2ffe2a2bad90801fb
+attachment DB scratch identity dev=16777229 ino=64084796 uid=501 pid=75166
+✖ attachment routes authenticate again before conditional replies and current attempt downloads (435.929ms)
+attachment DB container 45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KagQcG
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KagQcG nonceSha256=0ada9460d08bfec67325aa88201f7188f530a1823bab44ba4548efadd8c0a389
+attachment DB scratch identity dev=16777229 ino=64084770 uid=501 pid=75167
+✖ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (1679.478417ms)
+attachment DB container 45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-g8d1mo
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-g8d1mo nonceSha256=efdf561ce19e0fc1de6a4522e63e3af753f56681c8f812c25ddf7b89fe4d0afa
+attachment DB scratch identity dev=16777229 ino=64084768 uid=501 pid=75168
+✖ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (1679.977417ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 0
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2279.233125
+
+✖ failing tests:
+
+test at test/attachments-access.test.ts:10:1
+✖ attachment access never follows a matching checksum across projects (1679.507ms)
+  AssertionError [ERR_ASSERTION]: {"id":"fe233466-ea41-413c-8c55-9d67a1cb436e","machineId":"9cac15d2-f90f-4376-90f5-b5d8e99ec7a2","ticketId":"384d239b-a4a9-48f7-8be9-a4ad4d60a922","type":"start","payload":{},"state":"queued","result":null,"createdAt":"2026-10-02T12:15:12.794Z"}
+  
+  202 !== 201
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/attachment-access.ts:63:148)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-access.test.ts:12:11
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-access.test.ts:11:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 202,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-access.test.ts:28:1
+✖ attachment references require a live ancestor in the exact tree and reuse original identity (435.088917ms)
+  AssertionError [ERR_ASSERTION]: {"id":"fa55d267-5a6c-4d80-bc1e-1a73160ffa97","machineId":"5ec9c278-54e7-47e6-8a61-e0eab7e139aa","ticketId":"38c9b55a-73cc-4026-bf0a-8ebe6ef70be5","type":"start","payload":{},"state":"queued","result":null,"createdAt":"2026-10-02T12:15:13.229Z"}
+  
+  202 !== 201
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/attachment-access.ts:63:148)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-access.test.ts:30:11
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-access.test.ts:29:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 202,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-api.test.ts:8:1
+✖ attachment routes raw upload, CSRF, strict schema, metered replay and private responses (1679.355667ms)
+  AssertionError [ERR_ASSERTION]: {"id":"06521f9b-0349-4a93-82fc-c202a3bf6ec9","machineId":"009c998b-4275-4b7a-aa0e-cd00556636a1","ticketId":"0111f50c-043a-4692-8629-780dc3a4f3c6","type":"start","payload":{},"state":"queued","result":null,"createdAt":"2026-10-02T12:15:12.794Z"}
+  
+  202 !== 201
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/attachment-access.ts:63:148)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-api.test.ts:9:47
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-api.test.ts:9:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 202,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-api.test.ts:30:1
+✖ attachment routes authenticate again before conditional replies and current attempt downloads (435.929ms)
+  AssertionError [ERR_ASSERTION]: {"id":"66bfb525-a5e6-40d4-9d63-41a49405d1f5","machineId":"9edbefff-6b62-4972-a422-7433af7abfff","ticketId":"ec14d284-6137-4dea-80fc-ac903461e6fa","type":"start","payload":{},"state":"queued","result":null,"createdAt":"2026-10-02T12:15:13.235Z"}
+  
+  202 !== 201
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/attachment-access.ts:63:148)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-api.test.ts:31:47
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-api.test.ts:31:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 202,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-grants.test.ts:9:1
+✖ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (1679.478417ms)
+  AssertionError [ERR_ASSERTION]: {"id":"9e418abb-c685-4fab-8525-280357a80c86","machineId":"249e479c-4686-40a4-8901-5d4fec186b1a","ticketId":"f6297b44-b35e-4f61-be47-04d01e84fbe4","type":"start","payload":{},"state":"queued","result":null,"createdAt":"2026-10-02T12:15:12.794Z"}
+  
+  202 !== 201
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/attachment-access.ts:63:148)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-grants.test.ts:10:47
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-grants.test.ts:10:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 202,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-snapshots.test.ts:10:1
+✖ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (1679.977417ms)
+  AssertionError [ERR_ASSERTION]: {"id":"7dae4c1e-e4ce-49e8-843c-97558de789a8","machineId":"72601245-2d42-4f58-891a-20650fdd20cf","ticketId":"015ef5c6-ca16-4304-a487-99e52f9fa024","type":"start","payload":{},"state":"queued","result":null,"createdAt":"2026-10-02T12:15:12.794Z"}
+  
+  202 !== 201
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/attachment-access.ts:63:148)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-snapshots.test.ts:12:10
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy/v2/server/test/attachments-snapshots.test.ts:11:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 202,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

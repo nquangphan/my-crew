@@ -1,0 +1,14 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9fd6e0bd-29a6-4f91-979d-ee153b8832ba-IeGBtZ","nonce":"9fd6e0bd-29a6-4f91-979d-ee153b8832ba","dev":16777229,"ino":64103296,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9fd6e0bd-29a6-4f91-979d-ee153b8832ba-IeGBtZ","nonce":"9fd6e0bd-29a6-4f91-979d-ee153b8832ba","dev":16777229,"ino":64103296,"uid":501}
+✔ runtime boundary captured bridge hook denies before RELEASE after actual accepted companion (2649.846166ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-43199c4a-2a76-47d8-9662-28b864cf21e2-h8EZID","nonce":"43199c4a-2a76-47d8-9662-28b864cf21e2","dev":16777229,"ino":64103479,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-43199c4a-2a76-47d8-9662-28b864cf21e2-h8EZID","nonce":"43199c4a-2a76-47d8-9662-28b864cf21e2","dev":16777229,"ino":64103479,"uid":501}
+✔ runtime boundary RuntimePin durable before RELEASE and replay immutable across store reopen (2149.110125ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4899.061041

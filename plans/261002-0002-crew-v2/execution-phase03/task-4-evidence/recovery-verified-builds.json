@@ -1,0 +1,145 @@
+{
+  "bmad": [
+    {
+      "id": "3383e653-43aa-47b6-85cc-2ee370839368",
+      "identity": {
+        "bytes": 0,
+        "device": "16777229",
+        "inode": "63399312",
+        "kind": "directory",
+        "linkCount": 2,
+        "ownerUid": 501
+      },
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "3383e653-43aa-47b6-85cc-2ee370839368",
+        "device": "16777229",
+        "inode": "63399312",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      }
+    },
+    {
+      "id": "c8b897c8-6f9c-40a6-8534-9b8f60e080f8",
+      "identity": {
+        "bytes": 0,
+        "device": "16777229",
+        "inode": "63392465",
+        "kind": "directory",
+        "linkCount": 2,
+        "ownerUid": 501
+      },
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "c8b897c8-6f9c-40a6-8534-9b8f60e080f8",
+        "device": "16777229",
+        "inode": "63392465",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      }
+    },
+    {
+      "id": "86f325ae-9b5f-42c4-a246-05becf29e22c",
+      "identity": {
+        "bytes": 0,
+        "device": "16777229",
+        "inode": "63404237",
+        "kind": "directory",
+        "linkCount": 2,
+        "ownerUid": 501
+      },
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "86f325ae-9b5f-42c4-a246-05becf29e22c",
+        "device": "16777229",
+        "inode": "63404237",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      }
+    },
+    {
+      "id": "5b9357eb-4420-4256-99a6-c42e40c8c585",
+      "identity": {
+        "bytes": 0,
+        "device": "16777229",
+        "inode": "63408097",
+        "kind": "directory",
+        "linkCount": 2,
+        "ownerUid": 501
+      },
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "5b9357eb-4420-4256-99a6-c42e40c8c585",
+        "device": "16777229",
+        "inode": "63408097",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      }
+    }
+  ],
+  "native": [
+    {
+      "id": "f559ebe6-5e76-4c49-b261-e4b320683c30",
+      "identity": {
+        "bytes": 0,
+        "device": "16777229",
+        "inode": "63393987",
+        "kind": "directory",
+        "linkCount": 2,
+        "ownerUid": 501
+      },
+      "pin": {
+        "runtime": "codex",
+        "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46",
+        "manifestSha256": "f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51",
+        "derivation": {
+          "tool": "crew-audited-official-native-skills",
+          "version": "1",
+          "options": [
+            "full-upstream-tree",
+            "15-internal-relative-links"
+          ],
+          "layoutSchema": "superpowers-codex-native-skills-v1",
+          "policySha256": "2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"
+        },
+        "treeSha256": "a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"
+      }
+    },
+    {
+      "id": "d7781dc2-8225-4108-abdb-63d40afd3936",
+      "identity": {
+        "bytes": 0,
+        "device": "16777229",
+        "inode": "63392656",
+        "kind": "directory",
+        "linkCount": 2,
+        "ownerUid": 501
+      },
+      "pin": {
+        "runtime": "codex",
+        "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46",
+        "manifestSha256": "f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51",
+        "derivation": {
+          "tool": "crew-audited-official-native-skills",
+          "version": "1",
+          "options": [
+            "full-upstream-tree",
+            "15-internal-relative-links"
+          ],
+          "layoutSchema": "superpowers-codex-native-skills-v1",
+          "policySha256": "2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"
+        },
+        "treeSha256": "a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"
+      }
+    }
+  ],
+  "sourceLog": "recovery-gateway-policy-final.log"
+}

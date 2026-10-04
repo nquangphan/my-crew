@@ -1,0 +1,29 @@
+(node:87348) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-MnUtH8","device":"16777229","inode":"64005433","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-MnUtH8","device":"16777229","inode":"64005433","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL before-write preserves durable proof and reference authority (2824.206167ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4SfjWm","device":"16777229","inode":"64005688","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4SfjWm","device":"16777229","inode":"64005688","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-write preserves durable proof and reference authority (2466.825333ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ADqXDP","device":"16777229","inode":"64005946","uid":501}
+✖ terminal retirement SIGKILL after-filter preserves durable proof and reference authority (1939.814333ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7334.894042
+
+✖ failing tests:
+
+test at test/retirement-crash.test.ts:10:3
+✖ terminal retirement SIGKILL after-filter preserves durable proof and reference authority (1939.814333ms)
+  Error: Host guard unavailable (75)
+      at ChildProcess.onExit (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway/src/host/process-lock.ts:57:54)
+      at Object.onceWrapper (node:events:623:26)
+      at ChildProcess.emit (node:events:508:28)
+      at ChildProcess._handle.onexit (node:internal/child_process:294:12)

@@ -1,0 +1,353 @@
+diff --git a/v2/docs/flows/gateway-models.md b/v2/docs/flows/gateway-models.md
+index e292672..b118714 100644
+--- a/v2/docs/flows/gateway-models.md
++++ b/v2/docs/flows/gateway-models.md
+@@ -22,7 +22,7 @@ ABI: dedicated FD3, bốn uint32 network-endian `{operation,serviceLength,accoun
+ 
+ `CredentialProvisioning` lưu X25519 PKCS8 private bytes trong Keychain namespace riêng machine, journal chỉ giữ keyId/public SPKI/state. Registration/confirmation dùng actual008 routes, encrypted challenge/AAD canonical và SHA-256 clear challenge. Rotation giữ retired private keys để hoàn tất pending envelope cũ; key loss không tự tạo ACK thành công. Secret envelope kiểm own machine/provider/current revision, canonical base64, X25519, nonce12/tag16, ciphertext SHA256 và AAD `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. HKDF info `crew-v2-secret-envelope-v1`, salt nonce12, AES-256-GCM. Put theo envelope ID và read-back hoàn tất trước fsync ACK intent và HTTP operation. Automatic `syncPending` tìm immutable ACK intent trước kiểm revision/expiry/decrypt của provisioning mới. Lost ACK replay cùng key/body/ref/operation; `replayAck(envelopeId)` chỉ dùng ACK intent đã fsync sau write/read-back, kiểm credentialRef vẫn còn trong Keychain rồi replay metadata, không cần transport private key hoặc gia hạn expiry. Server008 quyết định ACK lịch sử hay từ chối pending expired/key_lost/stale; không có intent thì không được ACK. không thay bằng provider state mới nhất hoặc UUID order. Host không lưu current provider ref pointer; authority current provisioning operation thuộc server008.
+ 
+-`syncPending(readMachine)` GET own desired trước GET own pending envelopes, dùng decimal cursor008 và serverTime response. Mọi encrypted envelope durable trước cursor advance; failed ACK giữ queue. ACK lịch sử thành công chỉ dọn đúng queue cũ; desired còn pending thì state vẫn pending đến GET xác nhận stored. Lịch sử stale của provider khác/đã stored không hạ trạng thái credential mới. Thiếu intent hoặc local ref vẫn từ chối; owner cần cấp lại khi pending key mất/expired/stale. Source API OFF trả disabled trước đọc envelope. ServerReceiptClock dùng server receipt + elapsed monotonic cho cả now và upper TTL bound 5 phút; challenge phát hành sau GET vẫn hợp lệ, còn receipt quá 5 phút hoặc actual expiry vẫn bị từ chối; host wall clock không kéo dài expiry, replay/backwards receipt không quay estimate lùi. Không có server receipt thì từ chối secret/challenge. TTL/admission cuối cùng vẫn do server quyết định. Plaintext/private key không đi vào generic HTTP journal, gateway journal, renderer, exception hay model child.
++`syncPending(readMachine)` GET own desired trước GET own pending envelopes, dùng decimal cursor008 và serverTime response. Mọi encrypted envelope durable trước cursor advance; failed ACK giữ queue. ACK lịch sử thành công chỉ dọn đúng queue cũ; desired còn pending thì state vẫn pending đến GET xác nhận stored. `syncPending` chỉ trả stored sau dùng nguyên `CurrentCredentialResolver.resolve` và `assertCurrent` đọc current metadata cùng revision/provider/endpoint/protocol/ref/operation, rồi xác nhận local ref bằng broker. Lịch sửA stale/mất local không hạ currentB khi bindingB và localB thật đều được xác minh. Nếu chính currentA mất local, metadata thiếu/sai hoặc observed ref/operation đổi thì trả pending, không lộ raw error; queue ACK lỗi và immutable history vẫn giữ. Read-only metadata GET không phải ACK HTTP; không tạo lease/admission. Thiếu intent hoặc local ref vẫn từ chối; owner cần cấp lại khi pending key mất/expired/stale. Source API OFF trả disabled trước đọc envelope. ServerReceiptClock dùng server receipt + elapsed monotonic cho cả now và upper TTL bound 5 phút; challenge phát hành sau GET vẫn hợp lệ, còn receipt quá 5 phút hoặc actual expiry vẫn bị từ chối; host wall clock không kéo dài expiry, replay/backwards receipt không quay estimate lùi. Không có server receipt thì từ chối secret/challenge. TTL/admission cuối cùng vẫn do server quyết định. Plaintext/private key không đi vào generic HTTP journal, gateway journal, renderer, exception hay model child.
+ 
+ ### Protocol và HTTP
+ 
+diff --git a/v2/gateway/src/models/credential-provisioning.ts b/v2/gateway/src/models/credential-provisioning.ts
+index 03e65d0..385dfa3 100644
+--- a/v2/gateway/src/models/credential-provisioning.ts
++++ b/v2/gateway/src/models/credential-provisioning.ts
+@@ -12,6 +12,7 @@ import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts
+ import type { HttpOperationJournal } from '../journal/http-operations.ts';
+ import type { SecretAck, SecretEnvelope, SourceConfig } from './contracts.ts';
+ import type { CredentialBroker } from './credential-broker.ts';
++import { CurrentCredentialResolver } from './current-credential-resolver.ts';
+ import type { SecurityBridge } from './security-bridge.ts';
+ export class ServerReceiptClock {
+   private readonly monotonic: () => number;
+@@ -345,6 +346,21 @@ export class CredentialProvisioning {
+         if (current && current.credentialStatus !== 'stored') pending = true;
+       }
+     }
++    if (!pending) {
++      // Desired status cannot distinguish missing current A from irrelevant history A/current B.
++      // Reuse the authenticated sampled binding checks and verify actual local availability.
++      const resolver = new CurrentCredentialResolver(this.machineId, (path) => read(path), this.broker);
++      const signal = AbortSignal.timeout(30000);
++      try {
++        for (const provider of config.apiProviders) {
++          const current = await resolver.resolve(provider, config.revision, signal);
++          await current.assertCurrent();
++        }
++      } catch {
++        // No raw read/broker error, secret rewrite or historical queue deletion on failure.
++        pending = true;
++      }
++    }
+     return { state: pending ? 'pending' : 'stored', nextCursor: batch.nextCursor };
+   }
+   close(): Promise<void> {
+diff --git a/v2/gateway/test/credential-provisioning.test.ts b/v2/gateway/test/credential-provisioning.test.ts
+index b684110..87005e1 100644
+--- a/v2/gateway/test/credential-provisioning.test.ts
++++ b/v2/gateway/test/credential-provisioning.test.ts
+@@ -9,10 +9,11 @@ import {
+   randomBytes,
+   randomUUID,
+ } from 'node:crypto';
++import { join } from 'node:path';
+ import test from 'node:test';
+-import { canonicalJson } from '../src/journal/atomic-records.ts';
++import { AtomicRecords, canonicalJson, hash } from '../src/journal/atomic-records.ts';
+ import { HttpOperationJournal, type HttpRequest } from '../src/journal/http-operations.ts';
+-import type { SecretEnvelope } from '../src/models/contracts.ts';
++import type { ApiCredentialBindings, ApiProviderConfig, SecretEnvelope } from '../src/models/contracts.ts';
+ import { CredentialBroker } from '../src/models/credential-broker.ts';
+ import { CredentialProvisioning, ServerReceiptClock } from '../src/models/credential-provisioning.ts';
+ import type { SecurityBridge } from '../src/models/security-bridge.ts';
+@@ -296,13 +297,38 @@ test('FIX1 R2 public reconnect replays committed lost ACK after expiry and revis
+         ? {
+             revision,
+             enabled: { api: true, claude: false, codex: false },
+-            apiProviders: [{ id: providerId, credentialStatus: currentStored ? 'stored' : 'pending' }],
++            apiProviders: [
++              {
++                id: providerId,
++                endpoint: 'https://fixture.example/v1/',
++                protocol: 'responses',
++                models: [{ id: 'chosen', declared: ['text'] }],
++                localHttp: null,
++                credentialStatus: currentStored ? 'stored' : 'pending',
++              },
++            ],
+           }
+-        : {
+-            items: batches++ === 0 ? [envelope] : [],
+-            nextCursor: '1',
+-            serverTime: new Date(base + mono).toISOString(),
+-          };
++        : route === '/v2/machine/api-credential-bindings'
++          ? {
++              machineId,
++              configRevision: revision,
++              apiEnabled: true,
++              providers: [
++                {
++                  providerId,
++                  endpoint: 'https://fixture.example/v1/',
++                  protocol: 'responses',
++                  status: currentStored ? 'stored' : 'pending',
++                  credentialRef: `${machineId}_${providerId}_${envelope.id}`,
++                  currentOperationId: null,
++                },
++              ],
++            }
++          : {
++              items: batches++ === 0 ? [envelope] : [],
++              nextCursor: '1',
++              serverTime: new Date(base + mono).toISOString(),
++            };
+     assert.equal((await provisioning.syncPending(read)).state, 'pending');
+     assert.equal(acks.length, 1);
+     const storedWrites = writes;
+@@ -340,3 +366,242 @@ test('FIX1 R2 public reconnect replays committed lost ACK after expiry and revis
+     await removeModelFixture(root);
+   }
+ });
++
++test('FIX2 public sync distinguishes missing current A from healthy current B and historical ACK without promotion', async () => {
++  const root = await modelFixtureRoot('fix2-current-credential');
++  const machineId = randomUUID(),
++    providerId = randomUUID(),
++    keyId = randomUUID(),
++    values = new Map<string, Buffer>();
++  let writes = 0;
++  const bridge: SecurityBridge = {
++    read: async (s, a) => {
++      const b = values.get(s + a);
++      return b ? Buffer.from(b) : null;
++    },
++    put: async (s, a, b) => {
++      writes++;
++      values.set(s + a, Buffer.from(b));
++    },
++    remove: async (s, a) => {
++      values.delete(s + a);
++    },
++  };
++  const broker = new CredentialBroker(machineId, bridge, []),
++    keys = generateKeyPairSync('x25519');
++  const publicKey = keys.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
++  const privateBytes = keys.privateKey.export({ type: 'pkcs8', format: 'der' });
++  await bridge.put(`com.2pcrew.v2.${machineId}.credential-keys`, keyId, privateBytes);
++  privateBytes.fill(0);
++  const provider: ApiProviderConfig = {
++    id: providerId,
++    endpoint: 'https://fixture.example/v1/',
++    protocol: 'responses',
++    models: [{ id: 'chosen', declared: ['text'] }],
++    localHttp: null,
++    credentialStatus: 'stored',
++  };
++  const meta = {
++    id: randomUUID(),
++    machineId,
++    providerId,
++    keyId,
++    configRevision: 1,
++    operationId: randomUUID(),
++    expiresAt: '2026-10-02T07:05:00.000Z',
++  };
++  const envelope = {
++    ...meta,
++    ...seal(publicKey, 'fixture-current-A', {
++      machineId,
++      providerId,
++      keyId,
++      configRevision: 1,
++      operationId: meta.operationId,
++      expiresAt: meta.expiresAt,
++    }),
++  };
++  const refA = await broker.put(providerId, Buffer.from('fixture-current-A'), envelope.id);
++  const ack = {
++    operationId: envelope.operationId,
++    keyId,
++    ciphertextSha256: envelope.ciphertextSha256,
++    credentialRef: refA,
++  };
++  const intent = { formatVersion: 1 as const, envelopeHash: hash(canonicalJson(envelope)), ack };
++  // Exact durable post-write/lost-receipt state; no production private-field access.
++  let records = await AtomicRecords.open(join(root, 'credential-provisioning'));
++  await records.put('active-key', { formatVersion: 1, id: keyId, publicKey, confirmed: true });
++  await records.put(envelope.id, intent);
++  await records.put(`pending-envelope:${envelope.id}`, { formatVersion: 1, envelope });
++  await records.put('envelope-cursor', { formatVersion: 1, cursor: '1' });
++  await records.close();
++  await broker.remove(refA);
++  const acks: Readonly<HttpRequest>[] = [];
++  const http = await HttpOperationJournal.open(root, async (request) => {
++    assert.equal(request.route, `/v2/machine/api-secret-envelopes/${envelope.id}/ack`);
++    acks.push(structuredClone(request));
++    return { status: 200, body: { status: 'acked' } };
++  });
++  const clock = new ServerReceiptClock(() => 0);
++  let provisioning = await CredentialProvisioning.open(root, machineId, bridge, broker, http, clock);
++  let snapshot: ApiCredentialBindings = {
++    machineId,
++    configRevision: 2,
++    apiEnabled: true,
++    providers: [
++      {
++        providerId,
++        endpoint: provider.endpoint,
++        protocol: provider.protocol,
++        status: 'stored',
++        credentialRef: refA,
++        currentOperationId: envelope.operationId,
++      },
++    ],
++  };
++  let metadataReads = 0,
++    changeOperation = false,
++    metadataFails = false;
++  const read = async (route: string) => {
++    if (route === '/v2/machine/model-sources')
++      return {
++        revision: 2,
++        enabled: { api: true, claude: false, codex: false },
++        apiProviders: [structuredClone(provider)],
++      };
++    if (route === '/v2/machine/api-credential-bindings') {
++      metadataReads++;
++      if (metadataFails) throw new Error('fixture-sensitive-read-error');
++      const result = structuredClone(snapshot);
++      if (changeOperation && metadataReads % 2 === 0) {
++        const binding = result.providers[0];
++        assert.ok(binding);
++        binding.currentOperationId = randomUUID();
++      }
++      return result;
++    }
++    assert.equal(route, '/v2/machine/api-secret-envelopes?after=1');
++    return { items: [], nextCursor: '1', serverTime: '2026-10-02T07:06:00.000Z' };
++  };
++  const inspectAndRestart = async (expectedQueued: boolean) => {
++    await provisioning.close();
++    records = await AtomicRecords.open(join(root, 'credential-provisioning'));
++    assert.deepEqual(await records.get(envelope.id), intent);
++    const queued = await records.get<{ formatVersion: 1; envelope: SecretEnvelope | null }>(
++      `pending-envelope:${envelope.id}`,
++    );
++    assert.deepEqual(queued?.envelope, expectedQueued ? envelope : null);
++    await records.close();
++    provisioning = await CredentialProvisioning.open(root, machineId, bridge, broker, http, clock);
++  };
++  try {
++    const priorWrites = writes;
++    assert.equal((await provisioning.syncPending(read)).state, 'pending');
++    assert.equal(acks.length, 0);
++    assert.equal(writes, priorWrites);
++    await inspectAndRestart(true);
++    assert.equal((await provisioning.syncPending(read)).state, 'pending');
++    assert.equal(acks.length, 0);
++    const refB = await broker.put(providerId, Buffer.from('fixture-current-B'), randomUUID());
++    const binding = snapshot.providers[0];
++    assert.ok(binding);
++    binding.credentialRef = refB;
++    binding.currentOperationId = randomUUID();
++    const good = structuredClone(snapshot),
++      beforeHistory = writes;
++    assert.equal((await provisioning.syncPending(read)).state, 'stored');
++    assert.equal(acks.length, 0);
++    assert.equal(writes, beforeHistory);
++    await inspectAndRestart(true);
++    const invalid: ((b: ApiCredentialBindings) => void)[] = [
++      (b) => {
++        b.machineId = randomUUID();
++      },
++      (b) => {
++        b.configRevision = 1;
++      },
++      (b) => {
++        b.apiEnabled = false;
++      },
++      (b) => {
++        b.providers = [];
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        b.providers.push({ ...p });
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        p.providerId = randomUUID();
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        p.endpoint = 'https://different.example/v1/';
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        p.protocol = 'chat-completions';
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        p.status = 'pending';
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        p.credentialRef = `${randomUUID()}_${providerId}_${randomUUID()}`;
++      },
++      (b) => {
++        const p = b.providers[0];
++        assert.ok(p);
++        p.credentialRef = refA;
++      },
++    ];
++    for (const mutate of invalid) {
++      snapshot = structuredClone(good);
++      mutate(snapshot);
++      assert.equal((await provisioning.syncPending(read)).state, 'pending');
++    }
++    snapshot = structuredClone(good);
++    metadataFails = true;
++    assert.deepEqual(await provisioning.syncPending(read), { state: 'pending', nextCursor: '1' });
++    metadataFails = false;
++    changeOperation = true;
++    metadataReads = 0;
++    assert.equal((await provisioning.syncPending(read)).state, 'pending');
++    changeOperation = false;
++    const current = snapshot.providers[0];
++    assert.ok(current);
++    current.currentOperationId = null;
++    assert.equal((await provisioning.syncPending(read)).state, 'stored');
++    assert.equal(acks.length, 0);
++    await inspectAndRestart(true);
++    // A becomes recoverable, but only B's fresh current metadata can establish current storage.
++    await broker.put(providerId, Buffer.from('fixture-current-A'), envelope.id);
++    provider.credentialStatus = 'pending';
++    current.status = 'pending';
++    current.credentialRef = null;
++    const beforeAck = writes;
++    assert.equal((await provisioning.syncPending(read)).state, 'pending');
++    assert.equal(acks.length, 1);
++    assert.deepEqual(acks[0]?.canonicalBody, ack);
++    assert.equal(writes, beforeAck);
++    await inspectAndRestart(false);
++    provider.credentialStatus = 'stored';
++    current.status = 'stored';
++    current.credentialRef = refB;
++    assert.equal((await provisioning.syncPending(read)).state, 'stored');
++    assert.equal(acks.length, 1);
++  } finally {
++    await provisioning.close();
++    await http.close();
++    for (const b of values.values()) b.fill(0);
++    await removeModelFixture(root);
++  }
++});

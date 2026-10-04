@@ -1,0 +1,335 @@
+--- v2/server/src/attachments/snapshots.ts
++++ v2/server/src/attachments/snapshots.ts
+@@ -7,6 +7,7 @@
+ import type {
+   AssistantInputAuthority,
+   AttachmentRef,
++  Derivative,
+   DispatchInputPin,
+   Extraction,
+   InputSnapshot,
+@@ -122,26 +123,52 @@
+     );
+     required.push({ original, unitIds: units.map((u) => u.id).sort() });
+     const derivatives =
+-      await tx`select id,sha256,byte_length,mime,kind,unit_ids,verification from attachment_derivatives where extraction_id=${extraction.id} and attachment_id=${original.attachmentId}`;
++      await tx`select id,extraction_id,attachment_id,sha256,byte_length,mime,kind,unit_ids,verification from attachment_derivatives where extraction_id=${extraction.id} and attachment_id=${original.attachmentId}`;
++    // Each persisted unit-array hash is computed once. Index only candidates
++    // whose exact provenance and bytes match this immutable extraction.
++    const persisted = new Map(
++      derivatives.map(
++        (row) =>
++          [
++            String(row.id),
++            {
++              row,
++              unitsSha256: digest(row.unit_ids),
++            },
++          ] as const,
++      ),
++    );
++    const candidates = { text: new Map<string, Derivative>(), vision: new Map<string, Derivative>() };
++    for (const derivative of extraction.derivatives) {
++      const stored = persisted.get(derivative.id);
++      if (!stored) continue;
++      const row = stored.row;
++      if (
++        derivative.verification !== 'verified' ||
++        derivative.original?.attachmentId !== original.attachmentId ||
++        derivative.original.sha256 !== original.sha256 ||
++        derivative.original.ownerId !== original.ownerId ||
++        derivative.extractionId !== extraction.id ||
++        derivative.extractorVersion !== extraction.extractorVersion ||
++        derivative.configSha256 !== extraction.configSha256 ||
++        row.extraction_id !== extraction.id ||
++        row.attachment_id !== original.attachmentId ||
++        row.sha256 !== derivative.sha256 ||
++        Number(row.byte_length) !== derivative.byteLength ||
++        row.mime !== derivative.mime ||
++        row.kind !== derivative.kind ||
++        row.verification !== 'verified' ||
++        stored.unitsSha256 !== digest(derivative.unitIds)
++      )
++        continue;
++      const index = derivative.kind === 'image' ? candidates.vision : candidates.text;
++      for (const unitId of derivative.unitIds) {
++        // Keep the first valid candidate in manifest order, as before.
++        if (!index.has(unitId)) index.set(unitId, derivative);
++      }
++    }
+     for (const unit of units) {
+-      const candidates = extraction.derivatives.filter(
+-        (d) =>
+-          d.unitIds.includes(unit.id) &&
+-          d.verification === 'verified' &&
+-          (unit.needs === 'vision' ? d.kind === 'image' : d.kind === 'text'),
+-      );
+-      const match = candidates.find((d) =>
+-        derivatives.some(
+-          (r) =>
+-            r.id === d.id &&
+-            r.sha256 === d.sha256 &&
+-            Number(r.byte_length) === d.byteLength &&
+-            r.mime === d.mime &&
+-            r.kind === d.kind &&
+-            r.verification === 'verified' &&
+-            digest(r.unit_ids) === digest(d.unitIds),
+-        ),
+-      );
++      const match = candidates[unit.needs].get(unit.id);
+       if (unit.state !== 'available' || !match) {
+         problems.push(problem('MISSING_REPRESENTATION', [unit.id]));
+         continue;
+--- v2/server/test/attachments-snapshots.test.ts
++++ v2/server/test/attachments-snapshots.test.ts
+@@ -647,3 +647,126 @@
+       }
+     });
+ });
++
++test('grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks', async (t) => {
++  const { publishKnownRepresentation } = await import('./support/attachment-access-publication.ts');
++  const { observePersistedDerivativeWork } = await import('./support/attachment-snapshot-work.ts');
++  await databaseFixture(10)(async (db) => {
++    const f = await attachmentAccessFixture(db);
++    try {
++      const count = 2048,
++        original = await f.linkFile('A', Buffer.from('known text\n'.repeat(count)));
++      const extraction = await publishKnownRepresentation(f, original, 'text', undefined, count),
++        derivative = extraction.derivatives[0];
++      assert.ok(derivative);
++      const target = { kind: 'ticket' as const, ticketId: f.tickets.A.id, projectId: f.projects.A.id };
++      const result = await db.begin(async (tx) => {
++        const observed = observePersistedDerivativeWork(tx);
++        const snapshot = await readInputSnapshot(
++          observed.tx,
++          owner,
++          { target, access: { kind: 'owner' }, expectedInputRevision: null, scopeDecisionId: null },
++          denyPreclaimSelection,
++        );
++        return { snapshot, work: observed.work };
++      });
++      assert.equal(result.snapshot.state, 'ready');
++      assert.deepEqual(result.snapshot.requiredCapabilities, ['text']);
++      assert.deepEqual(result.snapshot.selectedDerivativeIds, [derivative.id]);
++      assert.equal(result.snapshot.required.length, 1);
++      assert.equal(result.snapshot.required[0]?.unitIds.length, count);
++      assert.equal(result.snapshot.required[0]?.original.attachmentId, original.attachmentId);
++      const selected = new Set(result.snapshot.required[0]?.unitIds);
++      assert.equal(selected.size, count);
++      assert.ok(selected.has('u1') && selected.has('u2048'));
++      assert.equal(result.work.queries, 1);
++      assert.equal(result.work.rows, 1);
++      t.diagnostic(
++        JSON.stringify({
++          groupedUnits: count,
++          ...result.work,
++          pid: process.pid,
++          argv: process.argv,
++          nodeOptions: process.env.NODE_OPTIONS,
++        }),
++      );
++      // Require real provenance validation and at least one complete array compare,
++      // while forbidding the per-unit rehash that made the previous work quadratic.
++      assert.ok(
++        result.work.validationReads >= 1 && result.work.validationReads <= 2,
++        JSON.stringify(result.work),
++      );
++      assert.ok(
++        result.work.unitElementReads >= count && result.work.unitElementReads <= 2 * count,
++        JSON.stringify(result.work),
++      );
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('indexed snapshot candidates reject persisted derivative identity and coverage tampering', async () => {
++  const { publishKnownRepresentation } = await import('./support/attachment-access-publication.ts');
++  await databaseFixture(10)(async (db) => {
++    const f = await attachmentAccessFixture(db);
++    try {
++      const a = await f.linkFile('A', Buffer.from('known text')),
++        b = await f.linkFile('B', Buffer.from('other text'));
++      const extraction = await publishKnownRepresentation(f, a, 'text'),
++        other = await publishKnownRepresentation(f, b, 'text'),
++        derivative = extraction.derivatives[0];
++      assert.ok(derivative);
++      const target = { kind: 'ticket' as const, ticketId: f.tickets.A.id, projectId: f.projects.A.id };
++      const read = () =>
++        db.begin((tx) =>
++          readInputSnapshot(
++            tx,
++            owner,
++            { target, access: { kind: 'owner' }, expectedInputRevision: null, scopeDecisionId: null },
++            denyPreclaimSelection,
++          ),
++        );
++      const good = await read();
++      assert.equal(good.state, 'ready');
++      assert.deepEqual(good.selectedDerivativeIds, [derivative.id]);
++      const [saved] = await db`select * from attachment_derivatives where id=${derivative.id}`;
++      for (const fault of [
++        'hash',
++        'bytes',
++        'mime',
++        'kind',
++        'verification',
++        'units',
++        'original',
++        'extraction',
++      ] as const) {
++        if (fault === 'hash')
++          await db`update attachment_derivatives set sha256=${'0'.repeat(64)} where id=${derivative.id}`;
++        if (fault === 'bytes')
++          await db`update attachment_derivatives set byte_length=byte_length+1 where id=${derivative.id}`;
++        if (fault === 'mime')
++          await db`update attachment_derivatives set mime='image/png' where id=${derivative.id}`;
++        if (fault === 'kind')
++          await db`update attachment_derivatives set kind='image' where id=${derivative.id}`;
++        if (fault === 'verification')
++          await db`update attachment_derivatives set verification='failed' where id=${derivative.id}`;
++        if (fault === 'units')
++          await db`update attachment_derivatives set unit_ids=${db.json(['unknown'])} where id=${derivative.id}`;
++        if (fault === 'original')
++          await db`update attachment_derivatives set attachment_id=${b.attachmentId} where id=${derivative.id}`;
++        if (fault === 'extraction')
++          await db`update attachment_derivatives set extraction_id=${other.id} where id=${derivative.id}`;
++        const invalid = await read();
++        assert.equal(invalid.state, 'waiting', fault);
++        assert.deepEqual(invalid.selectedDerivativeIds, [], fault);
++        assert.deepEqual(invalid.requiredCapabilities, [], fault);
++        assert.equal(invalid.problems[0]?.code, 'MISSING_REPRESENTATION', fault);
++        await db`update attachment_derivatives set sha256=${saved.sha256},byte_length=${saved.byte_length},mime=${saved.mime},kind=${saved.kind},verification=${saved.verification},unit_ids=${db.json(saved.unit_ids)},attachment_id=${saved.attachment_id},extraction_id=${saved.extraction_id} where id=${derivative.id}`;
++      }
++      assert.deepEqual(await read(), good);
++    } finally {
++      await f.close();
++    }
++  });
++});
+--- v2/server/test/support/attachment-access-publication.ts
++++ v2/server/test/support/attachment-access-publication.ts
+@@ -19,11 +19,18 @@
+   original: AttachmentRef,
+   mode: 'image' | 'text' = 'image',
+   beforeCommit?: () => Promise<void>,
++  groupedTextUnits = 1,
+ ) {
+   const [job] =
+     await f.db`select id from attachment_extractions where attachment_id=${original.attachmentId} and status='pending' order by created_at desc limit 1`;
+   assert.ok(job);
+-  const bytes = mode === 'image' ? fixturePng : Buffer.from('known text');
++  assert.ok(Number.isSafeInteger(groupedTextUnits) && groupedTextUnits >= 1 && groupedTextUnits <= 2048);
++  assert.ok(mode === 'text' || groupedTextUnits === 1);
++  const unitIds = Array.from({ length: groupedTextUnits }, (_, index) => `u${index + 1}`);
++  const bytes =
++    mode === 'image'
++      ? fixturePng
++      : Buffer.from(groupedTextUnits > 1 ? 'known text\n'.repeat(groupedTextUnits) : 'known text');
+   let input: WorkerInput | undefined;
+   let closed = false;
+   const runner: ExtractorRunner = {
+@@ -49,18 +56,22 @@
+         extractorVersion: input.extractorVersion,
+         configSha256: input.config.policySha256,
+         status: 'complete',
+-        units: [
+-          {
+-            id: 'u1',
+-            locator:
+-              mode === 'image'
+-                ? { kind: 'image', width: 1, height: 1, box: [0, 0, 1, 1] }
+-                : { kind: 'text', byteStart: 0, byteEnd: bytes.length, lineStart: 1, lineEnd: 1 },
+-            needs: mode === 'image' ? 'vision' : 'text',
+-            state: 'available',
+-            reason: null,
+-          },
+-        ],
++        units: unitIds.map((id, index) => ({
++          id,
++          locator:
++            mode === 'image'
++              ? { kind: 'image' as const, width: 1, height: 1, box: [0, 0, 1, 1] }
++              : {
++                  kind: 'text' as const,
++                  byteStart: groupedTextUnits > 1 ? index * 11 : 0,
++                  byteEnd: groupedTextUnits > 1 ? (index + 1) * 11 : bytes.length,
++                  lineStart: index + 1,
++                  lineEnd: index + 1,
++                },
++          needs: mode === 'image' ? ('vision' as const) : ('text' as const),
++          state: 'available' as const,
++          reason: null,
++        })),
+         files: [
+           {
+             relativeName: mode === 'image' ? 'page-1.png' : 'text-1.txt',
+@@ -68,7 +79,7 @@
+             mime: mode === 'image' ? 'image/png' : 'text/plain',
+             sha256: sha(bytes),
+             byteLength: bytes.length,
+-            unitIds: ['u1'],
++            unitIds,
+           },
+         ],
+         problems: [],
+--- /dev/null
++++ v2/server/test/support/attachment-snapshot-work.ts
+@@ -0,0 +1,43 @@
++import assert from 'node:assert/strict';
++import type { Tx } from '../../src/platform/contracts.ts';
++
++// Observe real query results, not synthetic manifests or a production counter.
++// Canonical hashing and membership scanning consume these numeric array reads.
++// The SQL query and all original rows/values still come from private PostgreSQL.
++export function observePersistedDerivativeWork(tx: Tx) {
++  const work = { queries: 0, rows: 0, validationReads: 0, unitElementReads: 0 };
++  const observed = new Proxy(tx, {
++    apply(target, receiver, args) {
++      const query = Reflect.apply(target, receiver, args);
++      const parts: unknown = args[0];
++      if (
++        !Array.isArray(parts) ||
++        !parts.join('').includes('from attachment_derivatives where extraction_id=')
++      )
++        return query;
++      return query.then((rows: Record<string, unknown>[]) => {
++        work.queries++;
++        work.rows += rows.length;
++        return rows.map((row) => {
++          assert.ok(Array.isArray(row.unit_ids));
++          const unitIds = new Proxy(row.unit_ids, {
++            get(array, property, receiver) {
++              if (typeof property === 'string' && /^(0|[1-9][0-9]*)$/.test(property)) work.unitElementReads++;
++              return Reflect.get(array, property, receiver);
++            },
++          });
++          return new Proxy(
++            { ...row, unit_ids: unitIds },
++            {
++              get(value, property, receiver) {
++                if (property === 'sha256') work.validationReads++;
++                return Reflect.get(value, property, receiver);
++              },
++            },
++          );
++        });
++      });
++    },
++  });
++  return { tx: observed, work };
++}
+--- v2/docs/flows/server-attachments.md
++++ v2/docs/flows/server-attachments.md
+@@ -85,3 +85,9 @@
+ `persistMessageInputDecision` enforce current routed root→message→input ngay cả caller service trực tiếp, rồi giữ nguyên proof/authority checks. Initial route khóa message trước input sau locks root/tickets/projects đã có; tránh thứ tự ngược với fresh snapshot. Machine scope/reply thiếu trusted decision authority vẫn503. Cross-machine generic routing giữ defaultdeny theo Phase06R3; positive S3 là AssistantA đọc owner inbox trực tiếp qua exact grant, không cần claimB. Task6 InputServices buildManifest/receipt và Phase06 Assistant production authority chưa có: named deny, không fabricate certificate.
+ 
+ Files Task3 (R2 manifest do PM serialize): `server/src/attachments/access.ts`, `routes.ts`, `references.ts`, `grants.ts`, `snapshots.ts`; narrow producer edits `jobs.ts`, `messages.ts`, `routing.ts`; tests `server/test/attachments-{api,access,grants,snapshots}.test.ts`; support `server/test/support/attachment-access.ts`, `attachment-access-publication.ts`, `attachment-access-authority.ts`, `attachment-access-inbox.ts`. S2/S3 positive fixtures dùng actual owner CSRF/machine provisioning/binding/claim007, private PostgreSQL001–010, actual uploads and accepted createExtractionJobs + closed framed controlled runner + BlobStore SQL publication; PNG inert known fixture không chứng nhận parser/comprehension. Two-pool regressions kiểm publication↔claim, current routed reply↔publication/revoke, initial route↔snapshot cả hai winning orders; real TCP stream kiểm token revoke sau chunk đầu. Final evidence/log/hash/cleanup nằm task-3-report, frozen490:v2 + own paths, không consume unfinished Task5 parser sources.
++
++## Task3 FIX1/5 — T3-Q1
++
++Snapshot coverage không còn scan derivative và băm grouped unit-array theo từng unit trong root/input transaction. SQL lấy exact original/extraction rows; persisted unit-array hash được tính một lần mỗi row. Manifest derivative được so provenance/original/hash/extraction/version/config/modality/verification/length/unit-array một lần, rồi unit→valid candidate index giữ candidate hợp lệ đầu tiên trong manifest order. Vòng unit chỉ lookup theo needs và kiểm available, nên grouped text/CSV không nhân lại array hash khi nhiều unit dùng cùng derivative. Không đổi canonical snapshot, capabilities, selected IDs, scope/grant/production gates.
++
++Regression `attachments-snapshots.test.ts` publish actual grouped2.048 text units/1 derivative qua accepted framed controlled runner, BlobStore/jobs CAS/closed ACK, rồi quan sát actual SQL-returned unit-array numeric reads và SHA field validation. RED có2.048 validations/4.194.304 reads; GREEN có1/2.048, cùng ready/text/selected ID/coverage. Đây là work count thật của canonical comparison, không benchmark latency hoặc counter production. Tám persisted tamper fields và existing same-unit-ID scoped original negatives vẫn fail-closed. `server/test/support/attachment-access-publication.ts` bổ sung grouped fixture; new `server/test/support/attachment-snapshot-work.ts` chỉ quan sát actual rows, không fabricate manifest/provenance. R2 mapping do PM serialize. Actual scoped evidence và resource exception20:25 nằm task-3-fix1-report; original44 là historical cover, không áp thành acceptance của source mới.

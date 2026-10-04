@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "pnpm",
+    "exec",
+    "tsc",
+    "-p",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway/tsconfig.fixture.json"
+  ],
+  "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway",
+  "NODE_OPTIONS": null
+}

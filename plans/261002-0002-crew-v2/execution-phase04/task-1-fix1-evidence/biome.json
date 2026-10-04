@@ -1,0 +1,16 @@
+{
+  "command": [
+    "pnpm",
+    "exec",
+    "biome",
+    "check",
+    "v2/server/src/models",
+    "v2/server/test/model-pool.test.ts",
+    "v2/server/test/model-certification.test.ts",
+    "v2/server/test/model-secret.test.ts",
+    "v2/server/test/support/model-http.ts",
+    "v2/server/test/support/model-observer.ts",
+    "v2/server/test/support/model-certification.ts"
+  ],
+  "exit": 0
+}

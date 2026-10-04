@@ -1,0 +1,44 @@
+[
+  {
+    "run": "red",
+    "createdRoots": 5,
+    "removedIdentityMatchedAndAbsent": 5,
+    "fakeHelpersCreatedAndReaped": 0
+  },
+  {
+    "run": "green",
+    "createdRoots": 5,
+    "removedIdentityMatchedAndAbsent": 5,
+    "fakeHelpersCreatedAndReaped": 0
+  },
+  {
+    "run": "compat-red",
+    "createdRoots": 5,
+    "removedIdentityMatchedAndAbsent": 5,
+    "fakeHelpersCreatedAndReaped": 0
+  },
+  {
+    "run": "compat-green",
+    "createdRoots": 5,
+    "removedIdentityMatchedAndAbsent": 5,
+    "fakeHelpersCreatedAndReaped": 0
+  },
+  {
+    "run": "state-red",
+    "createdRoots": 5,
+    "removedIdentityMatchedAndAbsent": 5,
+    "fakeHelpersCreatedAndReaped": 0
+  },
+  {
+    "run": "preflight",
+    "createdRoots": 5,
+    "removedIdentityMatchedAndAbsent": 5,
+    "fakeHelpersCreatedAndReaped": 0
+  },
+  {
+    "run": "final",
+    "createdRoots": 6,
+    "removedIdentityMatchedAndAbsent": 6,
+    "fakeHelpersCreatedAndReaped": 4
+  }
+]

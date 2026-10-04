@@ -1,0 +1,1358 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 404dc08..cb4f11c 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -69,23 +69,25 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/test/support/audit-dependency-provenance.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/compare-real-builds.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/freeze-dependencies.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/freeze-real-projections.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/probe-bmad-build.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/reclaim-proven-build-probes.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
++| `gateway/test/support/workflow-admission-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/workflow-archives.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/workflow-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/telemetry.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
++| `gateway/test/workflow-admission.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-build.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-fix.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-native-projection.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-operations.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/tsconfig.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+ | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 92cb1e2..dbe458d 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -214,33 +214,35 @@ flows:
+       - gateway/src/workflows/audit.ts
+       - gateway/src/workflows/builder.ts
+       - gateway/src/workflows/fetch.ts
+       - gateway/src/workflows/native-projection.ts
+       - gateway/src/workflows/operation-native.c
+       - gateway/src/workflows/operations.ts
+       - gateway/src/workflows/pins.ts
+       - gateway/src/workflows/retention.ts
+       - gateway/src/workflows/stage.ts
+     tests:
++      - gateway/test/workflow-admission.test.ts
+       - gateway/test/workflow-build.test.ts
+       - gateway/test/workflow-fix.test.ts
+       - gateway/test/workflow-native-projection.test.ts
+       - gateway/test/workflow-operations.test.ts
+       - gateway/test/workflow-registry.test.ts
+       - gateway/test/support/workflow-archives.ts
+       - gateway/test/support/audit-dependency-content.ts
+       - gateway/test/support/audit-dependency-provenance.ts
+       - gateway/test/support/compare-real-builds.py
+       - gateway/test/support/freeze-dependencies.py
+       - gateway/test/support/freeze-real-projections.ts
+       - gateway/test/support/probe-bmad-build.ts
+       - gateway/test/support/reclaim-proven-build-probes.ts
++      - gateway/test/support/workflow-admission-crash-worker.ts
+       - gateway/test/support/workflow-crash-worker.ts
+       - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
+       - gateway/test/fixtures/workflows/official-audits.json
+       - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
+       - gateway/test/fixtures/workflow-builder/dependencies.json
+       - gateway/test/fixtures/workflow-builder/dependencies.tgz
+       - gateway/test/fixtures/workflow-builder/independent-builds.json
+       - gateway/test/fixtures/workflow-builder/package.json
+       - gateway/test/fixtures/workflow-builder/pnpm-lock.yaml
+       - gateway/test/fixtures/workflow-builder/provenance.json
+diff --git a/v2/docs/flows/gateway-host.md b/v2/docs/flows/gateway-host.md
+index 27ee461..0c4d104 100644
+--- a/v2/docs/flows/gateway-host.md
++++ b/v2/docs/flows/gateway-host.md
+@@ -17,20 +17,21 @@ Giữ cổng IPC và định danh một lần khởi động trong tiến trình
+ 3. `gateway/src/ipc/server.ts` → `GatewayRpcServer.start`, `GatewayRpcServer.handle`, `GatewayRpcServer.dispatch`: tạo token và socket mode `0600`, yêu cầu token cùng nonce mới cho từng RPC, giới hạn frame 8192 byte và deadline tuyệt đối 1500 ms từ lúc nhận connection. Mỗi socket chỉ nhận một response; lỗi client không làm host thoát. Node macOS hiện không cung cấp API peer UID trực tiếp nên host dựa vào quyền thư mục/token/socket.
+ 4. `gateway/src/host/status.ts` → `initialStatus`; `gateway/src/ipc/server.ts` → `GatewayRpcServer.dispatch`: `GET status` trả `GatewayStatus` với boot ID mới; `POST open-ui` trả `NOT_CONFIGURED` cho tới khi có URL server được cấu hình và kiểm chứng.
+ 5. `gateway/src/host/main.ts` → `host.stop({ drain: true })`; `gateway/src/host/gateway-host.ts` → `GatewayHost.stop`; `gateway/src/ipc/server.ts` → `GatewayRpcServer.stop`: SIGTERM/SIGINT ngừng nhận connection, đóng frame dở ngay, drain request đang xử lý tối đa 300 ms, rồi đóng socket và xóa token. `gateway/src/host/process-lock.ts` → `ProcessLock.release` thả khóa OS nhưng giữ `host.guard` trên đĩa với cùng device/inode qua stop/crash và lần chiếm khóa tiếp theo.
+ 
+ ### Journal, gate và tài nguyên
+ 
+ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự mở journal, claim, sync workflow hoặc gọi model.
+ 
+ 1. `gateway/src/journal/atomic-records.ts` → `AtomicRecords.open`, `writeExclusiveRecord`, `atomicWrite`: chọn định dạng JSON `formatVersion: 1` trong các thư mục riêng `0700`, record `0600`. Mỗi store dùng `ProcessLock` riêng tại `.writer/host.guard`; lock mất thì từ chối ghi. Ghi record bằng file tạm exclusive/no-follow → fsync file → rename → fsync directory. Spawn intent dùng `O_EXCL` trực tiếp để hai launcher không cùng tạo child; file intent dở vẫn chặn retry. Recovery đọc record đã rename, bỏ qua `.pending-*`, từ chối version/loại/UID/mode/link count không hợp lệ; không thu hồi record unresolved theo TTL.
+ 2. `gateway/src/journal/process-journal.ts` → `ProcessJournal.reserve`, `Launcher.spawnGated`; `gateway/src/journal/gated-helper.ts`: reserve exact source + một projection trước spawn; command ID cũ trả cùng launch UUID và input khác bị từ chối. Helper riêng có process group riêng, fsync READY kèm UUID/PID/start identity/PGID/UID trước khi báo parent. Trước RELEASE chỉ làm thao tác journal, probe native và chờ channel; channel đóng trước release thì thoát, không chạy command workflow.
++   Admission/GC của registry managed: `WorkflowRegistry.open(...,{processJournal})` gọi `ProcessJournal.bindPinAdmission` với validator đọc immutable pair. Marker `workflows/pin-authority.json`, binding `process-journal/pin-admission.json` và registry journal-root record được fsync riêng, không đổi LaunchInput/LaunchRecord/version1. `reserve` giữ journal transaction từ kiểm binding + resolve pair đến ghi intent `admissions/<hash(commandId)>.json` rồi commit LaunchRecord; cùng `withPinAdmissionBarrier` serialize GC snapshot/quarantine/unlink. Lock order registry queue → journal queue; validator chỉ đọc immutable tree, không lấy registry queue ngược lại. Journal standalone cũ chỉ reserve khi không có managed marker; journal reopened/chưa bind từ chối `PIN_ADMISSION_NOT_BOUND` trước launch. Bind transition chờ transaction standalone đang chạy; current refs cũ được giữ. `pendingPinAdmissions` kê riêng intent chưa có exact committed record; crash không thả intent theo TTL/boolean. Intent committed được dedupe với actual LaunchRecord, không phải xóa terminal reference. Task5/Phase04 consumer bắt buộc giữ bound registry+journal cùng host root trước managed reserve; registry thiếu journal attachment không được published GC. Không callback viết/re-enter journal transaction bên trong barrier.
+ 3. `gateway/src/journal/process-journal.ts` → `Launcher.release`, `ProcessJournal.authorize`: mặc định `RELEASE_NOT_CONFIGURED`; consumer phải cung cấp command, callback đọc pin server sau claim/reconcile và callback lấy capacity mới. So exact fence/attempt/process/source/runtime/projection/report, ghi durable authorization rồi mới mở gate. Helper nhận RELEASE tối đa một lần trước mọi await, nên retry đồng thời không chạy command hai lần. Mất reply/restart phải query server attempt/command trước callback release; Task 2 không cung cấp claim permit hoặc đổi guard server.
+ 4. `gateway/src/journal/native.ts`, `gateway/src/journal/native-identity.c` → `ProcessIdentity.probe`, `ProcessIdentity.groupEmpty`: helper dùng `proc_pidinfo(PROC_PIDTBSDINFO)` lấy start sec/usec, UID và PGID. Start identity gắn launch UUID + PID + sec/usec + PGID + UID; PID thiếu, reuse, identity đổi hoặc probe lỗi đều `unknown`. Supervisor native chặn initial child trên pipe, arm `EVFILT_PROC` với `NOTE_FORK | NOTE_EXIT` trước exec và wait đúng child. Chỉ receipt không fork + kernel exit + parent wait đúng helper + `sysctl(KERN_PROC_PGRP)` xác nhận group rỗng mới tạo stopped proof. Bất kỳ fork nào, kể cả descendant đổi group/`setsid`, giữ tree `unknown` bền vững; macOS không hỗ trợ `NOTE_TRACK` từ 10.5 nên không suy ra toàn cây đã chết. `markStopped` chỉ kiểm chứng proof này, không nhận boolean/PID từ caller.
+ 5. `gateway/src/journal/http-operations.ts` → `HttpOperationJournal.prepare`, `recordResponse`, `replay`: canonical body theo key UTF-16, body SHA-256, method/route/phase/key được fsync trước send. Mỗi logical operation/phase có UUID key riêng; input đổi dưới cùng ID bị từ chối, finalize không dùng key result. Restart replay cùng route/body/key; response ghi durable và immutable. Field body mang tên token/password/secret bị từ chối; transport nhận deep-frozen body, không có credential trong log. Consumer vẫn phải giữ credential ngoài body và query server sau ambiguous reply.
+ 6. `gateway/src/resources/registry.ts`, `gateway/src/resources/native-resources.c` → `ResourceRegistry.reserveOwnedPath`, `createAndAttest`, `registerProcess`, `cleanup`: reserve UUID trước tạo directory exclusive bằng `mkdirat`/directory FD, callback chỉ xây dữ liệu trong path do host sở hữu, sau đó kiểm device/inode/UID/type và fsync identity; `linkCount` của directory chỉ là snapshot quan sát, vì output runtime hoặc partial delete có thể đổi số này. Regular file vẫn bắt buộc `st_nlink === 1` ở scan và ngay trước unlink để chặn hardlink alias. Crash trước attest giữ reservation chưa được quyền xóa. Layout lưu identity root/objects/quarantine qua restart; process ownership riêng gắn exact launch/start identity. Cleanup cần mọi process của run có stopped proof, không retention/other-run reference và không abort. Native reopen FD `O_NOFOLLOW`, so identity và scan không theo symlink/foreign mount/hardlink, `renameatx_np(RENAME_EXCL)` sang quarantine, so lại identity rồi mới `unlinkat` qua FD. Parent/symlink/hardlink/mismatch hoặc lỗi native giữ resource với lỗi sanitized. Restart sau rename trước record update chỉ nhận lại cùng inode trong quarantine khi path objects thiếu và parent identity khớp; abort sau quarantine giữ bytes để retry. Crash sau delete trước durable receipt giữ lỗi/missing proof để xử lý thủ công, không bịa ownership từ path đã biến mất.
+ 7. `gateway/src/telemetry/capacity.ts`, `gateway/src/telemetry/macos-provider.ts` → `DispatchCapacity.sampleAndDecide`, `MacOsTelemetryProvider.sample`: sample mới cho mỗi implement/review/fix; `os.loadavg`, `availableParallelism`, `vm_stat`, `sysctl kern.memorystatus_vm_pressure_level`, `statfs` và process registry. Tuổi monotonic/wall quá 15 giây, thiếu sample, pressure warn/critical, RAM <2 GiB, disk <5 GiB, load/CPU >1, vượt min(configured/request max jobs) hoặc ownership key trùng đều chờ. Capacity chỉ là advisory để phase06 lưu rationale/decision, không tự claim.
+ 
+ Native helper development chỉ compile bằng `/usr/bin/clang` đã có vào cache riêng của fixture/host. Source snapshot riêng và binary SHA-256, device/inode/UID/mode `0700` cùng identity cache được attested; helper thiếu/hỏng thì fail closed, không dùng `ps lstart` có độ phân giải giây làm proof. Phase09 phải đóng gói helper ký sẵn và private Node, không yêu cầu người dùng cuối có compiler. Phase04 cần supervisor/spawn broker hoặc confinement kiểm chứng được toàn cây trước khi cho runtime có fork chuyển sang stopped/cleanup.
+ 
+ ## Files
+ 
+@@ -45,23 +46,27 @@ Native helper development chỉ compile bằng `/usr/bin/clang` đã có vào ca
+ | `gateway/src/journal/process-journal.ts`, `gateway/src/journal/gated-helper.ts` | Process journal, READY/RELEASE và stopped proof |
+ | `gateway/src/journal/native.ts`, `gateway/src/journal/native-identity.c` | Build/attest native helper, exact start identity và supervisor fail closed khi fork |
+ | `gateway/src/resources/registry.ts`, `gateway/src/resources/native-resources.c` | Ownership registry và cleanup qua FD/quarantine/no-follow |
+ | `gateway/src/telemetry/capacity.ts`, `gateway/src/telemetry/macos-provider.ts` | Sample macOS mới và quyết định capacity |
+ | `gateway/test/journal.test.ts`, `gateway/test/http-operations.test.ts`, `gateway/test/resources.test.ts`, `gateway/test/telemetry.test.ts` | Crash/replay/identity/ownership/telemetry regression |
+ | `gateway/test/support/journal-fixture.ts`, `gateway/test/support/owned-run.ts` | Fixture host crash và run có exact stopped proof |
+ | `gateway/test/support/host.ts`, `gateway/test/support/ui-client.ts` | Fixture RPC, client mới, LaunchAgent thử nghiệm và cleanup |
+ 
+ ## Dữ liệu
+ 
++Pin admission metadata nằm ngoài hashed LaunchRecord store và không đổi producer version1. `workflows/pin-authority.json` cùng durable journal binding chặn writer unbound; admission intent chứa exact command/ticket/process/source/projection/registry root. Unknown intent giữ pair, bytes và lý do riêng tới producer resolution được review; genuine005-finalization release của process records vẫn thuộc Task5.
++
+ `GatewayStatus` có `bootId`, `bootGeneration`, `serverConnection`, desired/applied revision, trạng thái source/projection cho BMAD và Superpowers, process đang chạy/chưa chắc chắn, thời điểm telemetry và quyền dịch vụ nền. Lúc này `bootGeneration`, cả hai revision và telemetry là `null`; connection là `unconfigured`, các slot là `missing`. Host không chứa token server, không claim ticket và không gọi model. Token IPC chỉ nằm trong thư mục riêng, không trả cho renderer.
+ 
+-Dependency gateway được ghim `tar-stream@3.1.7` và `@types/tar-stream@3.1.4` trong package/lock riêng. Registry workflow dùng parser streaming này để kiểm archive trước publish; không tự chạy installer hoặc nhập dependency global. Hành vi nguồn/projection và retention được mô tả trong flow `gateway-workflows`.
++Dependency gateway được ghim `tar-stream@3.1.7` và `@types/tar-stream@3.1.4` trong package/lock riêng. Parser streaming kiểm archive trước publish; producer BMAD riêng chỉ chạy exact installer trong owned staging với frozen dependency/native authority, không nhập dependency global. Hành vi nguồn/projection và retention được mô tả trong flow `gateway-workflows`.
+ 
+ ## Flow liên quan
+ 
+ `desktop-shell` kết nối IPC; consumer reconnect/workflow/sync phase03 sẽ gắn các journal/capacity/registry vào host và cung cấp dữ liệu thực cho DTO. Bản build development dùng Node của môi trường v2. Bản app ký, private Node đóng gói và đăng ký dịch vụ nền bền vững qua ServiceManagement thuộc phase09; không tự đăng ký nhãn của owner khi build/test.
+ 
+ ## Tests
+ 
+ `pnpm --dir v2/gateway test` build host rồi kiểm tra boot ID giữ nguyên qua UI client exit, boot ID đổi sau restart, socket/token `0600`, client không xác thực bị từ chối, symlink token không được ghi đè, recovery sau crash và residue lock rỗng, contender sống không takeover, frame oversized hai lần không crash, drip frame hết deadline tuyệt đối, SIGTERM và active dispatch drain hữu hạn. Regression macOS giữ fd guard cũ trong lúc release, xác nhận device/inode ổn định, contender không thể lấy khóa trên cùng inode và lần reacquire vẫn dùng inode ấy; crash/reboot host cũng giữ inode. Trên macOS, fixture dùng riêng nhãn `com.2pcrew.v2.test.<uuid>` và `launchctl bootout` chính nhãn đó sau test; non-macOS bỏ qua test launchd với lý do rõ ràng.
+ 
+ Task 2 kiểm tra thêm HTTP lost reply qua socket thật cho claim/checkpoint/reconcile/result/finalize/ACK/install report, restart replay exact key/body/route, command reserve/concurrent writer, hai launcher có barrier không spawn child thứ hai, SIGKILL fixture host tại reserve/spawn/READY/claim request/reply/auth/gate, birth mismatch, capacity block, helper tamper và entrypoint đã build. Resource tests dùng process thật đã stopped để kiểm nested scratch delete/idempotence, symlink/parent swap/hardlink/dirty/reference/unattested/owner checkout giữ bytes, recover quarantine qua restart và abort sau quarantine rồi retry. Regression cho child READY-gated thật thêm/xóa file và subdirectory sau attest, nhận exact stopped proof rồi cleanup/idempotence dù directory link count đổi; fixture `uchg` trên directory riêng sau quarantine gây partial native deletion thật, giữ lỗi/identity qua restart và retry sau khi gỡ flag. Test escaped descendant giữ `PROCESS_TREE_UNKNOWN` qua restart. Telemetry kiểm hai sample độc lập đổi pressure và sample macOS thật. Lệnh focused đúng vị trí flag: `pnpm --dir v2/gateway exec node --test --test-name-pattern='journal|telemetry|resources' test/journal.test.ts test/http-operations.test.ts test/resources.test.ts test/telemetry.test.ts`; full suite vẫn dùng `pnpm --dir v2/gateway test`.
++
++FIX2 kiểm actual reservation cùng GC tại snapshot/quarantine/delete, reserve-first intent trước journal commit, unbound/reopen/bind transition và writer exclusion; SIGKILL tại admission/commit/native quarantine rồi restart xác nhận retained intent hoặc reserve deny, kể cả reclaim quarantine đang delete. `gateway/test/workflow-admission.test.ts` và support `workflow-admission-crash-worker.ts` sở hữu fixture roots; không Launcher/model call hay sửa native stop proof.
+diff --git a/v2/docs/flows/gateway-workflows.md b/v2/docs/flows/gateway-workflows.md
+index 76921e9..2223b55 100644
+--- a/v2/docs/flows/gateway-workflows.md
++++ b/v2/docs/flows/gateway-workflows.md
+@@ -15,33 +15,34 @@ Giữ BMAD và Superpowers cạnh nhau trong registry riêng của host. Exact o
+ 1. `pins.ts`, `fetch.ts`: validate strict SourcePin/ProjectionPin và URL HTTPS exact repository/release/revision; kiểm từng redirect, tối đa ba redirect, archive 32 MiB và download 30 giây. BMAD npm kiểm cả payload SHA-256 và SHA-512 SRI trước extract. URL allowlist không tự chứng minh provenance của stream do caller cung cấp.
+ 2. `stage.ts`: parser tar-stream ghim 3.1.7; chặn traversal, Unicode NFC/case collision, duplicate, special/hardlink entries và executable ngoài audit. Tree tối đa 128 MiB/20.000 entries, gzip có expanded bound. Ghi link sau files/directories; canonical target phải trong tree, không dangling/cycle/escape. Directory 0755, regular file 0644/0755 theo audit, symlink mode null.
+ 3. Canonical entries sort byte UTF-8 theo path slash/NFC. Manifest ghi path/type/mode/bytes/sha256/target; loại filesystem mtime/UID/GID/xattrs/archive order. Source tree hash bind sourceManifestSha256/sourceRevision/packageIntegrity/payloadSha256. Projection tree hash bind sourceTreeSha256/runtime/manifestSha256/derivation tool/version/options/layoutSchema/policySha256. Pin/manifest/current pointer nằm ngoài counted tree. Exact payload khác vẫn tạo source tree pin khác dù manifest giống.
+ 4. `registry.ts`: AtomicRecords OS writer lock và transaction queue serialize reserve/build/publish/activation. Durable intent trước create, ownership marker và device/inode/UID trước build; fsync tree/record/parent rồi rename. Verify immutable path nếu đã tồn tại; không overwrite. Abort được kiểm trước operation và ngay trước activation, kể cả cached source A sau current B; cached projection cũng kiểm cancellation.
+ 5. `builder.ts`: exact BMAD package-local official `bmad-cli.js install --directory <owned> --yes --modules bmm --tools claude-code --no-shims`, fixed user/language inputs. Frozen 13 direct dependencies/99 direct+transitive packages, exact lock/package/payload hashes/SRI/file-byte evidence. Node 24.14.0 và uv 0.11.3 được bind bằng binary hash; không global install. Child HOME/TMP/XDG riêng, không inherited env/credential/proxy/module path. Sandbox deny network/fork, giới hạn writes trong stage. Upstream update/module lookup không được ra ngoài sandbox; installer bytes không sửa.
+ 6. BMAD generated operational dates chỉ normalize tại `_bmad/_config/manifest.yaml`, `_bmad/core/config.yaml`, `_bmad/bmm/config.yaml` về epoch; cập nhật tương ứng hash của đúng các file ấy trong files-manifest.csv. Skill text/config/script/renderer gốc giữ byte. Hai build độc lập phải cho cùng canonical manifest và exact expected pin. `_bmad/scripts/render_skill.py` giữ nguyên; original SKILL vẫn yêu cầu `uv run --no-cache` khi workflow chạy. Task 4 không chạy renderer thay cho runtime hay tuyên bố workflow thực đã PASS.
+ 7. Superpowers Claude giữ `.claude-plugin/plugin.json`, `skills`, `hooks` original. API giữ exact official skill/script/support bytes và adapter-policy có toàn bộ officialInventory, skills, scripts có đuôi và executable không đuôi như `sdd-workspace`/`review-package`. BMAD API giữ output installer/config/renderer cùng policy riêng. Policy bind manifest, effect ledger, per-call grants và certified boundary; model/tool execution disabled, isolationCertificate null. Không prompt PM/dev/QC của Crew.
+ 8. Superpowers Codex native `superpowers-codex-native-skills-v1`: giữ full upstream tree byte/mode, `.agents`/marketplace manifest đã có nguyên vẹn; thêm đúng `.agents/skills` và 15 relative links `<name> -> ../../skills/<name>`. Hai owned build roots kiểm actual hash, target và sibling scripts. Native policy nằm ngoài counted tree, được reverify khi resolve. Consumer cố định: P ở sibling ngoài project CWD/ancestors, scratch `.agents/skills -> P/.agents/skills`; không transplant links, không nạp root AGENTS/hook/marketplace từ P. Không YAML/source rewrite/alias router. Runtime bootstrap/namespace/tools/child/isolation vẫn UNVERIFIED; marketplace 6.4.2 thiếu immutable package/metadata vẫn là gate riêng.
+ 9. `operations.ts`, `operation-native.c`: attested private parent/objects; native FD no-follow traversal/quarantine/delete kiểm device/inode/UID/type, regular nlink1, foreign mount/hardlink fail closed; symlink được unlink như entry. Directory nlink chỉ quan sát. Bounded installer executor 90 giây, disk accounting 256 MiB/30.000 entries/depth128, log/file bound64 MiB. Arm kqueue NOTE_FORK/NOTE_EXIT trước gated exec rồi actual waitpid. Protected receipt bind operation ID + device/inode; bất kỳ fork/lost receipt giữ UNKNOWN. Không sửa Task2 ProcessJournal/ResourceRegistry để giả stopped.
+ 10. Pure operations có closure proof khi exclusive writer được reacquire; restart reconcile reserve/create/rename/receipt/quarantine windows. Completed failed stages có byte accounting và reclaim/retry theo identity; unresolved stages tối đa8 trước STAGING_RETRY_LIMIT. Published GC xử lý projection trước source, giữ current source, projection dependency, registry refs và mọi recovered ProcessJournal refs. `retentionInventory` ghi exact pair/bytes/reason/release requirement; accepted005-finalization producer chưa có thì giữ riêng nhóm process references, không khóa cleanup của pure/unreferenced groups. Heartbeat/stopped/ACK không phải terminal release authority.
++   FIX2 admission authority: managed `ProcessJournal.reserve` giữ cùng journal transaction mà GC/recovered publication reclaim giữ xuyên snapshot → native quarantine → delete. Registry queue luôn đứng trước journal queue; reserve validator chỉ resolve immutable pair, không lấy registry queue. GC-first làm reserve sau đó reject trước LaunchRecord nếu pair đã mất; reserve-first ghi durable pin admission intent rồi actual LaunchRecord dưới barrier, nên GC phải thấy protected ref. Bind marker/binding bền vững chặn unbound/reopened journal; bind chờ standalone transaction đang chạy. Missing journal attachment từ chối published GC và giữ recovered publication quarantine, nhưng pure-stage reclaim vẫn có closure authority riêng. `pendingPinAdmissions` bảo vệ intent crash chưa commit, dedupe exact committed records và inventory `durable-pin-admission-intent`; không TTL/closed boolean/fake release. Consumer Task5/04 phải dùng bound registry+journal cùng host root; cross-process writers vẫn bị OS guard loại trừ.
+ 11. `resolve` recheck full pins, payload/SRI, manifest/tree và native policy/geometry. HTTP desired/applied/boot/dispatch/companion integration thuộc Task3/5; Task4 không mutate server state hoặc bypass admission.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+ | `gateway/src/workflows/pins.ts`, `fetch.ts`, `stage.ts` | Frozen DTO/URL/hash/download/parser/tree |
+ | `gateway/src/workflows/registry.ts`, `retention.ts` | Publish/recover/reclaim/GC/reference inventory |
+ | `gateway/src/workflows/audit.ts`, `api-policy.ts`, `native-projection.ts` | Official artifact audit và policy từng runtime |
+ | `gateway/src/workflows/builder.ts`, `operations.ts`, `operation-native.c` | Frozen actual installer và native operation authority |
+-| `gateway/test/workflow-registry.test.ts`, `workflow-fix.test.ts` | Matrix/supply chain/cached cancellation/repeated stage failures |
++| `gateway/test/workflow-registry.test.ts`, `workflow-fix.test.ts`, `workflow-admission.test.ts` | Matrix/supply chain/cached cancellation/repeated stage failures |
+ | `gateway/test/workflow-build.test.ts`, `workflow-native-projection.test.ts`, `workflow-operations.test.ts` | Actual builds/policy/native links/lifetime/crash/FD cleanup/GC |
+-| `gateway/test/support/workflow-archives.ts`, `workflow-crash-worker.ts` | Synthetic matrix và actual crash checkpoints |
++| `gateway/test/support/workflow-archives.ts`, `workflow-crash-worker.ts`, `workflow-admission-crash-worker.ts` | Synthetic matrix và actual crash checkpoints |
+ | `gateway/test/support/audit-dependency-content.ts`, `audit-dependency-provenance.ts` | Primary npm exact metadata/SRI/file byte audits |
+ | `gateway/test/support/freeze-dependencies.py`, `freeze-real-projections.ts`, `compare-real-builds.py` | Frozen dependency payload/two-build pins/comparison |
+ | `gateway/test/support/probe-bmad-build.ts`, `reclaim-proven-build-probes.ts` | Owned actual installer probe và identity-bound receipt cleanup |
+ | `gateway/test/fixtures/workflows/*` | Exact official archives và original source/Claude golden |
+ | `gateway/test/fixtures/workflow-builder/*` | Frozen dependencies/lock/provenance/file hashes/real projection golden |
+ 
+ ## Dữ liệu
+ 
+ Source BMAD npm6.12.0 revision `05bfbd46d00766ec88eb9b42e76be2c575d64d7b`, payload `ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2`, source tree `45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317`. npm gitHead/tag/SRI là provenance riêng; không khẳng định Git archive byte tương đương. [Exact npm metadata](https://registry.npmjs.org/bmad-method/6.12.0).
+ 
+@@ -55,11 +56,11 @@ Superpowers6.4.2 revision `8ca22dba9a94f28898bbce59f2537ff4d87c747d`, payload `2
+ | Superpowers API | `ec4631651e859dc1bf850d2980d0d8a3937d428b3d787e29ffdbe05b4a11720d` |
+ | Superpowers Codex native | `a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639` |
+ 
+ BMAD Codex còn null/unavailable tới audit recipe riêng; upstream có hỗ trợ tool codex, không phải unsupported. Mọi artifact ở bảng là candidate; mọi runtime certification UNVERIFIED, không enable.
+ 
+ ## Flow liên quan
+ 
+ `gateway-host` cung cấp AtomicRecords/ProcessJournal contract đã review; `domain-foundation` giữ source Pin phase02; `server-gateway` duyệt desired/applied/companion. Task5 cần genuine authenticated005-finalization cùng exact pair và actual local stop để tạo producer release references. Task6/Phase04 kiểm nguồn/consumer/native Read/MCP/child/bootstrap/namespace/tool loop. Phase09 đóng gói helper ký sẵn; local operation cleanup không bị đẩy toàn bộ sang Phase09.
+ ## Tests
+ 
+-`pnpm --dir v2/gateway test` build và chạy gateway suite gồm actual two-build BMAD Claude/API, Superpowers API/native, cached cancellation, recovered references, actual crash checkpoints và fork/timeout receipts. Focused node command phải đặt `--test-name-pattern` trước file. Logs/pins/inventory ở `plans/261002-0002-crew-v2/execution-phase03/task-4-evidence`. Các fixture fork UNKNOWN được inventory và giữ nguyên; tests không fake completion để xóa chúng. Independent supply-chain/native/code review vẫn bắt buộc trước acceptance. No-model tree/discovery checks không chứng nhận actual native runtime hoặc API tool loop.
++`pnpm --dir v2/gateway test` build và chạy gateway suite gồm actual two-build BMAD Claude/API, Superpowers API/native, cached cancellation, recovered references, actual crash checkpoints và fork/timeout receipts; FIX2 kiểm GC/reserve tại snapshot/quarantine/delete và SIGKILL/restart admission/committed/quarantine, cùng unbound/bindtransition/writer exclusion. Focused node command phải đặt `--test-name-pattern` trước file. Logs/pins/inventory ở `plans/261002-0002-crew-v2/execution-phase03/task-4-evidence`. Các fixture fork UNKNOWN được inventory và giữ nguyên; tests không fake completion để xóa chúng. Independent supply-chain/native/code review vẫn bắt buộc trước acceptance. No-model tree/discovery checks không chứng nhận actual native runtime hoặc API tool loop.
+diff --git a/v2/gateway/src/journal/process-journal.ts b/v2/gateway/src/journal/process-journal.ts
+index a5a1bf0..f13b5e8 100644
+--- a/v2/gateway/src/journal/process-journal.ts
++++ b/v2/gateway/src/journal/process-journal.ts
+@@ -1,33 +1,41 @@
+ import { type ChildProcess, fork } from 'node:child_process';
+ import { randomUUID } from 'node:crypto';
+-import { access } from 'node:fs/promises';
+-import { join } from 'node:path';
++import { access, readdir } from 'node:fs/promises';
++import { dirname, join } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+ import type { ProjectionPin, SourcePin } from '../host/status.ts';
+ import {
+   AtomicRecords,
+   atomicWrite,
+   canonicalJson,
+   hash,
+   privateDirectory,
+   readRecord,
+   writeExclusiveRecord,
+ } from './atomic-records.ts';
+ import { type NativeProcessIdentity, ProcessIdentity } from './native.ts';
+ export type LaunchInput = {
+   commandId: string;
+   ticketId: string;
+   processInstanceId: string;
+   source: SourcePin;
+   projection: ProjectionPin;
+ };
++export type PinAdmissionAuthority = {
++  registryRoot: string;
++  verify: (input: LaunchInput) => Promise<void>;
++};
++export type PinAdmissionIntent = LaunchInput & { formatVersion: 1; registryRoot: string };
++type PinAdmissionBinding = { formatVersion: 1; registryRoot: string };
++export const pinAdmissionMarkerPath = (hostRoot: string): string =>
++  join(hostRoot, 'workflows', 'pin-authority.json');
+ export type AttemptProjectionPin = {
+   attemptId: string;
+   fence: string;
+   processInstanceId: string;
+   sourceTreeSha256: string;
+   runtime: ProjectionPin['runtime'];
+   projectionManifestSha256: string;
+   projectionTreeSha256: string;
+   installReportId: string;
+ };
+@@ -62,65 +70,144 @@ async function nativeSource(): Promise<string> {
+   } catch {
+     return fileURLToPath(new URL('../../../src/journal/native-identity.c', import.meta.url));
+   }
+ }
+ export const makeStartIdentity = (launchId: string, p: NativeProcessIdentity): string =>
+   `${launchId}:${p.pid}:${p.birth}:${p.processGroupId}:${p.uid}`;
+ export class ProcessJournal {
+   readonly root: string;
+   readonly identity: ProcessIdentity;
+   private readonly store: AtomicRecords;
++  private pinAuthority: PinAdmissionAuthority | null = null;
+   private constructor(root: string, store: AtomicRecords, identity: ProcessIdentity) {
+     this.root = root;
+     this.store = store;
+     this.identity = identity;
+   }
+   static async open(root: string): Promise<ProcessJournal> {
+     await privateDirectory(root);
+     const path = join(root, 'process-journal');
+     const store = await AtomicRecords.open(path);
+     try {
+       await privateDirectory(join(path, 'proofs'));
++      await privateDirectory(join(path, 'admissions'));
+       const identity = await ProcessIdentity.open(path, await nativeSource());
+       return new ProcessJournal(path, store, identity);
+     } catch (error) {
+       await store.close();
+       throw error;
+     }
+   }
++  async bindPinAdmission(authority: PinAdmissionAuthority): Promise<void> {
++    await this.store.transaction(async () => {
++      const marker = await readRecord<PinAdmissionBinding>(pinAdmissionMarkerPath(dirname(this.root)));
++      const path = join(this.root, 'pin-admission.json');
++      const binding = await readRecord<PinAdmissionBinding>(path);
++      if (
++        authority.registryRoot !== join(dirname(this.root), 'workflows') ||
++        marker?.registryRoot !== authority.registryRoot ||
++        (binding && binding.registryRoot !== authority.registryRoot)
++      )
++        throw new Error('PIN_ADMISSION_BINDING_CONFLICT');
++      if (!binding)
++        await writeExclusiveRecord(path, { formatVersion: 1, registryRoot: authority.registryRoot });
++      this.pinAuthority = authority;
++    });
++  }
++  private async admissionAuthority(): Promise<PinAdmissionAuthority | null> {
++    const binding = await readRecord<PinAdmissionBinding>(join(this.root, 'pin-admission.json'));
++    const marker = await readRecord<PinAdmissionBinding>(pinAdmissionMarkerPath(dirname(this.root)));
++    if (binding || marker) {
++      if (
++        !binding ||
++        !this.pinAuthority ||
++        binding.registryRoot !== this.pinAuthority.registryRoot ||
++        marker?.registryRoot !== binding.registryRoot
++      )
++        throw new Error('PIN_ADMISSION_NOT_BOUND');
++      return this.pinAuthority;
++    }
++    return null; // Legacy standalone Task2 journal; no managed registry exists.
++  }
++  async withPinAdmissionBarrier<T>(registryRoot: string, action: () => Promise<T>): Promise<T> {
++    return this.store.transaction(async () => {
++      if ((await this.admissionAuthority())?.registryRoot !== registryRoot)
++        throw new Error('PIN_ADMISSION_NOT_BOUND');
++      return action();
++    });
++  }
++  async pendingPinAdmissions(): Promise<PinAdmissionIntent[]> {
++    const intents: PinAdmissionIntent[] = [];
++    for (const name of await readdir(join(this.root, 'admissions'))) {
++      if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;
++      const intent = await readRecord<PinAdmissionIntent>(join(this.root, 'admissions', name));
++      if (!intent) continue;
++      const committed = await this.store.get<LaunchRecord>(intent.commandId);
++      if (
++        !committed ||
++        canonicalJson(this.launchInput(committed)) !== canonicalJson(this.launchInput(intent))
++      )
++        intents.push(intent);
++    }
++    return intents;
++  }
++  private launchInput(record: LaunchInput): LaunchInput {
++    return {
++      commandId: record.commandId,
++      ticketId: record.ticketId,
++      processInstanceId: record.processInstanceId,
++      source: record.source,
++      projection: record.projection,
++    };
++  }
+   async reserve(input: LaunchInput): Promise<LaunchRecord> {
+     const canonical = canonicalJson(input);
+     if (
+       !input.commandId ||
+       !input.ticketId ||
+       !input.processInstanceId ||
+       input.source.sourceTreeSha256 !== input.projection.sourceTreeSha256
+     )
+       throw new Error('INVALID_LAUNCH');
+     return this.store.transaction(async () => {
++      const authority = await this.admissionAuthority();
+       const old = await this.store.get<LaunchRecord>(input.commandId);
+       if (old) {
+         const {
+           formatVersion: _v,
+           launchId: _id,
+           reservedAt: _at,
+           authorization: _auth,
+           lastObservation: _observation,
+           lastError: _error,
+           ...previous
+         } = old;
+         if (canonicalJson(previous) !== canonical) throw new Error('LAUNCH_CONFLICT');
++        await authority?.verify(JSON.parse(canonical));
+         return old;
+       }
+       const records = await this.store.all<LaunchRecord>();
+       if (records.some((record) => record.processInstanceId === input.processInstanceId))
+         throw new Error('PROCESS_INSTANCE_CONFLICT');
++      if (authority) {
++        await authority.verify(JSON.parse(canonical));
++        const path = join(this.root, 'admissions', `${hash(input.commandId)}.json`);
++        const intent: PinAdmissionIntent = {
++          ...JSON.parse(canonical),
++          formatVersion: 1,
++          registryRoot: authority.registryRoot,
++        };
++        const existing = await readRecord<PinAdmissionIntent>(path);
++        if (existing && canonicalJson(existing) !== canonicalJson(intent))
++          throw new Error('PIN_ADMISSION_CONFLICT');
++        if (!existing) await writeExclusiveRecord(path, intent);
++      }
+       const record: LaunchRecord = {
+         ...JSON.parse(canonical),
+         formatVersion: 1,
+         launchId: randomUUID(),
+         reservedAt: new Date().toISOString(),
+         authorization: null,
+         lastObservation: 'unknown',
+         lastError: 'EXIT_UNPROVEN',
+       };
+       await this.store.put(input.commandId, record);
+diff --git a/v2/gateway/src/workflows/registry.ts b/v2/gateway/src/workflows/registry.ts
+index d523805..447c0d7 100644
+--- a/v2/gateway/src/workflows/registry.ts
++++ b/v2/gateway/src/workflows/registry.ts
+@@ -5,21 +5,21 @@ import { basename, dirname, join } from 'node:path';
+ import type { Readable } from 'node:stream';
+ import {
+   AtomicRecords,
+   canonicalJson,
+   hash,
+   privateDirectory,
+   readRecord,
+   syncDirectory,
+   writeExclusiveRecord,
+ } from '../journal/atomic-records.ts';
+-import type { ProcessJournal } from '../journal/process-journal.ts';
++import { type ProcessJournal, pinAdmissionMarkerPath } from '../journal/process-journal.ts';
+ import { type BmadBuild, bmadBuildPolicy, runBmadInstaller } from './builder.ts';
+ import { suppliedArchive, verifyPayload } from './fetch.ts';
+ import { nativeFiles, verifyNativeGeometry } from './native-projection.ts';
+ import { type ExecutionReceipt, type OwnedIdentity, OwnedOperations } from './operations.ts';
+ import {
+   type AuditedDerivation,
+   type ProjectionPin,
+   projectionTreeHash,
+   type Runtime,
+   type SourcePin,
+@@ -76,62 +76,95 @@ export type StageRecord = {
+   reason: string;
+   deletionEligible: boolean;
+   device?: string;
+   inode?: string;
+   ownerUid?: number;
+ };
+ type Reference = {
+   runId: string;
+   source: SourcePin;
+   projection: ProjectionPin;
+-  authority: 'registry' | 'process-journal';
++  authority: 'registry' | 'process-journal' | 'pin-admission';
+ };
+ async function present(path: string): Promise<boolean> {
+   try {
+     await lstat(path);
+     return true;
+   } catch (e) {
+     if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false;
+     throw e;
+   }
+ }
+ 
+ export class WorkflowRegistry {
+   readonly root: string;
+   private readonly store: AtomicRecords;
+   private readonly options: RegistryOptions;
+   private operations!: OwnedOperations;
++  private closed = false;
+   private constructor(root: string, store: AtomicRecords, options: RegistryOptions) {
+     this.root = root;
+     this.store = store;
+     this.options = structuredClone({ ...options, processJournal: undefined, signal: undefined });
+     this.options.processJournal = options.processJournal;
+     this.options.signal = options.signal;
+   }
+   static async open(root: string, options: RegistryOptions): Promise<WorkflowRegistry> {
+     await privateDirectory(root);
+     const path = join(root, 'workflows');
+     const store = await AtomicRecords.open(path);
+     try {
+       for (const key of ['sources', 'projections', 'stages']) await privateDirectory(join(path, key));
+       for (const audit of options.sources) {
+         validateSourcePin(audit.pin);
+       }
+       const registry = new WorkflowRegistry(path, store, options);
++      const markerPath = pinAdmissionMarkerPath(root);
++      const marker = await readRecord<{ formatVersion: 1; registryRoot: string }>(markerPath);
++      if (marker && marker.registryRoot !== path) throw new Error('PIN_ADMISSION_BINDING_CONFLICT');
++      if (!marker) await writeExclusiveRecord(markerPath, { formatVersion: 1, registryRoot: path });
+       registry.operations = await OwnedOperations.open(path, store);
+       await registry.reconcile();
++      if (options.processJournal) {
++        await store.put('pin-admission-journal', {
++          formatVersion: 1,
++          journalRoot: options.processJournal.root,
++        });
++        await options.processJournal.bindPinAdmission({
++          registryRoot: path,
++          verify: async (input) => {
++            if (registry.closed) throw new Error('PIN_ADMISSION_NOT_BOUND');
++            await registry.resolve(input.source, input.projection);
++          },
++        });
++      }
+       return registry;
+     } catch (error) {
+       await store.close();
+       throw error;
+     }
+   }
++  private async missingJournalAuthority(): Promise<boolean> {
++    return (
++      !this.options.processJournal &&
++      !!(
++        (await this.store.get('pin-admission-journal')) ||
++        (await present(join(dirname(this.root), 'process-journal')))
++      )
++    );
++  }
++  private async referenceBarrier<T>(action: () => Promise<T>, published: boolean): Promise<T> {
++    if (this.options.processJournal)
++      return this.options.processJournal.withPinAdmissionBarrier(this.root, action);
++    if (published && (await this.missingJournalAuthority())) throw new Error('PIN_ADMISSION_NOT_BOUND');
++    return action();
++  }
+   private projectionPath(source: SourcePin, pin: ProjectionPin) {
+     return join(
+       this.root,
+       'projections',
+       `${source.name}-${source.sourceTreeSha256}-${pin.runtime}-${pin.treeSha256}`,
+     );
+   }
+   private sourcePath(pin: SourcePin) {
+     return join(this.root, 'sources', `${pin.name}-${pin.sourceTreeSha256}`);
+   }
+@@ -309,74 +342,77 @@ export class WorkflowRegistry {
+         await this.store.put(`stage-${record.id}`, {
+           ...record,
+           deletionEligible: false,
+           reason: 'OPERATION_IDENTITY_OR_LIFETIME_UNKNOWN',
+         });
+       }
+     }
+   }
+   private async recoveredReferenceProtects(record: StageRecord): Promise<boolean> {
+     if (!record.publication) return false;
++    if (await this.missingJournalAuthority()) return true;
+     const metadata = await readRecord<{ formatVersion: 1; pin: SourcePin | ProjectionPin }>(
+       join(this.root, 'quarantine', record.quarantineName ?? record.publication.name, 'pin.json'),
+     );
+     if (!metadata) return true;
+     const refs = await this.retained();
+     if (record.operationKind === 'projection') return refs.some((r) => same(r.projection, metadata.pin));
+     const source = metadata.pin as SourcePin;
+     if (same(await this.current(source.name), source) || refs.some((r) => same(r.source, source)))
+       return true;
+     for (const projection of (await this.stagingInventory()).filter(
+       (r) => r.state === 'published' && r.operationKind === 'projection',
+     )) {
+       const pin = await readRecord<{ formatVersion: 1; pin: ProjectionPin }>(
+         join(projection.location, 'pin.json'),
+       );
+       if (!pin || pin.pin.sourceTreeSha256 === source.sourceTreeSha256) return true;
+     }
+     return false;
+   }
+   async reclaim(): Promise<{ deleted: string[]; retained: string[]; failed: string[] }> {
+-    return this.store.transaction(async () => {
+-      await this.reconcile();
+-      const out = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
+-      for (const record of await this.stagingInventory()) {
+-        if (record.state === 'deleted' || record.state === 'published') continue;
+-        if (!record.complete || !record.deletionEligible || !record.identity) {
+-          out.retained.push(record.id);
+-          continue;
+-        }
+-        try {
+-          if (record.state === 'quarantined' && (await this.recoveredReferenceProtects(record))) {
++    return this.store.transaction(() =>
++      this.referenceBarrier(async () => {
++        await this.reconcile();
++        const out = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
++        for (const record of await this.stagingInventory()) {
++          if (record.state === 'deleted' || record.state === 'published') continue;
++          if (!record.complete || !record.deletionEligible || !record.identity) {
+             out.retained.push(record.id);
+             continue;
+           }
+-          if (record.state === 'quarantined')
+-            await this.operations.deleteQuarantined(record.quarantineName ?? record.id, record.identity);
+-          else
+-            await this.operations.remove('stages', record.id, record.identity, async () => {
+-              await this.store.put(`stage-${record.id}`, { ...record, state: 'quarantined' });
++          try {
++            if (record.state === 'quarantined' && (await this.recoveredReferenceProtects(record))) {
++              out.retained.push(record.id);
++              continue;
++            }
++            if (record.state === 'quarantined')
++              await this.operations.deleteQuarantined(record.quarantineName ?? record.id, record.identity);
++            else
++              await this.operations.remove('stages', record.id, record.identity, async () => {
++                await this.store.put(`stage-${record.id}`, { ...record, state: 'quarantined' });
++              });
++            await this.store.put(`stage-${record.id}`, {
++              ...record,
++              state: 'deleted',
++              bytes: 0,
++              location: '',
++              reason: 'OWNED_OPERATION_RECLAIMED',
+             });
+-          await this.store.put(`stage-${record.id}`, {
+-            ...record,
+-            state: 'deleted',
+-            bytes: 0,
+-            location: '',
+-            reason: 'OWNED_OPERATION_RECLAIMED',
+-          });
+-          out.deleted.push(record.id);
+-        } catch {
+-          out.failed.push(record.id);
++            out.deleted.push(record.id);
++          } catch {
++            out.failed.push(record.id);
++          }
+         }
+-      }
+-      return out;
+-    });
++        return out;
++      }, false),
++    );
+   }
+   private async sourceVerified(pin: SourcePin): Promise<void> {
+     this.audit(pin);
+     const path = this.sourcePath(pin);
+     const record = await readRecord<SourceRecord>(join(path, 'pin.json'));
+     if (!record || !same(record.pin, pin)) throw new Error('CHECKSUM_MISMATCH');
+     const fd = await open(join(path, 'payload.tgz'), constants.O_RDONLY | constants.O_NOFOLLOW);
+     try {
+       const stat = await fd.stat();
+       if (
+@@ -662,21 +698,21 @@ export class WorkflowRegistry {
+       if (old.runId !== runId || !same(old.source, source) || !same(old.projection, projection))
+         throw new Error('RUN_REFERENCE_CONFLICT');
+       await this.store.put(id, { ...old, state: 'released' });
+     });
+   }
+   async retained(): Promise<
+     {
+       runId: string;
+       source: SourcePin;
+       projection: ProjectionPin;
+-      authority: 'registry' | 'process-journal';
++      authority: 'registry' | 'process-journal' | 'pin-admission';
+     }[]
+   > {
+     const rows = await this.store.all<{
+       kind?: string;
+       state?: string;
+       runId: string;
+       source: SourcePin;
+       projection: ProjectionPin;
+     }>();
+     const refs: Reference[] = rows
+@@ -684,28 +720,39 @@ export class WorkflowRegistry {
+       .map((r) => ({
+         runId: r.runId,
+         source: r.source,
+         projection: r.projection,
+         authority: 'registry' as const,
+       }));
+     for (const r of refs) {
+       validateSourcePin(r.source);
+       validateProjectionPin(r.projection);
+     }
+-    if (this.options.processJournal)
++    if (this.options.processJournal) {
+       for (const process of await this.options.processJournal.processes())
+         refs.push({
+           runId: process.authorization?.attemptId ?? process.launchId,
+           source: process.source,
+           projection: process.projection,
+           authority: 'process-journal',
+         });
++      for (const intent of await this.options.processJournal.pendingPinAdmissions()) {
++        validateSourcePin(intent.source);
++        validateProjectionPin(intent.projection);
++        refs.push({
++          runId: `admission:${intent.commandId}:${intent.processInstanceId}`,
++          source: intent.source,
++          projection: intent.projection,
++          authority: 'pin-admission',
++        });
++      }
++    }
+     return refs;
+   }
+   async retentionInventory(): Promise<RetentionInventory[]> {
+     const records = await this.stagingInventory();
+     const processes = this.options.processJournal ? await this.options.processJournal.processes() : [];
+     const bytes = async (path: string): Promise<number | null> => {
+       const record = records.find((r) => r.state === 'published' && r.location === path);
+       if (!record?.identity || !record.publication) return null;
+       return this.operations
+         .inspect(record.publication.parent, record.publication.name, record.identity)
+@@ -722,114 +769,119 @@ export class WorkflowRegistry {
+                   same(p.projection, ref.projection),
+               )
+             : undefined;
+         return {
+           ...ref,
+           sourceBytes: await bytes(this.sourcePath(ref.source)),
+           projectionBytes: await bytes(this.projectionPath(ref.source, ref.projection)),
+           reason:
+             ref.authority === 'process-journal'
+               ? 'accepted-finalization-producer-unavailable'
+-              : 'durable-run-reference',
++              : ref.authority === 'pin-admission'
++                ? 'durable-pin-admission-intent'
++                : 'durable-run-reference',
+           releaseRequirement: process
+             ? {
+                 launchId: process.launchId,
+                 processInstanceId: process.processInstanceId,
+                 authorization: process.authorization,
+                 source: process.source,
+                 projection: process.projection,
+                 requires: [
+                   'authenticated-005-finalization-same-attempt-fence-process-and-pair',
+                   'actual-local-stop-proof',
+                   'no-other-retained-references',
+                 ] as const,
+               }
+             : null,
+         };
+       }),
+     );
+   }
+   async collectPublished(): Promise<{ deleted: string[]; retained: string[]; failed: string[] }> {
+-    return this.store.transaction(async () => {
+-      const result = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
+-      const refs = await this.retained();
+-      const records = (await this.stagingInventory())
+-        .filter((r) => r.state === 'published')
+-        .sort((a, b) =>
+-          a.operationKind === b.operationKind ? 0 : a.operationKind === 'projection' ? -1 : 1,
+-        );
+-      const remainingProjections = new Set<string>();
+-      for (const record of records.filter((r) => r.operationKind === 'projection')) {
+-        const metadata = await readRecord<{ formatVersion: 1; pin: ProjectionPin }>(
+-          join(record.location, 'pin.json'),
+-        );
+-        if (metadata) remainingProjections.add(`${metadata.pin.sourceTreeSha256}:${record.id}`);
+-      }
+-      for (const record of records) {
+-        try {
+-          if (!record.identity || !record.publication || !record.complete)
+-            throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
+-          const metadata = await readRecord<{ formatVersion: 1; pin: SourcePin | ProjectionPin }>(
++    return this.store.transaction(() =>
++      this.referenceBarrier(async () => {
++        const result = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
++        const refs = await this.retained();
++        const records = (await this.stagingInventory())
++          .filter((r) => r.state === 'published')
++          .sort((a, b) =>
++            a.operationKind === b.operationKind ? 0 : a.operationKind === 'projection' ? -1 : 1,
++          );
++        const remainingProjections = new Set<string>();
++        for (const record of records.filter((r) => r.operationKind === 'projection')) {
++          const metadata = await readRecord<{ formatVersion: 1; pin: ProjectionPin }>(
+             join(record.location, 'pin.json'),
+           );
+-          if (!metadata) throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
+-          let protectedReference = false;
+-          if (record.operationKind === 'source') {
+-            const pin = metadata.pin as SourcePin;
+-            validateSourcePin(pin);
+-            protectedReference =
+-              same(await this.current(pin.name), pin) ||
+-              refs.some((r) => same(r.source, pin)) ||
+-              [...remainingProjections].some((key) => key.startsWith(`${pin.sourceTreeSha256}:`));
+-          } else {
+-            const pin = metadata.pin as ProjectionPin;
+-            validateProjectionPin(pin);
+-            protectedReference = refs.some((r) => same(r.projection, pin));
+-          }
+-          if (protectedReference) {
+-            result.retained.push(record.id);
+-            continue;
+-          }
+-          const location = record.publication;
+-          await this.operations.remove(location.parent, location.name, record.identity, async () => {
++          if (metadata) remainingProjections.add(`${metadata.pin.sourceTreeSha256}:${record.id}`);
++        }
++        for (const record of records) {
++          try {
++            if (!record.identity || !record.publication || !record.complete)
++              throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
++            const metadata = await readRecord<{ formatVersion: 1; pin: SourcePin | ProjectionPin }>(
++              join(record.location, 'pin.json'),
++            );
++            if (!metadata) throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
++            let protectedReference = false;
++            if (record.operationKind === 'source') {
++              const pin = metadata.pin as SourcePin;
++              validateSourcePin(pin);
++              protectedReference =
++                same(await this.current(pin.name), pin) ||
++                refs.some((r) => same(r.source, pin)) ||
++                [...remainingProjections].some((key) => key.startsWith(`${pin.sourceTreeSha256}:`));
++            } else {
++              const pin = metadata.pin as ProjectionPin;
++              validateProjectionPin(pin);
++              protectedReference = refs.some((r) => same(r.projection, pin));
++            }
++            if (protectedReference) {
++              result.retained.push(record.id);
++              continue;
++            }
++            const location = record.publication;
++            await this.operations.remove(location.parent, location.name, record.identity, async () => {
++              await this.store.put(`stage-${record.id}`, {
++                ...record,
++                state: 'quarantined',
++                quarantineName: location.name,
++                deletionEligible: true,
++              });
++            });
+             await this.store.put(`stage-${record.id}`, {
+               ...record,
+-              state: 'quarantined',
+-              quarantineName: location.name,
+-              deletionEligible: true,
++              state: 'deleted',
++              bytes: 0,
++              location: '',
++              reason: 'NO_RECOVERED_REFERENCES',
+             });
+-          });
+-          await this.store.put(`stage-${record.id}`, {
+-            ...record,
+-            state: 'deleted',
+-            bytes: 0,
+-            location: '',
+-            reason: 'NO_RECOVERED_REFERENCES',
+-          });
+-          if (record.operationKind === 'projection')
+-            remainingProjections.delete(`${(metadata.pin as ProjectionPin).sourceTreeSha256}:${record.id}`);
+-          result.deleted.push(record.id);
+-        } catch {
+-          result.failed.push(record.id);
++            if (record.operationKind === 'projection')
++              remainingProjections.delete(`${(metadata.pin as ProjectionPin).sourceTreeSha256}:${record.id}`);
++            result.deleted.push(record.id);
++          } catch {
++            result.failed.push(record.id);
++          }
+         }
+-      }
+-      return result;
+-    });
++        return result;
++      }, true),
++    );
+   }
+   async exists(source: SourcePin, projection: ProjectionPin): Promise<boolean> {
+     try {
+       if (
+         !(await present(this.sourcePath(source))) ||
+         !(await present(this.projectionPath(source, projection)))
+       )
+         return false;
+       await this.resolve(source, projection);
+       return true;
+     } catch (e) {
+       if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false;
+       throw e;
+     }
+   }
+   async close(): Promise<void> {
++    this.closed = true;
+     await this.store.close();
+   }
+ }
+diff --git a/v2/gateway/src/workflows/retention.ts b/v2/gateway/src/workflows/retention.ts
+index d25ab9b..8f48795 100644
+--- a/v2/gateway/src/workflows/retention.ts
++++ b/v2/gateway/src/workflows/retention.ts
+@@ -11,18 +11,21 @@ export type ProcessReferenceReleaseRequirement = {
+   source: SourcePin;
+   projection: ProjectionPin;
+   requires: readonly [
+     'authenticated-005-finalization-same-attempt-fence-process-and-pair',
+     'actual-local-stop-proof',
+     'no-other-retained-references',
+   ];
+ };
+ export type RetentionInventory = {
+   runId: string;
+-  authority: 'registry' | 'process-journal';
++  authority: 'registry' | 'process-journal' | 'pin-admission';
+   source: SourcePin;
+   projection: ProjectionPin;
+   sourceBytes: number | null;
+   projectionBytes: number | null;
+-  reason: 'durable-run-reference' | 'accepted-finalization-producer-unavailable';
++  reason:
++    | 'durable-run-reference'
++    | 'accepted-finalization-producer-unavailable'
++    | 'durable-pin-admission-intent';
+   releaseRequirement: ProcessReferenceReleaseRequirement | null;
+ };
+diff --git a/v2/gateway/test/support/workflow-admission-crash-worker.ts b/v2/gateway/test/support/workflow-admission-crash-worker.ts
+new file mode 100644
+index 0000000..2bfff06
+--- /dev/null
++++ b/v2/gateway/test/support/workflow-admission-crash-worker.ts
+@@ -0,0 +1,57 @@
++import { lstat } from 'node:fs/promises';
++import { join } from 'node:path';
++import { ProcessJournal } from '../../src/journal/process-journal.ts';
++import { WorkflowRegistry } from '../../src/workflows/registry.ts';
++import { fixture, projectionAudit } from './workflow-archives.ts';
++
++const [root, phase] = process.argv.slice(2);
++const f = await fixture(),
++  audit = projectionAudit(f, 'claude');
++const journal = await ProcessJournal.open(root);
++const registry = await WorkflowRegistry.open(root, {
++  sources: [{ pin: f.source, executables: f.executables }],
++  projections: [audit],
++  processJournal: journal,
++});
++await registry.installSource(f.source, f.stream());
++const projection = await registry.deriveProjection(f.source, 'claude', audit.recipe);
++const input = {
++  commandId: 'crash-admission',
++  ticketId: 'ticket',
++  processInstanceId: 'instance',
++  source: f.source,
++  projection,
++};
++const checkpoint = async () => {
++  console.log('CHECKPOINT');
++  await new Promise(() => {});
++};
++if (phase === 'admission') {
++  const store = Reflect.get(journal, 'store'),
++    original = store.put.bind(store);
++  store.put = async (id: string, value: unknown) => {
++    if (id === input.commandId) await checkpoint();
++    return original(id, value);
++  };
++  await journal.reserve(input);
++} else if (phase === 'committed') {
++  await journal.reserve(input);
++  await checkpoint();
++} else {
++  const operations = Reflect.get(registry, 'operations'),
++    helper = Reflect.get(operations, 'helper');
++  const original = helper.run.bind(helper);
++  let paused = false;
++  helper.run = async (args: string[]) => {
++    const result = await original(args);
++    if (!paused && args[0] === 'quarantine') {
++      paused = true;
++      const state = await lstat(join(registry.root, 'quarantine', args[7]));
++      console.log('Actual quarantine inode:', state.ino);
++      void journal.reserve(input).catch(() => {}); // Waiting on GC's actual journal barrier, no intent yet.
++      await checkpoint();
++    }
++    return result;
++  };
++  await registry.collectPublished();
++}
+diff --git a/v2/gateway/test/workflow-admission.test.ts b/v2/gateway/test/workflow-admission.test.ts
+new file mode 100644
+index 0000000..e9f3f18
+--- /dev/null
++++ b/v2/gateway/test/workflow-admission.test.ts
+@@ -0,0 +1,414 @@
++import assert from 'node:assert/strict';
++import { spawn } from 'node:child_process';
++import { lstat, mkdtemp, realpath, rm } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import test from 'node:test';
++import { fileURLToPath } from 'node:url';
++import { ProcessJournal } from '../src/journal/process-journal.ts';
++import { WorkflowRegistry } from '../src/workflows/registry.ts';
++import { fixture, projectionAudit } from './support/workflow-archives.ts';
++
++function barrier() {
++  let release: () => void = () => {};
++  const wait = new Promise<void>((resolve) => {
++    release = resolve;
++  });
++  return { wait, release };
++}
++const ownedRoots = new Map<string, Awaited<ReturnType<typeof lstat>>>();
++async function ownedRoot(prefix: string): Promise<string> {
++  const root = await realpath(await mkdtemp(join(tmpdir(), prefix)));
++  ownedRoots.set(root, await lstat(root));
++  return root;
++}
++async function cleanupOwnedRoot(root: string): Promise<void> {
++  const identity = ownedRoots.get(root);
++  assert(identity);
++  const current = await lstat(root);
++  assert.equal(current.dev, identity.dev);
++  assert.equal(current.ino, identity.ino);
++  assert.equal(current.uid, identity.uid);
++  await rm(root, { recursive: true, force: true });
++  assert.equal(
++    await lstat(root).then(
++      () => true,
++      () => false,
++    ),
++    false,
++  );
++  console.log(
++    'Admission owned cleanup:',
++    JSON.stringify({
++      root,
++      device: String(identity.dev),
++      inode: String(identity.ino),
++      ownerUid: identity.uid,
++      deleted: true,
++    }),
++  );
++}
++for (const boundary of ['snapshot', 'quarantine', 'delete'] as const) {
++  test(`workflow admission GC-first at ${boundary} denies reserve or preserves its resolvable pair`, async () => {
++    const f = await fixture();
++    const audit = projectionAudit(f, 'claude');
++    const root = await ownedRoot('crew-task4-admission-');
++    const journal = await ProcessJournal.open(root);
++    const registry = await WorkflowRegistry.open(root, {
++      sources: [{ pin: f.source, executables: f.executables }],
++      projections: [audit],
++      processJournal: journal,
++    });
++    const entered = barrier(),
++      proceed = barrier();
++    let used = false;
++    const pause = async () => {
++      if (!used) {
++        used = true;
++        entered.release();
++        await proceed.wait;
++      }
++    };
++    try {
++      await registry.installSource(f.source, f.stream());
++      const projection = await registry.deriveProjection(f.source, 'claude', audit.recipe);
++      if (boundary === 'snapshot') {
++        const original = journal.processes.bind(journal);
++        journal.processes = async () => {
++          const snapshot = await original();
++          await pause();
++          return snapshot;
++        };
++      } else {
++        const operations = Reflect.get(registry, 'operations');
++        const helper = Reflect.get(operations, 'helper');
++        const original = helper.run.bind(helper);
++        helper.run = async (args: string[]) => {
++          if (args[0] === boundary) await pause();
++          return original(args);
++        };
++      }
++      const collection = registry.collectPublished();
++      await entered.wait;
++      const reservation = journal
++        .reserve({
++          commandId: 'concurrent',
++          ticketId: 'ticket',
++          processInstanceId: 'instance',
++          source: f.source,
++          projection,
++        })
++        .then(
++          (record) => ({ record, error: null }),
++          (error: Error) => ({ record: null, error }),
++        );
++      await new Promise((resolve) => setTimeout(resolve, 50));
++      proceed.release();
++      await collection;
++      const outcome = await reservation;
++      if (outcome.record) await registry.resolve(f.source, projection);
++      else {
++        assert(outcome.error);
++        assert.equal((await journal.processes()).length, 0);
++      }
++      console.log(
++        'Admission boundary:',
++        boundary,
++        outcome.record ? 'durable-and-resolvable' : outcome.error?.message,
++      );
++    } finally {
++      proceed.release();
++      await registry.close();
++      await journal.close();
++      await cleanupOwnedRoot(root);
++    }
++  });
++}
++
++test('workflow admission reserve-first holds GC until real journal commit and survives cached replay', async () => {
++  const f = await fixture(),
++    audit = projectionAudit(f, 'claude');
++  const root = await ownedRoot('crew-task4-admission-');
++  const journal = await ProcessJournal.open(root);
++  const registry = await WorkflowRegistry.open(root, {
++    sources: [{ pin: f.source, executables: f.executables }],
++    projections: [audit],
++    processJournal: journal,
++  });
++  const entered = barrier(),
++    proceed = barrier();
++  try {
++    await registry.installSource(f.source, f.stream());
++    const projection = await registry.deriveProjection(f.source, 'claude', audit.recipe);
++    const store = Reflect.get(journal, 'store');
++    const original = store.put.bind(store);
++    store.put = async (id: string, value: unknown) => {
++      if (id === 'held-commit') {
++        entered.release();
++        await proceed.wait;
++      }
++      return original(id, value);
++    };
++    const input = {
++      commandId: 'held-commit',
++      ticketId: 'ticket',
++      processInstanceId: 'instance',
++      source: f.source,
++      projection,
++    };
++    const reserve = journal.reserve(input);
++    await entered.wait;
++    assert.equal((await journal.processes()).length, 0);
++    assert.equal((await journal.pendingPinAdmissions()).length, 1);
++    let gcFinished = false;
++    const gc = registry.collectPublished().then((result) => {
++      gcFinished = true;
++      return result;
++    });
++    await new Promise((resolve) => setTimeout(resolve, 50));
++    assert.equal(gcFinished, false);
++    proceed.release();
++    const record = await reserve,
++      result = await gc;
++    assert.equal(result.deleted.length, 0);
++    assert.equal(result.retained.length, 2);
++    assert.equal((await journal.pendingPinAdmissions()).length, 0);
++    assert.deepEqual(await journal.reserve(input), record);
++    await registry.resolve(f.source, projection);
++  } finally {
++    proceed.release();
++    await registry.close();
++    await journal.close();
++    await cleanupOwnedRoot(root);
++  }
++});
++
++test('workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape', async () => {
++  const f = await fixture(),
++    audit = projectionAudit(f, 'claude');
++  const root = await ownedRoot('crew-task4-admission-');
++  let journal = await ProcessJournal.open(root);
++  let registry = await WorkflowRegistry.open(root, {
++    sources: [{ pin: f.source, executables: f.executables }],
++    projections: [audit],
++  });
++  try {
++    await registry.installSource(f.source, f.stream());
++    const projection = await registry.deriveProjection(f.source, 'claude', audit.recipe);
++    const input = {
++      commandId: 'bound-command',
++      ticketId: 'ticket',
++      processInstanceId: 'instance',
++      source: f.source,
++      projection,
++    };
++    await assert.rejects(() => journal.reserve(input), /PIN_ADMISSION_NOT_BOUND/);
++    await assert.rejects(() => registry.collectPublished(), /PIN_ADMISSION_NOT_BOUND/);
++    await registry.close();
++    registry = await WorkflowRegistry.open(root, {
++      sources: [{ pin: f.source, executables: f.executables }],
++      projections: [audit],
++      processJournal: journal,
++    });
++    const record = await journal.reserve(input);
++    assert.equal(record.formatVersion, 1);
++    await assert.rejects(() => ProcessJournal.open(root), /Host guard unavailable/);
++    await assert.rejects(
++      () => WorkflowRegistry.open(root, { sources: [], projections: [] }),
++      /Host guard unavailable/,
++    );
++    await registry.close();
++    await journal.close();
++    journal = await ProcessJournal.open(root);
++    await assert.rejects(() => journal.reserve(input), /PIN_ADMISSION_NOT_BOUND/);
++    registry = await WorkflowRegistry.open(root, {
++      sources: [{ pin: f.source, executables: f.executables }],
++      projections: [audit],
++      processJournal: journal,
++    });
++    assert.deepEqual(await journal.reserve(input), record);
++    await registry.resolve(f.source, projection);
++    assert.equal((await registry.retained()).length, 1);
++  } finally {
++    await registry.close();
++    await journal.close();
++    await cleanupOwnedRoot(root);
++  }
++});
++
++test('workflow admission bind waits for an in-flight standalone v1 reservation before GC', async () => {
++  const f = await fixture(),
++    audit = projectionAudit(f, 'claude');
++  const root = await ownedRoot('crew-task4-admission-');
++  const journal = await ProcessJournal.open(root);
++  const entered = barrier(),
++    proceed = barrier();
++  let registry: WorkflowRegistry | undefined;
++  try {
++    const store = Reflect.get(journal, 'store'),
++      original = store.put.bind(store);
++    store.put = async (id: string, value: unknown) => {
++      if (id === 'legacy') {
++        entered.release();
++        await proceed.wait;
++      }
++      return original(id, value);
++    };
++    const input = {
++      commandId: 'legacy',
++      ticketId: 'ticket',
++      processInstanceId: 'instance',
++      source: f.source,
++      projection: audit.expected,
++    };
++    const reserve = journal.reserve(input);
++    await entered.wait;
++    let bound = false;
++    const opening = WorkflowRegistry.open(root, {
++      sources: [{ pin: f.source, executables: f.executables }],
++      projections: [audit],
++      processJournal: journal,
++    }).then((value) => {
++      bound = true;
++      return value;
++    });
++    await new Promise((resolve) => setTimeout(resolve, 100));
++    assert.equal(bound, false);
++    proceed.release();
++    const legacy = await reserve;
++    registry = await opening;
++    await registry.installSource(f.source, f.stream());
++    await registry.deriveProjection(f.source, 'claude', audit.recipe);
++    assert.deepEqual(await journal.reserve(input), legacy);
++    assert.equal((await registry.collectPublished()).deleted.length, 0);
++    await registry.resolve(f.source, audit.expected);
++  } finally {
++    proceed.release();
++    await registry?.close();
++    await journal.close();
++    await cleanupOwnedRoot(root);
++  }
++});
++
++for (const phase of ['admission', 'committed', 'quarantine'] as const) {
++  test(`workflow admission crash at ${phase} retains unknown intent or denies a deleted pair after restart`, async () => {
++    const f = await fixture(),
++      audit = projectionAudit(f, 'claude');
++    const root = await ownedRoot('crew-task4-admission-crash-');
++    const identity = await lstat(root);
++    const child = spawn(
++      process.execPath,
++      [fileURLToPath(new URL('./support/workflow-admission-crash-worker.ts', import.meta.url)), root, phase],
++      { stdio: ['ignore', 'pipe', 'pipe'] },
++    );
++    const exit = new Promise<void>((resolve, reject) => {
++      child.once('error', reject);
++      child.once('close', () => resolve());
++    });
++    let output = '',
++      errors = '';
++    child.stderr.on('data', (bytes) => {
++      errors += bytes.toString();
++    });
++    await new Promise<void>((resolve, reject) => {
++      child.stdout.on('data', (bytes) => {
++        output += bytes.toString();
++        if (output.includes('CHECKPOINT')) resolve();
++      });
++      child.once('close', (code) => reject(new Error(`checkpoint missing: ${code} ${errors}`)));
++    });
++    child.kill('SIGKILL');
++    await exit;
++    let journal: ProcessJournal | undefined;
++    let registry: WorkflowRegistry | undefined;
++    try {
++      for (let retry = 0; retry < 30; retry++) {
++        try {
++          journal = await ProcessJournal.open(root);
++          break;
++        } catch (error) {
++          if (!String(error).includes('Host guard unavailable')) throw error;
++          await new Promise((resolve) => setTimeout(resolve, 50));
++        }
++      }
++      if (!journal) throw new Error('WRITER_LEASE_NOT_RELEASED');
++      const boundJournal = journal;
++      const input = {
++        commandId: 'crash-admission',
++        ticketId: 'ticket',
++        processInstanceId: 'instance',
++        source: f.source,
++        projection: audit.expected,
++      };
++      await assert.rejects(() => boundJournal.reserve(input), /PIN_ADMISSION_NOT_BOUND/);
++      registry = await WorkflowRegistry.open(root, {
++        sources: [{ pin: f.source, executables: f.executables }],
++        projections: [audit],
++        processJournal: journal,
++      });
++      if (phase === 'quarantine') {
++        assert.equal((await journal.processes()).length, 0);
++        assert.equal((await journal.pendingPinAdmissions()).length, 0);
++        const entered = barrier(),
++          proceed = barrier();
++        const operations = Reflect.get(registry, 'operations'),
++          helper = Reflect.get(operations, 'helper');
++        const original = helper.run.bind(helper);
++        helper.run = async (args: string[]) => {
++          if (args[0] === 'delete') {
++            entered.release();
++            await proceed.wait;
++          }
++          return original(args);
++        };
++        const reclaim = registry.reclaim();
++        await entered.wait;
++        const reserve = journal.reserve(input).then(
++          () => null,
++          (error: Error) => error,
++        );
++        proceed.release();
++        assert.equal((await reclaim).deleted.length, 1);
++        assert(await reserve, 'missing pair must reject before LaunchRecord commit');
++        assert.equal((await journal.processes()).length, 0);
++      } else {
++        const intents = await journal.pendingPinAdmissions();
++        assert.equal(intents.length, phase === 'admission' ? 1 : 0);
++        const inventory = await registry.retentionInventory();
++        assert.equal(inventory.length, 1);
++        assert.equal(
++          inventory[0].reason,
++          phase === 'admission'
++            ? 'durable-pin-admission-intent'
++            : 'accepted-finalization-producer-unavailable',
++        );
++        assert((inventory[0].sourceBytes ?? 0) > 0 && (inventory[0].projectionBytes ?? 0) > 0);
++        assert.equal((await registry.collectPublished()).deleted.length, 0);
++        await registry.resolve(f.source, audit.expected);
++        const record = await journal.reserve(input);
++        assert.equal(record.formatVersion, 1);
++        assert.equal((await journal.pendingPinAdmissions()).length, 0);
++        assert.equal((await registry.retained()).length, 1);
++      }
++      console.log(
++        'Recovered admission checkpoint:',
++        phase,
++        'source pair protected or reservation denied; no process launched',
++      );
++    } finally {
++      await registry?.close();
++      await journal?.close();
++      const after = await lstat(root);
++      assert.equal(after.ino, identity.ino);
++      assert.equal(after.dev, identity.dev);
++      await cleanupOwnedRoot(root);
++      assert.equal(
++        await lstat(root).then(
++          () => true,
++          () => false,
++        ),
++        false,
++      );
++    }
++  });
++}

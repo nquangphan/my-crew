@@ -1,0 +1,22 @@
+✔ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (398.351541ms)
+✔ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (274.5385ms)
+✔ assistant authority kiểm session hiện hành trước cached reply (263.937958ms)
+attachment DB container 8d790307dfe30f7effb88bb8d7562183c83f77e1c549ec849f60eed61761cbc1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-80rFr6
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-80rFr6 nonceSha256=3ece1df2295ad6183e927320c86982c00a5ee29e44edb336765c07ac75000147
+attachment DB scratch identity dev=16777229 ino=64505702 uid=501 pid=23847
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-80rFr6
+✔ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (240.710958ms)
+✔ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (302.567417ms)
+attachment DB container 8d790307dfe30f7effb88bb8d7562183c83f77e1c549ec849f60eed61761cbc1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oHXm9A
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oHXm9A nonceSha256=bbd7dcc896c7b5f26c256f0c8e05b81c53f3e89e690d25b07acb4f2cdf65befc
+attachment DB scratch identity dev=16777229 ino=64505709 uid=501 pid=23847
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oHXm9A
+✔ assistant authority live turn chặn reassignment và không thả guard bằng config (349.819042ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1982.165583

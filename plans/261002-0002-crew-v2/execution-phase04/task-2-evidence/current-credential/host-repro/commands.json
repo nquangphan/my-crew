@@ -1,0 +1,65 @@
+[
+  {
+    "label": "gateway-build",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-e8702fca-1ff4-4179-b66a-661b8db93d4a/v2/gateway",
+      "build"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931742.636034,
+    "exit": 0,
+    "finished": 1790931743.0265222
+  },
+  {
+    "label": "host-single-repro",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-e8702fca-1ff4-4179-b66a-661b8db93d4a/v2/gateway",
+      "exec",
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "host lifecycle: UI main exit and reopen preserve independent host boot",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-e8702fca-1ff4-4179-b66a-661b8db93d4a/v2/gateway/test/host-lifecycle.test.ts"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931743.026886,
+    "exit": 0,
+    "finished": 1790931743.676354
+  },
+  {
+    "label": "biome",
+    "argv": [
+      "pnpm",
+      "exec",
+      "biome",
+      "check",
+      "v2/gateway/src/models/contracts.ts",
+      "v2/gateway/src/models/credential-broker.ts",
+      "v2/gateway/src/models/credential-provisioning.ts",
+      "v2/gateway/src/models/inventory.ts",
+      "v2/gateway/src/models/model-reporter.ts",
+      "v2/gateway/src/models/probe.ts",
+      "v2/gateway/src/models/provider-transport.ts",
+      "v2/gateway/src/models/security-bridge.ts",
+      "v2/gateway/test/credential-broker.test.ts",
+      "v2/gateway/test/credential-provisioning.test.ts",
+      "v2/gateway/test/model-probe.test.ts",
+      "v2/gateway/test/model-reporter.test.ts",
+      "v2/gateway/test/support/model-fixture.ts",
+      "v2/server/src/models/contracts.ts",
+      "v2/server/src/models/routes.ts",
+      "v2/server/src/models/secret-envelopes.ts",
+      "v2/server/test/model-current-credentials.test.ts",
+      "v2/gateway/src/models/current-credential-resolver.ts",
+      "v2/gateway/test/current-credential-resolver.test.ts"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931743.676716,
+    "exit": 0,
+    "finished": 1790931743.901061
+  }
+]

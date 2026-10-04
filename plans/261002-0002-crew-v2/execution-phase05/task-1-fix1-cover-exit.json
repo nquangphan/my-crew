@@ -1,0 +1,11 @@
+{
+  "exitCode": 1,
+  "command": [
+    "pnpm",
+    "--dir",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server",
+    "test",
+    "--test-file",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/task-1-fix1-cover.test.mjs"
+  ]
+}

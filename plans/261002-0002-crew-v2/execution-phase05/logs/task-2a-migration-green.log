@@ -1,0 +1,22 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts '--test-name-pattern=migration010 forward'
+
+comment producer resource container=ef0ae88fa409355343a1e97b1a63b618599cf4dc7ebb9ff12bb2b4eecd434cc3 port=56118 database=crew_v2_test_9a3a6d0205a440cd99191ffac8e810ee pid=52760 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container ef0ae88fa409355343a1e97b1a63b618599cf4dc7ebb9ff12bb2b4eecd434cc3 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GdxSG3
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GdxSG3 nonceSha256=13cfc73d56fd72ae8eb1c4cc3b759cfb209b4462a06d1aa2eb3cb1371598b646
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GdxSG3 dev=16777229 ino=63860216 uid=501
+comment producer restore created container=ef0ae88fa409355343a1e97b1a63b618599cf4dc7ebb9ff12bb2b4eecd434cc3 database=crew_v2_test_e2dbfa54ee384177920cce1ffbca0c12 prefix=9
+comment producer restore removed container=ef0ae88fa409355343a1e97b1a63b618599cf4dc7ebb9ff12bb2b4eecd434cc3 database=crew_v2_test_e2dbfa54ee384177920cce1ffbca0c12
+comment producer restore created container=ef0ae88fa409355343a1e97b1a63b618599cf4dc7ebb9ff12bb2b4eecd434cc3 database=crew_v2_test_ee9a8290665a4b01aaa0bf16cb89bf89 prefix=10
+comment producer restore removed container=ef0ae88fa409355343a1e97b1a63b618599cf4dc7ebb9ff12bb2b4eecd434cc3 database=crew_v2_test_ee9a8290665a4b01aaa0bf16cb89bf89
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GdxSG3
+✔ attachment comment migration010 forward upgrade and private backup restore preserve comments prefix hashes and009 triggers (1048.670375ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1153.550333

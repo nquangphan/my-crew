@@ -1,0 +1,211 @@
+{
+  "baseline": "490001ceaebec040f2d0434c3f68f516ff10a9ad",
+  "owned": [
+    {
+      "path": "v2/server/src/attachments/access.ts",
+      "bytes": 7807,
+      "sha256": "fcd8e5ca144ffb437f2656c02bc8c6f73fa57fa84475fbce3f7fb9ede3141d9d",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/routes.ts",
+      "bytes": 34017,
+      "sha256": "075b9852de78f4794b8b907c54a6ce496479897c2cb26fddef0fbcdf1ef355b4",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/references.ts",
+      "bytes": 10961,
+      "sha256": "839ac3e672d82281b341656937c7328176e5809b0b99259e952bb09a2b668082",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/grants.ts",
+      "bytes": 21430,
+      "sha256": "3e4a585f0ce266d921fe24f954dbb805a84e4730a30926ac43a08f559d3272b3",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/snapshots.ts",
+      "bytes": 15131,
+      "sha256": "c7938443c8c1d76d37bcc196643aa44b004ccf3917b86a0fd2a2914c17ef8926",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/jobs.ts",
+      "bytes": 15120,
+      "sha256": "2984081650f272b0404902d9bac5c15430656d1bfd3b3430f6c5f043dcc8221d",
+      "baselineSha256": "c03a2ad2c6d7f94cdde6999c33488758a603ba756ae6e9eee04bc19fe729e37a",
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/messages.ts",
+      "bytes": 11390,
+      "sha256": "c88e5e1ea870541244f7cace3e3cefab7c7f55a94a5beb25f492592f150c3508",
+      "baselineSha256": "36a16913ef253f4a386ad100a7ae3cfcd575779320db65653ce1e31f4b291631",
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/src/attachments/routing.ts",
+      "bytes": 10106,
+      "sha256": "b6ff9476d4926437b55c015043a6337d1c2feff951893837781dcf765160234c",
+      "baselineSha256": "10d9fcc7f9164212e029c9f0476658a041ab02e25378bcf2af6838d43c53e12d",
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/attachments-api.test.ts",
+      "bytes": 9562,
+      "sha256": "b87e2bebf7b1c7680e3df9121514e51c75ba7de718551ac021d20249935fd1ee",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/attachments-access.test.ts",
+      "bytes": 7960,
+      "sha256": "1cfe82ab94342e8be7a90194a218365c5f734521c1565677fd6cfb058fd73371",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/attachments-grants.test.ts",
+      "bytes": 17390,
+      "sha256": "7a417a468e3fb7c333eab1aa5ca11ba5b22555f9e69ddf3b3c989ff82250577d",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/attachments-snapshots.test.ts",
+      "bytes": 25674,
+      "sha256": "5c0e58ffeaf2e48eb57d86d9474122a67f1bdf93b4e8d4d7fdcdd37dab9c082d",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/support/attachment-access.ts",
+      "bytes": 15234,
+      "sha256": "cf5120b6d879510997a9fec332ec6e21d4d9326f8f2a6c2bd02c55cd82ab4744",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/support/attachment-access-publication.ts",
+      "bytes": 4805,
+      "sha256": "861f4032065fdae539ab582e80dd486e4bb088c6d48318cebd4e9c4527de0d79",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/support/attachment-access-authority.ts",
+      "bytes": 3152,
+      "sha256": "ef5552440b35c377244a3abd70b8592190d18fb5a52da18b0e59d2dcf3a90dce",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/server/test/support/attachment-access-inbox.ts",
+      "bytes": 8158,
+      "sha256": "ceca393fb252b019b650f6eabee91b1fb5f11bd1a1e6e16c2240a69d525f911b",
+      "baselineSha256": null,
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/docs/flows/server-attachments.md",
+      "bytes": 22965,
+      "sha256": "2ab82b6f4d2b5961421641a1bf99b31372c73c6cb3d31c9c4c7baf1443984dd7",
+      "baselineSha256": "642bb1b129cc729cb72de11b167ec7038bd700e204e2cb3cd721fc1d0edc2232",
+      "ownScope": "Task3"
+    },
+    {
+      "path": "v2/docs/flows/attachment-extraction.md",
+      "bytes": 13093,
+      "sha256": "ba6628e334616f00b1fab07ade00dab007283c5e42721253042ed6109f98ce0d",
+      "baselineSha256": "fc07b6579adb56c25dd31af535926fff115f96bd71530aaa42bf8c564db19fb4",
+      "ownScope": "existing step5 paragraph only; appended Task5 section peer-owned"
+    }
+  ],
+  "migrations": [
+    {
+      "path": "v2/server/migrations/001_platform.sql",
+      "bytes": 286,
+      "sha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+    },
+    {
+      "path": "v2/server/migrations/002_journal.sql",
+      "bytes": 837,
+      "sha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"
+    },
+    {
+      "path": "v2/server/migrations/003_identity.sql",
+      "bytes": 1294,
+      "sha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"
+    },
+    {
+      "path": "v2/server/migrations/004_tickets.sql",
+      "bytes": 4975,
+      "sha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"
+    },
+    {
+      "path": "v2/server/migrations/005_execution.sql",
+      "bytes": 3270,
+      "sha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"
+    },
+    {
+      "path": "v2/server/migrations/006_docs.sql",
+      "bytes": 4364,
+      "sha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"
+    },
+    {
+      "path": "v2/server/migrations/007_gateway.sql",
+      "bytes": 6548,
+      "sha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"
+    },
+    {
+      "path": "v2/server/migrations/008_model_pool.sql",
+      "bytes": 15261,
+      "sha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"
+    },
+    {
+      "path": "v2/server/migrations/009_attachments.sql",
+      "bytes": 20136,
+      "sha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"
+    },
+    {
+      "path": "v2/server/migrations/010_attachment_comment_text.sql",
+      "bytes": 253,
+      "sha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"
+    }
+  ],
+  "finalCoverSourceMatches": [
+    "v2/server/src/attachments/access.ts",
+    "v2/server/src/attachments/routes.ts",
+    "v2/server/src/attachments/references.ts",
+    "v2/server/src/attachments/grants.ts",
+    "v2/server/src/attachments/snapshots.ts",
+    "v2/server/src/attachments/jobs.ts",
+    "v2/server/src/attachments/messages.ts",
+    "v2/server/src/attachments/routing.ts",
+    "v2/server/test/attachments-api.test.ts",
+    "v2/server/test/attachments-access.test.ts",
+    "v2/server/test/attachments-grants.test.ts",
+    "v2/server/test/attachments-snapshots.test.ts",
+    "v2/server/test/support/attachment-access.ts",
+    "v2/server/test/support/attachment-access-publication.ts",
+    "v2/server/test/support/attachment-access-authority.ts",
+    "v2/server/test/support/attachment-access-inbox.ts",
+    "v2/docs/flows/server-attachments.md"
+  ],
+  "excludedCurrentPeers": [
+    "worker-protocol.ts",
+    "worker-runner.ts",
+    "extractor-entry.ts",
+    "parsers/**",
+    "execution isolation FIX1"
+  ],
+  "newFilesR2": "PM serialized mapping only",
+  "patchSha256": "e3bfae43ce2fe1433d993ac3074dc3d76591982bce7c7cf54a7797a356f5a8fc"
+}

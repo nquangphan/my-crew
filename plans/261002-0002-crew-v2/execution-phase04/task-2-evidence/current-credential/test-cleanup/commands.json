@@ -1,0 +1,47 @@
+[
+  {
+    "label": "gateway-types",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-57a610d4-cac9-4747-9c95-eef23297be82/v2/gateway",
+      "typecheck"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931826.791956,
+    "exit": 0,
+    "finished": 1790931827.1857338
+  },
+  {
+    "label": "biome",
+    "argv": [
+      "pnpm",
+      "exec",
+      "biome",
+      "check",
+      "v2/gateway/src/models/contracts.ts",
+      "v2/gateway/src/models/credential-broker.ts",
+      "v2/gateway/src/models/credential-provisioning.ts",
+      "v2/gateway/src/models/inventory.ts",
+      "v2/gateway/src/models/model-reporter.ts",
+      "v2/gateway/src/models/probe.ts",
+      "v2/gateway/src/models/provider-transport.ts",
+      "v2/gateway/src/models/security-bridge.ts",
+      "v2/gateway/test/credential-broker.test.ts",
+      "v2/gateway/test/credential-provisioning.test.ts",
+      "v2/gateway/test/model-probe.test.ts",
+      "v2/gateway/test/model-reporter.test.ts",
+      "v2/gateway/test/support/model-fixture.ts",
+      "v2/server/src/models/contracts.ts",
+      "v2/server/src/models/routes.ts",
+      "v2/server/src/models/secret-envelopes.ts",
+      "v2/server/test/model-current-credentials.test.ts",
+      "v2/gateway/src/models/current-credential-resolver.ts",
+      "v2/gateway/test/current-credential-resolver.test.ts"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790931827.186083,
+    "exit": 0,
+    "finished": 1790931827.411901
+  }
+]

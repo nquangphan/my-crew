@@ -1,0 +1,19 @@
+{
+  "snapshots": [
+    {
+      "kind": "gateway",
+      "changed": [],
+      "files": 238
+    },
+    {
+      "kind": "server",
+      "changed": [
+        "v2/docs/flows/server-docs-view.md",
+        "v2/server/test/api-acceptance.test.ts",
+        "v2/server/test/support/http.ts"
+      ],
+      "files": 238
+    }
+  ],
+  "workingOwnedChanges": []
+}

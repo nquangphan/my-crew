@@ -1,0 +1,12 @@
+✔ unbound isolation cannot accept caller supplied paths or proof (0.446ms)
+✔ discovery exclusions are explicit; ordinary product documents survive (0.115292ms)
+✔ policy is deny-by-default for data, fork, network and router source (0.182208ms)
+✔ workspace audit rejects hardlink, external symlink and nested common-dir; keeps internal document alias (5.95ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.661667

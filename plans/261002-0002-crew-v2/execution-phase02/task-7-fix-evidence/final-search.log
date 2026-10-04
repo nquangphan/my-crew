@@ -1,0 +1,24 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/docs-read.test.ts
+
+{"level":30,"time":1790913556673,"pid":2300,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54327"}
+✔ docs tìm kiếm Unicode original bytes audit labels and actor permissions (353.502625ms)
+{"level":30,"time":1790913556950,"pid":2300,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54335"}
+✔ search full literal fallback beyond GIN prefix, escaped wildcard and scoped tie-safe cursor (270.63625ms)
+{"level":30,"time":1790913557203,"pid":2300,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54340"}
+✔ docs tree links composite ticket references and verified mixed standard-page completion reader (306.293958ms)
+{"level":30,"time":1790913557508,"pid":2300,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54347"}
+✔ search SQL deadline cancels blocked query and returns reusable single-connection pool (2231.332958ms)
+ℹ {"containerId":"be9cba4900348066d1e107d48363ecd807bb87f7b2641b58ba02696a45f03605","db":"crew_v2_test_9dc20047a5c74a01ad4cb2fbc6c9a7f6","port":"54317"}
+ℹ {"containerId":"be9cba4900348066d1e107d48363ecd807bb87f7b2641b58ba02696a45f03605","db":"crew_v2_test_9dc20047a5c74a01ad4cb2fbc6c9a7f6","port":"54317","backendPid":101,"sameConnectionReused":true}
+{"level":30,"time":1790913559775,"pid":2300,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54360"}
+✔ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (245.930291ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3583.885042

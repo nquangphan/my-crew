@@ -1,0 +1,192 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/server.test.ts
+
+{"level":30,"time":1790923221515,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57591"}
+{"level":30,"time":1790923221833,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57595"}
+✔ HTTP persistence graph commands events docs reconnect restart and backup restore (1020.372458ms)
+ℹ {"realHttp":true,"port0":true,"prefix":6,"restartPool":true,"firstUrl":"http://127.0.0.1:57591","reopenedUrl":"http://127.0.0.1:57595","containerId":"dabd3b09ec5e79c3b27920222ee4d351903a47d8ae5e6658d1a801b94054af7e","restoredName":"crew_v2_restore_b65cd914d8ba4164b3ceeca83308ecae","dumpBytes":74984}
+{"level":30,"time":1790923222343,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57611"}
+✔ HTTP ticket cached replay cannot race current binding or machine revocation across pools (332.416083ms)
+{"level":30,"time":1790923222660,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57618"}
+{"level":30,"time":1790923223755,"pid":36918,"hostname":"Phans-MacBook-Pro.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+{"level":30,"time":1790923224783,"pid":36918,"hostname":"Phans-MacBook-Pro.local","reqId":"req-c","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✔ real SSE current credential revocation and owner expiry close streams without future data (2330.785375ms)
+{"level":30,"time":1790923225030,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57632"}
+{"level":30,"time":1790923225193,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57636"}
+✔ HTTP default dispatch denies; reported evidence stays finalizing until trusted research test attestation (444.577291ms)
+{"level":30,"time":1790923225437,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57641"}
+✔ HTTP all machine ticket mutation families reject cached replay after rebind (335.975667ms)
+{"level":30,"time":1790923225771,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57647"}
+✔ HTTP fifth repair result remains fenced until confirmed physical stop (319.8915ms)
+{"level":30,"time":1790923226088,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57652"}
+✔ current credential and event scope share one snapshot across rebind and revocation (274.941834ms)
+{"level":50,"time":1790923226298,"pid":36918,"hostname":"Phans-MacBook-Pro.local","reqId":"req-1","code":"INTERNAL_ERROR","msg":"Lỗi API"}
+✔ buildApp composes without migrations or listener; unknown DB errors are generic503 (254.838708ms)
+{"level":30,"time":1790923226621,"pid":36918,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57665"}
+✖ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (357.63225ms)
+✖ attachment staging reserves under owner quota and keeps bytes through ready commit (197.222417ms)
+✔ attachment staging refuses machine and stale compose revision (173.969208ms)
+✖ attachment staging validates name MIME size limits and permits exact limit and empty text (226.313042ms)
+✖ attachment staging rejects wrong bytes malformed UTF binary text and magic before original publication (213.679334ms)
+✖ attachment staging accepts split UTF16 BOM as text without browser inline interpretation (214.016334ms)
+✔ attachment staging reserve replay checks canonical request and same digest keeps distinct originals (199.02725ms)
+✔ attachment staging serializes owner quota reservations and holds rejected and abandoned quota (227.513708ms)
+✖ attachment staging validates ready PUT replay bytes and emits only owner-scoped exact metadata (207.434791ms)
+✖ attachment staging refuses ready publication after generation CAS is superseded and retains durable blob intent (214.025583ms)
+✖ /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/server.test.ts (29498.209417ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 11
+ℹ fail 7
+ℹ cancelled 1
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29501.618708
+
+✖ failing tests:
+
+test at test/api-acceptance.test.ts:799:1
+✖ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (357.63225ms)
+  [TypeError: fetch failed] {
+    [cause]: Error: write EPIPE
+        at WriteWrap.onWriteComplete [as oncomplete] (node:internal/stream_base_commons:87:19) {
+      errno: -32,
+      code: 'EPIPE',
+      syscall: 'write'
+    }
+  }
+
+test at test/attachments-staging.test.ts:7:1
+✖ attachment staging reserves under owner quota and keeps bytes through ready commit (197.222417ms)
+  Error [ApiError]: Phản hồi không hợp lệ
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:47:15
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.receive (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/staging.ts:253:23)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:29:21
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:8:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    code: 'RESPONSE_INVALID',
+    status: 500,
+    details: undefined
+  }
+
+test at test/attachments-staging.test.ts:106:1
+✖ attachment staging validates name MIME size limits and permits exact limit and empty text (226.313042ms)
+  Error [ApiError]: Phản hồi không hợp lệ
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:47:15
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.receive (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/staging.ts:253:23)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:121:28
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:107:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    code: 'RESPONSE_INVALID',
+    status: 500,
+    details: undefined
+  }
+
+test at test/attachments-staging.test.ts:136:1
+✖ attachment staging rejects wrong bytes malformed UTF binary text and magic before original publication (213.679334ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'reserved'
+  - 'rejected'
+       ^
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:155:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:137:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'reserved',
+    expected: 'rejected',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-staging.test.ts:174:1
+✖ attachment staging accepts split UTF16 BOM as text without browser inline interpretation (214.016334ms)
+  Error [ApiError]: Phản hồi không hợp lệ
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:47:15
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.receive (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/staging.ts:253:23)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:183:26
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:175:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    code: 'RESPONSE_INVALID',
+    status: 500,
+    details: undefined
+  }
+
+test at test/attachments-staging.test.ts:282:1
+✖ attachment staging validates ready PUT replay bytes and emits only owner-scoped exact metadata (207.434791ms)
+  Error [ApiError]: Phản hồi không hợp lệ
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:47:15
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.receive (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/staging.ts:253:23)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:288:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:283:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    code: 'RESPONSE_INVALID',
+    status: 500,
+    details: undefined
+  }
+
+test at test/attachments-staging.test.ts:308:1
+✖ attachment staging refuses ready publication after generation CAS is superseded and retains durable blob intent (214.025583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'RESPONSE_INVALID'
+  -   code: 'ATTACHMENT_UPLOAD_CONFLICT'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:321:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:309:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Phản hồi không hợp lệ
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:47:15
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.receive (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/staging.ts:253:23)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:321:7
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+        at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:309:3),
+    expected: { code: 'ATTACHMENT_UPLOAD_CONFLICT' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../../var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/server.test.ts:1:1
+✖ /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/server.test.ts (29498.209417ms)
+  'Promise resolution is still pending but the event loop has already resolved'
+ ELIFECYCLE  Test failed. See above for more details.

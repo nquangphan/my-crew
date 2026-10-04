@@ -1,0 +1,326 @@
+v2/gateway/src/models/model-reporter.ts:65:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    63 │       boot = this.ports.currentBoot();
+    64 │     if (
+  > 65 │       !inventory ||
+       │       ^^^^^^^^^^^^^
+  > 66 │       inventory.kind !== 'inventory' ||
+       │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    67 │       inventory.envelope.configRevision !== this.desired?.revision ||
+    68 │       inventory.envelope.bootId !== boot?.bootId ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+     63  63 │         boot = this.ports.currentBoot();
+     64  64 │       if (
+     65     │ - ······!inventory·||
+     66     │ - ······inventory.kind·!==·'inventory'·||
+         65 │ + ······inventory?.kind·!==·'inventory'·||
+     67  66 │         inventory.envelope.configRevision !== this.desired?.revision ||
+     68  67 │         inventory.envelope.bootId !== boot?.bootId ||
+  
+
+v2/gateway/src/models/probe.ts:235:36 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    233 │       const bodyText = canonicalJson(response.body);
+    234 │       if (Buffer.byteLength(bodyText) > 1048576) return result('fail', [], 'RESPONSE_TOO_LARGE');
+  > 235 │       const parsed = parseProtocol(provider!.protocol, response.body, key.modelId);
+        │                                    ^^^^^^^^^
+    236 │       if (mode === 'offline') return result('unverified', [], 'OFFLINE_UNVERIFIED');
+    237 │       if (parsed.includes('tools')) {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    233 233 │         const bodyText = canonicalJson(response.body);
+    234 234 │         if (Buffer.byteLength(bodyText) > 1048576) return result('fail', [], 'RESPONSE_TOO_LARGE');
+    235     │ - ······const·parsed·=·parseProtocol(provider!.protocol,·response.body,·key.modelId);
+        235 │ + ······const·parsed·=·parseProtocol(provider?.protocol,·response.body,·key.modelId);
+    236 236 │         if (mode === 'offline') return result('unverified', [], 'OFFLINE_UNVERIFIED');
+    237 237 │         if (parsed.includes('tools')) {
+  
+
+v2/gateway/src/models/probe.ts:244:11 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    242 │         };
+    243 │         const ids =
+  > 244 │           provider!.protocol === 'responses'
+        │           ^^^^^^^^^
+    245 │             ? wire.output?.filter((x) => x.call_id).map((x) => x.call_id)
+    246 │             : wire.choices?.[0]?.message.tool_calls?.map((x) => x.id);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    242 242 │           };
+    243 243 │           const ids =
+    244     │ - ··········provider!.protocol·===·'responses'
+        244 │ + ··········provider?.protocol·===·'responses'
+    245 245 │               ? wire.output?.filter((x) => x.call_id).map((x) => x.call_id)
+    246 246 │               : wire.choices?.[0]?.message.tool_calls?.map((x) => x.id);
+  
+
+v2/gateway/src/models/probe.ts:259:9 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    257 │       if (
+    258 │         response.imageObserved &&
+  > 259 │         provider!.models.find((m) => m.id === key.modelId)?.declared.includes('vision')
+        │         ^^^^^^^^^
+    260 │       )
+    261 │         parsed.push('vision');
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    257 257 │         if (
+    258 258 │           response.imageObserved &&
+    259     │ - ········provider!.models.find((m)·=>·m.id·===·key.modelId)?.declared.includes('vision')
+        259 │ + ········provider?.models.find((m)·=>·m.id·===·key.modelId)?.declared.includes('vision')
+    260 260 │         )
+    261 261 │           parsed.push('vision');
+  
+
+v2/gateway/src/models/provider-transport.ts:16:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    14 │       a === 10 ||
+    15 │       a === 127 ||
+  > 16 │       a! >= 224 ||
+       │       ^^
+    17 │       (a === 100 && b! >= 64 && b! <= 127) ||
+    18 │       (a === 169 && b === 254) ||
+  
+
+v2/gateway/src/models/provider-transport.ts:17:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    15 │       a === 127 ||
+    16 │       a! >= 224 ||
+  > 17 │       (a === 100 && b! >= 64 && b! <= 127) ||
+       │                     ^^
+    18 │       (a === 169 && b === 254) ||
+    19 │       (a === 172 && b! >= 16 && b! <= 31) ||
+  
+
+v2/gateway/src/models/provider-transport.ts:17:33 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    15 │       a === 127 ||
+    16 │       a! >= 224 ||
+  > 17 │       (a === 100 && b! >= 64 && b! <= 127) ||
+       │                                 ^^
+    18 │       (a === 169 && b === 254) ||
+    19 │       (a === 172 && b! >= 16 && b! <= 31) ||
+  
+
+v2/gateway/src/models/provider-transport.ts:19:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    17 │       (a === 100 && b! >= 64 && b! <= 127) ||
+    18 │       (a === 169 && b === 254) ||
+  > 19 │       (a === 172 && b! >= 16 && b! <= 31) ||
+       │                     ^^
+    20 │       (a === 192 && (b === 168 || b === 0 || b === 2)) ||
+    21 │       (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+  
+
+v2/gateway/src/models/provider-transport.ts:19:33 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    17 │       (a === 100 && b! >= 64 && b! <= 127) ||
+    18 │       (a === 169 && b === 254) ||
+  > 19 │       (a === 172 && b! >= 16 && b! <= 31) ||
+       │                                 ^^
+    20 │       (a === 192 && (b === 168 || b === 0 || b === 2)) ||
+    21 │       (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+  
+
+v2/gateway/src/models/provider-transport.ts:27:35 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    25 │   } else if (isIP(address) === 6) {
+    26 │     // Admit only global unicast; special/mapped/transition/documentation ranges fail closed.
+  > 27 │     const first = Number.parseInt(address.split(':')[0]!, 16);
+       │                                   ^^^^^^^^^^^^^^^^^^^^^^
+    28 │     if (
+    29 │       !Number.isFinite(first) ||
+  
+
+v2/gateway/src/models/provider-transport.ts:85:18 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    83 │   if (!answers.length) throw new Error('SSRF_DENIED');
+    84 │   if (base.protocol === 'https:') for (const a of answers) assertPublicAddress(a.address);
+  > 85 │   const pinned = answers[0]!,
+       │                  ^^^^^^^^^^^
+    86 │     payload = Buffer.from(JSON.stringify(body));
+    87 │   try {
+  
+
+v2/gateway/test/credential-broker.test.ts:30:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    28 │   assert.equal(await broker.put(provider, Buffer.from('fixture-secret'), operation), a);
+    29 │   assert.equal(bridge.items.size, 1);
+  > 30 │   assert.match([...bridge.items.keys()][0]!, new RegExp(`^com.2pcrew.v2.${machine}.${provider}/`));
+       │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    31 │   await assert.rejects(broker.put(provider, Buffer.from('different'), operation), /CONFLICT/);
+    32 │   await broker.remove(a);
+  
+
+v2/gateway/test/credential-provisioning.test.ts:119:19 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    117 │     await assert.rejects(provisioning.accept(envelope, 2, [providerId]), /lost ACK/);
+    118 │     assert.equal([...items.values()].filter((b) => b.toString() === 'crypto-fixture-secret').length, 1);
+  > 119 │     const first = sent.at(-1)!;
+        │                   ^^^^^^^^^^^^
+    120 │     assert.equal(JSON.stringify(sent).includes('crypto-fixture-secret'), false);
+    121 │     await provisioning.close();
+  
+
+v2/gateway/test/credential-provisioning.test.ts:141:18 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    139 │     for (const key of [...items.keys()]) if (key.includes('.credential-keys/')) items.delete(key);
+    140 │     await assert.rejects(provisioning.accept({ ...envelope, id: randomUUID() }, 2, [providerId]), /KEY_LOST/);
+  > 141 │     assert.equal(sent.at(-1)!.route.endsWith('/key-lost'), true);
+        │                  ^^^^^^^^^^^^
+    142 │   } finally {
+    143 │     await provisioning.close();
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    139 139 │       for (const key of [...items.keys()]) if (key.includes('.credential-keys/')) items.delete(key);
+    140 140 │       await assert.rejects(provisioning.accept({ ...envelope, id: randomUUID() }, 2, [providerId]), /KEY_LOST/);
+    141     │ - ····assert.equal(sent.at(-1)!.route.endsWith('/key-lost'),·true);
+        141 │ + ····assert.equal(sent.at(-1)?.route.endsWith('/key-lost'),·true);
+    142 142 │     } finally {
+    143 143 │       await provisioning.close();
+  
+
+v2/gateway/test/model-probe.test.ts:249:16 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    247 │     ['chosen'],
+    248 │   );
+  > 249 │   assert.equal(results[0]!.status, 'unverified');
+        │                ^^^^^^^^^^^
+    250 │   assert.deepEqual(
+    251 │     await inventory.collectInventory({ ...config, enabled: { ...config.enabled, api: false } }, workflows),
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    247 247 │       ['chosen'],
+    248 248 │     );
+    249     │ - ··assert.equal(results[0]!.status,·'unverified');
+        249 │ + ··assert.equal(results[0]?.status,·'unverified');
+    250 250 │     assert.deepEqual(
+    251 251 │       await inventory.collectInventory({ ...config, enabled: { ...config.enabled, api: false } }, workflows),
+  
+
+v2/gateway/test/model-reporter.test.ts:48:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    46 │     );
+    47 │     assert.deepEqual(order, ['GET', 'probe']);
+  > 48 │     const first = sent[0]!.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
+       │                   ^^^^^^^^
+    49 │     assert.equal(first.sequence, '1');
+    50 │     assert.equal(first.configRevision, 2);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    46 46 │       );
+    47 47 │       assert.deepEqual(order, ['GET', 'probe']);
+    48    │ - ····const·first·=·sent[0]!.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+       48 │ + ····const·first·=·sent[0]?.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+    49 49 │       assert.equal(first.sequence, '1');
+    50 50 │       assert.equal(first.configRevision, 2);
+  
+
+v2/gateway/test/model-reporter.test.ts:69:23 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    67 │     revision = 3;
+    68 │     await reporter.reconnect(initialStatus().workflows, async () => []);
+  > 69 │     const inventory = sent.at(-1)!.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
+       │                       ^^^^^^^^^^^^
+    70 │     assert.equal(inventory.sequence, '2');
+    71 │     await reporter.sendApplied({
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    67 67 │       revision = 3;
+    68 68 │       await reporter.reconnect(initialStatus().workflows, async () => []);
+    69    │ - ····const·inventory·=·sent.at(-1)!.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+       69 │ + ····const·inventory·=·sent.at(-1)?.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+    70 70 │       assert.equal(inventory.sequence, '2');
+    71 71 │       await reporter.sendApplied({
+  
+
+v2/gateway/test/model-reporter.test.ts:80:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    78 │       observationDigest: hash(canonicalJson(inventory.body)),
+    79 │     });
+  > 80 │     assert.equal((sent.at(-1)!.canonicalBody as { sequence: string }).sequence, '3');
+       │                   ^^^^^^^^^^^^
+    81 │     assert.equal((sent.at(-1)!.canonicalBody as { configRevision: number }).configRevision, 3);
+    82 │   } finally {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    78 78 │         observationDigest: hash(canonicalJson(inventory.body)),
+    79 79 │       });
+    80    │ - ····assert.equal((sent.at(-1)!.canonicalBody·as·{·sequence:·string·}).sequence,·'3');
+       80 │ + ····assert.equal((sent.at(-1)?.canonicalBody·as·{·sequence:·string·}).sequence,·'3');
+    81 81 │       assert.equal((sent.at(-1)!.canonicalBody as { configRevision: number }).configRevision, 3);
+    82 82 │     } finally {
+  
+
+v2/gateway/test/model-reporter.test.ts:81:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    79 │     });
+    80 │     assert.equal((sent.at(-1)!.canonicalBody as { sequence: string }).sequence, '3');
+  > 81 │     assert.equal((sent.at(-1)!.canonicalBody as { configRevision: number }).configRevision, 3);
+       │                   ^^^^^^^^^^^^
+    82 │   } finally {
+    83 │     await reporter.close();
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    79 79 │       });
+    80 80 │       assert.equal((sent.at(-1)!.canonicalBody as { sequence: string }).sequence, '3');
+    81    │ - ····assert.equal((sent.at(-1)!.canonicalBody·as·{·configRevision:·number·}).configRevision,·3);
+       81 │ + ····assert.equal((sent.at(-1)?.canonicalBody·as·{·configRevision:·number·}).configRevision,·3);
+    82 82 │     } finally {
+    83 83 │       await reporter.close();
+  
+
+Skipped 21 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 12 files in 13ms. Fixed 12 files.
+Found 19 warnings.

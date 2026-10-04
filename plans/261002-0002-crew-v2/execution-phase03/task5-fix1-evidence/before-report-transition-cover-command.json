@@ -1,0 +1,33 @@
+{
+  "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server",
+  "argv": [
+    "pnpm",
+    "test",
+    "--test-concurrency=1",
+    "--test-file",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/host-failures.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/host-lifecycle.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/http-operations.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/journal.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/resources.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/telemetry.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-admission.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-build.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-fix.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-native-projection.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-operations.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-registry.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/connection.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/event-pump.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/sync.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-crash.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/stop-control.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/pin-retirement.test.ts",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/retirement-crash.test.ts"
+  ],
+  "NODE_OPTIONS": "--loader=/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs",
+  "base": "9182e89",
+  "migrationPrefix": 8
+}

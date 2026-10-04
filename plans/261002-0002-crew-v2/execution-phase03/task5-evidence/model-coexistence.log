@@ -1,0 +1,18 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts '--test-name-pattern=DB-backed selection' --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts
+
+Task5 private database container 656b38982035084730ebc07e3910644ac673178a5ef03da3a97daefd808c1ff7
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bv4NNI","device":"16777229","inode":"63596651","uid":501}
+{"level":30,"time":1790930086480,"pid":81324,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58248"}
+{"level":30,"time":1790930089154,"pid":81324,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58273"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bv4NNI","device":"16777229","inode":"63596651","uid":501,"deleted":true}
+✔ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (3485.760083ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3692.137916

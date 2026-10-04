@@ -1,0 +1,35 @@
+{
+  "reviewedHead": "556cd8d",
+  "reviewed": [
+    "v2/gateway/test/host-failures.test.ts",
+    "v2/gateway/test/host-lifecycle.test.ts",
+    "v2/gateway/test/http-operations.test.ts",
+    "v2/gateway/test/journal.test.ts",
+    "v2/gateway/test/resources.test.ts",
+    "v2/gateway/test/telemetry.test.ts",
+    "v2/gateway/test/workflow-admission.test.ts",
+    "v2/gateway/test/workflow-build.test.ts",
+    "v2/gateway/test/workflow-fix.test.ts",
+    "v2/gateway/test/workflow-native-projection.test.ts",
+    "v2/gateway/test/workflow-operations.test.ts",
+    "v2/gateway/test/workflow-registry.test.ts"
+  ],
+  "task5": [
+    "v2/gateway/test/connection.test.ts",
+    "v2/gateway/test/event-pump.test.ts",
+    "v2/gateway/test/sync.test.ts",
+    "v2/gateway/test/execution-bridge.test.ts",
+    "v2/gateway/test/execution-bridge-db.test.ts",
+    "v2/gateway/test/execution-crash.test.ts",
+    "v2/gateway/test/stop-control.test.ts",
+    "v2/gateway/test/pin-retirement.test.ts",
+    "v2/gateway/test/retirement-crash.test.ts"
+  ],
+  "excludedPeerModelTests": [
+    "credential-broker",
+    "credential-provisioning",
+    "model-probe",
+    "model-reporter"
+  ],
+  "migrationPrefix": 8
+}

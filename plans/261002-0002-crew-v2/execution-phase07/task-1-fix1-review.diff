@@ -1,0 +1,850 @@
+Web Task1 FIX1 scoped delta: reviewed14-path baseline -> final I1 changes only, M1 deferred.
+--- v2/web/scripts/e2e-fixture.ts
++++ v2/web/scripts/e2e-fixture.ts
+@@ -1,89 +1,91 @@
+ import { execFile } from 'node:child_process';
+ import { randomBytes, randomUUID } from 'node:crypto';
+ import { mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises';
+ import { createServer } from 'node:http';
++import type { Socket } from 'node:net';
+ import { tmpdir } from 'node:os';
+ import { join, resolve } from 'node:path';
+ import { createInterface } from 'node:readline';
+ import { setTimeout as delay } from 'node:timers/promises';
+ import { fileURLToPath } from 'node:url';
+ import { promisify } from 'node:util';
+ import react from '@vitejs/plugin-react';
+ import { createServer as createViteServer, type ViteDevServer } from 'vite';
+ import { buildApp } from '../../server/src/app.ts';
+ import { bootstrapOwner } from '../../server/src/auth/bootstrap.ts';
+ import { connectDb } from '../../server/src/db/client.ts';
+ import { captureMigrations, migrate } from '../../server/src/db/migrate.ts';
+ import {
++  boundedCleanupStep,
+   type CleanupResult,
+   closeOwnedResource,
+   type FixtureHandle,
+   type OwnedResource,
+   withFixture,
+ } from '../e2e/support/fixture.ts';
+ 
+ const execFileAsync = promisify(execFile);
+ const webRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
+ const frozenHashes = [
+   'dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76',
+   '11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9',
+   '0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d',
+   '1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f',
+   'b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027',
+   '8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae',
+   '9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4',
+   'd268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f',
+   'fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a',
+   'aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d',
+   'fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841',
+ ] as const;
+ 
+ type ContainerInspection = {
+   Id: string;
+   Image: string;
+   Name: string;
+   Config: { Image: string; Labels: Record<string, string> };
+   State: { StartedAt: string; Running: boolean };
+ };
+ 
+-async function command(file: string, args: string[]): Promise<string> {
+-  const { stdout } = await execFileAsync(file, args, { timeout: 20_000, maxBuffer: 1024 * 1024 });
++async function command(file: string, args: string[], signal?: AbortSignal): Promise<string> {
++  const { stdout } = await execFileAsync(file, args, { timeout: 20_000, maxBuffer: 1024 * 1024, signal });
+   return stdout.trim();
+ }
+ 
+-async function inspectContainer(id: string): Promise<ContainerInspection | null> {
++async function inspectContainer(id: string, signal?: AbortSignal): Promise<ContainerInspection | null> {
+   try {
+-    const parsed = JSON.parse(await command('docker', ['inspect', id])) as ContainerInspection[];
++    const parsed = JSON.parse(await command('docker', ['inspect', id], signal)) as ContainerInspection[];
+     return parsed[0] ?? null;
+   } catch {
+     return null;
+   }
+ }
+ 
+-async function processIdentity(): Promise<string> {
+-  const started = await command('ps', ['-p', String(process.pid), '-o', 'lstart=']);
++async function processIdentity(signal?: AbortSignal): Promise<string> {
++  const started = await command('ps', ['-p', String(process.pid), '-o', 'lstart='], signal);
+   if (!started) throw new Error('PROCESS_IDENTITY_UNKNOWN');
+   return String(process.pid) + ':' + started;
+ }
+ 
+ async function listenLoopback(server: ReturnType<typeof createServer>): Promise<number> {
+   await new Promise<void>((done, fail) => {
+     server.once('error', fail);
+     server.listen(0, '127.0.0.1', () => {
+       server.off('error', fail);
+       done();
+     });
+   });
+   const address = server.address();
+   if (!address || typeof address === 'string') throw new Error('WEB_LISTENER_ADDRESS_UNKNOWN');
+   return address.port;
+ }
+ 
+ export async function startOwnedFixture(): Promise<FixtureHandle> {
+   const migrations = await captureMigrations(11);
+   if (
+     migrations.files.length !== frozenHashes.length ||
+     migrations.files.some((file, index) => file.sha256 !== frozenHashes[index])
+   ) {
+     throw new Error('WEB_FIXTURE_MIGRATION_PREFIX_DRIFT');
+   }
+@@ -107,209 +109,301 @@
+ 
+   let phase = 'starting';
+   let workerIdentity = '';
+   let containerId = '';
+   let containerIdentity = '';
+   let containerImageDigest = '';
+   let dbPort = 0;
+   let dbIdentity = '';
+   let containerLaunchAttempted = false;
+   let databaseCreateAttempted = false;
+   let webListenAttempted = false;
+   let apiListenAttempted = false;
+   let admin: ReturnType<typeof connectDb> | undefined;
+   let db: ReturnType<typeof connectDb> | undefined;
+   let app: Awaited<ReturnType<typeof buildApp>> | undefined;
+   let vite: ViteDevServer | undefined;
+   let webServer: ReturnType<typeof createServer> | undefined;
+   let webReady = false;
+   let apiOrigin = '';
+   let webOrigin = '';
+   let containerResource: OwnedResource | undefined;
+   let databaseResource: OwnedResource | undefined;
+   let webResource: OwnedResource | undefined;
+   let apiResource: OwnedResource | undefined;
+   let signalHandler: (() => void) | undefined;
++  let shuttingDown = false;
++  const webSockets = new Set<Socket>();
++  const apiSockets = new Set<Socket>();
+ 
+   async function persist(): Promise<void> {
+     const draft = join(scratchPath, 'registry-' + randomUUID() + '.tmp');
+     await writeFile(
+       draft,
+       JSON.stringify({
+         ownershipNonce,
+         phase,
+         workerIdentity,
+         containerName,
+         containerId,
+         containerImageDigest,
+         dbName,
+         dbPort,
+         containerLaunchAttempted,
+         databaseCreateAttempted,
+         webListenAttempted,
+         apiListenAttempted,
+         apiOrigin,
+         webOrigin,
+         resources,
+       }),
+       { mode: 0o600 },
+     );
+     await rename(draft, registryPath);
+   }
+   async function record(resource: OwnedResource): Promise<void> {
+     resources.push(resource);
+     await persist();
+   }
+-  async function readContainerIdentity(): Promise<string | null> {
++  async function readContainerIdentity(signal?: AbortSignal): Promise<string | null> {
+     if (!containerId) return null;
+-    const entry = await inspectContainer(containerId);
++    const entry = await inspectContainer(containerId, signal);
+     if (
+       !entry ||
+       entry.Id !== containerId ||
+       entry.Name !== '/' + containerName ||
+       entry.Config.Labels['crew.v2.run'] !== ownershipNonce
+     )
+       return null;
+     return containerId + ':' + entry.State.StartedAt;
+   }
+-  async function readDbIdentity(): Promise<string | null> {
+-    if (!admin || (await readContainerIdentity()) !== containerIdentity) return null;
+-    const rows = await admin.unsafe('select oid from pg_database where datname = $1', [dbName]);
+-    return rows.length === 1 ? containerId + ':' + String(rows[0]?.oid) : null;
+-  }
+-  async function readListenerIdentity(kind: 'web' | 'api', port: number): Promise<string | null> {
+-    if ((await processIdentity()) !== workerIdentity) return null;
++  async function readDbIdentity(signal?: AbortSignal): Promise<string | null> {
++    if (!admin || (await readContainerIdentity(signal)) !== containerIdentity || signal?.aborted) return null;
++    const query = admin.unsafe('select oid from pg_database where datname = $1', [dbName]);
++    const cancel = () => {
++      try {
++        query.cancel();
++      } catch {
++        // Identity cannot be trusted after a cancellation race; caller records UNKNOWN.
++      }
++    };
++    signal?.addEventListener('abort', cancel, { once: true });
++    try {
++      if (signal?.aborted) return null;
++      const rows = await query;
++      return rows.length === 1 ? containerId + ':' + String(rows[0]?.oid) : null;
++    } finally {
++      signal?.removeEventListener('abort', cancel);
++    }
++  }
++  async function readListenerIdentity(
++    kind: 'web' | 'api',
++    port: number,
++    signal?: AbortSignal,
++  ): Promise<string | null> {
++    if ((await processIdentity(signal)) !== workerIdentity) return null;
+     const server = kind === 'web' ? webServer : app?.server;
+     const address = server?.address();
+     if (!server?.listening || !address || typeof address === 'string' || address.port !== port) return null;
+     return workerIdentity + ':' + kind + ':' + String(port) + ':' + ownershipNonce;
+   }
+ 
+   let closePromise: Promise<readonly CleanupResult[]> | undefined;
+   async function cleanup(): Promise<readonly CleanupResult[]> {
+     if (signalHandler) {
+       process.off('SIGTERM', signalHandler);
+       process.off('SIGINT', signalHandler);
+       signalHandler = undefined;
+     }
+     const results: CleanupResult[] = [];
+     let blocked = false;
+     const unknown = (resource: OwnedResource, reason: string): CleanupResult => ({
+       resourceId: resource.id,
+       state: 'unknown',
+       reason,
+     });
+     const closeOne = async (
+       resource: OwnedResource | undefined,
+       port: Parameters<typeof closeOwnedResource>[1],
++      allowAfterUnknown = false,
+     ) => {
+       if (!resource) return;
+-      const result = blocked
+-        ? unknown(resource, 'PREVIOUS_CLEANUP_UNKNOWN')
+-        : await closeOwnedResource(resource, port);
++      const result =
++        blocked && !allowAfterUnknown
++          ? unknown(resource, 'PREVIOUS_CLEANUP_UNKNOWN')
++          : await closeOwnedResource(resource, port);
+       results.push(result);
+       if (result.state === 'unknown') blocked = true;
+     };
++    const closePhase = async (id: string, operation: () => Promise<void>, milliseconds: number) => {
++      try {
++        await boundedCleanupStep(operation, milliseconds);
++      } catch (error) {
++        blocked = true;
++        const reason =
++          error instanceof Error && error.message === 'CLEANUP_DEADLINE' ? 'CLOSE_DEADLINE' : 'CLOSE_ERROR';
++        results.push({ resourceId: id, state: 'unknown', reason });
++        phase = 'unknown:' + id;
++      }
++    };
+ 
+     phase = 'closing';
+     await persist();
++    shuttingDown = true;
++    for (const socket of [...apiSockets, ...webSockets]) socket.destroy();
+     for (const [attempted, resource, id] of [
+       [containerLaunchAttempted, containerResource, containerName],
+       [databaseCreateAttempted, databaseResource, dbName],
+       [webListenAttempted, webResource, 'web:unrecorded'],
+       [apiListenAttempted, apiResource, 'api:unrecorded'],
+     ] as const) {
+       if (attempted && !resource) {
+         results.push({ resourceId: id, state: 'unknown', reason: 'START_IDENTITY_UNRECORDED' });
+         blocked = true;
+       }
+     }
+-    if (vite) {
+-      try {
+-        await vite.close();
+-      } catch {
+-        blocked = true;
+-        phase = 'unknown:VITE_CLOSE';
+-      }
++    const currentVite = vite;
++    if (currentVite) {
++      await closePhase('vite:middleware', () => currentVite.close(), 3_000);
+     }
+     const apiPort = apiResource ? Number(apiResource.id.slice(4)) : 0;
+-    await closeOne(apiResource, {
+-      readStartIdentity: () => readListenerIdentity('api', apiPort),
+-      stop: async () => {
+-        await app?.close();
+-        return true;
+-      },
+-      confirmStopped: async () => !app?.server.listening && app?.server.address() === null,
+-    });
++    await closeOne(
++      apiResource,
++      {
++        deadlineMs: 3_000,
++        readStartIdentity: (signal) => readListenerIdentity('api', apiPort, signal),
++        stop: async () => {
++          await app?.close();
++          return true;
++        },
++        confirmStopped: async () => !app?.server.listening && app?.server.address() === null,
++      },
++      true,
++    );
+     const webPort = webResource ? Number(webResource.id.slice(4)) : 0;
+-    await closeOne(webResource, {
+-      readStartIdentity: () => readListenerIdentity('web', webPort),
+-      stop: async () => {
+-        if (!webServer) return false;
+-        await new Promise<void>((done, fail) => webServer?.close((error) => (error ? fail(error) : done())));
+-        return true;
+-      },
+-      confirmStopped: async () => !webServer?.listening && webServer?.address() === null,
+-    });
++    await closeOne(
++      webResource,
++      {
++        deadlineMs: 3_000,
++        readStartIdentity: (signal) => readListenerIdentity('web', webPort, signal),
++        stop: async () => {
++          if (!webServer) return false;
++          await new Promise<void>((done, fail) =>
++            webServer?.close((error) => (error ? fail(error) : done())),
++          );
++          return true;
++        },
++        confirmStopped: async () => !webServer?.listening && webServer?.address() === null,
++      },
++      true,
++    );
++    if (blocked && db) await closePhase('database:pool', () => db!.end({ timeout: 2 }), 3_000);
+     await closeOne(databaseResource, {
++      deadlineMs: 5_000,
+       readStartIdentity: readDbIdentity,
+       stop: async () => {
+-        await db?.end();
++        await db?.end({ timeout: 2 });
+         return true;
+       },
+-      confirmStopped: async () => {
++      confirmStopped: async (signal) => {
+         if (!admin) return false;
+-        const rows = await admin.unsafe(
++        const query = admin.unsafe(
+           'select count(*)::integer as count from pg_stat_activity where datname = $1',
+           [dbName],
+         );
+-        return rows[0]?.count === 0;
+-      },
+-      remove: async () => {
+-        if (!admin || (await readDbIdentity()) !== dbIdentity) return false;
+-        await admin.unsafe('drop database "' + dbName + '"');
++        const cancel = () => {
++          try {
++            query.cancel();
++          } catch {
++            // The bounded step records UNKNOWN if cancellation does not settle.
++          }
++        };
++        signal.addEventListener('abort', cancel, { once: true });
++        try {
++          if (signal.aborted) return false;
++          const rows = await query;
++          return rows[0]?.count === 0;
++        } finally {
++          signal.removeEventListener('abort', cancel);
++        }
++      },
++      remove: async (signal) => {
++        const currentAdmin = admin;
++        if (!currentAdmin || (await readDbIdentity(signal)) !== dbIdentity || signal.aborted) return false;
++        const reserved = await currentAdmin.reserve();
++        try {
++          if (signal.aborted) return false;
++          const setting = reserved.unsafe('set statement_timeout = 3000');
++          const cancelSetting = () => {
++            try {
++              setting.cancel();
++            } catch {
++              // The next step is gated by the abort signal.
++            }
++          };
++          signal.addEventListener('abort', cancelSetting, { once: true });
++          try {
++            if (signal.aborted) return false;
++            await setting;
++          } finally {
++            signal.removeEventListener('abort', cancelSetting);
++          }
++          if (signal.aborted) return false;
++          const dropping = reserved.unsafe('drop database "' + dbName + '"');
++          const cancelDrop = () => {
++            try {
++              dropping.cancel();
++            } catch {
++              // The server-side statement_timeout bounds an in-flight DROP.
++            }
++          };
++          signal.addEventListener('abort', cancelDrop, { once: true });
++          try {
++            if (signal.aborted) return false;
++            await dropping;
++            return true;
++          } finally {
++            signal.removeEventListener('abort', cancelDrop);
++          }
++        } finally {
++          reserved.release();
++        }
++      },
++    });
++    if (admin) await closePhase('admin:pool', () => admin!.end({ timeout: 2 }), 3_000);
++    await closeOne(containerResource, {
++      deadlineMs: 8_000,
++      readStartIdentity: readContainerIdentity,
++      stop: async (signal) => {
++        await command('docker', ['stop', '--time', '5', containerId], signal);
+         return true;
+       },
+-    });
+-    if (!blocked && admin) {
+-      try {
+-        await admin.end();
+-      } catch {
+-        blocked = true;
+-        phase = 'unknown:ADMIN_POOL_CLOSE';
+-      }
+-    }
+-    await closeOne(containerResource, {
+-      readStartIdentity: readContainerIdentity,
+-      stop: async () => {
+-        await command('docker', ['stop', '--time', '5', containerId]);
+-        return true;
+-      },
+-      confirmStopped: async () => (await inspectContainer(containerId))?.State.Running === false,
+-      remove: async () => {
+-        if ((await readContainerIdentity()) !== containerIdentity) return false;
+-        await command('docker', ['rm', containerId]);
++      confirmStopped: async (signal) =>
++        (await inspectContainer(containerId, signal))?.State.Running === false,
++      remove: async (signal) => {
++        if ((await readContainerIdentity(signal)) !== containerIdentity || signal.aborted) return false;
++        await command('docker', ['rm', containerId], signal);
+         return true;
+       },
+     });
+     if (blocked) {
+       results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+       phase = phase.startsWith('unknown:') ? phase : 'unknown';
+       await persist();
+       webServer?.unref();
+       app?.server.unref();
+       return results;
+     }
+     phase = 'stopped';
+     await persist();
+     const scratchResult = await closeOwnedResource(scratchResource, {
+       readStartIdentity: async () => {
+         try {
+           const entry = await stat(scratchPath);
+           return String(entry.dev) + ':' + String(entry.ino);
+         } catch {
+           return null;
+         }
+       },
+       stop: async () => true,
+       confirmStopped: async () => true,
+       remove: async () => {
+@@ -397,69 +491,85 @@
+     await persist();
+     await admin.unsafe('create database "' + dbName + '"');
+     dbIdentity = (await readDbIdentity()) ?? '';
+     if (!dbIdentity) throw new Error('WEB_FIXTURE_DB_IDENTITY_UNKNOWN');
+     databaseResource = { kind: 'database', id: dbName, ownershipNonce, startIdentity: dbIdentity };
+     await record(databaseResource);
+     const logicalUrl = new URL(baseUrl);
+     logicalUrl.pathname = '/' + dbName;
+     db = connectDb(logicalUrl.toString());
+     await migrate(db, migrations);
+     await bootstrapOwner(db, ownerPassword);
+ 
+     webServer = createServer((request, response) => {
+       if (!webReady || !vite) {
+         response.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+         response.end('Đang chuẩn bị');
+         return;
+       }
+       vite.middlewares(request, response, () => {
+         if (!response.writableEnded) {
+           response.statusCode = 404;
+           response.end();
+         }
+       });
+     });
++    webServer.on('connection', (socket) => {
++      if (shuttingDown) {
++        socket.destroy();
++        return;
++      }
++      webSockets.add(socket);
++      socket.once('close', () => webSockets.delete(socket));
++    });
+     phase = 'web-listener-starting';
+     await persist();
+     webListenAttempted = true;
+     await persist();
+     const webPort = await listenLoopback(webServer);
+     webOrigin = 'http://127.0.0.1:' + String(webPort);
+     webResource = {
+       kind: 'listener',
+       id: 'web:' + String(webPort),
+       ownershipNonce,
+       startIdentity: workerIdentity + ':web:' + String(webPort) + ':' + ownershipNonce,
+     };
+     await record(webResource);
+     app = await buildApp({
+       db,
+       publicOrigin: webOrigin,
+       secureCookies: false,
+       sessionEncryptionKey: randomBytes(32),
+       now: () => new Date(),
++    });
++    app.server.on('connection', (socket) => {
++      if (shuttingDown) {
++        socket.destroy();
++        return;
++      }
++      apiSockets.add(socket);
++      socket.once('close', () => apiSockets.delete(socket));
+     });
+     phase = 'api-listener-starting';
+     await persist();
+     apiListenAttempted = true;
+     await persist();
+     await app.listen({ host: '127.0.0.1', port: 0 });
+     const apiAddress = app.server.address();
+     if (!apiAddress || typeof apiAddress === 'string') throw new Error('WEB_FIXTURE_API_ADDRESS_UNKNOWN');
+     apiOrigin = 'http://127.0.0.1:' + String(apiAddress.port);
+     apiResource = {
+       kind: 'listener',
+       id: 'api:' + String(apiAddress.port),
+       ownershipNonce,
+       startIdentity: workerIdentity + ':api:' + String(apiAddress.port) + ':' + ownershipNonce,
+     };
+     await record(apiResource);
+     vite = await createViteServer({
+       configFile: false,
+       root: webRoot,
+       base: '/crew-v2/',
+       plugins: [react()],
+       logLevel: 'silent',
+       appType: 'spa',
+       server: {
+         middlewareMode: true,
+--- v2/web/e2e/support/fixture.ts
++++ v2/web/e2e/support/fixture.ts
+@@ -3,72 +3,115 @@
+   id: string;
+   ownershipNonce: string;
+   startIdentity: string;
+ };
+ 
+ export type CleanupResult = {
+   resourceId: string;
+   state: 'removed' | 'stopped' | 'unknown';
+   reason: string | null;
+ };
+ 
+ export interface FixtureHandle {
+   readonly apiOrigin: string;
+   readonly webOrigin: string;
+   readonly ownerPassword: string;
+   readonly dbName: string;
+   readonly dbPort: number;
+   readonly containerName: string;
+   readonly containerImageDigest: string;
+   readonly registryPath: string;
+   readonly resources: readonly OwnedResource[];
+   close(): Promise<readonly CleanupResult[]>;
+ }
+ 
+ export type ResourceCleanupPort = {
+-  readStartIdentity(): Promise<string | null>;
+-  stop(): Promise<boolean>;
+-  confirmStopped(): Promise<boolean>;
+-  remove?(): Promise<boolean>;
++  deadlineMs?: number;
++  readStartIdentity(signal: AbortSignal): Promise<string | null>;
++  stop(signal: AbortSignal): Promise<boolean>;
++  confirmStopped(signal: AbortSignal): Promise<boolean>;
++  remove?(signal: AbortSignal): Promise<boolean>;
+ };
++
++class CleanupDeadline extends Error {}
++
++export async function boundedCleanupStep<T>(
++  operation: (signal: AbortSignal) => Promise<T>,
++  milliseconds: number,
++): Promise<T> {
++  const controller = new AbortController();
++  let timer: ReturnType<typeof setTimeout> | undefined;
++  try {
++    return await Promise.race([
++      operation(controller.signal),
++      new Promise<T>((_, reject) => {
++        timer = setTimeout(() => {
++          controller.abort();
++          reject(new CleanupDeadline('CLEANUP_DEADLINE'));
++        }, milliseconds);
++      }),
++    ]);
++  } finally {
++    clearTimeout(timer);
++  }
++}
+ 
+ export async function closeOwnedResource(
+   resource: OwnedResource,
+   port: ResourceCleanupPort,
+ ): Promise<CleanupResult> {
+   const unknown = (reason: string): CleanupResult => ({ resourceId: resource.id, state: 'unknown', reason });
+-  try {
+-    const current = await port.readStartIdentity();
+-    if (current === null) return unknown('IDENTITY_UNKNOWN');
+-    if (current !== resource.startIdentity) return unknown('IDENTITY_MISMATCH');
+-    if (!(await port.stop())) return unknown('STOP_UNKNOWN');
+-    if (!(await port.confirmStopped())) return unknown('STOP_UNVERIFIED');
+-    if (port.remove && !(await port.remove())) return unknown('REMOVE_UNVERIFIED');
+-    return { resourceId: resource.id, state: port.remove ? 'removed' : 'stopped', reason: null };
+-  } catch {
+-    return unknown('CLEANUP_ERROR');
++  const step = async <T>(
++    phase: string,
++    operation: (signal: AbortSignal) => Promise<T>,
++  ): Promise<{ ok: true; value: T } | { ok: false; reason: string }> => {
++    try {
++      return { ok: true, value: await boundedCleanupStep(operation, port.deadlineMs ?? 5_000) };
++    } catch (error) {
++      return { ok: false, reason: error instanceof CleanupDeadline ? `${phase}_DEADLINE` : 'CLEANUP_ERROR' };
++    }
++  };
++
++  const identity = await step('IDENTITY', port.readStartIdentity);
++  if (!identity.ok) return unknown(identity.reason);
++  if (identity.value === null) return unknown('IDENTITY_UNKNOWN');
++  if (identity.value !== resource.startIdentity) return unknown('IDENTITY_MISMATCH');
++
++  const stopped = await step('STOP', port.stop);
++  if (!stopped.ok) return unknown(stopped.reason);
++  if (!stopped.value) return unknown('STOP_UNKNOWN');
++
++  const verified = await step('STOP_VERIFY', port.confirmStopped);
++  if (!verified.ok) return unknown(verified.reason);
++  if (!verified.value) return unknown('STOP_UNVERIFIED');
++
++  if (port.remove) {
++    const removed = await step('REMOVE', port.remove);
++    if (!removed.ok) return unknown(removed.reason);
++    if (!removed.value) return unknown('REMOVE_UNVERIFIED');
+   }
++  return { resourceId: resource.id, state: port.remove ? 'removed' : 'stopped', reason: null };
+ }
+ 
+ export async function withFixture(run: (handle: FixtureHandle) => Promise<void>): Promise<void> {
+   const handle = await startOwnedFixture();
+   let runError: unknown;
+   try {
+     await run(handle);
+   } catch (error) {
+     runError = error;
+   }
+   let cleanupError: unknown;
+   try {
+     const results = await handle.close();
+     if (results.some((result) => result.state === 'unknown')) {
+       cleanupError = new Error('FIXTURE_CLEANUP_UNKNOWN');
+     }
+   } catch (error) {
+     cleanupError = error;
+   }
+   if (runError && cleanupError)
+     throw new AggregateError([runError, cleanupError], 'FIXTURE_RUN_AND_CLEANUP_FAILED');
+   if (runError) throw runError;
+   if (cleanupError) throw cleanupError;
+ }
+ 
+--- v2/web/test/fixture-lifecycle.test.ts
++++ v2/web/test/fixture-lifecycle.test.ts
+@@ -1,28 +1,29 @@
+ import assert from 'node:assert/strict';
+ import { spawn, spawnSync } from 'node:child_process';
+ import { existsSync } from 'node:fs';
++import { connect } from 'node:net';
+ import test from 'node:test';
+ import { fileURLToPath } from 'node:url';
+ import {
+   type CleanupResult,
+   closeOwnedResource,
+   type OwnedResource,
+   withFixture,
+ } from '../e2e/support/fixture.ts';
+ 
+ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên', async () => {
+   let entered = false;
+   let runError: unknown;
+   try {
+     await withFixture(async (handle) => {
+       entered = true;
+       assert.match(handle.apiOrigin, /^http:\/\/127\.0\.0\.1:\d+$/);
+       assert.match(handle.webOrigin, /^http:\/\/127\.0\.0\.1:\d+$/);
+       assert.match(handle.dbName, /^crew_v2_test_[0-9a-f]+$/);
+       assert.ok(handle.ownerPassword.length >= 24);
+       assert.ok(!JSON.stringify(handle).includes(handle.ownerPassword), 'Không serialize mật khẩu owner');
+       assert.ok(
+         handle.resources.some((resource) => resource.kind === 'database' && resource.id === handle.dbName),
+       );
+       assert.ok(handle.resources.some((resource) => resource.kind === 'container'));
+       assert.ok(handle.resources.some((resource) => resource.kind === 'listener'));
+@@ -121,50 +122,133 @@
+ });
+ 
+ test('unit: STOP chưa xác minh giữ UNKNOWN và không remove', async () => {
+   let stopped = 0;
+   let removed = 0;
+   let result: CleanupResult | undefined;
+   try {
+     result = await closeOwnedResource(ownedListener, {
+       readStartIdentity: async () => ownedListener.startIdentity,
+       stop: async () => {
+         stopped++;
+         return true;
+       },
+       confirmStopped: async () => false,
+       remove: async () => {
+         removed++;
+         return true;
+       },
+     });
+   } catch (error) {
+     if (!(error instanceof Error && error.message === 'FIXTURE_UNAVAILABLE')) throw error;
+   }
+   assert.deepEqual(result, { resourceId: ownedListener.id, state: 'unknown', reason: 'STOP_UNVERIFIED' });
+   assert.equal(stopped, 1);
+   assert.equal(removed, 0);
++});
++
++test('request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ', async () => {
++  let cleanupUnknown = false;
++  let socket: ReturnType<typeof connect> | undefined;
++  const within = async <T>(pending: Promise<T>, milliseconds: number, reason: string): Promise<T> => {
++    let timer: ReturnType<typeof setTimeout> | undefined;
++    try {
++      return await Promise.race([
++        pending,
++        new Promise<T>((_, reject) => {
++          timer = setTimeout(() => reject(new Error(reason)), milliseconds);
++        }),
++      ]);
++    } finally {
++      clearTimeout(timer);
++    }
++  };
++
++  try {
++    await withFixture(async (handle) => {
++      const container = handle.resources.find((resource) => resource.kind === 'container');
++      assert.ok(container, 'Phải chụp exact container trước request');
++      const api = new URL(handle.apiOrigin);
++      const activeSocket = connect(Number(api.port), api.hostname);
++      socket = activeSocket;
++      activeSocket.on('error', () => undefined);
++      await within(
++        new Promise<void>((resolve, reject) => {
++          activeSocket.once('connect', resolve);
++          activeSocket.once('error', reject);
++        }),
++        5_000,
++        'ACTIVE_REQUEST_CONNECT_DEADLINE',
++      );
++      const partialRequest =
++        'POST /v2/auth/session HTTP/1.1\r\n' +
++        `Host: ${api.host}\r\n` +
++        `Origin: ${handle.webOrigin}\r\n` +
++        'Content-Type: application/json\r\nContent-Length: 65535\r\n\r\n{';
++      await within(
++        new Promise<void>((resolve, reject) =>
++          activeSocket.write(partialRequest, (error) => (error ? reject(error) : resolve())),
++        ),
++        5_000,
++        'ACTIVE_REQUEST_WRITE_DEADLINE',
++      );
++      assert.equal(activeSocket.destroyed, false, 'Request gửi dở phải còn giữ socket trước close');
++      console.log(
++        'active-request-ready=' +
++          JSON.stringify({
++            registryPath: handle.registryPath,
++            apiOrigin: handle.apiOrigin,
++            resources: handle.resources,
++          }),
++      );
++
++      const closing = handle.close();
++      let results: readonly CleanupResult[] | undefined;
++      try {
++        results = await within(closing, 5_000, 'ACTIVE_REQUEST_CLOSE_DEADLINE');
++      } finally {
++        activeSocket.destroy();
++        if (!results) await within(closing, 15_000, 'ACTIVE_REQUEST_RECOVERY_DEADLINE');
++      }
++      console.log('active-request-cleanup=' + JSON.stringify(results));
++      cleanupUnknown = results.some((result) => result.state === 'unknown');
++      if (cleanupUnknown) {
++        assert.ok(existsSync(handle.registryPath), 'UNKNOWN phải giữ registry để PM đối chiếu');
++        const inspect = spawnSync('docker', ['container', 'inspect', container.id], { timeout: 20_000 });
++        assert.equal(inspect.error, undefined);
++        assert.equal(inspect.status, 0, 'UNKNOWN của listener không được xóa container thuộc run');
++      } else {
++        assert.ok(results.every((result) => result.state === 'stopped' || result.state === 'removed'));
++        assert.equal(existsSync(handle.registryPath), false, 'STOP xác minh phải xóa registry thuộc run');
++      }
++    });
++  } catch (error) {
++    if (!cleanupUnknown || !(error instanceof Error && error.message === 'FIXTURE_CLEANUP_UNKNOWN'))
++      throw error;
++  } finally {
++    socket?.destroy();
++  }
+ });
+ 
+ test('SIGTERM trên preview child đóng đúng run và xác minh STOP trước khi thoát', async () => {
+   const webRoot = fileURLToPath(new URL('../', import.meta.url));
+   const script = fileURLToPath(new URL('../scripts/e2e-fixture.ts', import.meta.url));
+   const child = spawn(process.execPath, [script, '--preview'], {
+     cwd: webRoot,
+     env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=384' },
+     stdio: ['pipe', 'pipe', 'pipe'],
+   });
+   const stdout = child.stdout;
+   const stderr = child.stderr;
+   assert.ok(stdout && stderr, 'Preview child phải có stdout/stderr riêng');
+   let output = '';
+   const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
+     child.once('exit', (code, signal) => resolve({ code, signal }));
+   });
+   const ready = new Promise<{
+     registryPath: string;
+     resources: OwnedResource[];
+   }>((resolve, reject) => {
+     stdout.on('data', (chunk: Buffer) => {
+       output += chunk.toString();
+       const match = /^preview-ready=(.+)$/m.exec(output);
+       if (match) {

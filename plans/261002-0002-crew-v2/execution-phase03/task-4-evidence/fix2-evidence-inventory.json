@@ -1,0 +1,106 @@
+{
+  "files": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-admission-boundaries-green.log",
+      "mode": "0o644",
+      "bytes": 579,
+      "sha256": "39c4599b48670ead3a610309161259f84b2a887d5c40c3ca619e9f6e0cc3f9c4"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-admission-red.log",
+      "mode": "0o644",
+      "bytes": 2822,
+      "sha256": "b4b3c2e94fa6bc828b22b9a52400cf6d0c556ec7af50d4fc25d26738d708f1fd"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-biome.log",
+      "mode": "0o644",
+      "bytes": 44,
+      "sha256": "e0d645e5b08a1ba85049d3b18b194761187b20ef4500a8110b6d5e09a7446c5e"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-candidate-inventory.json",
+      "mode": "0o644",
+      "bytes": 8641,
+      "sha256": "d9102bb9aad003db6c36094b5331d549aab6bf06b88a25b0f0f8930aa7b7efb2"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-cleanup-focused.log",
+      "mode": "0o644",
+      "bytes": 3322,
+      "sha256": "9cc4320b520480627df974736a1978c0226a98198843dae173a5ef2705842b70"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-doc-headings.log",
+      "mode": "0o644",
+      "bytes": 130,
+      "sha256": "b50657063090c373dc3f4c8117536ce95e7ddf9d0960babafc668b1106264e10"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-focused-green.log",
+      "mode": "0o644",
+      "bytes": 2151,
+      "sha256": "eff8c7a832fc67499ee6ee0939000c5e48d8e77aa81b5bda7e3704ac89a8e61b"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-gateway-final.log",
+      "mode": "0o644",
+      "bytes": 11731,
+      "sha256": "45214b539f9ceb7213fa14d6355758d8a0c6900ba848cc30afc1fb6827c920f2"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-owned-scratch-inventory.json",
+      "mode": "0o644",
+      "bytes": 3129,
+      "sha256": "c61cd866d36248db405a032474feacc3f890bb27d9ef8618d4aca0de6dc6cb00"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-test-type-repair.log",
+      "mode": "0o644",
+      "bytes": 182,
+      "sha256": "d5285ee1a1a01a1150e6875aa0b1026b977852ce3e8324ec639a5d90b1d10e40"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix2-typecheck.log",
+      "mode": "0o644",
+      "bytes": 116,
+      "sha256": "ce6acf1b4669c95abbac83d329898760060370d5d5513736a130aeeb16422b1e"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/re-review/gc-reservation-race.log",
+      "mode": "0o644",
+      "bytes": 705,
+      "sha256": "9755df479511379c8ab2b2071cb8f5629d664bb36f73c88a1c8bdd16cfbed2e9"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/re-review/gc-reservation-race.mjs",
+      "mode": "0o644",
+      "bytes": 3079,
+      "sha256": "465ca91d884dead34504a2e0fd79d92b244799f6db95939a62f73141d7ea1ba6"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-fix2-brief.md",
+      "mode": "0o644",
+      "bytes": 3466,
+      "sha256": "45890c522b2883a19ea135e3d8f8768c1b69db509dde957732bb52331cf56787"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-fix2-report.md",
+      "mode": "0o644",
+      "bytes": 10669,
+      "sha256": "a6c57673db506b45ff60656b4cf873f0ed43330640f64cf0560269409b3b6e99"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-re-review.md",
+      "mode": "0o644",
+      "bytes": 13321,
+      "sha256": "702f2c15ddca9ebf8177a9c13505c7fd918ff0b31223081c44e47d8cdcbd6cde"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-report.md",
+      "mode": "0o644",
+      "bytes": 18894,
+      "sha256": "1873369b22c095a56e64e71bc4add8aa40a76856ba32db7da105750c7340cca4"
+    }
+  ]
+}

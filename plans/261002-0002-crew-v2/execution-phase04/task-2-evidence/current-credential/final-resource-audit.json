@@ -1,0 +1,80 @@
+{
+  "snapshots": [
+    {
+      "kind": "gateway",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-460e1513-855d-48f3-b7c1-049b066d3b8e",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63656765,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "server",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-801ae8dd-600c-45a9-8618-6fdb7048ccfe",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63657048,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "gateway",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-1a731f48-3d57-4e69-92d2-4c0eb62e337a",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63658194,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "server",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-5519096b-77ff-464d-8a98-4fc52554dc20",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63658477,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "gateway",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-6030872c-37a5-4217-ae70-9868f1776bdd",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63684284,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "server",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-167e6656-872e-4488-92f7-234464705c3f",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63684567,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "gateway",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-e8702fca-1ff4-4179-b66a-661b8db93d4a",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63708977,
+      "uid": 501,
+      "absent": true
+    },
+    {
+      "kind": "gateway",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-57a610d4-cac9-4747-9c95-eef23297be82",
+      "action": "removed",
+      "dev": 16777229,
+      "ino": 63709670,
+      "uid": 501,
+      "absent": true
+    }
+  ],
+  "matchingLiveProcesses": [],
+  "fixtureRootsRemoved": 8,
+  "fakeHelpersReaped": 8,
+  "historicalUnreceiptedRoots": "zQeH26 / DTjkSU retained as PM ruling; no prefix cleanup"
+}

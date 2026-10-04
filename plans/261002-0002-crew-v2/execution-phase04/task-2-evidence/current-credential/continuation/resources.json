@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "gateway",
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-1a731f48-3d57-4e69-92d2-4c0eb62e337a",
+    "action": "removed",
+    "dev": 16777229,
+    "ino": 63658194,
+    "uid": 501,
+    "absent": true
+  },
+  {
+    "kind": "server",
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-5519096b-77ff-464d-8a98-4fc52554dc20",
+    "action": "removed",
+    "dev": 16777229,
+    "ino": 63658477,
+    "uid": 501,
+    "absent": true
+  }
+]

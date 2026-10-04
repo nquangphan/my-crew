@@ -1,0 +1,2 @@
+ARGV ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server", "exec", "tsc", "--project", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-review-7e07612c-49b9-4cad-bd0b-c38b28027a53/v2/server/tsconfig.json", "--noEmit"]
+EXIT 0

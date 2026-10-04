@@ -1,0 +1,455 @@
+diff --git a/v2/docs/flows/server-docs-import.md b/v2/docs/flows/server-docs-import.md
+index 70da11e..f78ea6f 100644
+--- a/v2/docs/flows/server-docs-import.md
++++ b/v2/docs/flows/server-docs-import.md
+@@ -1,43 +1,43 @@
+ # Nhập và kiểm tra docs nguyên trạng
+ 
+ ## Mục đích
+ 
+ Giữ nguyên byte của tài liệu nhập từ Crew v1, phân biệt tài liệu mô tả hệ thống đã triển khai với artifact workflow, và báo cáo lỗi cấu trúc/link theo chuẩn `packages/docs-kit/STANDARD.md`. Bản nhập hợp lệ về cấu trúc vẫn ở trạng thái chưa xác minh so với source checkout. Phần kiểm tra thuần của flow được triển khai trước; nhập DB và đồng bộ snapshot thực hiện sau khi migration execution sẵn sàng.
+ 
+ ## Điểm vào
+ 
+ - `server/src/docs/validator.ts` → `validateDocs`: kiểm tra một tập Buffer và phân loại file, trả issue cùng từng lần xuất hiện link.
+ - `server/src/docs/checksum.ts` → `hashBytes`, `snapshotHash`, `sourceTreeHash`, `bundleHash`: băm byte gốc và danh sách canonical.
+ 
+ ## Các bước
+ 
+ 1. `server/src/docs/checksum.ts` → `hashBytes`: tính SHA-256 trực tiếp trên Buffer, không đổi CRLF, Unicode hay encoding.
+ 2. `server/src/docs/checksum.ts` → `snapshotHash`: kiểm tra base64 chuẩn, checksum, UTF-8 và file trùng; băm danh sách tuple path/checksum/kích thước/class đã sắp xếp.
+ 3. `server/src/docs/manifest.ts` → `parseManifest`: đọc YAML có bắt khóa trùng, chặn khóa/prototype nguy hiểm, kiểm tra schema, path, mapping và source glob.
+-4. `server/src/docs/validator.ts` → `validateDocs`: áp dụng cấu trúc STANDARD lên trang implemented, kiểm tra heading, block sinh tự động, manifest và độ phủ source khi có danh sách source checkout. Bản nhập legacy phát cảnh báo `SOURCE_TREE_UNVERIFIED`.
+-5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/image, bỏ code, giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link. Cú pháp chưa hỗ trợ được đánh dấu unverified.
++4. `server/src/docs/validator.ts` → `validateDocs`: áp dụng STANDARD khi snapshot có trang implemented, kiểm tra từng bước đánh số trong đúng phần `Các bước`, heading ngoài fenced code, block sinh tự động, manifest và độ phủ source khi có danh sách source checkout. Snapshot chỉ có workflow artifact được kiểm tra toàn vẹn mà không bị ép có trang STANDARD; bản nhập legacy có manifest phát cảnh báo `SOURCE_TREE_UNVERIFIED`.
++5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/shortcut-reference/image, giữ nhãn có inline code, bỏ code độc lập, giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link. Cú pháp chưa hỗ trợ được đánh dấu unverified.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò | Symbol chính |
+ |---|---|---|
+ | `server/src/docs/contracts.ts` | Kiểu dữ liệu snapshot, audit và link | `DocsValidationInput`, `DocsValidationResult`, `DocLink` |
+ | `server/src/docs/checksum.ts` | Checksum byte và canonical tuple | `hashBytes`, `snapshotHash`, `sourceTreeHash`, `bundleHash` |
+ | `server/src/docs/manifest.ts` | YAML, path, source glob và block chuẩn | `parseManifest`, `sourceMatcher`, `expectedFlowBlock`, `expectedFilesBlock` |
+ | `server/src/docs/validator.ts` | Kết hợp kiểm tra cấu trúc và source | `validateDocs` |
+ | `server/src/docs/links.ts` | Link/fragment audit theo từng occurrence | `auditLinks` |
+ | `server/test/docs-validator.unit.test.ts` | Unit tests không DB | — |
+ | `server/test/support/docs.ts` | Snapshot fixture hợp lệ | `docsValidationFixture` |
+ | `server/test/fixtures/legacy-docs/crlf-unicode.md` | Fixture byte CRLF và Unicode | — |
+ 
+ ## Dữ liệu
+ 
+-Stage A chỉ nhận `Map<string, Buffer>` và metadata do caller cung cấp; không đọc DB hay mạng. Validator giữ byte gốc trong input và chỉ decode UTF-8 để audit. `contentClass` của từng trang vẫn riêng biệt; artifact workflow không được dùng thay trang chuẩn implemented. Checksum và danh sách path từ caller tự chúng chưa chứng minh commit nguồn hoặc nội dung code đúng. Stage B sẽ lưu snapshot bất biến, provenance và report trong DB khi migration 005 cùng contract execution đạt.
++Stage A chỉ nhận `Map<string, Buffer>` và metadata do caller cung cấp; không đọc DB hay mạng. Validator giữ byte gốc trong input và chỉ decode UTF-8 để audit. `valid` phản ánh kiểm tra cấu trúc/toàn vẹn, không phải cờ đủ điều kiện docs gate: snapshot chỉ có workflow artifact có thể `valid: true` nhưng không thể chứng minh docs triển khai. Snapshot trộn vẫn phải có đủ trang STANDARD implemented. Checksum và danh sách path từ caller tự chúng chưa chứng minh commit nguồn hoặc nội dung code đúng. Stage B sẽ lưu snapshot bất biến, provenance và report trong DB khi migration 005 cùng contract execution đạt.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cung cấp kiểu ID/transaction; `server-journal` cung cấp canonical JSON cho checksum. Flow `docs-check` của v1 là chuẩn dữ liệu tham chiếu, không phải dependency runtime. Flow execution cần cung cấp schema attempt/fence và bằng chứng đối chiếu commit trước khi docs sync được tích hợp.
+ 
+ ## Tests
+ 
+-`node --test server/test/docs-validator.unit.test.ts` (chạy từ `v2/`) kiểm tra CRLF/Unicode, checksum, YAML trùng khóa, case/path traversal, phân loại trang, source coverage, heading, generated block và link lặp/fragment. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng. DB import, chạy lại và rollback batch thuộc Stage B; chưa được xác nhận ở Stage A.
++`node --test server/test/docs-validator.unit.test.ts` (chạy từ `v2/`) kiểm tra CRLF/Unicode, checksum, YAML trùng khóa, case/path traversal, artifact-only/mixed, source coverage, từng bước flow, generated block và link lặp/fragment/shortcut reference. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng. DB import, chạy lại và rollback batch thuộc Stage B; chưa được xác nhận ở Stage A.
+diff --git a/v2/server/src/docs/links.ts b/v2/server/src/docs/links.ts
+index 8c50d6b..150069c 100644
+--- a/v2/server/src/docs/links.ts
++++ b/v2/server/src/docs/links.ts
+@@ -44,72 +44,77 @@ function anchors(text: string): { found: Set<string>; uncertain: boolean } {
+   }
+   return { found, uncertain };
+ }
+ 
+ function scanText(text: string): { visible: string; references: Map<string, string>; unsupported: boolean } {
+   const references = new Map<string, string>();
+   const visible: string[] = [];
+   let fenced = false;
+   let unsupported = false;
+   for (const line of text.split(/\r?\n/)) {
+     if (/^\s*(```|~~~)/.test(line)) {
+       fenced = !fenced;
+       continue;
+     }
+     if (fenced) continue;
+     const def = /^\s{0,3}\[([^\]]+)\]:\s*(\S+)/.exec(line);
+     if (def) {
+       references.set((def[1] ?? '').toLowerCase().trim(), def[2] ?? '');
+       continue;
+     }
+-    const withoutCode = line.replace(/`[^`]*`/g, '');
++    // Code outside a label is inert; code inside a label still leaves a link token.
++    const withoutCode = line.replace(/`[^`]*`/g, (_span, offset: number, source: string) => {
++      const before = source.slice(0, offset);
++      return before.lastIndexOf('[') > before.lastIndexOf(']') ? 'CODE' : '';
++    });
+     if (
+       /\]\([^)]*\([^)]*\)/.test(withoutCode) ||
+       /\[[^\]]*\[[^\]]+\][^\]]*\]\(/.test(withoutCode) ||
+       /<a\s|<img\s/i.test(withoutCode)
+     )
+       unsupported = true;
+     visible.push(withoutCode);
+   }
+   return { visible: visible.join('\n'), references, unsupported };
+ }
+ 
+ export function auditLinks(files: Map<string, string>): { links: DocLink[]; issues: AuditIssue[] } {
+   const links: DocLink[] = [];
+   const issues: AuditIssue[] = [];
+   const anchorCache = new Map<string, { found: Set<string>; uncertain: boolean }>();
+   for (const [fromPath, content] of files) {
+     if (!fromPath.endsWith('.md')) continue;
+     const { visible, references, unsupported } = scanText(content);
+     if (unsupported)
+       issues.push(
+         finding(
+           'UNVERIFIED_LINK_SYNTAX',
+           fromPath,
+           'Cú pháp Markdown/HTML phức tạp cần kiểm tra thủ công',
+           'warning',
+         ),
+       );
+-    const token = /!?\[([^[\]]+)\]\(([^)]+)\)|!?\[([^[\]]+)\]\[([^\]]+)\]/g;
++    const token = /!?\[([^[\]]+)\]\(([^)]+)\)|!?\[([^[\]]+)\]\[([^\]]*)\]|!?\[([^[\]]+)\](?!\(|\[|:)/g;
+     let occurrence = 0;
+     for (const match of visible.matchAll(token)) {
+-      const href = match[2] ?? references.get((match[4] ?? '').toLowerCase().trim());
++      const referenceId = match[3] === undefined ? match[5] : match[4] || match[3];
++      const href = match[2] ?? references.get((referenceId ?? '').toLowerCase().trim());
+       const originalHref = href ?? match[0];
+       const current = occurrence++;
+       if (!href) {
+         links.push({
+           fromPath,
+           occurrence: current,
+           originalHref,
+           toPath: '',
+           fragment: null,
+           status: 'unverified',
+         });
+         issues.push(
+           finding(
+             'UNVERIFIED_LINK_SYNTAX',
+             fromPath,
+             `Reference không có định nghĩa: ${match[0]}`,
+             'warning',
+           ),
+         );
+         continue;
+@@ -190,23 +195,28 @@ export function auditLinks(files: Map<string, string>): { links: DocLink[]; issu
+             fromPath,
+             occurrence: current,
+             originalHref,
+             toPath,
+             fragment,
+             status: unknown ? 'unverified' : 'missing',
+           });
+           issues.push(
+             finding(
+               unknown ? 'UNVERIFIED_LINK_SYNTAX' : 'LINK_FRAGMENT_MISSING',
+               fromPath,
+               `Không xác nhận được heading #${fragment} trong ${toPath}`,
+               unknown ? 'warning' : 'error',
+             ),
+           );
+           continue;
+         }
+       }
+       links.push({ fromPath, occurrence: current, originalHref, toPath, fragment, status: 'ok' });
+     }
++    const leftover = visible.replace(token, '');
++    if (/\]\s*\(|\]\s*\[/.test(leftover) && !unsupported)
++      issues.push(
++        finding('UNVERIFIED_LINK_SYNTAX', fromPath, 'Cú pháp link chưa được parser hỗ trợ', 'warning'),
++      );
+   }
+   return { links, issues };
+ }
+diff --git a/v2/server/src/docs/validator.ts b/v2/server/src/docs/validator.ts
+index 7ff952d..3d68d9a 100644
+--- a/v2/server/src/docs/validator.ts
++++ b/v2/server/src/docs/validator.ts
+@@ -4,92 +4,131 @@ import {
+   actualBlock,
+   allowedDocsPath,
+   expectedFilesBlock,
+   expectedFlowBlock,
+   mappedPaths,
+   parseManifest,
+   requiredClass,
+   sourceMatcher,
+ } from './manifest.ts';
+ 
+ const required = [
+   'AGENTS.md',
+   'CLAUDE.md',
+   'docs/index.md',
+   'docs/architecture.md',
+   'docs/flows.yaml',
+   'docs/files.md',
+ ];
+ const headings = ['Mục đích', 'Điểm vào', 'Các bước', 'Files', 'Dữ liệu', 'Flow liên quan', 'Tests'];
+ 
++function outsideFences(page: string): string[] {
++  const visible: string[] = [];
++  let fence: string | null = null;
++  for (const line of page.split(/\r?\n/)) {
++    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
++    if (marker) {
++      if (fence === null) fence = marker;
++      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = null;
++      continue;
++    }
++    if (fence === null) visible.push(line);
++  }
++  return visible;
++}
++
++function validFlowSteps(page: string): boolean {
++  let inSteps = false;
++  let count = 0;
++  for (const line of outsideFences(page)) {
++    const section = /^## (.+?)\s*$/.exec(line);
++    if (section) {
++      if (inSteps) break;
++      inSteps = section[1] === 'Các bước';
++      continue;
++    }
++    if (!inSteps) continue;
++    const numbered = /^\s*\d+\.\s+(.+)$/.exec(line);
++    if (!numbered) continue;
++    count++;
++    if (!/^`[^`]+`\s*→\s*`[^`]+`\s*:/.test(numbered[1] ?? '')) return false;
++  }
++  return count > 0;
++}
++
+ export function validateDocs(input: DocsValidationInput): DocsValidationResult {
+   const issues: AuditIssue[] = [];
+   const texts = new Map<string, string>();
+   const add = (code: string, path: string, message: string, severity: AuditIssue['severity'] = 'error') =>
+     issues.push({ code, path, message, severity });
+   for (const [path, bytes] of input.files) {
+     if (!allowedDocsPath(path)) {
+       add('PATH_INVALID', path, 'Đường dẫn tài liệu không an toàn hoặc ngoài danh sách cho phép');
+       continue;
+     }
+     if (!Buffer.isBuffer(bytes) || bytes.length > 1024 * 1024) {
+       add('FILE_TOO_LARGE', path, 'File phải là Buffer tối đa 1 MiB');
+       continue;
+     }
+     const declared = input.contentClasses.get(path);
+     if (declared !== 'implemented' && declared !== 'workflow_artifact')
+       add('CONTENT_CLASS_MISSING', path, 'Thiếu phân loại nội dung');
+     const expected = requiredClass(path);
+     if (expected !== null && declared !== expected)
+       add('CONTENT_CLASS_MISMATCH', path, `Trang này phải có contentClass ${expected}`);
+     try {
+       texts.set(path, new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+     } catch {
+       add('INVALID_UTF8', path, 'Nội dung không phải UTF-8 hợp lệ');
+     }
+   }
+   if (input.files.size > 2000) add('FILE_COUNT_LIMIT', 'docs/', 'Vượt 2000 file trong một snapshot');
+-  for (const path of required)
+-    if (!texts.has(path) || input.contentClasses.get(path) !== 'implemented')
+-      add('REQUIRED_DOC_MISSING', path, 'Thiếu trang chuẩn đã triển khai');
++  const artifactOnly =
++    input.files.size > 0 &&
++    [...input.files.keys()].every((path) => input.contentClasses.get(path) === 'workflow_artifact');
++  if (!artifactOnly)
++    for (const path of required)
++      if (!texts.has(path) || input.contentClasses.get(path) !== 'implemented')
++        add('REQUIRED_DOC_MISSING', path, 'Thiếu trang chuẩn đã triển khai');
+   const claude = texts.get('CLAUDE.md');
+   if (claude !== undefined && !/^@AGENTS\.md(?:\r?\n)?$/.test(claude))
+     add('CLAUDE_REDIRECT_INVALID', 'CLAUDE.md', 'CLAUDE.md phải chỉ chứa @AGENTS.md');
+ 
+   const manifestText = texts.get('docs/flows.yaml');
+   const parsed = manifestText !== undefined ? parseManifest(manifestText) : { manifest: null, issues: [] };
+   issues.push(...parsed.issues);
+   const manifest = parsed.manifest;
+   if (manifest) {
+     for (const [id, flow] of Object.entries(manifest.flows)) {
+       if (!texts.has(flow.doc) || input.contentClasses.get(flow.doc) !== 'implemented')
+         add('FLOW_DOC_MISSING', flow.doc, `Thiếu trang flow ${id}`);
+       else {
+         const page = texts.get(flow.doc) ?? '';
+-        const actual = [...page.matchAll(/^## (.+?)\s*$/gm)].map((match) => match[1]);
++        const visible = outsideFences(page).join('\n');
++        const actual = [...visible.matchAll(/^## (.+?)\s*$/gm)].map((match) => match[1]);
+         if (
+-          !/^# [^\n]+/m.test(page) ||
++          !/^# [^\n]+/m.test(visible) ||
+           actual.length !== headings.length ||
+           actual.some((heading, i) => heading !== headings[i])
+         )
+           add('FLOW_HEADINGS_INVALID', flow.doc, 'Heading flow phải đúng thứ tự của STANDARD');
+-        if (!/^\d+\. `[^`]+`\s*→\s*`[^`]+`/m.test(page))
++        if (!validFlowSteps(page))
+           add('FLOW_STEPS_INVALID', flow.doc, 'Các bước cần danh sách đánh số với file → symbol');
+       }
+       for (const path of [flow.doc, ...flow.entrypoints, ...flow.files, ...flow.tests]) {
+         if (path.startsWith('docs/')) {
+           if (!input.files.has(path))
+             add('MANIFEST_FILE_MISSING', path, `Manifest tham chiếu file vắng mặt (${id})`);
+         } else if (input.mode === 'checkout_sync' && !input.trackedSourcePaths.includes(path))
+           add('MANIFEST_FILE_MISSING', path, `Manifest tham chiếu nguồn vắng mặt (${id})`);
+       }
+     }
+     for (const path of Object.keys(manifest.shared))
+       if (input.mode === 'checkout_sync' && !input.trackedSourcePaths.includes(path))
+         add('MANIFEST_FILE_MISSING', path, 'shared tham chiếu nguồn vắng mặt');
+     for (const item of manifest.unassigned)
+       if (input.mode === 'checkout_sync' && !input.trackedSourcePaths.includes(item.path))
+         add('MANIFEST_FILE_MISSING', item.path, 'unassigned tham chiếu nguồn vắng mặt');
+     for (const [path, expected] of [
+       ['docs/index.md', expectedFlowBlock(manifest)],
+       ['docs/files.md', expectedFilesBlock(manifest)],
+     ] as const) {
+diff --git a/v2/server/test/docs-validator.unit.test.ts b/v2/server/test/docs-validator.unit.test.ts
+index 7ebfdd7..eb6b696 100644
+--- a/v2/server/test/docs-validator.unit.test.ts
++++ b/v2/server/test/docs-validator.unit.test.ts
+@@ -211,20 +211,142 @@ test('missing workflow artifact warns, unsupported heading slug stays unverified
+     'docs/a.md': Buffer.from('[Design](superpowers/specs/missing.md) [Heading](b.md#custom)'),
+   });
+   input.files.set('docs/b.md', Buffer.from('# {#custom}\n'));
+   input.contentClasses.set('docs/b.md', 'implemented');
+   const result = validateDocs(input);
+   assert(
+     result.issues.some(
+       (issue) => issue.code === 'EXTERNAL_ARTIFACT_NOT_IMPORTED' && issue.severity === 'warning',
+     ),
+   );
+   assert(result.issues.some((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX'));
+ });
+ 
+ test('nested Markdown link is flagged as unverified syntax', () => {
+   const input = docsValidationFixture({ 'docs/a.md': Buffer.from('[outer [inner]](b.md)') });
+   const result = validateDocs(input);
+   assert(
+     result.issues.some((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md'),
+   );
+ });
++
++test('inline-code label and shortcut reference retain broken link occurrences and original hrefs', () => {
++  const raw = Buffer.from('[`Thiết kế`](missing.md#first) [Thiết kế]\r\n[Thiết kế]: missing.md#second\r\n');
++  const input = docsValidationFixture({ 'docs/a.md': raw });
++  const before = Buffer.from(raw);
++  const result = validateDocs(input);
++  const links = result.links.filter((link) => link.fromPath === 'docs/a.md');
++  assert.deepEqual(
++    links.map((link) => link.occurrence),
++    [0, 1],
++  );
++  assert.deepEqual(
++    links.map((link) => link.originalHref),
++    ['missing.md#first', 'missing.md#second'],
++  );
++  assert.deepEqual(
++    links.map((link) => link.fragment),
++    ['first', 'second'],
++  );
++  assert.deepEqual(
++    links.map((link) => link.status),
++    ['missing', 'missing'],
++  );
++  assert.equal(result.valid, false);
++  assert.equal(
++    result.issues.filter((issue) => issue.code === 'LINK_MISSING' && issue.path === 'docs/a.md').length,
++    2,
++  );
++  assert(raw.equals(before));
++});
++
++test('unsupported link-like syntax warns instead of silently claiming full audit', () => {
++  const input = docsValidationFixture({ 'docs/a.md': Buffer.from('[nested [label]](missing.md)') });
++  assert(
++    validateDocs(input).issues.some(
++      (issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md',
++    ),
++  );
++});
++
++test('artifact-only snapshot passes integrity audit without STANDARD pages; mixed subset still requires them', () => {
++  const artifact = 'docs/superpowers/specs/design.md';
++  const only = docsValidationFixture();
++  only.files = new Map([[artifact, Buffer.from('# Dự kiến\r\n')]]);
++  only.contentClasses = new Map([[artifact, 'workflow_artifact']]);
++  const isolated = validateDocs(only);
++  assert.equal(isolated.valid, true, JSON.stringify(isolated.issues));
++  assert.equal(isolated.issues.filter((issue) => issue.code === 'REQUIRED_DOC_MISSING').length, 0);
++
++  const mixed = docsValidationFixture({ [artifact]: Buffer.from('# Dự kiến\r\n') });
++  assert.equal(validateDocs(mixed).valid, true);
++  mixed.files.delete('docs/index.md');
++  const incomplete = validateDocs(mixed);
++  assert.equal(incomplete.valid, false);
++  assert(
++    incomplete.issues.some(
++      (issue) => issue.code === 'REQUIRED_DOC_MISSING' && issue.path === 'docs/index.md',
++    ),
++  );
++  assert.equal(mixed.contentClasses.get(artifact), 'workflow_artifact');
++});
++
++test('every numbered step in actual Các bước section needs file and symbol', () => {
++  const input = docsValidationFixture();
++  const flow = file(input.files, 'docs/flows/sample.md').toString();
++  input.files.set(
++    'docs/flows/sample.md',
++    Buffer.from(
++      flow
++        .replace(
++          '1. `src/a.ts` → `run`: chạy.',
++          '1. `src/a.ts` → `run`: chạy.\n```md\n2. ví dụ trong code\n```\n2. làm gì đó',
++        )
++        .replace('## Dữ liệu\n', '## Dữ liệu\n3. ví dụ ở phần khác\n'),
++    ),
++  );
++  const result = validateDocs(input);
++  assert(
++    result.issues.some(
++      (issue) => issue.code === 'FLOW_STEPS_INVALID' && issue.path === 'docs/flows/sample.md',
++    ),
++  );
++
++  input.files.set(
++    'docs/flows/sample.md',
++    Buffer.from(
++      flow
++        .replace(
++          '1. `src/a.ts` → `run`: chạy.',
++          '1. `src/a.ts` → `run`: chạy.\n```md\n2. ví dụ trong code\n```\n2. `src/b.ts` → `next`: tiếp tục.',
++        )
++        .replace('## Dữ liệu\n', '## Dữ liệu\n3. ví dụ ở phần khác\n'),
++    ),
++  );
++  assert.equal(
++    validateDocs(input).issues.some((issue) => issue.code === 'FLOW_STEPS_INVALID'),
++    false,
++  );
++});
++
++test('fenced heading examples do not change the required flow heading sequence', () => {
++  const input = docsValidationFixture();
++  const flow = file(input.files, 'docs/flows/sample.md').toString();
++  input.files.set(
++    'docs/flows/sample.md',
++    Buffer.from(
++      flow.replace(
++        '1. `src/a.ts` → `run`: chạy.',
++        '1. `src/a.ts` → `run`: chạy.\n```md\n## Ví dụ\n2. thiếu symbol\n```',
++      ),
++    ),
++  );
++  const result = validateDocs(input);
++  assert.equal(
++    result.issues.some((issue) => issue.code === 'FLOW_HEADINGS_INVALID'),
++    false,
++  );
++  assert.equal(
++    result.issues.some((issue) => issue.code === 'FLOW_STEPS_INVALID'),
++    false,
++  );
++});

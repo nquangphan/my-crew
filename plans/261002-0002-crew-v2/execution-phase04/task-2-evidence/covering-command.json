@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "pnpm",
+    "--dir",
+    "v2/gateway",
+    "exec",
+    "node",
+    "--test",
+    "test/host-failures.test.ts",
+    "test/host-lifecycle.test.ts",
+    "test/http-operations.test.ts",
+    "test/journal.test.ts",
+    "test/resources.test.ts",
+    "test/telemetry.test.ts",
+    "test/workflow-admission.test.ts",
+    "test/workflow-build.test.ts",
+    "test/workflow-fix.test.ts",
+    "test/workflow-native-projection.test.ts",
+    "test/workflow-operations.test.ts",
+    "test/workflow-registry.test.ts",
+    "test/credential-broker.test.ts",
+    "test/credential-provisioning.test.ts",
+    "test/model-probe.test.ts",
+    "test/model-reporter.test.ts"
+  ],
+  "testFiles": 16
+}

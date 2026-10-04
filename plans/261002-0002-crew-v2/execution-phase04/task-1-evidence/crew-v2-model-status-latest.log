@@ -1,0 +1,26 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts
+
+✔ model pool migration creates separate config and immutable report authority (130.151792ms)
+model owned fixture 7374e41694fa046cf574713bbf1ff59fd73b2c306b44178c96452ffe0b74af45 postgres://postgres@127.0.0.1:52673/crew_v2_test
+model-fixture-container {"containerId":"7374e41694fa046cf574713bbf1ff59fd73b2c306b44178c96452ffe0b74af45","url":"postgres://postgres@127.0.0.1:52673/crew_v2_test"}
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (415.243125ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (328.351625ms)
+✔ model report shared order historical immutable replay and production host PASS stays unverified (355.816541ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (309.89ms)
+✔ sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK (333.643ms)
+✔ model source events reject secret metadata and wrong audience without leaking inventory (0.37ms)
+✔ model HTTP cached mutation rechecks actual token after authentication before journal cache (294.265333ms)
+✔ fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate (314.073541ms)
+model-backup-owned {"containerId":"7374e41694fa046cf574713bbf1ff59fd73b2c306b44178c96452ffe0b74af45","port":"52673","sourceDb":"crew_v2_test_20af862833d74f6b91b6b432b450a658","restoredName":"crew_v2_test_da74095adf774329841520a44842af91"}
+model-backup-cleaned {"sourceDb":"crew_v2_test_20af862833d74f6b91b6b432b450a658","restoredName":"crew_v2_test_da74095adf774329841520a44842af91"}
+✔ model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift (916.116833ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3566.004083

@@ -1,0 +1,113 @@
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (56.101542ms)
+✔ attachment storage rejects truncated and oversized streams without publishing original (20.627916ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.451542ms)
+✔ attachment storage derivative publication is separate from original (41.795208ms)
+✔ attachment storage leaves a published blob inspectable after injected failure (21.50225ms)
+✖ attachment config freezes accepted policy including nested limits and extensions (0.422875ms)
+✖ attachment storage rejects a symlink owner marker before opening stage (19.3905ms)
+✖ attachment storage binds publication to exact attachment and generation (37.951459ms)
+✖ attachment storage never accepts a foreign existing destination even with equal digest (22.020875ms)
+✖ attachment storage prevents publication after abort at stage flush (21.123375ms)
+✖ attachment storage can reopen durable root and verify originals (22.126542ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 5
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 334.835
+
+✖ failing tests:
+
+test at v2/server/test/attachments-storage.test.ts:72:1
+✖ attachment config freezes accepted policy including nested limits and extensions (0.422875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:74:9)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at v2/server/test/attachments-storage.test.ts:88:1
+✖ attachment storage rejects a symlink owner marker before opening stage (19.3905ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:94:2
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SYMLINK/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/attachments-storage.test.ts:98:1
+✖ attachment storage binds publication to exact attachment and generation (37.951459ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:102:2
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /KEY|GENERATION|OWNERSHIP/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/attachments-storage.test.ts:106:1
+✖ attachment storage never accepts a foreign existing destination even with equal digest (22.020875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:111:2
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /DESTINATION|OWNERSHIP/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/attachments-storage.test.ts:114:1
+✖ attachment storage prevents publication after abort at stage flush (21.123375ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:117:2
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ABORTED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/attachments-storage.test.ts:121:1
+✖ attachment storage can reopen durable root and verify originals (22.126542ms)
+  Error: EEXIST: file already exists, mkdir '/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-JvsdyO/uploads'
+      at async mkdir (node:internal/fs/promises:856:10)
+      at async createFileBlobStore (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/storage.ts:64:46)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:124:10
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    errno: -17,
+    code: 'EEXIST',
+    syscall: 'mkdir',
+    path: '/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-JvsdyO/uploads'
+  }

@@ -1,0 +1,33 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=assistant store derived route consent", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-r3-red-os7l2kqk/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-3e3fbf8a-0248-41e5-86f6-623ec973455e", "--label", "crew.phase06.task1=78b1bcbd-59cc-41c7-873b-4966fc9090e6", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "0c0594c612ea4457163086fe13c982a157a4579ceb642c3dbbe84745a67e0a0b", "name": "crew-v2-test-3e3fbf8a-0248-41e5-86f6-623ec973455e", "mapping": "127.0.0.1:62920"}
+attachment DB container 0c0594c612ea4457163086fe13c982a157a4579ceb642c3dbbe84745a67e0a0b root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ULDhK
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ULDhK nonceSha256=b09ea831b16c148c59ac48e590e92ec9a2635572587761e513021917646ff4c3
+attachment DB scratch identity dev=16777229 ino=64416923 uid=501 pid=50488
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ULDhK
+✖ assistant store derived route consent cannot extend parent expiry or widen original access (305.164875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 372.669709
+
+✖ failing tests:
+
+test at v2/server/.task-1-assistant-r3-red-os7l2kqk/v2/server/test/assistant-store.test.ts:741:1
+✖ assistant store derived route consent cannot extend parent expiry or widen original access (305.164875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-r3-red-os7l2kqk/v2/server/test/assistant-store.test.ts:763:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-r3-red-os7l2kqk/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_ROUTE_CONSENT_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

@@ -1,0 +1,39 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (0.913625ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.434666ms)
+✔ credential broker native bridge rejects unverified helper before any keychain access (0.260166ms)
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.80725ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (4.730167ms)
+✔ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (2.01175ms)
+✔ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (18.423667ms)
+✔ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.425541ms)
+✔ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.45475ms)
+✔ model probe stream parser requires complete bounded framing and exact model (0.239917ms)
+✖ model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model (0.394333ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 128.495416
+
+✖ failing tests:
+
+test at test/model-probe.test.ts:67:1
+✖ model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model (0.394333ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:68:208)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SSRF_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }

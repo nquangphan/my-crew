@@ -1,0 +1,90 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server/test/attachments-submissions.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server/test/attachments-routing.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server/test/attachments-messages.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-54ab5c4e-8624-4c1b-9fac-a57b49e19970", "--label", "crew.phase05.task2b=164ed589-e5cc-43ac-85eb-d382f24a89d5", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d", "name": "crew-v2-test-54ab5c4e-8624-4c1b-9fac-a57b49e19970", "mapping": "127.0.0.1:61395"}
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yW0t3a
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yW0t3a nonceSha256=5f9466e902a63ac0c7ae367918191aeb52888141aac4f1ac555bcf85d8df663d
+attachment DB scratch identity dev=16777229 ino=63959075 uid=501 pid=50066
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yW0t3a
+✔ attachment inbox canonical retry creates one owner-only message with retained originals and no ticket (806.989959ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0bmKR3
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0bmKR3 nonceSha256=3dfc0bec1b164ee66ea401766605776dd6fa03fde28faa18a2386075074723e3
+attachment DB scratch identity dev=16777229 ino=63959076 uid=501 pid=50067
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0bmKR3
+✔ attachment reroute actual ticket retirement retains original identity audit and invalidates old inputs once (800.590042ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BeU6gy
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BeU6gy nonceSha256=3aa2382c2934695cd4c1c8cacbbfcfca5cc5d0a6acc913161355640cd00b4f01
+attachment DB scratch identity dev=16777229 ino=63959127 uid=501 pid=50067
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BeU6gy
+✔ attachment reroute concurrent decisions CAS exactly one new route and one retirement (447.245792ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uqaave
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uqaave nonceSha256=434dd03944a6a3cf5be3ebf947043ca65300a8c03d7e982bd00bd2b56702b8a1
+attachment DB scratch identity dev=16777229 ino=63959169 uid=501 pid=50067
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uqaave
+✔ attachment reroute retirement failure rolls back actual workflow event route revision and original links (457.252083ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6WGKms
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6WGKms nonceSha256=93bfcfdade8be41594ed32aab0235efa8f2823d14406c4e29f5e79666056f18a
+attachment DB scratch identity dev=16777229 ino=63959205 uid=501 pid=50067
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6WGKms
+✔ attachment reroute actual claimed active attempt blocks despite expired lease and never fabricates stopped proof (363.95175ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-m7mWiH
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-m7mWiH nonceSha256=5c6509313f3a23cedebf029b912dd7975af23a4cbbe9c0f504b995281cabca74
+attachment DB scratch identity dev=16777229 ino=63959237 uid=501 pid=50067
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-m7mWiH
+✔ attachment routing digest target and current authority checked before per-route and mutator cache replay (523.02425ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ZpZUD
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ZpZUD nonceSha256=15ddef634d894a6db79f165cbce074cd9afb86a2b305c6ae50a390923dd14f82
+attachment DB scratch identity dev=16777229 ino=63959297 uid=501 pid=50067
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9ZpZUD
+✔ attachment routing configured owner decisions replay and correction default denies without retirement (315.58525ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ku0GDS
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ku0GDS nonceSha256=a41f8b23bebd9472269ca4eb6c0b1039ba0f7a516985199732cc7e4f2a999c80
+attachment DB scratch identity dev=16777229 ino=63959074 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ku0GDS
+✔ attachment submission unavailable original rolls back comment links receipt quota and009 fanout (800.797917ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3Qfzba
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3Qfzba nonceSha256=0ba68ba8788e25249f91cac62b29c3d56184ca865a4d99de6ece6b4e6edc4b2e
+attachment DB scratch identity dev=16777229 ino=63959129 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3Qfzba
+✔ attachment submission exact set duplicates foreign IDs stale revision and permission replay reject atomically (447.830583ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0rjKae
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0rjKae nonceSha256=d2fedeabee341198f223ccae6fa25cfa88185a5beb43ce50bf3b8db049e14bf2
+attachment DB scratch identity dev=16777229 ino=63959167 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0rjKae
+✔ attachment ticket concurrent new-key canonical retry returns one ticket and selected authorization (460.210666ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mJmgmd
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mJmgmd nonceSha256=943f43256e90b8a412816d3726be4a9c7322c00399ede60bf1d9359c12b65242
+attachment DB scratch identity dev=16777229 ino=63959207 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mJmgmd
+✔ attachment submission actual missing original fails despite ready row without filesystem mutation in transaction (355.4735ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2R2Fkm
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2R2Fkm nonceSha256=64ff43b2c956dcb3d2d74c3a695f4c28b0ac3c1790d05323fb114ec43005764d
+attachment DB scratch identity dev=16777229 ino=63959235 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2R2Fkm
+✔ attachment submission reserved receiving rejected deleting deleted slots remain selected and cannot be omitted (836.386ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lu4nzz
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lu4nzz nonceSha256=b3a98e6f1d9c39a7ca94196da0c0e646489f46d3826bdaebac86eacd0ceecf3c
+attachment DB scratch identity dev=16777229 ino=63959312 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lu4nzz
+✔ attachment submission abandoned slot stale expiry target mismatch empty whitespace and text-only semantics (261.175334ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-s71dKN
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-s71dKN nonceSha256=eaf7f18d0c46b6fffc35d99bc68fac12813ed2bafa420df4a9c98c46624aa9a7
+attachment DB scratch identity dev=16777229 ino=63959327 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-s71dKN
+✔ attachment submission retained quota permits new reserve once and immutable replay keeps latches (241.285416ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-PXumss
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-PXumss nonceSha256=b2609756d8ac9e1e0f8c7957a5f7535b0d9571ef1b42dac38199e49de1463217
+attachment DB scratch identity dev=16777229 ino=63959343 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-PXumss
+✔ attachment submission real invalid event after link rolls back receipt and quota; current guard precedes cache (240.25425ms)
+attachment DB container 086f5d36ae31582a1b9e1db576c708f2ca653dadcf0b860777f07e4e1e5e0f7d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xsfM0w
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xsfM0w nonceSha256=f1c43bc0ed22e354b99f52bdedefcc702d1289589dfc1b0645d45fa00ea2e709
+attachment DB scratch identity dev=16777229 ino=63959358 uid=501 pid=50068
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xsfM0w
+✔ attachment submission constructor captures verify and pending policy; selected files default deny without worker identity (228.251375ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3996.331875

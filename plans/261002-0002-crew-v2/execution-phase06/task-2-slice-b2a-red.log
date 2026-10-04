@@ -1,0 +1,1172 @@
+✖ B2a decision scoped A→B verifies exact authority and preserves actual audit/journal (407.794041ms)
+✖ B2a decision rejects missing authority and atomically preserves state (204.961625ms)
+✖ B2a decision rejects owner authority and atomically preserves state (205.675875ms)
+✖ B2a decision rejects actor authority and atomically preserves state (185.5045ms)
+✖ B2a decision rejects operation authority and atomically preserves state (178.316125ms)
+✖ B2a decision rejects action authority and atomically preserves state (181.135916ms)
+✖ B2a decision rejects hash authority and atomically preserves state (213.642875ms)
+✖ B2a decision rejects root authority and atomically preserves state (179.825417ms)
+✖ B2a decision rejects project authority and atomically preserves state (176.307667ms)
+✖ B2a decision rejects tx authority and atomically preserves state (182.550208ms)
+✖ B2a decision prefix locks root, canonical sorted tickets and project before verify (180.23575ms)
+✖ B2a decision snapshots input actor proof before first await and during deferred verify (177.045375ms)
+✖ B2a decision captures factory authority and denies cross-Tx token reuse (179.464083ms)
+✖ B2a decision uppercase identities retain exact submitted hash and reject lowercase replay (181.172083ms)
+✖ B2a dependency scoped A→B verifies exact authority and preserves actual audit/journal (183.565834ms)
+✖ B2a dependency rejects missing authority and atomically preserves state (186.825333ms)
+✖ B2a dependency rejects owner authority and atomically preserves state (188.41325ms)
+✖ B2a dependency rejects actor authority and atomically preserves state (195.244208ms)
+✖ B2a dependency rejects operation authority and atomically preserves state (228.976667ms)
+✖ B2a dependency rejects action authority and atomically preserves state (193.855667ms)
+✖ B2a dependency rejects hash authority and atomically preserves state (205.109334ms)
+✖ B2a dependency rejects root authority and atomically preserves state (179.794833ms)
+✖ B2a dependency rejects project authority and atomically preserves state (175.882458ms)
+✖ B2a dependency rejects tx authority and atomically preserves state (178.232125ms)
+✖ B2a dependency prefix locks root, canonical sorted tickets and project before verify (182.500792ms)
+✖ B2a dependency snapshots input actor proof before first await and during deferred verify (174.446792ms)
+✖ B2a dependency captures factory authority and denies cross-Tx token reuse (184.86775ms)
+✖ B2a dependency uppercase identities retain exact submitted hash and reject lowercase replay (203.898125ms)
+✔ B2a real machine-authenticated generic decision/dependency routes keep A→B ACL (744.935416ms)
+✔ B2a dependency preserves revision invariant (240.951542ms)
+✔ B2a dependency preserves self invariant (254.48875ms)
+✔ B2a dependency preserves cross-root invariant (238.360167ms)
+✔ B2a dependency preserves duplicate invariant (253.265792ms)
+✔ B2a dependency preserves cycle invariant (277.802709ms)
+✔ B2a dependency preserves closed invariant (261.605667ms)
+✔ B2a dependency preserves ready invariant (212.610625ms)
+✔ B2a dependency preserves running invariant (185.218ms)
+✔ B2a dependency preserves missing invariant (183.234708ms)
+✖ B2a concurrent opposite dependency requests cannot commit a cycle (186.798292ms)
+✖ B2a decision preserves owner-answer invariant (187.090666ms)
+✖ B2a decision preserves owner-approval invariant (180.203625ms)
+✖ B2a decision preserves empty-content invariant (187.656334ms)
+✖ B2a decision preserves long-content invariant (205.456917ms)
+✖ B2a decision preserves empty-rationale invariant (232.742708ms)
+✖ B2a decision preserves long-rationale invariant (351.578708ms)
+✖ B2a decision preserves too-many-sources invariant (279.89325ms)
+✖ B2a decision preserves unsafe-scope invariant (321.457084ms)
+✖ B2a decision preserves cross-root-source invariant (199.842917ms)
+✖ B2a decision preserves bad-locator invariant (182.386583ms)
+✖ B2a decision preserves missing-docs-reader invariant (189.907208ms)
+✖ B2a decision supports actual same-root ticket owner decision and reported artifact sources (200.327625ms)
+✖ B2a docs source validation completes before verify and is not repeated after verification (224.798458ms)
+✖ B2a decision rejects array getter before user code or authority (215.948583ms)
+✖ B2a decision rejects array iterator before user code or authority (187.448666ms)
+✖ B2a decision rejects array prototype before user code or authority (173.686417ms)
+ℹ tests 55
+ℹ suites 0
+ℹ pass 10
+ℹ fail 45
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12251.999166
+
+✖ failing tests:
+
+test at v2/server/test/assistant-mutations.test.ts:117:3
+✖ B2a decision scoped A→B verifies exact authority and preserves actual audit/journal (407.794041ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+      at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:121:22 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects missing authority and atomically preserves state (204.961625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'ORCHESTRATION_UNAVAILABLE'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_UNAVAILABLE' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects owner authority and atomically preserves state (205.675875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_MACHINE_REQUIRED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects actor authority and atomically preserves state (185.5045ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects operation authority and atomically preserves state (178.316125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects action authority and atomically preserves state (181.135916ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects hash authority and atomically preserves state (213.642875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects root authority and atomically preserves state (179.825417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects project authority and atomically preserves state (176.307667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a decision rejects tx authority and atomically preserves state (182.550208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:158:3
+✖ B2a decision prefix locks root, canonical sorted tickets and project before verify (180.23575ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+      at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:170:7 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:174:3
+✖ B2a decision snapshots input actor proof before first await and during deferred verify (177.045375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'settled'
+  - 'entered'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:192:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'settled',
+    expected: 'entered',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:205:3
+✖ B2a decision captures factory authority and denies cross-Tx token reuse (179.464083ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+      at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:209:7 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:227:3
+✖ B2a decision uppercase identities retain exact submitted hash and reject lowercase replay (181.172083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:233:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:117:3
+✖ B2a dependency scoped A→B verifies exact authority and preserves actual audit/journal (183.565834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:122:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects missing authority and atomically preserves state (186.825333ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_UNAVAILABLE' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects owner authority and atomically preserves state (188.41325ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_MACHINE_REQUIRED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects actor authority and atomically preserves state (195.244208ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects operation authority and atomically preserves state (228.976667ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects action authority and atomically preserves state (193.855667ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects hash authority and atomically preserves state (205.109334ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects root authority and atomically preserves state (179.794833ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects project authority and atomically preserves state (175.882458ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:137:5
+✖ B2a dependency rejects tx authority and atomically preserves state (178.232125ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:141:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:158:3
+✖ B2a dependency prefix locks root, canonical sorted tickets and project before verify (182.500792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:171:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:174:3
+✖ B2a dependency snapshots input actor proof before first await and during deferred verify (174.446792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'settled'
+  - 'entered'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:192:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'settled',
+    expected: 'entered',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:205:3
+✖ B2a dependency captures factory authority and denies cross-Tx token reuse (184.86775ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:210:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:227:3
+✖ B2a dependency uppercase identities retain exact submitted hash and reject lowercase replay (203.898125ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:233:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:297:1
+✖ B2a concurrent opposite dependency requests cannot commit a cycle (186.798292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:307:10
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves owner-answer invariant (187.090666ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'OWNER_DECISION_REQUIRED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'OWNER_DECISION_REQUIRED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves owner-approval invariant (180.203625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'OWNER_APPROVAL_REQUIRED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'OWNER_APPROVAL_REQUIRED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves empty-content invariant (187.656334ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves long-content invariant (205.456917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves empty-rationale invariant (232.742708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves long-rationale invariant (351.578708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves too-many-sources invariant (279.89325ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves unsafe-scope invariant (321.457084ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves cross-root-source invariant (199.842917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'SOURCE_UNVERIFIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'SOURCE_UNVERIFIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves bad-locator invariant (182.386583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'SOURCE_UNVERIFIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'SOURCE_UNVERIFIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:311:3
+✖ B2a decision preserves missing-docs-reader invariant (189.907208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'SOURCE_UNVERIFIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:330:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+        at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'SOURCE_UNVERIFIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:336:1
+✖ B2a decision supports actual same-root ticket owner decision and reported artifact sources (200.327625ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+      at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:343:5 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:353:1
+✖ B2a docs source validation completes before verify and is not repeated after verification (224.798458ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:51:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:59:3)
+      at async recordDecision (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/decisions.ts:115:18)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:103:42
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:90:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:374:5 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:382:3
+✖ B2a decision rejects array getter before user code or authority (215.948583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + null
+  - 'VALIDATION'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:396:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: 'VALIDATION',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:382:3
+✖ B2a decision rejects array iterator before user code or authority (187.448666ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + null
+  - 'VALIDATION'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:396:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: 'VALIDATION',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:382:3
+✖ B2a decision rejects array prototype before user code or authority (173.686417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + null
+  - 'VALIDATION'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-mutations.test.ts:396:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: 'VALIDATION',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

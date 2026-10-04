@@ -1,0 +1,117 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=assistant FIX1", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-ceeaaed5-d039-4c7d-89bb-66d997c23165", "--label", "crew.phase06.task1=6a23c54e-a188-46a1-91c9-80646878b3c7", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "cb62207ff3571b97c8c22385f2e8cc609e6220af8094e02cd9a01753bbe99a95", "name": "crew-v2-test-ceeaaed5-d039-4c7d-89bb-66d997c23165", "mapping": "127.0.0.1:52249"}
+attachment DB container cb62207ff3571b97c8c22385f2e8cc609e6220af8094e02cd9a01753bbe99a95 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MLaTY5
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MLaTY5 nonceSha256=bf47cc9763f5737d9e356d295ef1d29b513c4cf9a3fae2c2355051c8effbcd96
+attachment DB scratch identity dev=16777229 ino=64461765 uid=501 pid=75215
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MLaTY5
+✖ assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay (382.261292ms)
+attachment DB container cb62207ff3571b97c8c22385f2e8cc609e6220af8094e02cd9a01753bbe99a95 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cpX3C4
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cpX3C4 nonceSha256=b5f59819abb63ae42d0af2e59574b9ae7ae7bdd437dade19f893c10c2738db09
+attachment DB scratch identity dev=16777229 ino=64461772 uid=501 pid=75215
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cpX3C4
+✖ assistant FIX1 S2 binds selection to exact receipt model and designation machine (235.788209ms)
+attachment DB container cb62207ff3571b97c8c22385f2e8cc609e6220af8094e02cd9a01753bbe99a95 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-k3Z2aP
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-k3Z2aP nonceSha256=129ca88b7c469f1b8c3a9ec869b2248cedf0b35107f4b84fdae1cf2c98c3eba2
+attachment DB scratch identity dev=16777229 ino=64461779 uid=501 pid=75215
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-k3Z2aP
+✖ assistant FIX1 S3 binds assessment snapshot and dispatch command step decision to one ticket (209.821791ms)
+attachment DB container cb62207ff3571b97c8c22385f2e8cc609e6220af8094e02cd9a01753bbe99a95 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rV0yfL
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rV0yfL nonceSha256=e38eab3f0a6a6983d904e80dcb0de33bb7cf55fdabb35bc96833fe08d3af787a
+attachment DB scratch identity dev=16777229 ino=64461786 uid=501 pid=75215
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rV0yfL
+✖ assistant FIX1 S4 binds receipt and reservation to exact request command and ownership array (249.313583ms)
+attachment DB container cb62207ff3571b97c8c22385f2e8cc609e6220af8094e02cd9a01753bbe99a95 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8Qvq38
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8Qvq38 nonceSha256=ac2ac49e6bea3f2fe97c84c19d4afc1d299cf65e856e6358f877dad51e28b4fc
+attachment DB scratch identity dev=16777229 ino=64461793 uid=501 pid=75215
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8Qvq38
+✖ assistant FIX1 S5 checks inserted released reservations and restores valid terminal proof rows (224.825541ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1378.066584
+
+✖ failing tests:
+
+test at v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:979:1
+✖ assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay (382.261292ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:991:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_WORK_SCOPE_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1048:1
+✖ assistant FIX1 S2 binds selection to exact receipt model and designation machine (235.788209ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1053:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_SELECTION_CONTEXT_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1070:1
+✖ assistant FIX1 S3 binds assessment snapshot and dispatch command step decision to one ticket (209.821791ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1080:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_ASSESSMENT_TARGET_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1115:1
+✖ assistant FIX1 S4 binds receipt and reservation to exact request command and ownership array (249.313583ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1129:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_CAPACITY_CONTEXT_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1154:1
+✖ assistant FIX1 S5 checks inserted released reservations and restores valid terminal proof rows (224.825541ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/assistant-store.test.ts:1163:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-red-e05ve87w/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_RETIREMENT_PROOF_REQUIRED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

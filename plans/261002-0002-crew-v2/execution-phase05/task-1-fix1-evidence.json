@@ -1,0 +1,268 @@
+{
+  "time": "2026-10-02T09:20:07.400039+00:00",
+  "reviewRound": 1,
+  "maxRounds": 5,
+  "base": "f58f27dc96b964d034697a67c5677fb1d3bbacb2",
+  "headObservedReadOnly": "f1ba3807f10303f965a06f21a327a31acc47a356",
+  "runs": [
+    {
+      "log": "logs/fix1-red.log",
+      "sha256": "73fd0ec2f307fa8fa5318dbb7c8f5ee6e1635a035fae15f4a82e22e74c955a6d",
+      "bytes": 1210,
+      "exitCode": 143,
+      "counts": null,
+      "note": "fixture interruption; exact owned cleanup recorded"
+    },
+    {
+      "log": "logs/fix1-red-bounded.log",
+      "sha256": "b8885ba955fc955a39d264fa3a046557cee1e8c8b1e8181730dd4ddc778de5d6",
+      "bytes": 3681,
+      "exitCode": 1,
+      "counts": {
+        "tests": 2,
+        "pass": 0,
+        "fail": 2,
+        "skipped": 0
+      },
+      "note": "both defects caught"
+    },
+    {
+      "log": "logs/fix1-green-first.log",
+      "sha256": "dcd164edac7b48b2aef1d2fa9e7ce5a05e17c8109b7bdcc83ec00825bd4b83bd",
+      "bytes": 1599,
+      "exitCode": 0,
+      "counts": {
+        "tests": 2,
+        "pass": 2,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "first GREEN"
+    },
+    {
+      "log": "logs/fix1-focused.log",
+      "sha256": "b99d7b83c2f098d7755b03926082973dc53806fd4602f0bcfe6503ec77e16800",
+      "bytes": 3391,
+      "exitCode": 0,
+      "counts": {
+        "tests": 5,
+        "pass": 5,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "all five actual PG regressions"
+    },
+    {
+      "log": "logs/fix1-native.log",
+      "sha256": "78b81056f8bc38fe46d84ff315eb3094e854b9053e57c8b788d1cade63be1683",
+      "bytes": 1476,
+      "exitCode": 0,
+      "counts": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "actual Linux privatePG FIX1 probe"
+    },
+    {
+      "log": "logs/fix1-typecheck-final.log",
+      "sha256": "2d5989420e1eea96a9db0e1477eb9e29a282819496d7c9e2beacf9dbed5c73db",
+      "bytes": 114,
+      "exitCode": 0,
+      "counts": null,
+      "note": "server types"
+    },
+    {
+      "log": "logs/fix1-isolated-typecheck.log",
+      "sha256": "0fe9e95164d7ce85a6efec8e1cf7b0960cc3c6e5303499c7c046d311c1dccbc3",
+      "bytes": 164,
+      "exitCode": 0,
+      "counts": null,
+      "note": "exact frozen checkout types"
+    },
+    {
+      "log": "logs/fix1-biome-check.log",
+      "sha256": "70bfdd2a5aa0109524128332ce28a8150cad3d5667634b8da363f38938865a29",
+      "bytes": 43,
+      "exitCode": 0,
+      "counts": {
+        "files": 2,
+        "diagnostics": 0
+      },
+      "note": "no fixes"
+    },
+    {
+      "log": "logs/fix1-server-cover.log",
+      "sha256": "374e0b41e7173f066d95eeec58b59aa661890ee2cc5e66e0db105ae5e6686e9c",
+      "bytes": 51915,
+      "exitCode": 1,
+      "counts": {
+        "tests": 258,
+        "pass": 255,
+        "fail": 1,
+        "skipped": 2
+      },
+      "note": "sole native package resolution failure"
+    },
+    {
+      "log": "logs/fix1-isolated-native-green.log",
+      "sha256": "1f0a0be9bb0cfff55ab5dc88cd8c25d21cdc687e39b3e2fd6e9793d6a39e8914",
+      "bytes": 1467,
+      "exitCode": 0,
+      "counts": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "whole failed native case PASS separately"
+    }
+  ],
+  "testCommands": {
+    "focused": [
+      "pnpm",
+      "--dir",
+      "v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts",
+      "--test-name-pattern=review F1|review F2"
+    ],
+    "native": [
+      "pnpm",
+      "--dir",
+      "v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/task-1-fix1-native.test.mjs"
+    ],
+    "cover": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/task-1-fix1-cover.test.mjs"
+    ],
+    "nativeCorrected": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server/test/attachments-staging.test.ts",
+      "--test-name-pattern=Linux native receiver uses"
+    ],
+    "typecheck": [
+      "pnpm",
+      "--dir",
+      "v2/server",
+      "typecheck"
+    ],
+    "isolatedTypecheck": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server",
+      "typecheck"
+    ],
+    "biome": [
+      "pnpm",
+      "exec",
+      "biome",
+      "check",
+      "v2/server/src/attachments/staging.ts",
+      "v2/server/test/attachments-staging.test.ts"
+    ]
+  },
+  "coverStatus": "FAIL separate from focused native PASS; no union PASS",
+  "docs": "R3 updated; PM staged check required; compiled docs bundle access blocked by PreToolUse context hook, no bypass",
+  "originalBaseline": [
+    {
+      "path": "task-1-report.md",
+      "sha256": "a1b0d8196f66323addc4f7fd0725c6f42401aa08b5074ae1e63123ae99f36441",
+      "unchangedByFix1": true
+    },
+    {
+      "path": "task-1-inventory-final.json",
+      "sha256": "94b7b85b060dadfaa17d2d8e69503a204a9d039ebec7e5b30ee4ea009e52cbb7",
+      "unchangedByFix1": true
+    },
+    {
+      "path": "task-1-evidence-final.json",
+      "sha256": "3a99a92a4d43d069cfc0b525b5d0a471cd347c3ea6ab4c18cd5922a5c1fb3612",
+      "unchangedByFix1": true
+    },
+    {
+      "path": "task-1-cleanup-final.json",
+      "sha256": "0f55641a08e0b32045d8a8a9ebaee939223b250127adeb6ba052d724326d9c42",
+      "unchangedByFix1": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "task-1-fix1-cleanup.json",
+      "sha256": "2893e2b9a8a4d82f3af06541d93e98969e0d2ad7d464473accc2e49e994b095d",
+      "bytes": 10420
+    },
+    {
+      "path": "task-1-fix1-cover-exit.json",
+      "sha256": "df1385a2c717c3fbb77c568b04aa2b5cf1688aed5f648b42057ced604f4df54b",
+      "bytes": 362
+    },
+    {
+      "path": "task-1-fix1-cover-inventory.json",
+      "sha256": "bd4bdf47f88c9df5ccee80426f0f2afd8b556de3d275e949aa5d9cba7d4b8d95",
+      "bytes": 39629
+    },
+    {
+      "path": "task-1-fix1-cover-wrapper.mjs",
+      "sha256": "c0829fc535a6c388515154f1634faf53d71b312b4bd1067b6f12baaaf0b75afa",
+      "bytes": 4419
+    },
+    {
+      "path": "task-1-fix1-docker-launcher-initial.py",
+      "sha256": "309b2138acafa2baf92fc98948f4f2897272fbc4f5ebb72b7e7c86aa8041d8ba",
+      "bytes": 1659
+    },
+    {
+      "path": "task-1-fix1-docker-launcher.py",
+      "sha256": "5b51b0c1c13ca0b337c6f3a0b33ce18f817afc90f026c531cac824667fdc3737",
+      "bytes": 1859
+    },
+    {
+      "path": "task-1-fix1-launcher-inventory-initial.json",
+      "sha256": "9781d1493a10792cef50ceb0dacd21924848b2e0b90309e1f34acad4196ad1dd",
+      "bytes": 663
+    },
+    {
+      "path": "task-1-fix1-launcher-inventory.json",
+      "sha256": "79fb2ab63b46cc9a53d7e2de74ef6b7abef53fff738988ac5aecf5a8c09155ef",
+      "bytes": 663
+    },
+    {
+      "path": "task-1-fix1-native-probe.mjs",
+      "sha256": "c7e275d29daf474a53af6ae574adf2b9aad3102d146290266cc6cbdbac9ced86",
+      "bytes": 5236
+    },
+    {
+      "path": "task-1-fix1-native.test.mjs",
+      "sha256": "25e37c315485b788fc9646e186839a5ed75fb8f40e9c62d5f03972a02f02f778",
+      "bytes": 1866
+    },
+    {
+      "path": "task-1-fix1-snapshot-creation.json",
+      "sha256": "de9e309774efe64475e4124ba9c1a500177bd52518cd053daf13e1a8f563d68c",
+      "bytes": 379
+    },
+    {
+      "path": "task-1-fix1-source-inventory.json",
+      "sha256": "03a13266d218a0c30aaf2b28ad9db2fdebfb3133475f7a41820ddba878f5f31c",
+      "bytes": 5759
+    },
+    {
+      "path": "logs/fix1-docker-launcher.jsonl",
+      "sha256": "3ed99bf95174dc561f1be03c6f9d46e27d6a2adfa777b92b0bff6dc27e1563ca"
+    }
+  ]
+}

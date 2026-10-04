@@ -1,0 +1,89 @@
+Sat Oct  3 15:29:52 UTC 2026
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    14575.
+Pages active:                                 445082.
+Pages inactive:                               441416.
+Pages speculative:                              3770.
+Pages throttled:                                   0.
+Pages wired down:                             400014.
+Pages purgeable:                                1204.
+"Translation faults":                    64249126248.
+Pages copy-on-write:                      3046726859.
+Pages zero filled:                       24608105131.
+Pages reactivated:                        9068187781.
+Pages purged:                              580424867.
+File-backed pages:                            165312.
+Anonymous pages:                              724956.
+Pages stored in compressor:                  2559722.
+Pages occupied by compressor:                 225357.
+Decompressions:                           8475852123.
+Compressions:                            10053907491.
+Pageins:                                  2193753106.
+Pageouts:                                    8246655.
+Swapins:                                   119224527.
+Swapouts:                                  140654115.
+Processes: 923 total, 4 running, 919 sleeping, 8335 threads 
+2026/10/03 22:29:52
+Load Avg: 7.12, 7.99, 6.06 
+CPU usage: 23.55% user, 13.98% sys, 62.45% idle 
+SharedLibs: 373M resident, 88M data, 75M linkedit.
+MemRegions: 935849 total, 7685M resident, 143M private, 4328M shared.
+PhysMem: 23G used (6130M wired, 3519M compressor), 239M unused.
+VM: 433T vsize, 6144M framework vsize, 119224547(0) swapins, 140654115(0) swapouts.
+Networks: packets: 610515629/411G in, 537625426/316G out.
+Disks: 1645001863/41T read, 499823508/56T written.
+
+
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 400671092  26578960    94% 4653088 265789600    2%   /System/Volumes/Data
+B2a RED intent: crew-v2-test-48612787-9945-4793-b5be-5dfd6bd74565 postgres18.6 memory256MiB CPU1 pids64 randomloopback Nodeheap384 concurrency1 selected55 watchdog90s
+3deae56ab70cf4f79c4dd7b9fe7e5787fba8f21a6494275eb666a67630ddbb4b /crew-v2-test-48612787-9945-4793-b5be-5dfd6bd74565 memory=268435456 nanoCPUs=1000000000 pids=64
+127.0.0.1:63788
+99ca987d558d81efb22b20a9c3089d897cd011be37109881269b2d5f13e93cdf  v2/server/src/tickets/service.ts
+93ffcd5601bbeb3754778bfab12907f0d62bf6ec2a726623ae98c17a2f46aa5c  v2/server/src/tickets/decisions.ts
+0e6a227bbab2d9a95d67a691e495a2a029482cb5ff727c3bf05a3823cd789eb9  v2/server/src/tickets/dependencies.ts
+9ed7ffa5ee47e0931ddc3e519a9057b1c82cdf3890abbd0caabc88e4e050e2e3  v2/server/src/tickets/assistant-access.ts
+8ab493e3b7c2df2aeecbd38f05755b5176097f983c502b7a39fc6db6a2c9587f  v2/server/test/assistant-mutations.test.ts
+Sat Oct  3 15:30:25 UTC 2026
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    45087.
+Pages active:                                 396021.
+Pages inactive:                               402530.
+Pages speculative:                              5999.
+Pages throttled:                                   0.
+Pages wired down:                             390243.
+Pages purgeable:                                5836.
+"Translation faults":                    64250191542.
+Pages copy-on-write:                      3046783621.
+Pages zero filled:                       24608664608.
+Pages reactivated:                        9068611422.
+Pages purged:                              580426403.
+File-backed pages:                            173414.
+Anonymous pages:                              631136.
+Pages stored in compressor:                  2670408.
+Pages occupied by compressor:                 290363.
+Decompressions:                           8476013374.
+Compressions:                            10054190577.
+Pageins:                                  2193771545.
+Pageouts:                                    8246775.
+Swapins:                                   119229051.
+Swapouts:                                  140654115.
+Processes: 927 total, 4 running, 923 sleeping, 8422 threads 
+2026/10/03 22:30:26
+Load Avg: 8.44, 8.24, 6.22 
+CPU usage: 28.65% user, 13.90% sys, 57.43% idle 
+SharedLibs: 373M resident, 88M data, 75M linkedit.
+MemRegions: 959810 total, 7391M resident, 98M private, 3352M shared.
+PhysMem: 23G used (5938M wired, 4530M compressor), 786M unused.
+VM: 438T vsize, 6144M framework vsize, 119229083(0) swapins, 140654115(0) swapouts.
+Networks: packets: 610558378/411G in, 537675565/316G out.
+Disks: 1645026530/41T read, 499840268/56T written.
+
+
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 400765220  26484832    94% 4653247 264848320    2%   /System/Volumes/Data
+B2a RED Node PID=62955, watchdog wrapper PID=62954
+62955 62954    992 node --test --test-concurrency=1 --test-timeout=60000 v2/server/test/assistant-mutations.test.ts
+B2a RED exit=1

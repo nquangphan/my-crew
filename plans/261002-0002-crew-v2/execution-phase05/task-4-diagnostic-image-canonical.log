@@ -1,0 +1,51 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from extractor.Dockerfile
+#1 transferring dockerfile: 710B done
+#1 WARN: RedundantTargetPlatform: Setting platform to predefined $TARGETPLATFORM in FROM is redundant as this is the default behavior (line 2)
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 141B done
+#3 DONE 0.0s
+
+#4 [1/7] FROM docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
+#4 resolve docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 17.79kB done
+#5 DONE 0.0s
+
+#6 [2/7] WORKDIR /extractor
+#6 CACHED
+
+#7 [4/7] RUN npm install --global --prefix /opt/pnpm --ignore-scripts --no-audit --no-fund pnpm@10.32.1
+#7 CACHED
+
+#8 [3/7] COPY package.json pnpm-lock.yaml ./
+#8 CACHED
+
+#9 [5/7] RUN /opt/pnpm/bin/pnpm install --prod --frozen-lockfile --ignore-scripts
+#9 CACHED
+
+#10 [6/7] COPY --chown=65532:65532 src/attachments ./src/attachments
+#10 DONE 0.0s
+
+#11 [7/7] RUN node -e "const c=require('@napi-rs/canvas');const b=c.createCanvas(1,1).toBuffer('image/png');if(b.length===0)process.exit(1)"
+#11 DONE 0.6s
+
+#12 exporting to image
+#12 exporting layers 0.0s done
+#12 exporting manifest sha256:125c3c8449ddb59f46536f588ee9487ae360783b750e797b10f7e33f543de9cc done
+#12 exporting config sha256:117dc94264310ab5dcb80b8ec9d3928a5b2bd2bebb2a0254558f9dc7f2008e55 done
+#12 exporting attestation manifest sha256:15c31f6d7513ba091481f1ea53b551d47daa61c0614fb9a991e0126201b2882b done
+#12 exporting manifest list sha256:8df553bd040016ddf36a547d32d0e7d4986bfc54f60e0355a21e9c28462316a0 done
+#12 naming to docker.io/library/crew-v2-extractor:diagnostic-760498d08857bf2caba16421-canonical done
+#12 DONE 0.1s
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - RedundantTargetPlatform: Setting platform to predefined $TARGETPLATFORM in FROM is redundant as this is the default behavior (line 2)

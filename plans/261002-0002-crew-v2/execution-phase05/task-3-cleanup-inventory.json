@@ -1,0 +1,972 @@
+{
+  "snapshots": [
+    {
+      "run": "task-3-claim-race-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-claim-race-slwbjvq8",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64112907,
+        "uid": 501
+      },
+      "childPid": 52236,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-defensive-routed-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-defensive-routed-cy698rao",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64117740,
+        "uid": 501
+      },
+      "childPid": 68043,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-final-cover-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64133206,
+        "uid": 501
+      },
+      "childPid": 90982,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-final-focused-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-focused-86pbfi0v",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64130852,
+        "uid": 501
+      },
+      "childPid": 84665,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-final-types-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-types-l2jp5tar",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64136935,
+        "uid": 501
+      },
+      "childPid": 94136,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-green-companion-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-companion-11hzn4q5",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64088400,
+        "uid": 501
+      },
+      "childPid": 83933,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-green-first-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64083367,
+        "uid": 501
+      },
+      "childPid": 71711,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-green-fixture-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-fixture-5d34d9iy",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64084410,
+        "uid": 501
+      },
+      "childPid": 75131,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-green-initialized-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-initialized-aqrdzu_g",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64085629,
+        "uid": 501
+      },
+      "childPid": 77675,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-lifecycle-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-lifecycle-uqzoqeaz",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64116279,
+        "uid": 501
+      },
+      "childPid": 58889,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-red-access-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-access-j_n6zyrr",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64069085,
+        "uid": 501
+      },
+      "childPid": 39163,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-red-api-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-api-ith39tjd",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64078000,
+        "uid": 501
+      },
+      "childPid": 60240,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-red-scope-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64072252,
+        "uid": 501
+      },
+      "childPid": 47333,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-reply-race-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-reply-race-tl0p3hub",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64113894,
+        "uid": 501
+      },
+      "childPid": 56357,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-routed-race-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-routed-race-ulwcdxwg",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64117208,
+        "uid": 501
+      },
+      "childPid": 65383,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-s3-first-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64093251,
+        "uid": 501
+      },
+      "childPid": 5719,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-s3-green-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-green-cdk6c4e7",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64094429,
+        "uid": 501
+      },
+      "childPid": 10729,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-stream-subset-first-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-stream-subset-first-s__dyds_",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64100394,
+        "uid": 501
+      },
+      "childPid": 24770,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-types-clean-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-clean-qxquwf5q",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64129140,
+        "uid": 501
+      },
+      "childPid": 75328,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-types-first-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-first-svovvi_4",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64082708,
+        "uid": 501
+      },
+      "childPid": 71076,
+      "childExit": 1,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-types-message-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-message-ivf2_x6l",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64112404,
+        "uid": 501
+      },
+      "childPid": 47414,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-types-publication-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-publication-n0z07_7n",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64091147,
+        "uid": 501
+      },
+      "childPid": 749,
+      "childExit": 0,
+      "childClosed": true
+    },
+    {
+      "run": "task-3-types-scope-evidence",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-scope-xe8nnym4",
+      "absent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64101142,
+        "uid": 501
+      },
+      "childPid": 26133,
+      "childExit": 1,
+      "childClosed": true
+    }
+  ],
+  "containers": [
+    {
+      "run": "task-3-claim-race-evidence",
+      "id": "75806ecd71b73b79cc0b22ac999d1ac5a35c89fed71fba690772b71303133903",
+      "absent": true,
+      "mapping": "127.0.0.1:49504"
+    },
+    {
+      "run": "task-3-defensive-routed-evidence",
+      "id": "15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66",
+      "absent": true,
+      "mapping": "127.0.0.1:51597"
+    },
+    {
+      "run": "task-3-final-cover-evidence",
+      "id": "f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a",
+      "absent": true,
+      "mapping": "127.0.0.1:54380"
+    },
+    {
+      "run": "task-3-final-focused-evidence",
+      "id": "d8c2272de8389bf70bb8bc29e90f88a86e052395fabc72237db322ddbd2125c7",
+      "absent": true,
+      "mapping": "127.0.0.1:53480"
+    },
+    {
+      "run": "task-3-green-companion-evidence",
+      "id": "8b27e8ca0090c8a75c4e65e04f270db7544db1a08525d57ec41e715a84286912",
+      "absent": true,
+      "mapping": "127.0.0.1:57551"
+    },
+    {
+      "run": "task-3-green-first-evidence",
+      "id": "9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee",
+      "absent": true,
+      "mapping": "127.0.0.1:56134"
+    },
+    {
+      "run": "task-3-green-fixture-evidence",
+      "id": "45727290657fa2060607584c848fb0f826f21b3e025fb19d26c37bd33a936587",
+      "absent": true,
+      "mapping": "127.0.0.1:56582"
+    },
+    {
+      "run": "task-3-green-initialized-evidence",
+      "id": "18b963f6f36068256287760a5d729570119347641c0fc019b83775d5e33d7ab7",
+      "absent": true,
+      "mapping": "127.0.0.1:56853"
+    },
+    {
+      "run": "task-3-lifecycle-evidence",
+      "id": "2091a4e67976f734ed3ae8e22072b45f888107d283ea703d1bddb200ed240bde",
+      "absent": true,
+      "mapping": "127.0.0.1:50463"
+    },
+    {
+      "run": "task-3-red-access-evidence",
+      "id": "2d5d6b71f49a526072d3eb7c1828f3551e07d79282941cb2d8b054e687e69b51",
+      "absent": true,
+      "mapping": "127.0.0.1:51121"
+    },
+    {
+      "run": "task-3-red-api-evidence",
+      "id": "511c8e7db779e752ffcd9e9f62f6584671dc97f80558811b8bcd3cf0515190de",
+      "absent": true,
+      "mapping": "127.0.0.1:54043"
+    },
+    {
+      "run": "task-3-red-scope-evidence",
+      "id": "eeadd51d6708638bcdb1c8b8b096e82f6863d5b894b047354b48ccbba20d55d7",
+      "absent": true,
+      "mapping": "127.0.0.1:52192"
+    },
+    {
+      "run": "task-3-reply-race-evidence",
+      "id": "5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca",
+      "absent": true,
+      "mapping": "127.0.0.1:50152"
+    },
+    {
+      "run": "task-3-routed-race-evidence",
+      "id": "b2bfa2bb242d8040d52f44cd5aa221d536c686796fc66d6b6c5c633d993eb2db",
+      "absent": true,
+      "mapping": "127.0.0.1:51272"
+    },
+    {
+      "run": "task-3-s3-first-evidence",
+      "id": "a9e02f236ea5e263ea6fe2b36f96181af225e8440df2f79a2b007e4ba7c7a816",
+      "absent": true,
+      "mapping": "127.0.0.1:59830"
+    },
+    {
+      "run": "task-3-s3-green-evidence",
+      "id": "a9f0ad0297d1eff556d94b38d25db46c2facc5ccadbcd161f2a7dcd2912caee9",
+      "absent": true,
+      "mapping": "127.0.0.1:60466"
+    },
+    {
+      "run": "task-3-stream-subset-first-evidence",
+      "id": "099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8",
+      "absent": true,
+      "mapping": "127.0.0.1:62224"
+    }
+  ],
+  "scratchRoots": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-055auB",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-05sc1W",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0SgXFt",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0huXZv",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0qrHMI",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2XKUOk",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2qdo7M",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3KYEpj",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3W76ij",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3dsYMf",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4PELP8",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4e4U1V",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6MlMiS",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7bCRWD",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9HNw3c",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9JRpH6",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CMBQ48",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EDA07m",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EvU9hR",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FINweh",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FUsg50",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gk2fFY",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gmb2YU",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gn7mja",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-H4PAzh",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HMrGHD",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IHhbix",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ii8K4J",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IpSAin",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KagQcG",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MEyKU0",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mot7T8",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mt7RxN",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NPYtqv",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NepIiv",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-O4uQKe",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ONHokI",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OwhI3Y",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QdVcgP",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QwMG47",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RMijD3",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-S9OmdB",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SCkc2W",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SwjFfj",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-UJPkbt",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-UQG9dz",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Um5Vwx",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3LchQ",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VFEVw1",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VKgD8q",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VWronL",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-We6rtd",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WvHOmz",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XqM4Li",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-a7hd3A",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-aQ1ZrV",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-acQqQG",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-akQDtd",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-b4zH8n",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bBJo1N",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGD3kB",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bt1Ivx",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cKu0iL",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eEFf4K",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTQ7LY",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eh6gHm",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fDdrI2",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-flSpQ1",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fmKH0v",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-g8d1mo",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-gLaOVt",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-gWsdGq",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hDQsp7",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hamMGk",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-j9Mmnw",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jFnQ4p",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jNo6yj",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jUIv8H",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-javlQz",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jlrWXW",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kRQhmr",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kinHD9",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lePEau",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lfpnQp",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mQyZ8W",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-muXERT",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-n4M0vF",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nKsTHC",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nrcmPo",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oGgihi",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oeD2xK",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qYTZQV",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qfMvO8",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-r36jRq",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sgraVL",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tPjaUx",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tV7wUY",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tib7hK",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uyKUry",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vAGazc",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wU421e",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0089adff-ff6d-4f7b-98b9-4d53494e333e",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0141159f-6244-4aac-8484-2b9577d98988",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-028a7341-a692-4ee5-9a9b-8c56ff22acf8",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0720fc1f-9bfd-41c0-983d-8f7b4103ce19",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-105344aa-dc96-42dc-8440-b6ff909d5a61",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-19d64a74-9dd2-465b-b695-fccc1435d958",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-1f986705-4fcf-4190-8e4b-68fd4c43c950",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-211fbbbd-5d66-4e42-8213-500e3b9b745a",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-2a83e5c1-5a6d-471a-a674-c424d1b104e5",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-2ad0b1b9-8482-45ea-9f15-12772a373ce9",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-46cd3871-4682-4c9e-ae74-4a5b5ed40d5c",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-480ee867-2869-44f6-ad35-2e28e94f6630",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-5b2ba718-d5c0-4aa1-9817-2ffa9ad5aa51",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-5b7320c7-008e-4392-b966-39fd7efebaf2",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-68bc50a4-1ebc-4898-9563-56da44553b9a",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-6ec33863-8f3d-4d83-b7f8-9800f6dfa47b",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-789a5cde-2b0c-4c1d-af4a-74c126eff782",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7e597118-ab06-4058-bb20-4eac66f106f8",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7fc566e1-5332-4303-8c89-c31540380507",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-88304a00-0a46-444e-8de6-c5d06d2309b8",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-a413c462-5025-4a76-9f35-dbd4524a4998",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-a5cf5007-7130-4e20-953a-807cac0913dd",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-a7f52c3d-81c4-4c7e-b199-a3029531ef4b",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-adeb974c-0a05-4075-9480-8904d9cb79aa",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-bb864b16-a58f-4f4f-9ea0-d478c3cb74d1",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-d602e810-644b-413f-8351-0b01d45a957f",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-df7d004f-1c9d-41f7-84f4-67b46a62bd8d",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-e16bd986-5d31-4751-82f2-789e8031ddb4",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-f85abec7-fc6a-4144-9f1b-bc83be80258d",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-f92aad8e-cc9c-44e7-b1a0-9e536c09a0b3",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTKsqI",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xWkqxy",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y3wvy6",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y9AHLM",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yDwKm3",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ypXsDp",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yuqPLF",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z48tVh",
+      "absent": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zBzvaU",
+      "absent": true
+    }
+  ],
+  "scratchIdentityEvidence": "exact nonce/dev/ino/uid/pid in originating logs; twelve interrupted scratch closures in task-3-interrupted-fixture-cleanup.json",
+  "unknownResourcesRetained": [],
+  "nativeCertification": false
+}

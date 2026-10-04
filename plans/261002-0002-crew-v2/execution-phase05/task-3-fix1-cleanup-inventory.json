@@ -1,0 +1,117 @@
+{
+  "capturedUnix": 1790948486.249399,
+  "runs": [
+    {
+      "run": "red",
+      "snapshotRoot": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-red-bz4c2sv3",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64148757,
+        "uid": 501
+      },
+      "nonceSha256": "27d5a1399c45a74e810b3c98a40a63f4ff2b4c61dde42d590f92a50571a23ad7",
+      "snapshotAbsentNow": true,
+      "child": {
+        "pid": 59290,
+        "exit": 1,
+        "waitObserved": true
+      },
+      "pidPresentNow": false,
+      "currentPidIdentity": "",
+      "fixtureReceiptSha256": "e02295cde5534f16df628dc11a574434a3b0a40fc562b96e2ad3c50fcdfc904c",
+      "container": "17963fa2b0e17fe2d98f32443e70934d23c6315a77491c12fe9d1ae0b3811f03",
+      "containerAbsentNow": true,
+      "absence": "error: no such object: 17963fa2b0e17fe2d98f32443e70934d23c6315a77491c12fe9d1ae0b3811f03",
+      "createdReceiptSha256": "564cfa3360d3a763e7510de05e70fbd437fdd6d31749fc38f2c7ef55c99f3ee1",
+      "closedReceiptSha256": "cc799617e1427145586bb5da38bd834283a2772e485208d6c586c9a7cbca29f5"
+    },
+    {
+      "run": "green",
+      "snapshotRoot": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-green-l7w2cc78",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64149520,
+        "uid": 501
+      },
+      "nonceSha256": "4ce8e4db2fb77935191b95565087861f9e932752b3050e2a7599eb88fe5f2ccd",
+      "snapshotAbsentNow": true,
+      "child": {
+        "pid": 63479,
+        "exit": 0,
+        "waitObserved": true
+      },
+      "pidPresentNow": false,
+      "currentPidIdentity": "",
+      "fixtureReceiptSha256": "0fd7e5f3b265eec9c0755662cefe434251cad6ae385b8f8c49ef2fd048e44039",
+      "container": "c550eab9f36b0737b5e351e3668e19d4de160bc5232c9debfee8add546c39f63",
+      "containerAbsentNow": true,
+      "absence": "error: no such object: c550eab9f36b0737b5e351e3668e19d4de160bc5232c9debfee8add546c39f63",
+      "createdReceiptSha256": "77a323de7d546c7960a710e3d90d07016ac8a781687a302f2c63f216bbcf2c0b",
+      "closedReceiptSha256": "ddb68ae822ce9296764f9d631421a0e24a0e658aa85d89fd404a7891f8d0d5f5"
+    },
+    {
+      "run": "types",
+      "snapshotRoot": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-types-eu8uzy0e",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64150276,
+        "uid": 501
+      },
+      "nonceSha256": "68e1ebb8ac18fab0d0209e47d382b5e6ce7366fc24ff7f75278b97ef7aabb859",
+      "snapshotAbsentNow": true,
+      "child": {
+        "pid": 66066,
+        "exit": 0,
+        "waitObserved": true
+      },
+      "pidPresentNow": false,
+      "currentPidIdentity": "",
+      "fixtureReceiptSha256": "16463c9f9f793717e296cc67988cb9e56bb7f891b482f1d2759ee8e78ed5f034"
+    }
+  ],
+  "scratchRoots": [
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YizJu7",
+      "nonceSha256": "eaeb46387312eae2c0238f23fc9dd76c428e92b1efa53c0a5a8b88a481136275",
+      "dev": 16777229,
+      "ino": 64149135,
+      "uid": 501,
+      "nodePid": 59324,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SFPR6F",
+      "nonceSha256": "a613cb2c74b649c9d390ad1cbbbadd9ce6ee10ae090ea37f4025c6006a0f6ada",
+      "dev": 16777229,
+      "ino": 64149890,
+      "uid": 501,
+      "nodePid": 63514,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BFf7CG",
+      "nonceSha256": "c63351d6e4dc693442c6d9a4b96f71aa9e7f6e5de8b893518fdcdbaff7db0d82",
+      "dev": 16777229,
+      "ino": 64149954,
+      "uid": 501,
+      "nodePid": 63514,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6fuFqo",
+      "nonceSha256": "91ea76996d0d895f73f1a384237e00993383bd23d71606c518372051bf56bc3b",
+      "dev": 16777229,
+      "ino": 64149991,
+      "uid": 501,
+      "nodePid": 63514,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    }
+  ],
+  "nativeOrProviderCanaryLaunched": false,
+  "unknownResourcesDeleted": false,
+  "liveOwnHeavySequence": false
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs",
+    "sha256": "169b05882637e08c80a77515372d68a714e1da3acbcbe57d11a551da80fe22ac",
+    "bytes": 476
+  },
+  {
+    "path": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/tsconfig.fixture.json",
+    "sha256": "20ab2446214102242d1a667a9eb6f16213165f8124f99aa74218af8eb909ed6e",
+    "bytes": 277
+  },
+  {
+    "path": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/tsconfig.fixture-build.json",
+    "sha256": "b7fb18f10d2632a156df527e3eab04271229383cff75c34814d47cc7e387edae",
+    "bytes": 283
+  }
+]

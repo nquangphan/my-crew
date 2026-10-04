@@ -1,0 +1,11 @@
+✔ workflow audited native Superpowers candidate has its independent artifact pin (2.04475ms)
+Native independent build identities: [{"id":"8e94aa6f-4f84-4952-815d-fce75a0e0e95","identity":{"bytes":0,"device":"16777229","inode":"63354258","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}},{"id":"8742eb8a-d39d-402c-b9f6-ac915be27716","identity":{"bytes":0,"device":"16777229","inode":"63353931","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}}]
+✔ workflow native full-tree artifact preserves bytes and modes with two real build roots and fixed discovery geometry (5858.035834ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5942.140708

@@ -1,0 +1,62 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-snapshots.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-grants.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-56f5101e-832b-4bfa-b810-d56a692f73b2", "--label", "crew.phase05.task3=66edbe4b-f7a2-422e-ae13-8b9faab28613", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "eeadd51d6708638bcdb1c8b8b096e82f6863d5b894b047354b48ccbba20d55d7", "name": "crew-v2-test-56f5101e-832b-4bfa-b810-d56a692f73b2", "mapping": "127.0.0.1:52192"}
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/src/attachments/grants.ts' imported from /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-grants.test.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:991:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+    at #resolve (node:internal/modules/esm/loader:701:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/src/attachments/grants.ts'
+}
+
+Node.js v24.14.0
+✖ /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-grants.test.ts (57.093ms)
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/src/attachments/snapshots.ts' imported from /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-snapshots.test.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:991:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+    at #resolve (node:internal/modules/esm/loader:701:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/src/attachments/snapshots.ts'
+}
+
+Node.js v24.14.0
+✖ /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-snapshots.test.ts (54.808917ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 62.650708
+
+✖ failing tests:
+
+test at test/attachments-grants.test.ts:1:1
+✖ /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-grants.test.ts (57.093ms)
+  'test failed'
+
+test at test/attachments-snapshots.test.ts:1:1
+✖ /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-red-scope-htanj2r8/v2/server/test/attachments-snapshots.test.ts (54.808917ms)
+  'test failed'

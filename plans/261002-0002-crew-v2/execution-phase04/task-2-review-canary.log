@@ -1,0 +1,15 @@
+{"kind":"clock","elapsedMs":50,"remainingTtlMs":300000,"actual":"SECRET_EXPIRED"}
+{"kind":"sse-crlf","lfAccepted":true,"crlf":"STREAM_PROTOCOL"}
+{"kind":"sse-correlation","orphanToolDeltaAndFailedOtherModelAccepted":true}
+{"kind":"resource-create","nonce":"dd9bd0c1-e1e3-4621-81a3-b66e9f8f605b","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-review-dd9bd0c1-e1e3-4621-81a3-b66e9f8f605b-W2YM5F","pid":30619,"dev":16777229,"ino":63741507,"uid":501}
+{"kind":"lock-create","label":"reporter","pid":30620,"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-review-dd9bd0c1-e1e3-4621-81a3-b66e9f8f605b-W2YM5F"}
+{"kind":"report-race","collectedRevision":1,"sentRevision":2,"sequence":"2"}
+{"kind":"lock-create","label":"provisioning","pid":30622,"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-review-dd9bd0c1-e1e3-4621-81a3-b66e9f8f605b-W2YM5F"}
+{"kind":"ack-recovery","syncState":"pending","automaticAckCallsAfterReconnect":1,"explicitReplaySucceeds":true}
+{"kind":"listener-create","pid":30619,"host":"127.0.0.1","port":58812}
+{"kind":"transport-classification","actual":"TRANSIENT","status":"unverified","expected":"TOOL_PROTOCOL","requests":1}
+{"kind":"listener-closed","address":{"address":"127.0.0.1","family":"IPv4","port":58812},"pid":30619}
+{"kind":"lock-reaped","pid":30620}
+{"kind":"lock-reaped","pid":30622}
+{"kind":"resource-removed","nonce":"dd9bd0c1-e1e3-4621-81a3-b66e9f8f605b","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-review-dd9bd0c1-e1e3-4621-81a3-b66e9f8f605b-W2YM5F","dev":16777229,"ino":63741507,"uid":501,"absent":true}
+{"kind":"complete","checks":6,"sourceMutation":false,"network":"one owned loopback fixture only","keychain":"fake map only"}

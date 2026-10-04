@@ -1,0 +1,146 @@
+scripts/e2e-fixture.ts:18:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Sort the imported names.
+  
+    16 │ import { connectDb } from '../../server/src/db/client.ts';
+    17 │ import { captureMigrations, migrate } from '../../server/src/db/migrate.ts';
+  > 18 │ import {
+       │ ^^^^^^^^
+  > 19 │   type CleanupResult,
+        ...
+  > 24 │   withFixture,
+  > 25 │ } from '../e2e/support/fixture.ts';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    26 │ 
+    27 │ const execFileAsync = promisify(execFile);
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     17  17 │   import { captureMigrations, migrate } from '../../server/src/db/migrate.ts';
+     18  18 │   import {
+     19     │ - ··type·CleanupResult,
+     20     │ - ··boundedCleanupStep,
+         19 │ + ··boundedCleanupStep,
+         20 │ + ··type·CleanupResult,
+     21  21 │     closeOwnedResource,
+     22  22 │     type FixtureHandle,
+  
+
+scripts/e2e-fixture.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    228 228 │       ) => {
+    229 229 │         if (!resource) return;
+    230     │ - ······const·result·=·blocked·&&·!allowAfterUnknown
+    231     │ - ········?·unknown(resource,·'PREVIOUS_CLEANUP_UNKNOWN')
+    232     │ - ········:·await·closeOwnedResource(resource,·port);
+        230 │ + ······const·result·=
+        231 │ + ········blocked·&&·!allowAfterUnknown
+        232 │ + ··········?·unknown(resource,·'PREVIOUS_CLEANUP_UNKNOWN')
+        233 │ + ··········:·await·closeOwnedResource(resource,·port);
+    233 234 │         results.push(result);
+    234 235 │         if (result.state === 'unknown') blocked = true;
+    ······· │ 
+    239 240 │         } catch (error) {
+    240 241 │           blocked = true;
+    241     │ - ········const·reason·=·error·instanceof·Error·&&·error.message·===·'CLEANUP_DEADLINE'·?·'CLOSE_DEADLINE'·:·'CLOSE_ERROR';
+        242 │ + ········const·reason·=
+        243 │ + ··········error·instanceof·Error·&&·error.message·===·'CLEANUP_DEADLINE'·?·'CLOSE_DEADLINE'·:·'CLOSE_ERROR';
+    242 244 │           results.push({ resourceId: id, state: 'unknown', reason });
+    243 245 │           phase = 'unknown:' + id;
+    ······· │ 
+    265 267 │       }
+    266 268 │       const apiPort = apiResource ? Number(apiResource.id.slice(4)) : 0;
+    267     │ - ····await·closeOne(apiResource,·{
+    268     │ - ······deadlineMs:·3_000,
+    269     │ - ······readStartIdentity:·(signal)·=>·readListenerIdentity('api',·apiPort,·signal),
+    270     │ - ······stop:·async·()·=>·{
+    271     │ - ········await·app?.close();
+    272     │ - ········return·true;
+    273     │ - ······},
+    274     │ - ······confirmStopped:·async·()·=>·!app?.server.listening·&&·app?.server.address()·===·null,
+    275     │ - ····},·true);
+        269 │ + ····await·closeOne(
+        270 │ + ······apiResource,
+        271 │ + ······{
+        272 │ + ········deadlineMs:·3_000,
+        273 │ + ········readStartIdentity:·(signal)·=>·readListenerIdentity('api',·apiPort,·signal),
+        274 │ + ········stop:·async·()·=>·{
+        275 │ + ··········await·app?.close();
+        276 │ + ··········return·true;
+        277 │ + ········},
+        278 │ + ········confirmStopped:·async·()·=>·!app?.server.listening·&&·app?.server.address()·===·null,
+        279 │ + ······},
+        280 │ + ······true,
+        281 │ + ····);
+    276 282 │       const webPort = webResource ? Number(webResource.id.slice(4)) : 0;
+    277     │ - ····await·closeOne(webResource,·{
+    278     │ - ······deadlineMs:·3_000,
+    279     │ - ······readStartIdentity:·(signal)·=>·readListenerIdentity('web',·webPort,·signal),
+    280     │ - ······stop:·async·()·=>·{
+    281     │ - ········if·(!webServer)·return·false;
+    282     │ - ········await·new·Promise<void>((done,·fail)·=>·webServer?.close((error)·=>·(error·?·fail(error)·:·done())));
+    283     │ - ········return·true;
+    284     │ - ······},
+    285     │ - ······confirmStopped:·async·()·=>·!webServer?.listening·&&·webServer?.address()·===·null,
+    286     │ - ····},·true);
+        283 │ + ····await·closeOne(
+        284 │ + ······webResource,
+        285 │ + ······{
+        286 │ + ········deadlineMs:·3_000,
+        287 │ + ········readStartIdentity:·(signal)·=>·readListenerIdentity('web',·webPort,·signal),
+        288 │ + ········stop:·async·()·=>·{
+        289 │ + ··········if·(!webServer)·return·false;
+        290 │ + ··········await·new·Promise<void>((done,·fail)·=>
+        291 │ + ············webServer?.close((error)·=>·(error·?·fail(error)·:·done())),
+        292 │ + ··········);
+        293 │ + ··········return·true;
+        294 │ + ········},
+        295 │ + ········confirmStopped:·async·()·=>·!webServer?.listening·&&·webServer?.address()·===·null,
+        296 │ + ······},
+        297 │ + ······true,
+        298 │ + ····);
+    287 299 │       if (blocked && db) await closePhase('database:pool', () => db!.end({ timeout: 2 }), 3_000);
+    288 300 │       await closeOne(databaseResource, {
+    ······· │ 
+    366 378 │           return true;
+    367 379 │         },
+    368     │ - ······confirmStopped:·async·(signal)·=>·(await·inspectContainer(containerId,·signal))?.State.Running·===·false,
+        380 │ + ······confirmStopped:·async·(signal)·=>
+        381 │ + ········(await·inspectContainer(containerId,·signal))?.State.Running·===·false,
+    369 382 │         remove: async (signal) => {
+    370 383 │           if ((await readContainerIdentity(signal)) !== containerIdentity || signal.aborted) return false;
+  
+
+test/fixture-lifecycle.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    195 195 │         console.log(
+    196 196 │           'active-request-ready=' +
+    197     │ - ··········JSON.stringify({·registryPath:·handle.registryPath,·apiOrigin:·handle.apiOrigin,·resources:·handle.resources·}),
+        197 │ + ··········JSON.stringify({
+        198 │ + ············registryPath:·handle.registryPath,
+        199 │ + ············apiOrigin:·handle.apiOrigin,
+        200 │ + ············resources:·handle.resources,
+        201 │ + ··········}),
+    198 202 │         );
+    199 203 │   
+    ······· │ 
+    219 223 │       });
+    220 224 │     } catch (error) {
+    221     │ - ····if·(!cleanupUnknown·||·!(error·instanceof·Error·&&·error.message·===·'FIXTURE_CLEANUP_UNKNOWN'))·throw·error;
+        225 │ + ····if·(!cleanupUnknown·||·!(error·instanceof·Error·&&·error.message·===·'FIXTURE_CLEANUP_UNKNOWN'))
+        226 │ + ······throw·error;
+    222 227 │     } finally {
+    223 228 │       socket?.destroy();
+  
+
+Checked 3 files in 27ms. No fixes applied.
+Found 3 errors.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

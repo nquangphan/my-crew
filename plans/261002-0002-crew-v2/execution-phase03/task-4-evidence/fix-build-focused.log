@@ -1,0 +1,18 @@
+✔ workflow real official BMAD installer builds deterministic Claude and API artifacts (51765.512083ms)
+✖ workflow real Superpowers API preserves exact official scripts and pins tool policy (2187.668583ms)
+✔ workflow frozen builder rejects dependency and uv tampering before execution (2550.4645ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 56590.197042
+
+✖ failing tests:
+
+test at v2/gateway/test/workflow-build.test.ts:44:1
+✖ workflow real Superpowers API preserves exact official scripts and pins tool policy (2187.668583ms)
+  Error: CHECKSUM_MISMATCH
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/workflows/registry.ts:430:45

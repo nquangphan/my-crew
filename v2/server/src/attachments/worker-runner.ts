@@ -344,12 +344,111 @@ async function spawnWorkerContainer(
     stop: stopAttached,
   };
 }
-export function createDockerExtractorRunner(config: ExtractorRunnerConfig): ExtractorRunner {
+export type ProductionExtractorBinding = {
+  imageDigest: string;
+  sourceTreeSha256: string;
+  parentRunnerSha256: string;
+  extractorVersion: string;
+  configSha256: string;
+  workerConfigSha256: string;
+};
+export type ProductionExtractorPermit = ProductionExtractorBinding & {
+  reviewedEvidenceSha256: string;
+  lockSha256: string;
+  nativeIntegrity: string;
+  boundaryEvidenceSha256: string;
+  corpusEvidenceSha256: string;
+};
+export interface ProductionExtractorAuthority {
+  authorize(binding: Readonly<ProductionExtractorBinding>): Promise<ProductionExtractorPermit>;
+}
+function canonicalValue(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalValue).join(',')}]`;
+  if (value !== null && typeof value === 'object')
+    return `{${Object.entries(value)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([k, v]) => `${JSON.stringify(k)}:${canonicalValue(v)}`)
+      .join(',')}}`;
+  return JSON.stringify(value);
+}
+export function createDockerExtractorRunner(
+  config: ExtractorRunnerConfig,
+  authority?: ProductionExtractorAuthority,
+): ExtractorRunner {
   validateConfig(config);
   const frozen = Object.freeze({ ...config });
+  const runs = new Map<string, { path: string; result: Promise<WorkerResult> }>();
+  let active = false;
   return {
-    async start() {
-      throw workerError('PRODUCTION_CORPUS_REQUIRED');
+    async start(input, path) {
+      if (!authority) throw workerError('PRODUCTION_CORPUS_REQUIRED');
+      if (active) throw workerError('WORKER_CAPACITY_EXCEEDED');
+      active = true;
+      let spawned = false;
+      try {
+        input = validateWorkerInput(input);
+        const binding: ProductionExtractorBinding = Object.freeze({
+          imageDigest: frozen.imageDigest,
+          sourceTreeSha256: frozen.sourceTreeSha256,
+          parentRunnerSha256: sha(await readFile(new URL(import.meta.url))),
+          extractorVersion: input.extractorVersion,
+          configSha256: input.config.policySha256,
+          workerConfigSha256: sha(canonicalValue(input.config)),
+        });
+        const permit = Object.freeze(structuredClone(await authority.authorize(binding)));
+        if (
+          !permit ||
+          Object.entries(binding).some(
+            ([key, value]) => permit[key as keyof ProductionExtractorPermit] !== value,
+          ) ||
+          input.extractorVersion !==
+            `crew-extractor-v1+pdfjs6.3.289+canvas1.0.3+yauzl3.4.0+saxes6.0.0+pdf-lib1.17.1+${frozen.sourceTreeSha256}` ||
+          ['reviewedEvidenceSha256', 'lockSha256', 'boundaryEvidenceSha256', 'corpusEvidenceSha256'].some(
+            (k) => !/^[0-9a-f]{64}$/.test(permit[k as keyof ProductionExtractorPermit]),
+          ) ||
+          !/^sha512-[A-Za-z0-9+/]{86}==$/.test(permit.nativeIntegrity)
+        )
+          throw workerError('WORKER_PRODUCTION_ADMISSION_INVALID');
+        await assertWorkerDirectory(frozen.storageRoot, path, input);
+        const saved = validateWorkerInput(
+          JSON.parse(await readFile(join(path, 'input', 'request.json'), 'utf8')),
+        );
+        if (canonicalValue(saved) !== canonicalValue(input)) throw workerError('WORKER_INPUT_INVALID');
+        await writePrivateJson(
+          frozen.storageRoot,
+          join(path, '.production-admission.json'),
+          JSON.parse(JSON.stringify(permit)),
+        );
+        // Once spawn starts, an unknown create outcome retains the capacity slot.
+        spawned = true;
+        const run = await spawnWorkerContainer(frozen, path, 'extract');
+        const result = (async () => {
+          const consume = readWorkerFrames(input, run.stream, join(path, 'output'));
+          consume.catch(() => {});
+          try {
+            const answer = await Promise.race([consume, run.failure]);
+            await run.closed;
+            if ((await container(frozen, run.id))?.state !== 'stopped')
+              throw workerError('WORKER_CONTAINER_UNKNOWN');
+            if (run.fault()) throw workerError(run.fault() ?? 'WORKER_FAILED');
+            active = false;
+            return answer;
+          } catch (error) {
+            if ((await run.stop()) !== 'stopped') throw workerError('WORKER_CONTAINER_UNKNOWN');
+            await run.closed;
+            await consume.catch(() => {});
+            active = false;
+            if (run.fault()) throw workerError(run.fault() ?? 'WORKER_FAILED');
+            throw error;
+          }
+        })();
+        result.catch(() => {});
+        runs.set(run.id, { path, result });
+        return { workerId: run.id };
+      } catch (error) {
+        if (!spawned) active = false;
+        throw error;
+      }
     },
     async inspect(id) {
       const state = (await container(frozen, id))?.state;
@@ -359,6 +458,13 @@ export function createDockerExtractorRunner(config: ExtractorRunnerConfig): Extr
       return stopContainer(frozen, id);
     },
     async result(id, path) {
+      const running = runs.get(id);
+      if (running) {
+        if (running.path !== path) throw workerError('WORKER_RESULT_UNAVAILABLE');
+        const result = await running.result;
+        runs.delete(id);
+        return result;
+      }
       const saved = await readIntent(frozen, id);
       if (!saved || saved.path !== path || saved.intent.mode !== 'extract')
         throw workerError('WORKER_RESULT_UNAVAILABLE');
@@ -458,4 +564,120 @@ export async function removeStoppedWorkerContainer(
   } catch {
     return 'unknown';
   }
+}
+
+export type ExtractorCorpusChallenge = {
+  version: 1;
+  imageDigest: string;
+  sourceTreeSha256: string;
+  corpusSha256: string;
+  config: import('./config.ts').WorkerConfig;
+  originals: readonly { sha256: string; mime: string }[];
+  maxCases: number;
+};
+// Private verification construction has no connection to job admission or publication.
+// A result is measured evidence; this helper never creates a production PASS receipt.
+export function createExtractorCorpusVerifier(
+  config: ExtractorRunnerConfig,
+  challenge: ExtractorCorpusChallenge,
+): {
+  verify(input: WorkerInput, path: string): Promise<WorkerResult>;
+} {
+  validateConfig(config);
+  if (
+    challenge.version !== 1 ||
+    challenge.imageDigest !== config.imageDigest ||
+    challenge.sourceTreeSha256 !== config.sourceTreeSha256 ||
+    !Number.isSafeInteger(challenge.maxCases) ||
+    challenge.maxCases < 1 ||
+    challenge.maxCases > 1000 ||
+    !Array.isArray(challenge.originals) ||
+    challenge.originals.length < 1 ||
+    challenge.originals.length > 1000 ||
+    challenge.originals.some(
+      (o) =>
+        !/^[0-9a-f]{64}$/.test(o.sha256) ||
+        typeof o.mime !== 'string' ||
+        o.mime.length < 1 ||
+        o.mime.length > 255,
+    ) ||
+    sha(JSON.stringify(challenge.originals)) !== challenge.corpusSha256
+  )
+    throw workerError('WORKER_CORPUS_CHALLENGE_INVALID');
+  const frozen = Object.freeze({ ...config });
+  const accepted = JSON.parse(JSON.stringify(challenge)) as ExtractorCorpusChallenge;
+  const challengeSha256 = sha(canonicalValue(accepted));
+  let count = 0;
+  let active = false;
+  return {
+    async verify(input, path) {
+      input = validateWorkerInput(input);
+      if (
+        active ||
+        canonicalValue(input.config) !== canonicalValue(accepted.config) ||
+        count >= accepted.maxCases ||
+        !accepted.originals.some((o) => o.sha256 === input.original.sha256 && o.mime === input.mime) ||
+        input.extractorVersion !==
+          `crew-extractor-v1+pdfjs6.3.289+canvas1.0.3+yauzl3.4.0+saxes6.0.0+pdf-lib1.17.1+${frozen.sourceTreeSha256}`
+      )
+        throw workerError('WORKER_CORPUS_CHALLENGE_INVALID');
+      active = true;
+      let uncertain = false;
+      try {
+        await assertWorkerDirectory(frozen.storageRoot, path, input);
+        const saved = validateWorkerInput(
+          JSON.parse(await readFile(join(path, 'input', 'request.json'), 'utf8')),
+        );
+        if (canonicalValue(saved) !== canonicalValue(input)) throw workerError('WORKER_INPUT_INVALID');
+        count++;
+        await writePrivateJson(
+          frozen.storageRoot,
+          join(frozen.storageRoot, `.corpus-${challengeSha256}-${count}.json`),
+          {
+            challengeSha256,
+            ordinal: count,
+            jobId: input.jobId,
+            generation: input.generation,
+            original: input.original,
+          },
+        );
+        await writePrivateJson(frozen.storageRoot, join(path, '.corpus-challenge.json'), {
+          ...accepted,
+          challengeSha256,
+          ordinal: count,
+          jobId: input.jobId,
+          generation: input.generation,
+        });
+        uncertain = true;
+        const run = await spawnWorkerContainer(frozen, path, 'extract');
+        const consume = readWorkerFrames(input, run.stream, join(path, 'output'));
+        consume.catch(() => {});
+        try {
+          const result = await Promise.race([consume, run.failure]);
+          await run.closed;
+          if ((await container(frozen, run.id))?.state !== 'stopped')
+            throw workerError('WORKER_CONTAINER_UNKNOWN');
+          if (run.fault()) throw workerError(run.fault() ?? 'WORKER_FAILED');
+          uncertain = false;
+          await writePrivateJson(frozen.storageRoot, join(path, '.corpus-observation.json'), {
+            imageDigest: frozen.imageDigest,
+            sourceTreeSha256: frozen.sourceTreeSha256,
+            corpusSha256: accepted.corpusSha256,
+            original: input.original,
+            result,
+          });
+          return result;
+        } catch (error) {
+          if ((await run.stop()) !== 'stopped') throw workerError('WORKER_CONTAINER_UNKNOWN');
+          await run.closed;
+          await consume.catch(() => {});
+          uncertain = false;
+          if (run.fault()) throw workerError(run.fault() ?? 'WORKER_FAILED');
+          throw error;
+        }
+      } finally {
+        active = uncertain;
+      }
+    },
+  };
 }

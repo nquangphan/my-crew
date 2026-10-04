@@ -1,0 +1,12 @@
+{
+  "bmad": {
+    "entries": 499,
+    "sourceManifestSha256": "bf966209b9abf05b2585a1225f6c176d1aaa9f0262248282adc5bad6b78bef68",
+    "independentImplementation": "Python tarfile/unicodedata/json/hashlib"
+  },
+  "superpowers": {
+    "entries": 296,
+    "sourceManifestSha256": "e5cf239cc4fd5757338fb435de881d6246948cd1d902fa21b4498a63d5a10dc2",
+    "independentImplementation": "Python tarfile/unicodedata/json/hashlib"
+  }
+}

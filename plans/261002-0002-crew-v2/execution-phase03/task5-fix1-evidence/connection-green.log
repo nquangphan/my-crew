@@ -1,0 +1,20 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-8PYlEA","device":"16777229","inode":"63725869","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-8PYlEA","device":"16777229","inode":"63725869","uid":501,"deleted":true}
+✔ sync boot and heartbeat preserve immutable operations through lost reply/reopen (259.284416ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-CVlHmF","device":"16777229","inode":"63725907","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-CVlHmF","device":"16777229","inode":"63725907","uid":501,"deleted":true}
+✔ controlled boot transition requires actual bound reconciliation and retains prior history through lost reply (658.918541ms)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (283.31375ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (63.996458ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (272.967333ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-ngmP54","device":"16777229","inode":"63725968","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-ngmP54","device":"16777229","inode":"63725968","uid":501,"deleted":true}
+✔ transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen (186.57075ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1011.605125

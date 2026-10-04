@@ -1,0 +1,31 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK","nonce":"411c5111-1713-459e-88ca-f2fcadca8c20","dev":16777229,"ino":64369606,"uid":501}
+{"action":"runtime-workspace-git","argv":["init","/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK/owner"],"receipt":{"formatVersion":1,"operationId":"62f1b3df-49ec-4175-94ee-f363d0533db8","device":"16777229","inode":"64369779","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false},"stageIdentity":{"device":"16777229","inode":"64369779","ownerUid":501,"kind":"directory","linkCount":2,"bytes":0}}
+{"action":"runtime-workspace-git","argv":["-C","/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK/owner","add","--all"],"receipt":{"formatVersion":1,"operationId":"8fd64d2c-dc56-4f72-af73-3e565b739f60","device":"16777229","inode":"64369808","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false},"stageIdentity":{"device":"16777229","inode":"64369808","ownerUid":501,"kind":"directory","linkCount":2,"bytes":0}}
+{"action":"runtime-workspace-git","argv":["-C","/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK/owner","-c","user.name=RuntimeFixture","-c","user.email=runtime@example.invalid","-c","commit.gpgSign=false","commit","-m","fixture"],"receipt":{"formatVersion":1,"operationId":"821f8792-2de9-43dd-908d-bdb3b5a4a77c","device":"16777229","inode":"64369824","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false},"stageIdentity":{"device":"16777229","inode":"64369824","ownerUid":501,"kind":"directory","linkCount":2,"bytes":0}}
+{"action":"runtime-workspace-git","argv":["-C","/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK/owner","rev-parse","HEAD"],"receipt":{"formatVersion":1,"operationId":"b7fc93a6-6033-481e-9da8-9caaf76dc82d","device":"16777229","inode":"64369854","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false},"stageIdentity":{"device":"16777229","inode":"64369854","ownerUid":501,"kind":"directory","linkCount":2,"bytes":0}}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK","nonce":"411c5111-1713-459e-88ca-f2fcadca8c20","dev":16777229,"ino":64369606,"uid":501}
+✖ runtime workspace actual prepared record rejects wrong commit attempt pins state and observed paths (4123.612041ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4224.827834
+
+✖ failing tests:
+
+test at test/runtime-workspace.test.ts:13:1
+✖ runtime workspace actual prepared record rejects wrong commit attempt pins state and observed paths (4123.612041ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-amendment-54ff43ed-4815-4594-9487-4525de46cea1-p44fcwx3/v2/gateway/test/runtime-workspace.test.ts:42:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /RUNTIME_WORKSPACE_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

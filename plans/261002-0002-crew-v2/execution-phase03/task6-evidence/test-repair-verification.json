@@ -1,0 +1,34 @@
+{
+  "path": "v2/gateway/test/retirement-crash.test.ts",
+  "priorSha256": "07a52cc764ba07ea2cbf1f5fe3390778ea8183fc8f5726f95e10b94d0732d080",
+  "candidateSha256": "ae77425625f10eff5f2a3584bb0fb1c5b1b1f8656a34ee0ed6bad76f98edf523",
+  "reason": "PM18:18 test-only exact OS guard reacquisition; original broad failure and narrow failure preserved",
+  "runs": [
+    {
+      "label": "types-after-test-repair",
+      "argv": [
+        "pnpm",
+        "exec",
+        "tsc",
+        "-p",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway/tsconfig.fixture.json"
+      ],
+      "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway",
+      "NODE_OPTIONS": "--loader=/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs",
+      "exit": 0,
+      "seconds": 0.59108575
+    },
+    {
+      "label": "retirement-crash-repair",
+      "argv": [
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway/test/retirement-crash.test.ts"
+      ],
+      "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway",
+      "NODE_OPTIONS": "--loader=/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs",
+      "exit": 0,
+      "seconds": 7.79050775
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "path": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-801ae8dd-600c-45a9-8618-6fdb7048ccfe/v2/server/test/task2-covering.test.ts",
+  "sha256": "8b5ac1838a8c1c0cf2d8c4634f3361ba3f894b09e826d02c1c50de5f130f8fe5",
+  "content": "import './api-acceptance.test.ts';\nimport './attempts.test.ts';\nimport './auth.test.ts';\nimport './commands.test.ts';\nimport './completion.test.ts';\nimport './dependencies.test.ts';\nimport './deploy.test.ts';\nimport './docs-events.unit.test.ts';\nimport './docs-import-cli.unit.test.ts';\nimport './docs-import.test.ts';\nimport './docs-read.test.ts';\nimport './docs-validator.unit.test.ts';\nimport './execution-events.unit.test.ts';\nimport './gateway.test.ts';\nimport './journal-scope.test.ts';\nimport './journal.test.ts';\nimport './model-certification.test.ts';\nimport './model-pool.test.ts';\nimport './model-secret.test.ts';\nimport './platform.test.ts';\nimport './projects.test.ts';\nimport './repair.test.ts';\nimport './ticket-events.unit.test.ts';\nimport './tickets.test.ts';\nimport './model-current-credentials.test.ts';\n"
+}

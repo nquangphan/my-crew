@@ -1,0 +1,15 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-green-1jugtbaq/v2/server", "exec", "node", "--test", "--test-name-pattern=malformed", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-green-1jugtbaq/v2/server/test/attachments-submissions.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-c2f70504-a201-4a9d-9f3e-885f940ec2b7", "--label", "crew.phase05.task2b=a4d19df0-6f6f-4e47-9d43-3ad34f958e09", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "db078d403b7833bc0601d4269332d4c3bdbdb821e2b9dcbb242636c25fd35da2", "name": "crew-v2-test-c2f70504-a201-4a9d-9f3e-885f940ec2b7", "mapping": "127.0.0.1:51434"}
+attachment DB container db078d403b7833bc0601d4269332d4c3bdbdb821e2b9dcbb242636c25fd35da2 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FvkpPg
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FvkpPg nonceSha256=7e7d7d566c95da2e2d2147be5a8f44d24fca532f0158274d60098b76a01856d5
+attachment DB scratch identity dev=16777229 ino=64013828 uid=501 pid=671
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FvkpPg
+✔ attachment submission malformed target returns400 before scope SQL or cached replay (337.631791ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 433.702125

@@ -1,0 +1,34 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server/test/attachments-routing.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-c70f51ec-61a9-4224-86a3-280784f9bcb5", "--label", "crew.phase05.task2b=55a50c6f-5e01-4f27-aba9-2adca739715e", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "4ef2af5016a7d026451ba1c6cd861490791105956e937ebab4a61db539b8aa1a", "name": "crew-v2-test-c70f51ec-61a9-4224-86a3-280784f9bcb5", "mapping": "127.0.0.1:52823"}
+attachment DB container 4ef2af5016a7d026451ba1c6cd861490791105956e937ebab4a61db539b8aa1a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7GZWrb
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7GZWrb nonceSha256=c3a6924eda6471636202e82e2d50affe6e3524bbc4a3b482f9d48f4e04b2abb2
+attachment DB scratch identity dev=16777229 ino=63925166 uid=501 pid=71034
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7GZWrb
+✖ attachment routing configured owner decisions replay and correction default denies without retirement (257.587792ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 344.42575
+
+✖ failing tests:
+
+test at test/attachments-routing.test.ts:8:1
+✖ attachment routing configured owner decisions replay and correction default denies without retirement (257.587792ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server/src/attachments/routing.ts' imported from /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server/test/attachments-routing.test.ts
+      at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+      at moduleResolve (node:internal/modules/esm/resolve:865:10)
+      at defaultResolve (node:internal/modules/esm/resolve:991:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+      at #resolve (node:internal/modules/esm/loader:701:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:650:32)
+      at TracingChannel.tracePromise (node:diagnostics_channel:350:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server/src/attachments/routing.ts'
+  }

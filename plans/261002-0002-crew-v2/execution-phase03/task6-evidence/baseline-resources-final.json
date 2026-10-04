@@ -1,0 +1,742 @@
+{
+  "roots": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gOKaeh",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gOKaeh",
+        "device": "16777229",
+        "inode": "63966709",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nhRCfp",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nhRCfp",
+        "device": "16777229",
+        "inode": "63966731",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gIwOj7",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gIwOj7",
+        "device": "16777229",
+        "inode": "63966790",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5w3Cnb",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5w3Cnb",
+        "device": "16777229",
+        "inode": "63966964",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-p3gVHv",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-p3gVHv",
+        "device": "16777229",
+        "inode": "63966971",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-rCM2fy",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-rCM2fy",
+        "device": "16777229",
+        "inode": "63967232",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ldgJGO",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ldgJGO",
+        "device": "16777229",
+        "inode": "63967420",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-zsqCWD",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-zsqCWD",
+        "device": "16777229",
+        "inode": "63967596",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FO3tBx",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FO3tBx",
+        "device": "16777229",
+        "inode": "63967781",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-IhBEuj",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-IhBEuj",
+        "device": "16777229",
+        "inode": "63967968",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yIrney",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yIrney",
+        "device": "16777229",
+        "inode": "63968142",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-SC7Oym",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-SC7Oym",
+        "device": "16777229",
+        "inode": "63968354",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-czqAmH",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-czqAmH",
+        "device": "16777229",
+        "inode": "63968587",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-TpozVy",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-TpozVy",
+        "device": "16777229",
+        "inode": "63968799",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63968799",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "19668486-c84e-4ddb-932d-86c91c625aab",
+          "pid": 63396,
+          "processGroupId": 63396,
+          "startIdentity": "19668486-c84e-4ddb-932d-86c91c625aab:63396:1790939222:722142:63396:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-z55AlA",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-z55AlA",
+        "device": "16777229",
+        "inode": "63969021",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-6uUeqh",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-6uUeqh",
+        "device": "16777229",
+        "inode": "63969203",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-GR8Ymq",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-GR8Ymq",
+        "device": "16777229",
+        "inode": "63969406",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jUCVhU",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jUCVhU",
+        "device": "16777229",
+        "inode": "63969483",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63969483",
+        "uid": 501
+      },
+      "processObservations": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vLe53v",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vLe53v",
+        "device": "16777229",
+        "inode": "63969702",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bElcg4",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bElcg4",
+        "device": "16777229",
+        "inode": "63969920",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JrAzau",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JrAzau",
+        "device": "16777229",
+        "inode": "63970099",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Rd49lL",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Rd49lL",
+        "device": "16777229",
+        "inode": "63970281",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QNjiRn",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QNjiRn",
+        "device": "16777229",
+        "inode": "63970324",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qeI1i2",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qeI1i2",
+        "device": "16777229",
+        "inode": "63970372",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-q2zh55",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-q2zh55",
+        "device": "16777229",
+        "inode": "63970422",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-GCr5OE",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-GCr5OE",
+        "device": "16777229",
+        "inode": "63970473",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-16hZQu",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-16hZQu",
+        "device": "16777229",
+        "inode": "63970639",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63970639",
+        "uid": 501
+      },
+      "processObservations": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sUygvt",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sUygvt",
+        "device": "16777229",
+        "inode": "63970807",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63970807",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "cbc6e38b-e62d-4787-8d05-19e4aede2d44",
+          "pid": 65072,
+          "processGroupId": 65072,
+          "startIdentity": "cbc6e38b-e62d-4787-8d05-19e4aede2d44:65072:1790939247:686318:65072:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-fy5Cm1",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-fy5Cm1",
+        "device": "16777229",
+        "inode": "63970980",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63970980",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "01ce4b63-ddd0-4d19-ba1c-9dbad582c0de",
+          "pid": 65150,
+          "processGroupId": 65150,
+          "startIdentity": "01ce4b63-ddd0-4d19-ba1c-9dbad582c0de:65150:1790939250:868053:65150:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2WtblK",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2WtblK",
+        "device": "16777229",
+        "inode": "63971150",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63971150",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "9af6cb1d-9329-4153-9520-d1402f59854f",
+          "pid": 65217,
+          "processGroupId": 65217,
+          "startIdentity": "9af6cb1d-9329-4153-9520-d1402f59854f:65217:1790939254:82528:65217:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ow0rqt",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ow0rqt",
+        "device": "16777229",
+        "inode": "63971328",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63971328",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "5179f1c1-cdef-4de8-9679-1db734160dde",
+          "pid": 65300,
+          "processGroupId": 65300,
+          "startIdentity": "5179f1c1-cdef-4de8-9679-1db734160dde:65300:1790939257:331192:65300:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wc73YR",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wc73YR",
+        "device": "16777229",
+        "inode": "63971511",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63971511",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "ccb35f99-f4a3-4e67-95d5-c23fc127f73a",
+          "pid": 65398,
+          "processGroupId": 65398,
+          "startIdentity": "ccb35f99-f4a3-4e67-95d5-c23fc127f73a:65398:1790939260:582062:65398:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-zQBolx",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-zQBolx",
+        "device": "16777229",
+        "inode": "63971830",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LOCCnJ",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LOCCnJ",
+        "device": "16777229",
+        "inode": "63975295",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-em4puo",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-em4puo",
+        "device": "16777229",
+        "inode": "63975499",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-7FjB7A",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-7FjB7A",
+        "device": "16777229",
+        "inode": "63976147",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BjP1Ge",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BjP1Ge",
+        "device": "16777229",
+        "inode": "63976480",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63976480",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "157a59b1-d8bf-406a-86a8-24c0abbee4c8",
+          "pid": 69439,
+          "processGroupId": 69439,
+          "startIdentity": "157a59b1-d8bf-406a-86a8-24c0abbee4c8:69439:1790939329:360627:69439:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-IjBrEx",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-IjBrEx",
+        "device": "16777229",
+        "inode": "63976774",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Zj0YIG",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Zj0YIG",
+        "device": "16777229",
+        "inode": "63977786",
+        "uid": 501
+      },
+      "retainedUnknown": true,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "63977786",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "36f7f13a-25b9-4af7-b849-d6d076b0c6b0",
+          "pid": 69683,
+          "processGroupId": 69683,
+          "startIdentity": "36f7f13a-25b9-4af7-b849-d6d076b0c6b0:69683:1790939334:718849:69683:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        },
+        {
+          "launchId": "fdecac98-bba1-4e41-9e26-60e61ca04cd4",
+          "pid": 69690,
+          "processGroupId": 69690,
+          "startIdentity": "fdecac98-bba1-4e41-9e26-60e61ca04cd4:69690:1790939334:883238:69690:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        },
+        {
+          "launchId": "803745ee-c39a-45e5-a86c-74a73d0c81c3",
+          "pid": 69652,
+          "processGroupId": 69652,
+          "startIdentity": "803745ee-c39a-45e5-a86c-74a73d0c81c3:69652:1790939334:122091:69652:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        },
+        {
+          "launchId": "2ce4c6a4-6375-4525-9c22-5a45efda9c1a",
+          "pid": 69700,
+          "processGroupId": 69700,
+          "startIdentity": "2ce4c6a4-6375-4525-9c22-5a45efda9c1a:69700:1790939335:96484:69700:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-71oo4h",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-71oo4h",
+        "device": "16777229",
+        "inode": "63977977",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-47IvfZ",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-47IvfZ",
+        "device": "16777229",
+        "inode": "63978153",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-He0n2K",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-He0n2K",
+        "device": "16777229",
+        "inode": "63978334",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-oyOKil",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-oyOKil",
+        "device": "16777229",
+        "inode": "63978511",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-1iCwIS",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-1iCwIS",
+        "device": "16777229",
+        "inode": "63978679",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Q6FuFY",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Q6FuFY",
+        "device": "16777229",
+        "inode": "64016199",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JTuty2",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JTuty2",
+        "device": "16777229",
+        "inode": "64016556",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-n0CoKX",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-n0CoKX",
+        "device": "16777229",
+        "inode": "64016730",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-MnUtH8",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-MnUtH8",
+        "device": "16777229",
+        "inode": "64005433",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4SfjWm",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4SfjWm",
+        "device": "16777229",
+        "inode": "64005688",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "absent"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ADqXDP",
+      "expected": {
+        "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ADqXDP",
+        "device": "16777229",
+        "inode": "64005946",
+        "uid": 501
+      },
+      "retainedUnknown": false,
+      "status": "retained",
+      "currentIdentity": {
+        "device": "16777229",
+        "inode": "64005946",
+        "uid": 501
+      },
+      "processObservations": [
+        {
+          "launchId": "df1f7afb-b13d-4238-8300-462de332ea89",
+          "pid": 88048,
+          "processGroupId": 88048,
+          "startIdentity": "df1f7afb-b13d-4238-8300-462de332ea89:88048:1790939613:372857:88048:501",
+          "groupEmptyObservation": true,
+          "pidObservation": null
+        }
+      ]
+    }
+  ],
+  "containers": [
+    {
+      "id": "271a1c7a430e4959a3128b5c0906c5eebeaf255381e189f381956ce3c82df168",
+      "absent": true,
+      "running": null
+    }
+  ],
+  "baselineUnknown": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-6brEvr",
+      "device": "16777229",
+      "inode": "64000040",
+      "uid": 501,
+      "status": "retained UNKNOWN baseline covering fixture"
+    }
+  ],
+  "note": "Group-empty/PID absence are observations only; UNKNOWN roots are retained and never inferred stopped."
+}

@@ -1,0 +1,1187 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index e4d0cc2..cefcaef 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -3,50 +3,58 @@
+ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng lệnh.
+ 
+ <!-- crew-docs:files:start -->
+ > Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.
+ 
+ | File | Flows |
+ |------|-------|
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+ | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/auth/session.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
++| `server/src/docs/checksum.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
++| `server/src/docs/contracts.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
++| `server/src/docs/links.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
++| `server/src/docs/manifest.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
++| `server/src/docs/validator.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
++| `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
++| `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
++| `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index f492d1b..5098425 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -56,22 +56,36 @@ flows:
+     tests:
+       - server/test/journal-scope.test.ts
+       - server/test/journal.test.ts
+   server-identity:
+     title: Xác thực owner và gắn dự án với máy Crew v2
+     doc: docs/flows/server-identity.md
+     entrypoints:
+       - server/src/auth/routes.ts
+       - server/src/projects/routes.ts
+     files:
+       - server/src/auth/bootstrap.ts
+       - server/src/auth/machine.ts
+       - server/src/auth/password.ts
+       - server/src/auth/session.ts
+       - server/src/projects/service.ts
+       - server/migrations/003_identity.sql
+     tests:
+       - server/test/auth.test.ts
+       - server/test/projects.test.ts
+       - server/test/support/identity-app.ts
++  server-docs-import:
++    title: Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2
++    doc: docs/flows/server-docs-import.md
++    entrypoints:
++      - server/src/docs/validator.ts
++    files:
++      - server/src/docs/checksum.ts
++      - server/src/docs/contracts.ts
++      - server/src/docs/links.ts
++      - server/src/docs/manifest.ts
++    tests:
++      - server/test/docs-validator.unit.test.ts
++      - server/test/support/docs.ts
++      - server/test/fixtures/legacy-docs/crlf-unicode.md
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-docs-import.md b/v2/docs/flows/server-docs-import.md
+new file mode 100644
+index 0000000..70da11e
+--- /dev/null
++++ b/v2/docs/flows/server-docs-import.md
+@@ -0,0 +1,43 @@
++# Nhập và kiểm tra docs nguyên trạng
++
++## Mục đích
++
++Giữ nguyên byte của tài liệu nhập từ Crew v1, phân biệt tài liệu mô tả hệ thống đã triển khai với artifact workflow, và báo cáo lỗi cấu trúc/link theo chuẩn `packages/docs-kit/STANDARD.md`. Bản nhập hợp lệ về cấu trúc vẫn ở trạng thái chưa xác minh so với source checkout. Phần kiểm tra thuần của flow được triển khai trước; nhập DB và đồng bộ snapshot thực hiện sau khi migration execution sẵn sàng.
++
++## Điểm vào
++
++- `server/src/docs/validator.ts` → `validateDocs`: kiểm tra một tập Buffer và phân loại file, trả issue cùng từng lần xuất hiện link.
++- `server/src/docs/checksum.ts` → `hashBytes`, `snapshotHash`, `sourceTreeHash`, `bundleHash`: băm byte gốc và danh sách canonical.
++
++## Các bước
++
++1. `server/src/docs/checksum.ts` → `hashBytes`: tính SHA-256 trực tiếp trên Buffer, không đổi CRLF, Unicode hay encoding.
++2. `server/src/docs/checksum.ts` → `snapshotHash`: kiểm tra base64 chuẩn, checksum, UTF-8 và file trùng; băm danh sách tuple path/checksum/kích thước/class đã sắp xếp.
++3. `server/src/docs/manifest.ts` → `parseManifest`: đọc YAML có bắt khóa trùng, chặn khóa/prototype nguy hiểm, kiểm tra schema, path, mapping và source glob.
++4. `server/src/docs/validator.ts` → `validateDocs`: áp dụng cấu trúc STANDARD lên trang implemented, kiểm tra heading, block sinh tự động, manifest và độ phủ source khi có danh sách source checkout. Bản nhập legacy phát cảnh báo `SOURCE_TREE_UNVERIFIED`.
++5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/image, bỏ code, giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link. Cú pháp chưa hỗ trợ được đánh dấu unverified.
++
++## Files
++
++| Đường dẫn từ `v2/` | Vai trò | Symbol chính |
++|---|---|---|
++| `server/src/docs/contracts.ts` | Kiểu dữ liệu snapshot, audit và link | `DocsValidationInput`, `DocsValidationResult`, `DocLink` |
++| `server/src/docs/checksum.ts` | Checksum byte và canonical tuple | `hashBytes`, `snapshotHash`, `sourceTreeHash`, `bundleHash` |
++| `server/src/docs/manifest.ts` | YAML, path, source glob và block chuẩn | `parseManifest`, `sourceMatcher`, `expectedFlowBlock`, `expectedFilesBlock` |
++| `server/src/docs/validator.ts` | Kết hợp kiểm tra cấu trúc và source | `validateDocs` |
++| `server/src/docs/links.ts` | Link/fragment audit theo từng occurrence | `auditLinks` |
++| `server/test/docs-validator.unit.test.ts` | Unit tests không DB | — |
++| `server/test/support/docs.ts` | Snapshot fixture hợp lệ | `docsValidationFixture` |
++| `server/test/fixtures/legacy-docs/crlf-unicode.md` | Fixture byte CRLF và Unicode | — |
++
++## Dữ liệu
++
++Stage A chỉ nhận `Map<string, Buffer>` và metadata do caller cung cấp; không đọc DB hay mạng. Validator giữ byte gốc trong input và chỉ decode UTF-8 để audit. `contentClass` của từng trang vẫn riêng biệt; artifact workflow không được dùng thay trang chuẩn implemented. Checksum và danh sách path từ caller tự chúng chưa chứng minh commit nguồn hoặc nội dung code đúng. Stage B sẽ lưu snapshot bất biến, provenance và report trong DB khi migration 005 cùng contract execution đạt.
++
++## Flow liên quan
++
++`server-platform` cung cấp kiểu ID/transaction; `server-journal` cung cấp canonical JSON cho checksum. Flow `docs-check` của v1 là chuẩn dữ liệu tham chiếu, không phải dependency runtime. Flow execution cần cung cấp schema attempt/fence và bằng chứng đối chiếu commit trước khi docs sync được tích hợp.
++
++## Tests
++
++`node --test server/test/docs-validator.unit.test.ts` (chạy từ `v2/`) kiểm tra CRLF/Unicode, checksum, YAML trùng khóa, case/path traversal, phân loại trang, source coverage, heading, generated block và link lặp/fragment. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng. DB import, chạy lại và rollback batch thuộc Stage B; chưa được xác nhận ở Stage A.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 65efadb..a40f275 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -10,30 +10,31 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g
+ - Node.js ≥ 24.12 chạy TypeScript bằng type stripping.
+ - TypeScript 7 kiểm tra kiểu ở chế độ strict; `node:test` chạy kiểm thử.
+ - pnpm 10.32.1 quản lý package độc lập trong `v2/` và `v2/server/`.
+ - Nền tảng server dùng Fastify 5 và postgres.js; DB v2 riêng PostgreSQL 18.6, không dùng DB v1.
+ 
+ ## Bản đồ module
+ 
+ | Thư mục | Vai trò |
+ |---------|---------|
+ | `src/` | Bốn policy thuần cho chọn model, workflow, chuyển trạng thái ticket và hoàn tất |
+ | `test/` | Kiểm thử hành vi và tính độc lập của workspace |
+ | `server/` | Nền tảng DB server độc lập, migration có checksum và fixture PostgreSQL riêng |
+ | `docs/` | Kiến trúc, manifest flow và bảng tra file |
+ 
+ ## Danh sách flow
+ 
+ <!-- crew-docs:flows:start -->
+ | Flow | Id | Điểm vào |
+ |------|----|----------|
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
++| [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/src/docs/validator.ts` |
+ | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ <!-- crew-docs:flows:end -->
+ 
+ ## Cách dùng docs
+ 
+ - [Kiến trúc](architecture.md) mô tả ranh giới của thư viện miền.
+ - [Bảng tra file](files.md) cho biết file thuộc flow nào.
+ - Mỗi trang trong `flows/` mô tả điểm vào, bước xử lý, dữ liệu và test của một flow.
+diff --git a/v2/server/src/docs/checksum.ts b/v2/server/src/docs/checksum.ts
+new file mode 100644
+index 0000000..1f77566
+--- /dev/null
++++ b/v2/server/src/docs/checksum.ts
+@@ -0,0 +1,37 @@
++import { createHash } from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { DocsFile, DocsImport } from './contracts.ts';
++
++export function hashBytes(bytes: Buffer): string {
++  return createHash('sha256').update(bytes).digest('hex');
++}
++
++export function decodeFileBytes(file: DocsFile): Buffer {
++  const bytes = Buffer.from(file.bytesBase64, 'base64');
++  if (bytes.toString('base64') !== file.bytesBase64) throw new Error('INVALID_BASE64');
++  if (bytes.length > 1024 * 1024) throw new Error('FILE_TOO_LARGE');
++  if (hashBytes(bytes) !== file.sha256) throw new Error('CHECKSUM_MISMATCH');
++  new TextDecoder('utf-8', { fatal: true }).decode(bytes);
++  return bytes;
++}
++
++export function snapshotHash(files: DocsFile[]): string {
++  const seen = new Set<string>();
++  const tuples = files
++    .map((file) => {
++      if (seen.has(file.path)) throw new Error('DUPLICATE_PATH');
++      seen.add(file.path);
++      const bytes = decodeFileBytes(file);
++      return [file.path, file.sha256, bytes.length, file.contentClass] as const;
++    })
++    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
++  return hashBytes(Buffer.from(canonicalJson(tuples), 'utf8'));
++}
++
++export function sourceTreeHash(paths: string[]): string {
++  return hashBytes(Buffer.from(canonicalJson([...paths].sort()), 'utf8'));
++}
++
++export function bundleHash(input: Omit<DocsImport, 'bundleSha256'>): string {
++  return hashBytes(Buffer.from(canonicalJson(input), 'utf8'));
++}
+diff --git a/v2/server/src/docs/contracts.ts b/v2/server/src/docs/contracts.ts
+new file mode 100644
+index 0000000..598ce49
+--- /dev/null
++++ b/v2/server/src/docs/contracts.ts
+@@ -0,0 +1,54 @@
++import type { Id } from '../platform/contracts.ts';
++
++export type ContentClass = 'implemented' | 'workflow_artifact';
++export type DocsFile = { path: string; bytesBase64: string; sha256: string; contentClass: ContentClass };
++export type AuditIssue = { code: string; path: string; message: string; severity: 'error' | 'warning' };
++export type DocsImport = {
++  sourceSystem: 'crew-v1';
++  backupManifestSha256: string;
++  bundleSha256: string;
++  inventory: {
++    legacyProjectId: string;
++    key: string;
++    name: string;
++    repositoryUrl: string | null;
++    sourceCommit: string | null;
++    snapshotSha256: string;
++    files: DocsFile[];
++  }[];
++};
++export type ImportResult = {
++  importId: Id;
++  projects: {
++    projectId: Id;
++    legacyProjectId: string;
++    snapshotId: Id;
++    auditState: 'unverified' | 'invalid';
++    issues: AuditIssue[];
++  }[];
++};
++export type DocsSync = {
++  sourceCommit: string;
++  snapshotSha256: string;
++  files: DocsFile[];
++  attemptId: Id;
++  fence: string;
++  trackedSourcePaths: string[];
++  sourceTreeSha256: string;
++  verificationEvidenceId: Id;
++};
++export type DocsValidationInput = {
++  files: Map<string, Buffer>;
++  contentClasses: Map<string, ContentClass>;
++  trackedSourcePaths: string[];
++  mode: 'legacy_import' | 'checkout_sync';
++};
++export type DocLink = {
++  fromPath: string;
++  occurrence: number;
++  originalHref: string;
++  toPath: string;
++  fragment: string | null;
++  status: 'ok' | 'missing' | 'external' | 'unverified';
++};
++export type DocsValidationResult = { issues: AuditIssue[]; valid: boolean; links: DocLink[] };
+diff --git a/v2/server/src/docs/links.ts b/v2/server/src/docs/links.ts
+new file mode 100644
+index 0000000..8c50d6b
+--- /dev/null
++++ b/v2/server/src/docs/links.ts
+@@ -0,0 +1,212 @@
++import { posix } from 'node:path';
++import type { AuditIssue, DocLink } from './contracts.ts';
++import { validPath } from './manifest.ts';
++
++const finding = (
++  code: string,
++  path: string,
++  message: string,
++  severity: AuditIssue['severity'],
++): AuditIssue => ({ code, path, message, severity });
++
++function slug(text: string): string | null {
++  const clean = text
++    .replace(/<[^>]*>/g, '')
++    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
++    .replace(/`/g, '')
++    .trim()
++    .toLowerCase();
++  if (!clean || /[{}]/.test(clean)) return null;
++  return clean.replace(/[^\p{L}\p{N}\p{M}_\-\s]/gu, '').replace(/\s/g, '-');
++}
++
++function anchors(text: string): { found: Set<string>; uncertain: boolean } {
++  const found = new Set<string>();
++  const counts = new Map<string, number>();
++  let fenced = false;
++  let uncertain = false;
++  for (const line of text.split(/\r?\n/)) {
++    if (/^\s*(```|~~~)/.test(line)) {
++      fenced = !fenced;
++      continue;
++    }
++    if (fenced) continue;
++    const heading = /^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/.exec(line);
++    if (!heading) continue;
++    const base = slug(heading[1] ?? '');
++    if (base === null) {
++      uncertain = true;
++      continue;
++    }
++    const suffix = counts.get(base) ?? 0;
++    counts.set(base, suffix + 1);
++    found.add(suffix === 0 ? base : `${base}-${suffix}`);
++  }
++  return { found, uncertain };
++}
++
++function scanText(text: string): { visible: string; references: Map<string, string>; unsupported: boolean } {
++  const references = new Map<string, string>();
++  const visible: string[] = [];
++  let fenced = false;
++  let unsupported = false;
++  for (const line of text.split(/\r?\n/)) {
++    if (/^\s*(```|~~~)/.test(line)) {
++      fenced = !fenced;
++      continue;
++    }
++    if (fenced) continue;
++    const def = /^\s{0,3}\[([^\]]+)\]:\s*(\S+)/.exec(line);
++    if (def) {
++      references.set((def[1] ?? '').toLowerCase().trim(), def[2] ?? '');
++      continue;
++    }
++    const withoutCode = line.replace(/`[^`]*`/g, '');
++    if (
++      /\]\([^)]*\([^)]*\)/.test(withoutCode) ||
++      /\[[^\]]*\[[^\]]+\][^\]]*\]\(/.test(withoutCode) ||
++      /<a\s|<img\s/i.test(withoutCode)
++    )
++      unsupported = true;
++    visible.push(withoutCode);
++  }
++  return { visible: visible.join('\n'), references, unsupported };
++}
++
++export function auditLinks(files: Map<string, string>): { links: DocLink[]; issues: AuditIssue[] } {
++  const links: DocLink[] = [];
++  const issues: AuditIssue[] = [];
++  const anchorCache = new Map<string, { found: Set<string>; uncertain: boolean }>();
++  for (const [fromPath, content] of files) {
++    if (!fromPath.endsWith('.md')) continue;
++    const { visible, references, unsupported } = scanText(content);
++    if (unsupported)
++      issues.push(
++        finding(
++          'UNVERIFIED_LINK_SYNTAX',
++          fromPath,
++          'Cú pháp Markdown/HTML phức tạp cần kiểm tra thủ công',
++          'warning',
++        ),
++      );
++    const token = /!?\[([^[\]]+)\]\(([^)]+)\)|!?\[([^[\]]+)\]\[([^\]]+)\]/g;
++    let occurrence = 0;
++    for (const match of visible.matchAll(token)) {
++      const href = match[2] ?? references.get((match[4] ?? '').toLowerCase().trim());
++      const originalHref = href ?? match[0];
++      const current = occurrence++;
++      if (!href) {
++        links.push({
++          fromPath,
++          occurrence: current,
++          originalHref,
++          toPath: '',
++          fragment: null,
++          status: 'unverified',
++        });
++        issues.push(
++          finding(
++            'UNVERIFIED_LINK_SYNTAX',
++            fromPath,
++            `Reference không có định nghĩa: ${match[0]}`,
++            'warning',
++          ),
++        );
++        continue;
++      }
++      if (/^(https?:|mailto:)/i.test(href)) {
++        links.push({
++          fromPath,
++          occurrence: current,
++          originalHref,
++          toPath: href,
++          fragment: null,
++          status: 'external',
++        });
++        continue;
++      }
++      if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
++        links.push({
++          fromPath,
++          occurrence: current,
++          originalHref,
++          toPath: '',
++          fragment: null,
++          status: 'unverified',
++        });
++        issues.push(finding('UNVERIFIED_LINK_SYNTAX', fromPath, `Scheme chưa hỗ trợ: ${href}`, 'warning'));
++        continue;
++      }
++      const split = href.indexOf('#');
++      const rawPath = split < 0 ? href : href.slice(0, split);
++      const fragmentRaw = split < 0 ? null : href.slice(split + 1);
++      let decoded: string;
++      let fragment: string | null;
++      try {
++        decoded = decodeURIComponent(rawPath);
++        fragment = fragmentRaw === null ? null : decodeURIComponent(fragmentRaw);
++      } catch {
++        decoded = '';
++        fragment = null;
++      }
++      const toPath = decoded ? posix.normalize(posix.join(posix.dirname(fromPath), decoded)) : fromPath;
++      const encodedTraversal = /%(?:2e|2f|5c)/i.test(rawPath);
++      if (
++        (decoded && !validPath(toPath)) ||
++        encodedTraversal ||
++        rawPath.startsWith('/') ||
++        rawPath.includes('\\') ||
++        href.includes('?')
++      ) {
++        links.push({ fromPath, occurrence: current, originalHref, toPath, fragment, status: 'unverified' });
++        issues.push(
++          finding('LINK_PATH_ESCAPE', fromPath, `Link có đường dẫn không an toàn: ${href}`, 'error'),
++        );
++        continue;
++      }
++      const destination = files.get(toPath);
++      if (destination === undefined) {
++        links.push({ fromPath, occurrence: current, originalHref, toPath, fragment, status: 'missing' });
++        const artifact =
++          toPath.startsWith('docs/superpowers/') ||
++          toPath.startsWith('docs/bmad/') ||
++          toPath.startsWith('_bmad-output/');
++        issues.push(
++          finding(
++            artifact ? 'EXTERNAL_ARTIFACT_NOT_IMPORTED' : 'LINK_MISSING',
++            fromPath,
++            `Thiếu đích link: ${href}`,
++            artifact ? 'warning' : 'error',
++          ),
++        );
++        continue;
++      }
++      if (fragment !== null && fragment !== '') {
++        const targetAnchors = anchorCache.get(toPath) ?? anchors(destination);
++        anchorCache.set(toPath, targetAnchors);
++        if (!targetAnchors.found.has(fragment)) {
++          const unknown = targetAnchors.uncertain;
++          links.push({
++            fromPath,
++            occurrence: current,
++            originalHref,
++            toPath,
++            fragment,
++            status: unknown ? 'unverified' : 'missing',
++          });
++          issues.push(
++            finding(
++              unknown ? 'UNVERIFIED_LINK_SYNTAX' : 'LINK_FRAGMENT_MISSING',
++              fromPath,
++              `Không xác nhận được heading #${fragment} trong ${toPath}`,
++              unknown ? 'warning' : 'error',
++            ),
++          );
++          continue;
++        }
++      }
++      links.push({ fromPath, occurrence: current, originalHref, toPath, fragment, status: 'ok' });
++    }
++  }
++  return { links, issues };
++}
+diff --git a/v2/server/src/docs/manifest.ts b/v2/server/src/docs/manifest.ts
+new file mode 100644
+index 0000000..69c93a7
+--- /dev/null
++++ b/v2/server/src/docs/manifest.ts
+@@ -0,0 +1,254 @@
++import { posix } from 'node:path';
++import picomatch from 'picomatch';
++import { parseDocument } from 'yaml';
++import type { AuditIssue } from './contracts.ts';
++
++export type Manifest = {
++  version: 1;
++  source: { include: string[]; exclude: string[] };
++  flows: Record<
++    string,
++    { title: string; doc: string; entrypoints: string[]; files: string[]; tests: string[] }
++  >;
++  shared: Record<string, string[]>;
++  unassigned: { path: string; reason: string }[];
++};
++
++const issue = (message: string): AuditIssue => ({
++  code: 'MANIFEST_INVALID',
++  path: 'docs/flows.yaml',
++  message,
++  severity: 'error',
++});
++const own = (value: unknown): value is Record<string, unknown> =>
++  value !== null &&
++  typeof value === 'object' &&
++  !Array.isArray(value) &&
++  (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
++const exact = (value: Record<string, unknown>, keys: string[]) =>
++  Object.keys(value).length === keys.length && Object.keys(value).every((key) => keys.includes(key));
++const strings = (value: unknown): value is string[] =>
++  Array.isArray(value) &&
++  value.every((item) => typeof item === 'string' && item.length > 0) &&
++  new Set(value).size === value.length;
++const safeKey = (key: string) => key !== '__proto__' && key !== 'constructor' && key !== 'prototype';
++
++export function validPath(path: string): boolean {
++  if (
++    path.length < 1 ||
++    path.length > 1024 ||
++    path.includes('\\') ||
++    path.includes('\0') ||
++    path.startsWith('/') ||
++    path.includes('?') ||
++    path.includes('#')
++  )
++    return false;
++  let decoded: string;
++  try {
++    decoded = decodeURIComponent(path);
++  } catch {
++    return false;
++  }
++  if (
++    decoded.includes('\\') ||
++    decoded.includes('\0') ||
++    decoded.startsWith('/') ||
++    decoded.includes('?') ||
++    decoded.includes('#')
++  )
++    return false;
++  return [path, decoded].every((item) =>
++    item.split('/').every((part) => part !== '' && part !== '.' && part !== '..'),
++  );
++}
++
++export function allowedDocsPath(path: string): boolean {
++  return (
++    validPath(path) &&
++    (path === 'AGENTS.md' ||
++      path === 'CLAUDE.md' ||
++      path.startsWith('docs/') ||
++      path.startsWith('_bmad-output/'))
++  );
++}
++
++export function requiredClass(path: string): 'implemented' | 'workflow_artifact' | null {
++  if (
++    path.startsWith('_bmad-output/') ||
++    /^(docs\/superpowers\/(specs|plans)\/|docs\/bmad\/|docs\/artifacts\/)/.test(path)
++  )
++    return 'workflow_artifact';
++  if (
++    path === 'AGENTS.md' ||
++    path === 'CLAUDE.md' ||
++    /^(docs\/(index|architecture|files)\.md|docs\/flows\.yaml|docs\/flows\/[^/]+\.md)$/.test(path)
++  )
++    return 'implemented';
++  return null;
++}
++
++export function parseManifest(text: string): { manifest: Manifest | null; issues: AuditIssue[] } {
++  if (text.length > 1024 * 1024) return { manifest: null, issues: [issue('Manifest vượt giới hạn 1 MiB')] };
++  try {
++    const doc = parseDocument(text, { uniqueKeys: true });
++    if (doc.errors.length) return { manifest: null, issues: doc.errors.map((error) => issue(error.message)) };
++    const value: unknown = doc.toJS({ maxAliasCount: 50 });
++    if (
++      !own(value) ||
++      !exact(value, ['version', 'source', 'flows', 'shared', 'unassigned']) ||
++      value.version !== 1
++    )
++      throw new Error('Cấu trúc manifest không hợp lệ');
++    if (
++      !own(value.source) ||
++      !exact(value.source, ['include', 'exclude']) ||
++      !strings(value.source.include) ||
++      !strings(value.source.exclude) ||
++      value.source.include.length === 0
++    )
++      throw new Error('source.include/exclude không hợp lệ');
++    if (!own(value.flows) || !own(value.shared) || !Array.isArray(value.unassigned))
++      throw new Error('flows/shared/unassigned không hợp lệ');
++    for (const [id, entry] of Object.entries(value.flows)) {
++      if (
++        !safeKey(id) ||
++        !/^[a-z][a-z0-9-]*$/.test(id) ||
++        !own(entry) ||
++        !exact(entry, ['title', 'doc', 'entrypoints', 'files', 'tests']) ||
++        typeof entry.title !== 'string' ||
++        !entry.title.trim() ||
++        typeof entry.doc !== 'string' ||
++        !validPath(entry.doc) ||
++        entry.doc !== `docs/flows/${id}.md` ||
++        !strings(entry.entrypoints) ||
++        !strings(entry.files) ||
++        !strings(entry.tests)
++      )
++        throw new Error(`Flow ${id} không hợp lệ`);
++      if (![...entry.entrypoints, ...entry.files, ...entry.tests].every(validPath))
++        throw new Error(`Path của flow ${id} không hợp lệ`);
++    }
++    for (const [path, targets] of Object.entries(value.shared)) {
++      if (
++        !safeKey(path) ||
++        !validPath(path) ||
++        !strings(targets) ||
++        targets.length === 0 ||
++        targets.some((id) => !Object.hasOwn(value.flows as object, id))
++      )
++        throw new Error(`shared ${path} không hợp lệ`);
++    }
++    const unassignedPaths = new Set<string>();
++    for (const entry of value.unassigned) {
++      if (
++        !own(entry) ||
++        !exact(entry, ['path', 'reason']) ||
++        typeof entry.path !== 'string' ||
++        !validPath(entry.path) ||
++        typeof entry.reason !== 'string' ||
++        !entry.reason.trim() ||
++        unassignedPaths.has(entry.path)
++      )
++        throw new Error('unassigned không hợp lệ');
++      unassignedPaths.add(entry.path);
++    }
++    const manifest = value as Manifest;
++    for (const path of mappedPaths(manifest))
++      if (unassignedPaths.has(path)) throw new Error(`${path} vừa thuộc flow vừa unassigned`);
++    return { manifest, issues: [] };
++  } catch (error) {
++    return { manifest: null, issues: [issue(error instanceof Error ? error.message : 'Không thể đọc YAML')] };
++  }
++}
++
++export function mappedPaths(manifest: Manifest): Set<string> {
++  const paths = new Set<string>();
++  for (const flow of Object.values(manifest.flows))
++    for (const path of [...flow.entrypoints, ...flow.files, ...flow.tests]) paths.add(path);
++  for (const path of Object.keys(manifest.shared)) paths.add(path);
++  return paths;
++}
++
++export function sourceMatcher(manifest: Manifest): (path: string) => boolean {
++  const include = picomatch(manifest.source.include, { dot: true });
++  const exclude = picomatch(manifest.source.exclude, { dot: true });
++  return (path) => include(path) && !exclude(path);
++}
++
++const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
++const code = (text: string) => `\`${cell(text)}\``;
++const link = (from: string, to: string) => posix.relative(posix.dirname(from), to);
++
++export function expectedFlowBlock(manifest: Manifest): string {
++  const ids = Object.keys(manifest.flows).sort();
++  if (!ids.length) return '_Chưa có flow nào trong `docs/flows.yaml`._';
++  return [
++    '| Flow | Id | Điểm vào |',
++    '|------|----|----------|',
++    ...ids.map((id) => {
++      const flow = manifest.flows[id];
++      if (!flow) throw new Error(`Flow ${id} không tồn tại`);
++      return `| [${cell(flow.title)}](${link('docs/index.md', flow.doc)}) | ${code(id)} | ${flow.entrypoints.map(code).join(', ') || '—'} |`;
++    }),
++  ].join('\n');
++}
++
++export function expectedFilesBlock(manifest: Manifest): string {
++  const roles: Record<string, { id: string; role: string; doc: string }[]> = Object.create(null);
++  for (const [id, flow] of Object.entries(manifest.flows))
++    for (const [role, paths] of [
++      ['điểm vào', flow.entrypoints],
++      ['file', flow.files],
++      ['test', flow.tests],
++    ] as const)
++      for (const path of paths) {
++        roles[path] ??= [];
++        roles[path].push({ id, role, doc: flow.doc });
++      }
++  for (const [path, ids] of Object.entries(manifest.shared))
++    for (const id of ids) {
++      roles[path] ??= [];
++      const flow = manifest.flows[id];
++      if (!flow) throw new Error(`Flow ${id} không tồn tại`);
++      roles[path].push({ id, role: 'dùng chung', doc: flow.doc });
++    }
++  const lines = [
++    '> Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.',
++    '',
++    '| File | Flows |',
++    '|------|-------|',
++  ];
++  for (const path of Object.keys(roles).sort())
++    lines.push(
++      `| ${code(path)} | ${(roles[path] ?? [])
++        .sort((a, b) => a.id.localeCompare(b.id))
++        .map((owner) => `[${owner.id}](${link('docs/files.md', owner.doc)}) (${owner.role})`)
++        .join(', ')} |`,
++    );
++  if (manifest.unassigned.length) {
++    lines.push('', '### Không thuộc flow (unassigned)', '', '| File | Lý do |', '|------|-------|');
++    for (const entry of [...manifest.unassigned].sort((a, b) => a.path.localeCompare(b.path)))
++      lines.push(`| ${code(entry.path)} | ${cell(entry.reason)} |`);
++  }
++  return lines.join('\n');
++}
++
++export function actualBlock(text: string, name: 'flows' | 'files'): string | null {
++  const normalized = text.replace(/\r\n/g, '\n');
++  const start = `<!-- crew-docs:${name}:start -->`;
++  const end = `<!-- crew-docs:${name}:end -->`;
++  const from = normalized.indexOf(start);
++  const to = normalized.indexOf(end);
++  if (
++    from < 0 ||
++    to <= from ||
++    normalized.indexOf(start, from + start.length) >= 0 ||
++    normalized.indexOf(end, to + end.length) >= 0
++  )
++    return null;
++  return normalized
++    .slice(from + start.length, to)
++    .replace(/^\n/, '')
++    .replace(/\n$/, '');
++}
+diff --git a/v2/server/src/docs/validator.ts b/v2/server/src/docs/validator.ts
+new file mode 100644
+index 0000000..7ff952d
+--- /dev/null
++++ b/v2/server/src/docs/validator.ts
+@@ -0,0 +1,121 @@
++import type { AuditIssue, DocsValidationInput, DocsValidationResult } from './contracts.ts';
++import { auditLinks } from './links.ts';
++import {
++  actualBlock,
++  allowedDocsPath,
++  expectedFilesBlock,
++  expectedFlowBlock,
++  mappedPaths,
++  parseManifest,
++  requiredClass,
++  sourceMatcher,
++} from './manifest.ts';
++
++const required = [
++  'AGENTS.md',
++  'CLAUDE.md',
++  'docs/index.md',
++  'docs/architecture.md',
++  'docs/flows.yaml',
++  'docs/files.md',
++];
++const headings = ['Mục đích', 'Điểm vào', 'Các bước', 'Files', 'Dữ liệu', 'Flow liên quan', 'Tests'];
++
++export function validateDocs(input: DocsValidationInput): DocsValidationResult {
++  const issues: AuditIssue[] = [];
++  const texts = new Map<string, string>();
++  const add = (code: string, path: string, message: string, severity: AuditIssue['severity'] = 'error') =>
++    issues.push({ code, path, message, severity });
++  for (const [path, bytes] of input.files) {
++    if (!allowedDocsPath(path)) {
++      add('PATH_INVALID', path, 'Đường dẫn tài liệu không an toàn hoặc ngoài danh sách cho phép');
++      continue;
++    }
++    if (!Buffer.isBuffer(bytes) || bytes.length > 1024 * 1024) {
++      add('FILE_TOO_LARGE', path, 'File phải là Buffer tối đa 1 MiB');
++      continue;
++    }
++    const declared = input.contentClasses.get(path);
++    if (declared !== 'implemented' && declared !== 'workflow_artifact')
++      add('CONTENT_CLASS_MISSING', path, 'Thiếu phân loại nội dung');
++    const expected = requiredClass(path);
++    if (expected !== null && declared !== expected)
++      add('CONTENT_CLASS_MISMATCH', path, `Trang này phải có contentClass ${expected}`);
++    try {
++      texts.set(path, new TextDecoder('utf-8', { fatal: true }).decode(bytes));
++    } catch {
++      add('INVALID_UTF8', path, 'Nội dung không phải UTF-8 hợp lệ');
++    }
++  }
++  if (input.files.size > 2000) add('FILE_COUNT_LIMIT', 'docs/', 'Vượt 2000 file trong một snapshot');
++  for (const path of required)
++    if (!texts.has(path) || input.contentClasses.get(path) !== 'implemented')
++      add('REQUIRED_DOC_MISSING', path, 'Thiếu trang chuẩn đã triển khai');
++  const claude = texts.get('CLAUDE.md');
++  if (claude !== undefined && !/^@AGENTS\.md(?:\r?\n)?$/.test(claude))
++    add('CLAUDE_REDIRECT_INVALID', 'CLAUDE.md', 'CLAUDE.md phải chỉ chứa @AGENTS.md');
++
++  const manifestText = texts.get('docs/flows.yaml');
++  const parsed = manifestText !== undefined ? parseManifest(manifestText) : { manifest: null, issues: [] };
++  issues.push(...parsed.issues);
++  const manifest = parsed.manifest;
++  if (manifest) {
++    for (const [id, flow] of Object.entries(manifest.flows)) {
++      if (!texts.has(flow.doc) || input.contentClasses.get(flow.doc) !== 'implemented')
++        add('FLOW_DOC_MISSING', flow.doc, `Thiếu trang flow ${id}`);
++      else {
++        const page = texts.get(flow.doc) ?? '';
++        const actual = [...page.matchAll(/^## (.+?)\s*$/gm)].map((match) => match[1]);
++        if (
++          !/^# [^\n]+/m.test(page) ||
++          actual.length !== headings.length ||
++          actual.some((heading, i) => heading !== headings[i])
++        )
++          add('FLOW_HEADINGS_INVALID', flow.doc, 'Heading flow phải đúng thứ tự của STANDARD');
++        if (!/^\d+\. `[^`]+`\s*→\s*`[^`]+`/m.test(page))
++          add('FLOW_STEPS_INVALID', flow.doc, 'Các bước cần danh sách đánh số với file → symbol');
++      }
++      for (const path of [flow.doc, ...flow.entrypoints, ...flow.files, ...flow.tests]) {
++        if (path.startsWith('docs/')) {
++          if (!input.files.has(path))
++            add('MANIFEST_FILE_MISSING', path, `Manifest tham chiếu file vắng mặt (${id})`);
++        } else if (input.mode === 'checkout_sync' && !input.trackedSourcePaths.includes(path))
++          add('MANIFEST_FILE_MISSING', path, `Manifest tham chiếu nguồn vắng mặt (${id})`);
++      }
++    }
++    for (const path of Object.keys(manifest.shared))
++      if (input.mode === 'checkout_sync' && !input.trackedSourcePaths.includes(path))
++        add('MANIFEST_FILE_MISSING', path, 'shared tham chiếu nguồn vắng mặt');
++    for (const item of manifest.unassigned)
++      if (input.mode === 'checkout_sync' && !input.trackedSourcePaths.includes(item.path))
++        add('MANIFEST_FILE_MISSING', item.path, 'unassigned tham chiếu nguồn vắng mặt');
++    for (const [path, expected] of [
++      ['docs/index.md', expectedFlowBlock(manifest)],
++      ['docs/files.md', expectedFilesBlock(manifest)],
++    ] as const) {
++      const text = texts.get(path);
++      if (text !== undefined && actualBlock(text, path === 'docs/index.md' ? 'flows' : 'files') !== expected)
++        add('GENERATED_BLOCK_STALE', path, 'Block sinh tự động khác manifest');
++    }
++    if (input.mode === 'legacy_import')
++      add(
++        'SOURCE_TREE_UNVERIFIED',
++        'docs/flows.yaml',
++        'Bản nhập chỉ có docs, chưa đối chiếu source tree với checkout',
++        'warning',
++      );
++    else {
++      const matches = sourceMatcher(manifest);
++      const assigned = mappedPaths(manifest);
++      const unassigned = new Set(manifest.unassigned.map((item) => item.path));
++      for (const path of input.trackedSourcePaths) {
++        if (!matches(path)) continue;
++        if (!assigned.has(path) && !unassigned.has(path))
++          add('SOURCE_UNMAPPED', path, 'File nguồn chưa thuộc flow hoặc unassigned');
++      }
++    }
++  }
++  const linked = auditLinks(texts);
++  issues.push(...linked.issues);
++  return { issues, valid: !issues.some((item) => item.severity === 'error'), links: linked.links };
++}
+diff --git a/v2/server/test/docs-validator.unit.test.ts b/v2/server/test/docs-validator.unit.test.ts
+new file mode 100644
+index 0000000..7ebfdd7
+--- /dev/null
++++ b/v2/server/test/docs-validator.unit.test.ts
+@@ -0,0 +1,230 @@
++import assert from 'node:assert/strict';
++import { createHash } from 'node:crypto';
++import { readFileSync } from 'node:fs';
++import { test } from 'node:test';
++import { bundleHash, hashBytes, snapshotHash, sourceTreeHash } from '../src/docs/checksum.ts';
++import { validateDocs } from '../src/docs/validator.ts';
++import { docsValidationFixture } from './support/docs.ts';
++
++function file(files: Map<string, Buffer>, path: string): Buffer {
++  const bytes = files.get(path);
++  assert(bytes, `Thiếu fixture ${path}`);
++  return bytes;
++}
++
++test('hash bytes keeps CRLF and Unicode, snapshot hash is order independent and class sensitive', () => {
++  const raw = readFileSync(new URL('./fixtures/legacy-docs/crlf-unicode.md', import.meta.url));
++  assert.equal(hashBytes(raw), createHash('sha256').update(raw).digest('hex'));
++  assert.notEqual(hashBytes(raw), hashBytes(Buffer.from(raw.toString().replaceAll('\r\n', '\n'))));
++  const a = {
++    path: 'docs/a.md',
++    bytesBase64: raw.toString('base64'),
++    sha256: hashBytes(raw),
++    contentClass: 'implemented' as const,
++  };
++  const b = {
++    path: 'docs/b.md',
++    bytesBase64: 'eA==',
++    sha256: hashBytes(Buffer.from('x')),
++    contentClass: 'workflow_artifact' as const,
++  };
++  assert.equal(snapshotHash([a, b]), snapshotHash([b, a]));
++  assert.notEqual(snapshotHash([a, b]), snapshotHash([a, { ...b, contentClass: 'implemented' }]));
++});
++
++test('snapshot hash rejects noncanonical base64 and duplicate exact paths', () => {
++  const a = {
++    path: 'docs/a.md',
++    bytesBase64: 'eA==',
++    sha256: hashBytes(Buffer.from('x')),
++    contentClass: 'implemented' as const,
++  };
++  assert.throws(() => snapshotHash([{ ...a, bytesBase64: 'eA' }]), { message: 'INVALID_BASE64' });
++  assert.throws(() => snapshotHash([a, a]), { message: 'DUPLICATE_PATH' });
++});
++
++test('source tree hash is stable for path order and changes when a tracked path changes', () => {
++  assert.equal(sourceTreeHash(['src/b.ts', 'src/a.ts']), sourceTreeHash(['src/a.ts', 'src/b.ts']));
++  assert.notEqual(sourceTreeHash(['src/a.ts']), sourceTreeHash(['src/A.ts']));
++});
++
++test('bundle hash excludes its own digest field and covers backup provenance', () => {
++  const input = { sourceSystem: 'crew-v1' as const, backupManifestSha256: 'a'.repeat(64), inventory: [] };
++  const expected = createHash('sha256')
++    .update(`{"backupManifestSha256":"${'a'.repeat(64)}","inventory":[],"sourceSystem":"crew-v1"}`)
++    .digest('hex');
++  assert.equal(bundleHash(input), expected);
++  assert.notEqual(bundleHash({ ...input, backupManifestSha256: 'b'.repeat(64) }), expected);
++});
++
++test('valid standard snapshot is structurally valid but legacy source tree is unverified', () => {
++  const result = validateDocs(docsValidationFixture());
++  assert.equal(result.valid, true, JSON.stringify(result.issues));
++  assert(result.issues.some((issue) => issue.code === 'SOURCE_TREE_UNVERIFIED'));
++});
++
++test('CLAUDE redirect rejects extra blank lines', () => {
++  const input = docsValidationFixture({ 'CLAUDE.md': Buffer.from('@AGENTS.md\n\n') });
++  assert(validateDocs(input).issues.some((issue) => issue.code === 'CLAUDE_REDIRECT_INVALID'));
++});
++
++test('checkout source coverage finds unmapped source and dotfiles', () => {
++  const input = docsValidationFixture({}, 'checkout_sync');
++  input.trackedSourcePaths.push('src/new.ts', 'src/.hidden.ts');
++  const result = validateDocs(input);
++  assert.equal(result.valid, false);
++  assert.deepEqual(
++    result.issues
++      .filter((issue) => issue.code === 'SOURCE_UNMAPPED')
++      .map((issue) => issue.path)
++      .sort(),
++    ['src/.hidden.ts', 'src/new.ts'],
++  );
++});
++
++test('duplicate YAML keys, wrong heading order and stale generated block are errors', () => {
++  const input = docsValidationFixture();
++  input.files.set(
++    'docs/flows.yaml',
++    Buffer.from(
++      file(input.files, 'docs/flows.yaml').toString().replace('flows:\n', 'flows:\n  sample: {}\n'),
++    ),
++  );
++  input.files.set('docs/flows/sample.md', Buffer.from('# X\n## Mục đích\n## Các bước\n## Điểm vào\n'));
++  input.files.set(
++    'docs/index.md',
++    Buffer.from(file(input.files, 'docs/index.md').toString().replace('Luồng mẫu', 'Luồng cũ')),
++  );
++  const result = validateDocs(input);
++  assert.equal(result.valid, false);
++  assert(result.issues.some((issue) => issue.code === 'MANIFEST_INVALID'));
++  const separately = docsValidationFixture();
++  separately.files.set('docs/flows/sample.md', file(input.files, 'docs/flows/sample.md'));
++  separately.files.set('docs/index.md', file(input.files, 'docs/index.md'));
++  const separateResult = validateDocs(separately);
++  assert(separateResult.issues.some((issue) => issue.code === 'FLOW_HEADINGS_INVALID'));
++  assert(separateResult.issues.some((issue) => issue.code === 'GENERATED_BLOCK_STALE'));
++});
++
++test('manifest rejects dangerous keys, missing mapped sources and unexpected fields', () => {
++  const input = docsValidationFixture({}, 'checkout_sync');
++  input.files.set(
++    'docs/flows.yaml',
++    Buffer.from(
++      file(input.files, 'docs/flows.yaml')
++        .toString()
++        .replace(
++          'flows:\n',
++          'flows:\n  constructor:\n    title: Hidden\n    doc: docs/flows/constructor.md\n    entrypoints: []\n    files: []\n    tests: []\n',
++        ),
++    ),
++  );
++  assert(validateDocs(input).issues.some((issue) => issue.code === 'MANIFEST_INVALID'));
++  const other = docsValidationFixture({}, 'checkout_sync');
++  other.trackedSourcePaths = [];
++  assert(
++    validateDocs(other).issues.some(
++      (issue) => issue.code === 'MANIFEST_FILE_MISSING' && issue.path === 'src/a.ts',
++    ),
++  );
++  other.files.set(
++    'docs/flows.yaml',
++    Buffer.from(
++      file(other.files, 'docs/flows.yaml').toString().replace('shared: {}', 'extra: true\nshared: {}'),
++    ),
++  );
++  assert(validateDocs(other).issues.some((issue) => issue.code === 'MANIFEST_INVALID'));
++});
++
++test('case-sensitive filenames, traversal and invalid UTF8 are detected without changing bytes', () => {
++  const input = docsValidationFixture({
++    'docs/A.md': Buffer.from('A\r\n'),
++    'docs/a.md': Buffer.from('a\n'),
++    'docs/../escape.md': Buffer.from('bad'),
++    'docs/bad.md': Buffer.from([0xff]),
++  });
++  const before = Buffer.from(file(input.files, 'docs/A.md'));
++  const result = validateDocs(input);
++  assert(result.issues.some((issue) => issue.code === 'PATH_INVALID' && issue.path === 'docs/../escape.md'));
++  assert(result.issues.some((issue) => issue.code === 'INVALID_UTF8' && issue.path === 'docs/bad.md'));
++  assert(file(input.files, 'docs/A.md').equals(before));
++  assert.notEqual(file(input.files, 'docs/A.md').toString(), file(input.files, 'docs/a.md').toString());
++});
++
++test('workflow artifacts retain their class and standard pages cannot be artifacts', () => {
++  const input = docsValidationFixture({ 'docs/superpowers/specs/design.md': Buffer.from('# Planned\n') });
++  assert.equal(validateDocs(input).valid, true);
++  input.contentClasses.set('docs/superpowers/specs/design.md', 'implemented');
++  input.contentClasses.set('docs/index.md', 'workflow_artifact');
++  const result = validateDocs(input);
++  assert(result.issues.filter((issue) => issue.code === 'CONTENT_CLASS_MISMATCH').length >= 2);
++});
++
++test('repeated links and fragments keep distinct occurrence and missing status', () => {
++  const input = docsValidationFixture({
++    'docs/a.md': Buffer.from('[Một](b.md#one) [Sai](b.md#absent) [Lặp](b.md#one)'),
++    'docs/b.md': Buffer.from('# One\n'),
++  });
++  const result = validateDocs(input);
++  const links = result.links.filter((link) => link.fromPath === 'docs/a.md');
++  assert.deepEqual(
++    links.map((link) => link.occurrence),
++    [0, 1, 2],
++  );
++  assert.deepEqual(
++    links.map((link) => link.status),
++    ['ok', 'missing', 'ok'],
++  );
++  assert.equal(result.valid, false);
++});
++
++test('reference links and images resolve, code links are ignored and escapes fail', () => {
++  const input = docsValidationFixture({
++    'docs/a.md': Buffer.from(
++      '![Pic][img] [Ref][doc]\n[img]: b.md#one\n[doc]: b.md#one\n`[skip](missing.md)`\n```md\n[skip](missing.md)\n```\n[bad](%2e%2e/%2e%2e/out.md)\n',
++    ),
++    'docs/b.md': Buffer.from('# One\n'),
++  });
++  const result = validateDocs(input);
++  const links = result.links.filter((link) => link.fromPath === 'docs/a.md');
++  assert.deepEqual(
++    links.map((link) => link.status),
++    ['ok', 'ok', 'unverified'],
++  );
++  assert(result.issues.some((issue) => issue.code === 'LINK_PATH_ESCAPE'));
++});
++
++test('relative parent link inside docs and duplicate heading suffixes resolve', () => {
++  const input = docsValidationFixture({
++    'docs/flows/a.md': Buffer.from('[Arch](../architecture.md) [Second](../b.md#one-1)'),
++    'docs/b.md': Buffer.from('# One\n# One\n'),
++  });
++  const links = validateDocs(input).links.filter((link) => link.fromPath === 'docs/flows/a.md');
++  assert.deepEqual(
++    links.map((link) => link.status),
++    ['ok', 'ok'],
++  );
++});
++
++test('missing workflow artifact warns, unsupported heading slug stays unverified', () => {
++  const input = docsValidationFixture({
++    'docs/a.md': Buffer.from('[Design](superpowers/specs/missing.md) [Heading](b.md#custom)'),
++  });
++  input.files.set('docs/b.md', Buffer.from('# {#custom}\n'));
++  input.contentClasses.set('docs/b.md', 'implemented');
++  const result = validateDocs(input);
++  assert(
++    result.issues.some(
++      (issue) => issue.code === 'EXTERNAL_ARTIFACT_NOT_IMPORTED' && issue.severity === 'warning',
++    ),
++  );
++  assert(result.issues.some((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX'));
++});
++
++test('nested Markdown link is flagged as unverified syntax', () => {
++  const input = docsValidationFixture({ 'docs/a.md': Buffer.from('[outer [inner]](b.md)') });
++  const result = validateDocs(input);
++  assert(
++    result.issues.some((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md'),
++  );
++});
+diff --git a/v2/server/test/fixtures/legacy-docs/crlf-unicode.md b/v2/server/test/fixtures/legacy-docs/crlf-unicode.md
+new file mode 100644
+index 0000000..9c11b0c
+--- /dev/null
++++ b/v2/server/test/fixtures/legacy-docs/crlf-unicode.md
+@@ -0,0 +1,2 @@
++# Tài liệu
++Tiếng Việt 😀
+diff --git a/v2/server/test/support/docs.ts b/v2/server/test/support/docs.ts
+new file mode 100644
+index 0000000..506be01
+--- /dev/null
++++ b/v2/server/test/support/docs.ts
+@@ -0,0 +1,40 @@
++import type { DocsFile, DocsValidationInput } from '../../src/docs/contracts.ts';
++
++const flow =
++  '# Luồng mẫu\n\n## Mục đích\nMô tả.\n\n## Điểm vào\nLệnh.\n\n## Các bước\n1. `src/a.ts` → `run`: chạy.\n\n## Files\n| File | Vai trò | Symbol chính |\n|---|---|---|\n| `src/a.ts` | nguồn | `run` |\n\n## Dữ liệu\nKhông.\n\n## Flow liên quan\nKhông.\n\n## Tests\nKhông.\n';
++const manifest =
++  'version: 1\nsource:\n  include: ["src/**"]\n  exclude: ["**/*.test.ts"]\nflows:\n  sample:\n    title: Luồng mẫu\n    doc: docs/flows/sample.md\n    entrypoints: [src/a.ts]\n    files: []\n    tests: []\nshared: {}\nunassigned: []\n';
++const index =
++  '# Tổng quan\n\n<!-- crew-docs:flows:start -->\n| Flow | Id | Điểm vào |\n|------|----|----------|\n| [Luồng mẫu](flows/sample.md) | `sample` | `src/a.ts` |\n<!-- crew-docs:flows:end -->\n';
++const files =
++  '# Tra cứu file\n\n<!-- crew-docs:files:start -->\n> Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.\n\n| File | Flows |\n|------|-------|\n| `src/a.ts` | [sample](flows/sample.md) (điểm vào) |\n<!-- crew-docs:files:end -->\n';
++
++export const validDocs = (): Record<string, Buffer> => ({
++  'AGENTS.md': Buffer.from('# Agent\nĐọc docs/index.md trước.\n'),
++  'CLAUDE.md': Buffer.from('@AGENTS.md\n'),
++  'docs/index.md': Buffer.from(index),
++  'docs/architecture.md': Buffer.from('# Kiến trúc\n'),
++  'docs/flows.yaml': Buffer.from(manifest),
++  'docs/files.md': Buffer.from(files),
++  'docs/flows/sample.md': Buffer.from(flow),
++});
++
++export function docsValidationFixture(
++  overrides: Record<string, Buffer> = {},
++  mode: DocsValidationInput['mode'] = 'legacy_import',
++): DocsValidationInput {
++  const files = new Map(Object.entries({ ...validDocs(), ...overrides }));
++  const contentClasses = new Map<string, DocsFile['contentClass']>();
++  for (const path of files.keys()) {
++    contentClasses.set(
++      path,
++      path.startsWith('docs/superpowers/') ||
++        path.startsWith('docs/bmad/') ||
++        path.startsWith('docs/artifacts/') ||
++        path.startsWith('_bmad-output/')
++        ? 'workflow_artifact'
++        : 'implemented',
++    );
++  }
++  return { files, contentClasses, trackedSourcePaths: ['src/a.ts'], mode };
++}

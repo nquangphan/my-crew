@@ -1,0 +1,465 @@
+# Review package: d438ce1..HEAD
+
+## Commits
+cf68a68 docs(v2): map attachment subset regression helper
+02732ff fix(v2): bound attachment subset projection work
+
+## Files changed
+ v2/docs/files.md                                 |   1 +
+ v2/docs/flows.yaml                               |   1 +
+ v2/docs/flows/server-attachments.md              |   8 ++
+ v2/server/src/attachments/snapshots.ts           |  20 ++--
+ v2/server/test/attachments-snapshots.test.ts     | 132 +++++++++++++++++++++++
+ v2/server/test/support/attachment-subset-work.ts | 128 ++++++++++++++++++++++
+ 6 files changed, 284 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 48101db..1adfd83 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -272,20 +272,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/test/model-pool.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/model-secret.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/support/attachment-access-authority.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-access-inbox.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-access-publication.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-access.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-snapshot-work.ts` | [server-attachments](flows/server-attachments.md) (test) |
++| `server/test/support/attachment-subset-work.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachments.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/execution.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/support/gateway.ts` | [server-gateway](flows/server-gateway.md) (test) |
+ | `server/test/support/http.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/model-certification.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/model-http.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/model-observer.ts` | [server-models](flows/server-models.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 18a60c3..e68da82 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -340,20 +340,21 @@ flows:
+       - server/test/attachments-routing.test.ts
+       - server/test/attachments-snapshots.test.ts
+       - server/test/attachments-staging.test.ts
+       - server/test/attachments-storage.test.ts
+       - server/test/attachments-submissions.test.ts
+       - server/test/support/attachment-access-authority.ts
+       - server/test/support/attachment-access-inbox.ts
+       - server/test/support/attachment-access-publication.ts
+       - server/test/support/attachment-access.ts
+       - server/test/support/attachment-snapshot-work.ts
++      - server/test/support/attachment-subset-work.ts
+       - server/test/support/attachments.ts
+   gateway-models:
+     title: Inventory, credential broker và probe model trên gateway
+     doc: docs/flows/gateway-models.md
+     entrypoints: []
+     files:
+       - gateway/src/models/contracts.ts
+       - gateway/src/models/credential-broker.ts
+       - gateway/src/models/credential-provisioning.ts
+       - gateway/src/models/current-credential-resolver.ts
+diff --git a/v2/docs/flows/server-attachments.md b/v2/docs/flows/server-attachments.md
+index 6fc54ff..b0794d0 100644
+--- a/v2/docs/flows/server-attachments.md
++++ b/v2/docs/flows/server-attachments.md
+@@ -84,10 +84,18 @@ Grant chỉ từ owner authorization exact submitted originals, allowOriginal m
+ 
+ `persistMessageInputDecision` enforce current routed root→message→input ngay cả caller service trực tiếp, rồi giữ nguyên proof/authority checks. Initial route khóa message trước input sau locks root/tickets/projects đã có; tránh thứ tự ngược với fresh snapshot. Machine scope/reply thiếu trusted decision authority vẫn503. Cross-machine generic routing giữ defaultdeny theo Phase06R3; positive S3 là AssistantA đọc owner inbox trực tiếp qua exact grant, không cần claimB. Task6 InputServices buildManifest/receipt và Phase06 Assistant production authority chưa có: named deny, không fabricate certificate.
+ 
+ Files Task3 (R2 manifest do PM serialize): `server/src/attachments/access.ts`, `routes.ts`, `references.ts`, `grants.ts`, `snapshots.ts`; narrow producer edits `jobs.ts`, `messages.ts`, `routing.ts`; tests `server/test/attachments-{api,access,grants,snapshots}.test.ts`; support `server/test/support/attachment-access.ts`, `attachment-access-publication.ts`, `attachment-access-authority.ts`, `attachment-access-inbox.ts`. S2/S3 positive fixtures dùng actual owner CSRF/machine provisioning/binding/claim007, private PostgreSQL001–010, actual uploads and accepted createExtractionJobs + closed framed controlled runner + BlobStore SQL publication; PNG inert known fixture không chứng nhận parser/comprehension. Two-pool regressions kiểm publication↔claim, current routed reply↔publication/revoke, initial route↔snapshot cả hai winning orders; real TCP stream kiểm token revoke sau chunk đầu. Final evidence/log/hash/cleanup nằm task-3-report, frozen490:v2 + own paths, không consume unfinished Task5 parser sources.
+ 
+ ### Task3 FIX1/5 — T3-Q1
+ 
+ Snapshot coverage không còn scan derivative và băm grouped unit-array theo từng unit trong root/input transaction. SQL lấy exact original/extraction rows; persisted unit-array hash được tính một lần mỗi row. Manifest derivative được so provenance/original/hash/extraction/version/config/modality/verification/length/unit-array một lần, rồi unit→valid candidate index giữ candidate hợp lệ đầu tiên trong manifest order. Vòng unit chỉ lookup theo needs và kiểm available, nên grouped text/CSV không nhân lại array hash khi nhiều unit dùng cùng derivative. Không đổi canonical snapshot, capabilities, selected IDs, scope/grant/production gates.
+ 
+ Regression `attachments-snapshots.test.ts` publish actual grouped2.048 text units/1 derivative qua accepted framed controlled runner, BlobStore/jobs CAS/closed ACK, rồi quan sát actual SQL-returned unit-array numeric reads và SHA field validation. RED có2.048 validations/4.194.304 reads; GREEN có1/2.048, cùng ready/text/selected ID/coverage. Đây là work count thật của canonical comparison, không benchmark latency hoặc counter production. Tám persisted tamper fields và existing same-unit-ID scoped original negatives vẫn fail-closed. `server/test/support/attachment-access-publication.ts` bổ sung grouped fixture; new `server/test/support/attachment-snapshot-work.ts` chỉ quan sát actual rows, không fabricate manifest/provenance. R2 mapping do PM serialize. Actual scoped evidence và resource exception20:25 nằm task-3-fix1-report; original44 là historical cover, không áp thành acceptance của source mới.
++
++### Task3 FIX2/5 — T3-Q2
++
++Subset filter tạo Set một lần cho mỗi exact original rồi kiểm membership; resolve selection tạo current-unit index một lần mỗi manifest và giữ first-match semantics. Requested IDs vẫn qua nonempty/100.000 bound/duplicate validation, exact original/hash/current target/input/route revision và available-unit checks; projection giữ exact original/extraction/manifest/unit locator/needs. Sort memoize digest một lần mỗi full projection, dùng cùng stable localeCompare order và final unitsSha256 như trước. Authority nhận cùng derived requested IDs và persisted scope vẫn là nguồn quyền; thiếu trusted port deny. Không đổi schema/producer/bytes/grant/production gates.
++
++Regression large approved subset publish actual2.048 text units/1 derivative qua accepted jobs/BlobStore/closed framed fixture và lưu decision chọn1.024 unit chẵn. `server/test/support/attachment-subset-work.ts` quan sát actual SQL manifest array và scoped native includes/Set.has trong isolated serial test process; receiver classify exact known subset, delegates original native behavior, restore both descriptors trong finally trước fixture cleanup kể cả throw. Actual numeric reads đo scans; locator kind descriptor reads đo canonical projection hashing. Lowerbounds và exact ready/current revision/original/coverage/modality/derivative/authority positives chống bỏ validation thành no-op. Existing same-unit-ID different-original và duplicate/unknown/hash/stale target/revisions negatives giữ fail-closed; FIX1 grouped/tamper cover là affected regression. Evidence mới ở task-3-fix2-report, không union FIX1 cover thành PASS source mới. Canonical flow giữ7 H2; R2 new helper mapping do PM serialize.
++
++`originals.find` vẫn exact original digest dưới required<=100; retained prior snapshots vẫn có repeated canonical comparison theo số bản retained. Hai loop này ngoài T3-Q2, chưa claim toàn đường snapshot tuyến tính hoặc bật gate production chưa có.
+diff --git a/v2/server/src/attachments/snapshots.ts b/v2/server/src/attachments/snapshots.ts
+index ac6ae6f..75ca530 100644
+--- a/v2/server/src/attachments/snapshots.ts
++++ b/v2/server/src/attachments/snapshots.ts
+@@ -111,23 +111,22 @@ export async function readInputSnapshot(
+       extraction.original.sha256 !== original.sha256 ||
+       row.original_sha256 !== original.sha256 ||
+       row.manifest_sha256 !== manifestSha256 ||
+       digest(body) !== manifestSha256
+     ) {
+       problems.push(problem('EXTRACTION_FAILED'));
+       continue;
+     }
+     extractions.push(extraction);
+     if (subset !== null && !subset.has(original.attachmentId)) continue;
+-    const units = extraction.units.filter(
+-      (u) => subset === null || subset.get(original.attachmentId)?.includes(u.id),
+-    );
++    const selectedUnitIds = subset === null ? null : new Set(subset.get(original.attachmentId));
++    const units = extraction.units.filter((u) => selectedUnitIds === null || selectedUnitIds.has(u.id));
+     required.push({ original, unitIds: units.map((u) => u.id).sort() });
+     const derivatives =
+       await tx`select id,extraction_id,attachment_id,sha256,byte_length,mime,kind,unit_ids,verification from attachment_derivatives where extraction_id=${extraction.id} and attachment_id=${original.attachmentId}`;
+     // Each persisted unit-array hash is computed once. Index only candidates
+     // whose exact provenance and bytes match this immutable extraction.
+     const persisted = new Map(
+       derivatives.map(
+         (row) =>
+           [
+             String(row.id),
+@@ -360,29 +359,38 @@ async function resolveInputSelection(
+     if (
+       !extraction ||
+       !row.completed_at ||
+       extraction.verification !== 'verified' ||
+       extraction.original.sha256 !== original.sha256
+     )
+       return invalid();
+     const { manifestSha256, ...body } = extraction;
+     if (row.manifest_sha256 !== manifestSha256 || digest(body) !== manifestSha256) return invalid();
+     const unitIds = [...(input.unitIds as string[])].sort();
++    const currentUnits = new Map<string, Extraction['units'][number]>();
++    for (const unit of extraction.units) {
++      // Preserve the prior first-match behavior of Array.find.
++      if (!currentUnits.has(unit.id)) currentUnits.set(unit.id, unit);
++    }
+     for (const id of unitIds) {
+-      const unit = extraction.units.find((u) => u.id === id);
++      const unit = currentUnits.get(id);
+       if (unit?.state !== 'available') return invalid();
+       projection.push({
+         original,
+         extractionId: extraction.id,
+         manifestSha256,
+         unitId: unit.id,
+         locator: unit.locator,
+         needs: unit.needs,
+       });
+     }
+     selected.set(original.attachmentId, unitIds);
+   }
+-  projection.sort((a, b) => digest(a).localeCompare(digest(b)));
+-  if (digest(projection) !== value.unitsSha256) return invalid();
++  // Same stable canonical order; hash each full projection only once for sorting.
++  const orderedProjection = projection
++    .map((value) => ({ value, sha256: digest(value) }))
++    .sort((a, b) => a.sha256.localeCompare(b.sha256))
++    .map((entry) => entry.value);
++  if (digest(orderedProjection) !== value.unitsSha256) return invalid();
+   await authority(tx, actor, { target, requestedUnitIds: [...selected.values()].flat(), scopeDecisionId });
+   return selected;
+ }
+diff --git a/v2/server/test/attachments-snapshots.test.ts b/v2/server/test/attachments-snapshots.test.ts
+index 8be681c..d9bbeb8 100644
+--- a/v2/server/test/attachments-snapshots.test.ts
++++ b/v2/server/test/attachments-snapshots.test.ts
+@@ -198,20 +198,22 @@ test('attachment subset selection binds exact original identity when unit IDs re
+       assert.deepEqual(subset.required, [{ original: a, unitIds: ['u1'] }]);
+       assert.deepEqual(subset.requiredCapabilities, ['vision']);
+       assert.deepEqual(subset.selectedDerivativeIds, [ea.derivatives[0]?.id]);
+       assert.ok(!subset.selectedDerivativeIds.includes(eb.derivatives[0]?.id));
+       for (const changed of [
+         { required: [] },
+         { unitsSha256: '0'.repeat(64) },
+         { inputRevision: '1' },
+         { target: { ...target, ticketId: f.tickets.B.id } },
+         { required: [{ original: a, unitIds: ['unknown'] }] },
++        { required: [{ original: a, unitIds: ['u1', 'u1'] }] },
++        { routeRevision: all.routeRevision + 1 },
+         { required: [{ original: { ...a, sha256: b.sha256 }, unitIds: ['u1'] }] },
+       ]) {
+         const id = await f.mutation((tx) =>
+           recordDecision(
+             tx,
+             target.ticketId,
+             {
+               kind: 'assessment',
+               content: 'Bad scope',
+               rationale: 'Fixture',
+@@ -763,10 +765,140 @@ test('indexed snapshot candidates reject persisted derivative identity and cover
+         assert.deepEqual(invalid.requiredCapabilities, [], fault);
+         assert.equal(invalid.problems[0]?.code, 'MISSING_REPRESENTATION', fault);
+         await db`update attachment_derivatives set sha256=${saved.sha256},byte_length=${saved.byte_length},mime=${saved.mime},kind=${saved.kind},verification=${saved.verification},unit_ids=${db.json(saved.unit_ids)},attachment_id=${saved.attachment_id},extraction_id=${saved.extraction_id} where id=${derivative.id}`;
+       }
+       assert.deepEqual(await read(), good);
+     } finally {
+       await f.close();
+     }
+   });
+ });
++
++test('large approved subset uses bounded native membership and current unit lookup work', async (t) => {
++  const { publishKnownRepresentation } = await import('./support/attachment-access-publication.ts');
++  const { observeSubsetSelectionWork } = await import('./support/attachment-subset-work.ts');
++  const { digest } = await import('../src/attachments/submissions.ts');
++  const { recordDecision } = await import('../src/tickets/decisions.ts');
++  await databaseFixture(10)(async (db) => {
++    const f = await attachmentAccessFixture(db);
++    const nativeIncludes = Array.prototype.includes,
++      nativeHas = Set.prototype.has;
++    try {
++      const count = 2048,
++        original = await f.linkFile('A', Buffer.from('known text\n'.repeat(count))),
++        extraction = await publishKnownRepresentation(f, original, 'text', undefined, count),
++        derivative = extraction.derivatives[0];
++      assert.ok(derivative);
++      const target = { kind: 'ticket' as const, ticketId: f.tickets.A.id, projectId: f.projects.A.id },
++        all = await db.begin((tx) =>
++          readInputSnapshot(
++            tx,
++            owner,
++            { target, access: { kind: 'owner' }, expectedInputRevision: null, scopeDecisionId: null },
++            denyPreclaimSelection,
++          ),
++        );
++      assert.equal(all.state, 'ready');
++      const selected = extraction.units.filter((_, index) => index % 2 === 1),
++        unitIds = selected.map((unit) => unit.id).sort(),
++        projection = selected.map((unit) => ({
++          original,
++          extractionId: extraction.id,
++          manifestSha256: extraction.manifestSha256,
++          unitId: unit.id,
++          locator: unit.locator,
++          needs: unit.needs,
++        }));
++      // Independently pin the previously accepted canonical projection ordering.
++      projection.sort((a, b) => digest(a).localeCompare(digest(b)));
++      const inputSelection = {
++        target,
++        inputRevision: all.inputRevision,
++        routeRevision: all.routeRevision,
++        required: [{ original, unitIds }],
++        unitsSha256: digest(projection),
++        rationale: 'Chỉ đánh giá các unit chẵn đã được publish và duyệt.',
++      };
++      const decision = await f.mutation((tx) =>
++        recordDecision(
++          tx,
++          target.ticketId,
++          {
++            kind: 'assessment',
++            content: 'Large scoped input',
++            rationale: 'Controlled protocol fixture',
++            sources: [],
++            scope: { inputSelection },
++          },
++          owner,
++        ),
++      );
++      let authorityCalls = 0;
++      const approved: import('../src/attachments/contracts.ts').PreclaimSelectionAuthority = async (
++        tx,
++        actor,
++        input,
++      ) => {
++        assert.deepEqual(actor, owner);
++        assert.equal(input.scopeDecisionId, decision);
++        assert.deepEqual(input.target, target);
++        const [row] = await tx`select scope from decisions where id=${input.scopeDecisionId}`;
++        assert.deepEqual(row.scope.inputSelection, inputSelection);
++        assert.deepEqual(input.requestedUnitIds, unitIds);
++        authorityCalls++;
++      };
++      const observed = await db.begin((tx) =>
++        observeSubsetSelectionWork(tx, unitIds, (measured) =>
++          readInputSnapshot(
++            measured,
++            owner,
++            {
++              target,
++              access: { kind: 'owner' },
++              expectedInputRevision: all.inputRevision,
++              scopeDecisionId: decision,
++            },
++            approved,
++          ),
++        ),
++      );
++      const snapshot = observed.result;
++      assert.equal(snapshot.state, 'ready');
++      assert.equal(snapshot.inputRevision, all.inputRevision);
++      assert.equal(snapshot.routeRevision, all.routeRevision);
++      assert.deepEqual(snapshot.required, [{ original, unitIds }]);
++      assert.deepEqual(snapshot.requiredCapabilities, ['text']);
++      assert.deepEqual(snapshot.selectedDerivativeIds, [derivative.id]);
++      assert.equal(new Set(snapshot.required[0]?.unitIds).size, count / 2);
++      assert.equal(authorityCalls, 1);
++      assert.equal(Array.prototype.includes, nativeIncludes);
++      assert.equal(Set.prototype.has, nativeHas);
++      t.diagnostic(JSON.stringify({ totalUnits: count, selectedUnits: unitIds.length, ...observed.work }));
++      assert.equal(observed.work.extractionQueries, 2);
++      assert.equal(observed.work.membershipCalls + observed.work.setMembershipCalls, count);
++      assert.ok(observed.work.membershipElementReads <= 2 * count, JSON.stringify(observed.work));
++      assert.ok(
++        observed.work.unitElementReads >= count && observed.work.unitElementReads <= 16 * count,
++        JSON.stringify(observed.work),
++      );
++      assert.ok(
++        observed.work.projectionKindReads >= count && observed.work.projectionKindReads <= 16 * count,
++        JSON.stringify(observed.work),
++      );
++      assert.ok(observed.work.classificationElementReads <= 2 * count, JSON.stringify(observed.work));
++      await assert.rejects(
++        db.begin((tx) =>
++          observeSubsetSelectionWork(tx, unitIds, async () => {
++            throw new Error('Controlled observation failure');
++          }),
++        ),
++        /Controlled observation failure/,
++      );
++      assert.equal(Array.prototype.includes, nativeIncludes);
++      assert.equal(Set.prototype.has, nativeHas);
++    } finally {
++      assert.equal(Array.prototype.includes, nativeIncludes);
++      assert.equal(Set.prototype.has, nativeHas);
++      await f.close();
++    }
++  });
++});
+diff --git a/v2/server/test/support/attachment-subset-work.ts b/v2/server/test/support/attachment-subset-work.ts
+new file mode 100644
+index 0000000..39dc283
+--- /dev/null
++++ b/v2/server/test/support/attachment-subset-work.ts
+@@ -0,0 +1,128 @@
++import assert from 'node:assert/strict';
++import type { Tx } from '../../src/platform/contracts.ts';
++
++// Observe actual SQL rows and native membership operations, preserving values.
++// Isolated serial fixture only: descriptors are restored before caller cleanup.
++export async function observeSubsetSelectionWork<T>(
++  tx: Tx,
++  selectedIds: string[],
++  read: (observed: Tx) => Promise<T>,
++) {
++  const expected = [...selectedIds].sort(),
++    known = new Set(expected),
++    includesDescriptor = Object.getOwnPropertyDescriptor(Array.prototype, 'includes'),
++    hasDescriptor = Object.getOwnPropertyDescriptor(Set.prototype, 'has');
++  assert.ok(includesDescriptor && hasDescriptor);
++  const nativeIncludes = Array.prototype.includes,
++    nativeHas = Set.prototype.has,
++    knownArrays = new WeakSet<object>(),
++    knownSets = new WeakSet<object>();
++  const work = {
++    extractionQueries: 0,
++    unitElementReads: 0,
++    projectionKindReads: 0,
++    membershipCalls: 0,
++    membershipElementReads: 0,
++    setMembershipCalls: 0,
++    classificationElementReads: 0,
++  };
++  const sampled = [0, Math.floor(expected.length / 2), expected.length - 1];
++  const exactArray = (value: unknown): value is string[] => {
++    if (!Array.isArray(value) || value.length !== expected.length) return false;
++    if (knownArrays.has(value)) return true;
++    if (!sampled.every((i) => value[i] === expected[i])) return false;
++    for (let i = 0; i < expected.length; i++) {
++      work.classificationElementReads++;
++      if (value[i] !== expected[i]) return false;
++    }
++    knownArrays.add(value);
++    return true;
++  };
++  const exactSet = (value: Set<unknown>) => {
++    if (value.size !== known.size) return false;
++    if (knownSets.has(value)) return true;
++    if (!sampled.every((i) => Reflect.apply(nativeHas, value, [expected[i]]))) return false;
++    for (const id of value) {
++      work.classificationElementReads++;
++      if (!Reflect.apply(nativeHas, known, [id])) return false;
++    }
++    knownSets.add(value);
++    return true;
++  };
++  const observed = new Proxy(tx, {
++    apply(target, receiver, args) {
++      const query = Reflect.apply(target, receiver, args),
++        parts: unknown = args[0];
++      if (
++        !Array.isArray(parts) ||
++        !parts.join('').includes('from attachment_extractions where attachment_id=')
++      )
++        return query;
++      return query.then((rows: Record<string, unknown>[]) => {
++        work.extractionQueries++;
++        return rows.map((row) => {
++          if (!row.manifest) return row;
++          const manifest = row.manifest as { units: { locator: object }[] };
++          const units = manifest.units.map((unit) => ({
++            ...unit,
++            locator: new Proxy(unit.locator, {
++              get(value, property, receiver) {
++                if (property === 'kind') work.projectionKindReads++;
++                return Reflect.get(value, property, receiver);
++              },
++              getOwnPropertyDescriptor(value, property) {
++                // canonicalJson reads descriptor.value rather than property get.
++                if (property === 'kind') work.projectionKindReads++;
++                return Reflect.getOwnPropertyDescriptor(value, property);
++              },
++            }),
++          }));
++          return {
++            ...row,
++            manifest: {
++              ...manifest,
++              units: new Proxy(units, {
++                get(value, property, receiver) {
++                  if (typeof property === 'string' && /^(0|[1-9][0-9]*)$/.test(property))
++                    work.unitElementReads++;
++                  return Reflect.get(value, property, receiver);
++                },
++              }),
++            },
++          };
++        });
++      });
++    },
++  });
++  try {
++    Object.defineProperty(Array.prototype, 'includes', {
++      ...includesDescriptor,
++      value: function (this: unknown[], ...args: unknown[]) {
++        if (!exactArray(this)) return Reflect.apply(nativeIncludes, this, args);
++        work.membershipCalls++;
++        const measured = new Proxy(this, {
++          get(value, property, receiver) {
++            if (typeof property === 'string' && /^(0|[1-9][0-9]*)$/.test(property))
++              work.membershipElementReads++;
++            return Reflect.get(value, property, receiver);
++          },
++        });
++        return Reflect.apply(nativeIncludes, measured, args);
++      },
++    });
++    Object.defineProperty(Set.prototype, 'has', {
++      ...hasDescriptor,
++      value: function (this: Set<unknown>, id: unknown) {
++        if (exactSet(this)) work.setMembershipCalls++;
++        return Reflect.apply(nativeHas, this, [id]);
++      },
++    });
++    const result = await read(observed);
++    return { result, work };
++  } finally {
++    Object.defineProperty(Array.prototype, 'includes', includesDescriptor);
++    Object.defineProperty(Set.prototype, 'has', hasDescriptor);
++    assert.equal(Array.prototype.includes, nativeIncludes);
++    assert.equal(Set.prototype.has, nativeHas);
++  }
++}

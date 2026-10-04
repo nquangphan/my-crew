@@ -1,0 +1,12 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (0.839125ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.620542ms)
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.780542ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (3.24175ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 64.01825

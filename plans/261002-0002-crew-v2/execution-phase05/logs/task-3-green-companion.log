@@ -1,0 +1,20 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-companion-11hzn4q5/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-companion-11hzn4q5/v2/server/test/attachments-access.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-2f3b3bbc-eb31-4be0-bfd6-f419ca3d12a2", "--label", "crew.phase05.task3=66de8b05-c7db-46be-aff0-1eaaba67c4b9", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "8b27e8ca0090c8a75c4e65e04f270db7544db1a08525d57ec41e715a84286912", "name": "crew-v2-test-2f3b3bbc-eb31-4be0-bfd6-f419ca3d12a2", "mapping": "127.0.0.1:57551"}
+attachment DB container 8b27e8ca0090c8a75c4e65e04f270db7544db1a08525d57ec41e715a84286912 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EDA07m
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EDA07m nonceSha256=6158ac0c515f0889f9664672475879aba102e68db3ebbae0722f0f9d6c9a9737
+attachment DB scratch identity dev=16777229 ino=64088761 uid=501 pid=84005
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EDA07m
+✔ attachment access never follows a matching checksum across projects (898.633458ms)
+attachment DB container 8b27e8ca0090c8a75c4e65e04f270db7544db1a08525d57ec41e715a84286912 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QwMG47
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QwMG47 nonceSha256=9733439e4fe18e7f4862edcc62957af02d055b89e6cb80887fa162f3d177ba1a
+attachment DB scratch identity dev=16777229 ino=64088809 uid=501 pid=84005
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QwMG47
+✔ attachment references require a live ancestor in the exact tree and reuse original identity (610.829958ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1690.378167

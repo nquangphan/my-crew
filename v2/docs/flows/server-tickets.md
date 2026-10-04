@@ -25,6 +25,8 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 
 9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Production resolver vẫn deny, chưa nối current input/fence/routing decision; thành công test qua trust port riêng không chứng nhận production admission.
 
+B2a checkpoint bổ sung `assistantRecordDecision` và `assistantAddDependency` trong factory. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Source đã format nhưng GREEN118, strict và independent review chưa chạy; không coi checkpoint này là quyền production đã nghiệm thu.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
@@ -44,6 +46,8 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
 | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
 | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
+| `server/src/tickets/assistant-access.ts` | Snapshot và private prepared/verified capability cho scoped mutation |
+| `server/test/assistant-mutations.test.ts` | B2a decision/dependency regression matrix, GREEN còn pending |
 | `server/test/assistant-orchestration.test.ts` | Scoped create: hash/snapshot/private token, actual machine audit, prefix locks, UUID case và array descriptor boundary |
 | `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
 | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |

@@ -1,0 +1,26 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-green-l7w2cc78/v2/server", "exec", "node", "--test", "--test-isolation=none", "--test-concurrency=1", "--test-name-pattern=grouped derivative coverage|indexed snapshot candidates|attachment subset selection", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-green-l7w2cc78/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-00bd9d92-c726-4c4d-ba01-60af2e087043", "--label", "crew.phase05.task3=58e4d5af-ade2-4bf8-ba8e-738018d774d4", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "c550eab9f36b0737b5e351e3668e19d4de160bc5232c9debfee8add546c39f63", "name": "crew-v2-test-00bd9d92-c726-4c4d-ba01-60af2e087043", "mapping": "127.0.0.1:64031"}
+attachment DB container c550eab9f36b0737b5e351e3668e19d4de160bc5232c9debfee8add546c39f63 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SFPR6F
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SFPR6F nonceSha256=a613cb2c74b649c9d390ad1cbbbadd9ce6ee10ae090ea37f4025c6006a0f6ada
+attachment DB scratch identity dev=16777229 ino=64149890 uid=501 pid=63514
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SFPR6F
+✔ attachment subset selection binds exact original identity when unit IDs repeat across files (1119.385583ms)
+attachment DB container c550eab9f36b0737b5e351e3668e19d4de160bc5232c9debfee8add546c39f63 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BFf7CG
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BFf7CG nonceSha256=c63351d6e4dc693442c6d9a4b96f71aa9e7f6e5de8b893518fdcdbaff7db0d82
+attachment DB scratch identity dev=16777229 ino=64149954 uid=501 pid=63514
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BFf7CG
+✔ grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks (775.1925ms)
+ℹ {"groupedUnits":2048,"queries":1,"rows":1,"validationReads":1,"unitElementReads":2048,"pid":63514,"argv":["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-green-l7w2cc78/v2/server/test/attachments-snapshots.test.ts"],"nodeOptions":"--max-old-space-size=384"}
+attachment DB container c550eab9f36b0737b5e351e3668e19d4de160bc5232c9debfee8add546c39f63 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6fuFqo
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6fuFqo nonceSha256=91ea76996d0d895f73f1a384237e00993383bd23d71606c518372051bf56bc3b
+attachment DB scratch identity dev=16777229 ino=64149991 uid=501 pid=63514
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6fuFqo
+✔ indexed snapshot candidates reject persisted derivative identity and coverage tampering (857.718542ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2913.050791

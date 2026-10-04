@@ -1,0 +1,226 @@
+{
+  "state": "candidate-source-frozen-awaiting-PM-worker-corpus-and-independent-review",
+  "at": 1790947454.672865,
+  "baseline": "b670d82",
+  "dependencyImage": "sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856",
+  "inventorySha256": "85d06b02ce6dcc388fdd0d01ada17ca1cd9d867cfb6119458e390ec56e6d6d09",
+  "hashAlgorithm": "SHA256 UTF8 JSON files array with sorted object keys, compact separators, Unicode unescaped",
+  "files": [
+    {
+      "path": "v2/docs/flows/attachment-extraction.md",
+      "group": "documentation",
+      "bytes": 15524,
+      "sha256": "d58f8b29f2d293cf8b68765fa20abcea0a98694260331ab2628a020230c09cf4"
+    },
+    {
+      "path": "v2/server/src/attachments/contracts.ts",
+      "group": "source",
+      "bytes": 12065,
+      "sha256": "04c81e230c2cf3ff34eeff6751aaeb4dc508003a66e9ed5b48917b23ded5b305"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/csv.ts",
+      "group": "source",
+      "bytes": 3585,
+      "sha256": "7d7a5ea2a483e4cec9f35d3fa56303eb8b2b21ceda1e43b73e7c2036d0234de4"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/docx.ts",
+      "group": "source",
+      "bytes": 10079,
+      "sha256": "3baa0fe6ebf6906d5cd5644b1174d8d95c9793e83e9c16169316aa96afe1a258"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/formats.ts",
+      "group": "source",
+      "bytes": 4330,
+      "sha256": "ed1e7436f8dac5b17aa673070c5aec6c4fdec4e22efb48fdf31a198705cb3062"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/image.ts",
+      "group": "source",
+      "bytes": 5573,
+      "sha256": "b3daa8cc95b203231c10b78d49371a6d83edaccdae35138b2a69526a0e0ab180"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/index.ts",
+      "group": "source",
+      "bytes": 8167,
+      "sha256": "6995ee16825c4588ee8ff6107bde1288c7dbb802c82b8e2cf5c8068267c560a8"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/pdf.ts",
+      "group": "source",
+      "bytes": 10620,
+      "sha256": "b717abc12cbb2d8546871f5b1288335bc291b18cec79d8ede658c6561ecdd33e"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/text.ts",
+      "group": "source",
+      "bytes": 2790,
+      "sha256": "755eac5d075fb9cbc040fb10a315baf53d84a3d335556c3d4f5792a49d012790"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/verify.ts",
+      "group": "source",
+      "bytes": 2572,
+      "sha256": "bb004e0feb44fe66bc3d27795df5b2b77f736ddef95a976945fd89aed58ada68"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/xlsx.ts",
+      "group": "source",
+      "bytes": 14763,
+      "sha256": "d7f674ea4b534d0fc8fc319b38a98ab8bf036b8aa166273f6ce81b99abc02450"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/xml.ts",
+      "group": "source",
+      "bytes": 3417,
+      "sha256": "903f54914903092bddc4862c0e95c9612c3c5c468b0585b895e73db91086da99"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/yauzl.d.ts",
+      "group": "source",
+      "bytes": 843,
+      "sha256": "c88278585ba1b66e606aa3e56c1dfd54283c26874f5a134e3fe775a59e033738"
+    },
+    {
+      "path": "v2/server/src/attachments/extract/zip.ts",
+      "group": "source",
+      "bytes": 7446,
+      "sha256": "be9e1bf5269be8e7ded32c162215702cf55fcce343ef3a48323b6ac64c7324f0"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-entry.ts",
+      "group": "source",
+      "bytes": 2119,
+      "sha256": "c19399d7d9de83a0dc467315672251bc3fb3ccb68511d6483a79073abdc74acf"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-protocol.ts",
+      "group": "source",
+      "bytes": 19753,
+      "sha256": "96fbee3bd5e7a9023ae141642e1c137c9e00351b2bae57dd5e2194cfaf92308f"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-runner.ts",
+      "group": "source",
+      "bytes": 25728,
+      "sha256": "7c28d38d321cb8ffa51d53b46b690cf5e22c7777abfd9e9052678d6f5faeca1e"
+    },
+    {
+      "path": "v2/server/test/attachments-formats.unit.test.ts",
+      "group": "test",
+      "bytes": 2175,
+      "sha256": "eb4dd1800b0609e6c6310912bb80f07291bcbada41243b4a08fd5902e53e914c"
+    },
+    {
+      "path": "v2/server/test/attachments-ooxml.unit.test.ts",
+      "group": "test",
+      "bytes": 16766,
+      "sha256": "ca5fd682d7f5b66e998675a2b4b65e695d279ebb463781195af45c64ef382af2"
+    },
+    {
+      "path": "v2/server/test/attachments-pdf-image.unit.test.ts",
+      "group": "test",
+      "bytes": 7630,
+      "sha256": "59dcb51b201468b40f9ebe3631bd650a561c7de19f8ea1c5bfdaed8ae9168b7a"
+    },
+    {
+      "path": "v2/server/test/attachments-text-csv.unit.test.ts",
+      "group": "test",
+      "bytes": 12937,
+      "sha256": "75248ca0049127cebdf2d0dc4bdb06ce230fd420c4711707fe06dd0d5a87de3e"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/README.md",
+      "group": "fixture",
+      "bytes": 6437,
+      "sha256": "128718051dc2620cbb30db1f25e35b5654be882db5a6b186bc949ff242e071f9"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/embedded-executable.pdf",
+      "group": "fixture",
+      "bytes": 1216,
+      "sha256": "52d23086fa9f1b7a4be2a46e202ef7e030ff7e86ed0f2f94f0c606ba50476239"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/encrypted.pdf",
+      "group": "fixture",
+      "bytes": 1929,
+      "sha256": "e39ff9ad175663b2a603104c88cd80ab2f24f51a18ddc129a1a6bfc2c8bd66b8"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/javascript.pdf",
+      "group": "fixture",
+      "bytes": 1091,
+      "sha256": "92a74737af3c07e239fa1818339834c394cb85402782e29ff241641a8f934571"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/launch-compressed.pdf",
+      "group": "fixture",
+      "bytes": 1009,
+      "sha256": "8093cee4f0204657115a3fcfed2ee034506711e55340a49cd356988de4c2e143"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/launch-escaped.pdf",
+      "group": "fixture",
+      "bytes": 908,
+      "sha256": "8423a553c7dbf71af76d37a1c9963c659405546ff1dd0f96f380e7d04c81e083"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/launch-incremental.pdf",
+      "group": "fixture",
+      "bytes": 1696,
+      "sha256": "5e6506f0beb731a67419ec3ef9ac3d819b99808f606e286fb0916f9c2dd174dc"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/launch.pdf",
+      "group": "fixture",
+      "bytes": 934,
+      "sha256": "452380707bda4ded5122b3efea542a308a0b720f75981e138dcf2140e8d628fb"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/make-fixtures.ts",
+      "group": "fixture",
+      "bytes": 11762,
+      "sha256": "a84d481c5b7b3aa8a811c0a98b2bfa7db96fcf8e37a6009dd95928b35d11aee7"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/mixed.pdf",
+      "group": "fixture",
+      "bytes": 2029,
+      "sha256": "e967451dd350be34adcd78a5a44e3d9112b28b051b3e3b32a79fe5848e277fa3"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/orientation-6.jpg",
+      "group": "fixture",
+      "bytes": 669,
+      "sha256": "34fbeb44f2ccaddb296d78d415af6444427f5a6206efb3941f15af5b79d76249"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/portfolio.pdf",
+      "group": "fixture",
+      "bytes": 884,
+      "sha256": "7158cd617d7ee430792cc03490aa2d4ce3fc708ff61c6175a235f45d0501e9b5"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/rotated.pdf",
+      "group": "fixture",
+      "bytes": 867,
+      "sha256": "2b82c523ea3cd2a1caa9fc5d91906c90eca96cf99a450f685208bfa7ce0754a9"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/scan.pdf",
+      "group": "fixture",
+      "bytes": 1645,
+      "sha256": "e0dd29c35085b59e7305bcc8dad57fc022671d74871cd1710b738322235c8ad9"
+    },
+    {
+      "path": "v2/server/test/fixtures/attachments/text.pdf",
+      "group": "fixture",
+      "bytes": 1335,
+      "sha256": "42e7fee83fca52e8901f2b48c84cc3ff94d1f22941ca644a8fc9da738343befe"
+    }
+  ]
+}

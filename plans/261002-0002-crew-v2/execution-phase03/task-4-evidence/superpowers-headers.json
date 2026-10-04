@@ -1,0 +1,1784 @@
+[
+  {
+    "path": "",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".agents",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".agents/plugins",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".agents/plugins/marketplace.json",
+    "type": "file",
+    "mode": 436,
+    "size": 363
+  },
+  {
+    "path": ".claude-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".claude-plugin/marketplace.json",
+    "type": "file",
+    "mode": 436,
+    "size": 514
+  },
+  {
+    "path": ".claude-plugin/plugin.json",
+    "type": "file",
+    "mode": 436,
+    "size": 497
+  },
+  {
+    "path": ".codex-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".codex-plugin/plugin.json",
+    "type": "file",
+    "mode": 436,
+    "size": 1730
+  },
+  {
+    "path": ".cursor-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".cursor-plugin/plugin.json",
+    "type": "file",
+    "mode": 436,
+    "size": 578
+  },
+  {
+    "path": ".devin-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".devin-plugin/plugin.json",
+    "type": "file",
+    "mode": 436,
+    "size": 575
+  },
+  {
+    "path": ".gitattributes",
+    "type": "file",
+    "mode": 436,
+    "size": 373
+  },
+  {
+    "path": ".github",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".github/FUNDING.yml",
+    "type": "file",
+    "mode": 436,
+    "size": 62
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1593
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/config.yml",
+    "type": "file",
+    "mode": 436,
+    "size": 241
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/diagnosis_report.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1018
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1604
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/platform_support.md",
+    "type": "file",
+    "mode": 436,
+    "size": 974
+  },
+  {
+    "path": ".github/PULL_REQUEST_TEMPLATE.md",
+    "type": "file",
+    "mode": 436,
+    "size": 5814
+  },
+  {
+    "path": ".gitignore",
+    "type": "file",
+    "mode": 436,
+    "size": 347
+  },
+  {
+    "path": ".hermes-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".hermes-plugin/__init__.py",
+    "type": "file",
+    "mode": 436,
+    "size": 3937
+  },
+  {
+    "path": ".hermes-plugin/plugin.yaml",
+    "type": "file",
+    "mode": 436,
+    "size": 151
+  },
+  {
+    "path": ".kimi-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".kimi-plugin/plugin.json",
+    "type": "file",
+    "mode": 436,
+    "size": 3090
+  },
+  {
+    "path": ".muse-plugin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".muse-plugin/marketplace.json",
+    "type": "file",
+    "mode": 436,
+    "size": 507
+  },
+  {
+    "path": ".muse-plugin/plugin.json",
+    "type": "file",
+    "mode": 436,
+    "size": 2286
+  },
+  {
+    "path": ".opencode",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".opencode/INSTALL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 5379
+  },
+  {
+    "path": ".opencode/plugins",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".opencode/plugins/superpowers.js",
+    "type": "file",
+    "mode": 436,
+    "size": 17617
+  },
+  {
+    "path": ".pi",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".pi/extensions",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": ".pi/extensions/superpowers.ts",
+    "type": "file",
+    "mode": 436,
+    "size": 4283
+  },
+  {
+    "path": ".pre-commit-config.yaml",
+    "type": "file",
+    "mode": 436,
+    "size": 579
+  },
+  {
+    "path": ".version-bump.json",
+    "type": "file",
+    "mode": 436,
+    "size": 949
+  },
+  {
+    "path": "AGENTS.md",
+    "type": "file",
+    "mode": 436,
+    "size": 8983
+  },
+  {
+    "path": "CODE_OF_CONDUCT.md",
+    "type": "file",
+    "mode": 436,
+    "size": 13724
+  },
+  {
+    "path": "GEMINI.md",
+    "type": "file",
+    "mode": 436,
+    "size": 92
+  },
+  {
+    "path": "LICENSE",
+    "type": "file",
+    "mode": 436,
+    "size": 1070
+  },
+  {
+    "path": "README.md",
+    "type": "file",
+    "mode": 436,
+    "size": 14389
+  },
+  {
+    "path": "RELEASE-NOTES.md",
+    "type": "file",
+    "mode": 436,
+    "size": 102028
+  },
+  {
+    "path": "assets",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "assets/app-icon.png",
+    "type": "file",
+    "mode": 436,
+    "size": 48231
+  },
+  {
+    "path": "assets/superpowers-small.svg",
+    "type": "file",
+    "mode": 436,
+    "size": 1733
+  },
+  {
+    "path": "docs",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "docs/README.kimi.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2691
+  },
+  {
+    "path": "docs/README.opencode.md",
+    "type": "file",
+    "mode": 436,
+    "size": 8758
+  },
+  {
+    "path": "docs/plans",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "docs/plans/2025-11-22-opencode-support-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 8831
+  },
+  {
+    "path": "docs/plans/2025-11-22-opencode-support-implementation.md",
+    "type": "file",
+    "mode": 436,
+    "size": 27539
+  },
+  {
+    "path": "docs/plans/2025-11-28-skills-improvements-from-user-feedback.md",
+    "type": "file",
+    "mode": 436,
+    "size": 21033
+  },
+  {
+    "path": "docs/plans/2026-01-17-visual-brainstorming.md",
+    "type": "file",
+    "mode": 436,
+    "size": 15107
+  },
+  {
+    "path": "docs/porting-to-a-new-harness.md",
+    "type": "file",
+    "mode": 436,
+    "size": 51884
+  },
+  {
+    "path": "docs/superpowers",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "docs/superpowers/plans",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "docs/superpowers/plans/2026-01-22-document-review-system.md",
+    "type": "file",
+    "mode": 436,
+    "size": 8999
+  },
+  {
+    "path": "docs/superpowers/plans/2026-02-19-visual-brainstorming-refactor.md",
+    "type": "file",
+    "mode": 436,
+    "size": 18804
+  },
+  {
+    "path": "docs/superpowers/plans/2026-03-11-zero-dep-brainstorm-server.md",
+    "type": "file",
+    "mode": 436,
+    "size": 15576
+  },
+  {
+    "path": "docs/superpowers/plans/2026-03-23-codex-app-compatibility.md",
+    "type": "file",
+    "mode": 436,
+    "size": 19177
+  },
+  {
+    "path": "docs/superpowers/plans/2026-04-06-worktree-rototill.md",
+    "type": "file",
+    "mode": 436,
+    "size": 29210
+  },
+  {
+    "path": "docs/superpowers/plans/2026-05-06-lift-drill-into-evals.md",
+    "type": "file",
+    "mode": 436,
+    "size": 48218
+  },
+  {
+    "path": "docs/superpowers/plans/2026-05-07-pi-extension-and-evals.md",
+    "type": "file",
+    "mode": 436,
+    "size": 5748
+  },
+  {
+    "path": "docs/superpowers/plans/2026-06-09-sdd-task-scoped-review-dispatch.md",
+    "type": "file",
+    "mode": 436,
+    "size": 28766
+  },
+  {
+    "path": "docs/superpowers/plans/2026-06-09-visual-companion-issues.md",
+    "type": "file",
+    "mode": 436,
+    "size": 18930
+  },
+  {
+    "path": "docs/superpowers/plans/2026-06-10-visual-companion-auth-hardening.md",
+    "type": "file",
+    "mode": 436,
+    "size": 23632
+  },
+  {
+    "path": "docs/superpowers/plans/2026-06-11-visual-companion-final-hardening-fixup.md",
+    "type": "file",
+    "mode": 436,
+    "size": 36149
+  },
+  {
+    "path": "docs/superpowers/plans/2026-07-06-sdd-plan-scoped-workspace.md",
+    "type": "file",
+    "mode": 436,
+    "size": 48630
+  },
+  {
+    "path": "docs/superpowers/plans/2026-07-15-sdd-fix-loop-redesign.md",
+    "type": "file",
+    "mode": 436,
+    "size": 77641
+  },
+  {
+    "path": "docs/superpowers/plans/2026-07-30-codex-efficiency-fixes.md",
+    "type": "file",
+    "mode": 436,
+    "size": 52609
+  },
+  {
+    "path": "docs/superpowers/plans/2026-08-06-hermes-version-bump-wiring.md",
+    "type": "file",
+    "mode": 436,
+    "size": 9551
+  },
+  {
+    "path": "docs/superpowers/plans/2026-08-27-diagnosing-superpowers.md",
+    "type": "file",
+    "mode": 436,
+    "size": 76309
+  },
+  {
+    "path": "docs/superpowers/specs",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "docs/superpowers/specs/2026-01-22-document-review-system-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4723
+  },
+  {
+    "path": "docs/superpowers/specs/2026-02-19-visual-brainstorming-refactor-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 9445
+  },
+  {
+    "path": "docs/superpowers/specs/2026-03-11-zero-dep-brainstorm-server-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6021
+  },
+  {
+    "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 13369
+  },
+  {
+    "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 20120
+  },
+  {
+    "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4886
+  },
+  {
+    "path": "docs/superpowers/specs/2026-05-05-platform-neutral-prose-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6038
+  },
+  {
+    "path": "docs/superpowers/specs/2026-05-05-platform-neutral-readme-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2100
+  },
+  {
+    "path": "docs/superpowers/specs/2026-05-06-lift-drill-into-evals-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 21059
+  },
+  {
+    "path": "docs/superpowers/specs/2026-06-09-sdd-task-scoped-review-dispatch-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 17835
+  },
+  {
+    "path": "docs/superpowers/specs/2026-06-10-positive-instruction-redesign-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 10590
+  },
+  {
+    "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 15315
+  },
+  {
+    "path": "docs/superpowers/specs/2026-06-10-visual-companion-auth-hardening-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 8314
+  },
+  {
+    "path": "docs/superpowers/specs/2026-06-11-visual-companion-final-hardening-fixup-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 12956
+  },
+  {
+    "path": "docs/superpowers/specs/2026-07-06-sdd-plan-scoped-workspace-eval-results.md",
+    "type": "file",
+    "mode": 436,
+    "size": 24547
+  },
+  {
+    "path": "docs/superpowers/specs/2026-07-06-sdd-plan-scoped-workspace.md",
+    "type": "file",
+    "mode": 436,
+    "size": 10210
+  },
+  {
+    "path": "docs/superpowers/specs/2026-07-15-sdd-fix-loop-redesign-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 10963
+  },
+  {
+    "path": "docs/superpowers/specs/2026-07-30-codex-efficiency-fixes-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 12583
+  },
+  {
+    "path": "docs/superpowers/specs/2026-08-05-hermes-version-bump-wiring-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2196
+  },
+  {
+    "path": "docs/superpowers/specs/2026-08-27-diagnosing-superpowers-design.md",
+    "type": "file",
+    "mode": 436,
+    "size": 27042
+  },
+  {
+    "path": "docs/testing.md",
+    "type": "file",
+    "mode": 436,
+    "size": 3045
+  },
+  {
+    "path": "docs/windows",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "docs/windows/polyglot-hooks.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6579
+  },
+  {
+    "path": "gemini-extension.json",
+    "type": "file",
+    "mode": 436,
+    "size": 187
+  },
+  {
+    "path": "hooks",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "hooks/hooks-cursor.json",
+    "type": "file",
+    "mode": 436,
+    "size": 137
+  },
+  {
+    "path": "hooks/hooks.json",
+    "type": "file",
+    "mode": 436,
+    "size": 334
+  },
+  {
+    "path": "hooks/run-hook.cmd",
+    "type": "file",
+    "mode": 509,
+    "size": 1460
+  },
+  {
+    "path": "hooks/session-start",
+    "type": "file",
+    "mode": 509,
+    "size": 2667
+  },
+  {
+    "path": "index.js",
+    "type": "file",
+    "mode": 436,
+    "size": 536
+  },
+  {
+    "path": "package.json",
+    "type": "file",
+    "mode": 436,
+    "size": 433
+  },
+  {
+    "path": "scripts",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "scripts/bump-version.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 7461
+  },
+  {
+    "path": "scripts/lint-shell.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 4088
+  },
+  {
+    "path": "scripts/package-codex-plugin.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 10338
+  },
+  {
+    "path": "scripts/sync-to-codex-plugin.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 15009
+  },
+  {
+    "path": "skills",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/brainstorming",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/brainstorming/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 17548
+  },
+  {
+    "path": "skills/brainstorming/scripts",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/brainstorming/scripts/frame-template.html",
+    "type": "file",
+    "mode": 436,
+    "size": 8094
+  },
+  {
+    "path": "skills/brainstorming/scripts/helper.js",
+    "type": "file",
+    "mode": 436,
+    "size": 5615
+  },
+  {
+    "path": "skills/brainstorming/scripts/server.cjs",
+    "type": "file",
+    "mode": 436,
+    "size": 25693
+  },
+  {
+    "path": "skills/brainstorming/scripts/start-server.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 6908
+  },
+  {
+    "path": "skills/brainstorming/scripts/stop-server.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 3263
+  },
+  {
+    "path": "skills/brainstorming/spec-document-reviewer-prompt.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1747
+  },
+  {
+    "path": "skills/brainstorming/visual-companion.md",
+    "type": "file",
+    "mode": 436,
+    "size": 13413
+  },
+  {
+    "path": "skills/diagnosing-superpowers",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/diagnosing-superpowers/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6904
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/analyst-common.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1582
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/cost-and-time.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1640
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/plan-adherence.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1637
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/quality-evidence.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1476
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/repeated-work.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1469
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/request-conflicts.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1011
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/scrub-audit.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1363
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/scrub.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1471
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/similar-session.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1711
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/skill-timeline.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1646
+  },
+  {
+    "path": "skills/diagnosing-superpowers/prompts/stumbles.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1330
+  },
+  {
+    "path": "skills/diagnosing-superpowers/references",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/diagnosing-superpowers/references/context-safety.md",
+    "type": "file",
+    "mode": 436,
+    "size": 990
+  },
+  {
+    "path": "skills/diagnosing-superpowers/references/github-issues.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1644
+  },
+  {
+    "path": "skills/diagnosing-superpowers/references/redaction-policy.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2243
+  },
+  {
+    "path": "skills/diagnosing-superpowers/references/session-discovery.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1859
+  },
+  {
+    "path": "skills/diagnosing-superpowers/templates",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/diagnosing-superpowers/templates/bundle-README.md",
+    "type": "file",
+    "mode": 436,
+    "size": 3672
+  },
+  {
+    "path": "skills/diagnosing-superpowers/templates/case.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2983
+  },
+  {
+    "path": "skills/diagnosing-superpowers/templates/issue.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1851
+  },
+  {
+    "path": "skills/diagnosing-superpowers/templates/report.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2359
+  },
+  {
+    "path": "skills/dispatching-parallel-agents",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/dispatching-parallel-agents/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6078
+  },
+  {
+    "path": "skills/executing-plans",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/executing-plans/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 20405
+  },
+  {
+    "path": "skills/executing-plans/scripts",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/executing-plans/scripts/task-done",
+    "type": "file",
+    "mode": 509,
+    "size": 1670
+  },
+  {
+    "path": "skills/executing-plans/scripts/task-start",
+    "type": "file",
+    "mode": 509,
+    "size": 963
+  },
+  {
+    "path": "skills/finishing-a-development-branch",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/finishing-a-development-branch/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 7781
+  },
+  {
+    "path": "skills/receiving-code-review",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/receiving-code-review/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6203
+  },
+  {
+    "path": "skills/requesting-code-review",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/requesting-code-review/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2977
+  },
+  {
+    "path": "skills/requesting-code-review/code-reviewer.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6449
+  },
+  {
+    "path": "skills/subagent-driven-development",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/subagent-driven-development/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 32577
+  },
+  {
+    "path": "skills/subagent-driven-development/implementer-prompt.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6335
+  },
+  {
+    "path": "skills/subagent-driven-development/re-review-prompt.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4761
+  },
+  {
+    "path": "skills/subagent-driven-development/scripts",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/subagent-driven-development/scripts/review-package",
+    "type": "file",
+    "mode": 509,
+    "size": 2029
+  },
+  {
+    "path": "skills/subagent-driven-development/scripts/sdd-workspace",
+    "type": "file",
+    "mode": 509,
+    "size": 3265
+  },
+  {
+    "path": "skills/subagent-driven-development/scripts/task-brief",
+    "type": "file",
+    "mode": 509,
+    "size": 1322
+  },
+  {
+    "path": "skills/subagent-driven-development/task-reviewer-prompt.md",
+    "type": "file",
+    "mode": 436,
+    "size": 9031
+  },
+  {
+    "path": "skills/systematic-debugging",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/systematic-debugging/CREATION-LOG.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4257
+  },
+  {
+    "path": "skills/systematic-debugging/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 9465
+  },
+  {
+    "path": "skills/systematic-debugging/condition-based-waiting-example.ts",
+    "type": "file",
+    "mode": 436,
+    "size": 5054
+  },
+  {
+    "path": "skills/systematic-debugging/condition-based-waiting.md",
+    "type": "file",
+    "mode": 436,
+    "size": 3516
+  },
+  {
+    "path": "skills/systematic-debugging/defense-in-depth.md",
+    "type": "file",
+    "mode": 436,
+    "size": 3650
+  },
+  {
+    "path": "skills/systematic-debugging/find-polluter.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 1986
+  },
+  {
+    "path": "skills/systematic-debugging/root-cause-tracing.md",
+    "type": "file",
+    "mode": 436,
+    "size": 5321
+  },
+  {
+    "path": "skills/systematic-debugging/test-academic.md",
+    "type": "file",
+    "mode": 436,
+    "size": 653
+  },
+  {
+    "path": "skills/systematic-debugging/test-pressure-1.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1900
+  },
+  {
+    "path": "skills/systematic-debugging/test-pressure-2.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2283
+  },
+  {
+    "path": "skills/systematic-debugging/test-pressure-3.md",
+    "type": "file",
+    "mode": 436,
+    "size": 2692
+  },
+  {
+    "path": "skills/test-driven-development",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/test-driven-development/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 9578
+  },
+  {
+    "path": "skills/test-driven-development/writing-good-tests.md",
+    "type": "file",
+    "mode": 436,
+    "size": 8268
+  },
+  {
+    "path": "skills/using-git-worktrees",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/using-git-worktrees/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 6813
+  },
+  {
+    "path": "skills/using-superpowers",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/using-superpowers/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 3192
+  },
+  {
+    "path": "skills/using-superpowers/references",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/using-superpowers/references/antigravity-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1495
+  },
+  {
+    "path": "skills/using-superpowers/references/claude-code-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1469
+  },
+  {
+    "path": "skills/using-superpowers/references/codex-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4762
+  },
+  {
+    "path": "skills/using-superpowers/references/gemini-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4598
+  },
+  {
+    "path": "skills/using-superpowers/references/hermes-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1964
+  },
+  {
+    "path": "skills/using-superpowers/references/muse-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1908
+  },
+  {
+    "path": "skills/using-superpowers/references/pi-tools.md",
+    "type": "file",
+    "mode": 436,
+    "size": 1242
+  },
+  {
+    "path": "skills/verification-before-completion",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/verification-before-completion/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 3646
+  },
+  {
+    "path": "skills/writing-plans",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/writing-plans/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 10335
+  },
+  {
+    "path": "skills/writing-skills",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/writing-skills/SKILL.md",
+    "type": "file",
+    "mode": 436,
+    "size": 26623
+  },
+  {
+    "path": "skills/writing-skills/anthropic-best-practices.md",
+    "type": "file",
+    "mode": 436,
+    "size": 46197
+  },
+  {
+    "path": "skills/writing-skills/examples",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "skills/writing-skills/examples/CLAUDE_MD_TESTING.md",
+    "type": "file",
+    "mode": 436,
+    "size": 5423
+  },
+  {
+    "path": "skills/writing-skills/graphviz-conventions.dot",
+    "type": "file",
+    "mode": 436,
+    "size": 5970
+  },
+  {
+    "path": "skills/writing-skills/persuasion-principles.md",
+    "type": "file",
+    "mode": 436,
+    "size": 5901
+  },
+  {
+    "path": "skills/writing-skills/render-graphs.js",
+    "type": "file",
+    "mode": 509,
+    "size": 4968
+  },
+  {
+    "path": "skills/writing-skills/testing-skills-with-subagents.md",
+    "type": "file",
+    "mode": 436,
+    "size": 12558
+  },
+  {
+    "path": "tests",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/antigravity",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/antigravity/run-tests.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 319
+  },
+  {
+    "path": "tests/antigravity/test-antigravity-tools.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2146
+  },
+  {
+    "path": "tests/brainstorm-server",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/brainstorm-server/auth.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 12084
+  },
+  {
+    "path": "tests/brainstorm-server/branding.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 12213
+  },
+  {
+    "path": "tests/brainstorm-server/browser-launcher.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 1768
+  },
+  {
+    "path": "tests/brainstorm-server/helper.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 8240
+  },
+  {
+    "path": "tests/brainstorm-server/lifecycle.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 23092
+  },
+  {
+    "path": "tests/brainstorm-server/package-lock.json",
+    "type": "file",
+    "mode": 436,
+    "size": 861
+  },
+  {
+    "path": "tests/brainstorm-server/package.json",
+    "type": "file",
+    "mode": 436,
+    "size": 374
+  },
+  {
+    "path": "tests/brainstorm-server/server.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 23860
+  },
+  {
+    "path": "tests/brainstorm-server/start-server.test.sh",
+    "type": "file",
+    "mode": 436,
+    "size": 3099
+  },
+  {
+    "path": "tests/brainstorm-server/stop-server.test.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 6346
+  },
+  {
+    "path": "tests/brainstorm-server/windows-lifecycle.test.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 12043
+  },
+  {
+    "path": "tests/brainstorm-server/ws-protocol.test.js",
+    "type": "file",
+    "mode": 436,
+    "size": 15002
+  },
+  {
+    "path": "tests/claude-code",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/claude-code/README.md",
+    "type": "file",
+    "mode": 436,
+    "size": 4724
+  },
+  {
+    "path": "tests/claude-code/analyze-token-usage.py",
+    "type": "file",
+    "mode": 509,
+    "size": 6733
+  },
+  {
+    "path": "tests/claude-code/run-skill-tests.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 5334
+  },
+  {
+    "path": "tests/claude-code/test-executing-plans-scripts.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 4625
+  },
+  {
+    "path": "tests/claude-code/test-helpers.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 5438
+  },
+  {
+    "path": "tests/claude-code/test-sdd-workspace.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 14358
+  },
+  {
+    "path": "tests/claude-code/test-subagent-driven-development-integration.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 10779
+  },
+  {
+    "path": "tests/claude-code/test-subagent-driven-development.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 5511
+  },
+  {
+    "path": "tests/claude-code/test-worktree-native-preference.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 6680
+  },
+  {
+    "path": "tests/claude-code/test-worktree-path-policy.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2546
+  },
+  {
+    "path": "tests/codex-plugin-sync",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/codex-plugin-sync/test-sync-to-codex-plugin.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 24241
+  },
+  {
+    "path": "tests/codex",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/codex/test-marketplace-manifest.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2889
+  },
+  {
+    "path": "tests/codex/test-package-codex-plugin.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 9650
+  },
+  {
+    "path": "tests/devin",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/devin/test-devin-plugin.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2610
+  },
+  {
+    "path": "tests/diagnosing-superpowers",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/diagnosing-superpowers/test-skill-structure.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 5449
+  },
+  {
+    "path": "tests/explicit-skill-requests",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/action-oriented.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 173
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/after-planning-flow.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 551
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/claude-suggested-it.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 498
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/i-know-what-sdd-means.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 366
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/mid-conversation-execute-plan.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 119
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/please-use-brainstorming.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 73
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/skip-formalities.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 171
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/subagent-driven-development-please.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 36
+  },
+  {
+    "path": "tests/explicit-skill-requests/prompts/use-systematic-debugging.txt",
+    "type": "file",
+    "mode": 436,
+    "size": 52
+  },
+  {
+    "path": "tests/explicit-skill-requests/run-all.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 1977
+  },
+  {
+    "path": "tests/explicit-skill-requests/run-extended-multiturn-test.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 3407
+  },
+  {
+    "path": "tests/explicit-skill-requests/run-haiku-test.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 4042
+  },
+  {
+    "path": "tests/explicit-skill-requests/run-multiturn-test.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 4564
+  },
+  {
+    "path": "tests/explicit-skill-requests/run-test.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 4327
+  },
+  {
+    "path": "tests/hermes",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/hermes/__init__.py",
+    "type": "file",
+    "mode": 436,
+    "size": 0
+  },
+  {
+    "path": "tests/hermes/conftest.py",
+    "type": "file",
+    "mode": 436,
+    "size": 929
+  },
+  {
+    "path": "tests/hermes/test_bootstrap.py",
+    "type": "file",
+    "mode": 436,
+    "size": 3341
+  },
+  {
+    "path": "tests/hermes/test_plugin.py",
+    "type": "file",
+    "mode": 436,
+    "size": 5286
+  },
+  {
+    "path": "tests/hooks",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/hooks/test-session-start.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 6243
+  },
+  {
+    "path": "tests/kimi",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/kimi/run-tests.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 127
+  },
+  {
+    "path": "tests/kimi/test-plugin-manifest.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2301
+  },
+  {
+    "path": "tests/opencode",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/opencode/run-tests.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 4592
+  },
+  {
+    "path": "tests/opencode/setup.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2864
+  },
+  {
+    "path": "tests/opencode/test-bootstrap-caching.mjs",
+    "type": "file",
+    "mode": 436,
+    "size": 9837
+  },
+  {
+    "path": "tests/opencode/test-bootstrap-caching.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 1060
+  },
+  {
+    "path": "tests/opencode/test-plugin-loading.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2589
+  },
+  {
+    "path": "tests/opencode/test-priority.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 6994
+  },
+  {
+    "path": "tests/opencode/test-session-bootstrap.mjs",
+    "type": "file",
+    "mode": 436,
+    "size": 9235
+  },
+  {
+    "path": "tests/opencode/test-session-bootstrap.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 181
+  },
+  {
+    "path": "tests/opencode/test-skill-registration.mjs",
+    "type": "file",
+    "mode": 436,
+    "size": 9176
+  },
+  {
+    "path": "tests/opencode/test-skill-registration.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 899
+  },
+  {
+    "path": "tests/opencode/test-tools.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 3383
+  },
+  {
+    "path": "tests/pi",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/pi/test-pi-extension.mjs",
+    "type": "file",
+    "mode": 436,
+    "size": 5828
+  },
+  {
+    "path": "tests/shell-lint",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/shell-lint/test-lint-shell.sh",
+    "type": "file",
+    "mode": 436,
+    "size": 4719
+  },
+  {
+    "path": "tests/systematic-debugging",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/systematic-debugging/test-find-polluter.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2609
+  },
+  {
+    "path": "tests/version-bump",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/version-bump/test-bump-version.sh",
+    "type": "file",
+    "mode": 436,
+    "size": 2259
+  },
+  {
+    "path": "tests/writing-skills",
+    "type": "directory",
+    "mode": 509,
+    "size": 0
+  },
+  {
+    "path": "tests/writing-skills/test-render-graphs.sh",
+    "type": "file",
+    "mode": 509,
+    "size": 2512
+  }
+]

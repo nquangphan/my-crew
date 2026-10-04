@@ -1,0 +1,25 @@
+{
+  "base": "9182e89",
+  "cover": {
+    "exit": 0,
+    "seconds": 232.288816458
+  },
+  "coverSummary": {
+    "tests": 121,
+    "pass": 121,
+    "fail": 0,
+    "skip": 0,
+    "durationMs": 230559.336625
+  },
+  "strictFrozenBuildExit": 0,
+  "strictFrozenTypecheckExit": 0,
+  "nativeWallWextraWerrorExit": 0,
+  "targetedBiomeExit": 0,
+  "targetedBiomeWarnings": 33,
+  "diffCheckExit": 0,
+  "sourceStability": {
+    "checked": 279,
+    "changed": [],
+    "overlayChecked": 13
+  }
+}

@@ -1,0 +1,151 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/models.test.ts '--test-name-pattern=FIX1|actual 008 attempt'
+
+model-fixture-container {"containerId":"6728fae21f0d86981854b2ac140cf288aeaea8be5d096707d5e87c4bff0c6998","url":"postgres://postgres@127.0.0.1:55787/crew_v2_test"}
+✖ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (657.100292ms)
+✖ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (447.972125ms)
+✖ FIX1 R2 older pending ack cannot rewind newer stored credential (304.056333ms)
+✖ FIX1 R2 older pending loss cannot rewind newer stored credential (313.228375ms)
+✖ FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history (311.346791ms)
+✖ FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key (315.368166ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 0
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3571.84725
+
+✖ failing tests:
+
+test at test/model-certification.test.ts:106:45
+✖ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (657.100292ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts:438:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts:107:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/model-certification.test.ts:106:45
+✖ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (447.972125ms)
+  AssertionError [ERR_ASSERTION]: {"id":"93f48718-3227-4f68-a81e-d4803deb8e9c","ticketId":"e8732434-6ba9-4175-affb-1e287343c291","machineId":"b67b0e6b-aa82-49b4-b206-3bc369cf8230","commandId":"33fc7f4d-8209-4482-9cff-0180f07aa441","fence":"1","bindingRevision":2,"processInstanceId":"a9b09f7d-e1b5-4eb2-be64-22fd739c30d8","state":"active","leaseExpiresAt":"2026-10-02T06:35:43.229Z","workflowPin":{"version":"6.4.2","checksum":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","revision":"8ca22dba9a94f28898bbce59f2537ff4d87c747d","workflow":"superpowers"},"checkpoint":{"step":"","commit":null,"sequence":"0","artifactIds":[],"processInstanceId":"a9b09f7d-e1b5-4eb2-be64-22fd739c30d8"},"terminalIntent":"complete","terminalReason":null,"terminalResult":null,"stoppedAt":null,"finalizedAt":null}
+  
+  201 !== 503
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts:256:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts:107:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 201,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-secret.test.ts:372:44
+✖ FIX1 R2 older pending ack cannot rewind newer stored credential (304.056333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   credential_ref: 'older-ref',
+  -   credential_ref: 'newer-ref',
+      status: 'stored'
+    }
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:382:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:373:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { status: 'stored', credential_ref: 'older-ref' },
+    expected: { status: 'stored', credential_ref: 'newer-ref' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-secret.test.ts:372:44
+✖ FIX1 R2 older pending loss cannot rewind newer stored credential (313.228375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   credential_ref: null,
+  +   status: 'missing'
+  -   credential_ref: 'newer-ref',
+  -   status: 'stored'
+    }
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:382:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:373:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { status: 'missing', credential_ref: null },
+    expected: { status: 'stored', credential_ref: 'newer-ref' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-secret.test.ts:394:1
+✖ FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history (311.346791ms)
+  AssertionError [ERR_ASSERTION]: {"operationId":"c83f14d0-7b7a-4851-844f-6782b3ab9055","status":"pending"}
+  
+  200 !== 409
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:403:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:395:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 409,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-secret.test.ts:424:1
+✖ FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key (315.368166ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'missing'
+  - 'pending'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:433:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-secret.test.ts:425:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'missing',
+    expected: 'pending',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

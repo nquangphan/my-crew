@@ -1,0 +1,25 @@
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (23.249917ms)
+✔ attachment storage rejects truncated and oversized streams without publishing original (9.931125ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.530084ms)
+✔ attachment storage derivative publication is separate from original (14.169459ms)
+✔ attachment storage leaves a published blob inspectable after injected failure (7.47375ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (0.188292ms)
+✔ attachment storage rejects a symlink owner marker before opening stage (4.825ms)
+✔ attachment storage binds publication to exact attachment and generation (5.443708ms)
+✔ attachment storage never accepts a foreign existing destination even with equal digest (4.337917ms)
+✔ attachment storage prevents publication after abort at stage flush (4.104625ms)
+✔ attachment storage can reopen durable root and verify originals (5.234041ms)
+✔ attachment storage requires durable journal integration before derivative bytes (1.875375ms)
+✔ attachment storage publishes multiple derivatives in one extraction generation without collision (18.731167ms)
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (9.721625ms)
+✔ attachment receiver parses Linux comm containing spaces and parentheses without birth-field drift (0.159959ms)
+﹣ attachment receiver rejects native writer setup on unsupported host (0.018834ms) # SKIP
+✔ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (3.180542ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 173.32625

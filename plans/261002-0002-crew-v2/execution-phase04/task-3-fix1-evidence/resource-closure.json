@@ -1,0 +1,260 @@
+{
+  "time": "2026-10-03T17:04:34.824367+07:00",
+  "roots": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8c370789-20b9-4b90-ba7a-deb172910df0-9nGVjV",
+      "observations": [
+        {
+          "log": "expiry-red.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8c370789-20b9-4b90-ba7a-deb172910df0-9nGVjV",
+          "nonce": "8c370789-20b9-4b90-ba7a-deb172910df0",
+          "dev": 16777229,
+          "ino": 64401812,
+          "uid": 501
+        },
+        {
+          "log": "expiry-red.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8c370789-20b9-4b90-ba7a-deb172910df0-9nGVjV",
+          "nonce": "8c370789-20b9-4b90-ba7a-deb172910df0",
+          "dev": 16777229,
+          "ino": 64401812,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b8769702-98cd-46bf-a9f6-82f8a2cae63e-xCyMOU",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b8769702-98cd-46bf-a9f6-82f8a2cae63e-xCyMOU",
+          "nonce": "b8769702-98cd-46bf-a9f6-82f8a2cae63e",
+          "dev": 16777229,
+          "ino": 64402566,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b8769702-98cd-46bf-a9f6-82f8a2cae63e-xCyMOU",
+          "nonce": "b8769702-98cd-46bf-a9f6-82f8a2cae63e",
+          "dev": 16777229,
+          "ino": 64402566,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-883affaf-637a-4dfa-a813-eae0f59cb038-cme1YN",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-883affaf-637a-4dfa-a813-eae0f59cb038-cme1YN",
+          "nonce": "883affaf-637a-4dfa-a813-eae0f59cb038",
+          "dev": 16777229,
+          "ino": 64402570,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-883affaf-637a-4dfa-a813-eae0f59cb038-cme1YN",
+          "nonce": "883affaf-637a-4dfa-a813-eae0f59cb038",
+          "dev": 16777229,
+          "ino": 64402570,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-da5cbefd-1a3c-4a2a-a483-703469f060b4-25Et6V",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-da5cbefd-1a3c-4a2a-a483-703469f060b4-25Et6V",
+          "nonce": "da5cbefd-1a3c-4a2a-a483-703469f060b4",
+          "dev": 16777229,
+          "ino": 64402580,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-da5cbefd-1a3c-4a2a-a483-703469f060b4-25Et6V",
+          "nonce": "da5cbefd-1a3c-4a2a-a483-703469f060b4",
+          "dev": 16777229,
+          "ino": 64402580,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6c6ec31d-055d-42aa-ae41-819fd5ab44c2-FCVY6z",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6c6ec31d-055d-42aa-ae41-819fd5ab44c2-FCVY6z",
+          "nonce": "6c6ec31d-055d-42aa-ae41-819fd5ab44c2",
+          "dev": 16777229,
+          "ino": 64402589,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6c6ec31d-055d-42aa-ae41-819fd5ab44c2-FCVY6z",
+          "nonce": "6c6ec31d-055d-42aa-ae41-819fd5ab44c2",
+          "dev": 16777229,
+          "ino": 64402589,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b7345f35-48ab-4d0c-9c94-9ad1c355a9db-dT1Twy",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b7345f35-48ab-4d0c-9c94-9ad1c355a9db-dT1Twy",
+          "nonce": "b7345f35-48ab-4d0c-9c94-9ad1c355a9db",
+          "dev": 16777229,
+          "ino": 64402600,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b7345f35-48ab-4d0c-9c94-9ad1c355a9db-dT1Twy",
+          "nonce": "b7345f35-48ab-4d0c-9c94-9ad1c355a9db",
+          "dev": 16777229,
+          "ino": 64402600,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-a7fde68a-ecd5-4b5e-b5a7-84a59cad991c-rCTfqL",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-a7fde68a-ecd5-4b5e-b5a7-84a59cad991c-rCTfqL",
+          "nonce": "a7fde68a-ecd5-4b5e-b5a7-84a59cad991c",
+          "dev": 16777229,
+          "ino": 64402610,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-a7fde68a-ecd5-4b5e-b5a7-84a59cad991c-rCTfqL",
+          "nonce": "a7fde68a-ecd5-4b5e-b5a7-84a59cad991c",
+          "dev": 16777229,
+          "ino": 64402610,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-822b855f-0c4a-4ab3-869d-14732a6b77cc-5DNdEk",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-822b855f-0c4a-4ab3-869d-14732a6b77cc-5DNdEk",
+          "nonce": "822b855f-0c4a-4ab3-869d-14732a6b77cc",
+          "dev": 16777229,
+          "ino": 64402786,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-822b855f-0c4a-4ab3-869d-14732a6b77cc-5DNdEk",
+          "nonce": "822b855f-0c4a-4ab3-869d-14732a6b77cc",
+          "dev": 16777229,
+          "ino": 64402786,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f535d758-e8d6-4e92-8be4-defc5cdcaeb4-FRFS5b",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f535d758-e8d6-4e92-8be4-defc5cdcaeb4-FRFS5b",
+          "nonce": "f535d758-e8d6-4e92-8be4-defc5cdcaeb4",
+          "dev": 16777229,
+          "ino": 64403292,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f535d758-e8d6-4e92-8be4-defc5cdcaeb4-FRFS5b",
+          "nonce": "f535d758-e8d6-4e92-8be4-defc5cdcaeb4",
+          "dev": 16777229,
+          "ino": 64403292,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8244625e-a54b-431b-882e-605e66bfa141-skzDNs",
+      "observations": [
+        {
+          "log": "targeted-cover.log",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8244625e-a54b-431b-882e-605e66bfa141-skzDNs",
+          "nonce": "8244625e-a54b-431b-882e-605e66bfa141",
+          "dev": 16777229,
+          "ino": 64403761,
+          "uid": 501
+        },
+        {
+          "log": "targeted-cover.log",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8244625e-a54b-431b-882e-605e66bfa141-skzDNs",
+          "nonce": "8244625e-a54b-431b-882e-605e66bfa141",
+          "dev": 16777229,
+          "ino": 64403761,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    }
+  ],
+  "total": 10,
+  "absent": 10,
+  "snapshotProcessReferences": [],
+  "container": "none created",
+  "policy": "Existing historical UNKNOWN roots untouched; test cleanup after producer closure; no PID guessing"
+}

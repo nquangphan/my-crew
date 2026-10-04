@@ -1,0 +1,450 @@
+{
+  "status": "FROZEN PENDING FIX2 INDEPENDENT REVIEW",
+  "baseline": "0c838d21354bb40494a1280200ae281b2ff19e33",
+  "ownPaths": [
+    {
+      "path": "v2/server/src/attachments/snapshots.ts",
+      "bytes": 16911,
+      "sha256": "00a795ee3e82649d816d19be85ad61f1b957cfb9ff93998673e98b1bdeeee20e",
+      "baselineSha256": "c498e9e953c7eae2aa840c9fc97cef0e0b5bcf88071315be60ebb9bf918f3969",
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/server/test/attachments-snapshots.test.ts",
+      "bytes": 37295,
+      "sha256": "92eb17f16fdbf1578e960be8c4ef9a208f5093ff3027f2580f2ca51a08e23930",
+      "baselineSha256": "14cd2467cca851ecbfce4aaaa71b892b8b8002e59e22106d59f2de0fd1b7b464",
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/server/test/support/attachment-subset-work.ts",
+      "bytes": 4959,
+      "sha256": "d2bef2aa0b733eb7988e8f76d2d60cf964c6574c43213b4ffbe19cbbc6379038",
+      "baselineSha256": null,
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/docs/flows/server-attachments.md",
+      "bytes": 26721,
+      "sha256": "4ab2046618e2bb9dfdd53847ab22bce1a2ae67ad54063e271996f67750526aec",
+      "baselineSha256": "093f154b3f0409df81129aa04009c6533630714757c15388cc621b452c877dd7",
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    }
+  ],
+  "protectedFrozenPaths": [
+    {
+      "path": "v2/server/src/app.ts",
+      "frozenBytes": 4149,
+      "frozenSha256": "c0052279dc95a5f512047add2ca8dcd1c94935c45c79ab218721a0bb58e493c3",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "c0052279dc95a5f512047add2ca8dcd1c94935c45c79ab218721a0bb58e493c3",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/package.json",
+      "frozenBytes": 843,
+      "frozenSha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/contracts.ts",
+      "frozenBytes": 11551,
+      "frozenSha256": "5b6a496b4c0e86298a2d69d76f4666e07cbb783d8ca153ccb4f17fc4f45eb906",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "04c81e230c2cf3ff34eeff6751aaeb4dc508003a66e9ed5b48917b23ded5b305",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/jobs.ts",
+      "frozenBytes": 15120,
+      "frozenSha256": "2984081650f272b0404902d9bac5c15430656d1bfd3b3430f6c5f043dcc8221d",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "2984081650f272b0404902d9bac5c15430656d1bfd3b3430f6c5f043dcc8221d",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/messages.ts",
+      "frozenBytes": 11390,
+      "frozenSha256": "c88e5e1ea870541244f7cace3e3cefab7c7f55a94a5beb25f492592f150c3508",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "c88e5e1ea870541244f7cace3e3cefab7c7f55a94a5beb25f492592f150c3508",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/routing.ts",
+      "frozenBytes": 10106,
+      "frozenSha256": "b6ff9476d4926437b55c015043a6337d1c2feff951893837781dcf765160234c",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "b6ff9476d4926437b55c015043a6337d1c2feff951893837781dcf765160234c",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-protocol.ts",
+      "frozenBytes": 17349,
+      "frozenSha256": "836615d455854469acc8280c3d66e97adff1b190df7a2ece234e101b1d156aa5",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "96fbee3bd5e7a9023ae141642e1c137c9e00351b2bae57dd5e2194cfaf92308f",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-runner.ts",
+      "frozenBytes": 16751,
+      "frozenSha256": "5080d8182fbd59e984f6e7856cf063a147221308fda5fe1f0de1a99f51f0cf48",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "7c28d38d321cb8ffa51d53b46b690cf5e22c7777abfd9e9052678d6f5faeca1e",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-entry.ts",
+      "frozenBytes": 1636,
+      "frozenSha256": "826cbb9395f0a4837e9f862b92fa8cb9c81e664e0752840cf1ac81d45d4b6566",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "c19399d7d9de83a0dc467315672251bc3fb3ccb68511d6483a79073abdc74acf",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/test/support/attachment-access-publication.ts",
+      "frozenBytes": 5388,
+      "frozenSha256": "579fc484af1bf8bfc8b2931f3de7342a324d4a42e48f433a77b13e5f63df10a4",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "579fc484af1bf8bfc8b2931f3de7342a324d4a42e48f433a77b13e5f63df10a4",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/test/support/attachment-snapshot-work.ts",
+      "frozenBytes": 1689,
+      "frozenSha256": "577ea7bfc40f8bc86965c3babd353e4c77638d2f338b6e3183cfb2191ceb4c3a",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "577ea7bfc40f8bc86965c3babd353e4c77638d2f338b6e3183cfb2191ceb4c3a",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/001_platform.sql",
+      "frozenBytes": 286,
+      "frozenSha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/002_journal.sql",
+      "frozenBytes": 837,
+      "frozenSha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/003_identity.sql",
+      "frozenBytes": 1294,
+      "frozenSha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/004_tickets.sql",
+      "frozenBytes": 4975,
+      "frozenSha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/005_execution.sql",
+      "frozenBytes": 3270,
+      "frozenSha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/006_docs.sql",
+      "frozenBytes": 4364,
+      "frozenSha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/007_gateway.sql",
+      "frozenBytes": 6548,
+      "frozenSha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/008_model_pool.sql",
+      "frozenBytes": 15261,
+      "frozenSha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/009_attachments.sql",
+      "frozenBytes": 20136,
+      "frozenSha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    },
+    {
+      "path": "v2/server/migrations/010_attachment_comment_text.sql",
+      "frozenBytes": 253,
+      "frozenSha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX2 edit"
+    }
+  ],
+  "fix1ArtifactsUnmodified": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-cleanup-inventory.json",
+      "bytes": 4344,
+      "sha256": "02af122dd42ef7653f9cdcd1624393d23d2089b305c3313b52586cf974aa2ae1",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-evidence-inventory.json",
+      "bytes": 7455,
+      "sha256": "c08157a84110a933ed72d9839150e7084b7e45ca49f84d80eb49b3fb955b17be",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-child-closed.json",
+      "bytes": 48,
+      "sha256": "095c71686ae6d92707f77d423f9836fd89dace95a386dd4dc383575b64b98550",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-child-created.json",
+      "bytes": 1030,
+      "sha256": "c1d1992fe055c18ffc048aaa6c55b3de322deef65e51702e539374b5344412d0",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-child-intended.json",
+      "bytes": 575,
+      "sha256": "17c3c08a651c84d5eccef967d8bbeb816727e9948125d5c2036240f6a919a488",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-cleanup.json",
+      "bytes": 320,
+      "sha256": "0fd7e5f3b265eec9c0755662cefe434251cad6ae385b8f8c49ef2fd048e44039",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-container-closed.json",
+      "bytes": 6581,
+      "sha256": "ddb68ae822ce9296764f9d631421a0e24a0e658aa85d89fd404a7891f8d0d5f5",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-container-created.json",
+      "bytes": 6035,
+      "sha256": "77a323de7d546c7960a710e3d90d07016ac8a781687a302f2c63f216bbcf2c0b",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-evidence.json",
+      "bytes": 36089,
+      "sha256": "9cd8298a54f7d3e9350ef681a5fe49257aff1795e16f51616c49391cfb483fd6",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-preflight.json",
+      "bytes": 644,
+      "sha256": "a34635b7f2e7677c8a1096b16a8abd7dcbc7f4f56ee88b273c1b1c44b4bcede4",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-pressure.json",
+      "bytes": 2576,
+      "sha256": "dda3ee63bc412e9a36342a04a9c87092ab8b110fd71f3ab23e654236a2327ed6",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-child-closed.json",
+      "bytes": 48,
+      "sha256": "9cbd2dae51921b27b143ba3c9e8b39e0849c738130bf2161e0ed1db6c891f79d",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-child-created.json",
+      "bytes": 910,
+      "sha256": "189d7a7c2831d498ffa3c47b5af82d7eeb9b777f2a6c3d8fea4df72c1bb76501",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-child-intended.json",
+      "bytes": 515,
+      "sha256": "ab48914a16f3b8b4bd494ee2144e9862aa9af9def785b6f1dc906e10add481eb",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-cleanup.json",
+      "bytes": 318,
+      "sha256": "e02295cde5534f16df628dc11a574434a3b0a40fc562b96e2ad3c50fcdfc904c",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-container-closed.json",
+      "bytes": 6582,
+      "sha256": "cc799617e1427145586bb5da38bd834283a2772e485208d6c586c9a7cbca29f5",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-container-created.json",
+      "bytes": 6035,
+      "sha256": "564cfa3360d3a763e7510de05e70fbd437fdd6d31749fc38f2c7ef55c99f3ee1",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-evidence.json",
+      "bytes": 36027,
+      "sha256": "e9028a31fb3102510d252ea274f92586f61ed6c8e7b7b6fa811b4e4a42a2a10b",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-preflight.json",
+      "bytes": 642,
+      "sha256": "6ff4df3dad27780df7de808303e76963cb9838f2c8344b5d1145b87ca92ebb9d",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-pressure.json",
+      "bytes": 2573,
+      "sha256": "6711e6758687206511a0a4b9235034846daded7d5093680e31ebe4b0c3e37725",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-report.md",
+      "bytes": 12844,
+      "sha256": "27023f9592405cfa70b257ecb5a4c491551fc86b23d359a1abf08c8ddd2925d3",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-review.md",
+      "bytes": 5711,
+      "sha256": "ad6ae27064dada0e9092cd4f283e85f50f26f0af125452fc597a54918e763b57",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-source-inventory.json",
+      "bytes": 9609,
+      "sha256": "1d86505c6662fae81a07b21e962a322415b5ebcbbc85f9671b2e23c27a543142",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-source.patch",
+      "bytes": 17695,
+      "sha256": "86db1a014ef8ca4f20e5173f5e5be8c4cad0a3c7af0d4d2b9d906e402b22a47a",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-test-snapshot.py",
+      "bytes": 9586,
+      "sha256": "0f02b35423498625b1c5e59a41abb6ab6c1368a332c67aba92d45c983a2d9514",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-child-closed.json",
+      "bytes": 48,
+      "sha256": "805e9644fcb3d93b655147f79da5af9363aeb248b29c390ff77fc3eeb0141604",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-child-created.json",
+      "bytes": 412,
+      "sha256": "b565b66641b4187451c71539a1652b2f98329724d6f5d11e27222322abff95ce",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-child-intended.json",
+      "bytes": 257,
+      "sha256": "ba36d3b8d2cc68a2f032b548a7ad3b58c8f2c424690980672fa39828e57db49e",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-cleanup.json",
+      "bytes": 256,
+      "sha256": "16463c9f9f793717e296cc67988cb9e56bb7f891b482f1d2759ee8e78ed5f034",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-evidence.json",
+      "bytes": 35263,
+      "sha256": "413d2a5655460f5189c765db45b647512fd33be08f32f1c9ac97f1887bdcf859",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-preflight.json",
+      "bytes": 374,
+      "sha256": "8cc10822dffd9adb2659fb8cc379814110fe11d3cefe36ba00d30efbdcd1953c",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-pressure.json",
+      "bytes": 2575,
+      "sha256": "d31a076526b2ed8b51fd884ff80b682b6d7efe9494274895e39385c469a28c44",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-biome.log",
+      "bytes": 43,
+      "sha256": "939e213a763db07420c1bc46a8df031a6cdfc05a0e93442ed49bceeca3884187",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-green.log",
+      "bytes": 3471,
+      "sha256": "5a8ea3f3497bf7b09f447778e1dc212e82c9b3d110426c19709866509586eb00",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-red.log",
+      "bytes": 3002,
+      "sha256": "67804e79b889df20a31ab106cc5aaedb4cbb3814a5a682236e9e5f320b5c0503",
+      "baselineMatch": false
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-types.log",
+      "bytes": 373,
+      "sha256": "5815a471862da02ac019cf69b0af359b0d4642cb779015db4ca3ed44de8c3bdb",
+      "baselineMatch": false
+    }
+  ],
+  "canonicalH2Count": 7,
+  "sourcePatchSha256": "58683564274376606ffecab5fc1d52fa193c8ab783964fe35ffe232ab241c29d",
+  "noGitOrIndexMutation": true
+}

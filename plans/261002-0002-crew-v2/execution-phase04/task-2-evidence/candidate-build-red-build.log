@@ -1,0 +1,7 @@
+
+> @crew-v2/gateway@ build /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-candidate-94792f8e-0415-460a-bf1f-913f2a37a24d/v2/gateway
+> tsc -p tsconfig.build.json
+
+src/models/credential-provisioning.ts(250,38): error TS2339: Property 'ack' does not exist on type 'never'.
+ ELIFECYCLE  Command failed with exit code 2.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

@@ -1,0 +1,89 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from extractor.Dockerfile
+#1 transferring dockerfile: 710B done
+#1 WARN: RedundantTargetPlatform: Setting platform to predefined $TARGETPLATFORM in FROM is redundant as this is the default behavior (line 2)
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
+#2 DONE 1.9s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 141B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 82.05kB done
+#4 DONE 0.0s
+
+#5 [1/7] FROM docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
+#5 resolve docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 done
+#5 DONE 0.1s
+
+#6 [2/7] WORKDIR /extractor
+#6 DONE 0.0s
+
+#7 [3/7] COPY package.json pnpm-lock.yaml ./
+#7 DONE 0.0s
+
+#8 [4/7] RUN npm install --global --prefix /opt/pnpm --ignore-scripts --no-audit --no-fund pnpm@10.32.1
+#8 2.559 
+#8 2.559 added 1 package in 2s
+#8 2.562 npm notice
+#8 2.562 npm notice New minor version of npm available! 11.9.0 -> 11.21.0
+#8 2.562 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.0
+#8 2.562 npm notice To update run: npm install -g npm@11.21.0
+#8 2.562 npm notice
+#8 DONE 2.6s
+
+#9 [5/7] RUN /opt/pnpm/bin/pnpm install --prod --frozen-lockfile --ignore-scripts
+#9 1.176 Lockfile is up to date, resolution step is skipped
+#9 1.193 Progress: resolved 1, reused 0, downloaded 0, added 0
+#9 1.226 Packages: +59
+#9 1.226 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#9 2.089 
+#9 2.089    ╭─────────────────────────────────────────╮
+#9 2.089    │                                         │
+#9 2.089    │   Update available! 10.32.1 → 12.8.1.   │
+#9 2.089    │   Changelog: https://pnpm.io/v/12.8.1   │
+#9 2.089    │    To update, run: pnpm add -g pnpm     │
+#9 2.089    │                                         │
+#9 2.089    ╰─────────────────────────────────────────╯
+#9 2.089 
+#9 2.195 Progress: resolved 59, reused 0, downloaded 55, added 55
+#9 3.197 Progress: resolved 59, reused 0, downloaded 58, added 58
+#9 3.517 Progress: resolved 59, reused 0, downloaded 59, added 59, done
+#9 3.650 
+#9 3.650 dependencies:
+#9 3.650 + @napi-rs/canvas 1.0.3
+#9 3.650 + fastify 5.12.5
+#9 3.650 + pdfjs-dist 6.3.289
+#9 3.650 + picomatch 4.0.7
+#9 3.650 + postgres 3.4.9
+#9 3.650 + saxes 6.0.0
+#9 3.650 + yaml 2.9.1
+#9 3.650 + yauzl 3.4.0
+#9 3.650 
+#9 3.650 devDependencies: skipped
+#9 3.650 
+#9 3.724 Done in 3.1s using pnpm v10.32.1
+#9 DONE 3.8s
+
+#10 [6/7] COPY --chown=65532:65532 src/attachments ./src/attachments
+#10 DONE 0.0s
+
+#11 [7/7] RUN node -e "const c=require('@napi-rs/canvas');const b=c.createCanvas(1,1).toBuffer('image/png');if(b.length===0)process.exit(1)"
+#11 DONE 0.5s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 2.0s done
+#12 exporting manifest sha256:d7b531fe652debc98edd1ad3a031a102120beba5ec8777d47a7253fe7f0c8aa7 done
+#12 exporting config sha256:f576dbc971cc4d876673e49756a37993eac625ea47f0dd6cd299dbc451f7f4a0 done
+#12 exporting attestation manifest sha256:7d2ee5ffd67971b7c765539e799329f464edfdcbc35866f268cb85e1495f8cf0 done
+#12 exporting manifest list sha256:7a32ca6e0a1862362e61786641489aa39da48665d1d32505e63c9704b70e6869 done
+#12 naming to docker.io/library/crew-v2-extractor:diagnostic-760498d08857bf2caba16421 done
+#12 DONE 2.0s
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - RedundantTargetPlatform: Setting platform to predefined $TARGETPLATFORM in FROM is redundant as this is the default behavior (line 2)

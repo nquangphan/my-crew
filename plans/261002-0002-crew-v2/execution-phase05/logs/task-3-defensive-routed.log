@@ -1,0 +1,63 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-defensive-routed-cy698rao/v2/server", "exec", "node", "--test", "--test-name-pattern=direct accepted|preclaim compares|failed final", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-defensive-routed-cy698rao/v2/server/test/attachments-grants.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-defensive-routed-cy698rao/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-55c48859-e164-48ab-b8ba-4ab350459445", "--label", "crew.phase05.task3=489e4eaa-6bf0-4619-9979-26d61178c993", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66", "name": "crew-v2-test-55c48859-e164-48ab-b8ba-4ab350459445", "mapping": "127.0.0.1:51597"}
+attachment DB container 15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4PELP8
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4PELP8 nonceSha256=a5db246bf8ffde0580a02a3fd2be575ce0080f7e2d9d4c4b9bd5da4920d6093a
+attachment DB scratch identity dev=16777229 ino=64118543 uid=501 pid=68079
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4PELP8
+attachment DB container 15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3LchQ
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3LchQ nonceSha256=d180ecad841b16f6f2c143e9993b80eafb4063700ef75acfe4f6e78d8f6ce95b
+attachment DB scratch identity dev=16777229 ino=64118689 uid=501 pid=68079
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3LchQ
+attachment DB container 15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-UJPkbt
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-UJPkbt nonceSha256=12af579ea914b93933d35ecc553cf63020d0ef5c0599c61db76f75306aba412c
+attachment DB scratch identity dev=16777229 ino=64118797 uid=501 pid=68079
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-UJPkbt
+attachment DB container 15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gk2fFY
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gk2fFY nonceSha256=66dfbe5a75d71e6199f4d004da1934b2ea069ca1893f48501abe9cbb50da9c71
+attachment DB scratch identity dev=16777229 ino=64118954 uid=501 pid=68079
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gk2fFY
+✔ direct accepted reply writer and publication/revocation serialize both winning orders without input-root inversion (4578.903042ms)
+attachment DB container 15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IHhbix
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IHhbix nonceSha256=c051453fffd67adae5ec2c3c3b5ee5502dddbfad5b373c2d690e4a2aeddf9168
+attachment DB scratch identity dev=16777229 ino=64118545 uid=501 pid=68080
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IHhbix
+✔ preclaim compares actual latest extraction generation even before controlled version enqueue invalidates counter (1317.583041ms)
+attachment DB container 15ecff1a30ff7ebc0c1cd4d5224f6da331463bedee398f3ee27eb5c5f0121d66 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTQ7LY
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTQ7LY nonceSha256=13e8899d9d699ba5b739f1c5836400ebd3c318c5dac4604c31cf8019eb2c0f06
+attachment DB scratch identity dev=16777229 ino=64118679 uid=501 pid=68080
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTQ7LY
+✖ failed final publication transaction rolls back manifest and revisions and retains published orphan journal (1006.562375ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4805.627708
+
+✖ failing tests:
+
+test at test/attachments-snapshots.test.ts:409:1
+✖ failed final publication transaction rolls back manifest and revisions and retains published orphan journal (1006.562375ms)
+  Error [PostgresError]: relation "attachment_gc_journal" does not exist
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-defensive-routed-cy698rao/v2/server/test/attachments-snapshots.test.ts:418:22 {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42P01',
+    position: '16',
+    file: 'parse_relation.c',
+    line: '1498',
+    routine: 'parserOpenTable'
+  }

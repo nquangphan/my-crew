@@ -1,0 +1,84 @@
+{
+  "stage": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-extractor-context-qduvjkzp",
+  "context": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-extractor-context-qduvjkzp/context",
+  "dev": 16777229,
+  "ino": 63962988,
+  "uid": 501,
+  "nonce": "760498d08857bf2caba16421",
+  "tag": "crew-v2-extractor:diagnostic-760498d08857bf2caba16421",
+  "targetPlatform": "linux/amd64",
+  "sourceTreeSha256": "219a5209de253bb2551d3b1458e75a60c6881dc7410747d0ba9f49361159fa01",
+  "lockSha256": "2b828b05f94774ed27baa1d2883f7ded6d93fcce0824f1d519ca6b72bf5ede77",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "source": "v2/server/extractor.dockerignore",
+      "sha256": "14bc90088f0bbf149c8f18da73058cb7b5020508d4af47978bf1788f08bb89a7",
+      "bytes": 101
+    },
+    {
+      "path": "extractor.Dockerfile",
+      "source": "v2/server/extractor.Dockerfile",
+      "sha256": "6b90aea51d0b5f56c5112b46becc3d19a463d0cd66662fb1f7fd7ccb7c28f003",
+      "bytes": 661
+    },
+    {
+      "path": "package.json",
+      "source": "plans/261002-0002-crew-v2/execution-phase05/task-4-linux-package.json",
+      "sha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+      "bytes": 843
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "source": "plans/261002-0002-crew-v2/execution-phase05/task-4-linux-pnpm-lock.yaml",
+      "sha256": "2b828b05f94774ed27baa1d2883f7ded6d93fcce0824f1d519ca6b72bf5ede77",
+      "bytes": 25548
+    },
+    {
+      "path": "src/attachments/config.ts",
+      "source": "v2/server/src/attachments/config.ts",
+      "sha256": "821ce0d6d8deb92c405b2bb5ab009eff4c8515c9aecc265b5c6f5b033ec36b03",
+      "bytes": 3804
+    },
+    {
+      "path": "src/attachments/contracts.ts",
+      "source": "v2/server/src/attachments/contracts.ts",
+      "sha256": "5b6a496b4c0e86298a2d69d76f4666e07cbb783d8ca153ccb4f17fc4f45eb906",
+      "bytes": 11551
+    },
+    {
+      "path": "src/attachments/storage.ts",
+      "source": "v2/server/src/attachments/storage.ts",
+      "sha256": "b252f6b1f97fd08359c9f369bebf2f680fce2abc0a23793cd63d8eb678c9db2c",
+      "bytes": 15312
+    },
+    {
+      "path": "src/attachments/worker-diagnostic.ts",
+      "source": "v2/server/src/attachments/worker-diagnostic.ts",
+      "sha256": "eb9100e61b9fc5587c7aaafed21ad65b96a4578727c15d1a8827564ff4f28a8b",
+      "bytes": 5612
+    },
+    {
+      "path": "src/attachments/worker-entry.ts",
+      "source": "v2/server/src/attachments/worker-entry.ts",
+      "sha256": "826cbb9395f0a4837e9f862b92fa8cb9c81e664e0752840cf1ac81d45d4b6566",
+      "bytes": 1636
+    },
+    {
+      "path": "src/attachments/worker-protocol.ts",
+      "source": "v2/server/src/attachments/worker-protocol.ts",
+      "sha256": "cad4956a90ba2c95fa008b5b52f52a33e883f30afd96a667ef6e2a1f3bd630ca",
+      "bytes": 17229
+    }
+  ],
+  "purpose": "Task4 own frozen diagnostic candidate; independentreview pending; production disabled",
+  "buildExit": 0,
+  "buildSession": 2110,
+  "imageDigest": "sha256:7a32ca6e0a1862362e61786641489aa39da48665d1d32505e63c9704b70e6869",
+  "imagePlatformManifest": "sha256:d7b531fe652debc98edd1ad3a031a102120beba5ec8777d47a7253fe7f0c8aa7",
+  "basePlatformDigest": "sha256:4bd6219054c8bebcd26a66bfd8ca0bd6e1024b4b97474c59bb7ee3bbcbef4fe8",
+  "baseLayerPrefixMatches": true,
+  "nativeBuildPngProbe": "PASS exact bounded frozen RUN exit0",
+  "sourceContextAfterBuildExact": true,
+  "imageRetainedForWorkerCanaries": true
+}

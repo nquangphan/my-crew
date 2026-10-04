@@ -1,0 +1,29 @@
+{
+  "acceptedCommit": "7c7c719",
+  "accepted": [
+    "v2/gateway/src/commands/http-client.ts",
+    "v2/gateway/src/execution/ticket-command-bridge.ts",
+    "v2/gateway/src/sync/connection.ts",
+    "v2/gateway/src/sync/gateway-sync.ts",
+    "v2/gateway/src/journal/http-operations.ts",
+    "v2/gateway/test/connection.test.ts",
+    "v2/gateway/test/http-operations.test.ts",
+    "v2/gateway/test/sync.test.ts",
+    "v2/gateway/test/execution-bridge.test.ts",
+    "v2/gateway/test/execution-bridge-db.test.ts",
+    "v2/docs/flows/gateway-host.md",
+    "v2/docs/flows/gateway-workflows.md",
+    "v2/docs/flows/server-gateway.md"
+  ],
+  "own": [
+    "v2/gateway/src/isolation/workspace.ts",
+    "v2/gateway/src/isolation/policy.ts",
+    "v2/gateway/src/isolation/inventory.ts",
+    "v2/gateway/src/isolation/preflight.ts",
+    "v2/gateway/test/isolation.test.ts",
+    "v2/gateway/test/isolation-workspace.test.ts",
+    "v2/gateway/test/support/isolation-probe.ts",
+    "v2/gateway/test/support/isolation-typecheck.json",
+    "v2/docs/flows/gateway-workflows.md"
+  ]
+}

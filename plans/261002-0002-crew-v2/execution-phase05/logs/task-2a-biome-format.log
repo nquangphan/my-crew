@@ -1,0 +1,47 @@
+v2/server/test/attachments-comment-factory.test.ts:7:23 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    5 │ import { captureMigrations } from '../src/db/migrate.ts';
+    6 │ import { appendEvent } from '../src/journal/events.ts';
+  > 7 │ import type { Db, Id, Tx } from '../src/platform/contracts.ts';
+      │                       ^^
+    8 │ import { ApiError } from '../src/platform/errors.ts';
+    9 │ import type { CommentAttachmentInput, CommentAttachmentLinker } from '../src/tickets/contracts.ts';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    7 │ import·type·{·Db,·Id,·Tx·}·from·'../src/platform/contracts.ts';
+      │                       ---                                      
+
+v2/server/test/attachments-comment-factory.test.ts:101:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+     99 │       await tx`select * from attachment_compose_sessions where id=${attachments.composeSessionId} for update`;
+    100 │     if (
+  > 101 │       !compose ||
+        │       ^^^^^^^^^^^
+  > 102 │       compose.purpose !== 'comment' ||
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    103 │       compose.ticket_id !== ticketId ||
+    104 │       compose.project_id !== f.project.id ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+     99  99 │         await tx`select * from attachment_compose_sessions where id=${attachments.composeSessionId} for update`;
+    100 100 │       if (
+    101     │ - ······!compose·||
+    102     │ - ······compose.purpose·!==·'comment'·||
+        101 │ + ······compose?.purpose·!==·'comment'·||
+    103 102 │         compose.ticket_id !== ticketId ||
+    104 103 │         compose.project_id !== f.project.id ||
+  
+
+Skipped 2 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 4 files in 35ms. Fixed 2 files.
+Found 2 warnings.

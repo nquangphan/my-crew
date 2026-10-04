@@ -1,0 +1,247 @@
+{
+  "reviewSha256": "a265c7ca01c24d424c60348a81cb3b3e61127c727b91656ad667becbe2461b24",
+  "scope": "FIX2 T1-F1-N1 only; PostgreSQL wall-clock expiry before claim/ACK replay",
+  "baseline": "0c838d21354bb40494a1280200ae281b2ff19e33",
+  "source": {
+    "v2/server/migrations/011_assistant.sql": {
+      "bytes": 42674,
+      "sha256": "fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841"
+    },
+    "v2/server/src/assistant/contracts.ts": {
+      "bytes": 33718,
+      "sha256": "adee25f453fa91e7498a1a300d3c7a4761147b8584e738a54818d9cb4b65412f"
+    },
+    "v2/server/src/assistant/store.ts": {
+      "bytes": 4392,
+      "sha256": "65034d2770a0f79d549d67d98aa779dc62dcc6b6ca54eab33cfa7ef91889564a"
+    },
+    "v2/server/src/assistant/inbox.ts": {
+      "bytes": 10165,
+      "sha256": "133f47e8dbb08a4c07d8a6dd371203205e3c7dc7de7991d9f1399a71c7c4bdc0"
+    },
+    "v2/server/test/assistant-store.test.ts": {
+      "bytes": 62967,
+      "sha256": "a18ae475b36f65dc95cacf122518b7971f91f35fdc9d187f60c3f6028029b365"
+    },
+    "v2/server/test/support/assistant.ts": {
+      "bytes": 30622,
+      "sha256": "aa487cbf256211029c5d5570afec9072c2f41ec962dd42a402d38f45329e2014"
+    },
+    "v2/docs/flows/server-assistant.md": {
+      "bytes": 9936,
+      "sha256": "9293cf74eb0b9a000ba8761cb6622b2b138e21e2dcb1785ed049f6bee9478c9a"
+    }
+  },
+  "prefix001through010": {
+    "010_attachment_comment_text.sql": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+    "005_execution.sql": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+    "002_journal.sql": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+    "007_gateway.sql": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+    "008_model_pool.sql": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+    "004_tickets.sql": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+    "006_docs.sql": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+    "003_identity.sql": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+    "009_attachments.sql": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+    "001_platform.sql": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+  },
+  "unchangedSinceFIX1": [
+    "011_assistant.sql",
+    "contracts.ts",
+    "store.ts",
+    "test/support/assistant.ts"
+  ],
+  "runs": {
+    "fix2-red-2": {
+      "counts": {
+        "tests": 4,
+        "pass": 0,
+        "fail": 4
+      },
+      "exit": 1,
+      "logSha256": "d730daf091c9541bf9b9a07cd6638a5a5f8dc28a27fc9519ef55d9a60cd55ef3",
+      "pid": 24152,
+      "container": "2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd",
+      "mapping": "127.0.0.1:59978",
+      "cleanup": {
+        "container": "2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd",
+        "containerAbsent": true,
+        "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk",
+        "rootAbsent": true,
+        "identity": {
+          "dev": 16777229,
+          "ino": 64474335,
+          "uid": 501
+        },
+        "childClosed": true
+      },
+      "dbExpiryWitness": [
+        {
+          "state": "pending",
+          "operation": "claim",
+          "transaction_started_at": "2026-10-03T11:51:21.179Z",
+          "expires_at": "2026-10-03T11:51:21.280Z",
+          "checked_at": "2026-10-03T11:51:21.286Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        },
+        {
+          "state": "claimed",
+          "operation": "claim",
+          "transaction_started_at": "2026-10-03T11:51:21.567Z",
+          "expires_at": "2026-10-03T11:51:21.667Z",
+          "checked_at": "2026-10-03T11:51:21.670Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        },
+        {
+          "state": "claimed",
+          "operation": "ack",
+          "transaction_started_at": "2026-10-03T11:51:21.943Z",
+          "expires_at": "2026-10-03T11:51:22.043Z",
+          "checked_at": "2026-10-03T11:51:22.051Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        },
+        {
+          "state": "acked",
+          "operation": "ack",
+          "transaction_started_at": "2026-10-03T11:51:22.324Z",
+          "expires_at": "2026-10-03T11:51:22.424Z",
+          "checked_at": "2026-10-03T11:51:22.427Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        }
+      ],
+      "runnerResource": {
+        "pressure": "2",
+        "estimatedAvailableBytes": 5310808064,
+        "idlePercent": 81.1,
+        "diskBytes": 31354306560,
+        "timeUnix": 1791028280.7030761
+      }
+    },
+    "fix2-affected-cover": {
+      "counts": {
+        "tests": 10,
+        "pass": 10,
+        "fail": 0
+      },
+      "exit": 0,
+      "logSha256": "6c9c652164045599832d3dbc01fb6861ff05a310facf4b74191b6725e566ea92",
+      "pid": 26198,
+      "container": "d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8",
+      "mapping": "127.0.0.1:60323",
+      "cleanup": {
+        "container": "d5f9401956a2d799f3307c026f7de19219e90f61548b49878ef4b87a5299e7f8",
+        "containerAbsent": true,
+        "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-affected-cover-dwxrt2lv",
+        "rootAbsent": true,
+        "identity": {
+          "dev": 16777229,
+          "ino": 64474874,
+          "uid": 501
+        },
+        "childClosed": true
+      },
+      "dbExpiryWitness": [
+        {
+          "state": "pending",
+          "operation": "claim",
+          "transaction_started_at": "2026-10-03T11:52:16.268Z",
+          "expires_at": "2026-10-03T11:52:16.369Z",
+          "checked_at": "2026-10-03T11:52:16.373Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        },
+        {
+          "state": "claimed",
+          "operation": "claim",
+          "transaction_started_at": "2026-10-03T11:52:16.634Z",
+          "expires_at": "2026-10-03T11:52:16.735Z",
+          "checked_at": "2026-10-03T11:52:16.742Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        },
+        {
+          "state": "claimed",
+          "operation": "ack",
+          "transaction_started_at": "2026-10-03T11:52:17.017Z",
+          "expires_at": "2026-10-03T11:52:17.118Z",
+          "checked_at": "2026-10-03T11:52:17.128Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        },
+        {
+          "state": "acked",
+          "operation": "ack",
+          "transaction_started_at": "2026-10-03T11:52:17.398Z",
+          "expires_at": "2026-10-03T11:52:17.498Z",
+          "checked_at": "2026-10-03T11:52:17.506Z",
+          "started_before_expiry": true,
+          "wall_clock_expired": true
+        }
+      ],
+      "runnerResource": {
+        "pressure": "2",
+        "estimatedAvailableBytes": 4931567616,
+        "idlePercent": 63.83,
+        "diskBytes": 31285080064,
+        "timeUnix": 1791028334.3020108
+      }
+    },
+    "fix2-types": {
+      "counts": {},
+      "exit": 0,
+      "logSha256": "b884d8ddeaaaefedaa43528db434c070974b3d50e72d2593e8e79f3fb3c78569",
+      "pid": 33055,
+      "container": "",
+      "mapping": "",
+      "cleanup": {
+        "container": "",
+        "containerAbsent": true,
+        "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-types-ln6nnxez",
+        "rootAbsent": true,
+        "identity": {
+          "dev": 16777229,
+          "ino": 64476287,
+          "uid": 501
+        },
+        "childClosed": true
+      },
+      "dbExpiryWitness": [],
+      "runnerResource": {
+        "pressure": "2",
+        "estimatedAvailableBytes": 5327093760,
+        "idlePercent": 60.88,
+        "diskBytes": 31251685376,
+        "timeUnix": 1791028559.146719
+      }
+    }
+  },
+  "biome": {
+    "pid": 35981,
+    "command": [
+      "pnpm",
+      "exec",
+      "biome",
+      "check",
+      "v2/server/src/assistant/contracts.ts",
+      "v2/server/src/assistant/store.ts",
+      "v2/server/src/assistant/inbox.ts",
+      "v2/server/test/assistant-store.test.ts",
+      "v2/server/test/support/assistant.ts"
+    ],
+    "exit": 0,
+    "waitObserved": true,
+    "files": 5,
+    "logSha256": "3864fb5d4a5ceaf85a38661f67b6be07139de072d5bbfd0dd7871b249c844bc5"
+  },
+  "historicalEvidenceNotRerun": {
+    "sourceFreeze": "source-freeze-fix1.json",
+    "sha256": "07ee4abe62b2394814f4fd8f8bc6c38587c46e3b925ae0f23601eb8cac7c7051",
+    "S2throughS5AndBackupRestore": "FIX1 complete cover 35/35; unchanged SQL; not union PASS"
+  },
+  "independentCleanupRecheckUnix": 1791028719.5925,
+  "sourceMatchesAffectedCoverAndTypes": true,
+  "flowH2Count": 7
+}

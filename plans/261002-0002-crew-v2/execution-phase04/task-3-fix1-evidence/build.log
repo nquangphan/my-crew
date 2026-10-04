@@ -1,0 +1,4 @@
+
+> @crew-v2/gateway@ build /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-fix1-9c10d7c3-e76e-41a4-8dae-601763f42ef5-v9wx5l_k/v2/gateway
+> tsc -p tsconfig.build.json
+

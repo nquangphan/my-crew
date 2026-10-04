@@ -1,0 +1,124 @@
+2026-10-04 00:11:48.984270+00:00 format gate
+pressure=2
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                     9876.
+Pages active:                                 273922.
+Pages inactive:                               272201.
+Pages speculative:                              1142.
+Pages throttled:                                   0.
+Pages wired down:                             421094.
+Pages purgeable:                                  31.
+"Translation faults":                    64477700482.
+Pages copy-on-write:                      3070678518.
+Pages zero filled:                       24710946883.
+Pages reactivated:                        9118600760.
+Pages purged:                              582842812.
+File-backed pages:                            155686.
+Anonymous pages:                              391579.
+Pages stored in compressor:                  3164826.
+Pages occupied by compressor:                 552022.
+Decompressions:                           8512316193.
+Compressions:                            10093574812.
+Pageins:                                  2196843933.
+Pageouts:                                    8291774.
+Swapins:                                   119677193.
+Swapouts:                                  141195342.
+Processes: 1040 total, 2 running, 1038 sleeping, 9624 threads 
+2026/10/04 07:11:48
+Load Avg: 5.67, 5.95, 4.69 
+CPU usage: 5.59% user, 10.70% sys, 83.69% idle 
+SharedLibs: 402M resident, 99M data, 74M linkedit.
+MemRegions: 991931 total, 4943M resident, 101M private, 2554M shared.
+PhysMem: 23G used (6391M wired, 8624M compressor), 186M unused.
+VM: 480T vsize, 6144M framework vsize, 119677193(0) swapins, 141195342(0) swapouts.
+Networks: packets: 616357394/414G in, 541546417/318G out.
+Disks: 1648579040/41T read, 501824741/56T written.
+
+
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 410471892  16778304    97% 4607719 167783040    3%   /System/Volumes/Data
+availableGiB=4.3215789794921875 idle=83.69 diskGiB=16.00103759765625
+format PID=43326 command=['pnpm', 'exec', 'biome', 'check', '--write', 'v2/server/src/tickets/service.ts', 'v2/server/src/tickets/decisions.ts', 'v2/server/src/tickets/dependencies.ts', 'v2/server/src/tickets/assistant-access.ts', 'v2/server/test/assistant-mutations.test.ts']
+2026-10-04 00:12:25.707505+00:00 create gate
+pressure=2
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    10191.
+Pages active:                                 268569.
+Pages inactive:                               266878.
+Pages speculative:                               815.
+Pages throttled:                                   0.
+Pages wired down:                             419241.
+Pages purgeable:                                 455.
+"Translation faults":                    64478417864.
+Pages copy-on-write:                      3070718611.
+Pages zero filled:                       24711443435.
+Pages reactivated:                        9118789919.
+Pages purged:                              582881711.
+File-backed pages:                            157292.
+Anonymous pages:                              378970.
+Pages stored in compressor:                  3184567.
+Pages occupied by compressor:                 564163.
+Decompressions:                           8512442272.
+Compressions:                            10093721818.
+Pageins:                                  2196854949.
+Pageouts:                                    8291930.
+Swapins:                                   119677493.
+Swapouts:                                  141195342.
+Processes: 1039 total, 6 running, 1033 sleeping, 9612 threads 
+2026/10/04 07:12:25
+Load Avg: 7.13, 6.25, 4.84 
+CPU usage: 21.66% user, 13.45% sys, 64.88% idle 
+SharedLibs: 402M resident, 99M data, 74M linkedit.
+MemRegions: 992032 total, 4461M resident, 91M private, 2780M shared.
+PhysMem: 23G used (6419M wired, 8812M compressor), 140M unused.
+VM: 480T vsize, 6144M framework vsize, 119677497(0) swapins, 141195342(0) swapouts.
+Networks: packets: 616363945/414G in, 541551454/318G out.
+Disks: 1648587063/41T read, 501826148/56T written.
+
+
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 410473352  16776844    97% 4607722 167768440    3%   /System/Volumes/Data
+availableGiB=4.24017333984375 idle=64.88 diskGiB=15.999645233154297
+Intent crew-v2-test-1991a21d-4416-4aa9-a23c-f3ba2a173043 postgres:18.6 no pull memory256MiB CPU1 pids64 randomloopback
+fe4a6f69a325b0f989b2367c5cc17b1c9a2203c7331c912a1b8282bae28afb46 /crew-v2-test-1991a21d-4416-4aa9-a23c-f3ba2a173043 memory=268435456 nanoCPUs=1000000000 pids=64
+127.0.0.1:56853
+2026-10-04 00:13:00.322203+00:00 test gate
+pressure=2
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    11413.
+Pages active:                                 241459.
+Pages inactive:                               238218.
+Pages speculative:                              2650.
+Pages throttled:                                   0.
+Pages wired down:                             425490.
+Pages purgeable:                                   3.
+"Translation faults":                    64479093138.
+Pages copy-on-write:                      3070754045.
+Pages zero filled:                       24711823589.
+Pages reactivated:                        9119008965.
+Pages purged:                              582934534.
+File-backed pages:                            161914.
+Anonymous pages:                              320413.
+Pages stored in compressor:                  3237053.
+Pages occupied by compressor:                 611133.
+Decompressions:                           8512662712.
+Compressions:                            10094000030.
+Pageins:                                  2196868154.
+Pageouts:                                    8292068.
+Swapins:                                   119679616.
+Swapouts:                                  141195342.
+Processes: 1042 total, 5 running, 1037 sleeping, 9614 threads 
+2026/10/04 07:13:00
+Load Avg: 6.10, 6.09, 4.84 
+CPU usage: 25.12% user, 10.80% sys, 64.7% idle 
+SharedLibs: 413M resident, 100M data, 76M linkedit.
+MemRegions: 992082 total, 3756M resident, 120M private, 2646M shared.
+PhysMem: 23G used (6687M wired, 9535M compressor), 189M unused.
+VM: 481T vsize, 6144M framework vsize, 119679616(0) swapins, 141195342(0) swapouts.
+Networks: packets: 616372309/414G in, 541554562/318G out.
+Disks: 1648596011/41T read, 501829517/56T written.
+
+
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 410522508  16727688    97% 4607722 167276880    3%   /System/Volumes/Data
+availableGiB=3.8495025634765625 idle=64.7 diskGiB=15.952766418457031

@@ -1,0 +1,178 @@
+v2/gateway/src/isolation/preflight.ts:32:24 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    30 │   const fd = await open(path, 'wx', 0o400);
+    31 │   try {
+  > 32 │     await fd.writeFile(messages.map((m) => JSON.stringify(m)).join('\n') + '\n');
+       │                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    33 │     await fd.sync();
+    34 │   } finally {
+  
+  i Unsafe fix: Use a template literal.
+  
+     30  30 │     const fd = await open(path, 'wx', 0o400);
+     31  31 │     try {
+     32     │ - ····await·fd.writeFile(messages.map((m)·=>·JSON.stringify(m)).join('\n')·+·'\n');
+         32 │ + ····await·fd.writeFile(`${messages.map((m)·=>·JSON.stringify(m)).join('\n')}\n`);
+     33  33 │       await fd.sync();
+     34  34 │     } finally {
+  
+
+v2/gateway/src/isolation/preflight.ts:214:19 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    212 │               evidence.commands.push(version);
+    213 │               checkCommand(version);
+  > 214 │               if (!version.receipt || version.receipt.exitCode !== 0)
+        │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    215 │                 add('runtime-version', 'UNVERIFIED', true, 'runtime unavailable within sandbox');
+    216 │               else {
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    212 212 │                 evidence.commands.push(version);
+    213 213 │                 checkCommand(version);
+    214     │ - ··············if·(!version.receipt·||·version.receipt.exitCode·!==·0)
+        214 │ + ··············if·(version.receipt?.exitCode·!==·0)
+    215 215 │                   add('runtime-version', 'UNVERIFIED', true, 'runtime unavailable within sandbox');
+    216 216 │                 else {
+  
+
+v2/gateway/src/isolation/workspace.ts:335:13 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    333 │         record.commands.push(e.operationId);
+    334 │         await this.store.put(this.key(attemptId), record);
+  > 335 │         if (!e.receipt || e.receipt.exitCode !== 0 || e.error)
+        │             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    336 │           throw new Error(`GIT_MEASUREMENT_FAILED:${e.error ?? e.receipt?.exitCode}`);
+    337 │         return e.output.trim();
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    333 333 │           record.commands.push(e.operationId);
+    334 334 │           await this.store.put(this.key(attemptId), record);
+    335     │ - ········if·(!e.receipt·||·e.receipt.exitCode·!==·0·||·e.error)
+        335 │ + ········if·(e.receipt?.exitCode·!==·0·||·e.error)
+    336 336 │             throw new Error(`GIT_MEASUREMENT_FAILED:${e.error ?? e.receipt?.exitCode}`);
+    337 337 │           return e.output.trim();
+  
+
+v2/gateway/src/isolation/workspace.ts:424:13 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    422 │         record.commands.push(packed.operationId);
+    423 │         await this.store.put(this.key(attemptId), record);
+  > 424 │         if (!packed.receipt || packed.receipt.exitCode !== 0 || packed.error || packed.output !== '')
+        │             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    425 │           throw new Error('GIT_PACK_EXPORT_FAILED');
+    426 │         const inputStat = await lstat(inputPath);
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    422 422 │           record.commands.push(packed.operationId);
+    423 423 │           await this.store.put(this.key(attemptId), record);
+    424     │ - ········if·(!packed.receipt·||·packed.receipt.exitCode·!==·0·||·packed.error·||·packed.output·!==·'')
+        424 │ + ········if·(packed.receipt?.exitCode·!==·0·||·packed.error·||·packed.output·!==·'')
+    425 425 │             throw new Error('GIT_PACK_EXPORT_FAILED');
+    426 426 │           const inputStat = await lstat(inputPath);
+  
+
+v2/gateway/src/isolation/policy.ts:13:61 lint/suspicious/noControlCharactersInRegex ━━━━━━━━━━━━━━━━
+
+  × Unexpected control character in a regular expression.
+  
+    11 │ };
+    12 │ function path(value: string): string {
+  > 13 │   if (!isAbsolute(value) || normalize(value) !== value || /[\x00-\x1f\x7f]/.test(value) || value === '/')
+       │                                                             ^^^^
+    14 │     throw new Error('UNSAFE_POLICY_PATH');
+    15 │   return JSON.stringify(value);
+  
+  i Control characters are unusual and potentially incorrect inputs, so they are disallowed.
+  
+
+v2/gateway/src/isolation/policy.ts:13:66 lint/suspicious/noControlCharactersInRegex ━━━━━━━━━━━━━━━━
+
+  × Unexpected control character in a regular expression.
+  
+    11 │ };
+    12 │ function path(value: string): string {
+  > 13 │   if (!isAbsolute(value) || normalize(value) !== value || /[\x00-\x1f\x7f]/.test(value) || value === '/')
+       │                                                                  ^^^^
+    14 │     throw new Error('UNSAFE_POLICY_PATH');
+    15 │   return JSON.stringify(value);
+  
+  i Control characters are unusual and potentially incorrect inputs, so they are disallowed.
+  
+
+v2/gateway/src/isolation/workspace.ts:348:56 lint/suspicious/noControlCharactersInRegex ━━━━━━━━━━━━
+
+  × Unexpected control character in a regular expression.
+  
+    346 │           '--git-common-dir',
+    347 │         ]);
+  > 348 │         if (!record.commonDir.startsWith('/') || /[\r\n\x00]/.test(record.commonDir))
+        │                                                        ^^^^
+    349 │           throw new Error('INVALID_GIT_COMMON_DIR');
+    350 │         const reads = [ownerCheckout, record.commonDir];
+  
+  i Control characters are unusual and potentially incorrect inputs, so they are disallowed.
+  
+
+v2/gateway/test/isolation-workspace.test.ts:116:29 lint/suspicious/noAssignInExpressions ━━━━━━━━━━━
+
+  × The assignment should not be in an expression.
+  
+    114 │     await service.verify(workspace.workspace, workspace.attemptHome, sourceAudit.pin, projection);
+    115 │     await service.close();
+  > 116 │     const missingRuntime = (bound = await createIsolationPreflight({
+        │                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 117 │       root: join(root, 'isolation'),
+  > 118 │       registry,
+  > 119 │       executables: { codex: join(root, 'missing-runtime') },
+  > 120 │     }));
+        │     ^^
+    121 │     const input = {
+    122 │       runtime: 'codex' as const,
+  
+  i The use of assignments in expressions is confusing.
+    Expressions are often considered as side-effect free.
+  
+
+v2/gateway/test/isolation-workspace.test.ts:184:19 lint/suspicious/noAssignInExpressions ━━━━━━━━━━━
+
+  × The assignment should not be in an expression.
+  
+    182 │     await writeFile(selectedPath, selectedBytes);
+    183 │     await missingRuntime.close();
+  > 184 │     const live = (bound = await createIsolationPreflight({
+        │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 185 │       root: join(root, 'isolation'),
+         ...
+  > 190 │       },
+  > 191 │     }));
+        │     ^^
+    192 │     if (process.env.CREW_ISOLATION_PROBE_RUNTIME !== 'claude') {
+    193 │       const codex = await live.preflightSourceIsolation(input);
+  
+  i The use of assignments in expressions is confusing.
+    Expressions are often considered as side-effect free.
+  
+
+Skipped 8 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 8 files in 36ms. Fixed 8 files.
+Found 5 errors.
+Found 3 warnings.
+Found 1 info.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while applying fixes.
+  
+

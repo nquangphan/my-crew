@@ -1,0 +1,31 @@
+{
+  "root": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j",
+  "focused": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/models.test.ts",
+  "covering": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/server.test.ts",
+  "coveringFiles": [
+    "v2/server/test/api-acceptance.test.ts",
+    "v2/server/test/attempts.test.ts",
+    "v2/server/test/auth.test.ts",
+    "v2/server/test/commands.test.ts",
+    "v2/server/test/completion.test.ts",
+    "v2/server/test/dependencies.test.ts",
+    "v2/server/test/deploy.test.ts",
+    "v2/server/test/docs-events.unit.test.ts",
+    "v2/server/test/docs-import-cli.unit.test.ts",
+    "v2/server/test/docs-import.test.ts",
+    "v2/server/test/docs-read.test.ts",
+    "v2/server/test/docs-validator.unit.test.ts",
+    "v2/server/test/execution-events.unit.test.ts",
+    "v2/server/test/gateway.test.ts",
+    "v2/server/test/journal-scope.test.ts",
+    "v2/server/test/journal.test.ts",
+    "v2/server/test/model-certification.test.ts",
+    "v2/server/test/model-pool.test.ts",
+    "v2/server/test/model-secret.test.ts",
+    "v2/server/test/platform.test.ts",
+    "v2/server/test/projects.test.ts",
+    "v2/server/test/repair.test.ts",
+    "v2/server/test/ticket-events.unit.test.ts",
+    "v2/server/test/tickets.test.ts"
+  ]
+}

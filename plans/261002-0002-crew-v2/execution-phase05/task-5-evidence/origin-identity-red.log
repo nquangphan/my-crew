@@ -1,0 +1,30 @@
+✖ attachment image presentation metadata cannot evade origin identity (5.620584ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.608542
+
+✖ failing tests:
+
+test at v2/server/test/attachments-pdf-image.unit.test.ts:116:1
+✖ attachment image presentation metadata cannot evade origin identity (5.620584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '{"box":[0,0,1,1],"height":2,"kind":"image","width":3}:default'
+  - '{"box":[0,0,1,1],"height":3,"kind":"image","width":2}:default'
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-pdf-image.unit.test.ts:134:10)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '{"box":[0,0,1,1],"height":2,"kind":"image","width":3}:default',
+    expected: '{"box":[0,0,1,1],"height":3,"kind":"image","width":2}:default',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

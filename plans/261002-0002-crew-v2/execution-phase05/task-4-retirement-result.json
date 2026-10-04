@@ -1,0 +1,24 @@
+{
+  "planSha256": "1176938e753c26830b4c0a20f11d5b7a90bec9ce6c9e552da3251903624bcc16",
+  "commands": [
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "image",
+        "rm",
+        "crew-v2-extractor:diagnostic-760498d08857bf2caba16421-canonical"
+      ],
+      "pid": 32609,
+      "exit": 0,
+      "stdout": "Untagged: crew-v2-extractor:diagnostic-760498d08857bf2caba16421-canonical\nDeleted: sha256:8df553bd040016ddf36a547d32d0e7d4986bfc54f60e0355a21e9c28462316a0\n",
+      "stderr": "",
+      "closed": true
+    }
+  ],
+  "imageTagRemovalOutput": "Untagged: crew-v2-extractor:diagnostic-760498d08857bf2caba16421-canonical\nDeleted: sha256:8df553bd040016ddf36a547d32d0e7d4986bfc54f60e0355a21e9c28462316a0",
+  "ownedRootRemoved": true,
+  "bytesRemoved": 86019,
+  "sharedCachesTouched": false,
+  "dependencyImageRetained": true,
+  "closedAt": 1790944369.936544
+}

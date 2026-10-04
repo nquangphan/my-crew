@@ -1,0 +1,32 @@
+{
+  "url": "https://registry.npmjs.org/pdf-lib/1.17.1",
+  "responseSha256": "89934a7e887ac7f0c4d1a47a5e080c235ae6e3472e7a04cb2c34ae8bb7be5c04",
+  "name": "pdf-lib",
+  "version": "1.17.1",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/Hopding/pdf-lib.git",
+    "type": "git"
+  },
+  "dependencies": {
+    "pako": "^1.0.11",
+    "tslib": "^1.11.1",
+    "@pdf-lib/upng": "^1.0.1",
+    "@pdf-lib/standard-fonts": "^1.0.0"
+  },
+  "dist": {
+    "shasum": "9e7dd21261a0c1fb17992580885b39e7d08f451f",
+    "tarball": "https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz",
+    "fileCount": 1647,
+    "integrity": "sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==",
+    "signatures": [
+      {
+        "sig": "MEYCIQDbkqM+bogWIjwQ015YypMWNOOeg2o58uAAxKd41r+P+AIhAN1aJwTwbqXc5VJDBOR3jrDuBJDTXZtK2PANHgSvnS1J",
+        "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA"
+      }
+    ],
+    "unpackedSize": 19461112,
+    "npm-signature": "-----BEGIN PGP SIGNATURE-----\r\nVersion: OpenPGP.js v3.0.13\r\nComment: https://openpgpjs.org\r\n\r\nwsFcBAEBCAAQBQJh22bJCRA9TVsSAnZWagAABAgP/0g2wzQ8gLLhh0p7r6ZN\nzbrMtHlFwYZmO7pYD//mdq0F6gqyRNN9wKruZzn9JBUZ+zCFL64Mvl55yzNK\n/FFAlocV5X8csbY0kfBg/2tNX3I+6HqzwGwhFNnu8tcH4PFnSRFAO1tJgLNs\nIHAeS5oEGcEkDwvlAYFj7NwOpeU9/80L7zsQTOLAn71I5HyU0nuHJA+3MUH9\nGafYeEXipHxlm4bipRKn/vPBdphBPvJGepFLhtoA283ITbx7Zhq68qlj27Me\nipPAIsb4S7fRB8ok3vHkdDQ/Ws0eSX/ZePHUSzlV3QavM9VpqVBd/QNwzKmy\n6FYjmQbkUwuIcpHkhTA7orXu0xIgly9A0HRXVldtl+3sAJWJyrG1umYXQKp2\ncg3+muqmBEvy+/od1VpnLO2uAPmhGo/U0gpvT70qMQ++3KgwHGIprgEF/ewp\n7ghZn+0yBzEGM7BkmuOV+Xvq5szooTm2GZNGJNCLuP8ELg7AhG+B1RelRWCL\nsIJZiDwDwQ6eHrA6AsNiIO+tCkmd9K6j9URVVdOGmYxaoi4SQvpJv68of05O\nCvRb3fqpZnRHkkAHrYu/685XwiNCLebGKcgOxzZBQXP/OyTS9N7JVdTJ615A\ntmrVPSApMDec/wrL2DYPXdYsC1sFwoXWv6p2RxRYxGiPklpD3XtVSvpZiie7\nPf0U\r\n=e1iz\r\n-----END PGP SIGNATURE-----\r\n"
+  },
+  "purpose": "proposed bounded parsed-object PDF security guard; not yet installed or certified"
+}

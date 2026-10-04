@@ -1,0 +1,11 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-cddfdb82-88d5-418b-9e25-9413900dd832-K1i8On","nonce":"cddfdb82-88d5-418b-9e25-9413900dd832","dev":16777229,"ino":64100939,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-cddfdb82-88d5-418b-9e25-9413900dd832-K1i8On","nonce":"cddfdb82-88d5-418b-9e25-9413900dd832","dev":16777229,"ino":64100939,"uid":501}
+✔ runtime boundary captured bridge hook denies before RELEASE after actual accepted companion (2474.333542ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2564.076417

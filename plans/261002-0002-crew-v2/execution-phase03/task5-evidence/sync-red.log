@@ -1,0 +1,32 @@
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3cyrnN","device":"16777229","inode":"63479161","uid":501,"deleted":true}
+✖ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (698.967ms)
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QZTH2n","device":"16777229","inode":"63479196","uid":501,"deleted":true}
+✖ sync superseded command completes immutable failure and new command installs new revision (269.62975ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1061.147833
+
+✖ failing tests:
+
+test at test/sync.test.ts:8:1
+✖ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (698.967ms)
+  Error: SYNC_NOT_IMPLEMENTED
+      at GatewaySync.reconcile (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/sync/gateway-sync.ts:3:40)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/sync.test.ts:28:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at test/sync.test.ts:36:1
+✖ sync superseded command completes immutable failure and new command installs new revision (269.62975ms)
+  Error: SYNC_NOT_IMPLEMENTED
+      at GatewaySync.reconcile (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/sync/gateway-sync.ts:3:40)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/sync.test.ts:42:17)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

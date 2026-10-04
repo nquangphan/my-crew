@@ -1,0 +1,180 @@
+{
+  "scope": "FIX1 evidence artifacts; report is excluded to avoid self-hash cycle",
+  "files": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-biome.log",
+      "bytes": 43,
+      "sha256": "939e213a763db07420c1bc46a8df031a6cdfc05a0e93442ed49bceeca3884187"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-green.log",
+      "bytes": 3471,
+      "sha256": "5a8ea3f3497bf7b09f447778e1dc212e82c9b3d110426c19709866509586eb00"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-red.log",
+      "bytes": 3002,
+      "sha256": "67804e79b889df20a31ab106cc5aaedb4cbb3814a5a682236e9e5f320b5c0503"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-3-fix1-types.log",
+      "bytes": 373,
+      "sha256": "5815a471862da02ac019cf69b0af359b0d4642cb779015db4ca3ed44de8c3bdb"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-cleanup-inventory.json",
+      "bytes": 4344,
+      "sha256": "02af122dd42ef7653f9cdcd1624393d23d2089b305c3313b52586cf974aa2ae1"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-child-closed.json",
+      "bytes": 48,
+      "sha256": "095c71686ae6d92707f77d423f9836fd89dace95a386dd4dc383575b64b98550"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-child-created.json",
+      "bytes": 1030,
+      "sha256": "c1d1992fe055c18ffc048aaa6c55b3de322deef65e51702e539374b5344412d0"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-child-intended.json",
+      "bytes": 575,
+      "sha256": "17c3c08a651c84d5eccef967d8bbeb816727e9948125d5c2036240f6a919a488"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-cleanup.json",
+      "bytes": 320,
+      "sha256": "0fd7e5f3b265eec9c0755662cefe434251cad6ae385b8f8c49ef2fd048e44039"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-container-closed.json",
+      "bytes": 6581,
+      "sha256": "ddb68ae822ce9296764f9d631421a0e24a0e658aa85d89fd404a7891f8d0d5f5"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-container-created.json",
+      "bytes": 6035,
+      "sha256": "77a323de7d546c7960a710e3d90d07016ac8a781687a302f2c63f216bbcf2c0b"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-evidence.json",
+      "bytes": 36089,
+      "sha256": "9cd8298a54f7d3e9350ef681a5fe49257aff1795e16f51616c49391cfb483fd6"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-preflight.json",
+      "bytes": 644,
+      "sha256": "a34635b7f2e7677c8a1096b16a8abd7dcbc7f4f56ee88b273c1b1c44b4bcede4"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-green-pressure.json",
+      "bytes": 2576,
+      "sha256": "dda3ee63bc412e9a36342a04a9c87092ab8b110fd71f3ab23e654236a2327ed6"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-child-closed.json",
+      "bytes": 48,
+      "sha256": "9cbd2dae51921b27b143ba3c9e8b39e0849c738130bf2161e0ed1db6c891f79d"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-child-created.json",
+      "bytes": 910,
+      "sha256": "189d7a7c2831d498ffa3c47b5af82d7eeb9b777f2a6c3d8fea4df72c1bb76501"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-child-intended.json",
+      "bytes": 515,
+      "sha256": "ab48914a16f3b8b4bd494ee2144e9862aa9af9def785b6f1dc906e10add481eb"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-cleanup.json",
+      "bytes": 318,
+      "sha256": "e02295cde5534f16df628dc11a574434a3b0a40fc562b96e2ad3c50fcdfc904c"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-container-closed.json",
+      "bytes": 6582,
+      "sha256": "cc799617e1427145586bb5da38bd834283a2772e485208d6c586c9a7cbca29f5"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-container-created.json",
+      "bytes": 6035,
+      "sha256": "564cfa3360d3a763e7510de05e70fbd437fdd6d31749fc38f2c7ef55c99f3ee1"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-evidence.json",
+      "bytes": 36027,
+      "sha256": "e9028a31fb3102510d252ea274f92586f61ed6c8e7b7b6fa811b4e4a42a2a10b"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-preflight.json",
+      "bytes": 642,
+      "sha256": "6ff4df3dad27780df7de808303e76963cb9838f2c8344b5d1145b87ca92ebb9d"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-red-pressure.json",
+      "bytes": 2573,
+      "sha256": "6711e6758687206511a0a4b9235034846daded7d5093680e31ebe4b0c3e37725"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-source-inventory.json",
+      "bytes": 9609,
+      "sha256": "1d86505c6662fae81a07b21e962a322415b5ebcbbc85f9671b2e23c27a543142"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-source.patch",
+      "bytes": 17695,
+      "sha256": "86db1a014ef8ca4f20e5173f5e5be8c4cad0a3c7af0d4d2b9d906e402b22a47a"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-test-snapshot.py",
+      "bytes": 9586,
+      "sha256": "0f02b35423498625b1c5e59a41abb6ab6c1368a332c67aba92d45c983a2d9514"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-child-closed.json",
+      "bytes": 48,
+      "sha256": "805e9644fcb3d93b655147f79da5af9363aeb248b29c390ff77fc3eeb0141604"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-child-created.json",
+      "bytes": 412,
+      "sha256": "b565b66641b4187451c71539a1652b2f98329724d6f5d11e27222322abff95ce"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-child-intended.json",
+      "bytes": 257,
+      "sha256": "ba36d3b8d2cc68a2f032b548a7ad3b58c8f2c424690980672fa39828e57db49e"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-cleanup.json",
+      "bytes": 256,
+      "sha256": "16463c9f9f793717e296cc67988cb9e56bb7f891b482f1d2759ee8e78ed5f034"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-evidence.json",
+      "bytes": 35263,
+      "sha256": "413d2a5655460f5189c765db45b647512fd33be08f32f1c9ac97f1887bdcf859"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-preflight.json",
+      "bytes": 374,
+      "sha256": "8cc10822dffd9adb2659fb8cc379814110fe11d3cefe36ba00d30efbdcd1953c"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-fix1-types-pressure.json",
+      "bytes": 2575,
+      "sha256": "d31a076526b2ed8b51fd884ff80b682b6d7efe9494274895e39385c469a28c44"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-report-before-fix1.md",
+      "bytes": 16263,
+      "sha256": "f658ad3a8c2c4f96bf35650ed800713eb0d0f72a1fda967ced03b35af543bb90"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-3-report.md",
+      "bytes": 16764,
+      "sha256": "789ff8d16899fdeeb717d4a6e0d57905312aecdb7508406327b8bd9d046a346c"
+    }
+  ]
+}

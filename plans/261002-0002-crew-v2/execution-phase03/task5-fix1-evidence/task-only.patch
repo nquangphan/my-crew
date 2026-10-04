@@ -1,0 +1,1355 @@
+diff --git a/v2/docs/flows/gateway-host.md b/v2/docs/flows/gateway-host.md
+index 739bf14..a8825c2 100644
+--- a/v2/docs/flows/gateway-host.md
++++ b/v2/docs/flows/gateway-host.md
+@@ -36,15 +36,34 @@ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự
+ `GatewayConnection` giữ boot CAS và heartbeat body/sequence/key bền vững qua mất reply; boot ID khác
+ bắt buộc reconcile. `GatewayEventPump` dùng SSE làm tín hiệu thức dậy, fallback poll `/v2/events` và chỉ
+ commit cursor sau reconcile thành công. `GatewaySync` đọc desired trước command, lưu từng command theo
+-machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff tối đa 60 giây.
++machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff có base tối đa 60 giây và jitter 0,75–1,25 (trần thực 75 giây).
+ Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
+ với SUPERSEDED; revision mới dùng command mới. Namespace sync_models thuộc consumer riêng.
++Config và command là hai GET riêng: command có revision cao hơn snapshot phải chờ pass mới;
++chỉ revision thấp hơn desired hiện hành mới được SUPERSEDED.
++
++`HttpOperationJournal.retryTransient` giữ nguyên `replay` và response đầu bất biến trong
++`http-operations`; `http-retries` chứa từng attempt/response bổ sung. Chỉ 500/502/503/504 được gửi lại,
++mỗi lần gọi tối đa một send, cùng route/body/key gốc; lịch chờ durable tăng tới 60 giây. Attempt mất
++reply giữ nguyên qua reopen; response thành công settle một lần. Lỗi HTTP không chứng minh chưa có tác động;
++actual server receipt dưới cùng key quyết định kết quả. Khi report pending thuộc boot cũ, trước hết replay đúng key; chỉ response BOOT_RETIRED đã xác nhận và tuple boot mới khác mới cho phép pass sau tạo report ID mới từ cache được verify lại. Operation/report cũ vẫn bất biến; reply ambiguous hoặc 503 không đi nhánh thay report. Không tạo mutation key mới để né lỗi.
++
++`GatewayConnection.advanceBoot` chỉ chạy khi bind actual `TicketCommandBridge` cùng host root;
++mặc định từ chối. Lock order là connection → bridge → journal; callback nội bộ chỉ ghi connection đang
++được giữ, không mở lại transaction connection hay gọi registry. Bridge đối chiếu owned records trước,
++observe bên ngoài journal barrier, rồi kiểm lại toàn bộ snapshot/admission và scoped attempt/companion
++bên trong barrier. `retained-unknown` chỉ áp dụng cho exact active/uncertain đã nhận diện: được online
++boot mới nhưng giữ guard/pin, không STOP/claim/finalize/retire hay cho replacement RELEASE.
++Orphan admission, thiếu claim/tuple hoặc snapshot đổi thì từ chối. History/receipt prior boot + generation +
++next boot và pending pointer được fsync trước POST; server007 CAS vẫn quyết định generation. Mất reply
++reopen dùng lại pending boot/body/key; boot cũ không lấy lại quyền, heartbeat boot mới bắt đầu sequence 1.
++
+ 
+ `TicketCommandBridge` chỉ nhận command từ scoped authenticated read. Permit production mặc định từ chối;
+ permit fixture được tách riêng. Reserve dùng registry+journal đã bind, READY trước claim, rồi xác nhận
+ attempt hiện hành và companion server-stored selection trước RELEASE. Mất reply replay đúng UUID/key/body;
+ 005 pagination bắt đầu từ null mỗi pass, không dùng UUID làm durable cursor. Reconcile command cũng kiểm
+-scope và ACK received/completed bền vững. Result, stopped reconciliation và finalize có operation key riêng;
++scope và ACK received/completed bền vững. Reconnect đối chiếu owned state trước dispatch, ghi failure riêng từng command rồi tiếp tục các page/control độc lập; cuối pass trả aggregate lỗi. Reconcile control chỉ đối chiếu ticket của nó, nên failure ticket khác không chặn ACK. Receipt retirement hợp lệ được kiểm và skip trước live scoped GET; history thiếu/conflict receipt vẫn fail closed riêng record. Result, stopped reconciliation và finalize có operation key riêng;
+ finalizing giữ guard; finalize còn pending được kiểm lại bằng operation mới sau response xác nhận.
+ 
+ Pause/cancel kiểm command type/ticket/payload và exact launch trước signal owned PGID; lưu stop reason
+diff --git a/v2/docs/flows/gateway-workflows.md b/v2/docs/flows/gateway-workflows.md
+index f60de7f..0385774 100644
+--- a/v2/docs/flows/gateway-workflows.md
++++ b/v2/docs/flows/gateway-workflows.md
+@@ -73,3 +73,10 @@ chỉ khi ref cuối được release mới GC; identity retired không được
+ flow gateway-host giữ chứng cứ no-fork, không nới quyền đối với fork hoặc mất witness.
+ 
+ `WorkflowRegistry.verifySource(pin)` chỉ gọi verifier hiện có trên payload, metadata và source tree; không fetch, không đổi current pointer hoặc recipe/hash. Consumer GatewaySync dùng nó để cache bị sửa không thể báo source current khi desired projections đều null; regression có cache lành offline không tải lại.
++
++Task5 FIX1 giữ history sau rebind: bridge dùng `pinRetirement` kiểm receipt bất biến trước scoped005 read;
++receipt chưa có hoặc identity xung đột vẫn giữ reference và lỗi riêng record. Boot mới chỉ ghi nhận
++UNKNOWN có exact scoped attempt/companion thành `retained-unknown`, không bỏ pin/guard. Existing
++admission barrier kiểm snapshot và orphan intent trước lifecycle receipt; observe chạy trước barrier
++vì nó ghi journal, callback dưới barrier không gọi registry queue. Snapshot desired cũ không được
++hoàn tất nhầm command mới; cache nguồn/projection và pending report giữ nguyên qua deferred pass.
+diff --git a/v2/docs/flows/server-gateway.md b/v2/docs/flows/server-gateway.md
+index f6ae279..72fdbed 100644
+--- a/v2/docs/flows/server-gateway.md
++++ b/v2/docs/flows/server-gateway.md
+@@ -114,3 +114,14 @@ claim và companion phải được actual stored command/decision authority ch
+ kiểm lost reply, stale/disabled/missing selection, config update sau claim, pause/cancel native STOP, finalizing
+ guard và đúng một terminal event. Test authorizer/final receipt table chỉ sống trong logical DB riêng; không
+ thay default dispatch/selection/final verifier production, SQL005/007/008 hay authority model.
++
++Task5 FIX1 consumer: command revision lớn hơn snapshot desired được hoãn qua reconnect;
++503/500/502/504 đã xác nhận được retry hữu hạn mỗi pass với chính idempotency key/body cũ và lịch
++backoff durable, kể cả lỗi quan sát xuất hiện sau actual commit. Journal giữ response đầu và retry
++history riêng. Kiểm thử prefix8 chứng minh boot/heartbeat/ACK/report không tạo mutation trùng.
++Lifecycle boot mới dùng actual bridge reconciliation với prior generation CAS007; exact UNKNOWN
++active/uncertain vẫn giữ guard005 và local pin, không tự cấp STOP. Retired history có immutable receipt
++được skip sau project rebind; history chưa retired 404 fail closed riêng attempt, control ticket khác
++vẫn tiến triển. Không sửa schema hoặc authority005/007/008.
++
++Report pending qua chuyển boot replay key cũ trước; actual committed receipt được trả theo007. Nếu server xác nhận BOOT_RETIRED cho report chưa chấp nhận và consumer đã bind tuple boot mới, pass sau tạo observation/report mới từ verified registry; giữ nguyên lịch sử HTTP cũ và không đổi key cho reply ambiguous/503.
+diff --git a/v2/gateway/src/commands/http-client.ts b/v2/gateway/src/commands/http-client.ts
+index 18d0cb5..f5735e5 100644
+--- a/v2/gateway/src/commands/http-client.ts
++++ b/v2/gateway/src/commands/http-client.ts
+@@ -14,7 +14,7 @@ export async function mutate<T>(
+   body: unknown,
+ ): Promise<T> {
+   await http.prepare({ operationId, method: 'POST', route, phase, canonicalBody: body });
+-  const response = await http.replay(operationId);
++  const response = await http.retryTransient(operationId);
+   if (response.status < 200 || response.status >= 300)
+     throw new GatewayHttpError(response.status, response.body);
+   return response.body as T;
+diff --git a/v2/gateway/src/execution/ticket-command-bridge.ts b/v2/gateway/src/execution/ticket-command-bridge.ts
+index 1ae5668..ed64beb 100644
+--- a/v2/gateway/src/execution/ticket-command-bridge.ts
++++ b/v2/gateway/src/execution/ticket-command-bridge.ts
+@@ -1,5 +1,5 @@
+ import { randomUUID } from 'node:crypto';
+-import { join } from 'node:path';
++import { dirname, join } from 'node:path';
+ import {
+   type Attempt,
+   type Command,
+@@ -229,7 +229,7 @@ export class TicketCommandBridge {
+       )
+         throw new Error('COMMAND_CHANGED');
+       await this.ackTicket(command.id, 'received');
+-      await this.reconcileOwned();
++      await this.reconcileOwned(command.ticketId);
+       await this.ackTicket(command.id, 'completed');
+       return;
+     }
+@@ -266,35 +266,152 @@ export class TicketCommandBridge {
+       await this.ackTicket(command.id, 'completed');
+     });
+   }
++  private async recordFailure(id: string, error: unknown) {
++    await this.store.put(`failure:${this.key(id)}`, {
++      formatVersion: 1,
++      commandId: id,
++      message: error instanceof Error ? error.message : 'COMMAND_FAILED',
++      observedAt: new Date().toISOString(),
++    });
++  }
++  private failAfterPass(errors: unknown[]) {
++    if (errors.length)
++      throw new AggregateError(
++        errors,
++        errors.map((error) => (error instanceof Error ? error.message : 'COMMAND_FAILED')).join('; '),
++      );
++  }
+   async reconnect(): Promise<void> {
+-    // UUID after is a page anchor: reset null on every pass, never persist as event cursor.
++    const errors: unknown[] = [];
++    // Owned recovery runs independently of new dispatch, including commands on later pages.
++    try {
++      await this.reconcileOwned();
++    } catch (error) {
++      errors.push(error);
++    }
+     let after: string | null = null;
+-    for (;;) {
+-      const page = (await this.options.read(
+-        `/v2/machine/commands?limit=50${after ? `&after=${after}` : ''}`,
+-      )) as { items: Command[]; nextCursor: string | null };
+-      for (const command of page.items) await this.handle(command);
+-      if (!page.nextCursor) break;
+-      if (page.nextCursor === after) throw new Error('COMMAND_CURSOR_STUCK');
+-      after = page.nextCursor;
++    try {
++      for (;;) {
++        const page = (await this.options.read(
++          `/v2/machine/commands?limit=50${after ? `&after=${after}` : ''}`,
++        )) as { items: Command[]; nextCursor: string | null };
++        for (const command of page.items) {
++          try {
++            await this.handle(command);
++          } catch (error) {
++            await this.recordFailure(command.id, error);
++            errors.push(error);
++          }
++        }
++        if (!page.nextCursor) break;
++        if (page.nextCursor === after) throw new Error('COMMAND_CURSOR_STUCK');
++        after = page.nextCursor;
++      }
++    } catch (error) {
++      errors.push(error);
+     }
+-    await this.reconcileOwned();
++    this.failAfterPass(errors);
+   }
+-  private async reconcileOwned() {
++  private async reconcileOwned(ticketId?: string) {
++    const errors: unknown[] = [];
+     for (const local of await this.store.all<BridgeRecord>()) {
+-      if (!local.attemptId) continue;
+-      const attempt = await this.current(local),
+-        record = await this.options.journal.byInstance(local.input.processInstanceId);
+-      if (!record) throw new Error('PROCESS_UNKNOWN');
+-      if (await this.options.journal.pinRetirement(record)) continue;
+-      const observation = await this.options.journal.observe(record);
+-      if (observation === 'running' && attempt.state === 'uncertain')
+-        await this.reconcileObservation(local, attempt, 'running', null);
+-      if (observation === 'stopped' && attempt.state !== 'stopped')
+-        await this.reconcileObservation(local, attempt, 'stopped', local.stopReason ?? 'exit');
+-      if (observation === 'stopped' && attempt.state === 'stopped' && attempt.finalizedAt)
+-        await this.retire(local.command.id);
++      if (!local.attemptId || (ticketId && local.command.ticketId !== ticketId)) continue;
++      try {
++        const record = await this.options.journal.byInstance(local.input.processInstanceId);
++        if (!record) throw new Error('PROCESS_UNKNOWN');
++        // A validated immutable receipt already settled this history under its original binding.
++        if (await this.options.journal.pinRetirement(record)) continue;
++        const attempt = await this.current(local);
++        const observation = await this.options.journal.observe(record);
++        if (observation === 'unknown') throw new Error('PROCESS_UNKNOWN');
++        if (observation === 'running' && attempt.state === 'uncertain')
++          await this.reconcileObservation(local, attempt, 'running', null);
++        if (observation === 'stopped' && attempt.state !== 'stopped')
++          await this.reconcileObservation(local, attempt, 'stopped', local.stopReason ?? 'exit');
++        if (observation === 'stopped' && attempt.state === 'stopped' && attempt.finalizedAt)
++          await this.retire(local.command.id);
++      } catch (error) {
++        await this.recordFailure(local.command.id, error);
++        errors.push(error);
++      }
+     }
++    this.failAfterPass(errors);
++  }
++  /** Trusted composition: no caller-supplied proof. Lock order connection -> bridge -> journal.
++   * Observe/reconcile can write the journal, so both finish before its admission barrier. */
++  async withBootReconciliation<T>(
++    transition: { hostRoot: string; priorBootId: string; priorGeneration: string; nextBootId: string },
++    commit: (receipt: unknown) => Promise<T>,
++  ): Promise<T> {
++    if (transition.hostRoot !== dirname(this.store.root)) throw new Error('BOOT_ROOT_MISMATCH');
++    return this.store.transaction(async () => {
++      // Per-record failures are persisted. The complete accounting below decides admissibility.
++      try {
++        await this.reconcileOwned();
++      } catch {
++        /* UNKNOWN may be accounted without a STOP. */
++      }
++      const records = await this.options.journal.processes();
++      const observations = new Map<string, 'running' | 'stopped' | 'unknown'>();
++      for (const record of records) {
++        if (!(await this.options.journal.pinRetirement(record)))
++          observations.set(record.launchId, await this.options.journal.observe(record));
++      }
++      const snapshot = await this.options.journal.processes();
++      if (
++        !same(
++          records.map((record) => record.launchId).sort(),
++          snapshot.map((record) => record.launchId).sort(),
++        )
++      )
++        throw new Error('BOOT_RECONCILIATION_CHANGED');
++      return this.options.journal.withPinAdmissionBarrier(this.options.registry.root, async () => {
++        if (
++          !same(snapshot, await this.options.journal.processes()) ||
++          (await this.options.journal.pendingPinAdmissions()).length
++        )
++          throw new Error('BOOT_RECONCILIATION_CHANGED');
++        const entries: unknown[] = [];
++        for (const record of snapshot) {
++          const retired = await this.options.journal.pinRetirement(record);
++          if (retired) {
++            entries.push({ category: 'retired', receipt: retired });
++            continue;
++          }
++          const local = await this.local(record.commandId);
++          if (
++            !local.attemptId ||
++            local.input.processInstanceId !== record.processInstanceId ||
++            !same(local.input.source, record.source) ||
++            !same(local.input.projection, record.projection)
++          )
++            throw new Error('BOOT_UNACCOUNTED_LAUNCH');
++          const attempt = await this.current(local);
++          if (!record.authorization || !same(record.authorization, this.expectedCompanion(local, attempt)))
++            throw new Error('BOOT_AUTHORIZATION_MISMATCH');
++          const observation = observations.get(record.launchId);
++          const category =
++            observation === 'unknown' && ['active', 'uncertain'].includes(attempt.state)
++              ? 'retained-unknown'
++              : observation === 'running' && attempt.state === 'active'
++                ? 'running'
++                : observation === 'stopped' &&
++                    attempt.stoppedAt &&
++                    ['stopped', 'finalizing'].includes(attempt.state)
++                  ? 'stopped'
++                  : null;
++          if (!category) throw new Error('BOOT_RECONCILIATION_REQUIRED');
++          entries.push({ category, record, attempt });
++        }
++        return commit({
++          formatVersion: 1,
++          machineId: this.options.machineId,
++          ...transition,
++          entries,
++          observedAt: new Date().toISOString(),
++        });
++      });
++    });
+   }
+   private async ackTicket(id: string, phase: 'received' | 'completed') {
+     await mutate(
+diff --git a/v2/gateway/src/journal/http-operations.ts b/v2/gateway/src/journal/http-operations.ts
+index 8dfac67..e12da0b 100644
+--- a/v2/gateway/src/journal/http-operations.ts
++++ b/v2/gateway/src/journal/http-operations.ts
+@@ -33,16 +33,49 @@ function freezeDeep<T>(value: T): Readonly<T> {
+   return value;
+ }
+ type Operation = HttpRequest & { formatVersion: 1; response: HttpResponse | null };
++type RetryHistory = {
++  formatVersion: 1;
++  operationId: string;
++  idempotencyKey: string;
++  bodyHash: string;
++  retryAt: number;
++  attempts: { startedAt: number; response: HttpResponse | null }[];
++};
++const transient = (status: number) => [500, 502, 503, 504].includes(status);
+ export class HttpOperationJournal {
+   private readonly store: AtomicRecords;
+   private readonly transport: HttpTransport;
+-  private constructor(store: AtomicRecords, transport: HttpTransport) {
++  private readonly retries: AtomicRecords;
++  private readonly now: () => number;
++  private constructor(
++    store: AtomicRecords,
++    retries: AtomicRecords,
++    transport: HttpTransport,
++    now: () => number,
++  ) {
+     this.store = store;
+     this.transport = transport;
++    this.retries = retries;
++    this.now = now;
+   }
+-  static async open(root: string, transport: HttpTransport): Promise<HttpOperationJournal> {
++  static async open(
++    root: string,
++    transport: HttpTransport,
++    options: { now?: () => number } = {},
++  ): Promise<HttpOperationJournal> {
+     await privateDirectory(root);
+-    return new HttpOperationJournal(await AtomicRecords.open(join(root, 'http-operations')), transport);
++    const store = await AtomicRecords.open(join(root, 'http-operations'));
++    try {
++      return new HttpOperationJournal(
++        store,
++        await AtomicRecords.open(join(root, 'http-retries')),
++        transport,
++        options.now ?? Date.now,
++      );
++    } catch (error) {
++      await store.close();
++      throw error;
++    }
+   }
+   async prepare(input: {
+     operationId: string;
+@@ -104,7 +137,53 @@ export class HttpOperationJournal {
+     await this.recordResponse(operationId, response.status, response.body);
+     return response;
+   }
+-  close(): Promise<void> {
+-    return this.store.close();
++  /** Additive recovery history. replay() still returns the immutable first response. */
++  async retryTransient(operationId: string): Promise<HttpResponse> {
++    return this.retries.transaction(async () => {
++      const original = await this.replay(operationId);
++      if (!transient(original.status)) return original;
++      const operation = await this.store.get<Operation>(operationId);
++      if (!operation) throw new Error('UNKNOWN_OPERATION');
++      let history = await this.retries.get<RetryHistory>(operationId);
++      if (!history) {
++        history = {
++          formatVersion: 1,
++          operationId,
++          idempotencyKey: operation.idempotencyKey,
++          bodyHash: operation.bodyHash,
++          retryAt: this.now() + 1000,
++          attempts: [],
++        };
++        await this.retries.put(operationId, history);
++        return original;
++      }
++      if (
++        history.operationId !== operationId ||
++        history.idempotencyKey !== operation.idempotencyKey ||
++        history.bodyHash !== operation.bodyHash
++      )
++        throw new Error('RETRY_HISTORY_CONFLICT');
++      const last = history.attempts.at(-1);
++      if (last?.response && !transient(last.response.status)) return last.response;
++      const confirmed =
++        last?.response ??
++        [...history.attempts].reverse().find((attempt) => attempt.response)?.response ??
++        original;
++      if (this.now() < history.retryAt) return confirmed;
++      const pending = last && !last.response ? last : { startedAt: this.now(), response: null };
++      if (pending !== last) history.attempts.push(pending);
++      history.retryAt = this.now() + Math.min(60000, 1000 * 2 ** Math.min(history.attempts.length, 6));
++      // Persist before transport. Ambiguity keeps this pending attempt and the original key.
++      await this.retries.put(operationId, history);
++      const { formatVersion: _version, response: _response, ...request } = operation;
++      const response = await this.transport(freezeDeep(request));
++      pending.response = response;
++      await this.retries.put(operationId, history);
++      return response;
++    });
++  }
++  async close(): Promise<void> {
++    await this.retries.close();
++    await this.store.close();
+   }
+ }
+diff --git a/v2/gateway/src/sync/connection.ts b/v2/gateway/src/sync/connection.ts
+index 3170804..aeb196d 100644
+--- a/v2/gateway/src/sync/connection.ts
++++ b/v2/gateway/src/sync/connection.ts
+@@ -1,6 +1,7 @@
+ import { randomUUID } from 'node:crypto';
+-import { join } from 'node:path';
++import { dirname, join } from 'node:path';
+ import { mutate } from '../commands/http-client.ts';
++import type { TicketCommandBridge } from '../execution/ticket-command-bridge.ts';
+ import { AtomicRecords } from '../journal/atomic-records.ts';
+ import type { HttpOperationJournal } from '../journal/http-operations.ts';
+ 
+@@ -15,12 +16,14 @@ type ConnectionRecord = {
+ export class GatewayConnection {
+   private readonly store: AtomicRecords;
+   private readonly http: HttpOperationJournal;
+-  private constructor(store: AtomicRecords, http: HttpOperationJournal) {
++  private readonly bridge?: TicketCommandBridge;
++  private constructor(store: AtomicRecords, http: HttpOperationJournal, bridge?: TicketCommandBridge) {
+     this.store = store;
+     this.http = http;
++    this.bridge = bridge;
+   }
+-  static async open(root: string, http: HttpOperationJournal) {
+-    return new GatewayConnection(await AtomicRecords.open(join(root, 'server-connection')), http);
++  static async open(root: string, http: HttpOperationJournal, bridge?: TicketCommandBridge) {
++    return new GatewayConnection(await AtomicRecords.open(join(root, 'server-connection')), http, bridge);
+   }
+   async boot(bootId?: string, previousGeneration = '0'): Promise<{ bootId: string; bootGeneration: string }> {
+     return this.store.transaction(async () => {
+@@ -36,17 +39,70 @@ export class GatewayConnection {
+         };
+         await this.store.put('current', state);
+       } else if (bootId && state.bootId !== bootId) throw new Error('BOOT_RECONCILIATION_REQUIRED');
+-      const response = await mutate<{ bootGeneration: string }>(
+-        this.http,
+-        `boot:${state.bootId}`,
+-        '/v2/gateway/boots',
+-        'boot',
+-        { bootId: state.bootId, previousGeneration: state.previousGeneration },
++      const transition = await this.store.get<{ formatVersion: 1; next: ConnectionRecord }>(
++        `transition:${state.bootId}`,
++      );
++      if (transition) {
++        if (bootId && bootId !== transition.next.bootId) throw new Error('BOOT_RETIRED');
++        state = transition.next;
++        await this.store.put('current', state);
++      }
++      return this.handshake(state);
++    });
++  }
++  private async handshake(state: ConnectionRecord) {
++    const response = await mutate<{ bootGeneration: string }>(
++      this.http,
++      `boot:${state.bootId}`,
++      '/v2/gateway/boots',
++      'boot',
++      { bootId: state.bootId, previousGeneration: state.previousGeneration },
++    );
++    if (!/^[1-9][0-9]*$/.test(response.bootGeneration)) throw new Error('INVALID_BOOT_GENERATION');
++    state.bootGeneration = response.bootGeneration;
++    await this.store.put('current', state);
++    return { bootId: state.bootId, bootGeneration: state.bootGeneration };
++  }
++  async advanceBoot(nextBootId: string): Promise<{ bootId: string; bootGeneration: string }> {
++    return this.store.transaction(async () => {
++      if (!this.bridge) throw new Error('BOOT_RECONCILIATION_NOT_BOUND');
++      const prior = await this.store.get<ConnectionRecord>('current');
++      if (!prior?.bootGeneration) throw new Error('BOOT_REQUIRED');
++      if (prior.bootId === nextBootId) return this.handshake(prior);
++      if (await this.store.get(`history:${nextBootId}`)) throw new Error('BOOT_RETIRED');
++      const pending = await this.store.get<{ formatVersion: 1; next: ConnectionRecord }>(
++        `transition:${prior.bootId}`,
++      );
++      if (pending) {
++        if (pending.next.bootId !== nextBootId) throw new Error('BOOT_TRANSITION_PENDING');
++        await this.store.put('current', pending.next);
++        return this.handshake(pending.next);
++      }
++      if (prior.heartbeat) throw new Error('HEARTBEAT_RECONCILIATION_REQUIRED');
++      const previousGeneration = prior.bootGeneration;
++      return this.bridge.withBootReconciliation(
++        {
++          hostRoot: dirname(this.store.root),
++          priorBootId: prior.bootId,
++          priorGeneration: prior.bootGeneration,
++          nextBootId,
++        },
++        async (receipt) => {
++          const next: ConnectionRecord = {
++            formatVersion: 1,
++            bootId: nextBootId,
++            previousGeneration,
++            bootGeneration: null,
++            sequence: '0',
++            heartbeat: null,
++          };
++          // Immutable history/transition precede the pointer and POST. A crash replays this exact transition.
++          await this.store.put(`history:${prior.bootId}`, prior);
++          await this.store.put(`transition:${prior.bootId}`, { formatVersion: 1, next, receipt });
++          await this.store.put('current', next);
++          return this.handshake(next);
++        },
+       );
+-      if (!/^[1-9][0-9]*$/.test(response.bootGeneration)) throw new Error('INVALID_BOOT_GENERATION');
+-      state.bootGeneration = response.bootGeneration;
+-      await this.store.put('current', state);
+-      return { bootId: state.bootId, bootGeneration: state.bootGeneration };
+     });
+   }
+   async heartbeat(input: Record<string, unknown>): Promise<unknown> {
+diff --git a/v2/gateway/src/sync/gateway-sync.ts b/v2/gateway/src/sync/gateway-sync.ts
+index 72c9f11..f1e821e 100644
+--- a/v2/gateway/src/sync/gateway-sync.ts
++++ b/v2/gateway/src/sync/gateway-sync.ts
+@@ -139,7 +139,12 @@ export class GatewaySync {
+       return this.complete(record, { ok: true });
+     }
+     if (!record.report) {
+-      if (!config || config.revision !== record.command.payload.configRevision)
++      const requestedRevision = record.command.payload.configRevision;
++      if (typeof requestedRevision !== 'number' || !Number.isSafeInteger(requestedRevision))
++        throw new Error('INVALID_CONFIG_REVISION');
++      // Separate GETs can expose a command newer than this desired snapshot.
++      if (!config || config.revision < requestedRevision) return;
++      if (config.revision > requestedRevision)
+         return this.complete(record, { ok: false, code: 'SUPERSEDED' });
+       const results = empty();
+       for (const name of names) {
+@@ -217,6 +222,18 @@ export class GatewaySync {
+     } catch (error) {
+       if ((error as Error).message === 'CONFIG_REVISION_CONFLICT')
+         return this.complete(record, { ok: false, code: 'SUPERSEDED' });
++      if (
++        (error as Error).message === 'BOOT_RETIRED' &&
++        (report.bootId !== this.options.bootId || report.bootGeneration !== this.options.bootGeneration)
++      ) {
++        // The old operation/body/key remains immutable. Only a confirmed retired-boot response
++        // permits a new logical observation under the newly composed boot on the next pass.
++        record.report = null;
++        record.retryAt = 0;
++        await this.store.put(this.key(record.command.id), record);
++        return;
++      }
++
+       throw error;
+     }
+     // Re-read desired after replay; a historical accepted response cannot complete a newer config.
+diff --git a/v2/gateway/test/connection.test.ts b/v2/gateway/test/connection.test.ts
+index 0327c27..4792730 100644
+--- a/v2/gateway/test/connection.test.ts
++++ b/v2/gateway/test/connection.test.ts
+@@ -43,3 +43,113 @@ test('sync boot and heartbeat preserve immutable operations through lost reply/r
+     await owned.cleanup();
+   }
+ });
++
++test('controlled boot transition requires actual bound reconciliation and retains prior history through lost reply', async () => {
++  const { workflowFixture } = await import('./support/bridge-fixture.ts');
++  const { TicketCommandBridge } = await import('../src/execution/ticket-command-bridge.ts');
++  const owned = await bridgeRoot(),
++    w = await workflowFixture(owned.root);
++  const a = randomUUID(),
++    b = randomUUID(),
++    machineId = randomUUID();
++  const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
++  let lost = true;
++  const http = await HttpOperationJournal.open(owned.root, async (request) => {
++    sent.push(request);
++    const body = request.canonicalBody as { bootId: string };
++    if (request.phase === 'boot' && body.bootId === b && lost) {
++      lost = false;
++      throw new Error('LOST_B_REPLY');
++    }
++    return {
++      status: 200,
++      body: request.phase === 'boot' ? { bootGeneration: body.bootId === a ? '1' : '2' } : {},
++    };
++  });
++  const bridge = await TicketCommandBridge.open(owned.root, {
++    machineId,
++    journal: w.journal,
++    registry: w.registry,
++    http,
++    read: async () => {
++      throw new Error('NO_LAUNCH_READ_EXPECTED');
++    },
++  });
++  let connection = await GatewayConnection.open(owned.root, http);
++  try {
++    await connection.boot(a);
++    await assert.rejects(connection.advanceBoot(b), /NOT_BOUND/);
++    await connection.close();
++    connection = await GatewayConnection.open(owned.root, http, bridge);
++    await assert.rejects(connection.advanceBoot(b), /LOST_B_REPLY/);
++    await connection.close();
++    connection = await GatewayConnection.open(owned.root, http, bridge);
++    assert.deepEqual(await connection.boot(), { bootId: b, bootGeneration: '2' });
++    assert.deepEqual(sent[1], sent[2]);
++    await connection.heartbeat({ hostVersion: 'B' });
++    assert.equal((sent[3].canonicalBody as { sequence: string }).sequence, '1');
++    await assert.rejects(connection.advanceBoot(a), /BOOT_RETIRED/);
++    assert.equal((await http.replay(`boot:${a}`)).body && sent.length, 4);
++  } finally {
++    await connection.close();
++    await bridge.close();
++    await http.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
++
++test('boot transition rejects an unaccounted admitted launch and current-set races without clearing pins', async () => {
++  const { workflowFixture } = await import('./support/bridge-fixture.ts');
++  const { TicketCommandBridge } = await import('../src/execution/ticket-command-bridge.ts');
++  const owned = await bridgeRoot(),
++    w = await workflowFixture(owned.root);
++  const http = await HttpOperationJournal.open(owned.root, async () => ({
++    status: 200,
++    body: { bootGeneration: '1' },
++  }));
++  const bridge = await TicketCommandBridge.open(owned.root, {
++    machineId: randomUUID(),
++    journal: w.journal,
++    registry: w.registry,
++    http,
++    read: async () => {
++      throw new Error('NO_SCOPED_LAUNCH');
++    },
++  });
++  const connection = await GatewayConnection.open(owned.root, http, bridge);
++  try {
++    await connection.boot(randomUUID());
++    await w.install();
++    const source = w.sources[0].source,
++      projection = w.projections[0].expected;
++    const before = w.journal.withPinAdmissionBarrier.bind(w.journal);
++    let inject = true;
++    w.journal.withPinAdmissionBarrier = async (root, action) => {
++      if (inject) {
++        inject = false;
++        await w.journal.reserve({
++          commandId: randomUUID(),
++          ticketId: randomUUID(),
++          processInstanceId: randomUUID(),
++          source,
++          projection,
++        });
++      }
++      return before(root, action);
++    };
++    await assert.rejects(connection.advanceBoot(randomUUID()), /BOOT_RECONCILIATION_CHANGED/);
++    w.journal.withPinAdmissionBarrier = before;
++    await assert.rejects(connection.advanceBoot(randomUUID()), /UNKNOWN_COMMAND|BOOT_UNACCOUNTED/);
++    assert.equal(
++      (await w.registry.retained()).filter((ref) => ref.authority === 'process-journal').length,
++      1,
++    );
++  } finally {
++    await connection.close();
++    await bridge.close();
++    await http.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
+diff --git a/v2/gateway/test/execution-bridge-db.test.ts b/v2/gateway/test/execution-bridge-db.test.ts
+index 026c2f4..319f180 100644
+--- a/v2/gateway/test/execution-bridge-db.test.ts
++++ b/v2/gateway/test/execution-bridge-db.test.ts
+@@ -7,12 +7,13 @@ import { setTimeout as delay } from 'node:timers/promises';
+ import { buildApp } from '../../server/src/app.ts';
+ import { ApiError } from '../../server/src/platform/errors.ts';
+ import { databaseFixture } from '../../server/test/support/db.ts';
+-import { gatewayFixture, selectionAuthorityFixture } from '../../server/test/support/gateway.ts';
++import { gatewayFixture, heartbeat, selectionAuthorityFixture } from '../../server/test/support/gateway.ts';
+ import { ticketFixture } from '../../server/test/support/tickets.ts';
+ import { toDomainPin } from '../src/commands/contracts.ts';
+ import { machineTransport } from '../src/commands/http-client.ts';
+ import { TicketCommandBridge } from '../src/execution/ticket-command-bridge.ts';
+ import { HttpOperationJournal } from '../src/journal/http-operations.ts';
++import { GatewayConnection } from '../src/sync/connection.ts';
+ import { GatewaySync } from '../src/sync/gateway-sync.ts';
+ import { bridgeRoot, workflowFixture } from './support/bridge-fixture.ts';
+ 
+@@ -153,6 +154,14 @@ test('execution bridge DB-backed selection, lost result/finalize and genuine ret
+       assert.equal(await w.journal.observe(local), 'stopped');
+       const stopped = await bridge.reportStopped(command.id);
+       assert.equal(stopped.state, 'finalizing');
++      const stoppedConnection = await GatewayConnection.open(owned.root, http, bridge);
++      try {
++        await stoppedConnection.boot(bootId, '0');
++        assert.equal((await stoppedConnection.advanceBoot(randomUUID())).bootGeneration, '2');
++      } finally {
++        await stoppedConnection.close();
++      }
++
+       const [guard] =
+         await db`select active_attempt_id from execution_guards where ticket_id=${command.ticketId}`;
+       assert.equal(guard.active_attempt_id, attempt.id);
+@@ -209,6 +218,24 @@ test('execution bridge DB-backed selection, lost result/finalize and genuine ret
+       drop = 'finalize';
+       await assert.rejects(bridge!.finalize(command.id), /LOST_REPLY/);
+       assert.equal((await bridge!.finalize(command.id)).state, 'stopped');
++      // Without retirement the scoped 404 remains a local failure, but independent B still progresses.
++      await db`update projects set binding_revision=3 where id=${tickets.project.id}`;
++      const { createCommand } = await import('../../server/src/execution/commands.ts');
++      const independent = await db.begin(async (tx) =>
++        createCommand(
++          tx,
++          { machineId: initial.machineId, ticketId: tickets.b.id, type: 'reconcile', payload: {} },
++          { kind: 'owner', id: 'owner' },
++        ),
++      );
++      await assert.rejects(bridge.reconnect(), /NOT_FOUND/);
++      assert.equal(
++        ((await machine.read(`/v2/machine/commands/${independent.id}`)) as { state: string }).state,
++        'completed',
++      );
++      assert.equal(await w.journal.pinRetirement(local), null);
++      assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 1);
++      await db`update projects set binding_revision=2 where id=${tickets.project.id}`;
+       const receipt = await bridge!.retire(command.id);
+       assert.equal(receipt.authority.attemptId, attempt.id);
+       assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 0);
+@@ -229,6 +256,52 @@ test('execution bridge DB-backed selection, lost result/finalize and genuine ret
+       assert.equal(events.count, 1);
+       const resultRequests = sent.filter((r) => r.phase === 'result');
+       assert.deepEqual(resultRequests[0], resultRequests[1]);
++      // Immutable retired history remains local after the actual scoped API stops exposing it.
++      await db`update projects set checkout_path='/tmp/task5-rebound',binding_revision=3 where id=${tickets.project.id}`;
++      await assert.rejects(machine.read(`/v2/machine/commands/${command.id}`), /NOT_FOUND/);
++      const control = await db.begin(async (tx) =>
++        createCommand(
++          tx,
++          { machineId: initial.machineId, ticketId: tickets.b.id, type: 'reconcile', payload: {} },
++          { kind: 'owner', id: 'owner' },
++        ),
++      );
++      await bridge.close();
++      bridge = await TicketCommandBridge.open(owned.root, {
++        machineId: initial.machineId,
++        journal: w.journal,
++        registry: w.registry,
++        http,
++        read: async (route) => machine.read(route),
++      });
++      await bridge.reconnect();
++      assert.equal(
++        ((await machine.read(`/v2/machine/commands/${control.id}`)) as { state: string }).state,
++        'completed',
++      );
++      assert.deepEqual(await w.journal.pinRetirement(local), receipt);
++      let connection = await GatewayConnection.open(owned.root, http, bridge);
++      try {
++        assert.equal((await connection.boot()).bootGeneration, '2');
++        const nextBoot = randomUUID();
++        drop = 'boot';
++        await assert.rejects(connection.advanceBoot(nextBoot), /LOST_REPLY/);
++        await connection.close();
++        connection = await GatewayConnection.open(owned.root, http, bridge);
++        assert.deepEqual(await connection.boot(), { bootId: nextBoot, bootGeneration: '3' });
++        await connection.heartbeat(heartbeat(nextBoot, '3', '999'));
++        const [present] =
++          await db`select sequence,boot_id from gateway_heartbeats where machine_id=${initial.machineId}`;
++        assert.equal(String(present.sequence), '1');
++        assert.equal(present.boot_id, nextBoot);
++        await assert.rejects(connection.advanceBoot(bootId), /BOOT_RETIRED/);
++        assert.equal(
++          ((await http.replay(`boot:${bootId}`)).body as { bootGeneration: string }).bootGeneration,
++          '1',
++        );
++      } finally {
++        await connection.close();
++      }
+     } finally {
+       await bridge?.close();
+       await sync?.close();
+@@ -403,6 +476,21 @@ for (const scenario of [
+             assert(identity);
+             console.log('Task5 owned escaped child', JSON.stringify(identity));
+           } else await delay(100);
++          if (scenario === 'pause') {
++            const connection = await GatewayConnection.open(owned.root, http, bridge);
++            try {
++              await connection.boot(bootId, '0');
++              assert.equal((await connection.advanceBoot(randomUUID())).bootGeneration, '2');
++            } finally {
++              await connection.close();
++            }
++          }
++          const blockedId = randomUUID();
++          if (scenario !== 'fork-cancel') {
++            await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state) values(${blockedId},${server.machineId},${tickets.b.id},2,'start','{}','queued')`;
++            // Reconciliation of a durable owned uncertain launch precedes the denied new dispatch.
++            await db`update attempts set state='uncertain' where command_id=${command.id}`;
++          }
+           const requested = await server.owner.post('/v2/commands', {
+             machineId: server.machineId,
+             ticketId: command.ticketId,
+@@ -429,12 +517,43 @@ for (const scenario of [
+             );
+             const ack = (await machine.read(`/v2/machine/commands/${stop.id}`)) as { state: string };
+             assert.notEqual(ack.state, 'completed');
++            const connection = await GatewayConnection.open(owned.root, http, bridge);
++            try {
++              await connection.boot(bootId, '0');
++              const nextBoot = randomUUID();
++              assert.equal((await connection.advanceBoot(nextBoot)).bootGeneration, '2');
++              await connection.heartbeat(heartbeat(nextBoot, '2', '99'));
++              const [stillHeld] =
++                await db`select active_attempt_id from execution_guards where ticket_id=${command.ticketId}`;
++              assert.equal(stillHeld.active_attempt_id, guard.active_attempt_id);
++              assert.equal(await w.journal.pinRetirement(local), null);
++              assert.equal(
++                (await w.registry.retained()).filter((r) => r.authority === 'process-journal').length,
++                1,
++              );
++              const replacement = await server.machine.post(`/v2/machine/commands/${command.id}/claim`, {
++                processInstanceId: randomUUID(),
++                permit,
++              });
++              assert.equal(replacement.statusCode, 409);
++            } finally {
++              await connection.close();
++            }
+             await delay(800);
+           } else {
+             dropStopAck = stop.id;
+-            await assert.rejects(bridge.handle(stop), /LOST_STOP_ACK/);
+-            await bridge.handle(stop);
+-            assert.equal(await w.journal.observe(local), 'stopped');
++            await assert.rejects(bridge.reconnect(), /LOST_STOP_ACK/);
++            await assert.rejects(bridge.reconnect(), /SELECTION_MISMATCH/);
++            assert.equal(
++              ((await machine.read(`/v2/machine/commands/${stop.id}`)) as { state: string }).state,
++              'completed',
++            );
++            const [blocked] = await db`select state from commands where id=${blockedId}`;
++            assert.equal(blocked.state, 'queued');
++            assert.equal((await w.journal.processes()).length, 1);
++            const stopReceipt = await w.journal.pinRetirement(local);
++            assert(stopReceipt);
++            assert.equal(stopReceipt.stop.groupEmpty, true);
+             retainUnknown = false;
+             const [attempt] =
+               await db`select state,finalized_at from attempts where command_id=${command.id}`;
+@@ -480,3 +599,311 @@ for (const scenario of [
+       }
+     }));
+ }
++
++test('actual prefix8 desired read barrier cannot supersede a newly committed workflow command', () =>
++  withDb(async (db) => {
++    const owned = await bridgeRoot(),
++      w = await workflowFixture(owned.root),
++      authority = await selectionAuthorityFixture(db),
++      server = await gatewayFixture(db, authority);
++    const machine = machineTransport(server.url, server.token);
++    const http = await HttpOperationJournal.open(owned.root, machine.write);
++    let sync: GatewaySync | undefined;
++    try {
++      const bootId = randomUUID();
++      const boot = await server.machine.post('/v2/gateway/boots', { bootId, previousGeneration: '0' });
++      assert.equal(boot.statusCode, 200);
++      const update = async (expectedRevision: number) => {
++        const response = await server.owner.put(`/v2/gateway/machines/${server.machineId}/config`, {
++          expectedRevision,
++          desired: w.desired,
++          maxJobs: expectedRevision + 2,
++          enabled: true,
++        });
++        assert.equal(response.statusCode, 200, response.text);
++      };
++      await update(0);
++      let barrier = true;
++      const options = {
++        machineId: server.machineId,
++        bootId,
++        bootGeneration: boot.json<{ bootGeneration: string }>().bootGeneration,
++        registry: w.registry,
++        http,
++        recipes: w.projections,
++        archive: async (source: import('../src/host/status.ts').SourcePin) =>
++          w.sources.find((item) => item.source.name === source.name)!.stream(),
++        read: async (route: string) => {
++          const result = await machine.read(route);
++          if (route === '/v2/gateway/config' && barrier) {
++            barrier = false;
++            await update(1);
++          }
++          return result;
++        },
++      };
++      sync = await GatewaySync.open(owned.root, options);
++      await sync.reconcile();
++      const [newer] =
++        await db`select id,state from gateway_commands where machine_id=${server.machineId} and payload->>'configRevision'='2'`;
++      assert.notEqual(newer.state, 'completed');
++      await sync.close();
++      sync = await GatewaySync.open(owned.root, options);
++      await sync.reconcile();
++      await sync.reconcile();
++      const [complete] = await db`select state,result from gateway_commands where id=${newer.id}`;
++      assert.equal(complete.state, 'completed');
++      assert.deepEqual(complete.result, { ok: true });
++      const [reports] =
++        await db`select count(*)::int as count from gateway_install_reports where machine_id=${server.machineId} and config_revision=2`;
++      assert.equal(reports.count, 1);
++    } finally {
++      await sync?.close();
++      await http.close();
++      await server.close();
++      await w.close();
++      await owned.cleanup();
++    }
++  }));
++
++test('actual prefix8 503 after committed boot heartbeat ACK and report recovers same server receipts across reopen', () =>
++  withDb(async (db) => {
++    const owned = await bridgeRoot(),
++      w = await workflowFixture(owned.root),
++      authority = await selectionAuthorityFixture(db),
++      server = await gatewayFixture(db, authority);
++    const machine = machineTransport(server.url, server.token),
++      failed = new Set<string>();
++    const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
++    let now = 0;
++    const http = await HttpOperationJournal.open(
++      owned.root,
++      async (request) => {
++        sent.push(request);
++        const response = await machine.write(request);
++        assert.equal(response.status, 200, JSON.stringify(response));
++        if (!failed.has(request.phase)) {
++          failed.add(request.phase);
++          return { status: 503, body: { error: { code: 'UPSTREAM_LOST_AFTER_COMMIT' } } };
++        }
++        return response;
++      },
++      { now: () => now },
++    );
++    let connection = await GatewayConnection.open(owned.root, http),
++      sync: GatewaySync | undefined;
++    try {
++      const bootId = randomUUID();
++      await assert.rejects(connection.boot(bootId), /UPSTREAM_LOST/);
++      await connection.close();
++      connection = await GatewayConnection.open(owned.root, http);
++      now += 10000;
++      assert.equal((await connection.boot()).bootGeneration, '1');
++      await assert.rejects(connection.heartbeat(heartbeat(bootId, '1', '1')), /UPSTREAM_LOST/);
++      await connection.close();
++      connection = await GatewayConnection.open(owned.root, http);
++      now += 10000;
++      await connection.heartbeat({ ignored: 'pending original body' });
++      const config = await server.owner.put(`/v2/gateway/machines/${server.machineId}/config`, {
++        expectedRevision: 0,
++        desired: w.desired,
++        maxJobs: 1,
++        enabled: true,
++      });
++      assert.equal(config.statusCode, 200, config.text);
++      const options = {
++        machineId: server.machineId,
++        bootId,
++        bootGeneration: '1',
++        registry: w.registry,
++        http,
++        read: machine.read,
++        recipes: w.projections,
++        archive: async (source: import('../src/host/status.ts').SourcePin) =>
++          w.sources.find((item) => item.source.name === source.name)!.stream(),
++      };
++      sync = await GatewaySync.open(owned.root, options);
++      for (let i = 0; i < 3; i++) {
++        await assert.rejects(sync.reconcile(), /UPSTREAM_LOST/);
++        await sync.close();
++        sync = await GatewaySync.open(owned.root, options);
++        now += 10000;
++      }
++      await sync.reconcile();
++      await sync.reconcile();
++      for (const phase of ['boot', 'heartbeat', 'gateway-received', 'install-report', 'gateway-completed']) {
++        const attempts = sent.filter((request) => request.phase === phase);
++        assert.equal(attempts.length, 2, phase);
++        assert.deepEqual(attempts[0], attempts[1]);
++        assert.equal((await http.replay(attempts[0].operationId)).status, 503);
++      }
++      const [reports] =
++        await db`select count(*)::int as count from gateway_install_reports where machine_id=${server.machineId}`;
++      assert.equal(reports.count, 1);
++      const [present] =
++        await db`select sequence from gateway_heartbeats where machine_id=${server.machineId}`;
++      assert.equal(String(present.sequence), '1');
++    } finally {
++      await sync?.close();
++      await connection.close();
++      await http.close();
++      await server.close();
++      await w.close();
++      await owned.cleanup();
++    }
++  }));
++
++for (const failure of ['server-cas', 'orphan-admission'] as const)
++  test(`actual prefix8 controlled boot rejects ${failure} and preserves history`, () =>
++    withDb(async (db) => {
++      const owned = await bridgeRoot(),
++        w = await workflowFixture(owned.root),
++        server = await gatewayFixture(db);
++      const machine = machineTransport(server.url, server.token),
++        http = await HttpOperationJournal.open(owned.root, machine.write);
++      const bridge = await TicketCommandBridge.open(owned.root, {
++        machineId: server.machineId,
++        journal: w.journal,
++        registry: w.registry,
++        http,
++        read: machine.read,
++      });
++      const connection = await GatewayConnection.open(owned.root, http, bridge);
++      let retained = false;
++      try {
++        const first = await connection.boot(randomUUID());
++        if (failure === 'server-cas') {
++          const rival = await server.machine.post('/v2/gateway/boots', {
++            bootId: randomUUID(),
++            previousGeneration: '1',
++          });
++          assert.equal(rival.statusCode, 200);
++          await assert.rejects(connection.advanceBoot(randomUUID()), /BOOT_GENERATION_CONFLICT/);
++          await assert.rejects(connection.heartbeat(heartbeat(first.bootId, '1', '1')), /BOOT_REQUIRED/);
++        } else {
++          await w.install();
++          const store = Reflect.get(
++            w.journal,
++            'store',
++          ) as import('../src/journal/atomic-records.ts').AtomicRecords;
++          const original = store.put.bind(store);
++          store.put = async (key, value) => {
++            if ((value as { launchId?: string }).launchId) throw new Error('ADMISSION_COMMIT_CRASH');
++            return original(key, value);
++          };
++          try {
++            await assert.rejects(
++              w.journal.reserve({
++                commandId: randomUUID(),
++                ticketId: randomUUID(),
++                processInstanceId: randomUUID(),
++                source: w.sources[0].source,
++                projection: w.projections[0].expected,
++              }),
++              /ADMISSION_COMMIT_CRASH/,
++            );
++          } finally {
++            store.put = original;
++          }
++          retained = true;
++          assert.equal((await w.journal.pendingPinAdmissions()).length, 1);
++          await assert.rejects(connection.advanceBoot(randomUUID()), /BOOT_RECONCILIATION_CHANGED/);
++          assert.equal((await connection.boot()).bootGeneration, '1');
++          assert.equal((await w.journal.pendingPinAdmissions()).length, 1);
++        }
++      } finally {
++        await connection.close();
++        await bridge.close();
++        await http.close();
++        await server.close();
++        await w.close();
++        if (retained) {
++          const st = await lstat(owned.root);
++          console.log(
++            'Task5 retained UNKNOWN root',
++            JSON.stringify({
++              root: owned.root,
++              device: String(st.dev),
++              inode: String(st.ino),
++              uid: st.uid,
++              stage: failure,
++            }),
++          );
++        } else await owned.cleanup();
++      }
++    }));
++
++test('actual prefix8 pending old-boot report resolves old key then resamples under controlled new boot', () =>
++  withDb(async (db) => {
++    const owned = await bridgeRoot(),
++      w = await workflowFixture(owned.root),
++      authority = await selectionAuthorityFixture(db),
++      server = await gatewayFixture(db, authority);
++    const machine = machineTransport(server.url, server.token);
++    let drop = true;
++    const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
++    const http = await HttpOperationJournal.open(owned.root, async (request) => {
++      sent.push(request);
++      if (request.phase === 'install-report' && drop) {
++        drop = false;
++        throw new Error('REPORT_LOST_BEFORE_SEND');
++      }
++      return machine.write(request);
++    });
++    const bridge = await TicketCommandBridge.open(owned.root, {
++      machineId: server.machineId,
++      journal: w.journal,
++      registry: w.registry,
++      http,
++      read: machine.read,
++    });
++    const connection = await GatewayConnection.open(owned.root, http, bridge);
++    let sync: GatewaySync | undefined;
++    try {
++      const initial = await connection.boot(randomUUID());
++      const config = await server.owner.put(`/v2/gateway/machines/${server.machineId}/config`, {
++        expectedRevision: 0,
++        desired: w.desired,
++        maxJobs: 1,
++        enabled: true,
++      });
++      assert.equal(config.statusCode, 200);
++      const options = {
++        machineId: server.machineId,
++        ...initial,
++        registry: w.registry,
++        http,
++        read: machine.read,
++        recipes: w.projections,
++        archive: async (source: import('../src/host/status.ts').SourcePin) =>
++          w.sources.find((item) => item.source.name === source.name)!.stream(),
++      };
++      sync = await GatewaySync.open(owned.root, options);
++      await assert.rejects(sync.reconcile(), /REPORT_LOST_BEFORE_SEND/);
++      await sync.close();
++      const next = await connection.advanceBoot(randomUUID());
++      sync = await GatewaySync.open(owned.root, { ...options, ...next });
++      await sync.reconcile();
++      await sync.reconcile();
++      const reports = sent.filter((request) => request.phase === 'install-report');
++      assert.equal(reports.length, 3);
++      assert.deepEqual(reports[0], reports[1]);
++      assert.notEqual(reports[1].idempotencyKey, reports[2].idempotencyKey);
++      assert.equal((await http.replay(reports[0].operationId)).status, 409);
++      const [stored] =
++        await db`select report from gateway_install_reports where machine_id=${server.machineId}`;
++      assert.equal(stored.report.bootId, next.bootId);
++      const [command] =
++        await db`select state,result from gateway_commands where machine_id=${server.machineId}`;
++      assert.equal(command.state, 'completed');
++      assert.deepEqual(command.result, { ok: true });
++    } finally {
++      await sync?.close();
++      await connection.close();
++      await bridge.close();
++      await http.close();
++      await server.close();
++      await w.close();
++      await owned.cleanup();
++    }
++  }));
+diff --git a/v2/gateway/test/execution-bridge.test.ts b/v2/gateway/test/execution-bridge.test.ts
+index 4b7f49b..ac37c84 100644
+--- a/v2/gateway/test/execution-bridge.test.ts
++++ b/v2/gateway/test/execution-bridge.test.ts
+@@ -255,3 +255,52 @@ test('execution bridge reconnect resets UUID page anchor and sees later lower UU
+     await owned.cleanup();
+   }
+ });
++
++test('reconnect isolates denied dispatch across pages and reopen so reconcile controls progress', async () => {
++  const owned = await bridgeRoot(),
++    w = await workflowFixture(owned.root),
++    machineId = randomUUID();
++  const denied = {
++    id: randomUUID(),
++    machineId,
++    ticketId: randomUUID(),
++    type: 'start',
++    payload: {},
++    state: 'queued',
++    result: null,
++  };
++  const control = { ...denied, id: randomUUID(), type: 'reconcile' };
++  const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
++  const http = await HttpOperationJournal.open(owned.root, async (request) => {
++    sent.push(request);
++    return { status: 200, body: control };
++  });
++  const options = {
++    machineId,
++    journal: w.journal,
++    registry: w.registry,
++    http,
++    read: async (route: string) => {
++      if (route.includes('?'))
++        return route.includes('&after=')
++          ? { items: [control], nextCursor: null }
++          : { items: [denied], nextCursor: denied.id };
++      return route.endsWith(denied.id) ? denied : control;
++    },
++  };
++  let bridge = await TicketCommandBridge.open(owned.root, options);
++  try {
++    await assert.rejects(bridge.reconnect(), /DISPATCH_NOT_CONFIGURED/);
++    assert.equal(sent.filter((request) => request.phase === 'ticket-completed').length, 1);
++    await bridge.close();
++    bridge = await TicketCommandBridge.open(owned.root, options);
++    await assert.rejects(bridge.reconnect(), /DISPATCH_NOT_CONFIGURED/);
++    assert.equal(sent.length, 2);
++    assert.equal((await w.journal.processes()).length, 0);
++  } finally {
++    await bridge.close();
++    await http.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
+diff --git a/v2/gateway/test/http-operations.test.ts b/v2/gateway/test/http-operations.test.ts
+index c326b11..861a725 100644
+--- a/v2/gateway/test/http-operations.test.ts
++++ b/v2/gateway/test/http-operations.test.ts
+@@ -182,3 +182,71 @@ test('journal HTTP real socket lost replies replay every mutation with identical
+     await rm(root, { recursive: true, force: true });
+   }
+ });
++
++test('transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen', async () => {
++  const { mkdtemp, realpath, lstat, rm } = await import('node:fs/promises');
++  const { tmpdir } = await import('node:os');
++  const { join } = await import('node:path');
++  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-task5-http-retry-'))),
++    identity = await lstat(root);
++  console.log(
++    'Task5 owned root',
++    JSON.stringify({ root, device: String(identity.dev), inode: String(identity.ino), uid: identity.uid }),
++  );
++  let now = 0,
++    calls = 0;
++  const requests: unknown[] = [];
++  const transport: import('../src/journal/http-operations.ts').HttpTransport = async (request) => {
++    requests.push(request);
++    calls++;
++    if (calls === 1) return { status: 503, body: { error: { code: 'UNAVAILABLE' } } };
++    if (calls === 2) throw new Error('LOST_RETRY_REPLY');
++    return { status: 200, body: { effect: 'same-server-receipt' } };
++  };
++  let http = await HttpOperationJournal.open(root, transport, { now: () => now });
++  try {
++    await http.prepare({
++      operationId: 'one',
++      method: 'POST',
++      route: '/v2/test',
++      phase: 'test',
++      canonicalBody: { x: 1 },
++    });
++    assert.equal((await http.retryTransient('one')).status, 503);
++    assert.equal((await http.retryTransient('one')).status, 503);
++    assert.equal(calls, 1);
++    now = 1000;
++    await assert.rejects(http.retryTransient('one'), /LOST_RETRY_REPLY/);
++    await http.close();
++    http = await HttpOperationJournal.open(root, transport, { now: () => now });
++    now = 3000;
++    const results = await Promise.all([http.retryTransient('one'), http.retryTransient('one')]);
++    assert.equal(results[0].status, 200);
++    assert.deepEqual(results[0], results[1]);
++    assert.equal(calls, 3);
++    assert.deepEqual(requests[0], requests[1]);
++    assert.deepEqual(requests[1], requests[2]);
++    assert.equal((await http.replay('one')).status, 503);
++    await http.close();
++    http = await HttpOperationJournal.open(root, transport, { now: () => now });
++    assert.equal((await http.retryTransient('one')).status, 200);
++    assert.equal(calls, 3);
++  } finally {
++    await http.close();
++    const current = await lstat(root);
++    assert.equal(current.ino, identity.ino);
++    assert.equal(current.dev, identity.dev);
++    assert.equal(current.uid, identity.uid);
++    await rm(root, { recursive: true });
++    console.log(
++      'Task5 owned cleanup',
++      JSON.stringify({
++        root,
++        device: String(identity.dev),
++        inode: String(identity.ino),
++        uid: identity.uid,
++        deleted: true,
++      }),
++    );
++  }
++});
+diff --git a/v2/gateway/test/sync.test.ts b/v2/gateway/test/sync.test.ts
+index 740f5d0..9e6b35a 100644
+--- a/v2/gateway/test/sync.test.ts
++++ b/v2/gateway/test/sync.test.ts
+@@ -332,3 +332,60 @@ test('sync verifies cached source bytes even when every desired projection is nu
+     await owned.cleanup();
+   }
+ });
++
++test('sync defers command ahead of desired snapshot, then applies after reopen without false supersession', async () => {
++  const owned = await bridgeRoot(),
++    f = await workflowFixture(owned.root);
++  const command = {
++    id: randomUUID(),
++    machineId: randomUUID(),
++    type: 'sync_workflows',
++    payload: { configRevision: 2 },
++    state: 'queued',
++    result: null,
++    cursor: '2',
++  };
++  let revision = 1;
++  const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
++  const http = await HttpOperationJournal.open(owned.root, async (request) => {
++    sent.push(request);
++    return {
++      status: 200,
++      body: request.phase === 'install-report' ? { accepted: true, appliedRevision: 2 } : {},
++    };
++  });
++  const options = {
++    machineId: command.machineId,
++    bootId: randomUUID(),
++    bootGeneration: '1',
++    registry: f.registry,
++    http,
++    recipes: f.projections,
++    read: async (route: string) =>
++      route === '/v2/gateway/config'
++        ? { revision, desired: f.desired, maxJobs: 1, enabled: true }
++        : { items: [command], nextCursor: '2' },
++    archive: async (source: import('../src/host/status.ts').SourcePin) =>
++      f.sources.find((item) => item.source.name === source.name)!.stream(),
++  };
++  let sync = await GatewaySync.open(owned.root, options);
++  try {
++    await sync.reconcile();
++    assert.equal(sent.filter((item) => item.phase === 'gateway-completed').length, 0);
++    await sync.close();
++    revision = 2;
++    sync = await GatewaySync.open(owned.root, options);
++    await sync.reconcile();
++    await sync.reconcile();
++    assert.equal(sent.filter((item) => item.phase === 'install-report').length, 1);
++    assert.deepEqual(sent.find((item) => item.phase === 'gateway-completed')?.canonicalBody, {
++      phase: 'completed',
++      result: { ok: true },
++    });
++  } finally {
++    await sync.close();
++    await http.close();
++    await f.close();
++    await owned.cleanup();
++  }
++});

@@ -1,0 +1,20 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-SlYUGK","device":"16777229","inode":"63713077","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-SlYUGK","device":"16777229","inode":"63713077","uid":501,"deleted":true}
+✖ transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen (40.077208ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 103.284458
+
+✖ failing tests:
+
+test at v2/gateway/test/http-operations.test.ts:186:1
+✖ transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen (40.077208ms)
+  TypeError: http.retryTransient is not a function
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/http-operations.test.ts:203:30)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)

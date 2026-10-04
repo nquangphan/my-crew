@@ -1,0 +1,59 @@
+✖ resolver reads fresh desired and current binding; stored ref with null operation survives revision and reconnect (0.955708ms)
+✖ resolver rejects OFF, removal, pending, missing, foreign, revision, endpoint, protocol, and provider ref conflicts (0.568792ms)
+✖ resolver rejects observed ref changes even when both credentials remain stored (0.123666ms)
+✖ current transport refuses changed state before headers and rejects a response when authority changes in flight (4.554459ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 104.218375
+
+✖ failing tests:
+
+test at v2/gateway/test/current-credential-resolver.test.ts:24:1
+✖ resolver reads fresh desired and current binding; stored ref with null operation survives revision and reconnect (0.955708ms)
+  Error: NOT_IMPLEMENTED
+      at CurrentCredentialResolver.resolve (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/current-credential-resolver.ts:5:154)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/current-credential-resolver.test.ts:26:76)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at v2/gateway/test/current-credential-resolver.test.ts:32:1
+✖ resolver rejects OFF, removal, pending, missing, foreign, revision, endpoint, protocol, and provider ref conflicts (0.568792ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CREDENTIAL_BINDING_UNAVAILABLE|CREDENTIAL_MISSING/. Input:
+  
+  'Error: NOT_IMPLEMENTED'
+  
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/current-credential-resolver.test.ts:40:68)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at CurrentCredentialResolver.resolve (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/current-credential-resolver.ts:5:154)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/current-credential-resolver.test.ts:40:148)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /CREDENTIAL_BINDING_UNAVAILABLE|CREDENTIAL_MISSING/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/gateway/test/current-credential-resolver.test.ts:42:1
+✖ resolver rejects observed ref changes even when both credentials remain stored (0.123666ms)
+  Error: NOT_IMPLEMENTED
+      at CurrentCredentialResolver.resolve (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/current-credential-resolver.ts:5:154)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/current-credential-resolver.test.ts:43:118)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at v2/gateway/test/current-credential-resolver.test.ts:47:1
+✖ current transport refuses changed state before headers and rejects a response when authority changes in flight (4.554459ms)
+  TypeError: transport.callCurrent is not a function
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/current-credential-resolver.test.ts:55:35)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

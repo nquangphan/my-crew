@@ -7,6 +7,8 @@ source:
     - server/migrations/**
     - gateway/src/**
     - desktop/src/**
+    - web/src/**
+    - web/scripts/**
   exclude: []
 flows:
   domain-foundation:
@@ -113,6 +115,7 @@ flows:
       - server/src/tickets/service.ts
       - server/migrations/004_tickets.sql
       - server/migrations/010_attachment_comment_text.sql
+      - server/src/tickets/assistant-access.ts
     tests:
       - server/test/tickets.test.ts
       - server/test/dependencies.test.ts
@@ -123,6 +126,7 @@ flows:
       - server/test/deploy.test.ts
       - server/test/assistant-orchestration.test.ts
       - server/test/attachments-comment-factory.test.ts
+      - server/test/assistant-mutations.test.ts
   gateway-host:
     title: Host cổng macOS Crew v2
     doc: docs/flows/gateway-host.md
@@ -385,9 +389,40 @@ flows:
       - server/src/attachments/worker-runner.ts
       - server/extractor.Dockerfile
       - server/extractor.dockerignore
+      - server/src/attachments/extract/csv.ts
+      - server/src/attachments/extract/docx.ts
+      - server/src/attachments/extract/formats.ts
+      - server/src/attachments/extract/image.ts
+      - server/src/attachments/extract/index.ts
+      - server/src/attachments/extract/pdf.ts
+      - server/src/attachments/extract/text.ts
+      - server/src/attachments/extract/verify.ts
+      - server/src/attachments/extract/xlsx.ts
+      - server/src/attachments/extract/xml.ts
+      - server/src/attachments/extract/yauzl.d.ts
+      - server/src/attachments/extract/zip.ts
     tests:
       - server/test/attachments-worker-live.test.ts
       - server/test/attachments-worker.test.ts
+      - server/test/attachments-formats.unit.test.ts
+      - server/test/attachments-text-csv.unit.test.ts
+      - server/test/attachments-pdf-image.unit.test.ts
+      - server/test/attachments-ooxml.unit.test.ts
+      - server/test/fixtures/attachments/README.md
+      - server/test/fixtures/attachments/embedded-executable.pdf
+      - server/test/fixtures/attachments/encrypted.pdf
+      - server/test/fixtures/attachments/javascript.pdf
+      - server/test/fixtures/attachments/launch-compressed.pdf
+      - server/test/fixtures/attachments/launch-escaped.pdf
+      - server/test/fixtures/attachments/launch-incremental.pdf
+      - server/test/fixtures/attachments/launch.pdf
+      - server/test/fixtures/attachments/make-fixtures.ts
+      - server/test/fixtures/attachments/mixed.pdf
+      - server/test/fixtures/attachments/orientation-6.jpg
+      - server/test/fixtures/attachments/portfolio.pdf
+      - server/test/fixtures/attachments/rotated.pdf
+      - server/test/fixtures/attachments/scan.pdf
+      - server/test/fixtures/attachments/text.pdf
   gateway-runtime:
     title: Boundary runtime và receipt logical effect Crew v2
     doc: docs/flows/gateway-runtime.md
@@ -429,8 +464,30 @@ flows:
     doc: docs/flows/assistant-workflows.md
     entrypoints:
       - gateway/src/assistant/workflow-manifest.ts
-    files: []
+    files:
+      - gateway/src/assistant/render-artifacts.ts
     tests:
       - gateway/test/workflow-manifest.test.ts
+      - gateway/test/render-artifacts.test.ts
+  web-shell:
+    title: Khung web và fixture cô lập Crew v2
+    doc: docs/flows/web-shell.md
+    entrypoints:
+      - web/src/main.tsx
+    files:
+      - web/src/router.tsx
+      - web/src/shell.tsx
+      - web/src/styles.css
+      - web/scripts/e2e-fixture.ts
+      - web/e2e/support/fixture.ts
+      - web/package.json
+      - web/pnpm-lock.yaml
+      - web/tsconfig.json
+      - web/vite.config.ts
+      - web/index.html
+      - web/playwright.config.ts
+    tests:
+      - web/test/workspace.test.ts
+      - web/test/fixture-lifecycle.test.ts
 shared: {}
 unassigned: []

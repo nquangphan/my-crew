@@ -1,13 +1,12 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { types as utilTypes } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import type { Signal } from '../../../src/ticket-policy.ts';
 import { transition } from '../../../src/ticket-policy.ts';
 import { samePin } from '../../../src/workflow-policy.ts';
 import type { OrchestrationProof } from '../assistant/contracts.ts';
-import { canonicalJson } from '../journal/canonical.ts';
 import { appendEvent } from '../journal/events.ts';
 import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
+import { immutableSnapshot, orchestrationTargetHash } from './assistant-access.ts';
 import { readCompletionFacts } from './completion.ts';
 import type {
   AppendAttachmentComment,
@@ -15,8 +14,13 @@ import type {
   Ticket,
   TicketServiceDependencies,
 } from './contracts.ts';
-import { appendAttachmentComment, appendComment, recordDecision } from './decisions.ts';
-import { addDependency, readGraph } from './dependencies.ts';
+import {
+  appendAttachmentComment,
+  appendComment,
+  createAssistantDecisionRecorder,
+  recordDecision,
+} from './decisions.ts';
+import { addDependency, createAssistantDependencyWriter, readGraph } from './dependencies.ts';
 import { deployTicketFingerprint, verifyDeployApprovalForCandidate } from './deploy.ts';
 import { linkDocs } from './docs-links.ts';
 import { recordRepairResult } from './repair.ts';
@@ -224,57 +228,7 @@ type ScopedCreatePermission = {
 // manufacture an entry, and each entry is consumed by one insertion attempt.
 const scopedCreatePermissions = new WeakMap<object, ScopedCreatePermission>();
 function createTargetHash(input: CreateTicket): string {
-  return createHash('sha256')
-    .update(canonicalJson(['crew-v2:orchestration-target:1', 'create_ticket', input]))
-    .digest('hex');
-}
-
-// Validate source descriptors before canonicalJson can iterate an array. Never
-// read caller array elements, iterators or accessors while capturing authority.
-function assertSnapshotData(value: unknown, ancestors = new Set<object>()): void {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
-  if (typeof value === 'number' && Number.isFinite(value)) return;
-  if (typeof value !== 'object' || utilTypes.isProxy(value) || ancestors.has(value))
-    throw new Error('SNAPSHOT_JSON_INVALID');
-  const array = Array.isArray(value);
-  const prototype: unknown = Object.getPrototypeOf(value);
-  if (
-    (array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) ||
-    Object.getOwnPropertySymbols(value).length !== 0
-  )
-    throw new Error('SNAPSHOT_JSON_INVALID');
-  const descriptors = Object.getOwnPropertyDescriptors(value);
-  const length = array ? (descriptors.length?.value as number) : 0;
-  if (array && Object.keys(descriptors).length !== length + 1) throw new Error('SNAPSHOT_JSON_INVALID');
-  ancestors.add(value);
-  try {
-    for (const [key, descriptor] of Object.entries(descriptors)) {
-      if (!('value' in descriptor)) throw new Error('SNAPSHOT_JSON_INVALID');
-      if (array && key === 'length') continue;
-      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length))
-        throw new Error('SNAPSHOT_JSON_INVALID');
-      assertSnapshotData(descriptor.value, ancestors);
-    }
-  } finally {
-    ancestors.delete(value);
-  }
-}
-
-function immutableSnapshot<T>(value: T): T {
-  const freeze = (item: unknown): void => {
-    if (item && typeof item === 'object') {
-      for (const child of Object.values(item)) freeze(child);
-      Object.freeze(item);
-    }
-  };
-  try {
-    assertSnapshotData(value);
-    const result = JSON.parse(canonicalJson(value)) as T;
-    freeze(result);
-    return result;
-  } catch {
-    throw new ApiError('VALIDATION', 400, 'Dữ liệu điều phối không hợp lệ');
-  }
+  return orchestrationTargetHash('create_ticket', input);
 }
 
 async function createTicketCore(
@@ -484,6 +438,8 @@ export function createTicketServices(deps: TicketServiceDependencies = {}) {
     mapTicket,
     createTicket,
     assistantCreateTicket: scopedTicketCreator(deps.assistant),
+    assistantRecordDecision: createAssistantDecisionRecorder(deps.assistant, immutable.docsSource),
+    assistantAddDependency: createAssistantDependencyWriter(deps.assistant),
     addDependency,
     appendComment,
     appendAttachmentComment: (

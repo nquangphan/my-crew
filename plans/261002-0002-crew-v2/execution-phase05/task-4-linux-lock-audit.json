@@ -1,0 +1,56 @@
+{
+  "baselinePackages": 75,
+  "retainedExact": true,
+  "totalPackages": 92,
+  "pins": [
+    {
+      "name": "pdfjs-dist",
+      "version": "6.3.289",
+      "integrity": "sha512-ZHjSVpDa3D6izMq8/04lvkhkATUmL9px6ChPaXc1k6nU2Mrhlg1/7F0bdUqCwUjw3NsPTfPZsMDUU6ZIcRaeQw=="
+    },
+    {
+      "name": "@napi-rs/canvas",
+      "version": "1.0.3",
+      "integrity": "sha512-OlI657a5XXvKGFX7kNeIzJ8rO7IXt87Mqu2H8rXE46viAuOfum/JA7ysX7+eBhxNKznT+RCZh418mndlcFX3+w=="
+    },
+    {
+      "name": "yauzl",
+      "version": "3.4.0",
+      "integrity": "sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw=="
+    },
+    {
+      "name": "saxes",
+      "version": "6.0.0",
+      "integrity": "sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA=="
+    },
+    {
+      "name": "@napi-rs/canvas-linux-x64-gnu",
+      "version": "1.0.3",
+      "integrity": "sha512-jtfzAHFp+FRaR7zGT4jyCe6wUgAG/dVb5A4Apd8FY9jKarntDfUAlJXscugiH7ZF5kKnu7/lHFk9LaDPcrGEVQ=="
+    },
+    {
+      "name": "@napi-rs/canvas-linux-arm64-gnu",
+      "version": "1.0.3",
+      "integrity": "sha512-GVSjntxKeA+/y/ZKf1F+cmUw1WeIkE5aMRPqnZUlBTBvBcrvgWccJAWuYCKPX4QJQwZILIIwhgdAbl51yj6fpA=="
+    }
+  ],
+  "extra": [
+    "@napi-rs/canvas-android-arm64@1.0.3",
+    "@napi-rs/canvas-darwin-arm64@1.0.3",
+    "@napi-rs/canvas-darwin-x64@1.0.3",
+    "@napi-rs/canvas-linux-arm-gnueabihf@1.0.3",
+    "@napi-rs/canvas-linux-arm64-gnu@1.0.3",
+    "@napi-rs/canvas-linux-arm64-musl@1.0.3",
+    "@napi-rs/canvas-linux-riscv64-gnu@1.0.3",
+    "@napi-rs/canvas-linux-x64-gnu@1.0.3",
+    "@napi-rs/canvas-linux-x64-musl@1.0.3",
+    "@napi-rs/canvas-win32-arm64-msvc@1.0.3",
+    "@napi-rs/canvas-win32-x64-msvc@1.0.3",
+    "@napi-rs/canvas@1.0.3",
+    "pdfjs-dist@6.3.289",
+    "pend@1.2.0",
+    "saxes@6.0.0",
+    "xmlchars@2.2.0",
+    "yauzl@3.4.0"
+  ]
+}

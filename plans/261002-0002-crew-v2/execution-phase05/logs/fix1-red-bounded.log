@@ -1,0 +1,56 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts '--test-name-pattern=review F1|review F2'
+
+attachment DB container 111752f392b8f2a46d76b5495e1ae082cbd76358f679fdb97c14ea42534fdb35 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mspxjQ
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mspxjQ nonceSha256=921ee9629e65e2ecb20f21da22cd090774057d4f564bbf30f7d4782dbdc54398
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mspxjQ
+✖ attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator (563.733292ms)
+attachment DB container 111752f392b8f2a46d76b5495e1ae082cbd76358f679fdb97c14ea42534fdb35 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-L1wvCC
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-L1wvCC nonceSha256=b20ff76b5468a1e1a4189e9c0d816854ed50e0311d147c31b378906117b9e8c6
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-L1wvCC
+✖ attachment staging review F2 rejects every invalid one-byte text control before original publication (301.44675ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 967.351792
+
+✖ failing tests:
+
+test at test/attachments-staging.test.ts:618:1
+✖ attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator (563.733292ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:635:11
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:619:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ATTACHMENT_UPLOAD_TIMEOUT' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/attachments-staging.test.ts:646:1
+✖ attachment staging review F2 rejects every invalid one-byte text control before original publication (301.44675ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection: control 1
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:653:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:647:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ATTACHMENT_BINARY_TEXT' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

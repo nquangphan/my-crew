@@ -1,0 +1,222 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-concurrency=1 --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/host-failures.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/host-lifecycle.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/http-operations.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/journal.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/resources.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/telemetry.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-admission.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-build.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-fix.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-native-projection.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-operations.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-registry.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/connection.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/event-pump.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/sync.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-crash.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/stop-control.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/pin-retirement.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/retirement-crash.test.ts
+
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vQ4fGA","device":"16777229","inode":"63597048","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vQ4fGA","device":"16777229","inode":"63597048","uid":501,"deleted":true}
+✔ sync boot and heartbeat preserve immutable operations through lost reply/reopen (218.294583ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-XDxtMF","device":"16777229","inode":"63597067","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-XDxtMF","device":"16777229","inode":"63597067","uid":501,"deleted":true}
+✔ sync event pump persists only reconciled SSE cursor and polls after stream failure across reopen (93.852208ms)
+Task5 private database container 04c5a3fcc93414165785435d55c80f050a21b8212dcde3dfea77ac77da32ed78
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QDZxRb","device":"16777229","inode":"63597074","uid":501}
+{"level":30,"time":1790930168943,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58658"}
+{"level":30,"time":1790930171678,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58670"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QDZxRb","device":"16777229","inode":"63597074","uid":501,"deleted":true}
+✔ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (3598.66475ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-zsv5oB","device":"16777229","inode":"63597291","uid":501}
+{"level":30,"time":1790930172240,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58680"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-zsv5oB","device":"16777229","inode":"63597291","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: old-report (2647.662375ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vsV2rd","device":"16777229","inode":"63597471","uid":501}
+{"level":30,"time":1790930174930,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58690"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vsV2rd","device":"16777229","inode":"63597471","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: disabled-runtime (2076.413ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BAfusQ","device":"16777229","inode":"63597666","uid":501}
+{"level":30,"time":1790930176988,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58703"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BAfusQ","device":"16777229","inode":"63597666","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: missing-decision (2663.936333ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jEPWUR","device":"16777229","inode":"63597858","uid":501}
+{"level":30,"time":1790930179654,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58715"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jEPWUR","device":"16777229","inode":"63597858","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: mismatched-decision (2564.246875ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-O1GapQ","device":"16777229","inode":"63598064","uid":501}
+{"level":30,"time":1790930182242,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58734"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-O1GapQ","device":"16777229","inode":"63598064","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: client-only-selection (1974.506292ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-a2mmaI","device":"16777229","inode":"63598245","uid":501}
+{"level":30,"time":1790930184169,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58749"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-a2mmaI","device":"16777229","inode":"63598245","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: default-deny (2522.523083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qUnlgl","device":"16777229","inode":"63598460","uid":501}
+{"level":30,"time":1790930186709,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58761"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qUnlgl","device":"16777229","inode":"63598460","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: pause (3197.890084ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-EYi2JQ","device":"16777229","inode":"63598669","uid":501}
+{"level":30,"time":1790930189926,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58778"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-EYi2JQ","device":"16777229","inode":"63598669","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: cancel (3215.446709ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hvnncd","device":"16777229","inode":"63598891","uid":501}
+{"level":30,"time":1790930193135,"pid":84192,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58794"}
+Task5 owned escaped child {"pid":85210,"uid":501,"processGroupId":85210,"birth":"1790930195:398051"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hvnncd","device":"16777229","inode":"63598891","uid":501,"stage":"fork-cancel"}
+✔ execution bridge actual server selection and stop: fork-cancel (3702.011208ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3T8Bve","device":"16777229","inode":"63599083","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3T8Bve","device":"16777229","inode":"63599083","uid":501,"deleted":true}
+✔ execution bridge lost claim replay keeps one READY identity before release (2146.598958ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nUXDtJ","device":"16777229","inode":"63599293","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nUXDtJ","device":"16777229","inode":"63599293","uid":501,"deleted":true}
+✔ execution bridge lost projection replay keeps one READY identity before release (2116.189083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pSKyUP","device":"16777229","inode":"63599471","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pSKyUP","device":"16777229","inode":"63599471","uid":501,"deleted":true}
+✔ execution bridge production permit default denies before reserving a launch (303.668709ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dThlfe","device":"16777229","inode":"63599510","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dThlfe","device":"16777229","inode":"63599510","uid":501,"deleted":true}
+✔ execution bridge authenticates reconcile command and durably acknowledges same command once (324.206166ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bTfEKl","device":"16777229","inode":"63599553","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bTfEKl","device":"16777229","inode":"63599553","uid":501,"deleted":true}
+✔ execution bridge reconnect resets UUID page anchor and sees later lower UUID command (359.914584ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-UuuVdC","device":"16777229","inode":"63599600","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-UuuVdC","device":"16777229","inode":"63599600","uid":501,"deleted":true}
+✔ execution bridge SIGKILL at reserved keeps exact launch and retains unproven pins (2657.562625ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WRL4XT","device":"16777229","inode":"63599772","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WRL4XT","device":"16777229","inode":"63599772","uid":501,"stage":"spawned"}
+✔ execution bridge SIGKILL at spawned keeps exact launch and retains unproven pins (2394.654083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZunPWH","device":"16777229","inode":"63599941","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZunPWH","device":"16777229","inode":"63599941","uid":501,"stage":"ready"}
+✔ execution bridge SIGKILL at ready keeps exact launch and retains unproven pins (2998.5255ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5RWZcP","device":"16777229","inode":"63600117","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5RWZcP","device":"16777229","inode":"63600117","uid":501,"stage":"claim"}
+✔ execution bridge SIGKILL at claim keeps exact launch and retains unproven pins (3081.393125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nYd61Y","device":"16777229","inode":"63600306","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nYd61Y","device":"16777229","inode":"63600306","uid":501,"stage":"companion"}
+✔ execution bridge SIGKILL at companion keeps exact launch and retains unproven pins (3051.432833ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yxWKrH","device":"16777229","inode":"63600509","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yxWKrH","device":"16777229","inode":"63600509","uid":501,"stage":"authorized"}
+✔ execution bridge SIGKILL at authorized keeps exact launch and retains unproven pins (2978.125917ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-B8U9Vo","device":"16777229","inode":"63600730","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-B8U9Vo","device":"16777229","inode":"63600730","uid":501,"stage":"released"}
+✔ execution bridge SIGKILL at released keeps exact launch and retains unproven pins (3093.228459ms)
+✔ oversized second frame cannot crash host or replace boot (190.5685ms)
+✔ absolute frame deadline closes a drip client despite continuing bytes (1561.621ms)
+✔ SIGTERM stops with an unfinished frame and a new host binds (218.347791ms)
+✔ crash residue in recovery and empty init lock does not wedge reboot (605.571792ms)
+✔ empty host lock from interrupted initialization is recoverable (192.124166ms)
+✔ live contender cannot take over host or change its socket (85.446334ms)
+✔ unknown symlink recovery residue is not deleted or followed (167.720292ms)
+✔ stop drains a stalled dispatch only until its bounded deadline (336.321167ms)
+✔ macOS guard retains one inode across release and old-fd contender ordering (69.298917ms)
+✔ host lifecycle: UI main exit and reopen preserve independent host boot (435.253125ms)
+✔ host lifecycle: preexisting token symlink cannot overwrite another file (50.797708ms)
+✔ host lifecycle: unauthenticated socket client cannot read status (161.106375ms)
+✔ host lifecycle: crash leaves recoverable lock and a new boot can bind the socket (357.483583ms)
+✔ host lifecycle: transient macOS user agent owns host after client exits (174.227333ms)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (166.0975ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (41.37725ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (211.395208ms)
+✔ journal command reservation survives restart and concurrent journal writer is rejected (158.994417ms)
+✔ journal READY child cannot run side effects until exact projection authorization and durable release (677.577708ms)
+✔ journal crash windows retain reservation, require READY identity and never release before authorization (4847.767208ms)
+✔ journal PID birth mismatch and capacity/projection failure remain gated and unknown (694.3795ms)
+✔ journal descendant that escapes the dedicated process group leaves tree unknown (2035.415583ms)
+✔ journal concurrent launcher calls reserve one dormant child and never a second process (672.235834ms)
+✔ journal native binary tamper fails closed and cannot become exit proof (663.267042ms)
+✔ journal built entrypoint resolves the gated helper and owned native source without a global install (713.896625ms)
+✔ journal concurrent releases for the same fenced claim execute the workflow side effect once (833.766709ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wMIXTb","device":"16777229","inode":"63601356","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wMIXTb","device":"16777229","inode":"63601356","uid":501,"deleted":true}
+✔ terminal pin retirement defaults deny and keeps historical references without actual STOP (1399.013125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-HvcW9s","device":"16777229","inode":"63601508","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-HvcW9s","device":"16777229","inode":"63601508","uid":501,"deleted":true}
+✔ terminal pin retirement fsyncs exact receipt, filters refs and denies resurrection (2183.470458ms)
+✔ resources reservations and unverified creation never grant deletion; unknown process retains (159.561792ms)
+✔ resources attested path swapped to symlink or hardlinked bytes is retained unchanged (633.821666ms)
+✔ resources proven stopped run deletes only its owned scratch and retries idempotently (1635.40925ms)
+✔ resources exact stop does not permit parent symlink swap, hardlink alias, dirty or shared cleanup (1695.343584ms)
+✔ resources cancellation retains attested scratch even with exact stopped proof (1345.426958ms)
+✔ resources cleanup recovers a crash after quarantine rename before durable state update (1392.806958ms)
+✔ resources callback cannot attest a symlink to the owner checkout (590.422916ms)
+✔ resources abort after durable quarantine retains owned bytes and retry removes the same inode (1532.220542ms)
+✔ resources runtime output changes directory link count after attest and still cleans up after exact stop (1606.683125ms)
+✔ resources actual partial native deletion retains quarantine and retries after its owned immutable flag clears (1402.1445ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bHpt4H","device":"16777229","inode":"63602254","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bHpt4H","device":"16777229","inode":"63602254","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL before-write preserves durable proof and reference authority (2332.134042ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PdpEoc","device":"16777229","inode":"63602474","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PdpEoc","device":"16777229","inode":"63602474","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-write preserves durable proof and reference authority (2370.938792ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pnGQ09","device":"16777229","inode":"63602647","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pnGQ09","device":"16777229","inode":"63602647","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-filter preserves durable proof and reference authority (2210.620083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LvU8E7","device":"16777229","inode":"63602823","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LvU8E7","device":"16777229","inode":"63602823","uid":501,"stage":"release-race"}
+✔ native stop control preserves gated proof, pending startup, repeated TERM and completed observer (2577.940167ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QLig18","device":"16777229","inode":"63603091","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QLig18","device":"16777229","inode":"63603091","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (1639.202041ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3glPX3","device":"16777229","inode":"63603266","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3glPX3","device":"16777229","inode":"63603266","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (1668.449625ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bM6U9w","device":"16777229","inode":"63603444","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bM6U9w","device":"16777229","inode":"63603444","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (1643.455ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uF2ezL","device":"16777229","inode":"63603617","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uF2ezL","device":"16777229","inode":"63603617","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (1498.215834ms)
+✔ telemetry each dispatch samples again and pressure change blocks second dispatch (1.22625ms)
+✔ telemetry stale, disk, RAM, CPU, concurrency and ownership fail closed for all dispatch kinds (0.171208ms)
+✔ telemetry macOS sample obtains live pressure, page memory and disk without a cached result (7.503083ms)
+Admission boundary: snapshot CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-gPCjDN","device":"16777229","inode":"63603782","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (945.69375ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Q7eV5N","device":"16777229","inode":"63603854","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (955.334625ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Q6RWad","device":"16777229","inode":"63603919","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (929.464458ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-SzprrM","device":"16777229","inode":"63603986","ownerUid":501,"deleted":true}
+✔ workflow admission reserve-first holds GC until real journal commit and survives cached replay (933.119625ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-7NATUJ","device":"16777229","inode":"63604058","ownerUid":501,"deleted":true}
+✔ workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape (1074.973167ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-MslIAu","device":"16777229","inode":"63604173","ownerUid":501,"deleted":true}
+✔ workflow admission bind waits for an in-flight standalone v1 reservation before GC (874.00675ms)
+Recovered admission checkpoint: admission source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-M6fFXl","device":"16777229","inode":"63604244","ownerUid":501,"deleted":true}
+✔ workflow admission crash at admission retains unknown intent or denies a deleted pair after restart (1002.047708ms)
+Recovered admission checkpoint: committed source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-GxQWCJ","device":"16777229","inode":"63604314","ownerUid":501,"deleted":true}
+✔ workflow admission crash at committed retains unknown intent or denies a deleted pair after restart (1043.758958ms)
+Recovered admission checkpoint: quarantine source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-h9yYhS","device":"16777229","inode":"63604383","ownerUid":501,"deleted":true}
+✔ workflow admission crash at quarantine retains unknown intent or denies a deleted pair after restart (1034.648125ms)
+BMAD independent supervised builds: [{"id":"90dec640-2c83-4a2c-bf68-a25b7f2e902c","identity":{"bytes":0,"device":"16777229","inode":"63604999","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"90dec640-2c83-4a2c-bf68-a25b7f2e902c","device":"16777229","inode":"63604999","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"65d85882-c57e-43ec-acb4-7402f880a0a6","identity":{"bytes":0,"device":"16777229","inode":"63617226","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"65d85882-c57e-43ec-acb4-7402f880a0a6","device":"16777229","inode":"63617226","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"b8ee6909-dc64-4784-8812-9d53cde1d317","identity":{"bytes":0,"device":"16777229","inode":"63613287","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"b8ee6909-dc64-4784-8812-9d53cde1d317","device":"16777229","inode":"63613287","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"0d644397-d5ed-498b-a117-5fb2c975ae8f","identity":{"bytes":0,"device":"16777229","inode":"63608949","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"0d644397-d5ed-498b-a117-5fb2c975ae8f","device":"16777229","inode":"63608949","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}}]
+✔ workflow real official BMAD installer builds deterministic Claude and API artifacts (50278.893666ms)
+✔ workflow real Superpowers API preserves exact official scripts and pins tool policy (2735.17875ms)
+✔ workflow frozen builder rejects dependency and uv tampering before execution (7408.295208ms)
+✔ workflow fix cancellation cannot rewind existing A after B activation (823.818166ms)
+✔ workflow fix abort during existing verification preserves B activation (670.528083ms)
+✔ workflow fix repeated completed malformed operations reclaim exact stages (716.038291ms)
+✔ workflow audited native Superpowers candidate has its independent artifact pin (1.712583ms)
+Native independent build identities: [{"id":"d0bdb0d4-58cb-43ca-ba26-04ea45ad46db","identity":{"bytes":0,"device":"16777229","inode":"63624351","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}},{"id":"52c8fb9b-b071-480a-9243-9959924abac3","identity":{"bytes":0,"device":"16777229","inode":"63624031","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}}]
+✔ workflow native full-tree artifact preserves bytes and modes with two real build roots and fixed discovery geometry (5663.486583ms)
+✔ workflow durable operation recovers killed reserve/create/rename/quarantine checkpoints (5517.778292ms)
+Retained genuine fork UNKNOWN fixtures: ["/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-IYXOK2"]
+✔ workflow operation native timeout yields real stop receipt and fork remains UNKNOWN (2258.124791ms)
+✔ workflow no-follow deletion unlinks symlink itself and rejects hardlink aliases (537.569417ms)
+✔ workflow published GC releases registry reference but preserves recovered unready process reference (1660.379875ms)
+✔ workflow registry installs verified immutable source (644.945459ms)
+✔ workflow registry separates runtime roots and retains old immutable pairs through restart (949.833833ms)
+✔ workflow registry rejects source and projection tampering on every resolve (670.5655ms)
+✔ workflow registry rejects unknown runtime recipes and expected projection mismatch (616.589417ms)
+✔ workflow registry rejects malicious archives before activating and keeps old current (1065.334208ms)
+✔ workflow registry detects truncated extraction and wrong npm integrity (568.755167ms)
+✔ workflow registry rejects unapproved download URL and redirect and bounds response (16.96525ms)
+✔ workflow registry canonical manifest ignores archive order and ownership times (750.743709ms)
+✔ workflow registry audit builder checks pinned payload and materializes official Claude layout (2.135ms)
+✔ workflow registry API projection contains official fixture skill/script and audited policy (695.919166ms)
+✔ workflow registry derivation version/options/layout/policy independently change projection pin (1133.531625ms)
+✔ workflow registry accepts internal symlink (659.096083ms)
+✔ workflow registry source update preserves retained source and old runtime pair (772.489709ms)
+✔ workflow registry expected projection checksum failure never publishes runtime tree (599.099292ms)
+✔ workflow registry recovers ProcessJournal pair after registry release (953.893958ms)
+✔ workflow registry pinned official npm and Git archives verify distinct provenance and Claude bytes (3998.830834ms)
+✔ workflow registry cancellation before publish preserves previous active source (652.55925ms)
+ℹ tests 111
+ℹ suites 0
+ℹ pass 111
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 205401.443542

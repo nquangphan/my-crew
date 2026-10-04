@@ -1,0 +1,253 @@
+{
+  "state": "verified-image-retained",
+  "nonce": "c0291674dc05490e8b5d52efa9791a38",
+  "stage": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-pdf-deps-0r0vae80",
+  "stageIdentity": {
+    "dev": 16777229,
+    "ino": 64131385,
+    "uid": 501
+  },
+  "tag": "crew-v2-parser-deps:c0291674dc05490e8b5d52efa9791a38",
+  "parentPid": 31359,
+  "parentArgv": "Fri Oct  2 20:12:47 2026     /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python plans/261002-0002-crew-v2/execution-phase05/task-5-pdf-image.py",
+  "createdAt": 1790946768.032523,
+  "commands": [
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "create",
+        "--platform=linux/amd64",
+        "--name",
+        "crew-v2-pdf-image-c0291674dc05490e8b5d52efa9791a38",
+        "--label",
+        "crew.v2.fixture=c0291674dc05490e8b5d52efa9791a38",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=32",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--log-driver=none",
+        "--workdir",
+        "/fixture/v2/server",
+        "--entrypoint",
+        "node",
+        "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+        "--input-type=module",
+        "-e",
+        "import {execFileSync} from 'node:child_process';\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\nconst {PDFDocument}=await import('pdf-lib');\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\nconsole.log('native PNG and parsed PDF public APIs verified');\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\n"
+      ],
+      "intendedAt": 1790946944.8981602,
+      "pid": 39381,
+      "startedAt": 1790946944.899321,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946944.9916549,
+      "stdout": "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "inspect",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57"
+      ],
+      "intendedAt": 1790946944.9923468,
+      "pid": 39382,
+      "startedAt": 1790946944.993589,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946945.0101361,
+      "stdout": "[\n    {\n        \"Id\": \"164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57\",\n        \"Created\": \"2026-10-02T13:15:44.941805542Z\",\n        \"Path\": \"node\",\n        \"Args\": [\n            \"--input-type=module\",\n            \"-e\",\n            \"import {execFileSync} from 'node:child_process';\\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\\nconst {PDFDocument}=await import('pdf-lib');\\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\\nconsole.log('native PNG and parsed PDF public APIs verified');\\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\\n\"\n        ],\n        \"State\": {\n            \"Status\": \"created\",\n            \"Running\": false,\n            \"Paused\": false,\n            \"Restarting\": false,\n            \"OOMKilled\": false,\n            \"Dead\": false,\n            \"Pid\": 0,\n            \"ExitCode\": 0,\n            \"Error\": \"\",\n            \"StartedAt\": \"0001-01-01T00:00:00Z\",\n            \"FinishedAt\": \"0001-01-01T00:00:00Z\"\n        },\n        \"Image\": \"sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e\",\n        \"ResolvConfPath\": \"\",\n        \"HostnamePath\": \"\",\n        \"HostsPath\": \"\",\n        \"LogPath\": \"\",\n        \"Name\": \"/crew-v2-pdf-image-c0291674dc05490e8b5d52efa9791a38\",\n        \"RestartCount\": 0,\n        \"Driver\": \"overlayfs\",\n        \"Platform\": \"linux\",\n        \"MountLabel\": \"\",\n        \"ProcessLabel\": \"\",\n        \"AppArmorProfile\": \"\",\n        \"ExecIDs\": null,\n        \"HostConfig\": {\n            \"Binds\": null,\n            \"ContainerIDFile\": \"\",\n            \"LogConfig\": {\n                \"Type\": \"none\",\n                \"Config\": {}\n            },\n            \"NetworkMode\": \"bridge\",\n            \"PortBindings\": {},\n            \"RestartPolicy\": {\n                \"Name\": \"no\",\n                \"MaximumRetryCount\": 0\n            },\n            \"AutoRemove\": false,\n            \"VolumeDriver\": \"\",\n            \"VolumesFrom\": null,\n            \"ConsoleSize\": [\n                0,\n                0\n            ],\n            \"CapAdd\": null,\n            \"CapDrop\": [\n                \"ALL\"\n            ],\n            \"CgroupnsMode\": \"private\",\n            \"Dns\": null,\n            \"DnsOptions\": [],\n            \"DnsSearch\": [],\n            \"ExtraHosts\": null,\n            \"GroupAdd\": null,\n            \"IpcMode\": \"private\",\n            \"Cgroup\": \"\",\n            \"Links\": null,\n            \"OomScoreAdj\": 0,\n            \"PidMode\": \"\",\n            \"Privileged\": false,\n            \"PublishAllPorts\": false,\n            \"ReadonlyRootfs\": false,\n            \"SecurityOpt\": [\n                \"no-new-privileges\"\n            ],\n            \"UTSMode\": \"\",\n            \"UsernsMode\": \"\",\n            \"ShmSize\": 67108864,\n            \"Runtime\": \"runc\",\n            \"Isolation\": \"\",\n            \"CpuShares\": 0,\n            \"Memory\": 536870912,\n            \"NanoCpus\": 1000000000,\n            \"CgroupParent\": \"\",\n            \"BlkioWeight\": 0,\n            \"BlkioWeightDevice\": [],\n            \"BlkioDeviceReadBps\": [],\n            \"BlkioDeviceWriteBps\": [],\n            \"BlkioDeviceReadIOps\": [],\n            \"BlkioDeviceWriteIOps\": [],\n            \"CpuPeriod\": 0,\n            \"CpuQuota\": 0,\n            \"CpuRealtimePeriod\": 0,\n            \"CpuRealtimeRuntime\": 0,\n            \"CpusetCpus\": \"\",\n            \"CpusetMems\": \"\",\n            \"Devices\": [],\n            \"DeviceCgroupRules\": null,\n            \"DeviceRequests\": null,\n            \"MemoryReservation\": 0,\n            \"MemorySwap\": 536870912,\n            \"MemorySwappiness\": null,\n            \"OomKillDisable\": false,\n            \"PidsLimit\": 32,\n            \"Ulimits\": null,\n            \"CpuCount\": 0,\n            \"CpuPercent\": 0,\n            \"IOMaximumIOps\": 0,\n            \"IOMaximumBandwidth\": 0,\n            \"MaskedPaths\": [\n                \"/proc/acpi\",\n                \"/proc/asound\",\n                \"/proc/interrupts\",\n                \"/proc/kcore\",\n                \"/proc/keys\",\n                \"/proc/latency_stats\",\n                \"/proc/sched_debug\",\n                \"/proc/scsi\",\n                \"/proc/timer_list\",\n                \"/proc/timer_stats\",\n                \"/sys/devices/virtual/powercap\",\n                \"/sys/firmware\"\n            ],\n            \"ReadonlyPaths\": [\n                \"/proc/bus\",\n                \"/proc/fs\",\n                \"/proc/irq\",\n                \"/proc/sys\",\n                \"/proc/sysrq-trigger\"\n            ]\n        },\n        \"Storage\": {\n            \"RootFS\": {\n                \"Snapshot\": {\n                    \"Name\": \"overlayfs\"\n                }\n            }\n        },\n        \"Mounts\": [],\n        \"Config\": {\n            \"Hostname\": \"164025677b09\",\n            \"Domainname\": \"\",\n            \"User\": \"\",\n            \"AttachStdin\": false,\n            \"AttachStdout\": true,\n            \"AttachStderr\": true,\n            \"Tty\": false,\n            \"OpenStdin\": false,\n            \"StdinOnce\": false,\n            \"Env\": [\n                \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\n                \"NODE_VERSION=24.14.0\",\n                \"YARN_VERSION=1.22.22\"\n            ],\n            \"Cmd\": [\n                \"--input-type=module\",\n                \"-e\",\n                \"import {execFileSync} from 'node:child_process';\\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\\nconst {PDFDocument}=await import('pdf-lib');\\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\\nconsole.log('native PNG and parsed PDF public APIs verified');\\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\\n\"\n            ],\n            \"Image\": \"sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e\",\n            \"Volumes\": null,\n            \"WorkingDir\": \"/fixture/v2/server\",\n            \"Entrypoint\": [\n                \"node\"\n            ],\n            \"Labels\": {\n                \"crew.v2.fixture\": \"c0291674dc05490e8b5d52efa9791a38\",\n                \"crew.v2.owner\": \"13b13820d0a74255b55daccdc63b3b95\"\n            }\n        },\n        \"NetworkSettings\": {\n            \"SandboxID\": \"\",\n            \"SandboxKey\": \"\",\n            \"Ports\": {},\n            \"Networks\": {\n                \"bridge\": {\n                    \"IPAMConfig\": null,\n                    \"Links\": null,\n                    \"Aliases\": null,\n                    \"DriverOpts\": null,\n                    \"GwPriority\": 0,\n                    \"NetworkID\": \"\",\n                    \"EndpointID\": \"\",\n                    \"Gateway\": \"\",\n                    \"IPAddress\": \"\",\n                    \"MacAddress\": \"\",\n                    \"IPPrefixLen\": 0,\n                    \"IPv6Gateway\": \"\",\n                    \"GlobalIPv6Address\": \"\",\n                    \"GlobalIPv6PrefixLen\": 0,\n                    \"DNSNames\": null\n                }\n            }\n        },\n        \"ImageManifestDescriptor\": {\n            \"mediaType\": \"application/vnd.oci.image.manifest.v1+json\",\n            \"digest\": \"sha256:a51c67e27375132b4d3cf3a2b1e6041b57f8a705fb124fac5af6f7dfbabfd10c\",\n            \"size\": 2381,\n            \"platform\": {\n                \"architecture\": \"amd64\",\n                \"os\": \"linux\"\n            }\n        }\n    }\n]\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "cp",
+        "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-pdf-deps-0r0vae80/package.json",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57:/fixture/v2/server/package.json"
+      ],
+      "intendedAt": 1790946945.011224,
+      "pid": 39383,
+      "startedAt": 1790946945.0126379,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946945.045791,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "cp",
+        "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-pdf-deps-0r0vae80/pnpm-lock.yaml",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57:/fixture/v2/server/pnpm-lock.yaml"
+      ],
+      "intendedAt": 1790946945.046327,
+      "pid": 39384,
+      "startedAt": 1790946945.047541,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946945.0655758,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "start",
+        "--attach",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57"
+      ],
+      "intendedAt": 1790946945.066108,
+      "pid": 39385,
+      "startedAt": 1790946945.067381,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946949.925982,
+      "stdout": "Lockfile is up to date, resolution step is skipped\nProgress: resolved 1, reused 0, downloaded 0, added 0\nPackages: +5\n+++++\nProgress: resolved 5, reused 0, downloaded 4, added 4\nProgress: resolved 5, reused 0, downloaded 5, added 5, done\n\ndependencies:\n+ pdf-lib 1.17.1\n\nDone in 2.4s using pnpm v10.32.1\nnative PNG and parsed PDF public APIs verified\nVersion 7.0.2\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "inspect",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57"
+      ],
+      "intendedAt": 1790946949.927006,
+      "pid": 39449,
+      "startedAt": 1790946949.929447,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946949.949464,
+      "stdout": "[\n    {\n        \"Id\": \"164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57\",\n        \"Created\": \"2026-10-02T13:15:44.941805542Z\",\n        \"Path\": \"node\",\n        \"Args\": [\n            \"--input-type=module\",\n            \"-e\",\n            \"import {execFileSync} from 'node:child_process';\\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\\nconst {PDFDocument}=await import('pdf-lib');\\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\\nconsole.log('native PNG and parsed PDF public APIs verified');\\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\\n\"\n        ],\n        \"State\": {\n            \"Status\": \"exited\",\n            \"Running\": false,\n            \"Paused\": false,\n            \"Restarting\": false,\n            \"OOMKilled\": false,\n            \"Dead\": false,\n            \"Pid\": 0,\n            \"ExitCode\": 0,\n            \"Error\": \"\",\n            \"StartedAt\": \"2026-10-02T13:15:45.095211917Z\",\n            \"FinishedAt\": \"2026-10-02T13:15:49.828697919Z\"\n        },\n        \"Image\": \"sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e\",\n        \"ResolvConfPath\": \"/var/lib/docker/containers/164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57/resolv.conf\",\n        \"HostnamePath\": \"/var/lib/docker/containers/164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57/hostname\",\n        \"HostsPath\": \"/var/lib/docker/containers/164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57/hosts\",\n        \"LogPath\": \"\",\n        \"Name\": \"/crew-v2-pdf-image-c0291674dc05490e8b5d52efa9791a38\",\n        \"RestartCount\": 0,\n        \"Driver\": \"overlayfs\",\n        \"Platform\": \"linux\",\n        \"MountLabel\": \"\",\n        \"ProcessLabel\": \"\",\n        \"AppArmorProfile\": \"\",\n        \"ExecIDs\": null,\n        \"HostConfig\": {\n            \"Binds\": null,\n            \"ContainerIDFile\": \"\",\n            \"LogConfig\": {\n                \"Type\": \"none\",\n                \"Config\": {}\n            },\n            \"NetworkMode\": \"bridge\",\n            \"PortBindings\": {},\n            \"RestartPolicy\": {\n                \"Name\": \"no\",\n                \"MaximumRetryCount\": 0\n            },\n            \"AutoRemove\": false,\n            \"VolumeDriver\": \"\",\n            \"VolumesFrom\": null,\n            \"ConsoleSize\": [\n                0,\n                0\n            ],\n            \"CapAdd\": null,\n            \"CapDrop\": [\n                \"ALL\"\n            ],\n            \"CgroupnsMode\": \"private\",\n            \"Dns\": null,\n            \"DnsOptions\": [],\n            \"DnsSearch\": [],\n            \"ExtraHosts\": null,\n            \"GroupAdd\": null,\n            \"IpcMode\": \"private\",\n            \"Cgroup\": \"\",\n            \"Links\": null,\n            \"OomScoreAdj\": 0,\n            \"PidMode\": \"\",\n            \"Privileged\": false,\n            \"PublishAllPorts\": false,\n            \"ReadonlyRootfs\": false,\n            \"SecurityOpt\": [\n                \"no-new-privileges\"\n            ],\n            \"UTSMode\": \"\",\n            \"UsernsMode\": \"\",\n            \"ShmSize\": 67108864,\n            \"Runtime\": \"runc\",\n            \"Isolation\": \"\",\n            \"CpuShares\": 0,\n            \"Memory\": 536870912,\n            \"NanoCpus\": 1000000000,\n            \"CgroupParent\": \"\",\n            \"BlkioWeight\": 0,\n            \"BlkioWeightDevice\": [],\n            \"BlkioDeviceReadBps\": [],\n            \"BlkioDeviceWriteBps\": [],\n            \"BlkioDeviceReadIOps\": [],\n            \"BlkioDeviceWriteIOps\": [],\n            \"CpuPeriod\": 0,\n            \"CpuQuota\": 0,\n            \"CpuRealtimePeriod\": 0,\n            \"CpuRealtimeRuntime\": 0,\n            \"CpusetCpus\": \"\",\n            \"CpusetMems\": \"\",\n            \"Devices\": [],\n            \"DeviceCgroupRules\": null,\n            \"DeviceRequests\": null,\n            \"MemoryReservation\": 0,\n            \"MemorySwap\": 536870912,\n            \"MemorySwappiness\": null,\n            \"OomKillDisable\": null,\n            \"PidsLimit\": 32,\n            \"Ulimits\": null,\n            \"CpuCount\": 0,\n            \"CpuPercent\": 0,\n            \"IOMaximumIOps\": 0,\n            \"IOMaximumBandwidth\": 0,\n            \"MaskedPaths\": [\n                \"/proc/acpi\",\n                \"/proc/asound\",\n                \"/proc/interrupts\",\n                \"/proc/kcore\",\n                \"/proc/keys\",\n                \"/proc/latency_stats\",\n                \"/proc/sched_debug\",\n                \"/proc/scsi\",\n                \"/proc/timer_list\",\n                \"/proc/timer_stats\",\n                \"/sys/devices/virtual/powercap\",\n                \"/sys/firmware\"\n            ],\n            \"ReadonlyPaths\": [\n                \"/proc/bus\",\n                \"/proc/fs\",\n                \"/proc/irq\",\n                \"/proc/sys\",\n                \"/proc/sysrq-trigger\"\n            ]\n        },\n        \"Storage\": {\n            \"RootFS\": {\n                \"Snapshot\": {\n                    \"Name\": \"overlayfs\"\n                }\n            }\n        },\n        \"Mounts\": [],\n        \"Config\": {\n            \"Hostname\": \"164025677b09\",\n            \"Domainname\": \"\",\n            \"User\": \"\",\n            \"AttachStdin\": false,\n            \"AttachStdout\": true,\n            \"AttachStderr\": true,\n            \"Tty\": false,\n            \"OpenStdin\": false,\n            \"StdinOnce\": false,\n            \"Env\": [\n                \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\n                \"NODE_VERSION=24.14.0\",\n                \"YARN_VERSION=1.22.22\"\n            ],\n            \"Cmd\": [\n                \"--input-type=module\",\n                \"-e\",\n                \"import {execFileSync} from 'node:child_process';\\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\\nconst {PDFDocument}=await import('pdf-lib');\\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\\nconsole.log('native PNG and parsed PDF public APIs verified');\\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\\n\"\n            ],\n            \"Image\": \"sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e\",\n            \"Volumes\": null,\n            \"WorkingDir\": \"/fixture/v2/server\",\n            \"Entrypoint\": [\n                \"node\"\n            ],\n            \"Labels\": {\n                \"crew.v2.fixture\": \"c0291674dc05490e8b5d52efa9791a38\",\n                \"crew.v2.owner\": \"13b13820d0a74255b55daccdc63b3b95\"\n            }\n        },\n        \"NetworkSettings\": {\n            \"SandboxID\": \"\",\n            \"SandboxKey\": \"\",\n            \"Ports\": {},\n            \"Networks\": {\n                \"bridge\": {\n                    \"IPAMConfig\": null,\n                    \"Links\": null,\n                    \"Aliases\": null,\n                    \"DriverOpts\": null,\n                    \"GwPriority\": 0,\n                    \"NetworkID\": \"34c35a0093c81a646521cf425c47a6f3d65d046e292bb83253683a2d217138fc\",\n                    \"EndpointID\": \"\",\n                    \"Gateway\": \"\",\n                    \"IPAddress\": \"\",\n                    \"MacAddress\": \"\",\n                    \"IPPrefixLen\": 0,\n                    \"IPv6Gateway\": \"\",\n                    \"GlobalIPv6Address\": \"\",\n                    \"GlobalIPv6PrefixLen\": 0,\n                    \"DNSNames\": null\n                }\n            }\n        },\n        \"ImageManifestDescriptor\": {\n            \"mediaType\": \"application/vnd.oci.image.manifest.v1+json\",\n            \"digest\": \"sha256:a51c67e27375132b4d3cf3a2b1e6041b57f8a705fb124fac5af6f7dfbabfd10c\",\n            \"size\": 2381,\n            \"platform\": {\n                \"architecture\": \"amd64\",\n                \"os\": \"linux\"\n            }\n        }\n    }\n]\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "commit",
+        "--change",
+        "ENTRYPOINT [\"node\"]",
+        "--change",
+        "CMD [\"--help\"]",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57",
+        "crew-v2-parser-deps:c0291674dc05490e8b5d52efa9791a38"
+      ],
+      "intendedAt": 1790946949.950399,
+      "pid": 39450,
+      "startedAt": 1790946949.951627,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946951.9127228,
+      "stdout": "sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "image",
+        "inspect",
+        "crew-v2-parser-deps:c0291674dc05490e8b5d52efa9791a38"
+      ],
+      "intendedAt": 1790946951.9137652,
+      "pid": 39478,
+      "startedAt": 1790946951.916116,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946951.974708,
+      "stdout": "[\n    {\n        \"Architecture\": \"amd64\",\n        \"Config\": {\n            \"Cmd\": [\n                \"--help\"\n            ],\n            \"Entrypoint\": [\n                \"node\"\n            ],\n            \"Env\": [\n                \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\n                \"NODE_VERSION=24.14.0\",\n                \"YARN_VERSION=1.22.22\"\n            ],\n            \"Labels\": {\n                \"crew.v2.fixture\": \"c0291674dc05490e8b5d52efa9791a38\",\n                \"crew.v2.owner\": \"13b13820d0a74255b55daccdc63b3b95\",\n                \"desktop.docker.io/ports.scheme\": \"v2\"\n            },\n            \"WorkingDir\": \"/fixture/v2/server\"\n        },\n        \"Created\": \"2026-10-02T13:15:51.66727167Z\",\n        \"Descriptor\": {\n            \"digest\": \"sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856\",\n            \"mediaType\": \"application/vnd.oci.image.manifest.v1+json\",\n            \"size\": 2909\n        },\n        \"Id\": \"sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856\",\n        \"Metadata\": {\n            \"LastTagTime\": \"2026-10-02T13:15:51.899629337Z\"\n        },\n        \"Os\": \"linux\",\n        \"Parent\": \"sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e\",\n        \"RepoDigests\": [\n            \"crew-v2-parser-deps@sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856\"\n        ],\n        \"RepoTags\": [\n            \"crew-v2-parser-deps:c0291674dc05490e8b5d52efa9791a38\"\n        ],\n        \"RootFS\": {\n            \"Layers\": [\n                \"sha256:6143ee9e3de07e6ca35edaf392cf93dea566a5bcd0d3696607ae6c324193d099\",\n                \"sha256:936daadbd492e93380bbd4df2b3d73c702353836fbeee7160510f0eb7a2d5e0d\",\n                \"sha256:7a0c9255fc5c4e74a09a0b0aa5025470a81f3059dd03fa53f0fcd712429d2947\",\n                \"sha256:82da67f0f0a986b7f306b397d2a7313b5a07475c33173f6acb7d327638dbd68b\",\n                \"sha256:f7099a7ec18e72eaa98019f226b405db6e4c968518e03ceaa7cd57a267152c7c\",\n                \"sha256:6e74516cfb2e158c0433721a1a251c123de988c295dbe9c4386b023c2b7aa1b0\",\n                \"sha256:773cdbc1da163ddbb8d2f4f89de8024ad7a5f042633564c6b48c3eb018e0c960\",\n                \"sha256:ef6df01eb0b06629114d50074f6b132f81ad322cf55ad27ca1cac29e5a7aada7\",\n                \"sha256:63c334067af23c446f0184c4d968c4c5eca120cea06b2a23199105212081a3c5\",\n                \"sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef\",\n                \"sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef\",\n                \"sha256:063ada28d3604afa5bb1091502e1956cce88fee9ff6447d0b0b96e5b63db966f\"\n            ],\n            \"Type\": \"layers\"\n        },\n        \"Size\": 564314140\n    }\n]\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/local/bin/docker",
+        "rm",
+        "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57"
+      ],
+      "intendedAt": 1790946951.97706,
+      "pid": 39479,
+      "startedAt": 1790946951.978585,
+      "exit": 0,
+      "closed": true,
+      "closedAt": 1790946952.080524,
+      "stdout": "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57\n",
+      "stderr": ""
+    }
+  ],
+  "recipeSha256": "7250e5308d61246826c1ee3f16f916173974d9d8c363592b44bd3e729bee0453",
+  "packageFiles": [
+    {
+      "path": "package.json",
+      "bytes": 868,
+      "sha256": "a721662a2c34e9cbc7043421039ec44ddc9ef9192200f6e6d1bf7e30be85b39e"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "bytes": 26671,
+      "sha256": "9e4a9700ea99cdae3b4ca2a145c6cc6d78373657fba2258b2073cf81a5365106"
+    }
+  ],
+  "freshPressure": "2",
+  "freshPressureAt": 1790946944.334938,
+  "telemetry": {
+    "pressure": "2",
+    "availableBytes": 5825626112,
+    "cpuIdlePercent": 78.43,
+    "diskAvailableBytes": 37789937664
+  },
+  "strategy": "single capped512MiB cpu1 dependency-install container, then commit closed filesystem; no unbounded builder",
+  "containerId": "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57",
+  "createdState": {
+    "Status": "created",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "0001-01-01T00:00:00Z",
+    "FinishedAt": "0001-01-01T00:00:00Z"
+  },
+  "closedState": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-02T13:15:45.095211917Z",
+    "FinishedAt": "2026-10-02T13:15:49.828697919Z"
+  },
+  "imageId": "sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856",
+  "imageConfig": {
+    "Cmd": [
+      "--help"
+    ],
+    "Entrypoint": [
+      "node"
+    ],
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.14.0",
+      "YARN_VERSION=1.22.22"
+    ],
+    "Labels": {
+      "crew.v2.fixture": "c0291674dc05490e8b5d52efa9791a38",
+      "crew.v2.owner": "13b13820d0a74255b55daccdc63b3b95",
+      "desktop.docker.io/ports.scheme": "v2"
+    },
+    "WorkingDir": "/fixture/v2/server"
+  },
+  "logSha256": "b76046242e520b463b07cd775b6ec3eb403b3df031f50d98e59ad6ce04d08cc4",
+  "stageRetainedForCleanup": false,
+  "containerRemoved": true,
+  "stageRemoved": true,
+  "stageRetirementPlanSha256": "8fd3d5c5d1f6a6e4a6589ea8e3b1bb51ccb9cf4b7e51dd9737c6e6642884d5ec"
+}

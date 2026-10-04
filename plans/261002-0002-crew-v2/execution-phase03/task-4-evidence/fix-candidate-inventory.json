@@ -1,0 +1,231 @@
+{
+  "base": "4cbf581ec581040df6ca87950cf139e9bc490cd6",
+  "dispatchHead": "e94f2e1",
+  "freezeHead": "07ccdc4e3db16af0389cad1691833ac74e77d7ff",
+  "semanticFixWave": "1/5",
+  "infrastructureInterruptionChangesCounter": false,
+  "files": [
+    {
+      "path": "v2/docs/flows/gateway-workflows.md",
+      "mode": "0o644",
+      "bytes": 10879,
+      "sha256": "c36746ff552188d97feb522745a336872df683d5b654a56ddffbe6db3c2c827a"
+    },
+    {
+      "path": "v2/gateway/src/workflows/api-policy.ts",
+      "mode": "0o644",
+      "bytes": 1718,
+      "sha256": "bbdfad86f24bfd7e0319a673c0b0f4818edf82eae27d256c730d5fedf426b669"
+    },
+    {
+      "path": "v2/gateway/src/workflows/audit.ts",
+      "mode": "0o644",
+      "bytes": 7862,
+      "sha256": "28c43133d06b58850fb731468cf744086ee6caee60182285ac31c63514d1f403"
+    },
+    {
+      "path": "v2/gateway/src/workflows/builder.ts",
+      "mode": "0o644",
+      "bytes": 5292,
+      "sha256": "91e8341282591e6ebf743b59213e16c847a48796289b2838a95e4aad093cef1d"
+    },
+    {
+      "path": "v2/gateway/src/workflows/fetch.ts",
+      "mode": "0o644",
+      "bytes": 2889,
+      "sha256": "1375840936a4304d87f823238b14fff513ec86bdf1fad3675eaa7b92ae3c80b6"
+    },
+    {
+      "path": "v2/gateway/src/workflows/native-projection.ts",
+      "mode": "0o644",
+      "bytes": 5362,
+      "sha256": "0568b7cd9b2e7b694422b774bc39d4c20b5697391067403438698d81f8a5ecf9"
+    },
+    {
+      "path": "v2/gateway/src/workflows/operation-native.c",
+      "mode": "0o644",
+      "bytes": 11312,
+      "sha256": "544e7a90749c69ccb27fc3b2725c5f1337a6a6e99b7f0b430d78c5e4587eef53"
+    },
+    {
+      "path": "v2/gateway/src/workflows/operations.ts",
+      "mode": "0o644",
+      "bytes": 6298,
+      "sha256": "9f00752c0ded9616c7efd94372fcd06237c8616c9e62e797b5209f3b845b648c"
+    },
+    {
+      "path": "v2/gateway/src/workflows/pins.ts",
+      "mode": "0o644",
+      "bytes": 5261,
+      "sha256": "f2b0a362488d3c7d4e697beebac6279722471bdc27be4781e07896b30eb1f6f3"
+    },
+    {
+      "path": "v2/gateway/src/workflows/registry.ts",
+      "mode": "0o644",
+      "bytes": 34103,
+      "sha256": "c6f38e213082857cab1a77b17b04318d1d0bf842c999847997b0f2376ecd1b4b"
+    },
+    {
+      "path": "v2/gateway/src/workflows/retention.ts",
+      "mode": "0o644",
+      "bytes": 1109,
+      "sha256": "03ae39e059b343b73a2e94d9bc77ff73090367fca85f0ebba42eb68fe6828454"
+    },
+    {
+      "path": "v2/gateway/src/workflows/stage.ts",
+      "mode": "0o644",
+      "bytes": 9913,
+      "sha256": "9564dcf315b2bb46d108708e8ca10ee625b48606d34b83df466d045ebb12b4b9"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/dependencies.json",
+      "mode": "0o644",
+      "bytes": 1750,
+      "sha256": "f1f7cf9c48ba5a3b956305e049909295423bc20855103c9f287c4e46d78b100e"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/dependencies.tgz",
+      "mode": "0o644",
+      "bytes": 3901143,
+      "sha256": "ff6e59d25dd89eeaaffe323fbb377cb8546fd70e8b30ceadbdfea3b8cab92e8d"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/independent-builds.json",
+      "mode": "0o644",
+      "bytes": 73048,
+      "sha256": "5bb523a51922d062aad60150dd5d61ebb83aba71bc09aa1a4924393692febaac"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/package.json",
+      "mode": "0o644",
+      "bytes": 495,
+      "sha256": "5c80b23975e50279019cd6adba298e53e10934556c1f733583d2f83879e871e3"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/pnpm-lock.yaml",
+      "mode": "0o644",
+      "bytes": 27302,
+      "sha256": "ccc762cfa971fff173b6c877ef4fd78e9e30bf9088b381b6f4b33c8ea7ef2ab0"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/provenance.json",
+      "mode": "0o644",
+      "bytes": 56352,
+      "sha256": "9f3e99b73e73963254e02e3e90f7ca20ceb547ad00510d063a21ef85cf3ee082"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/real-projections.json",
+      "mode": "0o644",
+      "bytes": 77831,
+      "sha256": "65094741706ba11196f7a48e179cf316e64b95f6ebbd0bf31563d9b7b1838dcd"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflow-builder/verified-content.json",
+      "mode": "0o644",
+      "bytes": 30810,
+      "sha256": "a35824cd1a01fc66a55a38c0a60f087febff89c9cacf74d5a6473fc24b65bf66"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflows/bmad-6.12.0.tgz",
+      "mode": "0o644",
+      "bytes": 842394,
+      "sha256": "ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflows/official-audits.json",
+      "mode": "0o644",
+      "bytes": 6194,
+      "sha256": "2244fc9fca685e7d60bcba02c341532ac408a55387a2f5cae303aacaecf7d535"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/workflows/superpowers-6.4.2.tgz",
+      "mode": "0o644",
+      "bytes": 641346,
+      "sha256": "29714b2c4c727ecc6600f9e5982a0dcbb829860ba79626f1941a0f233e85331a"
+    },
+    {
+      "path": "v2/gateway/test/support/audit-dependency-content.ts",
+      "mode": "0o644",
+      "bytes": 3242,
+      "sha256": "7106fd6719104a5d3b01244ec2d923e046a7aafee220cfbbac3dee29be7c8a5e"
+    },
+    {
+      "path": "v2/gateway/test/support/audit-dependency-provenance.ts",
+      "mode": "0o644",
+      "bytes": 2688,
+      "sha256": "25a2fdc480e125505fa111c9cd0ae8a452a04ad45e7e14a954a8cb383426257b"
+    },
+    {
+      "path": "v2/gateway/test/support/compare-real-builds.py",
+      "mode": "0o644",
+      "bytes": 457,
+      "sha256": "1e0cf5ad86292de507c4d8ac1444bd8bd21ea4037791d4bb473447af2f38ad62"
+    },
+    {
+      "path": "v2/gateway/test/support/freeze-dependencies.py",
+      "mode": "0o644",
+      "bytes": 1677,
+      "sha256": "dc502e9e40841a0f97a75249e90436b6e852db29f5440093acbef5f189a59fd9"
+    },
+    {
+      "path": "v2/gateway/test/support/freeze-real-projections.ts",
+      "mode": "0o644",
+      "bytes": 3493,
+      "sha256": "c4fa65af1d83162dd9c0824876cdf33a435b1c5f9e71031920bf23ee2616b242"
+    },
+    {
+      "path": "v2/gateway/test/support/probe-bmad-build.ts",
+      "mode": "0o644",
+      "bytes": 2269,
+      "sha256": "a92c25f142451618adfee226be1c3fbd747eab389671ccc45974e733cd94fb0c"
+    },
+    {
+      "path": "v2/gateway/test/support/reclaim-proven-build-probes.ts",
+      "mode": "0o644",
+      "bytes": 3618,
+      "sha256": "241cbdf019a0cb49a5315c5cb74df689655a27dc021ebb7491237494cdc2ae91"
+    },
+    {
+      "path": "v2/gateway/test/support/workflow-archives.ts",
+      "mode": "0o644",
+      "bytes": 5922,
+      "sha256": "dfd3235cc0f5d4b923cc2dd9d9c61e9eb7daa996f4ae3561f60b20ecd761d09a"
+    },
+    {
+      "path": "v2/gateway/test/support/workflow-crash-worker.ts",
+      "mode": "0o644",
+      "bytes": 2255,
+      "sha256": "518e2ff30117bf07009ea09f44008fff0e1ed5aca24255b4c5874721456b9047"
+    },
+    {
+      "path": "v2/gateway/test/workflow-build.test.ts",
+      "mode": "0o644",
+      "bytes": 6497,
+      "sha256": "5be4779aee7c12c0e7ef26a22e8701e1128d42480026b36ec94d76e0d633346c"
+    },
+    {
+      "path": "v2/gateway/test/workflow-fix.test.ts",
+      "mode": "0o644",
+      "bytes": 3586,
+      "sha256": "b062e78b229f2b9b553acd8f2d2ba7460d51b24f1689b0d6be332511bb0ba227"
+    },
+    {
+      "path": "v2/gateway/test/workflow-native-projection.test.ts",
+      "mode": "0o644",
+      "bytes": 4852,
+      "sha256": "838f61290422ec0d9021f4312ab4a98a3a2a11e2494bef5a29cba5097293c946"
+    },
+    {
+      "path": "v2/gateway/test/workflow-operations.test.ts",
+      "mode": "0o644",
+      "bytes": 8479,
+      "sha256": "5b5079b1a6a1b87f1298976a617fa5f710a971556ec762f511f9a04f714d1679"
+    },
+    {
+      "path": "v2/gateway/test/workflow-registry.test.ts",
+      "mode": "0o644",
+      "bytes": 20988,
+      "sha256": "0427d3ad0000be409b0eea65d82964fd41d14519e029138533b3c20da7d2d0a4"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-model-report-zQeH26",
+    "dev": 16777229,
+    "ino": 63474429,
+    "uid": 501,
+    "birthTime": "2026-10-02T14:24:56.661593",
+    "mode": "0o700",
+    "action": "retained-no-preexisting-exact-creation-receipt",
+    "children": [
+      "http-operations"
+    ]
+  },
+  {
+    "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-model-crypto-DTjkSU",
+    "dev": 16777229,
+    "ino": 63474433,
+    "uid": 501,
+    "birthTime": "2026-10-02T14:24:56.662403",
+    "mode": "0o700",
+    "action": "retained-no-preexisting-exact-creation-receipt",
+    "children": []
+  }
+]

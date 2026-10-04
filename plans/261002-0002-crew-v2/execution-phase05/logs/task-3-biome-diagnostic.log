@@ -1,0 +1,858 @@
+test/attachments-api.test.ts:133:79 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    131 │         method: 'GET',
+    132 │         url,
+  > 133 │         headers: { authorization: `Bearer ${f.machines.A.token}`, 'if-match': '"' + '0'.repeat(64) + '"' },
+        │                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    134 │       });
+    135 │       assert.equal(wrong.statusCode, 412);
+  
+  i Unsafe fix: Use a template literal.
+  
+    131 131 │           method: 'GET',
+    132 132 │           url,
+    133     │ - ········headers:·{·authorization:·`Bearer·${f.machines.A.token}`,·'if-match':·'"'·+·'0'.repeat(64)·+·'"'·},
+        133 │ + ········headers:·{·authorization:·`Bearer·${f.machines.A.token}`,·'if-match':·`"${'0'.repeat(64)}"`·},
+    134 134 │         });
+    135 135 │         assert.equal(wrong.statusCode, 412);
+  
+
+test/support/attachment-access-publication.ts:83:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    81 │         { kind: 'result', body: result },
+    82 │       ]
+  > 83 │         .map((frame) => JSON.stringify(frame) + '\n')
+       │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    84 │         .join('');
+    85 │       async function* chunks() {
+  
+  i Unsafe fix: Use a template literal.
+  
+     81  81 │           { kind: 'result', body: result },
+     82  82 │         ]
+     83     │ - ········.map((frame)·=>·JSON.stringify(frame)·+·'\n')
+         83 │ + ········.map((frame)·=>·`${JSON.stringify(frame)}\n`)
+     84  84 │           .join('');
+     85  85 │         async function* chunks() {
+  
+
+src/attachments/access.ts:107:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    105 │   const [upload] =
+    106 │     await tx`select u.*,c.state as compose_state,c.expires_at as compose_expires from attachment_uploads u join attachment_compose_sessions c on c.id=u.compose_id where u.id=${input.attachmentId} and u.owner_id='owner'`;
+  > 107 │   if (!upload || upload.state !== 'ready' || !upload.durable_at) notFound();
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    108 │   if (
+    109 │     actor.kind === 'owner' &&
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    105 105 │     const [upload] =
+    106 106 │       await tx`select u.*,c.state as compose_state,c.expires_at as compose_expires from attachment_uploads u join attachment_compose_sessions c on c.id=u.compose_id where u.id=${input.attachmentId} and u.owner_id='owner'`;
+    107     │ - ··if·(!upload·||·upload.state·!==·'ready'·||·!upload.durable_at)·notFound();
+        107 │ + ··if·(upload?.state·!==·'ready'·||·!upload.durable_at)·notFound();
+    108 108 │     if (
+    109 109 │       actor.kind === 'owner' &&
+  
+
+src/attachments/access.ts:118:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    116 │       await tx`select d.*,e.manifest,e.manifest_sha256 from attachment_derivatives d join attachment_extractions e on e.id=d.extraction_id where d.id=${input.derivativeId} and d.attachment_id=${input.attachmentId}`;
+    117 │     if (
+  > 118 │       !d ||
+        │       ^^^^^
+  > 119 │       d.verification !== 'verified' ||
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    120 │       !d.manifest ||
+    121 │       d.manifest.original?.attachmentId !== input.attachmentId ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    116 116 │         await tx`select d.*,e.manifest,e.manifest_sha256 from attachment_derivatives d join attachment_extractions e on e.id=d.extraction_id where d.id=${input.derivativeId} and d.attachment_id=${input.attachmentId}`;
+    117 117 │       if (
+    118     │ - ······!d·||
+    119     │ - ······d.verification·!==·'verified'·||
+        118 │ + ······d?.verification·!==·'verified'·||
+    120 119 │         !d.manifest ||
+    121 120 │         d.manifest.original?.attachmentId !== input.attachmentId ||
+  
+
+src/attachments/grants.ts:272:58 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    270 │   if (priors.length) {
+    271 │     if (priors.length !== 1) throw new ApiError('ASSISTANT_SESSION_CONFLICT', 409, 'Lượt đọc bị xung đột');
+  > 272 │     return (await readAssistantSession(tx, actor, String(priors[0]!.id), authority)).session;
+        │                                                          ^^^^^^^^^^
+    273 │   }
+    274 │   const resolved = await authority.authorizeSession(tx, actor, input);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    270 270 │     if (priors.length) {
+    271 271 │       if (priors.length !== 1) throw new ApiError('ASSISTANT_SESSION_CONFLICT', 409, 'Lượt đọc bị xung đột');
+    272     │ - ····return·(await·readAssistantSession(tx,·actor,·String(priors[0]!.id),·authority)).session;
+        272 │ + ····return·(await·readAssistantSession(tx,·actor,·String(priors[0]?.id),·authority)).session;
+    273 273 │     }
+    274 274 │     const resolved = await authority.authorizeSession(tx, actor, input);
+  
+
+src/attachments/grants.ts:301:353 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    299 │     throw new ApiError('ASSISTANT_ADMISSION_INVALID', 409, 'Model không khớp lượt');
+    300 │   const [row] =
+  > 301 │ ...ID()},${grant.id},${input.snapshotId},${grant.snapshotSha256!},${grant.designationRevision},${actor....
+        │                                            ^^^^^^^^^^^^^^^^^^^^^
+    302 │   const session = sessionFromRow(row);
+    303 │   await authority.assertSessionCurrent(tx, session);
+  
+
+src/attachments/grants.ts:329:37 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    327 │     };
+    328 │   }
+  > 329 │   if (!grant.derivativeIds.includes(input.derivativeId!)) notFound();
+        │                                     ^^^^^^^^^^^^^^^^^^^
+    330 │   const [d] =
+    331 │     await tx`select d.*,s.canonical from attachment_derivatives d join attachment_input_snapshots s on s.id=${session.snapshotId} where d.id=${input.derivativeId!}`;
+  
+
+src/attachments/grants.ts:331:144 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    329 │   if (!grant.derivativeIds.includes(input.derivativeId!)) notFound();
+    330 │   const [d] =
+  > 331 │     await tx`select d.*,s.canonical from attachment_derivatives d join attachment_input_snapshots s on s.id=${session.snapshotId} where d.id=${input.derivativeId!}`;
+        │                                                                                                                                                ^^^^^^^^^^^^^^^^^^^
+    332 │   if (
+    333 │     !d ||
+  
+
+src/attachments/grants.ts:333:5 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    331 │     await tx`select d.*,s.canonical from attachment_derivatives d join attachment_input_snapshots s on s.id=${session.snapshotId} where d.id=${input.derivativeId!}`;
+    332 │   if (
+  > 333 │     !d ||
+        │     ^^^^^
+  > 334 │     d.verification !== 'verified' ||
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    335 │     !grant.originals.some((o) => o.attachmentId === d.attachment_id) ||
+    336 │     !(d.canonical as InputSnapshot).extractions.some((e) =>
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    331 331 │       await tx`select d.*,s.canonical from attachment_derivatives d join attachment_input_snapshots s on s.id=${session.snapshotId} where d.id=${input.derivativeId!}`;
+    332 332 │     if (
+    333     │ - ····!d·||
+    334     │ - ····d.verification·!==·'verified'·||
+        333 │ + ····d?.verification·!==·'verified'·||
+    335 334 │       !grant.originals.some((o) => o.attachmentId === d.attachment_id) ||
+    336 335 │       !(d.canonical as InputSnapshot).extractions.some((e) =>
+  
+
+src/attachments/references.ts:155:85 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    153 │       const recheck =
+    154 │         await tx`select distinct ticket_id from attachment_links where attachment_id=${input.original.attachmentId} and revoked_at is null order by ticket_id`;
+  > 155 │       if (recheck.length !== links.length || recheck.some((r, i) => r.ticket_id !== links[i]!.ticket_id))
+        │                                                                                     ^^^^^^^^^
+    156 │         throw new ApiError('INPUT_SNAPSHOT_STALE', 409, 'Liên kết input đã đổi');
+    157 │       const targets = [
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    153 153 │         const recheck =
+    154 154 │           await tx`select distinct ticket_id from attachment_links where attachment_id=${input.original.attachmentId} and revoked_at is null order by ticket_id`;
+    155     │ - ······if·(recheck.length·!==·links.length·||·recheck.some((r,·i)·=>·r.ticket_id·!==·links[i]!.ticket_id))
+        155 │ + ······if·(recheck.length·!==·links.length·||·recheck.some((r,·i)·=>·r.ticket_id·!==·links[i]?.ticket_id))
+    156 156 │           throw new ApiError('INPUT_SNAPSHOT_STALE', 409, 'Liên kết input đã đổi');
+    157 157 │         const targets = [
+  
+
+src/attachments/routes.ts:393:66 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    391 │     }),
+    392 │     201,
+  > 393 │     (tx, b, a, p) => stage.reserve(tx, { ...b, composeSessionId: p.id! }, a),
+        │                                                                  ^^^^^
+    394 │   );
+    395 │   app.register(async (uploadApp) => {
+  
+
+src/attachments/routes.ts:52:10 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    50 │ import { inheritAttachmentLinks, lockInputTarget } from './references.ts';
+    51 │ import { createRoutingServices } from './routing.ts';
+  > 52 │ import { authorizeSnapshotAccess, readInputSnapshot } from './snapshots.ts';
+       │          ^^^^^^^^^^^^^^^^^^^^^^^
+    53 │ import { authorizeSubmission, type createAttachmentSubmissions } from './submissions.ts';
+    54 │ 
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    52 │ import·{·authorizeSnapshotAccess,·readInputSnapshot·}·from·'./snapshots.ts';
+       │          -------------------------                                          
+
+src/attachments/routes.ts:188:84 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    186 │ });
+    187 │ function params(path: string): Schema {
+  > 188 │   return object(Object.fromEntries([...path.matchAll(/:([A-Za-z]+)/g)].map((m) => [m[1]!, uuid])));
+        │                                                                                    ^^^^^
+    189 │ }
+    190 │ async function writeActor(
+  
+
+src/attachments/routes.ts:427:50 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    425 │       selectionRevision: await stage.abandonUpload(
+    426 │         tx,
+  > 427 │         { composeSessionId: p.id!, attachmentId: p.uploadId!, expectedRevision: b.expectedRevision },
+        │                                                  ^^^^^^^^^^^
+    428 │         a,
+    429 │       ),
+  
+
+src/attachments/routes.ts:438:52 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    436 │     200,
+    437 │     (tx, b, a, p) =>
+  > 438 │       stage.abandonCompose(tx, { composeSessionId: p.id!, expectedRevision: b.expectedRevision }, a),
+        │                                                    ^^^^^
+    439 │   );
+    440 │   json<{ ticket: CreateTicket; selection: Selection; assistantRead?: 'none' | 'selected-inputs' }>(
+  
+
+src/attachments/routes.ts:453:46 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    451 │     object({ text: text(32768), selection, assistantRead }, ['text', 'selection']),
+    452 │     201,
+  > 453 │     (tx, b, a, p) => submissions.comment(tx, p.id!, b, a),
+        │                                              ^^^^^
+    454 │     (tx, _b, a, p) => authorizeSubmission(tx, a, { ticketId: p.id! }),
+    455 │   );
+  
+
+src/attachments/routes.ts:454:62 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    452 │     201,
+    453 │     (tx, b, a, p) => submissions.comment(tx, p.id!, b, a),
+  > 454 │     (tx, _b, a, p) => authorizeSubmission(tx, a, { ticketId: p.id! }),
+        │                                                              ^^^^^
+    455 │   );
+    456 │   json<{ sourceLinkIds: Id[] }>(
+  
+
+src/attachments/routes.ts:461:73 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    459 │     object({ sourceLinkIds: { ...idArray, minItems: 1 } }),
+    460 │     201,
+  > 461 │     async (tx, b, a, p) => ({ linkIds: await inheritAttachmentLinks(tx, p.id!, b.sourceLinkIds, a) }),
+        │                                                                         ^^^^^
+    462 │     async (tx, _b, a, p) => {
+    463 │       const [t] = await tx`select project_id from tickets where id=${p.id!}`;
+  
+
+src/attachments/routes.ts:463:70 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    461 │     async (tx, b, a, p) => ({ linkIds: await inheritAttachmentLinks(tx, p.id!, b.sourceLinkIds, a) }),
+    462 │     async (tx, _b, a, p) => {
+  > 463 │       const [t] = await tx`select project_id from tickets where id=${p.id!}`;
+        │                                                                      ^^^^^
+    464 │       if (!t) notFound();
+    465 │       await requireProjectScope(tx, String(t.project_id), a);
+  
+
+src/attachments/routes.ts:724:75 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    722 │     }),
+    723 │     201,
+  > 724 │     (tx, b, a, p) => routing.routeAssistantMessage(tx, { ...b, messageId: p.id! }, a),
+        │                                                                           ^^^^^
+    725 │     (tx, b, a, p) => routing.authorize(tx, { ...b, messageId: p.id! }, a),
+    726 │     false,
+  
+
+src/attachments/routes.ts:725:63 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    723 │     201,
+    724 │     (tx, b, a, p) => routing.routeAssistantMessage(tx, { ...b, messageId: p.id! }, a),
+  > 725 │     (tx, b, a, p) => routing.authorize(tx, { ...b, messageId: p.id! }, a),
+        │                                                               ^^^^^
+    726 │     false,
+    727 │   );
+  
+
+src/attachments/routes.ts:741:87 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    739 │     201,
+    740 │     async (tx, b, a, p) => ({
+  > 741 │       decisionId: await messages().persistMessageInputDecision(tx, { ...b, messageId: p.id! }, a),
+        │                                                                                       ^^^^^
+    742 │     }),
+    743 │     async (tx, b, a, p) => {
+  
+
+src/attachments/routes.ts:744:63 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    742 │     }),
+    743 │     async (tx, b, a, p) => {
+  > 744 │       await lockInputTarget(tx, { kind: 'message', messageId: p.id! });
+        │                                                               ^^^^^
+    745 │       if (a.kind === 'machine') {
+    746 │         if (!b.grantId || !b.receiptId)
+  
+
+src/attachments/routes.ts:775:52 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    773 │     object({}),
+    774 │     200,
+  > 775 │     (tx, _b, a, p) => revokeInputAuthorization(tx, p.id!, a),
+        │                                                    ^^^^^
+    776 │   );
+    777 │   type Issue = Parameters<typeof issueAssistantReadGrant>[1];
+  
+
+src/attachments/routes.ts:802:48 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    800 │     object({}),
+    801 │     200,
+  > 802 │     (tx, _b, a, p) => revokeAssistantGrant(tx, p.id!, a),
+        │                                                ^^^^^
+    803 │   );
+    804 │   type SnapshotInput = Parameters<typeof readInputSnapshot>[2];
+  
+
+src/attachments/routes.ts:830:44 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    828 │     object({ snapshotId: uuid }),
+    829 │     200,
+  > 830 │     (tx, b, a, p) => bindGrantSnapshot(tx, p.id!, b.snapshotId, a, assistant),
+        │                                            ^^^^^
+    831 │     (tx, _b, a, p) => assertGrantCurrent(tx, a, p.id!, assistant, true).then(() => {}),
+    832 │     false,
+  
+
+src/attachments/routes.ts:831:49 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    829 │     200,
+    830 │     (tx, b, a, p) => bindGrantSnapshot(tx, p.id!, b.snapshotId, a, assistant),
+  > 831 │     (tx, _b, a, p) => assertGrantCurrent(tx, a, p.id!, assistant, true).then(() => {}),
+        │                                                 ^^^^^
+    832 │     false,
+    833 │   );
+  
+
+src/attachments/routes.ts:427:29 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    425 │       selectionRevision: await stage.abandonUpload(
+    426 │         tx,
+  > 427 │         { composeSessionId: p.id!, attachmentId: p.uploadId!, expectedRevision: b.expectedRevision },
+        │                             ^^^^^
+    428 │         a,
+    429 │       ),
+  
+
+src/attachments/snapshots.ts:337:11 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    335 │     for (const id of unitIds) {
+    336 │       const unit = extraction.units.find((u) => u.id === id);
+  > 337 │       if (!unit || unit.state !== 'available') return invalid();
+        │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    338 │       projection.push({
+    339 │         original,
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    335 335 │       for (const id of unitIds) {
+    336 336 │         const unit = extraction.units.find((u) => u.id === id);
+    337     │ - ······if·(!unit·||·unit.state·!==·'available')·return·invalid();
+        337 │ + ······if·(unit?.state·!==·'available')·return·invalid();
+    338 338 │         projection.push({
+    339 339 │           original,
+  
+
+test/attachments-grants.test.ts:198:26 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    196 │       const session = start.json();
+    197 │       assert.equal(port.admittedCount, 1);
+  > 198 │       const derivative = extraction.derivatives[0]!;
+        │                          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    199 │       const path = `/v2/machine/assistant-input-sessions/${session.id}/representations/${derivative.id}?grantId=${grant.id}&snapshotId=${snapshot.id}`;
+    200 │       await db`update machines set revoked_at=now() where id=${f.machines.B.machineId}`;
+  
+
+test/attachments-snapshots.test.ts:199:55 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    197 │       assert.deepEqual(subset.required, [{ original: a, unitIds: ['u1'] }]);
+    198 │       assert.deepEqual(subset.requiredCapabilities, ['vision']);
+  > 199 │       assert.deepEqual(subset.selectedDerivativeIds, [ea.derivatives[0]!.id]);
+        │                                                       ^^^^^^^^^^^^^^^^^^
+    200 │       assert.ok(!subset.selectedDerivativeIds.includes(eb.derivatives[0]!.id));
+    201 │       for (const changed of [
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    197 197 │         assert.deepEqual(subset.required, [{ original: a, unitIds: ['u1'] }]);
+    198 198 │         assert.deepEqual(subset.requiredCapabilities, ['vision']);
+    199     │ - ······assert.deepEqual(subset.selectedDerivativeIds,·[ea.derivatives[0]!.id]);
+        199 │ + ······assert.deepEqual(subset.selectedDerivativeIds,·[ea.derivatives[0]?.id]);
+    200 200 │         assert.ok(!subset.selectedDerivativeIds.includes(eb.derivatives[0]!.id));
+    201 201 │         for (const changed of [
+  
+
+test/attachments-snapshots.test.ts:200:56 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    198 │       assert.deepEqual(subset.requiredCapabilities, ['vision']);
+    199 │       assert.deepEqual(subset.selectedDerivativeIds, [ea.derivatives[0]!.id]);
+  > 200 │       assert.ok(!subset.selectedDerivativeIds.includes(eb.derivatives[0]!.id));
+        │                                                        ^^^^^^^^^^^^^^^^^^
+    201 │       for (const changed of [
+    202 │         { required: [] },
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    198 198 │         assert.deepEqual(subset.requiredCapabilities, ['vision']);
+    199 199 │         assert.deepEqual(subset.selectedDerivativeIds, [ea.derivatives[0]!.id]);
+    200     │ - ······assert.ok(!subset.selectedDerivativeIds.includes(eb.derivatives[0]!.id));
+        200 │ + ······assert.ok(!subset.selectedDerivativeIds.includes(eb.derivatives[0]?.id));
+    201 201 │         for (const changed of [
+    202 202 │           { required: [] },
+  
+
+test/attachments-snapshots.test.ts:142:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    140 │       assert.equal(all.state, 'ready');
+    141 │       assert.deepEqual(all.requiredCapabilities, ['text', 'vision']);
+  > 142 │       const u = ea.units[0]!;
+        │                 ^^^^^^^^^^^^
+    143 │       const inputSelection = {
+    144 │         target,
+  
+
+test/attachments-snapshots.test.ts:179:71 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    177 │         input: Parameters<import('../src/attachments/contracts.ts').PreclaimSelectionAuthority>[2],
+    178 │       ) => {
+  > 179 │         const [row] = await tx`select scope from decisions where id=${input.scopeDecisionId!}`;
+        │                                                                       ^^^^^^^^^^^^^^^^^^^^^^
+    180 │         assert.deepEqual(row.scope.inputSelection, inputSelection);
+    181 │         assert.deepEqual(input.requestedUnitIds, ['u1']);
+  
+
+test/support/attachment-access-inbox.ts:18:95 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    16 │   const decisionAuthority: MessageDecisionAuthority = async (tx, input, actor) => {
+    17 │     const [receipt] =
+  > 18 │       await tx`select session_id,coverage,trust from attachment_assistant_receipts where id=${input.receiptId!}`;
+       │                                                                                               ^^^^^^^^^^^^^^^^
+    19 │     if (!receipt || receipt.coverage !== 'all_selected' || receipt.trust !== 'reported_transport')
+    20 │       throw new ApiError('FORBIDDEN', 403, 'Thiếu receipt');
+  
+
+test/support/attachment-access-inbox.ts:159:24 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    157 │     assert.equal(start.statusCode, 201, start.body);
+    158 │     const session = start.json();
+  > 159 │     const derivative = extraction.derivatives[0]!;
+        │                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    160 │     const saved = await f.machineRequest('A', 'POST', '/v2/machine/assistant-input-read-receipts', {
+    161 │       sessionId: session.id,
+  
+
+test/support/attachment-access-inbox.ts:19:9 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    17 │     const [receipt] =
+    18 │       await tx`select session_id,coverage,trust from attachment_assistant_receipts where id=${input.receiptId!}`;
+  > 19 │     if (!receipt || receipt.coverage !== 'all_selected' || receipt.trust !== 'reported_transport')
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    20 │       throw new ApiError('FORBIDDEN', 403, 'Thiếu receipt');
+    21 │     const { session, grant } = await readAssistantSession(
+  
+  i Unsafe fix: Change to an optional chain.
+  
+     17  17 │       const [receipt] =
+     18  18 │         await tx`select session_id,coverage,trust from attachment_assistant_receipts where id=${input.receiptId!}`;
+     19     │ - ····if·(!receipt·||·receipt.coverage·!==·'all_selected'·||·receipt.trust·!==·'reported_transport')
+         19 │ + ····if·(receipt?.coverage·!==·'all_selected'·||·receipt.trust·!==·'reported_transport')
+     20  20 │         throw new ApiError('FORBIDDEN', 403, 'Thiếu receipt');
+     21  21 │       const { session, grant } = await readAssistantSession(
+  
+
+test/support/attachment-access-publication.ts:76:20 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    74 │         problems: [],
+    75 │       };
+  > 76 │       const name = result.files[0]!.relativeName;
+       │                    ^^^^^^^^^^^^^^^^
+    77 │       const frames = [
+    78 │         { kind: 'file-start', name, mime: result.files[0]!.mime, bytes: bytes.length, sha256: sha(bytes) },
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     74  74 │           problems: [],
+     75  75 │         };
+     76     │ - ······const·name·=·result.files[0]!.relativeName;
+         76 │ + ······const·name·=·result.files[0]?.relativeName;
+     77  77 │         const frames = [
+     78  78 │           { kind: 'file-start', name, mime: result.files[0]!.mime, bytes: bytes.length, sha256: sha(bytes) },
+  
+
+test/support/attachment-access-publication.ts:78:43 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    76 │       const name = result.files[0]!.relativeName;
+    77 │       const frames = [
+  > 78 │         { kind: 'file-start', name, mime: result.files[0]!.mime, bytes: bytes.length, sha256: sha(bytes) },
+       │                                           ^^^^^^^^^^^^^^^^
+    79 │         { kind: 'file-chunk', name, base64: bytes.toString('base64') },
+    80 │         { kind: 'file-end', name },
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     76  76 │         const name = result.files[0]!.relativeName;
+     77  77 │         const frames = [
+     78     │ - ········{·kind:·'file-start',·name,·mime:·result.files[0]!.mime,·bytes:·bytes.length,·sha256:·sha(bytes)·},
+         78 │ + ········{·kind:·'file-start',·name,·mime:·result.files[0]?.mime,·bytes:·bytes.length,·sha256:·sha(bytes)·},
+     79  79 │           { kind: 'file-chunk', name, base64: bytes.toString('base64') },
+     80  80 │           { kind: 'file-end', name },
+  
+
+test/support/attachment-access-publication.ts:118:22 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    116 │   assert.equal(ack.generation, input.generation);
+    117 │   assert.equal(ack.workerId, `crew-v2-extract-${job.id}-${input.generation}`);
+  > 118 │   const derivative = extraction.derivatives[0]!;
+        │                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    119 │   const [row] = await f.db`select blob_key from attachment_derivatives where id=${derivative.id}`;
+    120 │   assert.equal(
+  
+
+test/support/attachment-access.ts:326:32 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    324 │         });
+    325 │         assert.equal(submitted.statusCode, 201, submitted.body);
+  > 326 │         return { attachmentId: selection.attachmentIds[0]!, sha256: sha, ownerId: 'owner' as const };
+        │                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    327 │       },
+    328 │       machineDownload(p: 'A' | 'B', id: string, change: Partial<AttemptReadContext> = {}) {
+  
+
+src/attachments/routes.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    482 482 │           const rows =
+    483 483 │             await tx`select l.id as link_id,u.id,u.expected_sha256,u.file_name,u.detected_mime,u.expected_bytes from attachment_links l join attachment_uploads u on u.id=l.attachment_id where l.id in ${tx(ids)} and (${cursor}::uuid is null or l.id>${cursor}::uuid) order by l.id limit ${limit + 1}`;
+    484     │ - ········const·items·=·rows
+    485     │ - ··········.slice(0,·limit)
+    486     │ - ··········.map((r)·=>·({
+    487     │ - ············linkId:·String(r.link_id),
+    488     │ - ············attachmentId:·String(r.id),
+    489     │ - ············sha256:·String(r.expected_sha256),
+    490     │ - ············ownerId:·'owner',
+    491     │ - ············fileName:·r.file_name,
+    492     │ - ············mime:·r.detected_mime,
+    493     │ - ············byteLength:·Number(r.expected_bytes),
+    494     │ - ··········}));
+        484 │ + ········const·items·=·rows.slice(0,·limit).map((r)·=>·({
+        485 │ + ··········linkId:·String(r.link_id),
+        486 │ + ··········attachmentId:·String(r.id),
+        487 │ + ··········sha256:·String(r.expected_sha256),
+        488 │ + ··········ownerId:·'owner',
+        489 │ + ··········fileName:·r.file_name,
+        490 │ + ··········mime:·r.detected_mime,
+        491 │ + ··········byteLength:·Number(r.expected_bytes),
+        492 │ + ········}));
+    495 493 │           return { items, nextCursor: rows.length > limit ? items.at(-1)?.linkId : null };
+    496 494 │         });
+    ······· │ 
+    567 565 │           const rows =
+    568 566 │             await tx`select id,status,extractor_version,config_sha256,manifest_sha256,manifest from attachment_extractions where attachment_id=${request.params.id} and (${cursor}::uuid is null or id>${cursor}::uuid) order by id limit ${limit + 1}`;
+    569     │ - ········const·items·=·rows
+    570     │ - ··········.slice(0,·limit)
+    571     │ - ··········.map((r)·=>·({
+    572     │ - ············id:·r.id,
+    573     │ - ············status:·r.status,
+    574     │ - ············extractorVersion:·r.extractor_version,
+    575     │ - ············configSha256:·r.config_sha256,
+    576     │ - ············manifestSha256:·r.manifest_sha256,
+    577     │ - ············extraction:·r.manifest,
+    578     │ - ··········}));
+        567 │ + ········const·items·=·rows.slice(0,·limit).map((r)·=>·({
+        568 │ + ··········id:·r.id,
+        569 │ + ··········status:·r.status,
+        570 │ + ··········extractorVersion:·r.extractor_version,
+        571 │ + ··········configSha256:·r.config_sha256,
+        572 │ + ··········manifestSha256:·r.manifest_sha256,
+        573 │ + ··········extraction:·r.manifest,
+        574 │ + ········}));
+    579 575 │           return { items, nextCursor: rows.length > limit ? items.at(-1)?.id : null };
+    580 576 │         });
+  
+
+src/attachments/snapshots.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    254 254 │     // invalidated revision. This does not replace atomic enqueue/grant revoke.
+    255 255 │     for (const extraction of s.extractions) {
+    256     │ - ····const·[latest]·=·await·tx`select·id,status,manifest_sha256,original_sha256·from·attachment_extractions·where·attachment_id=${extraction.original.attachmentId}·order·by·created_at·desc,id·desc·limit·1`;
+    257     │ - ····if·(!latest·||·latest.id·!==·extraction.id·||·latest.status·!==·extraction.status·||·latest.manifest_sha256·!==·extraction.manifestSha256·||·latest.original_sha256·!==·extraction.original.sha256)·stale();
+        256 │ + ····const·[latest]·=
+        257 │ + ······await·tx`select·id,status,manifest_sha256,original_sha256·from·attachment_extractions·where·attachment_id=${extraction.original.attachmentId}·order·by·created_at·desc,id·desc·limit·1`;
+        258 │ + ····if·(
+        259 │ + ······!latest·||
+        260 │ + ······latest.id·!==·extraction.id·||
+        261 │ + ······latest.status·!==·extraction.status·||
+        262 │ + ······latest.manifest_sha256·!==·extraction.manifestSha256·||
+        263 │ + ······latest.original_sha256·!==·extraction.original.sha256
+        264 │ + ····)
+        265 │ + ······stale();
+    258 266 │     }
+    259 267 │   }
+  
+
+test/attachments-snapshots.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    387 387 │   });
+    388 388 │   
+    389     │ - test('preclaim·compares·actual·latest·extraction·generation·even·before·controlled·version·enqueue·invalidates·counter',async()=>{
+    390     │ - ·const·{fixturePng,publishKnownRepresentation}=await·import('./support/attachment-access-publication.ts');
+    391     │ - ·const·{digest}=await·import('../src/attachments/submissions.ts');
+    392     │ - ·const·{recordDecision}=await·import('../src/tickets/decisions.ts');
+    393     │ - ·const·{createCommand}=await·import('../src/execution/commands.ts');
+    394     │ - ·await·databaseFixture(10)(async·db=>{const·f=await·attachmentAccessFixture(db);try{
+    395     │ - ··const·original=await·f.linkFile('A',fixturePng,'latest.png');await·publishKnownRepresentation(f,original);
+    396     │ - ··const·target={kind:'ticket'·as·const,ticketId:f.tickets.A.id,projectId:f.projects.A.id};
+    397     │ - ··const·snapshot=await·f.mutation(tx=>readInputSnapshot(tx,owner,{target,access:{kind:'owner'},expectedInputRevision:null,scopeDecisionId:null},denyPreclaimSelection));
+    398     │ - ··const·inputPin={snapshotId:snapshot.id,snapshotSha256:snapshot.sha256,inputRevision:snapshot.inputRevision,selectionSha256:digest(snapshot.required)};
+    399     │ - ··const·decisionId=await·f.mutation(tx=>recordDecision(tx,target.ticketId,{kind:'dispatch',content:'Input·pin',rationale:'Protocol·fixture',sources:[],scope:{inputSnapshot:inputPin}},owner));
+    400     │ - ··const·command=await·f.mutation(tx=>createCommand(tx,{machineId:f.machines.A.machineId,ticketId:target.ticketId,type:'resume',payload:{inputSnapshot:inputPin}},owner));
+    401     │ - ··await·db`insert·into·attachment_dispatch_inputs(command_id,decision_id,snapshot_id,sha256,input_revision,selection_sha256)·values(${command.id},${decisionId},${snapshot.id},${snapshot.sha256},${snapshot.inputRevision},${inputPin.selectionSha256})`;
+    402     │ - ··const·check=()=>db.begin(tx=>assertDispatchInputsCurrent(tx,{commandId:command.id,decisionId,pin:inputPin,modelRequired:['vision']},f.actors.A));await·check();
+    403     │ - ··const·id=randomUUID();await·db`insert·into·attachment_extractions(id,attachment_id,original_sha256,extractor_version,config_sha256,status)·values(${id},${original.attachmentId},${original.sha256},'controlled-next',${f.base.config.policySha256},'pending')`;
+    404     │ - ··for(const·status·of·['pending','running','failed']){await·db`update·attachment_extractions·set·status=${status}·where·id=${id}`;await·assert.rejects(check(),{code:'INPUT_SNAPSHOT_STALE'});}
+    405     │ - ··const·[revision]=await·db`select·revision·from·attachment_input_revisions·where·target_kind='ticket'·and·target_id=${target.ticketId}`;assert.equal(String(revision.revision),snapshot.inputRevision);
+    406     │ - ·}finally{await·f.close();}});
+        389 │ + test('preclaim·compares·actual·latest·extraction·generation·even·before·controlled·version·enqueue·invalidates·counter',·async·()·=>·{
+        390 │ + ··const·{·fixturePng,·publishKnownRepresentation·}·=·await·import(
+        391 │ + ····'./support/attachment-access-publication.ts'
+        392 │ + ··);
+        393 │ + ··const·{·digest·}·=·await·import('../src/attachments/submissions.ts');
+        394 │ + ··const·{·recordDecision·}·=·await·import('../src/tickets/decisions.ts');
+        395 │ + ··const·{·createCommand·}·=·await·import('../src/execution/commands.ts');
+        396 │ + ··await·databaseFixture(10)(async·(db)·=>·{
+        397 │ + ····const·f·=·await·attachmentAccessFixture(db);
+        398 │ + ····try·{
+        399 │ + ······const·original·=·await·f.linkFile('A',·fixturePng,·'latest.png');
+        400 │ + ······await·publishKnownRepresentation(f,·original);
+        401 │ + ······const·target·=·{·kind:·'ticket'·as·const,·ticketId:·f.tickets.A.id,·projectId:·f.projects.A.id·};
+        402 │ + ······const·snapshot·=·await·f.mutation((tx)·=>
+        403 │ + ········readInputSnapshot(
+        404 │ + ··········tx,
+        405 │ + ··········owner,
+        406 │ + ··········{·target,·access:·{·kind:·'owner'·},·expectedInputRevision:·null,·scopeDecisionId:·null·},
+        407 │ + ··········denyPreclaimSelection,
+        408 │ + ········),
+        409 │ + ······);
+        410 │ + ······const·inputPin·=·{
+        411 │ + ········snapshotId:·snapshot.id,
+        412 │ + ········snapshotSha256:·snapshot.sha256,
+        413 │ + ········inputRevision:·snapshot.inputRevision,
+        414 │ + ········selectionSha256:·digest(snapshot.required),
+        415 │ + ······};
+        416 │ + ······const·decisionId·=·await·f.mutation((tx)·=>
+        417 │ + ········recordDecision(
+        418 │ + ··········tx,
+        419 │ + ··········target.ticketId,
+        420 │ + ··········{
+        421 │ + ············kind:·'dispatch',
+        422 │ + ············content:·'Input·pin',
+        423 │ + ············rationale:·'Protocol·fixture',
+        424 │ + ············sources:·[],
+        425 │ + ············scope:·{·inputSnapshot:·inputPin·},
+        426 │ + ··········},
+        427 │ + ··········owner,
+        428 │ + ········),
+        429 │ + ······);
+        430 │ + ······const·command·=·await·f.mutation((tx)·=>
+        431 │ + ········createCommand(
+        432 │ + ··········tx,
+        433 │ + ··········{
+        434 │ + ············machineId:·f.machines.A.machineId,
+        435 │ + ············ticketId:·target.ticketId,
+        436 │ + ············type:·'resume',
+        437 │ + ············payload:·{·inputSnapshot:·inputPin·},
+        438 │ + ··········},
+        439 │ + ··········owner,
+        440 │ + ········),
+        441 │ + ······);
+        442 │ + ······await·db`insert·into·attachment_dispatch_inputs(command_id,decision_id,snapshot_id,sha256,input_revision,selection_sha256)·values(${command.id},${decisionId},${snapshot.id},${snapshot.sha256},${snapshot.inputRevision},${inputPin.selectionSha256})`;
+        443 │ + ······const·check·=·()·=>
+        444 │ + ········db.begin((tx)·=>
+        445 │ + ··········assertDispatchInputsCurrent(
+        446 │ + ············tx,
+        447 │ + ············{·commandId:·command.id,·decisionId,·pin:·inputPin,·modelRequired:·['vision']·},
+        448 │ + ············f.actors.A,
+        449 │ + ··········),
+        450 │ + ········);
+        451 │ + ······await·check();
+        452 │ + ······const·id·=·randomUUID();
+        453 │ + ······await·db`insert·into·attachment_extractions(id,attachment_id,original_sha256,extractor_version,config_sha256,status)·values(${id},${original.attachmentId},${original.sha256},'controlled-next',${f.base.config.policySha256},'pending')`;
+        454 │ + ······for·(const·status·of·['pending',·'running',·'failed'])·{
+        455 │ + ········await·db`update·attachment_extractions·set·status=${status}·where·id=${id}`;
+        456 │ + ········await·assert.rejects(check(),·{·code:·'INPUT_SNAPSHOT_STALE'·});
+        457 │ + ······}
+        458 │ + ······const·[revision]·=
+        459 │ + ········await·db`select·revision·from·attachment_input_revisions·where·target_kind='ticket'·and·target_id=${target.ticketId}`;
+        460 │ + ······assert.equal(String(revision.revision),·snapshot.inputRevision);
+        461 │ + ····}·finally·{
+        462 │ + ······await·f.close();
+        463 │ + ····}
+        464 │ + ··});
+    407 465 │   });
+    408 466 │   
+    409     │ - test('failed·final·publication·transaction·rolls·back·manifest·and·revisions·and·retains·published·orphan·journal',async()=>{
+    410     │ - ·const·{fixturePng,publishKnownRepresentation}=await·import('./support/attachment-access-publication.ts');
+    411     │ - ·await·databaseFixture(10)(async·db=>{const·f=await·attachmentAccessFixture(db);try{
+    412     │ - ··const·original=await·f.linkFile('A',fixturePng,'rollback.png');
+    413     │ - ··const·before=await·db`select·target_id,revision·from·attachment_input_revisions·order·by·target_id`;
+    414     │ - ··await·assert.rejects(publishKnownRepresentation(f,original,'image',async()=>{throw·new·Error('Controlled·rollback');}),{code:'WORKER_FAILED'});
+    415     │ - ··assert.deepEqual(await·db`select·target_id,revision·from·attachment_input_revisions·order·by·target_id`,before);
+    416     │ - ··const·[job]=await·db`select·manifest,status·from·attachment_extractions·where·attachment_id=${original.attachmentId}`;assert.equal(job.manifest,null);assert.equal(job.status,'failed');
+    417     │ - ··assert.equal((await·db`select·id·from·attachment_derivatives·where·attachment_id=${original.attachmentId}`).length,0);
+    418     │ - ··assert.ok((await·db`select·id·from·attachment_gc_journal·where·attachment_id=${original.attachmentId}`).length>0,'published·bytes·remain·tracked;·no·false·GC·closure');
+    419     │ - ·}finally{await·f.close();}});
+        467 │ + test('failed·final·publication·transaction·rolls·back·manifest·and·revisions·and·retains·published·orphan·journal',·async·()·=>·{
+        468 │ + ··const·{·fixturePng,·publishKnownRepresentation·}·=·await·import(
+        469 │ + ····'./support/attachment-access-publication.ts'
+        470 │ + ··);
+        471 │ + ··await·databaseFixture(10)(async·(db)·=>·{
+        472 │ + ····const·f·=·await·attachmentAccessFixture(db);
+        473 │ + ····try·{
+        474 │ + ······const·original·=·await·f.linkFile('A',·fixturePng,·'rollback.png');
+        475 │ + ······const·before·=·await·db`select·target_id,revision·from·attachment_input_revisions·order·by·target_id`;
+        476 │ + ······await·assert.rejects(
+        477 │ + ········publishKnownRepresentation(f,·original,·'image',·async·()·=>·{
+        478 │ + ··········throw·new·Error('Controlled·rollback');
+        479 │ + ········}),
+        480 │ + ········{·code:·'WORKER_FAILED'·},
+        481 │ + ······);
+        482 │ + ······assert.deepEqual(
+        483 │ + ········await·db`select·target_id,revision·from·attachment_input_revisions·order·by·target_id`,
+        484 │ + ········before,
+        485 │ + ······);
+        486 │ + ······const·[job]·=
+        487 │ + ········await·db`select·manifest,status·from·attachment_extractions·where·attachment_id=${original.attachmentId}`;
+        488 │ + ······assert.equal(job.manifest,·null);
+        489 │ + ······assert.equal(job.status,·'failed');
+        490 │ + ······assert.equal(
+        491 │ + ········(await·db`select·id·from·attachment_derivatives·where·attachment_id=${original.attachmentId}`).length,
+        492 │ + ········0,
+        493 │ + ······);
+        494 │ + ······assert.ok(
+        495 │ + ········(await·db`select·id·from·attachment_gc_journal·where·attachment_id=${original.attachmentId}`).length·>
+        496 │ + ··········0,
+        497 │ + ········'published·bytes·remain·tracked;·no·false·GC·closure',
+        498 │ + ······);
+        499 │ + ····}·finally·{
+        500 │ + ······await·f.close();
+        501 │ + ····}
+        502 │ + ··});
+    420 503 │   });
+    421 504 │   
+  
+
+Checked 15 files in 44ms. No fixes applied.
+Found 3 errors.
+Found 39 warnings.
+Found 2 infos.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

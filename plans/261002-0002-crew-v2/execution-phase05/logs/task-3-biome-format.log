@@ -1,0 +1,86 @@
+test/attachments-grants.test.ts:198:26 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    196 │       const session = start.json();
+    197 │       assert.equal(port.admittedCount, 1);
+  > 198 │       const derivative = extraction.derivatives[0]!;
+        │                          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    199 │       const path = `/v2/machine/assistant-input-sessions/${session.id}/representations/${derivative.id}?grantId=${grant.id}&snapshotId=${snapshot.id}`;
+    200 │       await db`update machines set revoked_at=now() where id=${f.machines.B.machineId}`;
+  
+
+test/attachments-snapshots.test.ts:142:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    140 │       assert.equal(all.state, 'ready');
+    141 │       assert.deepEqual(all.requiredCapabilities, ['text', 'vision']);
+  > 142 │       const u = ea.units[0]!;
+        │                 ^^^^^^^^^^^^
+    143 │       const inputSelection = {
+    144 │         target,
+  
+
+test/attachments-snapshots.test.ts:179:71 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    177 │         input: Parameters<import('../src/attachments/contracts.ts').PreclaimSelectionAuthority>[2],
+    178 │       ) => {
+  > 179 │         const [row] = await tx`select scope from decisions where id=${input.scopeDecisionId!}`;
+        │                                                                       ^^^^^^^^^^^^^^^^^^^^^^
+    180 │         assert.deepEqual(row.scope.inputSelection, inputSelection);
+    181 │         assert.deepEqual(input.requestedUnitIds, ['u1']);
+  
+
+test/support/attachment-access-inbox.ts:18:95 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    16 │   const decisionAuthority: MessageDecisionAuthority = async (tx, input, actor) => {
+    17 │     const [receipt] =
+  > 18 │       await tx`select session_id,coverage,trust from attachment_assistant_receipts where id=${input.receiptId!}`;
+       │                                                                                               ^^^^^^^^^^^^^^^^
+    19 │     if (receipt?.coverage !== 'all_selected' || receipt.trust !== 'reported_transport')
+    20 │       throw new ApiError('FORBIDDEN', 403, 'Thiếu receipt');
+  
+
+test/support/attachment-access-inbox.ts:159:24 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    157 │     assert.equal(start.statusCode, 201, start.body);
+    158 │     const session = start.json();
+  > 159 │     const derivative = extraction.derivatives[0]!;
+        │                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    160 │     const saved = await f.machineRequest('A', 'POST', '/v2/machine/assistant-input-read-receipts', {
+    161 │       sessionId: session.id,
+  
+
+test/support/attachment-access-publication.ts:118:22 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    116 │   assert.equal(ack.generation, input.generation);
+    117 │   assert.equal(ack.workerId, `crew-v2-extract-${job.id}-${input.generation}`);
+  > 118 │   const derivative = extraction.derivatives[0]!;
+        │                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    119 │   const [row] = await f.db`select blob_key from attachment_derivatives where id=${derivative.id}`;
+    120 │   assert.equal(
+  
+
+test/support/attachment-access.ts:326:32 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    324 │         });
+    325 │         assert.equal(submitted.statusCode, 201, submitted.body);
+  > 326 │         return { attachmentId: selection.attachmentIds[0]!, sha256: sha, ownerId: 'owner' as const };
+        │                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    327 │       },
+    328 │       machineDownload(p: 'A' | 'B', id: string, change: Partial<AttemptReadContext> = {}) {
+  
+
+Checked 13 files in 26ms. Fixed 8 files.
+Found 7 warnings.

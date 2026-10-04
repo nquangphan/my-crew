@@ -1,0 +1,271 @@
+Base3c222c5; worktree uncommitted frozen gateway manifest slice only
+--- /dev/null
++++ v2/gateway/src/assistant/workflow-manifest.ts
+@@ -0,0 +1,81 @@
++import { constants } from 'node:fs';
++import { lstat, open } from 'node:fs/promises';
++import { join } from 'node:path';
++import { canonicalJson, hash } from '../journal/atomic-records.ts';
++import {
++  type ManifestEntry,
++  type ProjectionPin,
++  type SourcePin,
++  validateProjectionPin,
++  validateSourcePin,
++} from '../workflows/pins.ts';
++import type { WorkflowRegistry } from '../workflows/registry.ts';
++import { manifestHash } from '../workflows/stage.ts';
++
++export type WorkflowDefinition = {
++  sha256: string;
++  skills: { path: string; sha256: string }[];
++};
++
++const skillPath = /^skills\/[a-z0-9][a-z0-9-]*\/SKILL\.md$/;
++
++async function readPinnedSkill(root: string, entry: ManifestEntry): Promise<void> {
++  const parts = entry.path.split('/');
++  for (let index = 1; index < parts.length; index++) {
++    const parent = await lstat(join(root, ...parts.slice(0, index)));
++    if (!parent.isDirectory() || parent.isSymbolicLink()) throw new Error('WORKFLOW_SKILL_MISMATCH');
++  }
++  const file = await open(join(root, entry.path), constants.O_RDONLY | constants.O_NOFOLLOW);
++  try {
++    const stat = await file.stat();
++    if (!stat.isFile() || stat.nlink !== 1 || hash(await file.readFile()) !== entry.sha256)
++      throw new Error('WORKFLOW_SKILL_MISMATCH');
++  } finally {
++    await file.close();
++  }
++}
++
++export function createWorkflowManifest(registry: Pick<WorkflowRegistry, 'resolve'>) {
++  return {
++    async loadDefinition(source: SourcePin, projection: ProjectionPin): Promise<WorkflowDefinition> {
++      validateSourcePin(source);
++      if (source.sourceTreeSha256 !== projection.sourceTreeSha256)
++        throw new Error('SOURCE_PROJECTION_MISMATCH');
++      validateProjectionPin(projection);
++      if (source.name === 'bmad') throw new Error('RENDER_ARTIFACT_REQUIRED');
++      if (source.name !== 'superpowers') throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
++
++      const resolved = await registry.resolve(source, projection);
++      const sourceEntries = new Map(resolved.manifest.source.map((entry) => [entry.path, entry]));
++      const projectionEntries = new Map(resolved.manifest.projection.map((entry) => [entry.path, entry]));
++      const skills = [...sourceEntries.values()]
++        .filter((entry) => skillPath.test(entry.path))
++        .sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)))
++        .map((entry) => ({ path: entry.path, sha256: entry.sha256 }));
++      if (skills.length === 0) throw new Error('WORKFLOW_SKILL_MISMATCH');
++      for (const skill of skills) {
++        const fromSource = sourceEntries.get(skill.path);
++        const fromProjection = projectionEntries.get(skill.path);
++        if (
++          !fromSource ||
++          !fromProjection ||
++          fromSource.type !== 'file' ||
++          fromProjection.type !== 'file' ||
++          fromSource.sha256 !== fromProjection.sha256
++        )
++          throw new Error('WORKFLOW_SKILL_MISMATCH');
++        await readPinnedSkill(resolved.sourceRoot, fromSource);
++        await readPinnedSkill(resolved.projectionRoot, fromProjection);
++      }
++      if (
++        manifestHash(resolved.manifest.source) !== source.sourceManifestSha256 ||
++        manifestHash(resolved.manifest.projection) !== projection.manifestSha256
++      )
++        throw new Error('WORKFLOW_MANIFEST_MISMATCH');
++      return {
++        sha256: hash(canonicalJson({ source, projection, skills })),
++        skills,
++      };
++    },
++  };
++}
+--- /dev/null
++++ v2/gateway/test/workflow-manifest.test.ts
+@@ -0,0 +1,147 @@
++import assert from 'node:assert/strict';
++import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import test from 'node:test';
++import { createWorkflowManifest } from '../src/assistant/workflow-manifest.ts';
++import { type ProjectionPin, projectionTreeHash, type SourcePin } from '../src/workflows/pins.ts';
++import type { WorkflowRegistry } from '../src/workflows/registry.ts';
++import { manifest, manifestHash, parseArchive, validateFiles, writeTree } from '../src/workflows/stage.ts';
++
++const fixtures = new URL('./fixtures/', import.meta.url);
++
++async function officialFixtures() {
++  const audits = JSON.parse(await readFile(new URL('workflows/official-audits.json', fixtures), 'utf8'));
++  const builds = JSON.parse(
++    await readFile(new URL('workflow-builder/real-projections.json', fixtures), 'utf8'),
++  );
++  return { audits, builds };
++}
++
++async function withOfficialSuperpowers(
++  run: (
++    resolver: Pick<WorkflowRegistry, 'resolve'>,
++    source: SourcePin,
++    projection: ProjectionPin,
++  ) => Promise<void>,
++) {
++  const { audits } = await officialFixtures();
++  const source = audits.superpowers.source.pin as SourcePin;
++  const projectionAudit = audits.superpowers.projections.claude;
++  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-workflow-manifest-')));
++  try {
++    const archive = await readFile(new URL('workflows/superpowers-6.4.2.tgz', fixtures));
++    const files = await parseArchive(archive, audits.superpowers.source.executables);
++    const projected = validateFiles(
++      projectionAudit.mappings.flatMap((mapping: { from: string; to: string }) =>
++        files
++          .filter((file) => file.path === mapping.from || file.path.startsWith(`${mapping.from}/`))
++          .map((file) => ({
++            ...file,
++            path: `${mapping.to}${file.path.slice(mapping.from.length)}`,
++            body: Buffer.from(file.body),
++          })),
++      ),
++    );
++    assert.equal(manifestHash(manifest(files)), source.sourceManifestSha256);
++    assert.equal(manifestHash(manifest(projected)), projectionAudit.expected.manifestSha256);
++    const sourceRoot = join(root, 'source');
++    const projectionRoot = join(root, 'projection');
++    await writeTree(sourceRoot, files);
++    await writeTree(projectionRoot, projected);
++    // Unit-only resolver carrying actual pinned archive bytes and audited projection layout.
++    const resolver: Pick<WorkflowRegistry, 'resolve'> = {
++      resolve: async () => ({
++        sourceRoot,
++        projectionRoot,
++        manifest: { source: manifest(files), projection: manifest(projected) },
++      }),
++    };
++    await run(resolver, source, projectionAudit.expected);
++  } finally {
++    await rm(root, { recursive: true, force: true });
++  }
++}
++
++test('workflow manifest binds Superpowers skills to official source and selected projection bytes', async () => {
++  await withOfficialSuperpowers(async (resolver, source, projection) => {
++    const adapter = createWorkflowManifest(resolver);
++    const first = await adapter.loadDefinition(source, projection);
++    const replay = await adapter.loadDefinition(source, projection);
++
++    assert.match(first.sha256, /^[0-9a-f]{64}$/);
++    assert.equal(first.sha256, replay.sha256);
++    assert.equal(first.skills.length, 15);
++    assert.deepEqual(first.skills[0], {
++      path: 'skills/brainstorming/SKILL.md',
++      sha256: 'a32d2255354775aa124855aa7100cf276bea096fff4ebb3a0edf57be216e6c72',
++    });
++    assert(
++      first.skills.some(
++        (skill) =>
++          skill.path === 'skills/systematic-debugging/SKILL.md' &&
++          skill.sha256 === '808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787',
++      ),
++    );
++  });
++});
++
++test('workflow manifest rejects a projected skill hash that differs from its pinned source', async () => {
++  await withOfficialSuperpowers(async (resolver, source, projection) => {
++    const resolved = await resolver.resolve(source, projection);
++    // Unit-only compromised producer: a real WorkflowRegistry would reject a drifted manifest.
++    const compromised = {
++      resolve: async () => ({
++        ...resolved,
++        manifest: {
++          ...resolved.manifest,
++          projection: resolved.manifest.projection.map((entry) =>
++            entry.path === 'skills/brainstorming/SKILL.md' ? { ...entry, sha256: '0'.repeat(64) } : entry,
++          ),
++        },
++      }),
++    };
++    await assert.rejects(
++      createWorkflowManifest(compromised).loadDefinition(source, projection),
++      /WORKFLOW_SKILL_MISMATCH/,
++    );
++  });
++});
++
++test('workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims', async () => {
++  await withOfficialSuperpowers(async (resolver, source, projection) => {
++    const resolved = await resolver.resolve(source, projection);
++    await writeFile(join(resolved.sourceRoot, 'skills/brainstorming/SKILL.md'), 'tampered');
++    await assert.rejects(
++      createWorkflowManifest(resolver).loadDefinition(source, projection),
++      /WORKFLOW_SKILL_MISMATCH/,
++    );
++  });
++});
++
++test('workflow manifest rejects a projection bound to another source tree', async () => {
++  await withOfficialSuperpowers(async (resolver, source, projection) => {
++    const base = { ...projection, sourceTreeSha256: '0'.repeat(64) };
++    const foreign = { ...base, treeSha256: projectionTreeHash(base) };
++    await assert.rejects(
++      createWorkflowManifest(resolver).loadDefinition(source, foreign),
++      /SOURCE_PROJECTION_MISMATCH/,
++    );
++  });
++});
++
++test('workflow manifest denies BMAD when no trusted renderer artifact reader is bound', async () => {
++  const { audits, builds } = await officialFixtures();
++  // Unit-only registry stub; the pinned npm source and generated projection identities are real.
++  const unresolved = {
++    resolve: async () => ({
++      sourceRoot: '/unavailable',
++      projectionRoot: '/unavailable',
++      manifest: { source: [], projection: [] },
++    }),
++  };
++  await assert.rejects(
++    createWorkflowManifest(unresolved).loadDefinition(audits.bmad.source.pin, builds.bmad.claude.expected),
++    /RENDER_ARTIFACT_REQUIRED/,
++  );
++});
+--- /dev/null
++++ v2/docs/flows/assistant-workflows.md
+@@ -0,0 +1,33 @@
++# Workflow chính thức của Trợ lý — bản nháp phase06/T3
++
++## Mục đích
++
++Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Bản hiện tại chỉ có adapter manifest Superpowers trong gateway; run graph, gate và renderer BMAD ở server/host chưa có producer được chứng thực.
++
++## Điểm vào
++
++- `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)`.
++- `gateway/src/workflows/registry.ts` → `WorkflowRegistry.resolve` kiểm cached source/projection và trả root cùng manifest.
++- `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch và BMAD mặc định từ chối.
++
++## Các bước hiện có
++
++1. Kiểm `SourcePin`, `ProjectionPin` và quan hệ source tree. Với Superpowers, adapter gọi `WorkflowRegistry.resolve` đã bind vào registry host.
++2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin.
++3. Định nghĩa trả SHA-256 của canonical `{source,projection,skills}` và danh sách path/hash skill đã chọn. Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation.
++4. BMAD trả `RENDER_ARTIFACT_REQUIRED` khi chưa có reader được host tin cậy, gắn project root và current render generation. Không dùng hash/path do client khai báo làm bằng chứng renderer.
++
++## Dữ liệu và quyền còn thiếu
++
++Server `createRun` và `answerGate` cần persisted Actor A, TurnFence/scope hiện hành và orchestration port thật. Definition/render receipt phải đi từ host producer đã review sang server với exact source, projection, customization/config, project root và rendered bytes. SQL fixture chỉ kiểm quan hệ; không chứng nhận producer hoặc authority. Gate chỉ materialize khi artifact thật đã được xác minh; UUID đặt trước không thay cho `workflow_gates.artifact_sha256` bắt buộc.
++
++## Files
++
++| Đường dẫn | Vai trò |
++|---|---|
++| `gateway/src/assistant/workflow-manifest.ts` | Adapter manifest Superpowers, BMAD deny khi thiếu renderer reader |
++| `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection và các điều kiện từ chối |
++
++## Tests
++
++Focused `node --test --test-name-pattern='workflow manifest' test/workflow-manifest.test.ts` từ `v2/gateway`: 5/5 pass trên fixture official đã audit. `tsc --noEmit -p tsconfig.json` và Biome hai file pass. Chưa có test renderer thực hoặc server run/gate; không coi unit fixture là production acceptance.

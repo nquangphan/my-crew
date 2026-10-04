@@ -1,0 +1,15 @@
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.751042ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (2.97325ms)
+✔ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (1.6115ms)
+✔ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (16.878584ms)
+✔ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.336541ms)
+✔ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.412542ms)
+✔ model probe stream parser requires complete bounded framing and exact model (0.225417ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89.986

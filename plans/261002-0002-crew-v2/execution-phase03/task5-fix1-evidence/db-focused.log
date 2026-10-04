@@ -1,0 +1,80 @@
+(node:33472) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server
+> node scripts/test-db.ts --test-concurrency=1 --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts
+
+(node:33488) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33606) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 private database container d2ab3b927bea165d408dfdbfce3fd9d46fa6237c0e6ec956542d572150472a40
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FW1Qgm","device":"16777229","inode":"63742019","uid":501}
+{"level":30,"time":1790933011799,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59286"}
+{"level":30,"time":1790933014893,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59312"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FW1Qgm","device":"16777229","inode":"63742019","uid":501,"deleted":true}
+✔ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (4543.037916ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sYC7Pa","device":"16777229","inode":"63742279","uid":501}
+{"level":30,"time":1790933015890,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59322"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sYC7Pa","device":"16777229","inode":"63742279","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: old-report (2691.289292ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uqIgFC","device":"16777229","inode":"63742463","uid":501}
+{"level":30,"time":1790933018592,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59344"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uqIgFC","device":"16777229","inode":"63742463","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: disabled-runtime (2139.38125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uPW4Z2","device":"16777229","inode":"63742635","uid":501}
+{"level":30,"time":1790933020742,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59355"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uPW4Z2","device":"16777229","inode":"63742635","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: missing-decision (2781.624209ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-i4WBM0","device":"16777229","inode":"63742819","uid":501}
+{"level":30,"time":1790933023510,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59371"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-i4WBM0","device":"16777229","inode":"63742819","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: mismatched-decision (2583.030917ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-OEaXFl","device":"16777229","inode":"63743009","uid":501}
+{"level":30,"time":1790933026113,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59394"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-OEaXFl","device":"16777229","inode":"63743009","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: client-only-selection (1998.873792ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uLhLpy","device":"16777229","inode":"63743180","uid":501}
+{"level":30,"time":1790933028106,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59410"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uLhLpy","device":"16777229","inode":"63743180","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: default-deny (2789.297125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WkO8k8","device":"16777229","inode":"63743367","uid":501}
+{"level":30,"time":1790933030900,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59433"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WkO8k8","device":"16777229","inode":"63743367","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: pause (3444.432959ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-eYVIU2","device":"16777229","inode":"63743591","uid":501}
+{"level":30,"time":1790933034349,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59463"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-eYVIU2","device":"16777229","inode":"63743591","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: cancel (3418.827875ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xW4BD1","device":"16777229","inode":"63743806","uid":501}
+{"level":30,"time":1790933037766,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59481"}
+Task5 owned escaped child {"pid":35445,"uid":501,"processGroupId":35445,"birth":"1790933039:996241"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xW4BD1","device":"16777229","inode":"63743806","uid":501,"stage":"fork-cancel"}
+✔ execution bridge actual server selection and stop: fork-cancel (3947.148458ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2RlGlk","device":"16777229","inode":"63744023","uid":501}
+{"level":30,"time":1790933041713,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59510"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2RlGlk","device":"16777229","inode":"63744023","uid":501,"deleted":true}
+✔ actual prefix8 desired read barrier cannot supersede a newly committed workflow command (2205.101041ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-9ye49r","device":"16777229","inode":"63744203","uid":501}
+{"level":30,"time":1790933043924,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59534"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-9ye49r","device":"16777229","inode":"63744203","uid":501,"deleted":true}
+✔ actual prefix8 503 after committed boot heartbeat ACK and report recovers same server receipts across reopen (2656.677291ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-h4HvPk","device":"16777229","inode":"63744402","uid":501}
+{"level":30,"time":1790933046556,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59554"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-h4HvPk","device":"16777229","inode":"63744402","uid":501,"deleted":true}
+✔ actual prefix8 controlled boot rejects server-cas and preserves history (838.781125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZhM3kl","device":"16777229","inode":"63744457","uid":501}
+{"level":30,"time":1790933047375,"pid":33606,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:59561"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZhM3kl","device":"16777229","inode":"63744457","uid":501,"stage":"orphan-admission"}
+✔ actual prefix8 controlled boot rejects orphan-admission and preserves history (1891.147917ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 38175.656833

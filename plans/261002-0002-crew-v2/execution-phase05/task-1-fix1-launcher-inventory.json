@@ -1,0 +1,10 @@
+{
+  "folder": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/task-1-fix1-docker-bin",
+  "nonceSha256": "df6c6af08d9f6ebe1f6d5d1c687bdfe34bc3133adef68ecb4bb6372016573c55",
+  "dev": 16777229,
+  "ino": 63710729,
+  "uid": 501,
+  "launcher": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/task-1-fix1-docker-bin/docker",
+  "launcherSha256": "5b51b0c1c13ca0b337c6f3a0b33ce18f817afc90f026c531cac824667fdc3737",
+  "log": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/logs/fix1-docker-launcher.jsonl"
+}

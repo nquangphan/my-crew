@@ -1,0 +1,33 @@
+✔ render artifact inspection measures a supplied schema-1 artifact but returns no authority (2.082541ms)
+✔ render artifact inspection retains captured expectation after nested caller mutation (0.310542ms)
+✔ render artifact inspection denies a self-consistent but unapproved BMAD source tree (0.267958ms)
+✔ render artifact inspection keeps the measured result independent of later byte mutation (0.727291ms)
+✔ render artifact inspection rejects raw optional-layer drift even with equal resolved values (0.2755ms)
+✔ render artifact inspection rejects a missing required layer or undeclared layer key (0.175666ms)
+✔ render artifact inspection rejects source, renderer and output byte changes (0.378ms)
+✔ render artifact inspection rejects false schema, path and generation claims (1.00325ms)
+✔ render artifact inspection bounds layer bytes as well as manifest and output bytes (0.234417ms)
+✔ render artifact inspection bounds metadata key counts before copying byte maps (3.13225ms)
+✔ render artifact inspection matches Python Unicode and control-character generation hashing (0.264292ms)
+✔ render artifact inspection rejects an undeclared source-authored snapshot target (0.171167ms)
+✔ render artifact inspection refuses unsupported numeric resolved values (0.140375ms)
+✔ render artifact inspection rejects conflicting expected bytes for the one customize path (0.086834ms)
+✔ render artifact inspection rejects accessors before reading manifest or any byte map (0.279542ms)
+✔ render artifact inspection rejects a proxy byte map before triggering its traps (0.082958ms)
+✔ render artifact inspection rejects unpaired surrogates in captured path identities (0.075875ms)
+✔ render artifact inspection rejects a top-level resolved-values array with coherent generation identity (0.109917ms)
+✔ render artifact inspection rejects object and list values for a source-authored config token (0.2125ms)
+✔ render artifact inspection rejects a resolved key absent from installed source tokens (0.1ms)
+✔ render artifact inspection accepts official string-list and normalized review-layer value categories (0.247917ms)
+✔ render artifact inspection rejects non-normalized review-layer table fields (0.265166ms)
+✔ render artifact inspection binds a short config token to one resolved terminal key (0.139375ms)
+✔ render artifact inspection denies ambiguous resolved keys for one short config token (0.107084ms)
+✔ render artifact inspection remains separate from the denied BMAD adapter (0.169125ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 98.0355

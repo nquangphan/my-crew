@@ -1,0 +1,805 @@
+[
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QHxDIA",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5zAwas",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dadR32",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-tUI4Sr",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Enup5H",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-UPnfNx",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mikvnU",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vSXsHk",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QzU7fu",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZzvesV",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Ah0O8u",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-R2ADY5",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-9qpwga",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mkoUpF",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jyNOJq",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-DUEvEY",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-YUcFpe",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-U42Liw",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-W1FcqO",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Gw1XWW",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63552796",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-RgZShS",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sHBHwk",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uGeo40",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3T7p1u",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-VcxLSt",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2zopVl",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63553601",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FoqJgy",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63553766",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ooBwPF",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63553934",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vuKpeH",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63554101",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yM8M9E",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63554274",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dUfBMH",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63554459",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Pt7YuI",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-VmtPHj",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-caaOWA",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63555866",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WiyrMQ",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yIpxdA",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ucD9nA",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vQ4fGA",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-XDxtMF",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QDZxRb",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-zsv5oB",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vsV2rd",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BAfusQ",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jEPWUR",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-O1GapQ",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-a2mmaI",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qUnlgl",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-EYi2JQ",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hvnncd",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63598891",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3T8Bve",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nUXDtJ",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pSKyUP",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dThlfe",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bTfEKl",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-UuuVdC",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WRL4XT",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63599772",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZunPWH",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63599941",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5RWZcP",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63600117",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nYd61Y",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63600306",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yxWKrH",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63600509",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-B8U9Vo",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63600730",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wMIXTb",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-HvcW9s",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bHpt4H",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PdpEoc",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pnGQ09",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LvU8E7",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63602823",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QLig18",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3glPX3",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bM6U9w",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-uF2ezL",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3EHcAD",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LfGnJV",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63517641",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l5oukc",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63517804",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-T542w4",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63517978",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-6SKCML",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63518148",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Txuq9E",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63518318",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WE64H2",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63518495",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yzPCmk",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gECrEk",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gWqW60",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hqRosS",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sQjYv8",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ggo3OH",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-K7cbEF",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-egxbyV",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PpmhgL",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-fbZvqt",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-V2J6Ub",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bv4NNI",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-GxhULS",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-SWVYEU",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-8n6OzN",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QPlsHM",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-cmVoqt",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-alEwzf",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dZBk79",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-H9ZX55",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Mj25a6",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-15dLeN",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZbBGWY",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-tPffH0",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-VOgQ0U",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-TGLbBV",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-h3T5RB",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4IXDN7",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BKjyuy",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5dxeC8",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BFwD6k",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l5CtMn",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-RmW6XE",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-eZlUOh",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-eE5eG2",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63547918",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-TOEXAC",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63547189",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-i0Fl51",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63549235",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-I7mtWF",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-bCSBPP",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-s4dRlY",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63546981",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-O2sk07",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63519784",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-jonXt3",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63520263",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5DQsqZ",
+    "originalStatus": "retained",
+    "status": "retained",
+    "identity": {
+      "device": "16777229",
+      "inode": "63520496",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gbMQDH",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5MxTWz",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mUkNbH",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-YVD3yU",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-syiDV0",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3cyrnN",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QZTH2n",
+    "originalStatus": "absent",
+    "status": "absent"
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-VZaP4h",
+    "status": "retained baseline UNKNOWN",
+    "identity": {
+      "device": "16777229",
+      "inode": "63577833",
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-IYXOK2",
+    "status": "retained baseline UNKNOWN",
+    "identity": {
+      "device": "16777229",
+      "inode": "63625158",
+      "uid": 501
+    }
+  }
+]

@@ -1,0 +1,14 @@
+Admission boundary: snapshot CHECKSUM_MISMATCH
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (1272.961584ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (913.003375ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (964.184791ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3230.693333

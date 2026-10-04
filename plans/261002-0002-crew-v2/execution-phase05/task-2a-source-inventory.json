@@ -1,0 +1,132 @@
+{
+  "status": "SOURCE_FROZEN_FOR_INDEPENDENT_PRODUCER_AND_010_REVIEW",
+  "time": "2026-10-02T10:06:41.731973+00:00",
+  "base": "f58f27dc96b964d034697a67c5677fb1d3bbacb2",
+  "acceptedTask1": "ec02ac0",
+  "files": [
+    {
+      "path": "v2/server/src/tickets/contracts.ts",
+      "sha256": "352f831eb2d23d96dccefd07b45ec41e3e2a82c25912307c2cea1eaea3ff485a",
+      "bytes": 3156
+    },
+    {
+      "path": "v2/server/src/tickets/decisions.ts",
+      "sha256": "93ffcd5601bbeb3754778bfab12907f0d62bf6ec2a726623ae98c17a2f46aa5c",
+      "bytes": 7009
+    },
+    {
+      "path": "v2/server/src/tickets/service.ts",
+      "sha256": "e235e098fea042ce9be79b9bfc9e61a5f7c9b4f85c141bb6049463f5d24e619c",
+      "bytes": 16424
+    },
+    {
+      "path": "v2/server/test/attachments-comment-factory.test.ts",
+      "sha256": "1e887655dc5d15aa6c3d44e6bd9d3d5b46955e18a903eb7730ac2c3a020aedd2",
+      "bytes": 22759
+    },
+    {
+      "path": "v2/docs/flows/server-tickets.md",
+      "sha256": "393858020f7b19929f5217b10616a1f498f490cf4f782ec2f9c05c99b1a0b55d",
+      "bytes": 11178
+    },
+    {
+      "path": "v2/server/migrations/010_attachment_comment_text.sql",
+      "sha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+      "bytes": 253
+    }
+  ],
+  "immutablePrefix": [
+    {
+      "path": "v2/server/migrations/001_platform.sql",
+      "sha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/002_journal.sql",
+      "sha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/003_identity.sql",
+      "sha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/004_tickets.sql",
+      "sha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/005_execution.sql",
+      "sha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/006_docs.sql",
+      "sha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/007_gateway.sql",
+      "sha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/008_model_pool.sql",
+      "sha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+      "unchangedFromBase": true
+    },
+    {
+      "path": "v2/server/migrations/009_attachments.sql",
+      "sha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+      "unchangedFromBase": true
+    }
+  ],
+  "acceptedFix1": [
+    {
+      "path": "v2/server/src/attachments/staging.ts",
+      "sha256": "8472c49eb19ae9acf679718f079aacdbe256f1ace82bae656461692c162de7ee",
+      "unchanged": true
+    },
+    {
+      "path": "v2/server/test/attachments-staging.test.ts",
+      "sha256": "2375711bff9f89dc0e69f03f5ca58f587b18481a8b3a78bb7b2855c41ef85493",
+      "unchanged": true
+    },
+    {
+      "path": "v2/docs/flows/server-attachments.md",
+      "sha256": "d1aeaa17a4a272cb80f425fbcde9cde1f8c5eee46e5e08587c3b70a783d0a460",
+      "unchanged": true
+    }
+  ],
+  "testedSnapshotFiles": 233,
+  "hashesMatchBeforeAfter": true,
+  "exactCoverTests": [
+    {
+      "path": "v2/server/test/tickets.test.ts",
+      "sha256": "5aba710e7998a229016618eb2fffedc1984d06c4cc5baa2102fad234d03100fd"
+    },
+    {
+      "path": "v2/server/test/dependencies.test.ts",
+      "sha256": "5186728030badfcec08639891013956a62455584767059dd7bc9366f8e22f583"
+    },
+    {
+      "path": "v2/server/test/completion.test.ts",
+      "sha256": "724394abf84eae7729784d1c9f1826ed53898ace6352a44bed6efb58506be21e"
+    },
+    {
+      "path": "v2/server/test/repair.test.ts",
+      "sha256": "099cd2e1c98ad07974b98a64c9f3ca931fd65f1f2146d3e9a99795c7dce4f3e9"
+    },
+    {
+      "path": "v2/server/test/attachments-comment-factory.test.ts",
+      "sha256": "1e887655dc5d15aa6c3d44e6bd9d3d5b46955e18a903eb7730ac2c3a020aedd2"
+    }
+  ],
+  "legacyInputRevisionTest": {
+    "path": "v2/server/test/attachments-staging.test.ts",
+    "sha256": "2375711bff9f89dc0e69f03f5ca58f587b18481a8b3a78bb7b2855c41ef85493",
+    "pattern": "attachment legacy revision actual appendComment"
+  },
+  "peerSourceExcluded": true
+}

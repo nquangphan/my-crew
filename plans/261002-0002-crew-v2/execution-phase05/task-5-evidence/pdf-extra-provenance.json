@@ -1,0 +1,16 @@
+{
+  "launch-escaped.pdf": {
+    "sha256": "8423a553c7dbf71af76d37a1c9963c659405546ff1dd0f96f380e7d04c81e083",
+    "bytes": 908,
+    "deterministic": true,
+    "independentParsedAction": "/Launch",
+    "incrementalOriginalPrefix": false
+  },
+  "launch-incremental.pdf": {
+    "sha256": "5e6506f0beb731a67419ec3ef9ac3d819b99808f606e286fb0916f9c2dd174dc",
+    "bytes": 1696,
+    "deterministic": true,
+    "independentParsedAction": "/Launch",
+    "incrementalOriginalPrefix": true
+  }
+}

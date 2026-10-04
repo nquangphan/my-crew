@@ -1,0 +1,87 @@
+[
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-cleanup-inventory.json",
+    "bytes": 9729,
+    "sha256": "6be70044e18a114b970cd1b72453ea966787fd471cd431724ed436ae8cf61e16"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-final-cleanup.json",
+    "bytes": 316,
+    "sha256": "aa0963f0f534d63f52f37d4612b42f424a2c2405708aaf7b9c6a08ef14c99854"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-final-evidence.json",
+    "bytes": 32382,
+    "sha256": "d8e3270d05c5d389731f333f3adcdfa1d5bc0cc634b7a471833053526fb0d74f"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-red-cleanup.json",
+    "bytes": 314,
+    "sha256": "658b2a846a97be1d1a03f06b6023a4b55d1df270ed714579a81fc7bcd8809729"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-red-evidence.json",
+    "bytes": 32243,
+    "sha256": "c7bf39ccb35f0347d75d570207fc6e49b81ae4c648757f71383f9e34dc415314"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-source-inventory.json",
+    "bytes": 2963,
+    "sha256": "0e419ae3b842867e719e4218a8cd38614256da5d3538eb525997ef6830cf25cb"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-source.patch",
+    "bytes": 7513,
+    "sha256": "1744f4115fdcb8b8b6744351ed2ef2f455554d7c2920089275da585bf9e048df"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-test-snapshot.py",
+    "bytes": 5425,
+    "sha256": "41c9c4d1ebeb328127dc7e9b1663803caef59a649c73b23fcb22191fcf04da58"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-types-cleanup.json",
+    "bytes": 252,
+    "sha256": "b3d3d53f3472fe6f91e90953a5ff325651f849c2960bb0ede9d82006f5ea804a"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-fix1-types-evidence.json",
+    "bytes": 31523,
+    "sha256": "64ce9ff20c198d77db05cfcba916d2ba0b9679a716d7c281bdcc1392f45c768a"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-fix1-biome.log",
+    "bytes": 43,
+    "sha256": "cf4640fb31c3b7b33c42a180ad9b7a3ee58c52b14b0d88378ab0f9cc6078e883"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-fix1-final.log",
+    "bytes": 22239,
+    "sha256": "6f27f0ad27e57c8f4175887b8632b444574b96548da0de0dcdf21b8b1111ecfb"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-fix1-red.log",
+    "bytes": 2999,
+    "sha256": "eaeb314c08c7f05752e4b9d4411135d6e4d3c1ee4e22bed8edb3834984d4b7e6"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-fix1-resources.log",
+    "bytes": 535,
+    "sha256": "e0ca163e6f1df67bab2f8b36e0db9a4213f0f1f92ad987e594c16a8c142f4629"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-fix1-types.log",
+    "bytes": 365,
+    "sha256": "7cc95d9c876569be50c6b9f3106b3d3c3ec22dd1702f168d6023b386432a27e7"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-report-before-fix1.md",
+    "bytes": 13815,
+    "sha256": "2e5d93565b1236d9892a5f20dc3ccde3cdd86e7246661f6503ec34dbe2321771"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-report.md",
+    "bytes": 20321,
+    "sha256": "295ecb4b65066753c4ea1832c4549cfa7a9ec3d2bf40c983b15c803099733dea"
+  }
+]

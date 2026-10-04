@@ -1,0 +1,603 @@
+{
+  "kind": "pm-owned-offline-scratch-cleanup",
+  "at": "2026-10-03T12:34:44.086920+00:00",
+  "ruling": "Unlink exact previously captured owned symlinks without following targets; retain all protocol evidence. Ordinary dev scratch cleanup only, no production STOP proof.",
+  "binarySha256Before": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+  "records": [
+    {
+      "root": "/private/tmp/crew-v2-task4-codex-version-vdftxo34",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-version-vdftxo34",
+        "device": 16777229,
+        "inode": 64470806,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "entries": {
+        "home": {
+          "path": "home",
+          "device": 16777229,
+          "inode": 64470807,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "claude-config": {
+          "path": "claude-config",
+          "device": 16777229,
+          "inode": 64470810,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config": {
+          "path": "codex-config",
+          "device": 16777229,
+          "inode": 64470811,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "cwd": {
+          "path": "cwd",
+          "device": 16777229,
+          "inode": 64470809,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "tmp": {
+          "path": "tmp",
+          "device": 16777229,
+          "inode": 64470808,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config/tmp": {
+          "path": "codex-config/tmp",
+          "device": 16777229,
+          "inode": 64470812,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0": {
+          "path": "codex-config/tmp/arg0",
+          "device": 16777229,
+          "inode": 64470813,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0/codex-arg0iZw0TN": {
+          "path": "codex-config/tmp/arg0/codex-arg0iZw0TN",
+          "device": 16777229,
+          "inode": 64470814,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 192,
+          "linkCount": 6
+        },
+        "codex-config/tmp/arg0/codex-arg0iZw0TN/.lock": {
+          "path": "codex-config/tmp/arg0/codex-arg0iZw0TN/.lock",
+          "device": 16777229,
+          "inode": 64470815,
+          "uid": 501,
+          "kind": "file",
+          "bytes": 0,
+          "linkCount": 1
+        },
+        "codex-config/tmp/arg0/codex-arg0iZw0TN/applypatch": {
+          "path": "codex-config/tmp/arg0/codex-arg0iZw0TN/applypatch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64470817,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0iZw0TN/apply_patch": {
+          "path": "codex-config/tmp/arg0/codex-arg0iZw0TN/apply_patch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64470816,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0iZw0TN/codex-execve-wrapper": {
+          "path": "codex-config/tmp/arg0/codex-arg0iZw0TN/codex-execve-wrapper",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64470818,
+          "uid": 501,
+          "kind": "symlink"
+        }
+      },
+      "directWaitExitCode": 0,
+      "matchingProcesses": []
+    },
+    {
+      "root": "/private/tmp/crew-v2-task4-codex-help-oxa3wnb2",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-oxa3wnb2",
+        "device": 16777229,
+        "inode": 64470951,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "entries": {
+        "home": {
+          "path": "home",
+          "device": 16777229,
+          "inode": 64470952,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "claude-config": {
+          "path": "claude-config",
+          "device": 16777229,
+          "inode": 64470955,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config": {
+          "path": "codex-config",
+          "device": 16777229,
+          "inode": 64470956,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "cwd": {
+          "path": "cwd",
+          "device": 16777229,
+          "inode": 64470954,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "tmp": {
+          "path": "tmp",
+          "device": 16777229,
+          "inode": 64470953,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config/tmp": {
+          "path": "codex-config/tmp",
+          "device": 16777229,
+          "inode": 64470957,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0": {
+          "path": "codex-config/tmp/arg0",
+          "device": 16777229,
+          "inode": 64470958,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0/codex-arg0plzgff": {
+          "path": "codex-config/tmp/arg0/codex-arg0plzgff",
+          "device": 16777229,
+          "inode": 64470959,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 192,
+          "linkCount": 6
+        },
+        "codex-config/tmp/arg0/codex-arg0plzgff/.lock": {
+          "path": "codex-config/tmp/arg0/codex-arg0plzgff/.lock",
+          "device": 16777229,
+          "inode": 64470960,
+          "uid": 501,
+          "kind": "file",
+          "bytes": 0,
+          "linkCount": 1
+        },
+        "codex-config/tmp/arg0/codex-arg0plzgff/applypatch": {
+          "path": "codex-config/tmp/arg0/codex-arg0plzgff/applypatch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64470962,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0plzgff/apply_patch": {
+          "path": "codex-config/tmp/arg0/codex-arg0plzgff/apply_patch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64470961,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0plzgff/codex-execve-wrapper": {
+          "path": "codex-config/tmp/arg0/codex-arg0plzgff/codex-execve-wrapper",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64470963,
+          "uid": 501,
+          "kind": "symlink"
+        }
+      },
+      "directWaitExitCode": 0,
+      "matchingProcesses": []
+    },
+    {
+      "root": "/private/tmp/crew-v2-task4-codex-help-e3pijnwg",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-e3pijnwg",
+        "device": 16777229,
+        "inode": 64475797,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "entries": {
+        "home": {
+          "path": "home",
+          "device": 16777229,
+          "inode": 64475798,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "claude-config": {
+          "path": "claude-config",
+          "device": 16777229,
+          "inode": 64475801,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config": {
+          "path": "codex-config",
+          "device": 16777229,
+          "inode": 64475802,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "cwd": {
+          "path": "cwd",
+          "device": 16777229,
+          "inode": 64475800,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "tmp": {
+          "path": "tmp",
+          "device": 16777229,
+          "inode": 64475799,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config/tmp": {
+          "path": "codex-config/tmp",
+          "device": 16777229,
+          "inode": 64475803,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0": {
+          "path": "codex-config/tmp/arg0",
+          "device": 16777229,
+          "inode": 64475804,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0/codex-arg0EA2ymR": {
+          "path": "codex-config/tmp/arg0/codex-arg0EA2ymR",
+          "device": 16777229,
+          "inode": 64475805,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 192,
+          "linkCount": 6
+        },
+        "codex-config/tmp/arg0/codex-arg0EA2ymR/.lock": {
+          "path": "codex-config/tmp/arg0/codex-arg0EA2ymR/.lock",
+          "device": 16777229,
+          "inode": 64475806,
+          "uid": 501,
+          "kind": "file",
+          "bytes": 0,
+          "linkCount": 1
+        },
+        "codex-config/tmp/arg0/codex-arg0EA2ymR/applypatch": {
+          "path": "codex-config/tmp/arg0/codex-arg0EA2ymR/applypatch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64475808,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0EA2ymR/apply_patch": {
+          "path": "codex-config/tmp/arg0/codex-arg0EA2ymR/apply_patch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64475807,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0EA2ymR/codex-execve-wrapper": {
+          "path": "codex-config/tmp/arg0/codex-arg0EA2ymR/codex-execve-wrapper",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64475809,
+          "uid": 501,
+          "kind": "symlink"
+        }
+      },
+      "directWaitExitCode": 0,
+      "matchingProcesses": []
+    },
+    {
+      "root": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo",
+        "device": 16777229,
+        "inode": 64477810,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "entries": {
+        "home": {
+          "path": "home",
+          "device": 16777229,
+          "inode": 64477811,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "claude-config": {
+          "path": "claude-config",
+          "device": 16777229,
+          "inode": 64477814,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config": {
+          "path": "codex-config",
+          "device": 16777229,
+          "inode": 64477815,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "cwd": {
+          "path": "cwd",
+          "device": 16777229,
+          "inode": 64477813,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "tmp": {
+          "path": "tmp",
+          "device": 16777229,
+          "inode": 64477812,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config/tmp": {
+          "path": "codex-config/tmp",
+          "device": 16777229,
+          "inode": 64477816,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0": {
+          "path": "codex-config/tmp/arg0",
+          "device": 16777229,
+          "inode": 64477817,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0/codex-arg0OhwV19": {
+          "path": "codex-config/tmp/arg0/codex-arg0OhwV19",
+          "device": 16777229,
+          "inode": 64477818,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 192,
+          "linkCount": 6
+        },
+        "codex-config/tmp/arg0/codex-arg0OhwV19/.lock": {
+          "path": "codex-config/tmp/arg0/codex-arg0OhwV19/.lock",
+          "device": 16777229,
+          "inode": 64477819,
+          "uid": 501,
+          "kind": "file",
+          "bytes": 0,
+          "linkCount": 1
+        },
+        "codex-config/tmp/arg0/codex-arg0OhwV19/applypatch": {
+          "path": "codex-config/tmp/arg0/codex-arg0OhwV19/applypatch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64477821,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0OhwV19/apply_patch": {
+          "path": "codex-config/tmp/arg0/codex-arg0OhwV19/apply_patch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64477820,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0OhwV19/codex-execve-wrapper": {
+          "path": "codex-config/tmp/arg0/codex-arg0OhwV19/codex-execve-wrapper",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64477822,
+          "uid": 501,
+          "kind": "symlink"
+        }
+      },
+      "directWaitExitCode": 0,
+      "matchingProcesses": []
+    },
+    {
+      "root": "/private/tmp/crew-v2-task4-codex-help-52xhk4e2",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-52xhk4e2",
+        "device": 16777229,
+        "inode": 64477896,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "entries": {
+        "home": {
+          "path": "home",
+          "device": 16777229,
+          "inode": 64477897,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "claude-config": {
+          "path": "claude-config",
+          "device": 16777229,
+          "inode": 64477900,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config": {
+          "path": "codex-config",
+          "device": 16777229,
+          "inode": 64477901,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "cwd": {
+          "path": "cwd",
+          "device": 16777229,
+          "inode": 64477899,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "tmp": {
+          "path": "tmp",
+          "device": 16777229,
+          "inode": 64477898,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 64,
+          "linkCount": 2
+        },
+        "codex-config/tmp": {
+          "path": "codex-config/tmp",
+          "device": 16777229,
+          "inode": 64477902,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0": {
+          "path": "codex-config/tmp/arg0",
+          "device": 16777229,
+          "inode": 64477903,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 96,
+          "linkCount": 3
+        },
+        "codex-config/tmp/arg0/codex-arg0eCHfrw": {
+          "path": "codex-config/tmp/arg0/codex-arg0eCHfrw",
+          "device": 16777229,
+          "inode": 64477904,
+          "uid": 501,
+          "kind": "directory",
+          "bytes": 192,
+          "linkCount": 6
+        },
+        "codex-config/tmp/arg0/codex-arg0eCHfrw/.lock": {
+          "path": "codex-config/tmp/arg0/codex-arg0eCHfrw/.lock",
+          "device": 16777229,
+          "inode": 64477905,
+          "uid": 501,
+          "kind": "file",
+          "bytes": 0,
+          "linkCount": 1
+        },
+        "codex-config/tmp/arg0/codex-arg0eCHfrw/applypatch": {
+          "path": "codex-config/tmp/arg0/codex-arg0eCHfrw/applypatch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64477907,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0eCHfrw/apply_patch": {
+          "path": "codex-config/tmp/arg0/codex-arg0eCHfrw/apply_patch",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64477906,
+          "uid": 501,
+          "kind": "symlink"
+        },
+        "codex-config/tmp/arg0/codex-arg0eCHfrw/codex-execve-wrapper": {
+          "path": "codex-config/tmp/arg0/codex-arg0eCHfrw/codex-execve-wrapper",
+          "target": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+          "device": 16777229,
+          "inode": 64477908,
+          "uid": 501,
+          "kind": "symlink"
+        }
+      },
+      "directWaitExitCode": 0,
+      "matchingProcesses": []
+    }
+  ]
+}

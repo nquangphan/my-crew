@@ -1,0 +1,4 @@
+
+> @crew-v2/gateway@ build /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-460e1513-855d-48f3-b7c1-049b066d3b8e/v2/gateway
+> tsc -p tsconfig.build.json
+

@@ -1,0 +1,546 @@
+v2/gateway/src/execution/ticket-command-bridge.ts:239:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    237 │     const record = await this.reserve(command);
+    238 │     await this.store.transaction(async () => {
+  > 239 │       const local = (await this.store.get<BridgeRecord>(this.key(command.id)))!;
+        │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    240 │       if (local.released) {
+    241 │         await this.current(local);
+  
+
+v2/gateway/src/execution/ticket-command-bridge.ts:437:35 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    435 │     }
+    436 │     const operationId =
+  > 437 │       observation === 'running' ? local.runningOp! : `${this.key(local.command.id)}:reconcile:stopped`;
+        │                                   ^^^^^^^^^^^^^^^^
+    438 │     await mutate(
+    439 │       this.options.http,
+  
+
+v2/gateway/src/execution/ticket-command-bridge.ts:461:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    459 │     const local = await this.local(commandId),
+    460 │       attempt = await this.current(local),
+  > 461 │       record = (await this.options.journal.byInstance(local.input.processInstanceId))!;
+        │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    462 │     if (!record || (await this.options.journal.observe(record)) !== 'stopped')
+    463 │       throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+  
+
+v2/gateway/test/connection.test.ts:11:15 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+     9 │   const owned = await bridgeRoot();
+    10 │   let drop = true;
+  > 11 │   const sent: any[] = [];
+       │               ^^^
+    12 │   const http = await HttpOperationJournal.open(owned.root, async (req) => {
+    13 │     sent.push(req);
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:220:27 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    218 │       drop = 'finalize';
+    219 │       await assert.rejects(bridge!.finalize(command.id), /LOST_REPLY/);
+  > 220 │       assert.equal((await bridge!.finalize(command.id)).state, 'stopped');
+        │                           ^^^^^^^
+    221 │       // Without retirement the scoped 404 remains a local failure, but independent B still progresses.
+    222 │       await db`update projects set binding_revision=3 where id=${tickets.project.id}`;
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    218 218 │         drop = 'finalize';
+    219 219 │         await assert.rejects(bridge!.finalize(command.id), /LOST_REPLY/);
+    220     │ - ······assert.equal((await·bridge!.finalize(command.id)).state,·'stopped');
+        220 │ + ······assert.equal((await·bridge?.finalize(command.id)).state,·'stopped');
+    221 221 │         // Without retirement the scoped 404 remains a local failure, but independent B still progresses.
+    222 222 │         await db`update projects set binding_revision=3 where id=${tickets.project.id}`;
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:32:17 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    30 │     let machine = machineTransport(initial.url, initial.token);
+    31 │     let drop: string | null = null;
+  > 32 │     const sent: any[] = [];
+       │                 ^^^
+    33 │     const http = await HttpOperationJournal.open(owned.root, async (req) => {
+    34 │       sent.push(structuredClone(req));
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:47:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    45 │       const boot = await initial.machine.post('/v2/gateway/boots', { bootId, previousGeneration: '0' });
+    46 │       assert.equal(boot.statusCode, 200, boot.text);
+  > 47 │       const generation = boot.json<any>().bootGeneration;
+       │                                    ^^^
+    48 │       const config = await initial.owner.put(`/v2/gateway/machines/${initial.machineId}/config`, {
+    49 │         expectedRevision: 0,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:63:31 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    61 │         read: async (route) => machine.read(route),
+    62 │         recipes: w.projections,
+  > 63 │         archive: async (s) => w.sources.find((f) => f.source.name === s.name)!.stream(),
+       │                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    64 │       });
+    65 │ 
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     61  61 │           read: async (route) => machine.read(route),
+     62  62 │           recipes: w.projections,
+     63     │ - ········archive:·async·(s)·=>·w.sources.find((f)·=>·f.source.name·===·s.name)!.stream(),
+         63 │ + ········archive:·async·(s)·=>·w.sources.find((f)·=>·f.source.name·===·s.name)?.stream(),
+     64  64 │         });
+     65  65 │   
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:80:22 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    78 │       const tickets = await ticketFixture(db),
+    79 │         source = w.sources[1].source,
+  > 80 │         projection = w.projections.find(
+       │                      ^^^^^^^^^^^^^^^^^^^
+  > 81 │           (a) => a.runtime === 'codex' && a.sourceTreeSha256 === source.sourceTreeSha256,
+  > 82 │         )!.expected,
+       │         ^^
+    83 │         decisionId = randomUUID();
+    84 │       const selection = {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     80  80 │           projection = w.projections.find(
+     81  81 │             (a) => a.runtime === 'codex' && a.sourceTreeSha256 === source.sourceTreeSha256,
+     82     │ - ········)!.expected,
+         82 │ + ········)?.expected,
+     83  83 │           decisionId = randomUUID();
+     84  84 │         const selection = {
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:103:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    101 │       });
+    102 │       assert.equal(created.statusCode, 202, created.text);
+  > 103 │       const command = created.json<any>();
+        │                                    ^^^
+    104 │       const permit = {
+    105 │         commandId: command.id,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:219:28 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    217 │       machine = machineTransport(url, initial.token);
+    218 │       drop = 'finalize';
+  > 219 │       await assert.rejects(bridge!.finalize(command.id), /LOST_REPLY/);
+        │                            ^^^^^^^
+    220 │       assert.equal((await bridge!.finalize(command.id)).state, 'stopped');
+    221 │       // Without retirement the scoped 404 remains a local failure, but independent B still progresses.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    217 217 │         machine = machineTransport(url, initial.token);
+    218 218 │         drop = 'finalize';
+    219     │ - ······await·assert.rejects(bridge!.finalize(command.id),·/LOST_REPLY/);
+        219 │ + ······await·assert.rejects(bridge?.finalize(command.id),·/LOST_REPLY/);
+    220 220 │         assert.equal((await bridge!.finalize(command.id)).state, 'stopped');
+    221 221 │         // Without retirement the scoped 404 remains a local failure, but independent B still progresses.
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:239:29 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    237 │       assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 1);
+    238 │       await db`update projects set binding_revision=2 where id=${tickets.project.id}`;
+  > 239 │       const receipt = await bridge!.retire(command.id);
+        │                             ^^^^^^^
+    240 │       assert.equal(receipt.authority.attemptId, attempt.id);
+    241 │       assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 0);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    237 237 │         assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 1);
+    238 238 │         await db`update projects set binding_revision=2 where id=${tickets.project.id}`;
+    239     │ - ······const·receipt·=·await·bridge!.retire(command.id);
+        239 │ + ······const·receipt·=·await·bridge?.retire(command.id);
+    240 240 │         assert.equal(receipt.authority.attemptId, attempt.id);
+    241 241 │         assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 0);
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:635:11 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    633 │         recipes: w.projections,
+    634 │         archive: async (source: import('../src/host/status.ts').SourcePin) =>
+  > 635 │           w.sources.find((item) => item.source.name === source.name)!.stream(),
+        │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    636 │         read: async (route: string) => {
+    637 │           const result = await machine.read(route);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    633 633 │           recipes: w.projections,
+    634 634 │           archive: async (source: import('../src/host/status.ts').SourcePin) =>
+    635     │ - ··········w.sources.find((item)·=>·item.source.name·===·source.name)!.stream(),
+        635 │ + ··········w.sources.find((item)·=>·item.source.name·===·source.name)?.stream(),
+    636 636 │           read: async (route: string) => {
+    637 637 │             const result = await machine.read(route);
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:723:11 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    721 │         recipes: w.projections,
+    722 │         archive: async (source: import('../src/host/status.ts').SourcePin) =>
+  > 723 │           w.sources.find((item) => item.source.name === source.name)!.stream(),
+        │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    724 │       };
+    725 │       sync = await GatewaySync.open(owned.root, options);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    721 721 │           recipes: w.projections,
+    722 722 │           archive: async (source: import('../src/host/status.ts').SourcePin) =>
+    723     │ - ··········w.sources.find((item)·=>·item.source.name·===·source.name)!.stream(),
+        723 │ + ··········w.sources.find((item)·=>·item.source.name·===·source.name)?.stream(),
+    724 724 │         };
+    725 725 │         sync = await GatewaySync.open(owned.root, options);
+  
+
+v2/gateway/test/execution-bridge-db.test.ts:879:11 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    877 │         recipes: w.projections,
+    878 │         archive: async (source: import('../src/host/status.ts').SourcePin) =>
+  > 879 │           w.sources.find((item) => item.source.name === source.name)!.stream(),
+        │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    880 │       };
+    881 │       sync = await GatewaySync.open(owned.root, options);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    877 877 │           recipes: w.projections,
+    878 878 │           archive: async (source: import('../src/host/status.ts').SourcePin) =>
+    879     │ - ··········w.sources.find((item)·=>·item.source.name·===·source.name)!.stream(),
+        879 │ + ··········w.sources.find((item)·=>·item.source.name·===·source.name)?.stream(),
+    880 880 │         };
+    881 881 │         sync = await GatewaySync.open(owned.root, options);
+  
+
+v2/gateway/test/execution-bridge.test.ts:15:20 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    13 │     await f.install();
+    14 │     const source = f.sources[1].source,
+  > 15 │       projection = f.projections.find(
+       │                    ^^^^^^^^^^^^^^^^^^^
+  > 16 │         (a) => a.sourceTreeSha256 === source.sourceTreeSha256 && a.runtime === 'codex',
+  > 17 │       )!.expected;
+       │       ^^
+    18 │     const selection = {
+    19 │       runtime: 'codex',
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     15  15 │         projection = f.projections.find(
+     16  16 │           (a) => a.sourceTreeSha256 === source.sourceTreeSha256 && a.runtime === 'codex',
+     17     │ - ······)!.expected;
+         17 │ + ······)?.expected;
+     18  18 │       const selection = {
+     19  19 │         runtime: 'codex',
+  
+
+v2/gateway/test/execution-bridge.test.ts:63:41 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    61 │       requests.push(structuredClone(req));
+    62 │       if (receipts.has(req.idempotencyKey)) return receipts.get(req.idempotencyKey);
+  > 63 │       const body = req.canonicalBody as any;
+       │                                         ^^^
+    64 │       let result: import('../src/journal/http-operations.ts').HttpResponse;
+    65 │       if (req.phase === 'claim') {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge.test.ts:48:18 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    46 │       expiresAt: new Date(Date.now() + 20000).toISOString(),
+    47 │     };
+  > 48 │     let attempt: any = null,
+       │                  ^^^
+    49 │       companion: any = null,
+    50 │       drop = true;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge.test.ts:49:18 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    47 │     };
+    48 │     let attempt: any = null,
+  > 49 │       companion: any = null,
+       │                  ^^^
+    50 │       drop = true;
+    51 │     const requests: any[] = [];
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge.test.ts:51:21 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    49 │       companion: any = null,
+    50 │       drop = true;
+  > 51 │     const requests: any[] = [];
+       │                     ^^^
+    52 │     const receipts = new Map<string, any>();
+    53 │     let released = 0;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/execution-bridge.test.ts:52:38 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    50 │       drop = true;
+    51 │     const requests: any[] = [];
+  > 52 │     const receipts = new Map<string, any>();
+       │                                      ^^^
+    53 │     let released = 0;
+    54 │     const read = async (route: string) =>
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:24:19 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    22 │   };
+    23 │   const config = { revision: 1, desired: f.desired, maxJobs: 2, enabled: true };
+  > 24 │   const requests: any[] = [];
+       │                   ^^^
+    25 │   const receipts = new Map<string, any>();
+    26 │   let appliedRevision = 0;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:25:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    23 │   const config = { revision: 1, desired: f.desired, maxJobs: 2, enabled: true };
+    24 │   const requests: any[] = [];
+  > 25 │   const receipts = new Map<string, any>();
+       │                                    ^^^
+    26 │   let appliedRevision = 0;
+    27 │   const read = async (route: string) =>
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:32:39 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    30 │     requests.push(structuredClone(req));
+    31 │     if (receipts.has(req.idempotencyKey)) return receipts.get(req.idempotencyKey);
+  > 32 │     const body = req.canonicalBody as any;
+       │                                       ^^^
+    33 │     let result: import('../src/journal/http-operations.ts').HttpResponse;
+    34 │     if (req.route.endsWith('/ack')) {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:42:13 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    40 │     } else {
+    41 │       const accepted = Object.values(body.results).every(
+  > 42 │         (w: any) =>
+       │             ^^^
+    43 │           w.source.state === 'current' &&
+    44 │           Object.values(w.projections).every((s: any) => s.state === 'current'),
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:44:50 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    42 │         (w: any) =>
+    43 │           w.source.state === 'current' &&
+  > 44 │           Object.values(w.projections).every((s: any) => s.state === 'current'),
+       │                                                  ^^^
+    45 │       );
+    46 │       if (accepted) appliedRevision = 1;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:66:29 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    64 │     now: () => clock,
+    65 │     random: () => 0,
+  > 66 │     archive: async (source: any) => {
+       │                             ^^^
+    67 │       if (source.name === 'bmad' && fail) throw new Error('DOWNLOAD_FAILED');
+    68 │       return f.sources.find((x) => x.source.name === source.name)!.stream();
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:68:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    66 │     archive: async (source: any) => {
+    67 │       if (source.name === 'bmad' && fail) throw new Error('DOWNLOAD_FAILED');
+  > 68 │       return f.sources.find((x) => x.source.name === source.name)!.stream();
+       │              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    69 │     },
+    70 │   };
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     66  66 │       archive: async (source: any) => {
+     67  67 │         if (source.name === 'bmad' && fail) throw new Error('DOWNLOAD_FAILED');
+     68     │ - ······return·f.sources.find((x)·=>·x.source.name·===·source.name)!.stream();
+         68 │ + ······return·f.sources.find((x)·=>·x.source.name·===·source.name)?.stream();
+     69  69 │       },
+     70  70 │     };
+  
+
+v2/gateway/test/sync.test.ts:117:18 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    115 │     },
+    116 │   ];
+  > 117 │   const reports: any[] = [];
+        │                  ^^^
+    118 │   const read = async (route: string) =>
+    119 │     route === '/v2/gateway/config'
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:123:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    121 │       : { items: commands, nextCursor: String(commands.length) };
+    122 │   const http = await HttpOperationJournal.open(owned.root, async (req) => {
+  > 123 │     const b = req.canonicalBody as any;
+        │                                    ^^^
+    124 │     if (req.route.endsWith('install-reports')) {
+    125 │       reports.push(b);
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:132:15 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    130 │       return { status: 200, body: { accepted: true, appliedRevision: 2 } };
+    131 │     }
+  > 132 │     const c = commands.find((c) => req.route.includes(c.id))!;
+        │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    133 │     if (b.phase === 'completed') {
+    134 │       c.state = 'completed';
+  
+
+v2/gateway/test/sync.test.ts:147:27 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    145 │     read,
+    146 │     recipes: f.projections,
+  > 147 │     archive: async (s) => f.sources.find((f) => f.source.name === s.name)!.stream(),
+        │                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    148 │   });
+    149 │   try {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    145 145 │       read,
+    146 146 │       recipes: f.projections,
+    147     │ - ····archive:·async·(s)·=>·f.sources.find((f)·=>·f.source.name·===·s.name)!.stream(),
+        147 │ + ····archive:·async·(s)·=>·f.sources.find((f)·=>·f.source.name·===·s.name)?.stream(),
+    148 148 │     });
+    149 149 │     try {
+  
+
+v2/gateway/test/sync.test.ts:369:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    367 │         : { items: [command], nextCursor: '2' },
+    368 │     archive: async (source: import('../src/host/status.ts').SourcePin) =>
+  > 369 │       f.sources.find((item) => item.source.name === source.name)!.stream(),
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    370 │   };
+    371 │   let sync = await GatewaySync.open(owned.root, options);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    367 367 │           : { items: [command], nextCursor: '2' },
+    368 368 │       archive: async (source: import('../src/host/status.ts').SourcePin) =>
+    369     │ - ······f.sources.find((item)·=>·item.source.name·===·source.name)!.stream(),
+        369 │ + ······f.sources.find((item)·=>·item.source.name·===·source.name)?.stream(),
+    370 370 │     };
+    371 371 │     let sync = await GatewaySync.open(owned.root, options);
+  
+
+Checked 10 files in 38ms. No fixes applied.
+Found 33 warnings.

@@ -1,0 +1,2 @@
+Task5 owned cleanup {"root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-15dLeN", "device": "16777229", "inode": "63580361", "uid": 501, "deleted": true, "reason": "failed test recovery after verified immutable retirement and native stop"}
+Task5 owned cleanup {"root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZbBGWY", "device": "16777229", "inode": "63580522", "uid": 501, "deleted": true, "reason": "failed test recovery after verified immutable retirement and native stop"}

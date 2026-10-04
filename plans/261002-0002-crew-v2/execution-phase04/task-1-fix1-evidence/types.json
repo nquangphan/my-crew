@@ -1,0 +1,9 @@
+{
+  "command": [
+    "pnpm",
+    "--dir",
+    "v2/server",
+    "typecheck"
+  ],
+  "exit": 0
+}

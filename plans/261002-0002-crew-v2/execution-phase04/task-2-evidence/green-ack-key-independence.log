@@ -1,0 +1,15 @@
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-vKcZgS","dev":16777229,"ino":63517452,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-vKcZgS","dev":16777229,"ino":63517452,"uid":501}
+✔ credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss (211.831542ms)
+✔ credential broker expiry needs bounded server receipt clock and ignores host wall clock (0.124583ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-ASHL0P","dev":16777229,"ino":63517472,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-ASHL0P","dev":16777229,"ino":63517472,"uid":501}
+✔ credential broker reconnect gets own desired/serverTime before secret envelopes and rejects disabled source (49.912333ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 327.844917

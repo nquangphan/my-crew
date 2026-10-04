@@ -1,0 +1,278 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/server.test.ts
+
+{"level":30,"time":1790923285146,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57962"}
+{"level":30,"time":1790923285462,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57965"}
+✔ HTTP persistence graph commands events docs reconnect restart and backup restore (1020.913ms)
+ℹ {"realHttp":true,"port0":true,"prefix":6,"restartPool":true,"firstUrl":"http://127.0.0.1:57962","reopenedUrl":"http://127.0.0.1:57965","containerId":"ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09","restoredName":"crew_v2_restore_2ab7dc381dab4e54940b7512847bd1ee","dumpBytes":74967}
+{"level":30,"time":1790923285996,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57978"}
+✔ HTTP ticket cached replay cannot race current binding or machine revocation across pools (343.589167ms)
+{"level":30,"time":1790923286319,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57985"}
+{"level":30,"time":1790923287415,"pid":39440,"hostname":"Phans-MacBook-Pro.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+{"level":30,"time":1790923288444,"pid":39440,"hostname":"Phans-MacBook-Pro.local","reqId":"req-c","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✔ real SSE current credential revocation and owner expiry close streams without future data (2336.332917ms)
+{"level":30,"time":1790923288691,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58005"}
+{"level":30,"time":1790923288846,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58009"}
+✔ HTTP default dispatch denies; reported evidence stays finalizing until trusted research test attestation (439.923042ms)
+{"level":30,"time":1790923289096,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58015"}
+✔ HTTP all machine ticket mutation families reject cached replay after rebind (329.080667ms)
+{"level":30,"time":1790923289415,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58021"}
+✔ HTTP fifth repair result remains fenced until confirmed physical stop (311.230375ms)
+{"level":30,"time":1790923289723,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58027"}
+✔ current credential and event scope share one snapshot across rebind and revocation (264.436375ms)
+{"level":50,"time":1790923289930,"pid":39440,"hostname":"Phans-MacBook-Pro.local","reqId":"req-1","code":"INTERNAL_ERROR","msg":"Lỗi API"}
+✔ buildApp composes without migrations or listener; unknown DB errors are generic503 (259.160958ms)
+{"level":30,"time":1790923290259,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58038"}
+✔ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (418.792166ms)
+✔ concurrent claim fences one durable launch and lost reply replays it (109.575209ms)
+✔ independent pools racing claim keep one durable attempt and one fence (113.859042ms)
+✔ stopped observation reserves guard until result and verifier allow finalization (114.14225ms)
+✔ result before stop does not close; stopped result stays pending without verifier (105.966875ms)
+✔ current state read rejects stale project binding (103.083875ms)
+✔ registered artifact has canonical locator and checkpoint accepts same-attempt evidence (120.735375ms)
+✔ artifact route is authenticated idempotent and keeps late finalizing report (158.073291ms)
+✔ expired active lease rejects new artifact until running reconciliation, but finalizing accepts late report (113.968583ms)
+✔ pause after replacement targets the new attempt and repeat pause reuses only its command (141.494333ms)
+✔ wait_owner event matches ticket response both before and after stop proof (218.099ms)
+✔ concurrent stop and retry result finalize once with one guard release (136.510875ms)
+✔ owner pause and cancel intents dominate a previously reported passed result (251.182667ms)
+✔ stopped attestation survives pool restart and recheck finalizes without rewriting proof (124.9825ms)
+✔ append-only verifier attestation linked to original reported evidence advances persisted passed result after pool restart (150.583209ms)
+✔ claim rejects unapproved deploy, unfinished predecessor, and expired permit before authority callback (289.482625ms)
+✔ missing dispatch authority leaves no attempt or running ticket (110.247125ms)
+✔ expired lease marks uncertain without accepting checkpoint progress (106.928375ms)
+✔ verified research result finalizes atomically only after physical stop (137.855916ms)
+✔ host needs_input result records scoped question decision (112.076833ms)
+✔ reconcile persists host provenance and refuses conflicting stop reason (105.760541ms)
+✔ fence exhaustion fails closed before attempt or ticket mutation (89.429875ms)
+✔ another queued launch stays blocked while stopped result is pending (106.542083ms)
+✔ internal needs_input intent finalizes stopped attempt and preserves repair limit (108.718375ms)
+✔ identical checkpoint and result replay are stable across JSONB key ordering (102.59025ms)
+✔ fifth repair failure after confirmed stop keeps needs_input and repair_limit (113.714375ms)
+✔ binding guard blocks uncertain attempt and releases only after terminal finalization (112.215625ms)
+✔ repair proof rejects same machine after binding revision changes (106.328667ms)
+✔ auth login, cookie và CSRF chặn request thiếu quyền (199.236417ms)
+✔ machine provision replay cùng owner và không leak cho machine (160.047458ms)
+✔ auth backup không chứa credential gốc (235.426625ms)
+✔ auth login khóa sau năm lần sai trong năm phút (370.301583ms)
+✔ auth login đồng thời chỉ cho tối đa năm lượt sai đi tới xác minh mật khẩu (247.115167ms)
+✔ machine list phân trang ID ổn định, chặn query lạ và không lộ token (171.05925ms)
+✔ auth login hết cửa sổ năm phút thì cho phép thử lại (400.819833ms)
+✔ auth login đúng xóa số lần sai đã hoàn tất trong cửa sổ (569.3845ms)
+✔ auth forbidden input bị từ chối thay vì xóa thầm (161.406666ms)
+✔ auth session sống qua app restart rồi hết hạn và logout thu hồi (209.850625ms)
+✔ auth machine và owner không hoán đổi quyền (165.372791ms)
+✔ auth không tạo owner ngầm khi DB chưa bootstrap (68.215ms)
+✔ provision replay cùng key khác payload báo conflict không tạo thêm máy (163.648291ms)
+✔ completed page anchor works and polling from null sees new commands (101.075875ms)
+✔ queued microsecond anchor advances without repeating a command (91.582583ms)
+✔ ACK response survives closing its writer pool and replays from a new pool (107.527208ms)
+✔ same machine after new binding cannot read or ack old command (91.138625ms)
+✔ ack completion is immutable and duplicate result replays canonically (91.118625ms)
+✔ cached mutation reply is not returned after same machine rebinding (108.557083ms)
+✔ journal authorizes cached replay inside its transaction before returning response (89.79325ms)
+✔ replay authorization holds project lock until cached response transaction commits (93.423875ms)
+✔ create-command cached reply is scoped to immutable binding revision (109.321ms)
+✔ docs cũ cannot close a code request from a reported commit (82.99875ms)
+✔ code step completes from its verified result without requiring request merge (90.342333ms)
+✔ code request requires verified merge and docs at the same commit (85.591833ms)
+✔ request cannot finish while a mandatory descendant remains incomplete (91.472583ms)
+✔ completion requires every evidence kind listed in ticket criteria (81.542583ms)
+✔ ticket services keep the authority callbacks captured at construction (85.769375ms)
+✔ hierarchy rejects a task directly under a request and cross-project parent (90.938458ms)
+✔ concurrent opposite edges cannot create a dependency cycle (88.02125ms)
+✔ dependencies_ready refuses a step whose predecessor is unfinished (86.796208ms)
+✔ closed request and completed step reject new descendants (82.875083ms)
+✔ concurrent request completion and child creation cannot leave done root with pending child (86.364167ms)
+✔ dependency graph rejects adding edge once target is ready or running (92.827125ms)
+✔ machine cannot create deploy request or unapproved deploy descendant (83.871417ms)
+✔ owner-created deploy request authorizes only itself; machine child needs exact action approval (102.430708ms)
+✔ machine deploy child under ordinary root needs exact persisted owner approval (85.852542ms)
+✔ deploy completion accepts owner-created request but requires approval for a child elsewhere (99.794041ms)
+✔ docs events accept bounded metadata and reject content or false audit claims (0.332458ms)
+✔ CLI dry-run verifies backup and preserved files twice without writes or secret output (183.538625ms)
+✔ CLI rejects backup/doc corruption, class disagreement and symlink without leaking credentials (315.283042ms)
+✔ CLI transport takes credentials only from env/stdin and rejects credentials in arguments (73.465833ms)
+✔ CLI uploads only to explicit owner origin with stable retry key and never logs server secrets (287.238125ms)
+✔ CLI never forwards owner credentials through a redirect or logs failed response content (100.195416ms)
+✔ CLI dry-run reports NUL projection and bounded FTS while keeping complete export bytes (190.684084ms)
+✔ import giữ CRLF/Unicode, null commit và chạy lại không trùng (108.805625ms)
+ℹ owned-test-container=ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09
+ℹ owned-test-url=postgres://postgres@127.0.0.1:57949/crew_v2_test
+✔ structural valid legacy remains unverified and mixed classes retain bytes and link occurrences (100.811708ms)
+✔ bad checksum, unknown fields, class and unsafe paths reject atomically even in later project (86.763875ms)
+✔ corrupt base64, UTF8, bundle/snapshot hash and oversized file reject before writes (98.791167ms)
+✔ provenance collision never adopts unrelated project and later collision rolls back first project (87.352125ms)
+✔ new backup reuses snapshot, new commit keeps history, import cannot change verified pointer (109.951792ms)
+✔ independent pools race duplicate bundle and provenance with one snapshot per identity (107.290708ms)
+✔ sync structural snapshot is unverified by default and exact receipt replays without new event (125.06625ms)
+✔ sync rejects wrong project/commit/fence/guard/binding and stale authority even on idempotency replay (134.632042ms)
+✔ invalid sync and source-list checksum rollback while reserved finalizing can sync (123.661833ms)
+✔ sync reused immutable snapshot across another attempt has its own stable receipt (128.46825ms)
+✔ sync concurrent receipt serializes independent pools and conflicts on changed file bytes (141.219459ms)
+✔ immutable snapshots/files/links/imports cannot be changed and cross-project pointers reject (91.322291ms)
+✔ backup restore rehearsal covers prefix5 before 006 and preserved prefix6 after import (581.756ms)
+✔ import limits, duplicate identities and security links fail closed without keys or snapshots (104.829ms)
+✔ distinct case-sensitive paths survive DB, source provenance mapping refuses reassignment (93.476ms)
+✔ transaction failure after import rolls back bytes/events/key and same key retries once (99.22ms)
+✔ same checkout bytes at a new merged commit retain separate immutable provenance (131.915333ms)
+✔ machine revocation racing cached sync waits for identity lock and denies replay (131.884917ms)
+✔ legacy NUL body/heading/link/fragment/audit metadata preserve raw bytes in mixed batch and replay (107.682375ms)
+✔ high-lexeme 672011-byte artifact imports within 1MiB with prefix FTS and full literal fallback (189.665542ms)
+✔ checkout NUL representation does not upgrade structural validity or verification and keeps raw identity (117.680875ms)
+{"level":30,"time":1790923303824,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58331"}
+✔ docs tìm kiếm Unicode original bytes audit labels and actor permissions (279.700875ms)
+{"level":30,"time":1790923304089,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58337"}
+✔ search full literal fallback beyond GIN prefix, escaped wildcard and scoped tie-safe cursor (278.369416ms)
+{"level":30,"time":1790923304369,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58342"}
+✔ docs tree links composite ticket references and verified mixed standard-page completion reader (318.123541ms)
+{"level":30,"time":1790923304678,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58348"}
+✔ search SQL deadline cancels blocked query and returns reusable single-connection pool (2261.589709ms)
+ℹ {"containerId":"ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09","db":"crew_v2_test_90789fd4600d44bfbd9df5a868f2c4ef","port":"57949"}
+ℹ {"containerId":"ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09","db":"crew_v2_test_90789fd4600d44bfbd9df5a868f2c4ef","port":"57949","backendPid":385,"sameConnectionReused":true}
+{"level":30,"time":1790923306987,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58365"}
+✔ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (290.763416ms)
+✔ hash bytes keeps CRLF and Unicode, snapshot hash is order independent and class sensitive (0.613916ms)
+✔ snapshot hash rejects noncanonical base64 and duplicate exact paths (0.136625ms)
+✔ source tree hash is stable for path order and changes when a tracked path changes (0.036083ms)
+✔ bundle hash excludes its own digest field and covers backup provenance (0.052833ms)
+✔ valid standard snapshot is structurally valid but legacy source tree is unverified (0.437833ms)
+✔ CLAUDE redirect rejects extra blank lines (0.264708ms)
+✔ checkout source coverage finds unmapped source and dotfiles (0.352917ms)
+✔ duplicate YAML keys, wrong heading order and stale generated block are errors (0.620208ms)
+✔ manifest rejects dangerous keys, missing mapped sources and unexpected fields (0.726542ms)
+✔ case-sensitive filenames, traversal and invalid UTF8 are detected without changing bytes (0.227209ms)
+✔ workflow artifacts retain their class and standard pages cannot be artifacts (0.312834ms)
+✔ repeated links and fragments keep distinct occurrence and missing status (0.213959ms)
+✔ reference links and images resolve, code links are ignored and escapes fail (0.20825ms)
+✔ relative parent link inside docs and duplicate heading suffixes resolve (0.193292ms)
+✔ missing workflow artifact warns, unsupported heading slug stays unverified (0.19625ms)
+✔ nested Markdown link is flagged as unverified syntax (0.171084ms)
+✔ inline-code label and shortcut reference retain broken link occurrences and original hrefs (0.237083ms)
+✔ unsupported link-like syntax warns instead of silently claiming full audit (0.168958ms)
+✔ artifact-only snapshot passes integrity audit without STANDARD pages; mixed subset still requires them (0.328625ms)
+✔ every numbered step in actual Các bước section needs file and symbol (0.34425ms)
+✔ fenced heading examples do not change the required flow heading sequence (0.179667ms)
+✔ empty numbered marker in Các bước is audited as an invalid step (0.198833ms)
+✔ task-list checkboxes do not consume link occurrences or create link warnings (0.208583ms)
+✔ task-list marker variants preserve real link and shortcut occurrences (1.622917ms)
+✔ execution event whitelist accepts identifiers and rejects sensitive result data (0.08075ms)
+✔ gateway migration 007 có prefix riêng và checksum replay (98.315875ms)
+{"level":30,"time":1790923307352,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58372"}
+✔ gateway boot và heartbeat dùng auth thật, giữ execution namespace bất biến (282.078334ms)
+{"level":30,"time":1790923307631,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58377"}
+✔ gateway config CAS, URL allowlist, CSRF và schema đóng (260.296125ms)
+{"level":30,"time":1790923307891,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58386"}
+✔ gateway boot CAS giữ lịch sử, receipt bất biến và trạng thái hiện tại (272.357584ms)
+{"level":30,"time":1790923308163,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58393"}
+✔ gateway install report xác nhận exact source/projection và giữ applied qua partial, retired replay (287.961583ms)
+{"level":30,"time":1790923308449,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58398"}
+✔ gateway management command cursor, ACK mất phản hồi/gửi lại không hạ trạng thái completed (262.487959ms)
+{"level":30,"time":1790923308717,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58404"}
+✔ gateway projection production fail-closed trước khi tạo companion (297.157666ms)
+{"level":30,"time":1790923309008,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58410"}
+✔ gateway projection server selection bắt buộc, row bất biến, replay cùng pin sau update (317.45025ms)
+{"level":30,"time":1790923309326,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58415"}
+✔ gateway fresh claim từ chối report cũ, config tắt, thiếu decision, payload đổi trước RELEASE (342.093375ms)
+{"level":30,"time":1790923309666,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58420"}
+{"level":30,"time":1790923309779,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58424"}
+✔ gateway receipt tồn tại qua close/reopen pool, auth revoked/rotated không đọc cached response (312.112ms)
+{"level":30,"time":1790923310000,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58431"}
+✔ gateway machine scope không làm lỏng project ACL, status offline không nhả execution guard (352.530625ms)
+{"level":30,"time":1790923310341,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58437"}
+✔ gateway install report exact derivation/source payload, partial runtime, stale config và sanitization (301.46025ms)
+gateway-owned-fixture {"containerId":"ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09","port":"57949","source":"crew_v2_test_55e75b662c1b4c5fa8495914ba1bd871"}
+{"level":30,"time":1790923310861,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58452"}
+{"level":30,"time":1790923311217,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58457"}
+✔ gateway migration007 FK/CHECK/UNIQUE và backup6→restore→migrate7→restore receipts (825.93025ms)
+✔ gateway event metadata từ chối secrets, trường dư và audience sai (0.262584ms)
+{"level":30,"time":1790923311469,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58461"}
+✔ gateway inventory từ chối URL có credential trước khi lưu (248.902166ms)
+{"level":30,"time":1790923311726,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58467"}
+✔ gateway cùng transaction recheck actual token trước cached boots/heartbeat/report/ack/projection (360.351542ms)
+{"level":30,"time":1790923312070,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58484"}
+✔ gateway owner session expire giữa prehandler và cached config vẫn từ chối (262.729041ms)
+{"level":30,"time":1790923312346,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58492"}
+✔ gateway authorization tại claim giữ pair khi update xảy ra trước insert companion (308.726125ms)
+{"level":30,"time":1790923312640,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58498"}
+✔ gateway heartbeat ngoài thứ tự và replay đồng thời (248.828584ms)
+{"level":30,"time":1790923312894,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58507"}
+✔ gateway fresh claim từ chối projection null và report partial mới nhất dù có applied cũ (317.764417ms)
+{"level":30,"time":1790923313209,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58513"}
+✔ gateway ACK nhận nested/string details, từ chối secret/path (251.929291ms)
+{"level":30,"time":1790923313461,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58519"}
+✔ gateway mọi desired runtime khác null đều bắt buộc trước advance applied (262.89075ms)
+✔ máy cũ không nhận event commit sau khi scope đã đọc nhưng binding đổi (76.874542ms)
+✔ canonical JSON ổn định theo thứ tự key và từ chối dữ liệu không phải JSON (0.179375ms)
+✔ retry concurrent chỉ ghi một event và trả cùng body (61.125083ms)
+✔ rollback không để lại response hoặc cursor đã tiêu thụ (59.500333ms)
+✔ cursor được phát theo thứ tự commit của hai kết nối (63.254542ms)
+✔ scope máy chỉ nhận audience riêng, không nhận global hay project lạ (59.308917ms)
+✔ journal từ chối token/password lồng trong dữ liệu và event type lạ (57.209959ms)
+✔ response codec quyết định dữ liệu được lưu và giải mã khi replay (58.414958ms)
+✔ SSE xác thực trước stream và nối lại sau restart từ Last-Event-ID (67.977291ms)
+✔ event read từ chối query lạ và cursor không hợp lệ (53.288583ms)
+✔ event read trả items và cursor cuối cùng của trang (59.898208ms)
+model-fixture-container {"containerId":"ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09","url":"postgres://postgres@127.0.0.1:57949/crew_v2_test"}
+{"level":30,"time":1790923314471,"pid":39440,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58560"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (322.13175ms)
+✔ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (523.5825ms)
+✔ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (522.053334ms)
+✔ model pool migration creates separate config and immutable report authority (87.132292ms)
+model owned fixture ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09 postgres://postgres@127.0.0.1:57949/crew_v2_test
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (280.725625ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (269.836666ms)
+✔ model report shared order historical immutable replay and production host PASS stays unverified (332.650667ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (299.354084ms)
+✔ sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK (307.343542ms)
+✔ model source events reject secret metadata and wrong audience without leaking inventory (0.320917ms)
+✔ model HTTP cached mutation rechecks actual token after authentication before journal cache (279.732292ms)
+✔ fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate (298.87475ms)
+model-backup-owned {"containerId":"ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09","port":"57949","sourceDb":"crew_v2_test_06a677751b364aa5b73ab0f758e74f8c","restoredName":"crew_v2_test_0b5e6a0cfd86455ebdb345bf6cb7ac42"}
+model-backup-cleaned {"sourceDb":"crew_v2_test_06a677751b364aa5b73ab0f758e74f8c","restoredName":"crew_v2_test_0b5e6a0cfd86455ebdb345bf6cb7ac42"}
+✔ model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift (887.975917ms)
+✔ model secret key proof encrypted provisioning and lost ACK replay erase ciphertext exactly once (312.025417ms)
+✔ model secret rotation scopes pending envelopes to own machine and rejects stale key/revision ACK (308.933459ms)
+✔ model secret envelope pagination uses a durable decimal cursor so reconnect cannot miss a new random UUID (249.401167ms)
+✔ production app real HTTP secret rejection and structured logger redact plaintext (647.610917ms)
+✔ FIX1 R2 older pending ack cannot rewind newer stored credential (404.167958ms)
+✔ FIX1 R2 older pending loss cannot rewind newer stored credential (368.03625ms)
+✔ FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history (392.159583ms)
+✔ FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key (310.841375ms)
+✔ FIX1 revision invalidation detaches current operation and old receipts preserve new credential (320.700833ms)
+✔ không dùng DB v1 hoặc port DB dùng chung (0.272833ms)
+✔ migration chạy lại và giữ dữ liệu (56.226458ms)
+✔ hai lượt migration đồng thời giữ một bản ghi mỗi version (53.912042ms)
+✔ captureMigrations từ chối prefix chưa có file SQL (1.124833ms)
+✔ fixture tạo logical DB đã migrate trước callback (52.077625ms)
+✔ cấu hình hợp lệ giữ khóa 32 byte và DB v2 riêng (0.165125ms)
+✔ DB client từ chối endpoint dùng chung trước khi tạo pool (0.074375ms)
+✔ migration từ chối database có bảng lạ trước khi ghi schema (53.063791ms)
+✔ fixture từ chối URL không khớp container do runner tạo (19.026125ms)
+✔ migration lỗi SQL rollback toàn bộ schema (52.0365ms)
+✔ migration checksum drift bị chặn và không sửa dữ liệu (58.746708ms)
+✔ migration set đã chụp không đổi khi file SQL đổi sau đó (52.733958ms)
+✔ backup và restore trong container test giữ marker và dữ liệu (218.891167ms)
+✔ binding concurrent cùng revision chỉ một request thành công (182.339666ms)
+✔ binding từ chối đổi máy khi đã bound và từ chối máy revoked (176.572792ms)
+✔ project từ chối URL có userinfo và giới hạn phân trang vượt 100 (157.290584ms)
+✔ project key trùng báo conflict rõ ràng và không tạo thêm project (170.813125ms)
+✔ project list phân trang ổn định và chỉ machine bound đọc event dự án (186.814417ms)
+✔ binding guard cho phép đổi máy sau đối chiếu và xóa commit checkout cũ (170.902417ms)
+✔ repair review counts only completed repair failures and fifth requests terminal intent (146.327583ms)
+✔ ticket metadata events accept exact fields and reject content (0.2025ms)
+✔ hierarchy schema stores a request root and rejects self dependency (62.912167ms)
+✔ machine cannot record an owner answer to unlock a repair limit (84.340791ms)
+✔ docs links fail closed until a verified snapshot reader is supplied (79.30975ms)
+✔ ticket criteria rejects inherited-key payloads before persistence (78.5925ms)
+✔ comment during running is durable timeline data without changing execution status (82.951666ms)
+✔ ticket route rejects unknown JSON fields before mutation (75.979167ms)
+ℹ tests 215
+ℹ suites 0
+ℹ pass 215
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 40607.3265

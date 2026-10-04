@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "node",
+    "--test",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-fix1-acede42e-dff5-4415-a395-710cae0ecc5b/v2/gateway/test/isolation-workspace.test.ts"
+  ],
+  "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-fix1-acede42e-dff5-4415-a395-710cae0ecc5b/v2/gateway",
+  "NODE_OPTIONS": "--loader=/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/external-loader.mjs",
+  "CREW_ISOLATION_SKIP_DISCOVERY": "1",
+  "exit": 1,
+  "seconds": 10.106008874999999
+}

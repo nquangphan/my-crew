@@ -1,0 +1,15 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-terminal-selection-green-rya9rd7i/v2/server", "exec", "node", "--test", "--test-name-pattern=nonterminal", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-terminal-selection-green-rya9rd7i/v2/server/test/attachments-submissions.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-9e1356bc-acd1-4751-a01c-dbbd2e250db8", "--label", "crew.phase05.task2b=ae791033-c9ec-4721-9501-8c981b3eff91", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "5d326927d848eef14671ef4c0b4a5082b1fc0b55648db7e3b93df343fcc96845", "name": "crew-v2-test-9e1356bc-acd1-4751-a01c-dbbd2e250db8", "mapping": "127.0.0.1:63095"}
+attachment DB container 5d326927d848eef14671ef4c0b4a5082b1fc0b55648db7e3b93df343fcc96845 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kKJgPO
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kKJgPO nonceSha256=bc05449ffe29619c437814f97a4a484b93c06725faeb0b210af558bbc4f4a7cc
+attachment DB scratch identity dev=16777229 ino=63966300 uid=501 pid=61317
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kKJgPO
+✔ attachment submission ready row with nonterminal receiver cannot release quota or retain original (398.721667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 495.802083

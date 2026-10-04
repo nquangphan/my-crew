@@ -1,0 +1,12 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=assistant runtime schemas", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-runtime-schema-green-1-aq3ueuip/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": [], "id": "", "name": "", "mapping": ""}
+✔ assistant runtime schemas reject overflowing persisted counters without coercion (48.912625ms)
+✔ assistant runtime schemas validate every serializable DTO and discriminated routing variant (175.187709ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 291.949041

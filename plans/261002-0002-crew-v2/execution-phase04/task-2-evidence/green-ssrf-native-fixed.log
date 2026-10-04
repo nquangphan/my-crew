@@ -1,0 +1,19 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (0.999917ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.058416ms)
+✔ credential broker native bridge rejects unverified helper before any keychain access (0.196792ms)
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.726125ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (2.942375ms)
+✔ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (1.5785ms)
+✔ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (17.003584ms)
+✔ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.3225ms)
+✔ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.376792ms)
+✔ model probe stream parser requires complete bounded framing and exact model (0.206791ms)
+✔ model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model (0.254125ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 106.126916

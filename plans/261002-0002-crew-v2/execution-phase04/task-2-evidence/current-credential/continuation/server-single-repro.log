@@ -1,0 +1,29 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-5519096b-77ff-464d-8a98-4fc52554dc20/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task2-current-5519096b-77ff-464d-8a98-4fc52554dc20/v2/server/test/api-acceptance.test.ts --test-name-pattern 'HTTP bounded docs upload'
+
+{"level":30,"time":1790931373831,"pid":53698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49915"}
+✖ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (608.656667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 808.198708
+
+✖ failing tests:
+
+test at test/api-acceptance.test.ts:799:1
+✖ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (608.656667ms)
+  [TypeError: fetch failed] {
+    [cause]: Error: write EPIPE
+        at WriteWrap.onWriteComplete [as oncomplete] (node:internal/stream_base_commons:87:19) {
+      errno: -32,
+      code: 'EPIPE',
+      syscall: 'write'
+    }
+  }
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

@@ -1,0 +1,673 @@
+v2/server/src/models/catalog.ts:219:14 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    217 │     else if (row.status !== 'pass') reason = String(row.error_code ?? 'UNVERIFIED');
+    218 │     else if ((row.expires_at as Date).getTime() <= now.getTime()) reason = 'PROBE_EXPIRED';
+  > 219 │     else if (!cert || cert.status !== 'PASS' || (cert.expires_at as Date).getTime() <= now.getTime())
+        │              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    220 │       reason = 'CERTIFICATION_UNVERIFIED';
+    221 │     const probe = row
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    217 217 │       else if (row.status !== 'pass') reason = String(row.error_code ?? 'UNVERIFIED');
+    218 218 │       else if ((row.expires_at as Date).getTime() <= now.getTime()) reason = 'PROBE_EXPIRED';
+    219     │ - ····else·if·(!cert·||·cert.status·!==·'PASS'·||·(cert.expires_at·as·Date).getTime()·<=·now.getTime())
+        219 │ + ····else·if·(cert?.status·!==·'PASS'·||·(cert.expires_at·as·Date).getTime()·<=·now.getTime())
+    220 220 │         reason = 'CERTIFICATION_UNVERIFIED';
+    221 221 │       const probe = row
+  
+
+v2/server/src/models/catalog.ts:81:60 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    79 │   for (const p of r.body.entries) {
+    80 │     const key = hash(p.key);
+  > 81 │     if (p.key.machineId !== machineId || keys.has(key) || !check.config!.enabled[p.key.runtime])
+       │                                                            ^^^^^^^^^^^^^
+    82 │       fail('MODEL_SCOPE_MISMATCH');
+    83 │     keys.add(key);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     79  79 │     for (const p of r.body.entries) {
+     80  80 │       const key = hash(p.key);
+     81     │ - ····if·(p.key.machineId·!==·machineId·||·keys.has(key)·||·!check.config!.enabled[p.key.runtime])
+         81 │ + ····if·(p.key.machineId·!==·machineId·||·keys.has(key)·||·!check.config?.enabled[p.key.runtime])
+     82  82 │         fail('MODEL_SCOPE_MISMATCH');
+     83  83 │       keys.add(key);
+  
+
+v2/server/src/models/catalog.ts:85:24 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    83 │     keys.add(key);
+    84 │     if (p.key.runtime === 'api') {
+  > 85 │       const provider = check.config!.apiProviders.find((a) => a.id === p.key.providerId);
+       │                        ^^^^^^^^^^^^^
+    86 │       if (!provider || !provider.models.some((m) => m.id === p.key.modelId)) fail('MODEL_NOT_DECLARED');
+    87 │     }
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     83  83 │       keys.add(key);
+     84  84 │       if (p.key.runtime === 'api') {
+     85     │ - ······const·provider·=·check.config!.apiProviders.find((a)·=>·a.id·===·p.key.providerId);
+         85 │ + ······const·provider·=·check.config?.apiProviders.find((a)·=>·a.id·===·p.key.providerId);
+     86  86 │         if (!provider || !provider.models.some((m) => m.id === p.key.modelId)) fail('MODEL_NOT_DECLARED');
+     87  87 │       }
+  
+
+v2/server/src/models/catalog.ts:124:12 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    122 │     for (const s of sources) {
+    123 │       const status = r.body.sourceStatus[s];
+  > 124 │       if (!check.config!.enabled[s] !== (status.state === 'disabled')) fail('SOURCE_STATUS_MISMATCH');
+        │            ^^^^^^^^^^^^^
+    125 │       const entries = (inventory.body as ModelInventoryBody).entries.filter((p) => p.key.runtime === s);
+    126 │       if (status.state === 'ready' && (!entries.length || entries.some((p) => p.status === 'fail')))
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    122 122 │       for (const s of sources) {
+    123 123 │         const status = r.body.sourceStatus[s];
+    124     │ - ······if·(!check.config!.enabled[s]·!==·(status.state·===·'disabled'))·fail('SOURCE_STATUS_MISMATCH');
+        124 │ + ······if·(!check.config?.enabled[s]·!==·(status.state·===·'disabled'))·fail('SOURCE_STATUS_MISMATCH');
+    125 125 │         const entries = (inventory.body as ModelInventoryBody).entries.filter((p) => p.key.runtime === s);
+    126 126 │         if (status.state === 'ready' && (!entries.length || entries.some((p) => p.status === 'fail')))
+  
+
+v2/server/src/models/catalog.ts:300:35 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    298 │     entry.probeContextSha256 !== choice.probeContextSha256 ||
+    299 │     !entry.probe ||
+  > 300 │     !choice.required.every((c) => entry.probe!.capabilities.includes(c)) ||
+        │                                   ^^^^^^^^^^^^
+    301 │     entry.installReportId !== payload.selection.installReportId ||
+    302 │     workflow?.revision !== payload.selection.configRevision ||
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    298 298 │       entry.probeContextSha256 !== choice.probeContextSha256 ||
+    299 299 │       !entry.probe ||
+    300     │ - ····!choice.required.every((c)·=>·entry.probe!.capabilities.includes(c))·||
+        300 │ + ····!choice.required.every((c)·=>·entry.probe?.capabilities.includes(c))·||
+    301 301 │       entry.installReportId !== payload.selection.installReportId ||
+    302 302 │       workflow?.revision !== payload.selection.configRevision ||
+  
+
+v2/server/src/models/catalog.ts:86:11 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    84 │     if (p.key.runtime === 'api') {
+    85 │       const provider = check.config!.apiProviders.find((a) => a.id === p.key.providerId);
+  > 86 │       if (!provider || !provider.models.some((m) => m.id === p.key.modelId)) fail('MODEL_NOT_DECLARED');
+       │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    87 │     }
+    88 │     if (!['claude', 'codex'].includes(p.key.providerId) && p.key.runtime !== 'api')
+  
+  i Unsafe fix: Change to an optional chain.
+  
+     84  84 │       if (p.key.runtime === 'api') {
+     85  85 │         const provider = check.config!.apiProviders.find((a) => a.id === p.key.providerId);
+     86     │ - ······if·(!provider·||·!provider.models.some((m)·=>·m.id·===·p.key.modelId))·fail('MODEL_NOT_DECLARED');
+         86 │ + ······if·(!provider?.models.some((m)·=>·m.id·===·p.key.modelId))·fail('MODEL_NOT_DECLARED');
+     87  87 │       }
+     88  88 │       if (!['claude', 'codex'].includes(p.key.providerId) && p.key.runtime !== 'api')
+  
+
+v2/server/src/models/config.ts:98:10 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+     96 │   await modelEvent(tx, machineId, 'source.desired', { revision });
+     97 │   await modelEvent(tx, machineId, 'gateway.command.created', { commandId: id, type: 'sync_models' });
+   > 98 │   return (await readSourceConfig(tx, machineId))!;
+        │          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     99 │ }
+    100 │ 
+  
+
+v2/server/src/models/secret-envelopes.ts:22:22 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    20 │   SecretInput,
+    21 │ } from './contracts.ts';
+  > 22 │ import { fail, hash, json, receiptExpiry } from './helpers.ts';
+       │                      ^^^^
+    23 │ 
+    24 │ function publicKey(encoded: string) {
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    22 │ import·{·fail,·hash,·json,·receiptExpiry·}·from·'./helpers.ts';
+       │                      ------                                    
+
+v2/server/test/model-certification.test.ts:99:31 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+     97 │           throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
+     98 │         const [c] = await tx`select payload from commands where id=${ch.admitted_command_id}`;
+   > 99 │         return (c?.payload as any).selection as DispatchSelection;
+        │                               ^^^
+    100 │       },
+    101 │     };
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:204:43 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    202 │       assert.equal(first.statusCode, 201, first.text);
+    203 │       const a = first.json<any>();
+  > 204 │       assert.equal((await s.claim()).json<any>().id, a.id);
+        │                                           ^^^
+    205 │       const [ch] = await db`select * from model_certification_challenges where id=${challenge.id}`;
+    206 │       assert.equal(ch?.state, 'admitted');
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:288:29 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    286 │         processInstanceId: randomUUID(),
+    287 │         permit: {
+  > 288 │           commandId: b.json<any>().id,
+        │                             ^^^
+    289 │           ticketId: s.tickets.b.id,
+    290 │           machineId: f.machineId,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:58:3 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    56 │   CertificationVerifier,
+    57 │   ModelDispatchChoice,
+  > 58 │   ModelProofVerifier,
+       │   ^^^^^^^^^^^^^^^^^^
+    59 │   ProbeContext,
+    60 │ } from '../src/models/contracts.ts';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     56  56 │     CertificationVerifier,
+     57  57 │     ModelDispatchChoice,
+     58     │ - ··ModelProofVerifier,
+     59  58 │     ProbeContext,
+     60  59 │   } from '../src/models/contracts.ts';
+  
+
+v2/server/test/model-certification.test.ts:62:34 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    60 │ } from '../src/models/contracts.ts';
+    61 │ import { contextHash, hash } from '../src/models/helpers.ts';
+  > 62 │ import type { AuthorizeDispatch, Tx } from '../src/platform/contracts.ts';
+       │                                  ^^
+    63 │ import { ApiError } from '../src/platform/errors.ts';
+    64 │ import { projection, source } from './support/gateway.ts';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    62 │ import·type·{·AuthorizeDispatch,·Tx·}·from·'../src/platform/contracts.ts';
+       │                                  ---                                      
+
+v2/server/test/model-certification.test.ts:64:22 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    62 │ import type { AuthorizeDispatch, Tx } from '../src/platform/contracts.ts';
+    63 │ import { ApiError } from '../src/platform/errors.ts';
+  > 64 │ import { projection, source } from './support/gateway.ts';
+       │                      ^^^^^^
+    65 │ 
+    66 │ const ctx: ProbeContext = {
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    64 │ import·{·projection,·source·}·from·'./support/gateway.ts';
+       │                      -------                              
+
+v2/server/test/model-certification.test.ts:285:74 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    283 │       assert.equal(b.statusCode, 202, b.text);
+    284 │       const now = Date.now();
+  > 285 │       const denied = await f.machine.post(`/v2/machine/commands/${b.json<any>().id}/claim`, {
+        │                                                                          ^^^
+    286 │         processInstanceId: randomUUID(),
+    287 │         permit: {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:154:45 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    152 │       };
+    153 │       assert.equal((await f.machine.post('/v2/machine/models/inventory', inv)).statusCode, 200);
+  > 154 │       const s = await prepareSelection(f as any, db);
+        │                                             ^^^
+    155 │       const [probe] = await db`select id from model_probe_receipts`;
+    156 │       const choice: ModelDispatchChoice = {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:195:31 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    193 │         if (
+    194 │           ch?.state !== 'issued' ||
+  > 195 │           hash((c?.payload as any).certificationAdmission) !==
+        │                               ^^^
+    196 │             hash({ challengeId: challenge.id, nonce: challenge.nonce })
+    197 │         )
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:203:28 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    201 │       const first = await s.claim();
+    202 │       assert.equal(first.statusCode, 201, first.text);
+  > 203 │       const a = first.json<any>();
+        │                            ^^^
+    204 │       assert.equal((await s.claim()).json<any>().id, a.id);
+    205 │       const [ch] = await db`select * from model_certification_challenges where id=${challenge.id}`;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:41:33 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    39 │       assert.equal(desired.json().revision, 1);
+    40 │       assert.deepEqual(desired.json().enabled, enabled);
+  > 41 │       assert.equal(desired.json<any>().apiProviders[0].credentialStatus, 'missing');
+       │                                 ^^^
+    42 │       const commands = await f.machine.get('/v2/gateway/commands');
+    43 │       assert.equal(commands.json<any>().items[0].type, 'sync_models');
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:43:34 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    41 │       assert.equal(desired.json<any>().apiProviders[0].credentialStatus, 'missing');
+    42 │       const commands = await f.machine.get('/v2/gateway/commands');
+  > 43 │       assert.equal(commands.json<any>().items[0].type, 'sync_models');
+       │                                  ^^^
+    44 │       const race = await Promise.all([
+    45 │         f.owner.put(p, { ...input(1), enabled: { ...enabled, claude: false } }),
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:51:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    49 │       const [old] = await db`select state,result from gateway_commands where payload->>'configRevision'='1'`;
+    50 │       assert.equal(old?.state, 'completed');
+  > 51 │       assert.equal((old?.result as any).code, 'SUPERSEDED');
+       │                                    ^^^
+    52 │       assert.equal((await f.request(p, 'PUT', input(2), { cookie: f.identity.cookie })).statusCode, 403);
+    53 │     } finally {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:195:44 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    193 │       );
+    194 │       const partial = applied(auth.reportId, '4');
+  > 195 │       delete (partial.body.sourceStatus as any).api;
+        │                                            ^^^
+    196 │       const pr = await f.machine.post('/v2/machine/models/applied', partial);
+    197 │       assert.equal(pr.statusCode, 200, pr.text);
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:236:30 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    234 │       const pool = await f.owner.get(`/v2/machines/${f.machineId}/models?workflow=superpowers`);
+    235 │       assert.equal(pool.statusCode, 200, pool.text);
+  > 236 │       assert.equal(pool.json<any>().items[0].available, false);
+        │                              ^^^
+    237 │       assert.equal(pool.json<any>().items[0].reason, 'MODEL_CONFIG_PENDING');
+    238 │       assert.equal(
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:237:30 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    235 │       assert.equal(pool.statusCode, 200, pool.text);
+    236 │       assert.equal(pool.json<any>().items[0].available, false);
+  > 237 │       assert.equal(pool.json<any>().items[0].reason, 'MODEL_CONFIG_PENDING');
+        │                              ^^^
+    238 │       assert.equal(
+    239 │         (
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:261:29 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    259 │       const boot = await setup(f);
+    260 │       const list = await f.machine.get('/v2/gateway/commands'),
+  > 261 │         command = list.json<any>().items.find((c: any) => c.type === 'sync_models');
+        │                             ^^^
+    262 │       const r = await f.machine.post(`/v2/machine/model-commands/${command.id}/ack`, {
+    263 │         phase: 'completed',
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:261:51 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    259 │       const boot = await setup(f);
+    260 │       const list = await f.machine.get('/v2/gateway/commands'),
+  > 261 │         command = list.json<any>().items.find((c: any) => c.type === 'sync_models');
+        │                                                   ^^^
+    262 │       const r = await f.machine.post(`/v2/machine/model-commands/${command.id}/ack`, {
+    263 │         phase: 'completed',
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-pool.test.ts:97:42 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    95 │ import { createHash } from 'node:crypto';
+    96 │ import { canonicalJson } from '../src/journal/canonical.ts';
+  > 97 │ import { nextConfig, projection, report, source } from './support/gateway.ts';
+       │                                          ^^^^^^
+    98 │ 
+    99 │ const digest = (v: unknown) => createHash('sha256').update(canonicalJson(v)).digest('hex');
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    97 │ import·{·nextConfig,·projection,·report,·source·}·from·'./support/gateway.ts';
+       │                                          -------                              
+
+v2/server/test/model-secret.test.ts:18:22 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    17 │ const hash = (s: string) => createHash('sha256').update(s).digest('hex');
+  > 18 │ function decode(box: any, key: KeyObject, aad: unknown) {
+       │                      ^^^
+    19 │   const shared = diffieHellman({
+    20 │     privateKey: key,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-secret.test.ts:61:27 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    59 │       });
+    60 │       assert.equal(reg.statusCode, 200, reg.text);
+  > 61 │       const ch = reg.json<any>();
+       │                           ^^^
+    62 │       const nonce = decode(ch.encryptedChallenge, keys.privateKey, {
+    63 │         machineId: f.machineId,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-secret.test.ts:97:32 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    95 │       const envelopes = await f.machine.get('/v2/machine/api-secret-envelopes');
+    96 │       assert.equal(envelopes.statusCode, 200, envelopes.text);
+  > 97 │       const e = envelopes.json<any>().items[0];
+       │                                ^^^
+    98 │       assert.ok(e);
+    99 │       const aad = {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-secret.test.ts:172:29 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    170 │         });
+    171 │         assert.equal(reg.statusCode, 200, reg.text);
+  > 172 │         const ch = reg.json<any>();
+        │                             ^^^
+    173 │         const nonce = decode(ch.encryptedChallenge, keys.privateKey, {
+    174 │           machineId: f.machineId,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-secret.test.ts:207:30 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    205 │       );
+    206 │       const foreign = await f.owner.post('/v2/machines', { name: 'foreign' });
+  > 207 │       const t = foreign.json<any>().token;
+        │                              ^^^
+    208 │       assert.equal(
+    209 │         (
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-secret.test.ts:213:16 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    211 │             authorization: `Bearer ${t}`,
+    212 │           })
+  > 213 │         ).json<any>().items.length,
+        │                ^^^
+    214 │         0,
+    215 │       );
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-secret.test.ts:216:80 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    214 │         0,
+    215 │       );
+  > 216 │       const e = (await f.machine.get('/v2/machine/api-secret-envelopes')).json<any>().items[0];
+        │                                                                                ^^^
+    217 │       const ack = {
+    218 │         operationId,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/server/test/model-certification.test.ts:99:18 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+     97 │           throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
+     98 │         const [c] = await tx`select payload from commands where id=${ch.admitted_command_id}`;
+   > 99 │         return (c?.payload as any).selection as DispatchSelection;
+        │                  ^^
+    100 │       },
+    101 │     };
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+     97 │           throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
+     98 │         const [c] = await tx`select payload from commands where id=${ch.admitted_command_id}`;
+   > 99 │         return (c?.payload as any).selection as DispatchSelection;
+        │                                    ^^^^^^^^^
+    100 │       },
+    101 │     };
+  
+
+v2/server/test/model-certification.test.ts:195:18 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    193 │         if (
+    194 │           ch?.state !== 'issued' ||
+  > 195 │           hash((c?.payload as any).certificationAdmission) !==
+        │                  ^^
+    196 │             hash({ challengeId: challenge.id, nonce: challenge.nonce })
+    197 │         )
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    193 │         if (
+    194 │           ch?.state !== 'issued' ||
+  > 195 │           hash((c?.payload as any).certificationAdmission) !==
+        │                                    ^^^^^^^^^^^^^^^^^^^^^^
+    196 │             hash({ challengeId: challenge.id, nonce: challenge.nonce })
+    197 │         )
+  
+
+v2/server/test/model-pool.test.ts:51:24 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    49 │       const [old] = await db`select state,result from gateway_commands where payload->>'configRevision'='1'`;
+    50 │       assert.equal(old?.state, 'completed');
+  > 51 │       assert.equal((old?.result as any).code, 'SUPERSEDED');
+       │                        ^^
+    52 │       assert.equal((await f.request(p, 'PUT', input(2), { cookie: f.identity.cookie })).statusCode, 403);
+    53 │     } finally {
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    49 │       const [old] = await db`select state,result from gateway_commands where payload->>'configRevision'='1'`;
+    50 │       assert.equal(old?.state, 'completed');
+  > 51 │       assert.equal((old?.result as any).code, 'SUPERSEDED');
+       │                                         ^^^^
+    52 │       assert.equal((await f.request(p, 'PUT', input(2), { cookie: f.identity.cookie })).statusCode, 403);
+    53 │     } finally {
+  
+
+v2/server/test/model-pool.test.ts:158:38 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    156 │       assert.equal(probe?.status, 'unverified');
+    157 │       assert.deepEqual(probe?.capabilities, []);
+  > 158 │       const originalReceived = (probe?.received_at as Date).getTime();
+        │                                      ^^
+    159 │       assert.ok((probe?.expires_at as Date).getTime() < Date.parse('2099-01-01'));
+    160 │       const replay = await f.machine.post('/v2/machine/models/inventory', r);
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    156 │       assert.equal(probe?.status, 'unverified');
+    157 │       assert.deepEqual(probe?.capabilities, []);
+  > 158 │       const originalReceived = (probe?.received_at as Date).getTime();
+        │                                                             ^^^^^^^
+    159 │       assert.ok((probe?.expires_at as Date).getTime() < Date.parse('2099-01-01'));
+    160 │       const replay = await f.machine.post('/v2/machine/models/inventory', r);
+  
+
+v2/server/test/model-pool.test.ts:159:23 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    157 │       assert.deepEqual(probe?.capabilities, []);
+    158 │       const originalReceived = (probe?.received_at as Date).getTime();
+  > 159 │       assert.ok((probe?.expires_at as Date).getTime() < Date.parse('2099-01-01'));
+        │                       ^^
+    160 │       const replay = await f.machine.post('/v2/machine/models/inventory', r);
+    161 │       assert.deepEqual(replay.json(), first.json());
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    157 │       assert.deepEqual(probe?.capabilities, []);
+    158 │       const originalReceived = (probe?.received_at as Date).getTime();
+  > 159 │       assert.ok((probe?.expires_at as Date).getTime() < Date.parse('2099-01-01'));
+        │                                             ^^^^^^^
+    160 │       const replay = await f.machine.post('/v2/machine/models/inventory', r);
+    161 │       assert.deepEqual(replay.json(), first.json());
+  
+
+v2/server/test/model-pool.test.ts:217:26 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    215 │       const [after] =
+    216 │         await db`select received_at from model_probe_receipts where inventory_report_id=${r.reportId}`;
+  > 217 │       assert.equal((after?.received_at as Date).getTime(), originalReceived);
+        │                          ^^
+    218 │       await db`update machines set revoked_at=now() where id=${f.machineId}`;
+    219 │       assert.equal((await f.machine.post('/v2/machine/models/inventory', r)).statusCode, 401);
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    215 │       const [after] =
+    216 │         await db`select received_at from model_probe_receipts where inventory_report_id=${r.reportId}`;
+  > 217 │       assert.equal((after?.received_at as Date).getTime(), originalReceived);
+        │                                                 ^^^^^^^
+    218 │       await db`update machines set revoked_at=now() where id=${f.machineId}`;
+    219 │       assert.equal((await f.machine.post('/v2/machine/models/inventory', r)).statusCode, 401);
+  
+
+Checked 13 files in 9ms. No fixes applied.
+Found 6 errors.
+Found 34 warnings.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

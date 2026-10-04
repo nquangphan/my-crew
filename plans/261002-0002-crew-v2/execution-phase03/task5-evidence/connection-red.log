@@ -1,0 +1,36 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vSXsHk","device":"16777229","inode":"63489278","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-vSXsHk","device":"16777229","inode":"63489278","uid":501,"deleted":true}
+✖ sync boot and heartbeat preserve immutable operations through lost reply/reopen (25.035958ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 103.752083
+
+✖ failing tests:
+
+test at test/connection.test.ts:7:1
+✖ sync boot and heartbeat preserve immutable operations through lost reply/reopen (25.035958ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /LOST_REPLY/. Input:
+  
+  'Error: CONNECTION_NOT_IMPLEMENTED'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/connection.test.ts:11:6)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: CONNECTION_NOT_IMPLEMENTED
+        at GatewayConnection.boot (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/sync/connection.ts:3:77)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/connection.test.ts:11:38)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3),
+    expected: /LOST_REPLY/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

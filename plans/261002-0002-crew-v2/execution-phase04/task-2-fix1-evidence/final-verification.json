@@ -1,0 +1,105 @@
+{
+  "runs": {
+    "red": {
+      "summary": [
+        "\u2139 tests 24",
+        "\u2139 suites 0",
+        "\u2139 pass 18",
+        "\u2139 fail 6",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 619.9625"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    },
+    "green": {
+      "summary": [
+        "\u2139 tests 24",
+        "\u2139 suites 0",
+        "\u2139 pass 24",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 672.950083"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    },
+    "compat-red": {
+      "summary": [
+        "\u2139 tests 25",
+        "\u2139 suites 0",
+        "\u2139 pass 24",
+        "\u2139 fail 1",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 688.235166"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    },
+    "compat-green": {
+      "summary": [
+        "\u2139 tests 25",
+        "\u2139 suites 0",
+        "\u2139 pass 25",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 697.070083"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    },
+    "state-red": {
+      "summary": [
+        "\u2139 tests 25",
+        "\u2139 suites 0",
+        "\u2139 pass 24",
+        "\u2139 fail 1",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 672.247709"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    },
+    "preflight": {
+      "summary": [
+        "\u2139 tests 26",
+        "\u2139 suites 0",
+        "\u2139 pass 26",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 735.938334"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    },
+    "final": {
+      "summary": [
+        "\u2139 tests 113",
+        "\u2139 suites 0",
+        "\u2139 pass 113",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 75087.122792"
+      ],
+      "ownedSnapshotRemoved": true,
+      "sourceStable": true
+    }
+  },
+  "workingOwnedChanges": [],
+  "sourceCount": 23,
+  "migration008Sha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"
+}

@@ -1,0 +1,3844 @@
+e94f2e1 feat(v2): add model source pool and encrypted provisioning
+628edd5 docs(v2): record parallel attachment storage execution
+ccb3498 docs(v2): approve audited Codex native artifact recipe
+17a6a8c docs(v2): close deferred fixture review finding
+29d626d test(v2): assert HTTP fixture prerequisites explicitly
+e638615 docs(v2): accept gateway control plane and start model pool
+ v2/docs/files.md                              |  15 +
+ v2/docs/flows.yaml                            |  21 +
+ v2/docs/flows/server-docs-view.md             |   4 +
+ v2/docs/flows/server-journal.md               |   2 +
+ v2/docs/flows/server-models.md                |  57 +++
+ v2/docs/flows/server-platform.md              |   2 +
+ v2/docs/index.md                              |   1 +
+ v2/server/migrations/008_model_pool.sql       | 169 ++++++++
+ v2/server/src/app.ts                          |   5 +
+ v2/server/src/journal/event-contracts.ts      |  14 +-
+ v2/server/src/models/catalog.ts               | 346 ++++++++++++++++
+ v2/server/src/models/certification.ts         | 161 ++++++++
+ v2/server/src/models/commands.ts              |  28 ++
+ v2/server/src/models/config.ts                | 118 ++++++
+ v2/server/src/models/contracts.ts             | 301 ++++++++++++++
+ v2/server/src/models/helpers.ts               |  33 ++
+ v2/server/src/models/routes.ts                | 281 +++++++++++++
+ v2/server/src/models/secret-envelopes.ts      | 209 ++++++++++
+ v2/server/test/model-certification.test.ts    | 480 ++++++++++++++++++++++
+ v2/server/test/model-pool.test.ts             | 564 ++++++++++++++++++++++++++
+ v2/server/test/model-secret.test.ts           | 342 ++++++++++++++++
+ v2/server/test/support/model-certification.ts |  46 +++
+ v2/server/test/support/model-http.ts          | 174 ++++++++
+ v2/server/test/support/model-observer.ts      |  67 +++
+ 24 files changed, 3439 insertions(+), 1 deletion(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 59fa9d0..308b8cf 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -60,20 +60,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/tsconfig.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+ | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+ | `server/migrations/004_tickets.sql` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/migrations/005_execution.sql` | [server-execution](flows/server-execution.md) (file) |
+ | `server/migrations/006_docs.sql` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/migrations/007_gateway.sql` | [server-gateway](flows/server-gateway.md) (file) |
++| `server/migrations/008_model_pool.sql` | [server-models](flows/server-models.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+ | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/auth/session.ts` | [server-identity](flows/server-identity.md) (file) |
+@@ -95,20 +96,28 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/execution/routes.ts` | [server-execution](flows/server-execution.md) (điểm vào) |
+ | `server/src/gateway/contracts.ts` | [server-gateway](flows/server-gateway.md) (file) |
+ | `server/src/gateway/routes.ts` | [server-gateway](flows/server-gateway.md) (điểm vào) |
+ | `server/src/gateway/service.ts` | [server-gateway](flows/server-gateway.md) (file) |
+ | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
+ | `server/src/main.ts` | [server-docs-view](flows/server-docs-view.md) (file) |
++| `server/src/models/catalog.ts` | [server-models](flows/server-models.md) (file) |
++| `server/src/models/certification.ts` | [server-models](flows/server-models.md) (file) |
++| `server/src/models/commands.ts` | [server-models](flows/server-models.md) (file) |
++| `server/src/models/config.ts` | [server-models](flows/server-models.md) (file) |
++| `server/src/models/contracts.ts` | [server-models](flows/server-models.md) (file) |
++| `server/src/models/helpers.ts` | [server-models](flows/server-models.md) (file) |
++| `server/src/models/routes.ts` | [server-models](flows/server-models.md) (điểm vào) |
++| `server/src/models/secret-envelopes.ts` | [server-models](flows/server-models.md) (file) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/tickets/authorization.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/completion.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
+@@ -129,29 +138,35 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/test/docs-events.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/docs-import-cli.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/docs-import.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/docs-read.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/execution-events.unit.test.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/gateway.test.ts` | [server-gateway](flows/server-gateway.md) (test) |
+ | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
++| `server/test/model-certification.test.ts` | [server-models](flows/server-models.md) (test) |
++| `server/test/model-pool.test.ts` | [server-models](flows/server-models.md) (test) |
++| `server/test/model-secret.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/execution.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/support/gateway.ts` | [server-gateway](flows/server-gateway.md) (test) |
+ | `server/test/support/http.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
++| `server/test/support/model-certification.ts` | [server-models](flows/server-models.md) (test) |
++| `server/test/support/model-http.ts` | [server-models](flows/server-models.md) (test) |
++| `server/test/support/model-observer.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 0290bfa..67cda22 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -225,12 +225,33 @@ flows:
+     doc: docs/flows/server-gateway.md
+     entrypoints:
+       - server/src/gateway/routes.ts
+     files:
+       - server/src/gateway/contracts.ts
+       - server/src/gateway/service.ts
+       - server/migrations/007_gateway.sql
+     tests:
+       - server/test/gateway.test.ts
+       - server/test/support/gateway.ts
++  server-models:
++    title: Nguồn model, catalogue và provisioning credential Crew v2
++    doc: docs/flows/server-models.md
++    entrypoints:
++      - server/src/models/routes.ts
++    files:
++      - server/src/models/catalog.ts
++      - server/src/models/certification.ts
++      - server/src/models/commands.ts
++      - server/src/models/config.ts
++      - server/src/models/contracts.ts
++      - server/src/models/helpers.ts
++      - server/src/models/secret-envelopes.ts
++      - server/migrations/008_model_pool.sql
++    tests:
++      - server/test/model-certification.test.ts
++      - server/test/model-pool.test.ts
++      - server/test/model-secret.test.ts
++      - server/test/support/model-certification.ts
++      - server/test/support/model-http.ts
++      - server/test/support/model-observer.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-docs-view.md b/v2/docs/flows/server-docs-view.md
+index 80824c7..3bc5a6c 100644
+--- a/v2/docs/flows/server-docs-view.md
++++ b/v2/docs/flows/server-docs-view.md
+@@ -40,10 +40,14 @@ Cấu hình giữ các tên `CREW_V2_DATABASE_URL`, `CREW_V2_PUBLIC_ORIGIN`, `CR
+ 
+ Test authority là callback và attestation do test tạo, có provenance `testAuthority: Task7`; không là bằng chứng quyền thực thi/kiểm chứng merge của production. Fixture verified tạo snapshot immutable mới, không sửa imported row hay migration 006. Page dùng byte gốc; snippet/link/audit projection biểu diễn NUL bằng literal `\u0000`, nhãn và warnings của import vẫn giữ.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp DB/config; `server-journal` cấp transaction/replay/cursor và SSE; `server-identity` cấp current credential/binding; `server-tickets` cấp hierarchy, docs refs và completion policy; `server-execution` cấp fencing/reconcile/guards; `server-docs-import` bảo toàn byte, class, audit và receipts. Runtime/planner/merge verifier thật thuộc các phần sau.
+ 
+ ## Tests
+ 
+ `pnpm --dir v2/server test` chạy toàn bộ test gồm HTTP listener thật port 0, cookie/CSRF, graph/dependency/comment/decision, owner import replay, checkpoint/pause ACK/reconcile, token cũ, hai pool race trước cached replay, current credential/event snapshot, SSE revoke/expiry/shutdown, default dispatch 503 và reported→finalizing giữ guard. Restart đóng app/pool rồi mở lại cùng DB, so graph/docs/events/command results; `pg_dump -Fc`/`pg_restore` trong container riêng so counts, byte checksums, cursor và command result. `pnpm --dir v2/server typecheck`, `pnpm --dir v2 test`, `pnpm --dir v2 typecheck` là covering gates. Regression search deadline giữ ACCESS EXCLUSIVE trên docs_files trong DB riêng, chứng minh direct reader và HTTP cùng trả lỗi deadline 503; pool max1 dùng lại chính backend PID và statement_timeout được phục hồi sau rollback. Harness hữu hạn 5 giây luôn nhả lock/đóng pool trong finally, kể cả RED của code cũ. Cursor singleton UUID array và unsafe path trả CURSOR_INVALID400. Không có production Phase08 attestation trong bộ kiểm thử này.
++
++Fixture của `docs-read.test.ts` và `api-acceptance.test.ts` kiểm tra hiện diện rõ ràng trước khi dùng env DB/container, dòng tên database, body SSE, project import, attempt claim và item phân trang. Thiếu dữ liệu bắt buộc làm test lỗi ngay tại assertion; không dùng non-null assertion hoặc bỏ qua kiểm tra route/kết quả. Các kiểm thử deadline, cursor, current credential, restart/restore và SSE giữ nguyên phạm vi.
++
++Composition `server/src/app.ts` ở Phase04 thêm model routes và optional trusted observer ports; docs reader/completion/source ports giữ nguyên. Model config/catalogue không sửa snapshot/docs authority, không cấp dispatch/final completion bằng host PASS; plaintext secret được redact tại logger. App vẫn không tự migrate hay listen.
+diff --git a/v2/docs/flows/server-journal.md b/v2/docs/flows/server-journal.md
+index 9596336..b2f3a35 100644
+--- a/v2/docs/flows/server-journal.md
++++ b/v2/docs/flows/server-journal.md
+@@ -41,10 +41,12 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
+ 
+ `event_cursor` có một hàng `singleton=true`, bắt đầu ở 0. `events.cursor` là bigint tăng trong transaction, không dùng sequence cấp trước commit. `idempotency` có khóa chính `(actor_kind, actor_id, route, key)` và giữ response thành công vô hạn trong giai đoạn này. `MutationContext.authorize` là callback bất biến theo mutation do route truyền, không được lưu như body hay cho client điều khiển. Response credential do `ResponseCodec` của module auth mã hóa trước khi lưu; journal không giải mã hoặc ghi token vào event. Cursor API là chuỗi thập phân không âm. Docs import/sync chuyển NUL trong audit/link metadata sang projection literal trước khi report vào JSONB/idempotency; journal giữ response đã biểu diễn an toàn, không sửa hay lưu byte nguồn trong event. Byte gốc và hash nguồn thuộc immutable docs_files; issue projection/FTS nằm trong audit report, không phát nội dung vào event.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp migration, fixture, hợp đồng `Actor`, `Tx`, `ResponseCodec`. Flow identity cung cấp authenticator, codec mã hóa credential và project scope; các flow ticket, execution và docs sau đó dùng mutation/event journal.
+ 
+ ## Tests
+ 
+ `pnpm --dir v2/server test` dùng PostgreSQL container riêng. `journal.test.ts` kiểm tra replay đồng thời, payload khác trả 409, rollback không tiêu cursor, hai kết nối commit theo cursor, máy không thấy global/project lạ, event nhạy cảm bị chặn và SSE xác thực/nối lại sau restart. `journal-scope.test.ts` dùng migration 003, tạm dừng sau khi scope đọc binding, commit rebind từ kết nối khác rồi xác nhận máy cũ không thấy event mới. `commands.test.ts` xác nhận hook phân quyền chạy trước cached replay và giữ khóa project để rebind không chen giữa. `ticket-events.unit.test.ts`, `execution-events.unit.test.ts` và `docs-events.unit.test.ts` chặn event có text/result/bytes/issues hoặc trường dư; event docs cũng kiểm tra commit, audit enum và giới hạn projectCount. `pnpm --dir v2/server typecheck` cùng Biome kiểm tra kiểu và định dạng.
++
++Phase04 model pool thêm `source.desired {revision}` và `source.applied {revision,reportId}`: revision dương, UUID report, project/ticket null và audience máy bắt buộc. `gateway.command.created` thêm literal `sync_models`; supersede phát acknowledged metadata một lần. Event không nhận provider endpoint, catalogue, probe/certificate evidence hoặc secret/envelope bytes. Mutation models reauthorize actual credential trong cùng transaction trước cache; secret owner response chỉ operation/status, ciphertext không ở generic journal response.
+diff --git a/v2/docs/flows/server-models.md b/v2/docs/flows/server-models.md
+new file mode 100644
+index 0000000..d9c3853
+--- /dev/null
++++ b/v2/docs/flows/server-models.md
+@@ -0,0 +1,57 @@
++# Nguồn model, catalogue và cấp secret Crew v2
++
++## Mục đích
++
++Server quản lý ba công tắc Claude/Codex/API theo máy, danh sách API do owner khai báo, receipt probe và certificate bất biến. OFF chặn lựa chọn mới ngay; không dừng attempt hoặc thả guard 005. Catalogue chỉ lọc ứng viên, phase06 chịu trách nhiệm đánh giá, xếp hạng và phát permit. Chưa có observer native/live nên composition production mặc định giữ UNVERIFIED.
++
++## Điểm vào
++
++- `server/src/models/routes.ts` → `registerModelRoutes(app,options,deps,ports)`, được `app.ts` đăng ký trước ready.
++- `server/src/models/config.ts` → `setSourceConfig`, `readSourceConfig`, `readModelApplied`, `validateApiEndpoint`.
++- `server/src/models/catalog.ts` → `reportModelInventory`, `reportModelApplied`, `getPool`, `assertModelDispatch`.
++- `server/src/models/certification.ts` → `issueCertificationChallenge`, `verifyCertification`; issuer không có route production.
++- `server/src/models/secret-envelopes.ts` → key registration/confirmation, envelope provisioning/read/ACK/key-lost.
++
++## Các bước
++
++1. Owner GET/PUT `/v2/machines/:id/model-sources` đọc desired/applied hoặc CAS expectedRevision. PUT cần session, Origin/CSRF và idempotency. Máy GET `/v2/machine/model-sources` nhận desired DTO redacted cho chính mình. Mutation dùng authorization 007 trong cùng transaction trước journal cache: cursor 002 → scope 005 nếu certificate có attempt → máy → state 008; recheck actual credential/session. Certificate replay vẫn cần current binding/fence. Máy chưa bind có thể quản lý own config/report; secret cần một project bound và dispatch vẫn theo scope 005.
++2. API endpoint canonical HTTPS, không credential/query/hash/literal IP/localhost; HTTP chỉ origin `127.0.0.1` hoặc `[::1]` với port canonical và localHttp explicit khớp tuyệt đối. Danh sách model nonempty/unique trong provider, cùng ID ở provider/runtime khác vẫn riêng. Server không fetch provider hay suy model từ `/models`; host phải resolve/pin IP mỗi request, không redirect, chặn DNS rebinding/private destination. Provider bỏ khỏi desired vẫn giữ row lịch sử FK nhưng không xuất hiện catalogue; endpoint/protocol đổi làm credential cũ missing và pending envelope expired.
++3. Config thực sự đổi tăng revision riêng, supersede command model cũ một lần bằng `{ok:false,code:'SUPERSEDED'}`, phát metadata và queue `sync_models {configRevision}` trên cursor 007. Adapter typed `ModelCommand` tại GET `/v2/machine/model-commands?after=&limit=` nhận cả bốn loại; POST `/v2/machine/model-commands/:id/ack` nhận riêng sync_models. Received giữ pending; completed cần accepted applied đúng command revision/current boot. Trigger 008 cũng bảo vệ đường generic 007; generic ACK sớm trả 503 theo errorhandler cũ, adapter trả 409. Ba loại 007 cũ giữ semantics. Replay completed giữ result; đổi result 409. SUPERSEDED exception chỉ exact result trên và desired revision cao hơn.
++4. POST `/v2/machine/models/inventory` và `/applied` dùng ModelReportEnvelope: một sequence tăng chung mỗi boot 007, không protocol boot mới. Receipt ID/hash đã commit replay response gốc trước current boot/sequence checks, không đổi TTL/state. New report phải current boot/current model revision, sequence mới. Inventory lấy server receivedAt/expiry 5 phút; observedAt/version string chỉ chẩn đoán. Trusted probe port trả **capabilities đã đo**; host PASS hay capability tự khai không cấp quyền. Full model key + source context giữ hai workflow riêng. Applied phải trỏ latest inventory cùng current boot/config và digest canonical body; đủ ba observation advance config kể cả AUTH/error, thiếu giữ pending. Config applied và model ready là hai thông tin riêng.
++5. GET owner `/v2/machines/:id/models?workflow=` hoặc machine `/v2/machine/models?workflow=` trả PoolEntry redacted và reason. Pool đối chiếu full SourcePin, desired projection/derivation, applied gateway revision và accepted `gateway_applied.latest_report_id` của current boot; null/old slot unavailable. Probe phải latest inventory/current model revision, fresh theo clock server; certificate phải exact runtime/source/projection/derivation/binary/policy/OS. AUTH mới loại PASS cũ dù TTL còn. `assertModelDispatch` giữ khóa máy sau scope 005 của caller, đối chiếu command/decision selection và modelChoice, domain Pin, required capability và exact pinned receipt IDs; OFF chặn ngay. Hàm này không cấp permit hay thay authorizer mặc định.
++6. Scratch issuer là explicit trusted port; production không đăng ký `/v2/test/*`, không có env/test flag. Test fixture owner route kiểm current session/CSRF, test scope/budget, trả nonce một lần, DB challenge chỉ giữ hash. Private authorizer khóa challenge và đặt marker transaction; trigger INSERT attempt 008 kiểm current desired/applied/report/probe context, matching command/decision/modelChoice/nonce rồi bind issued→admitted đúng attempt/process/fence. Lost claim replay A đi qua 005; challenge không cấp B. Companion policy đọc admitted A, không tiêu nonce lần nữa. Certificate so attempt/guard/binding/context/companion, đủ positive selected và negative unselected init/invocation/native Read/Bash/MCP/child/absolute/symlink/hardlink/network; verifier phải đối chiếu observer độc lập. Missing proof giữ UNVERIFIED không mint authority receipt; full accepted PASS/FAIL bất biến theo challenge/body hash. Protocol fake trong test DB không chứng nhận runtime thật.
++7. Máy POST `/v2/machine/credential-keys`, giải encrypted challenge rồi POST `/:keyId/confirm`. Active key duy nhất; rotate retire key cũ nhưng host giữ private key tới pending ACK. Owner POST `/v2/machines/:id/api-providers/:providerId/secret` cần current revision/active key/binding; plaintext chỉ ở request memory, log redact `req.body.secret`. Ephemeral X25519 ECDH + HKDF-SHA256 + AES-256-GCM, info `crew-v2-secret-envelope-v1`, salt nonce 12 bytes, AAD canonical `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. Public key là base64 DER SPKI; tag 16 bytes, digest SHA256 ciphertext bytes. GET `/v2/machine/api-secret-envelopes?after=<decimal>` dùng cursor 008 riêng, không UUID ordering. POST `/:id/ack` so operation/key/digest/ref/current revision/expiry rồi xoá ciphertext/tag một lần, giữ metadata/hash cho replay. `/:id/key-lost` xoá bytes, giữ pending presentation/missing credential để owner cấp lại; không fake Keychain success. Key challenge có AAD `{machineId,keyId,challengeId,expiresAt}` với cùng crypto. Host kiểm AAD/key/revision/expiry, fsync operation, Keychain write/read-back và ACK intent trước HTTP; phần host/Keychain/signing thuộc task sau.
++
++## Files
++
++| Đường dẫn từ `v2/` | Vai trò |
++|---|---|
++| `server/migrations/008_model_pool.sql` | Model state, receipts, encrypted envelopes, additive command/claim hooks |
++| `server/src/models/contracts.ts` | DTO, trusted proof ports và closed schemas |
++| `server/src/models/helpers.ts` | Hash/context canonical, errors/time/events |
++| `server/src/models/config.ts` | Desired CAS, provider policy và sync queue |
++| `server/src/models/catalog.ts` | Inventory/applied receipt, pool và claim gate |
++| `server/src/models/commands.ts` | Additive typed command read/ACK |
++| `server/src/models/certification.ts` | Bound scratch challenge và verified immutable receipt |
++| `server/src/models/secret-envelopes.ts` | X25519/GCM wire, key confirmation, envelope lifecycle |
++| `server/src/models/routes.ts` | Owner/machine auth và route composition |
++| `server/test/model-pool.test.ts` | CAS/order/auth/ACK/capability/provider/backup HTTP/DB proofs |
++| `server/test/model-certification.test.ts` | Default deny, actual claim hook/replay/receipt/context/OFF |
++| `server/test/model-secret.test.ts` | Crypto client, rotation/scope/redaction/ACK/cursor |
++| `server/test/support/model-http.ts` | Private real HTTP fixture, separate authorities |
++| `server/test/support/model-observer.ts` | Fake loopback provider observer, protocol only |
++| `server/test/support/model-certification.ts` | Test-only scoped issuer route, nonce not journaled |
++
++## Dữ liệu
++
++Migration 008 tạo 11 bảng riêng; SQL 001–007, 005 execution và frozen public contracts không đổi. FK giữ boot/report/machine lineage, immutable report/probe/cert receipts và CHECK/UNIQUE kiểm key/state/sequence. Binary hash là bytes, không runtimeVersion. Secret responses/journal/events/catalogue không chứa plaintext hoặc encrypted secret payload; ciphertext chỉ ở riêng envelope pending, GET bearer đúng máy. PostgreSQL 18.6 test chạy cổng loopback random khác 5432/55432, backup prefix7→restore7→migrate8→restore8 với DB/container IDs riêng.
++
++## Flow liên quan
++
++`server-platform` composition/migration; `server-identity` credential/binding; `server-journal` atomic mutation/event; `server-gateway` current boot/workflow/command/companion; `server-execution` authoritative claim/guard. Phase06 supply trusted current selection/modelChoice and permit; phase04 host/runtime tasks supply independent measured observer and secret broker. Không kết luận toàn phase03/04 hoặc native isolation đã đạt từ protocol này.
++
++## Tests
++
++Focused ba model test files chạy bằng một absolute runner fixture hoặc riêng từng file; một covering server sau final source. Assertions dùng DB thật/HTTP listener riêng, fake provider loopback và private observer tables; capability/protocol PASS trong fixture không là live certification. Backup/restore, drift/immutable constraints, revoked/rotated actual token, historical replay, superseded inventory, exact command completion, crypto tag/AAD tampering và source OFF đều có bằng chứng. Native sandbox, paid credential/call, signed Keychain ACL và gated runtime RELEASE live chưa chạy, giữ UNVERIFIED đến gate Task7/phase09.
++
++Kiểm cuối dùng app production thật trong child process và HTTP secret route: request lỗi thiếu active key trả 409, structured logger của app redact secret, không có plaintext trong response/journal/events/envelope DB. Test này bổ sung sau covering 208; scoped secret run 4/4, không đổi nguồn production và không lặp covering.
+diff --git a/v2/docs/flows/server-platform.md b/v2/docs/flows/server-platform.md
+index 1eb0a06..6ad90c0 100644
+--- a/v2/docs/flows/server-platform.md
++++ b/v2/docs/flows/server-platform.md
+@@ -51,10 +51,12 @@ Cấu hình mẫu nằm tại `server/.env.example`; giá trị thật cấp t
+ 
+ Test chỉ dùng container tạm với trust auth trên loopback; URL test lấy từ runner, không dùng `CREW_V2_DATABASE_URL`. Image PostgreSQL đã xác minh khi triển khai: `postgres:18.6`, digest `sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722`.
+ 
+ ## Flow liên quan
+ 
+ `domain-foundation` cung cấp policy thuần. Các flow journal, identity, tickets, execution và docs ở phần tiếp theo tiêu thụ `MigrationSet`, fixture DB và hợp đồng route; flow này không cài các nghiệp vụ đó.
+ 
+ ## Tests
+ 
+ `pnpm --dir v2/server test` cần Docker. Test chạy migration lặp lại, từ chối DB lạ/cổng dùng chung, checksum drift, rollback SQL lỗi và prefix đã chụp không đổi khi file sửa. `pg_dump`/`pg_restore` chạy qua `docker exec` trong đúng container test để xác nhận marker và dữ liệu được giữ. `pnpm --dir v2/server test:signals` thực hiện SIGTERM, SIGINT cùng trường hợp child bị `SIGSTOP`; có thể chạy đồng thời với suite thường vì fixture nằm ngoài thư mục test chung và mỗi runner dùng container riêng. `pnpm --dir v2/server typecheck` kiểm tra mã TypeScript; `pnpm --dir v2 test` kiểm tra policy miền.
++
++Phase04 `app.ts` đăng ký `registerModelRoutes` trước ready, nhận optional internal `modelVerifiers` để nối independent measured observer sau này. Defaults vẫn UNVERIFIED, dispatch/final verification giữ deny 005 và gateway selection giữ deny 007. Không production test route/env flag. Logger giữ disableRequestLogging/code-only errors và thêm redact `req.body.secret`. Migration prefix8 vẫn do caller chọn, không migrate khi build app.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 11ff591..1ca0ac0 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -29,19 +29,20 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g
+ | [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
+ | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
+ | [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
+ | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |
+ | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
+ | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |
+ | [Control plane gateway và boot/config/report](flows/server-gateway.md) | `server-gateway` | `server/src/gateway/routes.ts` |
+ | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
++| [Nguồn model, catalogue và provisioning credential Crew v2](flows/server-models.md) | `server-models` | `server/src/models/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ | [Cây ticket, phụ thuộc và bằng chứng hoàn tất](flows/server-tickets.md) | `server-tickets` | `server/src/tickets/routes.ts` |
+ <!-- crew-docs:flows:end -->
+ 
+ ## Cách dùng docs
+ 
+ - [Kiến trúc](architecture.md) mô tả ranh giới của thư viện miền.
+ - [Bảng tra file](files.md) cho biết file thuộc flow nào.
+ - Mỗi trang trong `flows/` mô tả điểm vào, bước xử lý, dữ liệu và test của một flow.
+diff --git a/v2/server/migrations/008_model_pool.sql b/v2/server/migrations/008_model_pool.sql
+new file mode 100644
+index 0000000..4c494d6
+--- /dev/null
++++ b/v2/server/migrations/008_model_pool.sql
+@@ -0,0 +1,169 @@
++-- Additive model protocol; frozen 007 bytes and 005 claim semantics stay intact.
++alter table gateway_commands drop constraint gateway_commands_type_check;
++alter table gateway_commands add constraint gateway_commands_type_check check(type in ('sync_workflows','probe','reconcile_host','sync_models'));
++create table model_source_configs (
++ machine_id uuid primary key references machines(id) on delete restrict,
++ revision integer not null check(revision>0), enabled jsonb not null check(jsonb_typeof(enabled)='object' and enabled=jsonb_build_object('claude',enabled->'claude','codex',enabled->'codex','api',enabled->'api') and jsonb_typeof(enabled->'claude')='boolean' and jsonb_typeof(enabled->'codex')='boolean' and jsonb_typeof(enabled->'api')='boolean'), updated_at timestamptz not null
++);
++create table api_providers (
++ id uuid not null, machine_id uuid not null references machines(id) on delete restrict,
++ endpoint text not null, protocol text not null check(protocol in ('responses','chat-completions')),
++ model_ids jsonb not null check(jsonb_typeof(model_ids)='array' and jsonb_array_length(model_ids)>0), local_http jsonb null,
++ declared boolean not null default true, credential_ref text null, status text not null check(status in ('missing','pending','stored')),
++ primary key(machine_id,id)
++);
++create table model_report_receipts (
++ id uuid primary key, machine_id uuid not null references machines(id) on delete restrict,
++ boot_id uuid not null, boot_generation bigint not null, sequence bigint not null check(sequence>0),
++ kind text not null check(kind in ('inventory','applied')), config_revision integer not null check(config_revision>0),
++ body_hash char(64) not null check(body_hash ~ '^[0-9a-f]{64}$'), body jsonb not null, response jsonb not null, received_at timestamptz not null,
++ unique(machine_id,boot_generation,sequence), unique(id,machine_id),
++ foreign key(machine_id,boot_id,boot_generation) references gateway_boots(machine_id,boot_id,boot_generation) on delete restrict
++);
++create table model_source_applied (
++ machine_id uuid primary key references machines(id) on delete restrict,
++ revision integer not null check(revision>0), report_id uuid not null, boot_generation bigint not null,
++ sequence bigint not null check(sequence>0), inventory_report_id uuid not null,
++ reported_at timestamptz not null, source_status jsonb not null,
++ foreign key(report_id,machine_id) references model_report_receipts(id,machine_id) deferrable initially deferred,
++ foreign key(inventory_report_id,machine_id) references model_report_receipts(id,machine_id)
++);
++create table model_probe_receipts (
++ id uuid primary key, machine_id uuid not null references machines(id) on delete restrict,
++ runtime text not null check(runtime in ('claude','codex','api')), provider_id text not null, model_id text not null,
++ config_revision integer not null check(config_revision>0), inventory_report_id uuid not null,
++ context jsonb not null, context_sha256 char(64) not null check(context_sha256 ~ '^[0-9a-f]{64}$'),
++ boot_generation bigint not null, sequence bigint not null check(sequence>0), observed_at timestamptz not null,
++ received_at timestamptz not null, expires_at timestamptz not null check(expires_at>received_at and expires_at<=received_at+interval '15 minutes'),
++ status text not null check(status in ('pass','fail','unverified')), capabilities jsonb not null check(jsonb_typeof(capabilities)='array'),
++ evidence_digest char(64) not null check(evidence_digest ~ '^[0-9a-f]{64}$'), error_code text null, runtime_version text null,
++ unique(inventory_report_id,runtime,provider_id,model_id,context_sha256),
++ foreign key(inventory_report_id,machine_id) references model_report_receipts(id,machine_id) deferrable initially deferred
++);
++create index model_probe_key on model_probe_receipts(machine_id,runtime,provider_id,model_id,received_at desc);
++create table model_certification_challenges (
++ id uuid primary key, machine_id uuid not null references machines(id), project_id uuid not null references projects(id),
++ nonce_hash char(64) not null check(nonce_hash ~ '^[0-9a-f]{64}$'), context jsonb not null,
++ expires_at timestamptz not null, max_turns integer not null check(max_turns between 1 and 20),
++ max_tools integer not null check(max_tools between 1 and 100), max_cost_usd numeric not null check(max_cost_usd>=0 and max_cost_usd<=10),
++ state text not null check(state in ('issued','admitted','verified','failed')),
++ admitted_command_id uuid null references commands(id), admitted_decision_id uuid null references decisions(id),
++ attempt_id uuid null references attempts(id), process_instance_id text null, admitted_fence bigint null,
++ created_at timestamptz not null, check(expires_at>created_at and expires_at<=created_at+interval '15 minutes'),
++ check((state='issued')=(attempt_id is null)), check(state='issued' or (admitted_command_id is not null and admitted_decision_id is not null and process_instance_id is not null and admitted_fence>0))
++);
++create table runtime_certification_receipts (
++ id uuid primary key, challenge_id uuid not null unique references model_certification_challenges(id), attempt_id uuid not null references attempts(id),
++ machine_id uuid not null references machines(id), runtime text not null check(runtime in ('claude','codex','api')),
++ source_tree_sha256 char(64) not null, projection_manifest_sha256 char(64) not null, projection_tree_sha256 char(64) not null,
++ derivation_hash char(64) not null, binary_hash char(64) not null, policy_hash char(64) not null, os_version text not null,
++ evidence_digest char(64) not null, body_hash char(64) not null, status text not null check(status in ('PASS','UNVERIFIED','FAIL')),
++ received_at timestamptz not null, expires_at timestamptz not null check(expires_at>received_at and expires_at<=received_at+interval '15 minutes')
++);
++create index model_cert_pair on runtime_certification_receipts(machine_id,runtime,source_tree_sha256,projection_tree_sha256,binary_hash,received_at desc);
++create table credential_keys (
++ machine_id uuid not null references machines(id), key_id uuid not null, public_key_x25519 text not null,
++ state text not null check(state in ('pending','active','retired')), created_at timestamptz not null, confirmed_at timestamptz null,
++ primary key(machine_id,key_id), check((state='pending')=(confirmed_at is null))
++);
++create unique index credential_keys_one_active on credential_keys(machine_id) where state='active';
++create table credential_key_challenges (
++ id uuid primary key, machine_id uuid not null, key_id uuid not null, challenge_hash char(64) not null,
++ encrypted_challenge jsonb not null, expires_at timestamptz not null, consumed_at timestamptz null,
++ foreign key(machine_id,key_id) references credential_keys(machine_id,key_id)
++);
++create table api_secret_cursor(singleton boolean primary key check(singleton),value bigint not null check(value>=0));
++insert into api_secret_cursor values(true,0);
++create table api_secret_envelopes (
++ id uuid primary key, cursor bigint not null unique check(cursor>0), machine_id uuid not null, provider_id uuid not null, key_id uuid not null,
++ config_revision integer not null check(config_revision>0), operation_id uuid not null unique,
++ expires_at timestamptz not null, ephemeral_public_key text not null, nonce text not null,
++ ciphertext text null, tag text null, ciphertext_sha256 char(64) not null,
++ state text not null check(state in ('pending','acked','expired','key_lost')), created_at timestamptz not null, acked_at timestamptz null,
++ request_hash char(64) not null, ack_hash char(64) null,
++ foreign key(machine_id,provider_id) references api_providers(machine_id,id),
++ foreign key(machine_id,key_id) references credential_keys(machine_id,key_id),
++ check((state='acked')=(acked_at is not null)), check(state<>'acked' or (ciphertext is null and tag is null))
++);
++create trigger model_report_immutable before update or delete on model_report_receipts for each row execute function gateway_immutable_record();
++create trigger model_probe_immutable before update or delete on model_probe_receipts for each row execute function gateway_immutable_record();
++create trigger model_cert_immutable before update or delete on runtime_certification_receipts for each row execute function gateway_immutable_record();
++create function model_canonical_json(j jsonb) returns text language plpgsql immutable strict as $$
++declare result text;
++begin
++ if jsonb_typeof(j)='object' then
++  select '{'||coalesce(string_agg(to_json(key)::text||':'||model_canonical_json(value),',' order by key collate "C"),'')||'}' into result from jsonb_each(j);
++ elsif jsonb_typeof(j)='array' then
++  select '['||coalesce(string_agg(model_canonical_json(value),',' order by ordinal),'')||']' into result from jsonb_array_elements(j) with ordinality a(value,ordinal);
++ else result:=j::text; end if;
++ return result;
++end; $$;
++-- Authority is an explicit transaction-local marker set only by a trusted admission port.
++create function model_bind_test_admission() returns trigger language plpgsql as $$
++declare cmd record; dec record; ch record; admission jsonb; cid uuid;
++begin
++ select * into cmd from commands where id=new.command_id;
++ admission:=cmd.payload->'certificationAdmission';
++ if admission is null then return new; end if;
++ cid:=(admission->>'challengeId')::uuid;
++ if current_setting('crew.model_admission',true) is distinct from cid::text then raise exception 'MODEL_ADMISSION_DENIED' using errcode='23514'; end if;
++ select * into ch from model_certification_challenges where id=cid for update;
++ select * into dec from decisions where id=(cmd.payload->'selection'->>'decisionId')::uuid;
++ if ch.id is null or ch.state<>'issued' or ch.expires_at<=now() or ch.machine_id<>new.machine_id
++ or ch.project_id<>(select project_id from tickets where id=new.ticket_id)
++ or dec.kind<>'dispatch' or dec.ticket_id<>new.ticket_id
++ or cmd.payload->'selection' is distinct from dec.scope->'selection'
++ or cmd.payload->'modelChoice' is distinct from dec.scope->'modelChoice'
++ or dec.scope->>'certificationChallengeId' is distinct from cid::text
++ or encode(sha256(convert_to(admission->>'nonce','UTF8')),'hex') is distinct from ch.nonce_hash
++ then raise exception 'MODEL_ADMISSION_DENIED' using errcode='23514'; end if;
++ if not exists(
++ select 1 from model_probe_receipts pr join model_source_configs mc on mc.machine_id=pr.machine_id
++ join model_report_receipts mr on mr.id=pr.inventory_report_id
++ join model_source_applied ma on ma.machine_id=pr.machine_id and ma.inventory_report_id=mr.id and ma.revision=mc.revision and ma.boot_generation=mr.boot_generation
++ join gateway_boots gb on gb.machine_id=mr.machine_id and gb.boot_generation=mr.boot_generation and gb.retired_at is null
++ join gateway_configs gc on gc.machine_id=pr.machine_id
++ join gateway_applied ga on ga.machine_id=gc.machine_id and ga.revision=gc.revision
++ join gateway_install_reports ir on ir.id=ga.latest_report_id and ir.machine_id=gc.machine_id
++ where pr.id=(cmd.payload->'modelChoice'->>'probeReceiptId')::uuid and pr.machine_id=new.machine_id
++ and pr.context=ch.context and pr.context_sha256=cmd.payload->'modelChoice'->>'probeContextSha256'
++ and pr.config_revision=mc.revision and mc.revision=(cmd.payload->'modelChoice'->>'modelConfigRevision')::integer
++ and mc.enabled->>pr.runtime='true' and ma.source_status->pr.runtime->>'state'='ready' and pr.status<>'fail' and pr.expires_at>now()
++ and cmd.payload->'modelChoice'->'certificationReceiptId'='null'::jsonb
++ and cmd.payload->'modelChoice'->'model'->>'machineId'=new.machine_id::text
++ and cmd.payload->'modelChoice'->'model'->>'runtime'=pr.runtime
++ and cmd.payload->'modelChoice'->'model'->>'providerId'=pr.provider_id
++ and cmd.payload->'modelChoice'->'model'->>'modelId'=pr.model_id
++ and mr.sequence=(select max(sequence) from model_report_receipts where machine_id=new.machine_id and boot_generation=gb.boot_generation and config_revision=mc.revision and kind='inventory')
++ and gc.enabled and ir.response->>'accepted'='true' and ir.config_revision=gc.revision
++ and cmd.payload->'selection'->>'installReportId'=ir.id::text
++ and (cmd.payload->'selection'->>'configRevision')::integer=gc.revision
++ and cmd.payload->'selection'->>'sourceTreeSha256'=ch.context->>'sourceTreeSha256'
++ and cmd.payload->'selection'->>'projectionManifestSha256'=ch.context->>'projectionManifestSha256'
++ and cmd.payload->'selection'->>'projectionTreeSha256'=ch.context->>'projectionTreeSha256'
++ and gc.desired->(new.workflow_pin->>'workflow')->'source'->>'sourceTreeSha256'=ch.context->>'sourceTreeSha256'
++ and gc.desired->(new.workflow_pin->>'workflow')->'projections'->pr.runtime->>'manifestSha256'=ch.context->>'projectionManifestSha256'
++ and gc.desired->(new.workflow_pin->>'workflow')->'projections'->pr.runtime->>'treeSha256'=ch.context->>'projectionTreeSha256'
++ and encode(sha256(convert_to(model_canonical_json(gc.desired->(new.workflow_pin->>'workflow')->'projections'->pr.runtime->'derivation'),'UTF8')),'hex')=ch.context->>'derivationSha256'
++ ) then raise exception 'MODEL_ADMISSION_CONTEXT_INVALID' using errcode='23514'; end if;
++ update model_certification_challenges set state='admitted',admitted_command_id=new.command_id,admitted_decision_id=dec.id,
++ attempt_id=new.id,process_instance_id=new.process_instance_id,admitted_fence=new.fence where id=cid;
++ return new;
++end; $$;
++create trigger model_test_admission_binding after insert on attempts for each row execute function model_bind_test_admission();
++-- Guard the 007 generic ACK path too; this never changes the prior three command types.
++create function model_sync_completion_guard() returns trigger language plpgsql as $$
++begin
++ if old.type<>'sync_models' then return new; end if;
++ if old.state='completed' and new is distinct from old then raise exception 'MODEL_COMMAND_IMMUTABLE' using errcode='23514'; end if;
++ if new.state='completed' and old.state<>'completed' then
++   if new.result = '{"ok":false,"code":"SUPERSEDED"}'::jsonb then
++     if not exists(select 1 from model_source_configs where machine_id=new.machine_id and revision>(new.payload->>'configRevision')::integer)
++       then raise exception 'MODEL_REVISION_NOT_SUPERSEDED' using errcode='23514'; end if;
++   elsif not exists(select 1 from model_source_applied a join gateway_boots b on b.machine_id=a.machine_id and b.boot_generation=a.boot_generation and b.retired_at is null where a.machine_id=new.machine_id and a.revision=(new.payload->>'configRevision')::integer)
++     then raise exception 'MODEL_CONFIG_NOT_APPLIED' using errcode='23514';
++   end if;
++ end if;
++ return new;
++end; $$;
++create trigger model_sync_completion before update on gateway_commands for each row execute function model_sync_completion_guard();
+diff --git a/v2/server/src/app.ts b/v2/server/src/app.ts
+index f01f12e..7b8e93c 100644
+--- a/v2/server/src/app.ts
++++ b/v2/server/src/app.ts
+@@ -7,45 +7,49 @@ import {
+   assertNoActiveProjectExecution,
+   createExecutionAuthority,
+   denyDispatch,
+   denyFinalResult,
+ } from './execution/attempts.ts';
+ import { registerExecutionRoutes } from './execution/routes.ts';
+ import type { GatewayProjectionPolicy } from './gateway/contracts.ts';
+ import { registerGatewayRoutes } from './gateway/routes.ts';
+ import { createMutator } from './journal/mutation.ts';
+ import { registerEventRoutes } from './journal/routes.ts';
++import type { ModelRouteOptions } from './models/contracts.ts';
++import { registerModelRoutes } from './models/routes.ts';
+ import type { ServerOptions } from './platform/contracts.ts';
+ import { ApiError } from './platform/errors.ts';
+ import { registerProjectRoutes } from './projects/routes.ts';
+ import { projectEventScope } from './projects/service.ts';
+ import { registerTicketRoutes } from './tickets/routes.ts';
+ export type AppOptions = Omit<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'> &
+   Partial<Pick<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'>> & {
+     gatewayProjectionPolicy?: GatewayProjectionPolicy;
++    modelVerifiers?: ModelRouteOptions;
+   };
+ /** Compose routes only. Caller owns database migration, listener and pool shutdown. */
+ export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
+   const options: ServerOptions = Object.freeze({
+     ...input,
+     authorizeDispatch: input.authorizeDispatch ?? denyDispatch,
+     verifyFinalResult: input.verifyFinalResult ?? denyFinalResult,
+   });
+   const app = Fastify({
+     ajv: { customOptions: { removeAdditional: false } },
+     logController: new LogController({ disableRequestLogging: true }),
+     logger: {
+       redact: [
+         'req.headers.authorization',
+         'req.headers.cookie',
+         'req.headers.x-csrf-token',
+         'req.body.password',
++        'req.body.secret',
+         'res.headers.set-cookie',
+       ],
+     },
+     bodyLimit: 1024 * 1024,
+   });
+   app.setErrorHandler((error, request, reply) => {
+     if (error instanceof ApiError)
+       return reply.code(error.status).send({ error: { code: error.code, message: error.message } });
+     if (
+       error &&
+@@ -68,16 +72,17 @@ export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
+   registerAuthRoutes(app, options, deps);
+   registerProjectRoutes(app, options, deps, assertNoActiveProjectExecution, readProjectDocsState);
+   registerTicketRoutes(app, options, deps, {
+     execution: createExecutionAuthority(),
+     docsCompletion: docsCompletionReader,
+     docsSource: docsSourceReader,
+   });
+   registerExecutionRoutes(app, options, deps, { docsCompletion: docsCompletionReader });
+   registerDocsRoutes(app, options, deps);
+   registerGatewayRoutes(app, options, deps, input.gatewayProjectionPolicy);
++  registerModelRoutes(app, options, deps, input.modelVerifiers);
+   registerEventRoutes(app, options, deps, projectEventScope, (db, request) =>
+     authenticateCurrentCredential(db, request, options.now()),
+   );
+   await app.ready();
+   return app;
+ }
+diff --git a/v2/server/src/journal/event-contracts.ts b/v2/server/src/journal/event-contracts.ts
+index 3725eed..559a5b9 100644
+--- a/v2/server/src/journal/event-contracts.ts
++++ b/v2/server/src/journal/event-contracts.ts
+@@ -54,20 +54,32 @@ export function validateEventInput(input: EventInput): void {
+     ) ||
+     !input.data ||
+     typeof input.data !== 'object' ||
+     Array.isArray(input.data)
+   )
+     throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
+   safeData(input.data);
+   const data = input.data;
+   let valid = false;
+   switch (input.type) {
++    case 'source.desired':
++    case 'source.applied':
++      valid =
++        exactKeys(data, input.type === 'source.desired' ? ['revision'] : ['revision', 'reportId']) &&
++        Number.isSafeInteger(data.revision) &&
++        Number(data.revision) > 0 &&
++        (input.type === 'source.desired' ||
++          (typeof data.reportId === 'string' && uuid.test(data.reportId))) &&
++        input.projectId === null &&
++        input.ticketId === null &&
++        input.audienceMachineId !== null;
++      break;
+     case 'gateway.config.changed':
+       valid =
+         exactKeys(data, ['revision']) &&
+         Number.isSafeInteger(data.revision) &&
+         Number(data.revision) > 0 &&
+         input.projectId === null &&
+         input.ticketId === null &&
+         input.audienceMachineId !== null;
+       break;
+     case 'gateway.booted':
+@@ -96,21 +108,21 @@ export function validateEventInput(input: EventInput): void {
+     case 'gateway.command.created':
+     case 'gateway.command.acknowledged':
+       valid =
+         exactKeys(
+           data,
+           input.type === 'gateway.command.created' ? ['commandId', 'type'] : ['commandId', 'phase'],
+         ) &&
+         typeof data.commandId === 'string' &&
+         uuid.test(data.commandId) &&
+         (input.type === 'gateway.command.created'
+-          ? ['sync_workflows', 'probe', 'reconcile_host'].includes(String(data.type))
++          ? ['sync_workflows', 'probe', 'reconcile_host', 'sync_models'].includes(String(data.type))
+           : ['received', 'completed'].includes(String(data.phase))) &&
+         input.projectId === null &&
+         input.ticketId === null &&
+         input.audienceMachineId !== null;
+       break;
+     case 'docs.imported':
+       valid =
+         exactKeys(data, ['importId', 'projectCount']) &&
+         typeof data.importId === 'string' &&
+         uuid.test(data.importId) &&
+diff --git a/v2/server/src/models/catalog.ts b/v2/server/src/models/catalog.ts
+new file mode 100644
+index 0000000..477cb45
+--- /dev/null
++++ b/v2/server/src/models/catalog.ts
+@@ -0,0 +1,346 @@
++import { randomUUID } from 'node:crypto';
++import type {
++  DispatchSelection,
++  InstallReportResponse,
++  ProjectionPin,
++  SourcePin,
++} from '../gateway/contracts.ts';
++import { toDomainPin } from '../gateway/contracts.ts';
++import { readGatewayConfig } from '../gateway/service.ts';
++import { parseCursor } from '../journal/events.ts';
++import type { Db, DispatchPermit, Id, Tx } from '../platform/contracts.ts';
++import { readSourceConfig } from './config.ts';
++import type {
++  ModelAppliedBody,
++  ModelDispatchChoice,
++  ModelInventoryBody,
++  ModelProofVerifier,
++  ModelReportEnvelope,
++  PoolEntry,
++  ProbeContext,
++  ProbeResult,
++} from './contracts.ts';
++import { sources } from './contracts.ts';
++import { contextHash, fail, hash, json, modelEvent, receiptExpiry, same } from './helpers.ts';
++export const denyModelProof: ModelProofVerifier = {
++  verify: async () => ({ status: 'unverified', capabilities: [] }),
++};
++export async function latestInventory(tx: Tx, machineId: Id) {
++  const [r] =
++    await tx`select r.* from model_report_receipts r join gateway_boots b on b.machine_id=r.machine_id and b.boot_generation=r.boot_generation and b.retired_at is null join model_source_configs c on c.machine_id=r.machine_id and c.revision=r.config_revision where r.machine_id=${machineId} and r.kind='inventory' order by r.sequence desc limit 1`;
++  return r;
++}
++async function prepareReport(tx: Tx, machineId: Id, r: ModelReportEnvelope<unknown>, kind: string) {
++  parseCursor(r.bootGeneration);
++  parseCursor(r.sequence);
++  if (r.sequence === '0' || r.bootGeneration === '0') fail('REPORT_SEQUENCE_CONFLICT');
++  const bodyHash = hash({ kind, ...r });
++  const [old] = await tx`select * from model_report_receipts where id=${r.reportId}`;
++  if (old) {
++    if (old.machine_id !== machineId) fail('NOT_FOUND', 404);
++    if (old.body_hash !== bodyHash) fail('REPORT_ID_CONFLICT');
++    return { cached: old.response, bodyHash };
++  }
++  const [boot] =
++    await tx`select 1 from gateway_boots where machine_id=${machineId} and boot_id=${r.bootId} and boot_generation=${r.bootGeneration} and retired_at is null`;
++  if (!boot) fail('BOOT_RETIRED');
++  const config = await readSourceConfig(tx, machineId);
++  if (!config || config.revision !== r.configRevision) fail('CONFIG_REVISION_CONFLICT');
++  const [last] =
++    await tx`select max(sequence) as sequence from model_report_receipts where machine_id=${machineId} and boot_generation=${r.bootGeneration}`;
++  if (
++    last?.sequence !== null &&
++    last?.sequence !== undefined &&
++    BigInt(r.sequence) <= BigInt(String(last.sequence))
++  )
++    fail('REPORT_SEQUENCE_CONFLICT');
++  return { cached: undefined, bodyHash, config };
++}
++async function record(
++  tx: Tx,
++  machineId: Id,
++  r: ModelReportEnvelope<unknown>,
++  kind: string,
++  bodyHash: string,
++  response: unknown,
++  now: Date,
++) {
++  await tx`insert into model_report_receipts(id,machine_id,boot_id,boot_generation,sequence,kind,config_revision,body_hash,body,response,received_at) values(${r.reportId},${machineId},${r.bootId},${r.bootGeneration},${r.sequence},${kind},${r.configRevision},${bodyHash},${tx.json(json(r.body))},${tx.json(json(response))},${now})`;
++  return response;
++}
++export async function reportModelInventory(
++  tx: Tx,
++  machineId: Id,
++  r: ModelReportEnvelope<ModelInventoryBody>,
++  now = new Date(),
++  verifier: ModelProofVerifier = denyModelProof,
++) {
++  const check = await prepareReport(tx, machineId, r, 'inventory');
++  if (check.cached !== undefined) return check.cached;
++  const keys = new Set<string>();
++  for (const p of r.body.entries) {
++    const key = hash({ key: p.key, sourceTreeSha256: p.context.sourceTreeSha256 });
++    if (p.key.machineId !== machineId || keys.has(key) || !check.config?.enabled[p.key.runtime])
++      fail('MODEL_SCOPE_MISMATCH');
++    keys.add(key);
++    if (p.key.runtime === 'api') {
++      const provider = check.config?.apiProviders.find((a) => a.id === p.key.providerId);
++      if (!provider?.models.some((m) => m.id === p.key.modelId)) fail('MODEL_NOT_DECLARED');
++    }
++    if (p.key.runtime !== 'api' && p.key.providerId !== p.key.runtime) fail('MODEL_SCOPE_MISMATCH');
++    const proof =
++      p.status === 'fail' ? { status: 'fail' as const, capabilities: [] } : await verifier.verify(tx, p);
++    const status = proof.status;
++    const caps = status === 'pass' ? proof.capabilities.filter((c) => p.capabilities.includes(c)) : [];
++    await tx`insert into model_probe_receipts(id,machine_id,runtime,provider_id,model_id,config_revision,inventory_report_id,context,context_sha256,boot_generation,sequence,observed_at,received_at,expires_at,status,capabilities,evidence_digest,error_code,runtime_version) values(${randomUUID()},${machineId},${p.key.runtime},${p.key.providerId},${p.key.modelId},${r.configRevision},${r.reportId},${tx.json(json(p.context))},${contextHash(p.context)},${r.bootGeneration},${r.sequence},${p.observedAt},${now},${receiptExpiry(now)},${status},${tx.json(caps)},${p.evidenceDigest},${p.errorCode},${p.runtimeVersion})`;
++  }
++  return record(
++    tx,
++    machineId,
++    r,
++    'inventory',
++    check.bodyHash,
++    { reportId: r.reportId, accepted: true, serverTime: now.toISOString(), observationDigest: hash(r.body) },
++    now,
++  );
++}
++export async function reportModelApplied(
++  tx: Tx,
++  machineId: Id,
++  r: ModelReportEnvelope<ModelAppliedBody>,
++  now = new Date(),
++) {
++  const check = await prepareReport(tx, machineId, r, 'applied');
++  if (check.cached !== undefined) return check.cached;
++  const inventory = await latestInventory(tx, machineId);
++  if (
++    !inventory ||
++    inventory.id !== r.body.inventoryReportId ||
++    String(inventory.boot_generation) !== r.bootGeneration ||
++    hash(inventory.body) !== r.body.observationDigest
++  )
++    fail('INVENTORY_SUPERSEDED');
++  const complete = sources.every((s) => r.body.sourceStatus[s] !== undefined);
++  if (complete) {
++    for (const s of sources) {
++      const status = r.body.sourceStatus[s];
++      if (!check.config?.enabled[s] !== (status.state === 'disabled')) fail('SOURCE_STATUS_MISMATCH');
++      const entries = (inventory.body as ModelInventoryBody).entries.filter((p) => p.key.runtime === s);
++      if (status.state === 'ready' && (!entries.length || entries.some((p) => p.status === 'fail')))
++        fail('SOURCE_STATUS_MISMATCH');
++    }
++    await tx`insert into model_source_applied(machine_id,revision,report_id,boot_generation,sequence,inventory_report_id,reported_at,source_status) values(${machineId},${r.configRevision},${r.reportId},${r.bootGeneration},${r.sequence},${r.body.inventoryReportId},${now},${tx.json(json(r.body.sourceStatus))}) on conflict(machine_id) do update set revision=excluded.revision,report_id=excluded.report_id,boot_generation=excluded.boot_generation,sequence=excluded.sequence,inventory_report_id=excluded.inventory_report_id,reported_at=excluded.reported_at,source_status=excluded.source_status`;
++    await modelEvent(tx, machineId, 'source.applied', { revision: r.configRevision, reportId: r.reportId });
++  }
++  return record(
++    tx,
++    machineId,
++    r,
++    'applied',
++    check.bodyHash,
++    { reportId: r.reportId, accepted: true, applied: complete, serverTime: now.toISOString() },
++    now,
++  );
++}
++export const modelKeyId = (key: ProbeResult['key']) =>
++  `model:v1:${[key.machineId, key.runtime, key.providerId, key.modelId].map(encodeURIComponent).join(':')}`;
++async function currentPair(tx: Tx, machineId: Id, source: SourcePin, runtime: ProbeResult['key']['runtime']) {
++  const config = await readGatewayConfig(tx, machineId);
++  const desired = config?.desired[source.name];
++  const [applied] = await tx`select * from gateway_applied where machine_id=${machineId}`;
++  const [report] =
++    await tx`select r.* from gateway_install_reports r join gateway_boots b on b.machine_id=r.machine_id and b.boot_generation=r.boot_generation and b.retired_at is null where r.id=${applied?.latest_report_id ?? null} and r.machine_id=${machineId}`;
++  const response = report?.response as InstallReportResponse | undefined;
++  const proj = desired?.projections[runtime] ?? null;
++  const okay =
++    !!config?.enabled &&
++    same(desired?.source, source) &&
++    Number(applied?.revision) === config.revision &&
++    Number(report?.config_revision) === config.revision &&
++    response?.accepted === true &&
++    proj !== null &&
++    same(response.workflows[source.name].source.installed, source) &&
++    same(response.workflows[source.name].projections[runtime].installed, proj);
++  return { okay, projection: proj, reportId: report?.id as Id | undefined, config };
++}
++function matchesContext(c: ProbeContext, source: SourcePin, p: ProjectionPin) {
++  return (
++    c.sourceTreeSha256 === source.sourceTreeSha256 &&
++    c.projectionManifestSha256 === p.manifestSha256 &&
++    c.projectionTreeSha256 === p.treeSha256 &&
++    c.derivationSha256 === hash(p.derivation)
++  );
++}
++export async function getPool(
++  db: Db | Tx,
++  machineId: Id,
++  source: SourcePin,
++  now = new Date(),
++): Promise<PoolEntry[]> {
++  const tx = db as Tx,
++    config = await readSourceConfig(tx, machineId);
++  if (!config) return [];
++  const inventory = await latestInventory(tx, machineId);
++  const probes = inventory
++    ? await tx`select * from model_probe_receipts where inventory_report_id=${inventory.id}`
++    : [];
++  const [applied] = await tx`select * from model_source_applied where machine_id=${machineId}`;
++  const keys = probes
++    .filter(
++      (p, index) =>
++        probes.findIndex(
++          (q) => q.runtime === p.runtime && q.provider_id === p.provider_id && q.model_id === p.model_id,
++        ) === index,
++    )
++    .map((p) => ({
++      machineId,
++      runtime: p.runtime as ProbeResult['key']['runtime'],
++      providerId: String(p.provider_id),
++      modelId: String(p.model_id),
++    }));
++  for (const provider of config.apiProviders)
++    for (const model of provider.models)
++      if (!keys.some((k) => k.runtime === 'api' && k.providerId === provider.id && k.modelId === model.id))
++        keys.push({ machineId, runtime: 'api', providerId: provider.id, modelId: model.id });
++  const entries: PoolEntry[] = [];
++  for (const key of keys) {
++    const row = probes.find(
++      (p) =>
++        p.runtime === key.runtime &&
++        p.provider_id === key.providerId &&
++        p.model_id === key.modelId &&
++        (p.context as ProbeContext).sourceTreeSha256 === source.sourceTreeSha256,
++    );
++    const pair = await currentPair(tx, machineId, source, key.runtime);
++    const context = row?.context as ProbeContext | undefined;
++    const sourceApplied =
++      Number(applied?.revision) === config.revision &&
++      applied?.inventory_report_id === inventory?.id &&
++      String(applied?.boot_generation) === String(inventory?.boot_generation);
++    const sourceStatus = (applied?.source_status as ModelAppliedBody['sourceStatus'] | undefined)?.[
++      key.runtime
++    ];
++    const provider = config.apiProviders.find((p) => p.id === key.providerId);
++    const [cert] = context
++      ? await tx`select * from runtime_certification_receipts where machine_id=${machineId} and runtime=${key.runtime} and source_tree_sha256=${context.sourceTreeSha256} and projection_manifest_sha256=${context.projectionManifestSha256} and projection_tree_sha256=${context.projectionTreeSha256} and derivation_hash=${context.derivationSha256} and binary_hash=${context.binarySha256} and policy_hash=${context.policySha256} and os_version=${context.osVersion} order by received_at desc limit 1`
++      : [];
++    let reason: string | null = null;
++    if (!config.enabled[key.runtime]) reason = 'SOURCE_DISABLED';
++    else if (!sourceApplied) reason = 'MODEL_CONFIG_PENDING';
++    else if (sourceStatus?.state !== 'ready') reason = sourceStatus?.errorCode ?? 'SOURCE_UNAVAILABLE';
++    else if (key.runtime === 'api' && provider?.credentialStatus !== 'stored')
++      reason = provider?.credentialStatus === 'pending' ? 'CREDENTIAL_PENDING' : 'CREDENTIAL_MISSING';
++    else if (!pair.okay || !pair.projection) reason = 'WORKFLOW_UNAVAILABLE';
++    else if (!row || !context) reason = 'UNPROBED';
++    else if (!matchesContext(context, source, pair.projection)) reason = 'PROBE_CONTEXT_CHANGED';
++    else if (row.status !== 'pass') reason = String(row.error_code ?? 'UNVERIFIED');
++    else if ((row.expires_at as Date).getTime() <= now.getTime()) reason = 'PROBE_EXPIRED';
++    else if (cert?.status !== 'PASS' || (cert.expires_at as Date).getTime() <= now.getTime())
++      reason = 'CERTIFICATION_UNVERIFIED';
++    const probe = row
++      ? {
++          key,
++          context: row.context as ProbeContext,
++          observedAt: (row.observed_at as Date).toISOString(),
++          status: row.status as ProbeResult['status'],
++          capabilities: row.capabilities as ProbeResult['capabilities'],
++          evidenceDigest: String(row.evidence_digest),
++          errorCode: row.error_code as string | null,
++          runtimeVersion: row.runtime_version as string | null,
++        }
++      : null;
++    entries.push({
++      ...key,
++      source,
++      projection: pair.projection,
++      installReportId: pair.reportId ?? null,
++      declared:
++        config.apiProviders.find((p) => p.id === key.providerId)?.models.find((m) => m.id === key.modelId)
++          ?.declared ??
++        probe?.capabilities ??
++        [],
++      probe,
++      probeReceiptId: row ? String(row.id) : null,
++      probeContextSha256: row ? String(row.context_sha256) : null,
++      probeReceivedAt: row ? (row.received_at as Date).toISOString() : null,
++      probeExpiresAt: row ? (row.expires_at as Date).toISOString() : null,
++      sourceDesired: config.enabled[key.runtime],
++      sourceApplied,
++      available: reason === null,
++      reason,
++    });
++  }
++  return entries;
++}
++export async function assertModelDispatch(
++  tx: Tx,
++  permit: DispatchPermit,
++  choice: ModelDispatchChoice,
++  now = new Date(),
++): Promise<void> {
++  const [machine] = await tx`select revoked_at from machines where id=${permit.machineId} for update`;
++  if (!machine || machine.revoked_at) fail('NOT_FOUND', 404);
++  const config = await readSourceConfig(tx, permit.machineId);
++  if (!config?.enabled[choice.model.runtime]) fail('SOURCE_DISABLED');
++  if (config.revision !== choice.modelConfigRevision || choice.model.machineId !== permit.machineId)
++    fail('MODEL_CHOICE_STALE');
++  const [command] = await tx`select * from commands where id=${permit.commandId}`;
++  const [decision] = await tx`select * from decisions where id=${permit.decisionId}`;
++  const payload = command?.payload as
++      | { selection?: DispatchSelection; modelChoice?: ModelDispatchChoice }
++      | undefined,
++    scope = decision?.scope as typeof payload;
++  if (
++    command?.machine_id !== permit.machineId ||
++    command?.ticket_id !== permit.ticketId ||
++    decision?.kind !== 'dispatch' ||
++    decision?.ticket_id !== permit.ticketId ||
++    !same(payload?.modelChoice, choice) ||
++    !same(scope?.modelChoice, choice) ||
++    !payload?.selection ||
++    !same(payload.selection, scope?.selection) ||
++    payload.selection.decisionId !== permit.decisionId ||
++    payload.selection.runtime !== choice.model.runtime
++  )
++    fail('MODEL_SELECTION_MISMATCH');
++  const workflow = await readGatewayConfig(tx, permit.machineId),
++    source = workflow?.desired[permit.workflow.workflow].source;
++  if (!source || !same(toDomainPin(source), permit.workflow)) fail('WORKFLOW_UNAVAILABLE');
++  const pool = await getPool(tx, permit.machineId, source, now);
++  const entry = pool.find((p) =>
++    same(
++      { machineId: p.machineId, runtime: p.runtime, providerId: p.providerId, modelId: p.modelId },
++      choice.model,
++    ),
++  );
++  if (
++    !entry?.available ||
++    entry.probeReceiptId !== choice.probeReceiptId ||
++    entry.probeContextSha256 !== choice.probeContextSha256 ||
++    !entry.probe ||
++    !choice.required.every((c) => entry.probe?.capabilities.includes(c)) ||
++    entry.installReportId !== payload.selection.installReportId ||
++    workflow?.revision !== payload.selection.configRevision ||
++    entry.projection?.manifestSha256 !== payload.selection.projectionManifestSha256 ||
++    entry.projection?.treeSha256 !== payload.selection.projectionTreeSha256
++  )
++    fail('MODEL_UNAVAILABLE');
++  const [cert] =
++    await tx`select * from runtime_certification_receipts where id=${choice.certificationReceiptId}`;
++  const c = entry.probe.context;
++  if (
++    !cert ||
++    cert.machine_id !== permit.machineId ||
++    cert.runtime !== choice.model.runtime ||
++    cert.status !== 'PASS' ||
++    (cert.expires_at as Date).getTime() <= now.getTime() ||
++    cert.source_tree_sha256 !== c.sourceTreeSha256 ||
++    cert.projection_manifest_sha256 !== c.projectionManifestSha256 ||
++    cert.projection_tree_sha256 !== c.projectionTreeSha256 ||
++    cert.derivation_hash !== c.derivationSha256 ||
++    cert.binary_hash !== c.binarySha256 ||
++    cert.policy_hash !== c.policySha256 ||
++    cert.os_version !== c.osVersion
++  )
++    fail('CERTIFICATION_UNVERIFIED');
++}
+diff --git a/v2/server/src/models/certification.ts b/v2/server/src/models/certification.ts
+new file mode 100644
+index 0000000..7458d1f
+--- /dev/null
++++ b/v2/server/src/models/certification.ts
+@@ -0,0 +1,161 @@
++import { createHash, randomBytes, randomUUID } from 'node:crypto';
++import type { DispatchSelection } from '../gateway/contracts.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++import type {
++  CertificationChallenge,
++  CertificationEvidence,
++  CertificationVerifier,
++  ProbeContext,
++} from './contracts.ts';
++import { fail, hash, receiptExpiry, same } from './helpers.ts';
++export const requiredCertificationSurfaces = [
++  'init',
++  'invocation',
++  'native-read',
++  'bash-script',
++  'mcp',
++  'child',
++  'absolute',
++  'symlink',
++  'hardlink',
++  'network',
++] as const;
++export const denyCertification: CertificationVerifier = { verify: async () => 'UNVERIFIED' };
++export type ChallengeInput = {
++  machineId: Id;
++  projectId: Id;
++  context: ProbeContext;
++  maxTurns: number;
++  maxTools: number;
++  maxCostUsd: number;
++};
++/** Never supplied by production route composition. A scratch controller supplies explicit bound scope. */
++export type ChallengeIssuer = { authorize(tx: Tx, input: ChallengeInput): Promise<void> };
++export async function issueCertificationChallenge(
++  tx: Tx,
++  input: ChallengeInput,
++  now = new Date(),
++  issuer?: ChallengeIssuer,
++): Promise<CertificationChallenge> {
++  if (!issuer) fail('TEST_CERTIFICATION_NOT_CONFIGURED', 503);
++  await issuer.authorize(tx, input);
++  const [bound] =
++    await tx`select p.machine_id,m.revoked_at from projects p join machines m on m.id=p.machine_id where p.id=${input.projectId}`;
++  if (!bound || bound.machine_id !== input.machineId || bound.revoked_at) fail('CHALLENGE_SCOPE_INVALID');
++  if (
++    !Number.isSafeInteger(input.maxTurns) ||
++    input.maxTurns < 1 ||
++    input.maxTurns > 20 ||
++    !Number.isSafeInteger(input.maxTools) ||
++    input.maxTools < 1 ||
++    input.maxTools > 100 ||
++    !Number.isFinite(input.maxCostUsd) ||
++    input.maxCostUsd < 0 ||
++    input.maxCostUsd > 10
++  )
++    fail('CHALLENGE_BUDGET_INVALID', 400);
++  const id = randomUUID(),
++    nonce = randomBytes(32).toString('hex'),
++    expiresAt = receiptExpiry(now).toISOString();
++  await tx`insert into model_certification_challenges(id,machine_id,project_id,nonce_hash,context,expires_at,max_turns,max_tools,max_cost_usd,state,created_at) values(${id},${input.machineId},${input.projectId},${createHash('sha256').update(nonce).digest('hex')},${tx.json(input.context)},${expiresAt},${input.maxTurns},${input.maxTools},${input.maxCostUsd},'issued',${now})`;
++  return {
++    id,
++    nonce,
++    machineId: input.machineId,
++    projectId: input.projectId,
++    ...input.context,
++    expiresAt,
++    maxTurns: input.maxTurns,
++    maxTools: input.maxTools,
++    maxCostUsd: input.maxCostUsd,
++  };
++}
++export async function verifyCertification(
++  tx: Tx,
++  evidence: CertificationEvidence,
++  now = new Date(),
++  verifier: CertificationVerifier = denyCertification,
++  machineId?: Id,
++): Promise<'PASS' | 'UNVERIFIED' | 'FAIL'> {
++  const [challenge] =
++    await tx`select * from model_certification_challenges where id=${evidence.challengeId} for update`;
++  if (!challenge) return 'UNVERIFIED';
++  if (machineId && challenge.machine_id !== machineId) fail('NOT_FOUND', 404);
++  const [prior] =
++    await tx`select * from runtime_certification_receipts where challenge_id=${evidence.challengeId}`;
++  if (prior) {
++    if (prior.body_hash !== hash(evidence)) fail('CERTIFICATION_REPORT_CONFLICT');
++    return prior.status as 'PASS' | 'UNVERIFIED' | 'FAIL';
++  }
++  const [attempt] =
++    await tx`select a.*,g.active_attempt_id,p.machine_id as bound_machine,p.binding_revision as current_binding from attempts a join execution_guards g on g.ticket_id=a.ticket_id join tickets t on t.id=a.ticket_id join projects p on p.id=t.project_id where a.id=${evidence.attemptId}`;
++  if (
++    !attempt ||
++    challenge.state !== 'admitted' ||
++    challenge.attempt_id !== evidence.attemptId ||
++    challenge.machine_id !== attempt.machine_id ||
++    challenge.admitted_command_id !== attempt.command_id ||
++    String(challenge.admitted_fence) !== evidence.fence ||
++    String(attempt.fence) !== evidence.fence ||
++    challenge.process_instance_id !== evidence.processInstanceId ||
++    attempt.process_instance_id !== evidence.processInstanceId ||
++    attempt.active_attempt_id !== attempt.id ||
++    !['active', 'uncertain'].includes(String(attempt.state)) ||
++    attempt.bound_machine !== attempt.machine_id ||
++    Number(attempt.current_binding) !== Number(attempt.binding_revision) ||
++    (challenge.expires_at as Date).getTime() <= now.getTime() ||
++    !same(challenge.context, evidence.context)
++  )
++    return 'UNVERIFIED';
++  const [command] = await tx`select payload from commands where id=${challenge.admitted_command_id}`;
++  const [decision] = await tx`select scope from decisions where id=${challenge.admitted_decision_id}`;
++  const payload = command?.payload as { selection?: DispatchSelection } | undefined,
++    scope = decision?.scope as { selection?: DispatchSelection } | undefined;
++  const selection = payload?.selection;
++  if (
++    !selection ||
++    !same(selection, scope?.selection) ||
++    selection.sourceTreeSha256 !== evidence.context.sourceTreeSha256 ||
++    selection.projectionManifestSha256 !== evidence.context.projectionManifestSha256 ||
++    selection.projectionTreeSha256 !== evidence.context.projectionTreeSha256
++  )
++    return 'UNVERIFIED';
++  const [companion] =
++    await tx`select * from gateway_attempt_projections where attempt_id=${evidence.attemptId}`;
++  if (
++    !companion ||
++    companion.runtime !== selection.runtime ||
++    String(companion.fence) !== evidence.fence ||
++    companion.process_instance_id !== evidence.processInstanceId
++  )
++    return 'UNVERIFIED';
++  if (
++    new Set(evidence.surfaceResults.map((s) => s.surface)).size !== evidence.surfaceResults.length ||
++    !requiredCertificationSurfaces.every((surface) =>
++      evidence.surfaceResults.some((s) => s.surface === surface && s.selectedWorked && s.unselectedDenied),
++    )
++  )
++    return 'UNVERIFIED';
++  if (evidence.artifactIds.length) {
++    const artifacts =
++      await tx`select id from evidence where attempt_id=${evidence.attemptId} and kind='artifact' and id=any(${tx.array(evidence.artifactIds)}::uuid[])`;
++    if (artifacts.length !== evidence.artifactIds.length) return 'UNVERIFIED';
++  }
++  const c: CertificationChallenge = {
++    id: String(challenge.id),
++    nonce: '',
++    machineId: String(challenge.machine_id),
++    projectId: String(challenge.project_id),
++    ...(challenge.context as ProbeContext),
++    expiresAt: (challenge.expires_at as Date).toISOString(),
++    maxTurns: Number(challenge.max_turns),
++    maxTools: Number(challenge.max_tools),
++    maxCostUsd: Number(challenge.max_cost_usd),
++  };
++  const status = await verifier.verify(tx, { evidence, challenge: c, selection });
++  if (status === 'UNVERIFIED') return status;
++  const ctx = evidence.context;
++  await tx`insert into runtime_certification_receipts(id,challenge_id,attempt_id,machine_id,runtime,source_tree_sha256,projection_manifest_sha256,projection_tree_sha256,derivation_hash,binary_hash,policy_hash,os_version,evidence_digest,body_hash,status,received_at,expires_at) values(${randomUUID()},${challenge.id},${evidence.attemptId},${challenge.machine_id},${selection.runtime},${ctx.sourceTreeSha256},${ctx.projectionManifestSha256},${ctx.projectionTreeSha256},${ctx.derivationSha256},${ctx.binarySha256},${ctx.policySha256},${ctx.osVersion},${evidence.traceSha256},${hash(evidence)},${status},${now},${receiptExpiry(now)})`;
++  await tx`update model_certification_challenges set state=${status === 'PASS' ? 'verified' : 'failed'} where id=${challenge.id}`;
++  return status;
++}
+diff --git a/v2/server/src/models/commands.ts b/v2/server/src/models/commands.ts
+new file mode 100644
+index 0000000..ea5ed3f
+--- /dev/null
++++ b/v2/server/src/models/commands.ts
+@@ -0,0 +1,28 @@
++import type { GatewayAck } from '../gateway/contracts.ts';
++import { ackGatewayCommand, listGatewayCommands } from '../gateway/service.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++import type { ModelCommand } from './contracts.ts';
++import { fail, same } from './helpers.ts';
++export async function readModelCommands(tx: Tx, machineId: Id, after: string, limit: number) {
++  const page = await listGatewayCommands(tx, machineId, after, limit);
++  return { ...page, items: page.items as ModelCommand[] };
++}
++export async function ackModelCommand(
++  tx: Tx,
++  machineId: Id,
++  id: Id,
++  input: GatewayAck,
++  now = new Date(),
++): Promise<ModelCommand> {
++  const [row] =
++    await tx`select * from gateway_commands where id=${id} and machine_id=${machineId} for update`;
++  if (row?.type !== 'sync_models') fail('NOT_FOUND', 404);
++  if (input.phase === 'completed' && row.state !== 'completed') {
++    const superseded = same(input.result, { ok: false, code: 'SUPERSEDED' });
++    const [valid] = superseded
++      ? await tx`select 1 from model_source_configs where machine_id=${machineId} and revision>${(row.payload as { configRevision: number }).configRevision}`
++      : await tx`select 1 from model_source_applied a join gateway_boots b on b.machine_id=a.machine_id and b.boot_generation=a.boot_generation and b.retired_at is null where a.machine_id=${machineId} and a.revision=${(row.payload as { configRevision: number }).configRevision}`;
++    if (!valid) fail(superseded ? 'CONFIG_REVISION_CONFLICT' : 'MODEL_CONFIG_PENDING');
++  }
++  return (await ackGatewayCommand(tx, machineId, id, input, now)) as ModelCommand;
++}
+diff --git a/v2/server/src/models/config.ts b/v2/server/src/models/config.ts
+new file mode 100644
+index 0000000..5bec70a
+--- /dev/null
++++ b/v2/server/src/models/config.ts
+@@ -0,0 +1,118 @@
++import { randomUUID } from 'node:crypto';
++import { isIP } from 'node:net';
++import type { Id, Tx } from '../platform/contracts.ts';
++import type { ApiProviderConfig, SourceConfig, SourceConfigInput } from './contracts.ts';
++import { fail, json, modelEvent, same } from './helpers.ts';
++export function validateApiEndpoint(p: Omit<ApiProviderConfig, 'credentialStatus'>): void {
++  let u: URL;
++  try {
++    u = new URL(p.endpoint);
++  } catch {
++    fail('ENDPOINT_INVALID', 400);
++  }
++  if (u.href !== p.endpoint || u.username || u.password || u.search || u.hash) fail('ENDPOINT_INVALID', 400);
++  if (u.protocol === 'http:') {
++    if (
++      !p.localHttp ||
++      !['127.0.0.1', '[::1]'].includes(u.hostname) ||
++      !u.port ||
++      Number(u.port) < 1 ||
++      Number(u.port) > 65535 ||
++      p.localHttp.allowedOrigin !== u.origin
++    )
++      fail('ENDPOINT_INVALID', 400);
++  } else if (
++    u.protocol !== 'https:' ||
++    p.localHttp ||
++    isIP(u.hostname.replaceAll(/[[\]]/g, '')) ||
++    u.hostname === 'localhost' ||
++    u.hostname.endsWith('.localhost') ||
++    u.hostname.endsWith('.local')
++  )
++    fail('ENDPOINT_INVALID', 400);
++  if (!p.models.length || new Set(p.models.map((m) => m.id)).size !== p.models.length)
++    fail('MODEL_LIST_INVALID', 400);
++}
++export async function readSourceConfig(tx: Tx, machineId: Id): Promise<SourceConfig | null> {
++  const [r] = await tx`select * from model_source_configs where machine_id=${machineId}`;
++  if (!r) return null;
++  const ps = await tx`select * from api_providers where machine_id=${machineId} and declared order by id`;
++  return {
++    revision: Number(r.revision),
++    enabled: r.enabled as SourceConfig['enabled'],
++    apiProviders: ps.map((p) => ({
++      id: String(p.id),
++      endpoint: String(p.endpoint),
++      protocol: p.protocol as ApiProviderConfig['protocol'],
++      models: p.model_ids as ApiProviderConfig['models'],
++      localHttp: p.local_http as ApiProviderConfig['localHttp'],
++      credentialStatus: p.status as ApiProviderConfig['credentialStatus'],
++    })),
++  };
++}
++export async function setSourceConfig(
++  tx: Tx,
++  machineId: Id,
++  input: SourceConfigInput,
++  now = new Date(),
++): Promise<SourceConfig> {
++  if (new Set(input.apiProviders.map((p) => p.id)).size !== input.apiProviders.length)
++    fail('PROVIDER_LIST_INVALID', 400);
++  for (const p of input.apiProviders) validateApiEndpoint(p);
++  const prev = await readSourceConfig(tx, machineId);
++  if ((prev?.revision ?? 0) !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
++  const clean = (c: SourceConfig) => ({
++    enabled: c.enabled,
++    apiProviders: c.apiProviders
++      .map(({ credentialStatus: _, ...p }) => p)
++      .sort((a, b) => a.id.localeCompare(b.id)),
++  });
++  if (
++    prev &&
++    same(clean(prev), {
++      enabled: input.enabled,
++      apiProviders: [...input.apiProviders].sort((a, b) => a.id.localeCompare(b.id)),
++    })
++  )
++    return prev;
++  const revision = (prev?.revision ?? 0) + 1;
++  await tx`insert into model_source_configs(machine_id,revision,enabled,updated_at) values(${machineId},${revision},${tx.json(json(input.enabled))},${now}) on conflict(machine_id) do update set revision=excluded.revision,enabled=excluded.enabled,updated_at=excluded.updated_at`;
++  // Desired removal is reversible while FK-backed historical envelope receipts remain intact.
++  await tx`update api_providers set declared=false where machine_id=${machineId}`;
++  for (const p of input.apiProviders) {
++    const [old] =
++      await tx`select endpoint,protocol from api_providers where machine_id=${machineId} and id=${p.id}`;
++    if (old && (old.endpoint !== p.endpoint || old.protocol !== p.protocol)) {
++      await tx`update api_secret_envelopes set state='expired',ciphertext=null,tag=null where machine_id=${machineId} and provider_id=${p.id} and state='pending'`;
++      await tx`update api_providers set status='missing',credential_ref=null where machine_id=${machineId} and id=${p.id}`;
++    }
++    await tx`insert into api_providers(id,machine_id,endpoint,protocol,model_ids,local_http,status) values(${p.id},${machineId},${p.endpoint},${p.protocol},${tx.json(json(p.models))},${p.localHttp ? tx.json(p.localHttp) : null},'missing') on conflict(machine_id,id) do update set endpoint=excluded.endpoint,protocol=excluded.protocol,model_ids=excluded.model_ids,local_http=excluded.local_http,declared=true`;
++  }
++  const superseded =
++    await tx`update gateway_commands set state='completed',received_at=coalesce(received_at,${now}),completed_at=${now},result=${tx.json({ ok: false, code: 'SUPERSEDED' })} where machine_id=${machineId} and type='sync_models' and state<>'completed' returning id`;
++  for (const c of superseded)
++    await modelEvent(tx, machineId, 'gateway.command.acknowledged', { commandId: c.id, phase: 'completed' });
++  const [cursor] = await tx`update gateway_command_cursor set value=value+1 where singleton returning value`;
++  const id = randomUUID();
++  await tx`insert into gateway_commands(id,machine_id,type,payload,state,created_at,cursor) values(${id},${machineId},'sync_models',${tx.json({ configRevision: revision })},'queued',${now},${cursor?.value})`;
++  await modelEvent(tx, machineId, 'source.desired', { revision });
++  await modelEvent(tx, machineId, 'gateway.command.created', { commandId: id, type: 'sync_models' });
++  const current = await readSourceConfig(tx, machineId);
++  if (!current) fail('CONFIG_NOT_CONFIGURED');
++  return current;
++}
++
++export async function readModelApplied(tx: Tx, machineId: Id) {
++  const [r] = await tx`select * from model_source_applied where machine_id=${machineId}`;
++  return r
++    ? {
++        revision: Number(r.revision),
++        reportId: String(r.report_id),
++        bootGeneration: String(r.boot_generation),
++        sequence: String(r.sequence),
++        inventoryReportId: String(r.inventory_report_id),
++        reportedAt: (r.reported_at as Date).toISOString(),
++        sourceStatus: r.source_status,
++      }
++    : null;
++}
+diff --git a/v2/server/src/models/contracts.ts b/v2/server/src/models/contracts.ts
+new file mode 100644
+index 0000000..00e22d0
+--- /dev/null
++++ b/v2/server/src/models/contracts.ts
+@@ -0,0 +1,301 @@
++import type {
++  DispatchSelection,
++  GatewayCommand,
++  ProjectionPin,
++  Runtime,
++  SourcePin,
++} from '../gateway/contracts.ts';
++import { counterSchema, digestSchema, objectSchema, uuidSchema } from '../gateway/contracts.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++export type Source = Runtime;
++export type Capability =
++  | 'tools'
++  | 'vision'
++  | 'text'
++  | 'stream'
++  | 'file_pdf'
++  | 'file_docx'
++  | 'file_xlsx'
++  | 'file_csv';
++export type ModelKey = { machineId: Id; runtime: Source; providerId: string; modelId: string };
++export type ProbeContext = {
++  sourceTreeSha256: string;
++  projectionManifestSha256: string;
++  projectionTreeSha256: string;
++  derivationSha256: string;
++  binarySha256: string;
++  policySha256: string;
++  osVersion: string;
++};
++export type ProbeResult = {
++  key: ModelKey;
++  context: ProbeContext;
++  observedAt: string;
++  status: 'pass' | 'fail' | 'unverified';
++  capabilities: Capability[];
++  evidenceDigest: string;
++  errorCode: string | null;
++  runtimeVersion: string | null;
++};
++export type PoolEntry = ModelKey & {
++  source: SourcePin;
++  projection: ProjectionPin | null;
++  installReportId: Id | null;
++  declared: Capability[];
++  probe: ProbeResult | null;
++  probeReceiptId: Id | null;
++  probeContextSha256: string | null;
++  probeReceivedAt: string | null;
++  probeExpiresAt: string | null;
++  sourceDesired: boolean;
++  sourceApplied: boolean;
++  available: boolean;
++  reason: string | null;
++};
++export type ModelDispatchChoice = {
++  model: ModelKey;
++  modelConfigRevision: number;
++  probeReceiptId: Id;
++  probeContextSha256: string;
++  certificationReceiptId: Id | null;
++  required: Capability[];
++};
++export type ModelReportEnvelope<T> = {
++  reportId: Id;
++  bootId: Id;
++  bootGeneration: string;
++  sequence: string;
++  configRevision: number;
++  body: T;
++};
++export type ModelInventoryBody = { entries: ProbeResult[] };
++export type ModelAppliedBody = {
++  inventoryReportId: Id;
++  sourceStatus: Record<Source, { state: 'disabled' | 'ready' | 'error'; errorCode: string | null }>;
++  observationDigest: string;
++};
++export type ApiProviderConfig = {
++  id: string;
++  endpoint: string;
++  protocol: 'responses' | 'chat-completions';
++  models: { id: string; declared: Capability[] }[];
++  credentialStatus: 'missing' | 'pending' | 'stored';
++  localHttp: { enabled: true; allowedOrigin: string } | null;
++};
++export type SourceConfig = {
++  revision: number;
++  enabled: Record<Source, boolean>;
++  apiProviders: ApiProviderConfig[];
++};
++export type SourceConfigInput = {
++  expectedRevision: number;
++  enabled: Record<Source, boolean>;
++  apiProviders: Omit<ApiProviderConfig, 'credentialStatus'>[];
++};
++export type CertificationChallenge = {
++  id: Id;
++  nonce: string;
++  machineId: Id;
++  projectId: Id;
++  expiresAt: string;
++  maxTurns: number;
++  maxTools: number;
++  maxCostUsd: number;
++} & ProbeContext;
++export type CertificationEvidence = {
++  challengeId: Id;
++  attemptId: Id;
++  fence: string;
++  processInstanceId: Id;
++  context: ProbeContext;
++  surfaceResults: {
++    surface: string;
++    selectedWorked: boolean;
++    unselectedDenied: boolean;
++    traceSha256: string;
++  }[];
++  artifactIds: Id[];
++  traceSha256: string;
++};
++export type RuntimeAdmission =
++  | { kind: 'certified'; receiptId: Id }
++  | { kind: 'test-certification'; challengeId: Id; nonce: string };
++export type CredentialKeyRegistration = { keyId: Id; publicKeyX25519: string };
++export type CredentialKeyConfirmation = { challengeId: Id; challengeSha256: string };
++export type SecretEnvelope = {
++  id: Id;
++  machineId: Id;
++  providerId: Id;
++  keyId: Id;
++  configRevision: number;
++  operationId: Id;
++  expiresAt: string;
++  ephemeralPublicKey: string;
++  nonce: string;
++  ciphertext: string;
++  tag: string;
++  ciphertextSha256: string;
++};
++export type SecretAck = { operationId: Id; keyId: Id; ciphertextSha256: string; credentialRef: string };
++export type SecretInput = { expectedRevision: number; keyId: Id; operationId: Id; secret: string };
++export type ModelCommand = Omit<GatewayCommand, 'type'> & { type: GatewayCommand['type'] | 'sync_models' };
++/** Trusted composition ports must independently observe evidence; host fields alone confer no authority. */
++export type ModelProofVerifier = {
++  verify(
++    tx: Tx,
++    probe: ProbeResult,
++  ): Promise<{ status: 'pass' | 'fail' | 'unverified'; capabilities: Capability[] }>;
++};
++export type CertificationVerifier = {
++  verify(
++    tx: Tx,
++    input: {
++      evidence: CertificationEvidence;
++      challenge: CertificationChallenge;
++      selection: DispatchSelection;
++    },
++  ): Promise<'PASS' | 'UNVERIFIED' | 'FAIL'>;
++};
++export type ModelRouteOptions = {
++  probeVerifier?: ModelProofVerifier;
++  certificationVerifier?: CertificationVerifier;
++};
++export const sources: Source[] = ['claude', 'codex', 'api'];
++export const capabilities: Capability[] = [
++  'tools',
++  'vision',
++  'text',
++  'stream',
++  'file_pdf',
++  'file_docx',
++  'file_xlsx',
++  'file_csv',
++];
++const str = { type: 'string', minLength: 1, maxLength: 200 };
++const nullable = (schema: unknown) => ({ anyOf: [schema, { type: 'null' }] });
++const revision = { type: 'integer', minimum: 1, maximum: 2147483647 };
++const capList = { type: 'array', maxItems: 8, uniqueItems: true, items: { enum: capabilities } };
++export const contextSchema = objectSchema({
++  ...Object.fromEntries(
++    [
++      'sourceTreeSha256',
++      'projectionManifestSha256',
++      'projectionTreeSha256',
++      'derivationSha256',
++      'binarySha256',
++      'policySha256',
++    ].map((k) => [k, digestSchema]),
++  ),
++  osVersion: str,
++});
++export const modelKeySchema = objectSchema({
++  machineId: uuidSchema,
++  runtime: { enum: sources },
++  providerId: str,
++  modelId: str,
++});
++export const sourceConfigSchema = objectSchema({
++  expectedRevision: { type: 'integer', minimum: 0, maximum: 2147483646 },
++  enabled: objectSchema({
++    claude: { type: 'boolean' },
++    codex: { type: 'boolean' },
++    api: { type: 'boolean' },
++  }),
++  apiProviders: {
++    type: 'array',
++    maxItems: 50,
++    items: objectSchema({
++      id: uuidSchema,
++      endpoint: { type: 'string', minLength: 1, maxLength: 2048 },
++      protocol: { enum: ['responses', 'chat-completions'] },
++      models: {
++        type: 'array',
++        minItems: 1,
++        maxItems: 100,
++        items: objectSchema({ id: str, declared: capList }),
++      },
++      localHttp: nullable(
++        objectSchema({
++          enabled: { const: true },
++          allowedOrigin: { type: 'string', minLength: 1, maxLength: 200 },
++        }),
++      ),
++    }),
++  },
++});
++export const probeSchema = objectSchema({
++  key: modelKeySchema,
++  context: contextSchema,
++  observedAt: { type: 'string', format: 'date-time' },
++  status: { enum: ['pass', 'fail', 'unverified'] },
++  capabilities: capList,
++  evidenceDigest: digestSchema,
++  errorCode: nullable({ type: 'string', pattern: '^[A-Z][A-Z0-9_]{0,63}$' }),
++  runtimeVersion: nullable(str),
++});
++const envelope = (body: unknown) =>
++  objectSchema({
++    reportId: uuidSchema,
++    bootId: uuidSchema,
++    bootGeneration: counterSchema,
++    sequence: counterSchema,
++    configRevision: revision,
++    body,
++  });
++export const inventorySchema = envelope(
++  objectSchema({ entries: { type: 'array', maxItems: 500, items: probeSchema } }),
++);
++export const appliedSchema = envelope(
++  objectSchema({
++    inventoryReportId: uuidSchema,
++    sourceStatus: objectSchema(
++      Object.fromEntries(
++        sources.map((s) => [
++          s,
++          objectSchema({
++            state: { enum: ['disabled', 'ready', 'error'] },
++            errorCode: nullable({ type: 'string', pattern: '^[A-Z][A-Z0-9_]{0,63}$' }),
++          }),
++        ]),
++      ),
++      [],
++    ),
++    observationDigest: digestSchema,
++  }),
++);
++export const certificationSchema = objectSchema({
++  challengeId: uuidSchema,
++  attemptId: uuidSchema,
++  fence: counterSchema,
++  processInstanceId: uuidSchema,
++  context: contextSchema,
++  surfaceResults: {
++    type: 'array',
++    maxItems: 30,
++    items: objectSchema({
++      surface: str,
++      selectedWorked: { type: 'boolean' },
++      unselectedDenied: { type: 'boolean' },
++      traceSha256: digestSchema,
++    }),
++  },
++  artifactIds: { type: 'array', maxItems: 100, uniqueItems: true, items: uuidSchema },
++  traceSha256: digestSchema,
++});
++export const registrationSchema = objectSchema({
++  keyId: uuidSchema,
++  publicKeyX25519: { type: 'string', minLength: 44, maxLength: 200 },
++});
++export const confirmationSchema = objectSchema({ challengeId: uuidSchema, challengeSha256: digestSchema });
++export const secretSchema = objectSchema({
++  expectedRevision: revision,
++  keyId: uuidSchema,
++  operationId: uuidSchema,
++  secret: { type: 'string', minLength: 1, maxLength: 8192 },
++});
++export const secretAckSchema = objectSchema({
++  operationId: uuidSchema,
++  keyId: uuidSchema,
++  ciphertextSha256: digestSchema,
++  credentialRef: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,200}$' },
++});
+diff --git a/v2/server/src/models/helpers.ts b/v2/server/src/models/helpers.ts
+new file mode 100644
+index 0000000..aea6034
+--- /dev/null
++++ b/v2/server/src/models/helpers.ts
+@@ -0,0 +1,33 @@
++import { createHash } from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import { appendEvent } from '../journal/events.ts';
++import type { Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import type { ProbeContext } from './contracts.ts';
++export const same = (a: unknown, b: unknown) =>
++  a === b || (a !== undefined && b !== undefined && canonicalJson(a) === canonicalJson(b));
++export const hash = (a: unknown) => createHash('sha256').update(canonicalJson(a)).digest('hex');
++export const json = (a: unknown) => JSON.parse(canonicalJson(a));
++export function fail(code: string, status = 409): never {
++  throw new ApiError(code, status, 'Cấu hình model không còn hợp lệ');
++}
++/** Wire context hash has fixed field ordering, distinct from generic sorted canonical JSON. */
++export function contextHash(c: ProbeContext): string {
++  return createHash('sha256')
++    .update(
++      JSON.stringify({
++        sourceTreeSha256: c.sourceTreeSha256,
++        projectionManifestSha256: c.projectionManifestSha256,
++        projectionTreeSha256: c.projectionTreeSha256,
++        derivationSha256: c.derivationSha256,
++        binarySha256: c.binarySha256,
++        policySha256: c.policySha256,
++        osVersion: c.osVersion,
++      }),
++    )
++    .digest('hex');
++}
++export async function modelEvent(tx: Tx, machineId: string, type: string, data: Record<string, unknown>) {
++  await appendEvent(tx, { type, projectId: null, ticketId: null, audienceMachineId: machineId, data });
++}
++export const receiptExpiry = (now: Date) => new Date(now.getTime() + 5 * 60_000);
+diff --git a/v2/server/src/models/routes.ts b/v2/server/src/models/routes.ts
+new file mode 100644
+index 0000000..a89ec17
+--- /dev/null
++++ b/v2/server/src/models/routes.ts
+@@ -0,0 +1,281 @@
++import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
++import { authenticateCurrentCredential } from '../auth/routes.ts';
++import type { GatewayAck } from '../gateway/contracts.ts';
++import { ackSchema, cursorSchema, objectSchema, uuidSchema } from '../gateway/contracts.ts';
++import { authorizeGatewayMutation, readGatewayConfig } from '../gateway/service.ts';
++import type { Actor, Id, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
++import { getPool, reportModelApplied, reportModelInventory } from './catalog.ts';
++import { verifyCertification } from './certification.ts';
++import { ackModelCommand, readModelCommands } from './commands.ts';
++import { readModelApplied, readSourceConfig, setSourceConfig } from './config.ts';
++import type {
++  CertificationEvidence,
++  CredentialKeyConfirmation,
++  CredentialKeyRegistration,
++  ModelAppliedBody,
++  ModelInventoryBody,
++  ModelReportEnvelope,
++  ModelRouteOptions,
++  SecretAck,
++  SecretInput,
++  SourceConfigInput,
++} from './contracts.ts';
++import {
++  appliedSchema,
++  certificationSchema,
++  confirmationSchema,
++  inventorySchema,
++  registrationSchema,
++  secretAckSchema,
++  secretSchema,
++  sourceConfigSchema,
++} from './contracts.ts';
++import { fail } from './helpers.ts';
++import {
++  ackSecret,
++  confirmCredentialKey,
++  markSecretKeyLost,
++  provisionSecret,
++  readSecretEnvelopes,
++  registerCredentialKey,
++} from './secret-envelopes.ts';
++export function registerModelRoutes(
++  app: FastifyInstance,
++  options: ServerOptions,
++  deps: RouteDependencies,
++  ports: ModelRouteOptions = {},
++): void {
++  const machine = async (request: FastifyRequest) => {
++    const actor = await deps.auth.authenticate(request);
++    if (actor.kind !== 'machine') fail('MACHINE_REQUIRED', 403);
++    return actor;
++  };
++  const write = async <T>(
++    request: FastifyRequest,
++    reply: FastifyReply,
++    actor: Actor,
++    machineId: Id,
++    work: (tx: Tx) => Promise<T>,
++    attemptId?: Id,
++  ) => {
++    const result = await deps.mutator(
++      {
++        actor,
++        route: `${request.method}:${request.url.split('?')[0]}`,
++        key: String(request.headers['idempotency-key'] ?? ''),
++        body: request.body,
++        authorize: (tx) => authorizeGatewayMutation(tx, request, actor, options, machineId, attemptId),
++      },
++      async (tx) => ({ status: 200, body: await work(tx) }),
++    );
++    reply.status(result.status);
++    return result.body;
++  };
++  const read = async <T>(request: FastifyRequest, actor: Actor, work: (tx: Tx) => Promise<T>) =>
++    options.db.begin('isolation level repeatable read read only', async (tx) => {
++      const current = await authenticateCurrentCredential(tx, request, options.now());
++      if (current.kind !== actor.kind || current.id !== actor.id) fail('UNAUTHENTICATED', 401);
++      return work(tx);
++    });
++  app.post<{ Body: CredentialKeyRegistration }>(
++    '/v2/machine/credential-keys',
++    { schema: { body: registrationSchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        registerCredentialKey(tx, actor.id, request.body, options.now()),
++      );
++    },
++  );
++  app.post<{ Params: { keyId: Id }; Body: CredentialKeyConfirmation }>(
++    '/v2/machine/credential-keys/:keyId/confirm',
++    { schema: { params: objectSchema({ keyId: uuidSchema }), body: confirmationSchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        confirmCredentialKey(tx, actor.id, request.params.keyId, request.body, options.now()),
++      );
++    },
++  );
++  app.get<{ Querystring: { after?: Id } }>(
++    '/v2/machine/api-secret-envelopes',
++    { schema: { querystring: objectSchema({ after: cursorSchema }, []) } },
++    async (request) => {
++      const actor = await machine(request);
++      return read(request, actor, (tx) =>
++        readSecretEnvelopes(tx, actor.id, request.query.after ?? '0', options.now()),
++      );
++    },
++  );
++  app.post<{ Params: { id: Id }; Body: SecretAck }>(
++    '/v2/machine/api-secret-envelopes/:id/ack',
++    { schema: { params: objectSchema({ id: uuidSchema }), body: secretAckSchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        ackSecret(tx, actor.id, request.params.id, request.body, options.now()),
++      );
++    },
++  );
++  app.post<{ Params: { id: Id } }>(
++    '/v2/machine/api-secret-envelopes/:id/key-lost',
++    { schema: { params: objectSchema({ id: uuidSchema }), body: objectSchema({}) } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        markSecretKeyLost(tx, actor.id, request.params.id, options.now()),
++      );
++    },
++  );
++  app.post<{ Params: { id: Id; providerId: Id }; Body: SecretInput }>(
++    '/v2/machines/:id/api-providers/:providerId/secret',
++    { schema: { params: objectSchema({ id: uuidSchema, providerId: uuidSchema }), body: secretSchema } },
++    async (request, reply) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: true });
++      return write(request, reply, actor, request.params.id, (tx) =>
++        provisionSecret(tx, request.params.id, request.params.providerId, request.body, options.now()),
++      );
++    },
++  );
++  app.post<{ Body: CertificationEvidence }>(
++    '/v2/machine/models/certifications',
++    { schema: { body: certificationSchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      const [attempt] = await options.db`select machine_id from attempts where id=${request.body.attemptId}`;
++      if (attempt && attempt.machine_id !== actor.id) fail('NOT_FOUND', 404);
++      return write(
++        request,
++        reply,
++        actor,
++        actor.id,
++        async (tx) => ({
++          status: await verifyCertification(
++            tx,
++            request.body,
++            options.now(),
++            ports.certificationVerifier,
++            actor.id,
++          ),
++        }),
++        attempt ? request.body.attemptId : undefined,
++      );
++    },
++  );
++  app.get<{ Querystring: { after?: string; limit?: string } }>(
++    '/v2/machine/model-commands',
++    {
++      schema: {
++        querystring: objectSchema(
++          { after: cursorSchema, limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' } },
++          [],
++        ),
++      },
++    },
++    async (request) => {
++      const actor = await machine(request);
++      return read(request, actor, (tx) =>
++        readModelCommands(
++          tx,
++          actor.id,
++          request.query.after ?? '0',
++          request.query.limit === undefined ? 50 : Number(request.query.limit),
++        ),
++      );
++    },
++  );
++  app.post<{ Params: { id: Id }; Body: GatewayAck }>(
++    '/v2/machine/model-commands/:id/ack',
++    { schema: { params: objectSchema({ id: uuidSchema }), body: ackSchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        ackModelCommand(tx, actor.id, request.params.id, request.body, options.now()),
++      );
++    },
++  );
++  const params = objectSchema({ id: uuidSchema });
++  app.get('/v2/machine/model-sources', { schema: { querystring: objectSchema({}) } }, async (request) => {
++    const actor = await machine(request);
++    return read(request, actor, (tx) => readSourceConfig(tx, actor.id));
++  });
++  app.get<{ Params: { id: Id } }>(
++    '/v2/machines/:id/model-sources',
++    { schema: { params, querystring: objectSchema({}) } },
++    async (request) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: false });
++      return read(request, actor, async (tx) => {
++        const config = await readSourceConfig(tx, request.params.id),
++          applied = await readModelApplied(tx, request.params.id);
++        return config ? { ...config, applied } : { desiredConfig: null, applied };
++      });
++    },
++  );
++  app.put<{ Params: { id: Id }; Body: SourceConfigInput }>(
++    '/v2/machines/:id/model-sources',
++    { schema: { params, body: sourceConfigSchema } },
++    async (request, reply) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: true });
++      return write(request, reply, actor, request.params.id, (tx) =>
++        setSourceConfig(tx, request.params.id, request.body, options.now()),
++      );
++    },
++  );
++  app.get<{ Querystring: { workflow: 'bmad' | 'superpowers' } }>(
++    '/v2/machine/models',
++    { schema: { querystring: objectSchema({ workflow: { enum: ['bmad', 'superpowers'] } }) } },
++    async (request) => {
++      const actor = await machine(request);
++      return read(request, actor, async (tx) => {
++        const config = await readSourceConfig(tx, actor.id),
++          gateway = await readGatewayConfig(tx, actor.id);
++        const source = gateway?.desired[request.query.workflow].source;
++        return {
++          items: source ? await getPool(tx, actor.id, source, options.now()) : [],
++          reason:
++            config && !Object.values(config.enabled).some(Boolean)
++              ? 'NO_SOURCE_ENABLED'
++              : config
++                ? null
++                : 'MODEL_CONFIG_NOT_CONFIGURED',
++        };
++      });
++    },
++  );
++  app.post<{ Body: ModelReportEnvelope<ModelInventoryBody> }>(
++    '/v2/machine/models/inventory',
++    { schema: { body: inventorySchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        reportModelInventory(tx, actor.id, request.body, options.now(), ports.probeVerifier),
++      );
++    },
++  );
++  app.post<{ Body: ModelReportEnvelope<ModelAppliedBody> }>(
++    '/v2/machine/models/applied',
++    { schema: { body: appliedSchema } },
++    async (request, reply) => {
++      const actor = await machine(request);
++      return write(request, reply, actor, actor.id, (tx) =>
++        reportModelApplied(tx, actor.id, request.body, options.now()),
++      );
++    },
++  );
++  app.get<{ Params: { id: Id }; Querystring: { workflow: 'bmad' | 'superpowers' } }>(
++    '/v2/machines/:id/models',
++    { schema: { params, querystring: objectSchema({ workflow: { enum: ['bmad', 'superpowers'] } }) } },
++    async (request) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: false });
++      return read(request, actor, async (tx) => {
++        const config = await readSourceConfig(tx, request.params.id),
++          gateway = await readGatewayConfig(tx, request.params.id);
++        const source = gateway?.desired[request.query.workflow].source;
++        return {
++          items: source ? await getPool(tx, request.params.id, source, options.now()) : [],
++          reason: config && !Object.values(config.enabled).some(Boolean) ? 'NO_SOURCE_ENABLED' : null,
++        };
++      });
++    },
++  );
++}
+diff --git a/v2/server/src/models/secret-envelopes.ts b/v2/server/src/models/secret-envelopes.ts
+new file mode 100644
+index 0000000..774317b
+--- /dev/null
++++ b/v2/server/src/models/secret-envelopes.ts
+@@ -0,0 +1,209 @@
++import {
++  createCipheriv,
++  createHash,
++  createPublicKey,
++  diffieHellman,
++  generateKeyPairSync,
++  hkdfSync,
++  randomBytes,
++  randomUUID,
++  timingSafeEqual,
++} from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++import { readSourceConfig } from './config.ts';
++import type {
++  CredentialKeyConfirmation,
++  CredentialKeyRegistration,
++  SecretAck,
++  SecretEnvelope,
++  SecretInput,
++} from './contracts.ts';
++import { fail, hash, receiptExpiry } from './helpers.ts';
++
++function publicKey(encoded: string) {
++  try {
++    const bytes = Buffer.from(encoded, 'base64'),
++      key = createPublicKey({ key: bytes, format: 'der', type: 'spki' });
++    if (
++      key.asymmetricKeyType !== 'x25519' ||
++      key.export({ format: 'der', type: 'spki' }).toString('base64') !== encoded
++    )
++      fail('KEY_INVALID', 400);
++    return key;
++  } catch {
++    fail('KEY_INVALID', 400);
++  }
++}
++export function sealSecret(publicKeyX25519: string, plaintext: string, aad: unknown) {
++  const ephemeral = generateKeyPairSync('x25519'),
++    nonce = randomBytes(12);
++  const shared = diffieHellman({ privateKey: ephemeral.privateKey, publicKey: publicKey(publicKeyX25519) });
++  const aes = Buffer.from(hkdfSync('sha256', shared, nonce, 'crew-v2-secret-envelope-v1', 32));
++  const cipher = createCipheriv('aes-256-gcm', aes, nonce);
++  cipher.setAAD(Buffer.from(canonicalJson(aad)));
++  const clear = Buffer.from(plaintext);
++  try {
++    const ciphertext = Buffer.concat([cipher.update(clear), cipher.final()]);
++    return {
++      ephemeralPublicKey: ephemeral.publicKey.export({ type: 'spki', format: 'der' }).toString('base64'),
++      nonce: nonce.toString('base64'),
++      ciphertext: ciphertext.toString('base64'),
++      tag: cipher.getAuthTag().toString('base64'),
++      ciphertextSha256: createHash('sha256').update(ciphertext).digest('hex'),
++    };
++  } finally {
++    clear.fill(0);
++    shared.fill(0);
++    aes.fill(0);
++  }
++}
++export async function registerCredentialKey(
++  tx: Tx,
++  machineId: Id,
++  input: CredentialKeyRegistration,
++  now = new Date(),
++) {
++  publicKey(input.publicKeyX25519);
++  const [old] =
++    await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId}`;
++  if (old) {
++    if (old.public_key_x25519 !== input.publicKeyX25519) fail('KEY_ID_CONFLICT');
++    const [ch] =
++      await tx`select * from credential_key_challenges where machine_id=${machineId} and key_id=${input.keyId}`;
++    if (!ch) fail('KEY_ID_CONFLICT');
++    return {
++      challengeId: ch.id,
++      encryptedChallenge: ch.encrypted_challenge,
++      expiresAt: (ch.expires_at as Date).toISOString(),
++    };
++  }
++  const challengeId = randomUUID(),
++    nonce = randomBytes(32).toString('hex'),
++    expiresAt = receiptExpiry(now).toISOString();
++  const box = sealSecret(input.publicKeyX25519, nonce, {
++    machineId,
++    keyId: input.keyId,
++    challengeId,
++    expiresAt,
++  });
++  await tx`insert into credential_keys(machine_id,key_id,public_key_x25519,state,created_at) values(${machineId},${input.keyId},${input.publicKeyX25519},'pending',${now})`;
++  await tx`insert into credential_key_challenges(id,machine_id,key_id,challenge_hash,encrypted_challenge,expires_at) values(${challengeId},${machineId},${input.keyId},${createHash('sha256').update(nonce).digest('hex')},${tx.json(box)},${expiresAt})`;
++  return { challengeId, encryptedChallenge: box, expiresAt };
++}
++export async function confirmCredentialKey(
++  tx: Tx,
++  machineId: Id,
++  keyId: Id,
++  input: CredentialKeyConfirmation,
++  now = new Date(),
++) {
++  const [ch] =
++    await tx`select * from credential_key_challenges where id=${input.challengeId} and machine_id=${machineId} and key_id=${keyId} for update`;
++  if (
++    !ch ||
++    !timingSafeEqual(Buffer.from(String(ch.challenge_hash), 'hex'), Buffer.from(input.challengeSha256, 'hex'))
++  )
++    fail('KEY_PROOF_INVALID');
++  if (ch.consumed_at) return { keyId, status: 'active' };
++  if ((ch.expires_at as Date).getTime() <= now.getTime()) fail('KEY_CHALLENGE_EXPIRED');
++  await tx`update credential_keys set state='retired' where machine_id=${machineId} and state='active'`;
++  await tx`update credential_keys set state='active',confirmed_at=${now} where machine_id=${machineId} and key_id=${keyId}`;
++  await tx`update credential_key_challenges set consumed_at=${now} where id=${input.challengeId}`;
++  return { keyId, status: 'active' };
++}
++export async function provisionSecret(
++  tx: Tx,
++  machineId: Id,
++  providerId: Id,
++  input: SecretInput,
++  now = new Date(),
++) {
++  const requestHash = hash({ machineId, providerId, ...input });
++  const [old] = await tx`select * from api_secret_envelopes where operation_id=${input.operationId}`;
++  if (old) {
++    if (old.machine_id !== machineId || old.provider_id !== providerId || old.request_hash !== requestHash)
++      fail('SECRET_OPERATION_CONFLICT');
++    return { operationId: input.operationId, status: old.state };
++  }
++  const config = await readSourceConfig(tx, machineId);
++  if (!config || config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
++  const [provider] =
++    await tx`select * from api_providers where machine_id=${machineId} and id=${providerId} and declared`;
++  const [binding] = await tx`select 1 from projects where machine_id=${machineId} limit 1`;
++  if (!provider) fail('NOT_FOUND', 404);
++  // Secret provisioning is machine scoped; binding is required before secret leaves server.
++  if (!binding) fail('PROJECT_BINDING_REQUIRED');
++  const [key] =
++    await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId} and state='active'`;
++  if (!key) fail('KEY_NOT_CONFIRMED');
++  const expiresAt = receiptExpiry(now).toISOString(),
++    aad = {
++      machineId,
++      providerId,
++      keyId: input.keyId,
++      configRevision: config.revision,
++      operationId: input.operationId,
++      expiresAt,
++    };
++  const box = sealSecret(String(key.public_key_x25519), input.secret, aad),
++    id = randomUUID();
++  const [cursor] = await tx`update api_secret_cursor set value=value+1 where singleton returning value`;
++  await tx`insert into api_secret_envelopes(id,cursor,machine_id,provider_id,key_id,config_revision,operation_id,expires_at,ephemeral_public_key,nonce,ciphertext,tag,ciphertext_sha256,state,created_at,request_hash) values(${id},${cursor?.value},${machineId},${providerId},${input.keyId},${config.revision},${input.operationId},${expiresAt},${box.ephemeralPublicKey},${box.nonce},${box.ciphertext},${box.tag},${box.ciphertextSha256},'pending',${now},${requestHash})`;
++  await tx`update api_providers set status='pending',credential_ref=null where machine_id=${machineId} and id=${providerId} and declared`;
++  return { operationId: input.operationId, status: 'pending' };
++}
++export async function readSecretEnvelopes(tx: Tx, machineId: Id, after: string, now = new Date()) {
++  const rows =
++    await tx`select * from api_secret_envelopes where machine_id=${machineId} and state='pending' and expires_at>${now} and cursor>${after} order by cursor limit 100`;
++  const items: SecretEnvelope[] = rows.map((r) => ({
++    id: String(r.id),
++    machineId,
++    providerId: String(r.provider_id),
++    keyId: String(r.key_id),
++    configRevision: Number(r.config_revision),
++    operationId: String(r.operation_id),
++    expiresAt: (r.expires_at as Date).toISOString(),
++    ephemeralPublicKey: String(r.ephemeral_public_key),
++    nonce: String(r.nonce),
++    ciphertext: String(r.ciphertext),
++    tag: String(r.tag),
++    ciphertextSha256: String(r.ciphertext_sha256),
++  }));
++  return {
++    items,
++    nextCursor: rows.length ? String(rows.at(-1)?.cursor) : after,
++    serverTime: now.toISOString(),
++  };
++}
++export async function ackSecret(tx: Tx, machineId: Id, id: Id, input: SecretAck, now = new Date()) {
++  const [r] =
++    await tx`select * from api_secret_envelopes where id=${id} and machine_id=${machineId} for update`;
++  if (!r) fail('NOT_FOUND', 404);
++  const ackHash = hash(input);
++  if (
++    r.operation_id !== input.operationId ||
++    r.key_id !== input.keyId ||
++    r.ciphertext_sha256 !== input.ciphertextSha256
++  )
++    fail('SECRET_ACK_MISMATCH');
++  if (r.state === 'acked') {
++    if (r.ack_hash !== ackHash) fail('SECRET_ACK_CONFLICT');
++    return { operationId: input.operationId, status: 'acked' };
++  }
++  if (r.state !== 'pending' || (r.expires_at as Date).getTime() <= now.getTime()) fail('SECRET_EXPIRED');
++  const config = await readSourceConfig(tx, machineId);
++  if (config?.revision !== Number(r.config_revision)) fail('CONFIG_REVISION_CONFLICT');
++  await tx`update api_secret_envelopes set state='acked',ciphertext=null,tag=null,acked_at=${now},ack_hash=${ackHash} where id=${id}`;
++  await tx`update api_providers set status='stored',credential_ref=${input.credentialRef} where machine_id=${machineId} and id=${r.provider_id}`;
++  return { operationId: input.operationId, status: 'acked' };
++}
++export async function markSecretKeyLost(tx: Tx, machineId: Id, id: Id, now = new Date()) {
++  const [r] =
++    await tx`select * from api_secret_envelopes where id=${id} and machine_id=${machineId} for update`;
++  if (!r) fail('NOT_FOUND', 404);
++  if (r.state === 'acked') fail('SECRET_ACK_CONFLICT');
++  await tx`update api_secret_envelopes set state=${(r.expires_at as Date).getTime() <= now.getTime() ? 'expired' : 'key_lost'},ciphertext=null,tag=null where id=${id}`;
++  await tx`update api_providers set status='missing',credential_ref=null where machine_id=${machineId} and id=${r.provider_id}`;
++  return { operationId: r.operation_id, status: 'pending' };
++}
+diff --git a/v2/server/test/model-certification.test.ts b/v2/server/test/model-certification.test.ts
+new file mode 100644
+index 0000000..d32f9e2
+--- /dev/null
++++ b/v2/server/test/model-certification.test.ts
+@@ -0,0 +1,480 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { test } from 'node:test';
++import { buildApp } from '../src/app.ts';
++import { databaseFixture } from './support/db.ts';
++import { nextConfig, prepareSelection, report } from './support/gateway.ts';
++import { registerModelTestIssuer } from './support/model-certification.ts';
++import { modelFixture } from './support/model-http.ts';
++
++test('model certification production route never trusts host surface PASS or exposes test challenge issue', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      assert.equal((await f.machine.post('/v2/test/model-certifications/challenges', {})).statusCode, 404);
++      const production = await buildApp({
++        db,
++        publicOrigin: 'http://localhost:5182',
++        secureCookies: false,
++        sessionEncryptionKey: f.identity.key,
++        now: () => new Date(),
++      });
++      try {
++        const url = await production.listen({ host: '127.0.0.1', port: 0 });
++        const absent = await fetch(`${url}/v2/test/model-certifications/challenges`, {
++          method: 'POST',
++          headers: { authorization: `Bearer ${f.token}`, 'content-type': 'application/json' },
++          body: '{}',
++        });
++        assert.equal(absent.status, 404);
++      } finally {
++        await production.close();
++      }
++      const evidence = {
++        challengeId: randomUUID(),
++        attemptId: randomUUID(),
++        fence: '1',
++        processInstanceId: randomUUID(),
++        context: {
++          sourceTreeSha256: 'e'.repeat(64),
++          projectionManifestSha256: 'f'.repeat(64),
++          projectionTreeSha256: '1'.repeat(64),
++          derivationSha256: '3'.repeat(64),
++          binarySha256: '4'.repeat(64),
++          policySha256: '5'.repeat(64),
++          osVersion: 'macOS-test',
++        },
++        surfaceResults: [
++          {
++            surface: 'native-read',
++            selectedWorked: true,
++            unselectedDenied: true,
++            traceSha256: '6'.repeat(64),
++          },
++        ],
++        artifactIds: [],
++        traceSha256: '7'.repeat(64),
++      };
++      const r = await f.machine.post('/v2/machine/models/certifications', evidence);
++      assert.equal(r.statusCode, 200, r.text);
++      assert.equal(r.json().status, 'UNVERIFIED');
++      const [count] = await db`select count(*)::int as value from runtime_certification_receipts`;
++      assert.equal(count?.value, 0);
++      assert.equal(
++        (await f.machine.post('/v2/machine/models/certifications', { ...evidence, pass: true })).statusCode,
++        400,
++      );
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++import type { DispatchSelection, GatewayProjectionPolicy } from '../src/gateway/contracts.ts';
++import type {
++  CertificationEvidence,
++  CertificationVerifier,
++  ModelDispatchChoice,
++  ProbeContext,
++} from '../src/models/contracts.ts';
++import { contextHash, hash } from '../src/models/helpers.ts';
++import type { AuthorizeDispatch } from '../src/platform/contracts.ts';
++import { ApiError } from '../src/platform/errors.ts';
++import { projection, source } from './support/gateway.ts';
++
++const ctx: ProbeContext = {
++  sourceTreeSha256: 'e'.repeat(64),
++  projectionManifestSha256: 'f'.repeat(64),
++  projectionTreeSha256: '1'.repeat(64),
++  derivationSha256: hash(projection('superpowers').derivation),
++  binarySha256: '4'.repeat(64),
++  policySha256: '5'.repeat(64),
++  osVersion: 'macOS-test',
++};
++const surfaces = [
++  'init',
++  'invocation',
++  'native-read',
++  'bash-script',
++  'mcp',
++  'child',
++  'absolute',
++  'symlink',
++  'hardlink',
++  'network',
++];
++test('model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB', async () => {
++  await databaseFixture(8)(async (db) => {
++    let authority: AuthorizeDispatch = async () => {
++      throw new Error('private authority not ready');
++    };
++    const policy: GatewayProjectionPolicy = {
++      authorize: async (tx, { attemptId, actor }) => {
++        const [ch] =
++          await tx`select * from model_certification_challenges where attempt_id=${attemptId} and machine_id=${actor.id}`;
++        if (!ch || !['admitted', 'verified'].includes(String(ch.state)))
++          throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
++        const [c] = await tx`select payload from commands where id=${ch.admitted_command_id}`;
++        if (!c) throw new Error('missing command');
++        return (c.payload as { selection: DispatchSelection }).selection;
++      },
++    };
++    const verifier: CertificationVerifier = {
++      verify: async (tx, { evidence }) => {
++        const [proof] = await tx`select 1 from model_test_observations where digest=${hash(evidence)}`;
++        return proof ? 'PASS' : 'UNVERIFIED';
++      },
++    };
++    await db`create table model_test_observations(digest text primary key)`;
++    await db`create table model_test_scope(machine_id uuid,project_id uuid,primary key(machine_id,project_id))`;
++    const f = await modelFixture(db, {
++      authorizeDispatch: (...a) => authority(...a),
++      projectionPolicy: policy,
++      configure: async (app, options, deps) => registerModelTestIssuer(app, options, deps),
++      modelPorts: {
++        certificationVerifier: verifier,
++        probeVerifier: {
++          verify: async (tx, probe) => {
++            const [proof] = await tx`select 1 from model_test_observations where digest=${hash(probe)}`;
++            return proof
++              ? { status: 'pass', capabilities: ['text', 'tools'] }
++              : { status: 'unverified', capabilities: [] };
++          },
++        },
++      },
++    });
++    try {
++      const boot = randomUUID();
++      assert.equal(
++        (
++          await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++            expectedRevision: 0,
++            enabled: { claude: false, codex: true, api: false },
++            apiProviders: [],
++          })
++        ).statusCode,
++        200,
++      );
++      assert.equal(
++        (await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig)).statusCode,
++        200,
++      );
++      await f.machine.post('/v2/gateway/boots', { bootId: boot, previousGeneration: '0' });
++      await f.machine.post('/v2/gateway/install-reports', report(boot, '1'));
++      const inv = {
++        reportId: randomUUID(),
++        bootId: boot,
++        bootGeneration: '1',
++        sequence: '1',
++        configRevision: 1,
++        body: {
++          entries: [
++            {
++              key: { machineId: f.machineId, runtime: 'codex', providerId: 'codex', modelId: 'x' },
++              context: ctx,
++              observedAt: new Date().toISOString(),
++              status: 'unverified',
++              capabilities: [],
++              evidenceDigest: 'a'.repeat(64),
++              errorCode: null,
++              runtimeVersion: 'test',
++            },
++          ],
++        },
++      };
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', inv)).statusCode, 200);
++      const initialApplied = {
++        reportId: randomUUID(),
++        bootId: boot,
++        bootGeneration: '1',
++        sequence: '2',
++        configRevision: 1,
++        body: {
++          inventoryReportId: inv.reportId,
++          sourceStatus: {
++            claude: { state: 'disabled', errorCode: null },
++            codex: { state: 'ready', errorCode: null },
++            api: { state: 'disabled', errorCode: null },
++          },
++          observationDigest: hash(inv.body),
++        },
++      };
++      assert.equal((await f.machine.post('/v2/machine/models/applied', initialApplied)).statusCode, 200);
++      const s = await prepareSelection(f, db);
++      await db`insert into model_test_scope values(${f.machineId},${s.tickets.project.id})`;
++      const [probe] = await db`select id from model_probe_receipts`;
++      const choice: ModelDispatchChoice = {
++        model: { machineId: f.machineId, runtime: 'codex', providerId: 'codex', modelId: 'x' },
++        modelConfigRevision: 1,
++        probeReceiptId: String(probe?.id),
++        probeContextSha256: contextHash(ctx),
++        certificationReceiptId: null,
++        required: ['text'],
++      };
++      // Before implementation the issue service is absent; HTTP route RED above already proves missing producer.
++      const challengeResponse = await f.owner.post('/v2/test/model-certifications/challenges', {
++        machineId: f.machineId,
++        projectId: s.tickets.project.id,
++        context: ctx,
++        maxTurns: 2,
++        maxTools: 3,
++        maxCostUsd: 0,
++      });
++      assert.equal(challengeResponse.statusCode, 201, challengeResponse.text);
++      const challenge = challengeResponse.json<import('../src/models/contracts.ts').CertificationChallenge>();
++      await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: choice, certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce } })} where id=${s.commandId}`;
++      await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: choice, certificationChallengeId: challenge.id })} where id=${s.decisionId}`;
++      authority = async (tx, _actor, permit) => {
++        const [ch] =
++          await tx`select * from model_certification_challenges where id=${challenge.id} for update`;
++        const [c] = await tx`select payload from commands where id=${permit.commandId}`;
++        if (
++          ch?.state !== 'issued' ||
++          hash(
++            (c?.payload as { certificationAdmission?: { challengeId: string; nonce: string } } | undefined)
++              ?.certificationAdmission,
++          ) !== hash({ challengeId: challenge.id, nonce: challenge.nonce })
++        )
++          throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
++        await tx`select set_config('crew.model_admission',${challenge.id},true)`;
++      };
++      const first = await s.claim();
++      assert.equal(first.statusCode, 201, first.text);
++      const a = first.json<{ id: string; fence: string }>();
++      assert.equal((await s.claim()).json<{ id: string }>().id, a.id);
++      const [ch] = await db`select * from model_certification_challenges where id=${challenge.id}`;
++      assert.equal(ch?.state, 'admitted');
++      assert.equal(ch?.attempt_id, a.id);
++      assert.equal(ch?.process_instance_id, s.processInstanceId);
++      assert.equal(String(ch?.admitted_fence), a.fence);
++      const companion = {
++        fence: a.fence,
++        processInstanceId: s.processInstanceId,
++        sourceTreeSha256: s.selected.sourceTreeSha256,
++        runtime: 'codex',
++        projectionManifestSha256: s.selected.projectionManifestSha256,
++        projectionTreeSha256: s.selected.projectionTreeSha256,
++        installReportId: s.selected.installReportId,
++      };
++      const pair = await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, companion);
++      assert.equal(pair.statusCode, 200, pair.text);
++      assert.deepEqual(
++        (await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, companion)).json(),
++        pair.json(),
++      );
++      assert.equal(
++        (await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, { ...companion, fence: '99' }))
++          .statusCode,
++        409,
++      );
++      const evidence: CertificationEvidence = {
++        challengeId: challenge.id,
++        attemptId: a.id,
++        fence: a.fence,
++        processInstanceId: s.processInstanceId,
++        context: ctx,
++        surfaceResults: surfaces.map((surface) => ({
++          surface,
++          selectedWorked: true,
++          unselectedDenied: true,
++          traceSha256: '6'.repeat(64),
++        })),
++        artifactIds: [],
++        traceSha256: '7'.repeat(64),
++      };
++      // Incomplete host surface reports cannot become PASS even with a test observer marker.
++      const incomplete = {
++        ...evidence,
++        surfaceResults: evidence.surfaceResults.filter((s) => s.surface !== 'child'),
++      };
++      await db`insert into model_test_observations(digest) values(${hash(incomplete)})`;
++      const unverified = await f.machine.post('/v2/machine/models/certifications', incomplete);
++      assert.equal(unverified.statusCode, 200, unverified.text);
++      assert.equal(unverified.json().status, 'UNVERIFIED');
++      // Only the independent test observer port can authorize a protocol receipt in this test DB.
++      await db`insert into model_test_observations(digest) values(${hash(evidence)})`;
++      const pass = await f.machine.post('/v2/machine/models/certifications', evidence);
++      assert.equal(pass.statusCode, 200, pass.text);
++      assert.equal(pass.json().status, 'PASS');
++      assert.deepEqual(
++        (await f.machine.post('/v2/machine/models/certifications', evidence)).json(),
++        pass.json(),
++      );
++      assert.equal(
++        (
++          await f.machine.post('/v2/machine/models/certifications', {
++            ...evidence,
++            traceSha256: '8'.repeat(64),
++          })
++        ).statusCode,
++        409,
++      );
++      await db`update tickets set status='ready',workflow_pin=${db.json({ workflow: 'superpowers', version: '6.4.2', revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d', checksum: 'e'.repeat(64) })} where id=${s.tickets.b.id}`;
++      const b = await f.owner.post('/v2/commands', {
++        machineId: f.machineId,
++        ticketId: s.tickets.b.id,
++        type: 'start',
++        payload: {
++          selection: s.selected,
++          modelChoice: choice,
++          certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce },
++        },
++      });
++      assert.equal(b.statusCode, 202, b.text);
++      const now = Date.now();
++      const denied = await f.machine.post(`/v2/machine/commands/${b.json<{ id: string }>().id}/claim`, {
++        processInstanceId: randomUUID(),
++        permit: {
++          commandId: b.json<{ id: string }>().id,
++          ticketId: s.tickets.b.id,
++          machineId: f.machineId,
++          bindingRevision: 2,
++          ticketRevision: 1,
++          workflow: {
++            workflow: 'superpowers',
++            version: '6.4.2',
++            revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
++            checksum: 'e'.repeat(64),
++          },
++          checkedAt: new Date(now).toISOString(),
++          expiresAt: new Date(now + 20000).toISOString(),
++          telemetryId: randomUUID(),
++          decisionId: s.decisionId,
++        },
++      });
++      assert.equal(denied.statusCode, 409, denied.text);
++
++      const measured = {
++        ...inv,
++        reportId: randomUUID(),
++        sequence: '3',
++        body: { entries: [{ ...inv.body.entries[0], status: 'pass', capabilities: ['text', 'tools'] }] },
++      };
++      await db`insert into model_test_observations(digest) values(${hash(measured.body.entries[0])})`;
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', measured)).statusCode, 200);
++      const applied = {
++        reportId: randomUUID(),
++        bootId: boot,
++        bootGeneration: '1',
++        sequence: '4',
++        configRevision: 1,
++        body: {
++          inventoryReportId: measured.reportId,
++          sourceStatus: {
++            claude: { state: 'disabled', errorCode: null },
++            codex: { state: 'ready', errorCode: null },
++            api: { state: 'disabled', errorCode: null },
++          },
++          observationDigest: hash(measured.body),
++        },
++      };
++      assert.equal((await f.machine.post('/v2/machine/models/applied', applied)).statusCode, 200);
++      const { getPool, assertModelDispatch } = await import('../src/models/catalog.ts');
++      const pool = await getPool(db, f.machineId, source('superpowers'));
++      assert.equal(pool[0]?.available, true);
++      const [cert] = await db`select id from runtime_certification_receipts`;
++      const normalChoice = {
++        ...choice,
++        probeReceiptId: String(pool[0].probeReceiptId),
++        certificationReceiptId: String(cert?.id),
++      };
++      await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: normalChoice })} where id=${s.commandId}`;
++      await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: normalChoice })} where id=${s.decisionId}`;
++      const permit = {
++        commandId: s.commandId,
++        ticketId: s.tickets.a.id,
++        machineId: f.machineId,
++        bindingRevision: 2,
++        ticketRevision: 1,
++        workflow: {
++          workflow: 'superpowers' as const,
++          version: '6.4.2',
++          revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
++          checksum: 'e'.repeat(64),
++        },
++        checkedAt: new Date().toISOString(),
++        expiresAt: new Date(Date.now() + 20000).toISOString(),
++        telemetryId: randomUUID(),
++        decisionId: s.decisionId,
++      };
++      await db.begin((tx) => assertModelDispatch(tx, permit, normalChoice));
++      await assert.rejects(
++        db.begin((tx) => assertModelDispatch(tx, permit, { ...normalChoice, required: ['vision'] })),
++      );
++      const changed = {
++        ...measured,
++        reportId: randomUUID(),
++        sequence: '5',
++        body: {
++          entries: [{ ...measured.body.entries[0], context: { ...ctx, binarySha256: '9'.repeat(64) } }],
++        },
++      };
++      await db`insert into model_test_observations(digest) values(${hash(changed.body.entries[0])})`;
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', changed)).statusCode, 200);
++      assert.equal(
++        (
++          await f.machine.post('/v2/machine/models/applied', {
++            ...applied,
++            reportId: randomUUID(),
++            sequence: '6',
++            body: {
++              ...applied.body,
++              inventoryReportId: changed.reportId,
++              observationDigest: hash(changed.body),
++            },
++          })
++        ).statusCode,
++        200,
++      );
++      assert.equal(
++        (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
++        'CERTIFICATION_UNVERIFIED',
++      );
++      await assert.rejects(db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)));
++      const next = structuredClone(nextConfig);
++      next.expectedRevision = 1;
++      next.desired.superpowers.projections.codex = {
++        ...projection('superpowers'),
++        treeSha256: '9'.repeat(64),
++      };
++      assert.equal((await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, next)).statusCode, 200);
++      assert.equal(
++        (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
++        'WORKFLOW_UNAVAILABLE',
++      );
++      const installed = report(boot, '1', 2);
++      installed.results.superpowers.projections.codex.installed = next.desired.superpowers.projections.codex;
++      assert.equal((await f.machine.post('/v2/gateway/install-reports', installed)).statusCode, 200);
++      assert.equal(
++        (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
++        'PROBE_CONTEXT_CHANGED',
++      );
++      const failed = {
++        ...measured,
++        reportId: randomUUID(),
++        sequence: '7',
++        body: { entries: [{ ...measured.body.entries[0], status: 'fail', errorCode: 'AUTH' }] },
++      };
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', failed)).statusCode, 200);
++      await assert.rejects(db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)));
++      assert.equal(
++        (
++          await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++            expectedRevision: 1,
++            enabled: { claude: false, codex: false, api: false },
++            apiProviders: [],
++          })
++        ).statusCode,
++        200,
++      );
++      await assert.rejects(
++        db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)),
++        (err) => err instanceof ApiError && err.code === 'SOURCE_DISABLED',
++      );
++      const [attemptCount] = await db`select count(*)::int as value from attempts`;
++      assert.equal(attemptCount?.value, 1);
++    } finally {
++      await f.close();
++    }
++  });
++});
+diff --git a/v2/server/test/model-pool.test.ts b/v2/server/test/model-pool.test.ts
+new file mode 100644
+index 0000000..02ca02e
+--- /dev/null
++++ b/v2/server/test/model-pool.test.ts
+@@ -0,0 +1,564 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import type { ModelCommand, PoolEntry, Source } from '../src/models/contracts.ts';
++import { databaseFixture } from './support/db.ts';
++
++test('model pool migration creates separate config and immutable report authority', async () => {
++  await databaseFixture(8)(async (db) => {
++    const [row] = await db`select to_regclass('model_source_configs') is not null as present`;
++    assert.equal(row?.present, true);
++  });
++});
++
++import { randomUUID } from 'node:crypto';
++import { modelFixture } from './support/model-http.ts';
++
++const enabled = { claude: true, codex: true, api: true };
++const provider = {
++  id: randomUUID(),
++  endpoint: 'https://example.com/v1',
++  protocol: 'responses',
++  models: [{ id: 'model-x', declared: ['text', 'tools'] }],
++  localHttp: null,
++};
++const input = (expectedRevision = 0) => ({ expectedRevision, enabled, apiProviders: [provider] });
++test('model pool owner CAS sync and machine desired config are real authenticated HTTP', async () => {
++  await databaseFixture(8)(async (db) => {
++    console.log(
++      'model owned fixture',
++      process.env.CREW_V2_TEST_CONTAINER_ID,
++      process.env.CREW_V2_TEST_DATABASE_URL,
++    );
++    const f = await modelFixture(db);
++    try {
++      const p = `/v2/machines/${f.machineId}/model-sources`;
++      const r = await f.owner.put(p, input());
++      assert.equal(r.statusCode, 200, r.text);
++      assert.equal(r.json().revision, 1);
++      const desired = await f.machine.get('/v2/machine/model-sources');
++      assert.equal(desired.statusCode, 200, desired.text);
++      assert.equal(desired.json().revision, 1);
++      assert.deepEqual(desired.json().enabled, enabled);
++      assert.equal(
++        desired.json<{ apiProviders: { credentialStatus: string }[] }>().apiProviders[0].credentialStatus,
++        'missing',
++      );
++      const commands = await f.machine.get('/v2/gateway/commands');
++      assert.equal(commands.json<{ items: ModelCommand[] }>().items[0].type, 'sync_models');
++      const race = await Promise.all([
++        f.owner.put(p, { ...input(1), enabled: { ...enabled, claude: false } }),
++        f.owner.put(p, { ...input(1), enabled: { ...enabled, codex: false } }),
++      ]);
++      assert.deepEqual(race.map((r) => r.statusCode).sort(), [200, 409]);
++      const [old] = await db`select state,result from gateway_commands where payload->>'configRevision'='1'`;
++      assert.equal(old?.state, 'completed');
++      assert.equal((old?.result as { code?: string } | undefined)?.code, 'SUPERSEDED');
++      assert.equal((await f.request(p, 'PUT', input(2), { cookie: f.identity.cookie })).statusCode, 403);
++    } finally {
++      await f.close();
++    }
++  });
++});
++test('api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      const p = `/v2/machines/${f.machineId}/model-sources`;
++      for (const bad of [
++        { ...provider, models: [] },
++        { ...provider, models: [provider.models[0], provider.models[0]] },
++        { ...provider, endpoint: 'http://localhost:8080/v1' },
++        { ...provider, endpoint: 'https://user:password@example.com/v1' },
++        { ...provider, endpoint: 'https://169.254.169.254/v1' },
++        {
++          ...provider,
++          endpoint: 'http://127.0.0.1:8080/v1',
++          localHttp: { enabled: true, allowedOrigin: 'http://127.0.0.1:8081' },
++        },
++      ]) {
++        const r = await f.owner.put(p, { ...input(), apiProviders: [bad] });
++        assert.equal(r.statusCode, 400, r.text);
++      }
++      const r = await f.owner.put(p, {
++        ...input(),
++        apiProviders: [
++          {
++            ...provider,
++            endpoint: 'http://[::1]:8080/v1',
++            localHttp: { enabled: true, allowedOrigin: 'http://[::1]:8080' },
++          },
++        ],
++      });
++      assert.equal(r.statusCode, 200, r.text);
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++import { createHash } from 'node:crypto';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import { nextConfig, projection, report } from './support/gateway.ts';
++
++const digest = (v: unknown) => createHash('sha256').update(canonicalJson(v)).digest('hex');
++const context = {
++  sourceTreeSha256: 'e'.repeat(64),
++  projectionManifestSha256: 'f'.repeat(64),
++  projectionTreeSha256: '1'.repeat(64),
++  derivationSha256: digest(projection('superpowers').derivation),
++  binarySha256: '3'.repeat(64),
++  policySha256: '2'.repeat(64),
++  osVersion: 'macOS-test',
++};
++const inventoryReport = (
++  machineId: string,
++  bootId: string,
++  sequence: string,
++  status = 'pass',
++  configRevision = 1,
++) => ({
++  reportId: randomUUID(),
++  bootId,
++  bootGeneration: '1',
++  sequence,
++  configRevision,
++  body: {
++    entries: [
++      {
++        key: { machineId, runtime: 'codex', providerId: 'codex', modelId: 'shared' },
++        context,
++        observedAt: '2099-01-01T00:00:00.000Z',
++        status,
++        capabilities: ['text', 'tools'],
++        evidenceDigest: '4'.repeat(64),
++        errorCode: status === 'fail' ? 'AUTH' : null,
++        runtimeVersion: 'same-version',
++      },
++    ],
++  },
++});
++async function setup(f: Awaited<ReturnType<typeof modelFixture>>) {
++  const boot = randomUUID();
++  assert.equal((await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, input())).statusCode, 200);
++  assert.equal((await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig)).statusCode, 200);
++  assert.equal(
++    (await f.machine.post('/v2/gateway/boots', { bootId: boot, previousGeneration: '0' })).statusCode,
++    200,
++  );
++  assert.equal((await f.machine.post('/v2/gateway/install-reports', report(boot, '1'))).statusCode, 200);
++  return boot;
++}
++test('model report shared order historical immutable replay and production host PASS stays unverified', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      const boot = await setup(f),
++        r = inventoryReport(f.machineId, boot, '1');
++      const first = await f.machine.post('/v2/machine/models/inventory', r);
++      assert.equal(first.statusCode, 200, first.text);
++      const [probe] = await db`select * from model_probe_receipts`;
++      assert.equal(probe?.status, 'unverified');
++      assert.deepEqual(probe?.capabilities, []);
++      const originalReceived = (probe?.received_at as Date | undefined)?.getTime();
++      assert.ok(((probe?.expires_at as Date | undefined)?.getTime() ?? 0) < Date.parse('2099-01-01'));
++      const replay = await f.machine.post('/v2/machine/models/inventory', r);
++      assert.deepEqual(replay.json(), first.json());
++      assert.equal(
++        (await f.machine.post('/v2/machine/models/inventory', { ...r, body: { entries: [] } })).statusCode,
++        409,
++      );
++      const auth = inventoryReport(f.machineId, boot, '3', 'fail');
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', auth)).statusCode, 200);
++      assert.equal(
++        (await f.machine.post('/v2/machine/models/inventory', inventoryReport(f.machineId, boot, '2')))
++          .statusCode,
++        409,
++      );
++      const status = {
++        claude: { state: 'error', errorCode: 'UNVERIFIED' },
++        codex: { state: 'error', errorCode: 'AUTH' },
++        api: { state: 'error', errorCode: 'UNVERIFIED' },
++      };
++      const applied = (inventoryId: string, seq: string) => ({
++        reportId: randomUUID(),
++        bootId: boot,
++        bootGeneration: '1',
++        sequence: seq,
++        configRevision: 1,
++        body: {
++          inventoryReportId: inventoryId,
++          sourceStatus: structuredClone(status),
++          observationDigest: digest(auth.body),
++        },
++      });
++      assert.equal(
++        (await f.machine.post('/v2/machine/models/applied', applied(r.reportId, '4'))).statusCode,
++        409,
++      );
++      const partial = applied(auth.reportId, '4');
++      delete (
++        partial.body.sourceStatus as Partial<Record<Source, { state: string; errorCode: string | null }>>
++      ).api;
++      const pr = await f.machine.post('/v2/machine/models/applied', partial);
++      assert.equal(pr.statusCode, 200, pr.text);
++      assert.equal(pr.json().applied, false);
++      const full = await f.machine.post('/v2/machine/models/applied', applied(auth.reportId, '5'));
++      assert.equal(full.statusCode, 200, full.text);
++      assert.equal(full.json().applied, true);
++      const [a] = await db`select revision from model_source_applied`;
++      assert.equal(a?.revision, 1);
++      const errorPool = await f.owner.get(`/v2/machines/${f.machineId}/models?workflow=superpowers`);
++      const failedEntry = errorPool.json<{ items: PoolEntry[] }>().items.find((p) => p.runtime === 'codex');
++      assert.equal(failedEntry?.sourceApplied, true);
++      assert.equal(failedEntry?.reason, 'AUTH');
++      const b = randomUUID();
++      assert.equal(
++        (await f.machine.post('/v2/gateway/boots', { bootId: b, previousGeneration: '1' })).statusCode,
++        200,
++      );
++      assert.equal(
++        (await f.machine.post('/v2/machine/models/inventory', inventoryReport(f.machineId, boot, '6')))
++          .statusCode,
++        409,
++      );
++      assert.deepEqual((await f.machine.post('/v2/machine/models/inventory', r)).json(), first.json());
++      const [after] =
++        await db`select received_at from model_probe_receipts where inventory_report_id=${r.reportId}`;
++      assert.equal((after?.received_at as Date | undefined)?.getTime(), originalReceived);
++      await db`update machines set revoked_at=now() where id=${f.machineId}`;
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', r)).statusCode, 401);
++    } finally {
++      await f.close();
++    }
++  });
++});
++test('model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      const boot = await setup(f);
++      const bad = inventoryReport(randomUUID(), boot, '1');
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', bad)).statusCode, 409);
++      const r = inventoryReport(f.machineId, boot, '1');
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', r)).statusCode, 200);
++      const pool = await f.owner.get(`/v2/machines/${f.machineId}/models?workflow=superpowers`);
++      assert.equal(pool.statusCode, 200, pool.text);
++      assert.equal(pool.json<{ items: PoolEntry[] }>().items[0].available, false);
++      assert.equal(pool.json<{ items: PoolEntry[] }>().items[0].reason, 'MODEL_CONFIG_PENDING');
++      assert.equal(
++        (
++          await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++            ...input(1),
++            enabled: { claude: false, codex: false, api: false },
++          })
++        ).statusCode,
++        200,
++      );
++      const off = await f.owner.get(`/v2/machines/${f.machineId}/models?workflow=superpowers`);
++      assert.equal(off.json().reason, 'NO_SOURCE_ENABLED');
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      const boot = await setup(f);
++      const list = await f.machine.get('/v2/gateway/commands'),
++        command = list.json<{ items: ModelCommand[] }>().items.find((c) => c.type === 'sync_models');
++      assert.ok(command);
++      const [beforeAck] =
++        await db`select (select count(*)::int from events) as events,(select count(*)::int from idempotency) as mutations`;
++      const r = await f.machine.post(`/v2/machine/model-commands/${command.id}/ack`, {
++        phase: 'completed',
++        result: { ok: true },
++      });
++      assert.equal(r.statusCode, 409, r.text);
++      const bypass = await f.machine.post(`/v2/gateway/commands/${command.id}/ack`, {
++        phase: 'completed',
++        result: { ok: true },
++      });
++      assert.notEqual(bypass.statusCode, 200);
++      const [afterAck] =
++        await db`select (select count(*)::int from events) as events,(select count(*)::int from idempotency) as mutations`;
++      assert.deepEqual(afterAck, beforeAck);
++      assert.equal((await db`select state from gateway_commands where id=${command.id}`)[0]?.state, 'queued');
++      assert.equal(
++        (await f.machine.post(`/v2/machine/model-commands/${command.id}/ack`, { phase: 'received' }))
++          .statusCode,
++        200,
++      );
++      const inv = inventoryReport(f.machineId, boot, '1', 'fail');
++      assert.equal((await f.machine.post('/v2/machine/models/inventory', inv)).statusCode, 200);
++      const applied = {
++        reportId: randomUUID(),
++        bootId: boot,
++        bootGeneration: '1',
++        sequence: '2',
++        configRevision: 1,
++        body: {
++          inventoryReportId: inv.reportId,
++          sourceStatus: {
++            claude: { state: 'error', errorCode: 'UNVERIFIED' },
++            codex: { state: 'error', errorCode: 'AUTH' },
++            api: { state: 'error', errorCode: 'UNVERIFIED' },
++          },
++          observationDigest: digest(inv.body),
++        },
++      };
++      assert.equal((await f.machine.post('/v2/machine/models/applied', applied)).statusCode, 200);
++      const completed = await f.machine.post(`/v2/machine/model-commands/${command.id}/ack`, {
++        phase: 'completed',
++        result: { ok: false, code: 'SOURCE_ERROR', details: { codex: 'AUTH' } },
++      });
++      assert.equal(completed.statusCode, 200, completed.text);
++      assert.equal(
++        (
++          await f.machine.post(`/v2/machine/model-commands/${command.id}/ack`, {
++            phase: 'completed',
++            result: { ok: true },
++          })
++        ).statusCode,
++        409,
++      );
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++import { validateEventInput } from '../src/journal/event-contracts.ts';
++
++test('model source events reject secret metadata and wrong audience without leaking inventory', () => {
++  const audience = randomUUID(),
++    id = randomUUID();
++  for (const type of ['source.desired', 'source.applied']) {
++    const data = type === 'source.desired' ? { revision: 1 } : { revision: 1, reportId: id };
++    const event = { type, projectId: null, ticketId: null, audienceMachineId: audience, data };
++    assert.doesNotThrow(() => validateEventInput(event));
++    for (const invalid of [
++      { ...event, audienceMachineId: null },
++      { ...event, projectId: randomUUID() },
++      { ...event, data: { ...data, secret: 'fixture' } },
++      { ...event, data: { ...data, inventory: [] } },
++      { ...event, data: { ...data, revision: 0 } },
++    ])
++      assert.throws(() => validateEventInput(invalid));
++  }
++});
++test('model HTTP cached mutation rechecks actual token after authentication before journal cache', async () => {
++  await databaseFixture(8)(async (db) => {
++    let pause = false,
++      enteredResolve: () => void = () => {},
++      releaseResolve: () => void = () => {};
++    let entered = Promise.resolve(),
++      release = Promise.resolve();
++    const f = await modelFixture(db, {
++      configure: async (_app, _options, deps) => {
++        const original = deps.mutator;
++        deps.mutator = async (c, w) => {
++          if (pause && c.route === 'POST:/v2/machine/models/inventory') {
++            enteredResolve();
++            await release;
++          }
++          return original(c, w);
++        };
++      },
++    });
++    try {
++      const boot = await setup(f),
++        r = inventoryReport(f.machineId, boot, '1'),
++        key = randomUUID();
++      const first = await f.machine.post('/v2/machine/models/inventory', r, key);
++      assert.equal(first.statusCode, 200);
++      entered = new Promise<void>((resolve) => {
++        enteredResolve = resolve;
++      });
++      release = new Promise<void>((resolve) => {
++        releaseResolve = resolve;
++      });
++      pause = true;
++      const pending = f.machine.post('/v2/machine/models/inventory', r, key);
++      await entered;
++      await db`update machines set token_hash=${'9'.repeat(64)} where id=${f.machineId}`;
++      releaseResolve();
++      const denied = await pending;
++      assert.equal(denied.statusCode, 401, denied.text);
++      const [count] = await db`select count(*)::int as n from model_report_receipts`;
++      assert.equal(count?.n, 1);
++    } finally {
++      releaseResolve();
++      await f.close();
++    }
++  });
++});
++
++import type { ProbeResult } from '../src/models/contracts.ts';
++import { modelObserverFixture } from './support/model-observer.ts';
++
++test('fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate', async () => {
++  await databaseFixture(8)(async (db) => {
++    let observed: ProbeResult;
++    const observer = await modelObserverFixture(() => observed);
++    const f = await modelFixture(db, { modelPorts: { probeVerifier: observer.verifier } });
++    try {
++      const boot = await setup(f);
++      await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++        expectedRevision: 1,
++        enabled: { claude: false, codex: true, api: false },
++        apiProviders: [],
++      });
++      const r = inventoryReport(f.machineId, boot, '1', 'pass', 2);
++      r.body.entries[0].capabilities.push('vision');
++      observed = r.body.entries[0] as ProbeResult;
++      const accepted = await f.machine.post('/v2/machine/models/inventory', r);
++      assert.equal(accepted.statusCode, 200, accepted.text);
++      const [probe] = await db`select status,capabilities from model_probe_receipts`;
++      assert.equal(probe?.status, 'pass');
++      assert.deepEqual(probe?.capabilities, ['text', 'tools']);
++      const applied = {
++        reportId: randomUUID(),
++        bootId: boot,
++        bootGeneration: '1',
++        sequence: '2',
++        configRevision: 2,
++        body: {
++          inventoryReportId: r.reportId,
++          sourceStatus: {
++            claude: { state: 'disabled', errorCode: null },
++            codex: { state: 'ready', errorCode: null },
++            api: { state: 'disabled', errorCode: null },
++          },
++          observationDigest: digest(r.body),
++        },
++      };
++      assert.equal((await f.machine.post('/v2/machine/models/applied', applied)).statusCode, 200);
++      const pool = await f.owner.get(`/v2/machines/${f.machineId}/models?workflow=superpowers`);
++      assert.equal(pool.json<{ items: PoolEntry[] }>().items[0].reason, 'CERTIFICATION_UNVERIFIED');
++      assert.equal(pool.json<{ items: PoolEntry[] }>().items[0].available, false);
++    } finally {
++      await f.close();
++      await observer.close();
++    }
++  });
++});
++
++import { spawnSync } from 'node:child_process';
++import postgres from 'postgres';
++import { connectDb } from '../src/db/client.ts';
++import { captureMigrations, migrate } from '../src/db/migrate.ts';
++
++test('model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift', async () => {
++  await databaseFixture(7)(async (db) => {
++    const containerId = process.env.CREW_V2_TEST_CONTAINER_ID,
++      base = process.env.CREW_V2_TEST_DATABASE_URL;
++    assert.ok(containerId);
++    assert.match(containerId, /^[0-9a-f]{64}$/);
++    assert.ok(base);
++    const [name] = await db`select current_database() as name`;
++    const sourceDb = String(name?.name);
++    const restoredName = `crew_v2_test_${randomUUID().replaceAll('-', '')}`;
++    console.info(
++      'model-backup-owned',
++      JSON.stringify({ containerId, port: new URL(base).port, sourceDb, restoredName }),
++    );
++    const dump = () => {
++      const r = spawnSync('docker', ['exec', containerId, 'pg_dump', '-Fc', '-U', 'postgres', sourceDb], {
++        maxBuffer: 16 * 1024 * 1024,
++      });
++      assert.equal(r.status, 0, r.stderr.toString());
++      return r.stdout;
++    };
++    const admin = postgres(base, { max: 1 });
++    await admin`create database ${admin(restoredName)}`;
++    const restoredUrl = new URL(base);
++    restoredUrl.pathname = `/${restoredName}`;
++    let restored: ReturnType<typeof connectDb> | undefined;
++    const restore = (bytes: Buffer) => {
++      const r = spawnSync(
++        'docker',
++        [
++          'exec',
++          '-i',
++          containerId,
++          'pg_restore',
++          '--clean',
++          '--if-exists',
++          '-U',
++          'postgres',
++          '-d',
++          restoredName,
++        ],
++        { input: bytes, maxBuffer: 16 * 1024 * 1024 },
++      );
++      assert.equal(r.status, 0, r.stderr.toString());
++    };
++    try {
++      restore(dump());
++      restored = connectDb(restoredUrl.toString());
++      assert.equal((await restored`select version from schema_migrations`).length, 7);
++      await restored.end();
++      restored = undefined;
++      const set = await captureMigrations(8);
++      await migrate(db, set);
++      await migrate(db, set);
++      const f = await modelFixture(db);
++      try {
++        const boot = await setup(f),
++          r = inventoryReport(f.machineId, boot, '1');
++        const response = await f.machine.post('/v2/machine/models/inventory', r);
++        assert.equal(response.statusCode, 200);
++        await assert.rejects(
++          db`update model_report_receipts set sequence=99`,
++          (e) => (e as { code: string }).code === '23514',
++        );
++        await assert.rejects(
++          db`delete from model_probe_receipts`,
++          (e) => (e as { code: string }).code === '23514',
++        );
++        await assert.rejects(
++          db`update model_source_configs set enabled='{"claude":1,"codex":true,"api":false}'`,
++          (e) => (e as { code: string }).code === '23514',
++        );
++        await assert.rejects(
++          db`insert into model_source_applied(machine_id,revision,report_id,boot_generation,sequence,inventory_report_id,reported_at,source_status) values(${f.machineId},1,${randomUUID()},1,2,${randomUUID()},now(),'{}')`,
++          (e) => (e as { code: string }).code === '23503',
++        );
++        const before = await db`select * from model_report_receipts`;
++        restore(dump());
++        restored = connectDb(restoredUrl.toString());
++        await migrate(restored, set);
++        assert.deepEqual(await restored`select * from model_report_receipts`, before);
++        const reopened = await modelFixture(restored, { prior: f.prior });
++        try {
++          assert.deepEqual(
++            (await reopened.machine.post('/v2/machine/models/inventory', r)).json(),
++            response.json(),
++          );
++        } finally {
++          await reopened.close();
++        }
++        const altered = set.files.map((m) =>
++          m.version === 8
++            ? {
++                ...m,
++                sql: `${m.sql}\n-- test drift\n`,
++                sha256: createHash('sha256').update(`${m.sql}\n-- test drift\n`).digest('hex'),
++              }
++            : m,
++        );
++        await assert.rejects(migrate(restored, { through: 8, files: altered }), /MIGRATION_DRIFT/);
++      } finally {
++        await f.close();
++      }
++    } finally {
++      await restored?.end();
++      await admin`drop database ${admin(restoredName)} with (force)`;
++      await admin.end();
++      console.info('model-backup-cleaned', JSON.stringify({ sourceDb, restoredName }));
++    }
++  });
++});
+diff --git a/v2/server/test/model-secret.test.ts b/v2/server/test/model-secret.test.ts
+new file mode 100644
+index 0000000..03209a1
+--- /dev/null
++++ b/v2/server/test/model-secret.test.ts
+@@ -0,0 +1,342 @@
++import assert from 'node:assert/strict';
++import { execFile } from 'node:child_process';
++import {
++  createDecipheriv,
++  createHash,
++  createPublicKey,
++  diffieHellman,
++  generateKeyPairSync,
++  hkdfSync,
++  type KeyObject,
++  randomUUID,
++} from 'node:crypto';
++import { test } from 'node:test';
++import { promisify } from 'node:util';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import type { SecretEnvelope } from '../src/models/contracts.ts';
++import { databaseFixture } from './support/db.ts';
++import { modelFixture } from './support/model-http.ts';
++
++const hash = (s: string) => createHash('sha256').update(s).digest('hex');
++type CryptoBox = Pick<SecretEnvelope, 'ephemeralPublicKey' | 'nonce' | 'ciphertext' | 'tag'>;
++function decode(box: CryptoBox, key: KeyObject, aad: unknown) {
++  const shared = diffieHellman({
++    privateKey: key,
++    publicKey: createPublicKey({
++      key: Buffer.from(box.ephemeralPublicKey, 'base64'),
++      format: 'der',
++      type: 'spki',
++    }),
++  });
++  const nonce = Buffer.from(box.nonce, 'base64');
++  const aes = Buffer.from(hkdfSync('sha256', shared, nonce, 'crew-v2-secret-envelope-v1', 32));
++  const d = createDecipheriv('aes-256-gcm', aes, nonce);
++  d.setAAD(Buffer.from(canonicalJson(aad)));
++  d.setAuthTag(Buffer.from(box.tag, 'base64'));
++  return Buffer.concat([d.update(Buffer.from(box.ciphertext, 'base64')), d.final()]).toString();
++}
++test('model secret key proof encrypted provisioning and lost ACK replay erase ciphertext exactly once', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      const providerId = randomUUID(),
++        keyId = randomUUID(),
++        keys = generateKeyPairSync('x25519');
++      const config = {
++        expectedRevision: 0,
++        enabled: { claude: false, codex: false, api: true },
++        apiProviders: [
++          {
++            id: providerId,
++            endpoint: 'https://example.com/v1',
++            protocol: 'responses',
++            models: [{ id: 'x', declared: ['text'] }],
++            localHttp: null,
++          },
++        ],
++      };
++      await db`insert into projects(id,name,key,machine_id,checkout_path,binding_revision) values(${randomUUID()},'Secret fixture','secret-fixture',${f.machineId},'/tmp/model-secret-fixture',1)`;
++      assert.equal((await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, config)).statusCode, 200);
++      const reg = await f.machine.post('/v2/machine/credential-keys', {
++        keyId,
++        publicKeyX25519: keys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64'),
++      });
++      assert.equal(reg.statusCode, 200, reg.text);
++      const ch = reg.json<{ challengeId: string; encryptedChallenge: CryptoBox; expiresAt: string }>();
++      const nonce = decode(ch.encryptedChallenge, keys.privateKey, {
++        machineId: f.machineId,
++        keyId,
++        challengeId: ch.challengeId,
++        expiresAt: ch.expiresAt,
++      });
++      const secret = 'fixture-only-secret-never-real';
++      const operationId = randomUUID();
++      const body = { expectedRevision: 1, keyId, operationId, secret };
++      const path = `/v2/machines/${f.machineId}/api-providers/${providerId}/secret`;
++      assert.equal((await f.owner.post(path, body)).statusCode, 409);
++      assert.equal(
++        (
++          await f.machine.post(`/v2/machine/credential-keys/${keyId}/confirm`, {
++            challengeId: ch.challengeId,
++            challengeSha256: 'f'.repeat(64),
++          })
++        ).statusCode,
++        409,
++      );
++      assert.equal(
++        (
++          await f.machine.post(`/v2/machine/credential-keys/${keyId}/confirm`, {
++            challengeId: ch.challengeId,
++            challengeSha256: hash(nonce),
++          })
++        ).statusCode,
++        200,
++      );
++      const sent = await f.owner.post(path, body);
++      assert.equal(sent.statusCode, 200, sent.text);
++      assert.equal(sent.text.includes(secret), false);
++      assert.equal((await f.owner.post(path, body)).text, sent.text);
++      const envelopes = await f.machine.get('/v2/machine/api-secret-envelopes');
++      assert.equal(envelopes.statusCode, 200, envelopes.text);
++      const e = envelopes.json<{ items: SecretEnvelope[] }>().items[0];
++      assert.ok(e);
++      const aad = {
++        machineId: e.machineId,
++        providerId: e.providerId,
++        keyId: e.keyId,
++        configRevision: e.configRevision,
++        operationId: e.operationId,
++        expiresAt: e.expiresAt,
++      };
++      assert.equal(decode(e, keys.privateKey, aad), secret);
++      assert.throws(() => decode({ ...e, tag: Buffer.alloc(16).toString('base64') }, keys.privateKey, aad));
++      assert.throws(() => decode(e, keys.privateKey, { ...aad, configRevision: 2 }));
++      const ack = { operationId, keyId, ciphertextSha256: e.ciphertextSha256, credentialRef: 'fixture-ref' };
++      assert.equal(
++        (
++          await f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, {
++            ...ack,
++            ciphertextSha256: 'a'.repeat(64),
++          })
++        ).statusCode,
++        409,
++      );
++      const a = await f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, ack);
++      assert.equal(a.statusCode, 200, a.text);
++      assert.deepEqual(
++        (await f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, ack)).json(),
++        a.json(),
++      );
++      const [stored] = await db`select ciphertext,tag,state from api_secret_envelopes`;
++      assert.equal(stored?.ciphertext, null);
++      assert.equal(stored?.tag, null);
++      assert.equal(stored?.state, 'acked');
++      const [journal] = await db`select string_agg(response::text,'') as data from idempotency`;
++      assert.equal(String(journal?.data).includes(secret), false);
++      assert.equal(String(journal?.data).includes(e.ciphertext), false);
++      assert.equal(
++        (await f.owner.get(`/v2/machines/${f.machineId}/model-sources`)).text.includes(secret),
++        false,
++      );
++      const removed = await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++        expectedRevision: 1,
++        enabled: { claude: false, codex: false, api: false },
++        apiProviders: [],
++      });
++      assert.equal(removed.statusCode, 200, removed.text);
++      assert.deepEqual(removed.json<{ apiProviders: unknown[] }>().apiProviders, []);
++      assert.equal((await db`select state from api_secret_envelopes`)[0]?.state, 'acked');
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('model secret rotation scopes pending envelopes to own machine and rejects stale key/revision ACK', async () => {
++  await databaseFixture(8)(async (db) => {
++    let now = new Date();
++    const f = await modelFixture(db, { now: () => now });
++    try {
++      await db`insert into projects(id,name,key,machine_id,checkout_path) values(${randomUUID()},'fixture','MODELKEY',${f.machineId},'/tmp/model-key-fixture')`;
++      const providerId = randomUUID(),
++        configuration = {
++          expectedRevision: 0,
++          enabled: { claude: false, codex: false, api: true },
++          apiProviders: [
++            {
++              id: providerId,
++              endpoint: 'https://example.com/v1',
++              protocol: 'chat-completions',
++              models: [{ id: 'x', declared: ['text'] }],
++              localHttp: null,
++            },
++          ],
++        };
++      await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, configuration);
++      const activate = async () => {
++        const keys = generateKeyPairSync('x25519'),
++          keyId = randomUUID();
++        const reg = await f.machine.post('/v2/machine/credential-keys', {
++          keyId,
++          publicKeyX25519: keys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64'),
++        });
++        assert.equal(reg.statusCode, 200, reg.text);
++        const ch = reg.json<{ challengeId: string; encryptedChallenge: CryptoBox; expiresAt: string }>();
++        const nonce = decode(ch.encryptedChallenge, keys.privateKey, {
++          machineId: f.machineId,
++          keyId,
++          challengeId: ch.challengeId,
++          expiresAt: ch.expiresAt,
++        });
++        const confirmed = await f.machine.post(`/v2/machine/credential-keys/${keyId}/confirm`, {
++          challengeId: ch.challengeId,
++          challengeSha256: hash(nonce),
++        });
++        assert.equal(confirmed.statusCode, 200, confirmed.text);
++        return keyId;
++      };
++      const firstKey = await activate(),
++        secondKey = await activate();
++      const path = `/v2/machines/${f.machineId}/api-providers/${providerId}/secret`;
++      assert.equal(
++        (
++          await f.owner.post(path, {
++            expectedRevision: 1,
++            keyId: firstKey,
++            operationId: randomUUID(),
++            secret: 'test',
++          })
++        ).statusCode,
++        409,
++      );
++      const operationId = randomUUID();
++      assert.equal(
++        (await f.owner.post(path, { expectedRevision: 1, keyId: secondKey, operationId, secret: 'test' }))
++          .statusCode,
++        200,
++      );
++      const foreign = await f.owner.post('/v2/machines', { name: 'foreign' });
++      const t = foreign.json<{ token: string }>().token;
++      assert.equal(
++        (
++          await f.request('/v2/machine/api-secret-envelopes', 'GET', undefined, {
++            authorization: `Bearer ${t}`,
++          })
++        ).json<{ items: SecretEnvelope[] }>().items.length,
++        0,
++      );
++      const e = (await f.machine.get('/v2/machine/api-secret-envelopes')).json<{ items: SecretEnvelope[] }>()
++        .items[0];
++      const ack = {
++        operationId,
++        keyId: secondKey,
++        ciphertextSha256: e.ciphertextSha256,
++        credentialRef: 'fixture-ref',
++      };
++      assert.equal(
++        (await f.machineWrite(`/v2/machine/api-secret-envelopes/${e.id}/ack`, t, ack)).statusCode,
++        404,
++      );
++      now = new Date(now.getTime() + 6 * 60_000);
++      assert.equal(
++        (await f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, ack)).statusCode,
++        409,
++      );
++      assert.equal(
++        (await f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/key-lost`, {})).statusCode,
++        200,
++      );
++      const [state] = await db`select state,ciphertext from api_secret_envelopes`;
++      assert.equal(state?.state, 'expired');
++      assert.equal(state?.ciphertext, null);
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('model secret envelope pagination uses a durable decimal cursor so reconnect cannot miss a new random UUID', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    try {
++      const response = await f.machine.get('/v2/machine/api-secret-envelopes?after=0');
++      assert.equal(response.statusCode, 200, response.text);
++      assert.equal(response.json().nextCursor, '0');
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('production app real HTTP secret rejection and structured logger redact plaintext', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db);
++    const providerId = randomUUID();
++    try {
++      assert.equal(
++        (
++          await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++            expectedRevision: 0,
++            enabled: { claude: false, codex: false, api: true },
++            apiProviders: [
++              {
++                id: providerId,
++                endpoint: 'https://example.com/v1',
++                protocol: 'responses',
++                models: [{ id: 'x', declared: ['text'] }],
++                localHttp: null,
++              },
++            ],
++          })
++        ).statusCode,
++        200,
++      );
++      const [database] = await db`select current_database() as name`;
++      assert.ok(database?.name);
++      const base = process.env.CREW_V2_TEST_DATABASE_URL;
++      assert.ok(base);
++      const url = new URL(base);
++      url.pathname = `/${database.name}`;
++      const input = {
++        url: url.toString(),
++        cookie: f.identity.cookie,
++        csrf: f.identity.csrf,
++        key: f.identity.key.toString('base64'),
++        machineId: f.machineId,
++        providerId,
++      };
++      const child = `
++        import assert from 'node:assert/strict';
++        import { randomUUID } from 'node:crypto';
++        import { buildApp } from ${JSON.stringify(new URL('../src/app.ts', import.meta.url).href)};
++        import { connectDb } from ${JSON.stringify(new URL('../src/db/client.ts', import.meta.url).href)};
++        const i = JSON.parse(process.argv[1]);
++        const db = connectDb(i.url);
++        const app = await buildApp({db, publicOrigin:'http://localhost:5182', secureCookies:false, sessionEncryptionKey:Buffer.from(i.key,'base64'), now:()=>new Date()});
++        try {
++          const address = await app.listen({host:'127.0.0.1',port:0});
++          const body = {expectedRevision:1,keyId:randomUUID(),operationId:randomUUID(),secret:'fixture-redaction-canary'};
++          const response = await fetch(address+'/v2/machines/'+i.machineId+'/api-providers/'+i.providerId+'/secret',{method:'POST',headers:{'content-type':'application/json',cookie:i.cookie,origin:'http://localhost:5182','x-csrf-token':i.csrf,'idempotency-key':randomUUID()},body:JSON.stringify(body)});
++          assert.equal(response.status,409);
++          assert.equal((await response.text()).includes(body.secret),false);
++          app.log.child({}, {serializers:{req:r=>r}}).info({req:{body}},'model-secret-redaction-proof');
++        } finally { await app.close(); await db.end(); }
++      `;
++      const output = await promisify(execFile)(
++        process.execPath,
++        ['--input-type=module', '-e', child, JSON.stringify(input)],
++        { timeout: 10_000, maxBuffer: 1024 * 1024 },
++      );
++      assert.equal(output.stdout.includes('fixture-redaction-canary'), false);
++      assert.equal(output.stderr.includes('fixture-redaction-canary'), false);
++      assert.match(output.stdout, /model-secret-redaction-proof/);
++      assert.match(output.stdout, /\[Redacted\]/);
++      const [publicRows] =
++        await db`select (select coalesce(string_agg(response::text,''),'') from idempotency) || (select coalesce(string_agg(data::text,''),'') from events) as value`;
++      assert.equal(String(publicRows?.value).includes('fixture-redaction-canary'), false);
++      assert.equal((await db`select count(*)::int as n from api_secret_envelopes`)[0]?.n, 0);
++    } finally {
++      await f.close();
++    }
++  });
++});
+diff --git a/v2/server/test/support/model-certification.ts b/v2/server/test/support/model-certification.ts
+new file mode 100644
+index 0000000..3497fce
+--- /dev/null
++++ b/v2/server/test/support/model-certification.ts
+@@ -0,0 +1,46 @@
++import type { FastifyInstance } from 'fastify';
++import { objectSchema, uuidSchema } from '../../src/gateway/contracts.ts';
++import { authorizeGatewayMutation } from '../../src/gateway/service.ts';
++import { type ChallengeInput, issueCertificationChallenge } from '../../src/models/certification.ts';
++import { contextSchema } from '../../src/models/contracts.ts';
++import type { RouteDependencies, ServerOptions } from '../../src/platform/contracts.ts';
++import { ApiError } from '../../src/platform/errors.ts';
++/** Explicit private scratch fixture composition. Not imported by app or production routes. */
++export function registerModelTestIssuer(
++  app: FastifyInstance,
++  options: ServerOptions,
++  deps: RouteDependencies,
++): void {
++  app.post<{ Body: ChallengeInput }>(
++    '/v2/test/model-certifications/challenges',
++    {
++      schema: {
++        body: objectSchema({
++          machineId: uuidSchema,
++          projectId: uuidSchema,
++          context: contextSchema,
++          maxTurns: { type: 'integer', minimum: 1, maximum: 2 },
++          maxTools: { type: 'integer', minimum: 1, maximum: 3 },
++          maxCostUsd: { const: 0 },
++        }),
++      },
++    },
++    async (request, reply) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: true });
++      const challenge = await options.db.begin(async (tx) => {
++        await tx`select value from event_cursor where singleton for update`;
++        await tx`select id from projects where id=${request.body.projectId} for update`;
++        await authorizeGatewayMutation(tx, request, actor, options, request.body.machineId);
++        return issueCertificationChallenge(tx, request.body, options.now(), {
++          authorize: async (tx, input) => {
++            const [scope] =
++              await tx`select 1 from model_test_scope where machine_id=${input.machineId} and project_id=${input.projectId}`;
++            if (!scope) throw new ApiError('TEST_SCOPE_REQUIRED', 403, 'Chỉ scratch fixture');
++          },
++        });
++      });
++      reply.status(201);
++      return challenge;
++    },
++  );
++}
+diff --git a/v2/server/test/support/model-http.ts b/v2/server/test/support/model-http.ts
+new file mode 100644
+index 0000000..7321c8d
+--- /dev/null
++++ b/v2/server/test/support/model-http.ts
+@@ -0,0 +1,174 @@
++import assert from 'node:assert/strict';
++import { randomBytes, randomUUID } from 'node:crypto';
++import Fastify, { type FastifyInstance } from 'fastify';
++import { bootstrapOwner } from '../../src/auth/bootstrap.ts';
++import { createAuthenticator, registerAuthRoutes } from '../../src/auth/routes.ts';
++import { credentialResponseCodec } from '../../src/auth/session.ts';
++import {
++  assertNoActiveProjectExecution,
++  createExecutionAuthority,
++  denyDispatch,
++  denyFinalResult,
++} from '../../src/execution/attempts.ts';
++import { registerExecutionRoutes } from '../../src/execution/routes.ts';
++import type { GatewayProjectionPolicy } from '../../src/gateway/contracts.ts';
++import { registerGatewayRoutes } from '../../src/gateway/routes.ts';
++import { createMutator } from '../../src/journal/mutation.ts';
++import type { ModelRouteOptions } from '../../src/models/contracts.ts';
++import { registerModelRoutes } from '../../src/models/routes.ts';
++import type {
++  AuthorizeDispatch,
++  Db,
++  RouteDependencies,
++  ServerOptions,
++} from '../../src/platform/contracts.ts';
++import { ApiError } from '../../src/platform/errors.ts';
++import { registerProjectRoutes } from '../../src/projects/routes.ts';
++import { registerTicketRoutes } from '../../src/tickets/routes.ts';
++import type { HttpIdentity, HttpResponse } from './http.ts';
++
++const fixtureContainers = new Set<string>();
++async function buildModelApp(
++  input: Omit<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'> & {
++    authorizeDispatch?: AuthorizeDispatch;
++    gatewayProjectionPolicy?: GatewayProjectionPolicy;
++    modelPorts?: ModelRouteOptions;
++    configure?: (app: FastifyInstance, options: ServerOptions, deps: RouteDependencies) => Promise<void>;
++  },
++) {
++  const options = {
++    ...input,
++    authorizeDispatch: input.authorizeDispatch ?? denyDispatch,
++    verifyFinalResult: denyFinalResult,
++  };
++  const app = Fastify({ ajv: { customOptions: { removeAdditional: false } }, logger: false });
++  app.setErrorHandler((err, _request, reply) => {
++    if (err instanceof ApiError)
++      return reply.code(err.status).send({ error: { code: err.code, message: err.message } });
++    if (err && typeof err === 'object' && 'validation' in err)
++      return reply.code(400).send({ error: { code: 'INVALID_INPUT' } });
++
++    return reply.code(503).send({ error: { code: 'SERVICE_UNAVAILABLE' } });
++  });
++  const deps = {
++    auth: createAuthenticator(options.db, options),
++    mutator: createMutator(options.db, credentialResponseCodec(options.sessionEncryptionKey)),
++  };
++  registerAuthRoutes(app, options, deps);
++  registerProjectRoutes(app, options, deps, assertNoActiveProjectExecution);
++  registerTicketRoutes(app, options, deps, { execution: createExecutionAuthority() });
++  registerExecutionRoutes(app, options, deps);
++  registerGatewayRoutes(app, options, deps, input.gatewayProjectionPolicy);
++  registerModelRoutes(app, options, deps, input.modelPorts);
++  await input.configure?.(app, options, deps);
++  return app;
++}
++export async function modelFixture(
++  db: Db,
++  config: {
++    projectionPolicy?: GatewayProjectionPolicy;
++    modelPorts?: ModelRouteOptions;
++    configure?: (app: FastifyInstance, options: ServerOptions, deps: RouteDependencies) => Promise<void>;
++    authorizeDispatch?: AuthorizeDispatch;
++    prior?: { identity: HttpIdentity; machineId: string; token: string };
++    now?: () => Date;
++  } = {},
++) {
++  const container = process.env.CREW_V2_TEST_CONTAINER_ID;
++  if (container && !fixtureContainers.has(container)) {
++    fixtureContainers.add(container);
++    console.info(
++      'model-fixture-container',
++      JSON.stringify({ containerId: container, url: process.env.CREW_V2_TEST_DATABASE_URL }),
++    );
++  }
++  const identity = config.prior?.identity ?? {
++    password: randomBytes(24).toString('hex'),
++    cookie: '',
++    csrf: '',
++    key: randomBytes(32),
++  };
++  if (!config.prior) await bootstrapOwner(db, identity.password);
++  const app = await buildModelApp({
++    db,
++    publicOrigin: 'http://localhost:5182',
++    secureCookies: false,
++    sessionEncryptionKey: identity.key,
++    now: config.now ?? (() => new Date()),
++    gatewayProjectionPolicy: config.projectionPolicy,
++    modelPorts: config.modelPorts,
++    configure: config.configure,
++    authorizeDispatch: config.authorizeDispatch,
++  });
++  const url = await app.listen({ host: '127.0.0.1', port: 0 });
++  async function request(
++    path: string,
++    method = 'GET',
++    body?: unknown,
++    headers: Record<string, string> = {},
++  ): Promise<HttpResponse> {
++    const response = await fetch(`${url}${path}`, {
++      method,
++      headers: { ...headers, ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
++      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
++    });
++    const text = await response.text();
++    return {
++      statusCode: response.status,
++      headers: response.headers,
++      text,
++      json: <T>() => JSON.parse(text) as T,
++    };
++  }
++  if (!config.prior) {
++    const login = await request(
++      '/v2/auth/session',
++      'POST',
++      { password: identity.password },
++      { origin: 'http://localhost:5182' },
++    );
++    assert.equal(login.statusCode, 200, login.text);
++    identity.cookie = login.headers.get('set-cookie')?.split(';')[0] ?? '';
++    identity.csrf = login.json<{ csrfToken: string }>().csrfToken;
++  }
++  const ownerWrite = (path: string, method: string, body: unknown, key: string = randomUUID()) =>
++    request(path, method, body, {
++      cookie: identity.cookie,
++      origin: 'http://localhost:5182',
++      'x-csrf-token': identity.csrf,
++      'idempotency-key': key,
++    });
++  const machineWrite = (path: string, token: string, body: unknown, key: string = randomUUID()) =>
++    request(path, 'POST', body, { authorization: `Bearer ${token}`, 'idempotency-key': key });
++  let machineId: string, token: string;
++  if (config.prior) {
++    machineId = config.prior.machineId;
++    token = config.prior.token;
++  } else {
++    const response = await ownerWrite('/v2/machines', 'POST', { name: 'gateway-test' });
++    assert.equal(response.statusCode, 201, response.text);
++    const provisioned = response.json<{ machine: { id: string }; token: string }>();
++    machineId = provisioned.machine.id;
++    token = provisioned.token;
++  }
++  return {
++    app,
++    url,
++    identity,
++    request,
++    machineId,
++    token,
++    prior: { identity, machineId, token },
++    machineWrite,
++    owner: {
++      put: (path: string, body: unknown, key?: string) => ownerWrite(path, 'PUT', body, key),
++      post: (path: string, body: unknown, key?: string) => ownerWrite(path, 'POST', body, key),
++      get: (path: string) => request(path, 'GET', undefined, { cookie: identity.cookie }),
++    },
++    machine: {
++      post: (path: string, body: unknown, key?: string) => machineWrite(path, token, body, key),
++      get: (path: string) => request(path, 'GET', undefined, { authorization: `Bearer ${token}` }),
++    },
++    close: () => app.close(),
++  };
++}
+diff --git a/v2/server/test/support/model-observer.ts b/v2/server/test/support/model-observer.ts
+new file mode 100644
+index 0000000..6a0d4e6
+--- /dev/null
++++ b/v2/server/test/support/model-observer.ts
+@@ -0,0 +1,67 @@
++import assert from 'node:assert/strict';
++import { randomBytes } from 'node:crypto';
++import { createServer } from 'node:http';
++import type { ModelProofVerifier, ProbeResult } from '../../src/models/contracts.ts';
++import { hash } from '../../src/models/helpers.ts';
++/** Fake provider protocol evidence only, never a native isolation/live capability certificate. */
++export async function modelObserverFixture(expected: () => ProbeResult) {
++  const capabilityToken = randomBytes(32).toString('hex');
++  const server = createServer(async (req, res) => {
++    let body = '';
++    for await (const chunk of req) {
++      body += String(chunk);
++      if (body.length > 32000) {
++        res.writeHead(413).end();
++        return;
++      }
++    }
++    if (req.url !== '/fixture/probe' || req.headers['x-fixture-observer'] !== capabilityToken) {
++      res.writeHead(403).end();
++      return;
++    }
++    if (hash(JSON.parse(body)) !== hash(expected())) {
++      res.writeHead(409).end();
++      return;
++    }
++    res.setHeader('content-type', 'application/json');
++    res.end(
++      JSON.stringify({
++        context: expected().context,
++        evidenceDigest: expected().evidenceDigest,
++        protocol: 'fake',
++        textWorked: true,
++        toolWorked: true,
++      }),
++    );
++  });
++  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
++  const address = server.address();
++  assert.ok(address && typeof address !== 'string');
++  const verifier: ModelProofVerifier = {
++    verify: async (_tx, probe) => {
++      const r = await fetch(`http://127.0.0.1:${address.port}/fixture/probe`, {
++        method: 'POST',
++        headers: { 'content-type': 'application/json', 'x-fixture-observer': capabilityToken },
++        body: JSON.stringify(probe),
++      });
++      if (r.status !== 200) return { status: 'unverified', capabilities: [] };
++      const result = (await r.json()) as {
++        context: unknown;
++        evidenceDigest: string;
++        textWorked: boolean;
++        toolWorked: boolean;
++      };
++      return hash(result.context) === hash(probe.context) &&
++        result.evidenceDigest === probe.evidenceDigest &&
++        result.textWorked &&
++        result.toolWorked
++        ? { status: 'pass', capabilities: ['text', 'tools'] }
++        : { status: 'unverified', capabilities: [] };
++    },
++  };
++  return {
++    verifier,
++    close: () =>
++      new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve()))),
++  };
++}
+Phase04Task1 source-scoped review: actual dispatch base8e7d313, frozen candidatee94f2e1. Unrelated PM/M2 commits are history context only. Exact21 owned source/docs plus3 generated manifest/index files.
+

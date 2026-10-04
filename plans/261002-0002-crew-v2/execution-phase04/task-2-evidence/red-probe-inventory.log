@@ -1,0 +1,77 @@
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.709583ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (2.894125ms)
+✖ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (0.099084ms)
+✖ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (0.079125ms)
+✖ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.078333ms)
+✖ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.214458ms)
+✖ model probe stream parser requires complete bounded framing and exact model (0.056916ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 2
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68.6535
+
+✖ failing tests:
+
+test at test/model-probe.test.ts:28:1
+✖ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (0.099084ms)
+  Error: NOT_IMPLEMENTED
+      at ModelProber.probeModel (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/probe.ts:55:108)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:30:29)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at test/model-probe.test.ts:35:1
+✖ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (0.079125ms)
+  Error: NOT_IMPLEMENTED
+      at ModelProber.probeModel (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/probe.ts:55:108)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:38:31)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at test/model-probe.test.ts:43:1
+✖ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.078333ms)
+  Error: NOT_IMPLEMENTED
+      at ModelProber.probeModel (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/probe.ts:55:108)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:45:34)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at test/model-probe.test.ts:50:1
+✖ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.214458ms)
+  Error: NOT_IMPLEMENTED
+      at ModelInventory.collectInventory (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/inventory.ts:7:121)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:55:33)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at test/model-probe.test.ts:61:1
+✖ model probe stream parser requires complete bounded framing and exact model (0.056916ms)
+  Error: NOT_IMPLEMENTED
+      at parseStream (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/probe.ts:57:115)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:62:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

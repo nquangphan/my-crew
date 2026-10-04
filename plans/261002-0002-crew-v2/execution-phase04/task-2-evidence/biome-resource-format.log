@@ -1,0 +1,176 @@
+v2/gateway/test/credential-broker.test.ts:103:17 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+    102 │ import { execFile } from 'node:child_process';
+  > 103 │ import { chmod, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+        │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    104 │ import { tmpdir } from 'node:os';
+    105 │ import { join } from 'node:path';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    103 │ import·{·chmod,·mkdtemp,·readFile,·realpath,·rm·}·from·'node:fs/promises';
+        │                 ---------          -------------                          
+
+v2/gateway/test/credential-broker.test.ts:104:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! This import is unused.
+  
+    102 │ import { execFile } from 'node:child_process';
+    103 │ import { chmod, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+  > 104 │ import { tmpdir } from 'node:os';
+        │        ^^^^^^^^^^
+    105 │ import { join } from 'node:path';
+    106 │ import { promisify } from 'node:util';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    102 102 │   import { execFile } from 'node:child_process';
+    103 103 │   import { chmod, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+    104     │ - import·{·tmpdir·}·from·'node:os';
+    105 104 │   import { join } from 'node:path';
+    106 105 │   import { promisify } from 'node:util';
+  
+
+v2/gateway/test/credential-provisioning.test.ts:12:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! This import is unused.
+  
+    10 │   randomUUID,
+    11 │ } from 'node:crypto';
+  > 12 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+       │        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    13 │ import { tmpdir } from 'node:os';
+    14 │ import { join } from 'node:path';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     10  10 │     randomUUID,
+     11  11 │   } from 'node:crypto';
+     12     │ - import·{·mkdtemp,·realpath,·rm·}·from·'node:fs/promises';
+     13  12 │   import { tmpdir } from 'node:os';
+     14  13 │   import { join } from 'node:path';
+  
+
+v2/gateway/test/credential-provisioning.test.ts:13:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! This import is unused.
+  
+    11 │ } from 'node:crypto';
+    12 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+  > 13 │ import { tmpdir } from 'node:os';
+       │        ^^^^^^^^^^
+    14 │ import { join } from 'node:path';
+    15 │ import test from 'node:test';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     11  11 │   } from 'node:crypto';
+     12  12 │   import { mkdtemp, realpath, rm } from 'node:fs/promises';
+     13     │ - import·{·tmpdir·}·from·'node:os';
+     14  13 │   import { join } from 'node:path';
+     15  14 │   import test from 'node:test';
+  
+
+v2/gateway/test/credential-provisioning.test.ts:14:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! This import is unused.
+  
+    12 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+    13 │ import { tmpdir } from 'node:os';
+  > 14 │ import { join } from 'node:path';
+       │        ^^^^^^^^
+    15 │ import test from 'node:test';
+    16 │ import { canonicalJson } from '../src/journal/atomic-records.ts';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     12  12 │   import { mkdtemp, realpath, rm } from 'node:fs/promises';
+     13  13 │   import { tmpdir } from 'node:os';
+     14     │ - import·{·join·}·from·'node:path';
+     15  14 │   import test from 'node:test';
+     16  15 │   import { canonicalJson } from '../src/journal/atomic-records.ts';
+  
+
+v2/gateway/test/model-reporter.test.ts:3:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━
+
+  ! This import is unused.
+  
+    1 │ import assert from 'node:assert/strict';
+    2 │ import { randomUUID } from 'node:crypto';
+  > 3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+      │        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    4 │ import { tmpdir } from 'node:os';
+    5 │ import { join } from 'node:path';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     1  1 │   import assert from 'node:assert/strict';
+     2  2 │   import { randomUUID } from 'node:crypto';
+     3    │ - import·{·mkdtemp,·realpath,·rm·}·from·'node:fs/promises';
+     4  3 │   import { tmpdir } from 'node:os';
+     5  4 │   import { join } from 'node:path';
+  
+
+v2/gateway/test/model-reporter.test.ts:4:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━
+
+  ! This import is unused.
+  
+    2 │ import { randomUUID } from 'node:crypto';
+    3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+  > 4 │ import { tmpdir } from 'node:os';
+      │        ^^^^^^^^^^
+    5 │ import { join } from 'node:path';
+    6 │ import test from 'node:test';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     2  2 │   import { randomUUID } from 'node:crypto';
+     3  3 │   import { mkdtemp, realpath, rm } from 'node:fs/promises';
+     4    │ - import·{·tmpdir·}·from·'node:os';
+     5  4 │   import { join } from 'node:path';
+     6  5 │   import test from 'node:test';
+  
+
+v2/gateway/test/model-reporter.test.ts:5:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━
+
+  ! This import is unused.
+  
+    3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+    4 │ import { tmpdir } from 'node:os';
+  > 5 │ import { join } from 'node:path';
+      │        ^^^^^^^^
+    6 │ import test from 'node:test';
+    7 │ import { initialStatus } from '../src/host/status.ts';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+     3  3 │   import { mkdtemp, realpath, rm } from 'node:fs/promises';
+     4  4 │   import { tmpdir } from 'node:os';
+     5    │ - import·{·join·}·from·'node:path';
+     6  5 │   import test from 'node:test';
+     7  6 │   import { initialStatus } from '../src/host/status.ts';
+  
+
+Skipped 16 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 13 files in 28ms. Fixed 4 files.
+Found 8 warnings.

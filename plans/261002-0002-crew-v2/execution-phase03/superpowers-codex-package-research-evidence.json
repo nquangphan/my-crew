@@ -1,0 +1,142 @@
+{
+  "observedAt": "2026-10-02T05:15:25.264130+00:00",
+  "officialPublicRepository": "https://github.com/openai/plugins",
+  "commit": "33bd9529725fcee78c9e51fcbaa93cd963c3a47b",
+  "commitTime": "2026-08-26T20:49:26Z",
+  "gitTreeSha1": "626e7cfdd1f1c1852f254ad27a5631a4f94d3c77",
+  "treeTruncated": false,
+  "publicPluginVersion": "6.3.0",
+  "sourceVersionRequired": "6.4.2",
+  "sourceRevisionRequired": "8ca22dba9a94f28898bbce59f2537ff4d87c747d",
+  "metadataCount": 14,
+  "sourceSkillCount": 15,
+  "missingMetadata": [
+    "diagnosing-superpowers"
+  ],
+  "metadataInventorySha256": "c32d6e0d32212fbb2bdef11ab4579a493f1b7fa7c27263d7dc17dc948198139f",
+  "metadataInventoryHashFormat": "SHA256 UTF8 JSON sorted keys compact separators of sorted [{path,sha256}]",
+  "records": [
+    {
+      "path": "plugins/superpowers/.codex-plugin/plugin.json",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/.codex-plugin/plugin.json",
+      "bytes": 1722,
+      "sha256": "18eb497a5c3c5aade93fe1982db0fbd2ab23d4a428fc552da6ee3cc520c9706d",
+      "gitBlobSha1": "688466c0ae3df4f8ea5b0dc707e37ea3501e233a",
+      "version": "6.3.0"
+    },
+    {
+      "path": "plugins/superpowers/skills/brainstorming/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/brainstorming/agents/openai.yaml",
+      "bytes": 129,
+      "sha256": "90585d2a09289aaff7eba1271596e8500c7328437b94839f2d39699a41689195",
+      "gitBlobSha1": "66b37b253e170ab003b73538da96df26828f45cb"
+    },
+    {
+      "path": "plugins/superpowers/skills/dispatching-parallel-agents/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/dispatching-parallel-agents/agents/openai.yaml",
+      "bytes": 126,
+      "sha256": "55e5cdae31b34dcafb3cdeb7ca6e154ad3a1ab56da7e6b0d4cc8e1e098ecb5da",
+      "gitBlobSha1": "bef505ee177d39d01b0db572a061bd61d8699ff0"
+    },
+    {
+      "path": "plugins/superpowers/skills/executing-plans/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/executing-plans/agents/openai.yaml",
+      "bytes": 129,
+      "sha256": "c9884a11c9c4721b838ad0b526590efdf677065fb20af0ac3b2bd2ea55cf8786",
+      "gitBlobSha1": "9fe12eb95f01ef4557c3318eff3fd07b3bf4ab0c"
+    },
+    {
+      "path": "plugins/superpowers/skills/finishing-a-development-branch/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/finishing-a-development-branch/agents/openai.yaml",
+      "bytes": 149,
+      "sha256": "74ab618a66f23e8e29015f4ab14db2dd0f639e98c6fdc25fb912fb6a82ed593d",
+      "gitBlobSha1": "e4b6aa8e44dd36b09263a80ba744e1de6f3fae6b"
+    },
+    {
+      "path": "plugins/superpowers/skills/receiving-code-review/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/receiving-code-review/agents/openai.yaml",
+      "bytes": 127,
+      "sha256": "f5515fdf668d22fffc4fd367f990318b2c1ba1a73d9b3ba5661c40e02deedfbc",
+      "gitBlobSha1": "89f1ffba3b6b67276e9af5f78bedf5b84f5039c1"
+    },
+    {
+      "path": "plugins/superpowers/skills/requesting-code-review/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/requesting-code-review/agents/openai.yaml",
+      "bytes": 118,
+      "sha256": "1917e3cf2c957e7512343e622b002a873f325fbf931bed77d71afb5a02ca431d",
+      "gitBlobSha1": "aa9d517943941bf236a090d58bcc406907616c2e"
+    },
+    {
+      "path": "plugins/superpowers/skills/subagent-driven-development/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/subagent-driven-development/agents/openai.yaml",
+      "bytes": 138,
+      "sha256": "58ef494a996998f2a486a0764b769bdf02e9c148b050b38603dbcdb364ae2771",
+      "gitBlobSha1": "7d40cd6f3384352c84f860ad9019224b864de915"
+    },
+    {
+      "path": "plugins/superpowers/skills/systematic-debugging/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/systematic-debugging/agents/openai.yaml",
+      "bytes": 114,
+      "sha256": "a1ec2b63eb6ac4f79bdea5e0ac4dd9688ead473dbc0ff8aa791f9142778b5386",
+      "gitBlobSha1": "1306dcc2abcc26841f9ed9615048170483a99e60"
+    },
+    {
+      "path": "plugins/superpowers/skills/test-driven-development/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/test-driven-development/agents/openai.yaml",
+      "bytes": 137,
+      "sha256": "d1fd223b137ce6eca628d521031213a2dc002a97865f00e2f6fce03529b9ca05",
+      "gitBlobSha1": "729f55acc1ce08c3eebf9fd4004a55f299cf5204"
+    },
+    {
+      "path": "plugins/superpowers/skills/using-git-worktrees/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/using-git-worktrees/agents/openai.yaml",
+      "bytes": 128,
+      "sha256": "00bb3e4d6f3448a0c406d3bffc714d5ed597248514646c2f13ef532b93041773",
+      "gitBlobSha1": "7c145e4088b0a0f719e1b3ea062e16f285b81e9e"
+    },
+    {
+      "path": "plugins/superpowers/skills/using-superpowers/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/using-superpowers/agents/openai.yaml",
+      "bytes": 119,
+      "sha256": "3c5813a85ca812acc399c3081ab73699dce4740b068ab0be73710a58465bfeaa",
+      "gitBlobSha1": "3d2f1ad708e162677c5c701a8fdc17acc61f6516"
+    },
+    {
+      "path": "plugins/superpowers/skills/verification-before-completion/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/verification-before-completion/agents/openai.yaml",
+      "bytes": 147,
+      "sha256": "0eaad1a982ab8c95d8b938f1567f207dbc6fd9d172707b1e268e0cc8ab999705",
+      "gitBlobSha1": "6033d3f16f33fc33d268a74e3c83018c6fcfe99c"
+    },
+    {
+      "path": "plugins/superpowers/skills/writing-plans/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/writing-plans/agents/openai.yaml",
+      "bytes": 123,
+      "sha256": "de6a2f3d9de78d9c5027512ab1abab998f9acbef70960ecdbad525f4dce2e1bb",
+      "gitBlobSha1": "07ea2d27c5caebc4e743563a17c8887d0aebc648"
+    },
+    {
+      "path": "plugins/superpowers/skills/writing-skills/agents/openai.yaml",
+      "url": "https://raw.githubusercontent.com/openai/plugins/33bd9529725fcee78c9e51fcbaa93cd963c3a47b/plugins/superpowers/skills/writing-skills/agents/openai.yaml",
+      "bytes": 110,
+      "sha256": "c4fafd8a5f3d60328fbf000562dce12d99ec0f25dd016fc0d362ecce9fc02042",
+      "gitBlobSha1": "ef0bde6e768436a6bdf765f1deb287188be24c96"
+    }
+  ],
+  "officialRemoteCatalogObserved": {
+    "pluginId": "superpowers@openai-curated-remote",
+    "name": "superpowers",
+    "marketplaceName": "openai-curated-remote",
+    "version": "6.4.2",
+    "installed": false,
+    "enabled": false,
+    "source": {
+      "source": "remote",
+      "id": "plugins~Plugin_60aea7460bd4819199fd97a9553a5e12"
+    },
+    "installPolicy": "AVAILABLE",
+    "authPolicy": "ON_INSTALL"
+  },
+  "exact6_4_2PackagePayloadSha256": null,
+  "scratchCreated": false
+}

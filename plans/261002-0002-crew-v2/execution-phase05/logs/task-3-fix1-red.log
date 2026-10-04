@@ -1,0 +1,35 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-red-bz4c2sv3/v2/server", "exec", "node", "--test", "--test-isolation=none", "--test-concurrency=1", "--test-name-pattern=grouped derivative coverage", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-red-bz4c2sv3/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-c8442f21-204a-48a5-886c-4dd0245cee87", "--label", "crew.phase05.task3=c7cec26d-78e4-4548-abe6-9688bfb1bb29", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "17963fa2b0e17fe2d98f32443e70934d23c6315a77491c12fe9d1ae0b3811f03", "name": "crew-v2-test-c8442f21-204a-48a5-886c-4dd0245cee87", "mapping": "127.0.0.1:63333"}
+attachment DB container 17963fa2b0e17fe2d98f32443e70934d23c6315a77491c12fe9d1ae0b3811f03 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YizJu7
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YizJu7 nonceSha256=eaeb46387312eae2c0238f23fc9dd76c428e92b1efa53c0a5a8b88a481136275
+attachment DB scratch identity dev=16777229 ino=64149135 uid=501 pid=59324
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YizJu7
+✖ grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks (1856.541875ms)
+ℹ {"groupedUnits":2048,"queries":1,"rows":1,"validationReads":2048,"unitElementReads":4194304}
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2058.317458
+
+✖ failing tests:
+
+test at test/attachments-snapshots.test.ts:651:1
+✖ grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks (1856.541875ms)
+  AssertionError [ERR_ASSERTION]: {"queries":1,"rows":1,"validationReads":2048,"unitElementReads":4194304}
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-red-bz4c2sv3/v2/server/test/attachments-snapshots.test.ts:687:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-red-bz4c2sv3/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix1-fix1-red-bz4c2sv3/v2/server/test/attachments-snapshots.test.ts:654:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

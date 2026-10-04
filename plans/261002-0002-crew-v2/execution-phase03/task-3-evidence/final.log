@@ -1,0 +1,57 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/gateway.test.ts
+
+✔ gateway migration 007 có prefix riêng và checksum replay (177.72075ms)
+{"level":30,"time":1790916225755,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53762"}
+✔ gateway boot và heartbeat dùng auth thật, giữ execution namespace bất biến (451.6015ms)
+{"level":30,"time":1790916226117,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53770"}
+✔ gateway config CAS, URL allowlist, CSRF và schema đóng (317.884208ms)
+{"level":30,"time":1790916226439,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53777"}
+✔ gateway boot CAS giữ lịch sử, receipt bất biến và trạng thái hiện tại (332.5775ms)
+{"level":30,"time":1790916226753,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53784"}
+✔ gateway install report xác nhận exact source/projection và giữ applied qua partial, retired replay (324.565125ms)
+{"level":30,"time":1790916227070,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53793"}
+✔ gateway management command cursor, ACK mất phản hồi/gửi lại không hạ trạng thái completed (279.484375ms)
+{"level":30,"time":1790916227347,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53800"}
+✔ gateway projection production fail-closed trước khi tạo companion (332.367209ms)
+{"level":30,"time":1790916227675,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53805"}
+✔ gateway projection server selection bắt buộc, row bất biến, replay cùng pin sau update (324.455417ms)
+{"level":30,"time":1790916228004,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53811"}
+✔ gateway fresh claim từ chối report cũ, config tắt, thiếu decision, payload đổi trước RELEASE (373.756375ms)
+{"level":30,"time":1790916228373,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53819"}
+{"level":30,"time":1790916228492,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53822"}
+✔ gateway receipt tồn tại qua close/reopen pool, auth revoked/rotated không đọc cached response (323.37675ms)
+{"level":30,"time":1790916228712,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53828"}
+✔ gateway machine scope không làm lỏng project ACL, status offline không nhả execution guard (352.475542ms)
+{"level":30,"time":1790916229052,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53834"}
+✔ gateway install report exact derivation/source payload, partial runtime, stale config và sanitization (300.246917ms)
+gateway-owned-fixture {"containerId":"850426b09f6348d61e46a5ee8a2545879bbf57f92f0c2e7763bba36142da7ced","port":"53747","source":"crew_v2_test_ede2e2a4c9f9402e9e20c5e94a412ec5"}
+{"level":30,"time":1790916229553,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53844"}
+{"level":30,"time":1790916229914,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53854"}
+✔ gateway migration007 FK/CHECK/UNIQUE và backup6→restore→migrate7→restore receipts (813.90225ms)
+✔ gateway event metadata từ chối secrets, trường dư và audience sai (0.298416ms)
+{"level":30,"time":1790916230165,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53860"}
+✔ gateway inventory từ chối URL có credential trước khi lưu (242.055959ms)
+{"level":30,"time":1790916230403,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53866"}
+✔ gateway cùng transaction recheck actual token trước cached boots/heartbeat/report/ack/projection (360.229541ms)
+{"level":30,"time":1790916230759,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53881"}
+✔ gateway owner session expire giữa prehandler và cached config vẫn từ chối (254.30325ms)
+{"level":30,"time":1790916231016,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53888"}
+✔ gateway authorization tại claim giữ pair khi update xảy ra trước insert companion (296.035208ms)
+{"level":30,"time":1790916231304,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53896"}
+✔ gateway heartbeat ngoài thứ tự và replay đồng thời (239.365792ms)
+{"level":30,"time":1790916231551,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53904"}
+✔ gateway fresh claim từ chối projection null và report partial mới nhất dù có applied cũ (312.542708ms)
+{"level":30,"time":1790916231862,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53910"}
+✔ gateway ACK nhận nested/string details, từ chối secret/path (250.715ms)
+{"level":30,"time":1790916232119,"pid":38599,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53919"}
+✔ gateway mọi desired runtime khác null đều bắt buộc trước advance applied (259.751958ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7125.141375

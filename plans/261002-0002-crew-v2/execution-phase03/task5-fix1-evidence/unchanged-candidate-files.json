@@ -1,0 +1,62 @@
+[
+  {
+    "path": "v2/gateway/src/commands/contracts.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/src/journal/gated-helper.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/src/journal/native-identity.c",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/src/journal/process-journal.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/src/sync/event-pump.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/src/workflows/registry.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/event-pump.test.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/execution-crash.test.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/pin-retirement.test.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/retirement-crash.test.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/stop-control.test.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/support/bridge-crash-worker.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/support/bridge-fixture.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/test/support/pin-retirement-crash-worker.ts",
+    "matchesOriginalCandidate": true
+  },
+  {
+    "path": "v2/gateway/tsconfig.json",
+    "matchesOriginalCandidate": true
+  }
+]

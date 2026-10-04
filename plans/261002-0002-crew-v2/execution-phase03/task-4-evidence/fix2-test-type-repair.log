@@ -1,0 +1,1 @@
+Observed test-only TS18048 for mutable optional journal captured by callback. Bound local const alias repaired narrowing; final typecheck exit0. No production change or broad rerun.

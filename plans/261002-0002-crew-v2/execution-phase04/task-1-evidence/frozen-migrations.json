@@ -1,0 +1,37 @@
+[
+  {
+    "path": "v2/server/migrations/001_platform.sql",
+    "sha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76",
+    "identicalTo": "8e7d313"
+  },
+  {
+    "path": "v2/server/migrations/002_journal.sql",
+    "sha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+    "identicalTo": "8e7d313"
+  },
+  {
+    "path": "v2/server/migrations/003_identity.sql",
+    "sha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+    "identicalTo": "8e7d313"
+  },
+  {
+    "path": "v2/server/migrations/004_tickets.sql",
+    "sha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+    "identicalTo": "8e7d313"
+  },
+  {
+    "path": "v2/server/migrations/005_execution.sql",
+    "sha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+    "identicalTo": "8e7d313"
+  },
+  {
+    "path": "v2/server/migrations/006_docs.sql",
+    "sha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+    "identicalTo": "8e7d313"
+  },
+  {
+    "path": "v2/server/migrations/007_gateway.sql",
+    "sha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+    "identicalTo": "8e7d313"
+  }
+]

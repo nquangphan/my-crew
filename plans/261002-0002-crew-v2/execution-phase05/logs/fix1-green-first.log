@@ -1,0 +1,20 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts '--test-name-pattern=review F1|review F2'
+
+attachment DB container ed4b18489ba35730dc8958fc84ce0fbd7ea2972f8594befa2d4cec70b9c36bf5 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ktbega
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ktbega nonceSha256=23cf7f82e412c97c95b713dacdec4d40c8a1ca8de9b6b9d227858476f53909b4
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ktbega
+✔ attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator (477.279333ms)
+attachment DB container ed4b18489ba35730dc8958fc84ce0fbd7ea2972f8594befa2d4cec70b9c36bf5 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2XuRNU
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2XuRNU nonceSha256=ef2bbb1877ff811f474221cd76b3c4ea8d53aabe0c100120481d9e5e6ea20f3f
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2XuRNU
+✔ attachment staging review F2 rejects every invalid one-byte text control before original publication (1756.996167ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2343.588375

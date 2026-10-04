@@ -1,0 +1,154 @@
+✖ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (364.265958ms)
+✖ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (279.094583ms)
+✖ assistant authority kiểm session hiện hành trước cached reply (263.39825ms)
+attachment DB container 8d790307dfe30f7effb88bb8d7562183c83f77e1c549ec849f60eed61761cbc1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zVpqfm
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zVpqfm nonceSha256=012d4d688201eda2e7e61fe5fbe4f7b55d8f305a0a7037f5b53c4f9a62ad30be
+attachment DB scratch identity dev=16777229 ino=64505358 uid=501 pid=18989
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zVpqfm
+✖ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (223.079833ms)
+✖ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (261.089083ms)
+attachment DB container 8d790307dfe30f7effb88bb8d7562183c83f77e1c549ec849f60eed61761cbc1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDzE1y
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDzE1y nonceSha256=ac7695f1a0d9cfa707f700581f57d50a4c3f45c7eb56b6e124399468482ac715
+attachment DB scratch identity dev=16777229 ino=64505365 uid=501 pid=18989
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDzE1y
+✖ assistant authority live turn chặn reassignment và không thả guard bằng config (334.203834ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 0
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1867.578792
+
+✖ failing tests:
+
+test at v2/server/test/assistant-authority.test.ts:93:1
+✖ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (364.265958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:98:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:123:1
+✖ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (279.094583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 403
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:129:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:147:1
+✖ assistant authority kiểm session hiện hành trước cached reply (263.39825ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:154:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:163:1
+✖ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (223.079833ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  ApiError: Chưa cấu hình admission Trợ lý
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:171:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa cấu hình admission Trợ lý
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/assistant/authority.ts:9:11
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:171:45
+        at result (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:261:21)
+        at new Promise (<anonymous>)
+        at scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:24)
+        at sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:244:9)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:171:7,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:197:1
+✖ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (261.089083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   404,
+  +   404
+  -   200,
+  -   409
+    ]
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:204:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 404, 404 ],
+    expected: [ 200, 409 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:219:1
+✖ assistant authority live turn chặn reassignment và không thả guard bằng config (334.203834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 409
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:229:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 409,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

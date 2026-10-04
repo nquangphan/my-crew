@@ -1,0 +1,22 @@
+{
+  "tests": [
+    "journal",
+    "http-operations",
+    "execution-bridge",
+    "execution-bridge-db",
+    "execution-crash",
+    "stop-control",
+    "pin-retirement",
+    "retirement-crash",
+    "workflow-admission",
+    "isolation",
+    "isolation-workspace",
+    "model-probe",
+    "current-credential-resolver",
+    "runtime-boundary",
+    "runtime-crash",
+    "effect-ledger",
+    "isolation-runtime"
+  ],
+  "excluded": "All other test files; active attachment access/parser files not included in BASE or overlay. This is a scoped covering run, not all project tests."
+}

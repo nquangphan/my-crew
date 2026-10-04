@@ -1,0 +1,87 @@
+{
+  "head": "556cd8d106715b0c3ccc5893e8383b44083230db",
+  "freezeTime": "2026-10-02T07:55:34.043863+00:00",
+  "files": [
+    {
+      "path": "v2/server/migrations/009_attachments.sql",
+      "sha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+      "bytes": 20136
+    },
+    {
+      "path": "v2/server/src/attachments/config.ts",
+      "sha256": "821ce0d6d8deb92c405b2bb5ab009eff4c8515c9aecc265b5c6f5b033ec36b03",
+      "bytes": 3804
+    },
+    {
+      "path": "v2/server/src/attachments/contracts.ts",
+      "sha256": "5b6a496b4c0e86298a2d69d76f4666e07cbb783d8ca153ccb4f17fc4f45eb906",
+      "bytes": 11551
+    },
+    {
+      "path": "v2/server/src/attachments/receivers.ts",
+      "sha256": "44a5e3bd1ef62e73c773a1c0531b21569da9ad8b3e94b473a11d91f268eeb21b",
+      "bytes": 15805
+    },
+    {
+      "path": "v2/server/src/attachments/staging.ts",
+      "sha256": "99ee1d12a5e8822904c9112850b563a8fa03dbd0ea500c726cb54de9345fec03",
+      "bytes": 27544
+    },
+    {
+      "path": "v2/server/src/attachments/storage.ts",
+      "sha256": "b252f6b1f97fd08359c9f369bebf2f680fce2abc0a23793cd63d8eb678c9db2c",
+      "bytes": 15312
+    },
+    {
+      "path": "v2/server/test/attachments-storage.test.ts",
+      "sha256": "47a6fefadb13c4c7f4b72da43e421c254a0003967499e89bb678bc9c936f6ad8",
+      "bytes": 20433
+    },
+    {
+      "path": "v2/server/test/attachments-staging.test.ts",
+      "sha256": "b8320235ba20eeddda18be109d09f7775ee7471e1b5a450305d3b7cd63cd742f",
+      "bytes": 24597
+    },
+    {
+      "path": "v2/server/test/attachment-event.test.ts",
+      "sha256": "56cc3a520b31ff527dc51e0a56d8e09d1c2395cb5dd3202d92b2396cb3985e50",
+      "bytes": 2166
+    },
+    {
+      "path": "v2/server/test/support/attachments.ts",
+      "sha256": "2a2aad2d4b45f3bbe653b87240e91953583b2cec49905945d3446a9115e50ba9",
+      "bytes": 24396
+    },
+    {
+      "path": "v2/server/src/journal/event-contracts.ts",
+      "sha256": "bdfdc2849819f428e765fd5f00fdeb74bbb470de7c41c8741fe83e27cc866c9c",
+      "bytes": 12100
+    },
+    {
+      "path": "v2/docs/flows/server-attachments.md",
+      "sha256": "5511c6e55c6f86875bfd58ab2acaeb56233ee33b847c3d093e268d1c7038d19f",
+      "bytes": 7830
+    },
+    {
+      "path": "v2/docs/flows/server-journal.md",
+      "sha256": "4beecd1904266683ae16317317c9930de7017a6b9f5362faaf60f576a19f18db",
+      "bytes": 9183
+    },
+    {
+      "path": "v2/server/test/support/http.ts",
+      "sha256": "6da03aed379f2034064245be21151fc23ae23766fec8be9ea298a7e1f11ba151",
+      "bytes": 7325
+    },
+    {
+      "path": "v2/server/test/api-acceptance.test.ts",
+      "sha256": "88a4c15c6ba1017a46a3961543653490393a92d7d188ea65888998de0f41c74a",
+      "bytes": 31696
+    },
+    {
+      "path": "v2/docs/flows/server-docs-view.md",
+      "sha256": "fc6b28445b54b6220f8bd077f4275da5aead49e723ac40a0dc9c5eaf2da02089",
+      "bytes": 10899
+    }
+  ],
+  "productionFreezeTime": "2026-10-02T07:39:27.403933+00:00"
+}

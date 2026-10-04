@@ -1,0 +1,35 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-609b8fd6-5b2d-46be-90f3-d543d832ae95-PNcnYw","nonce":"609b8fd6-5b2d-46be-90f3-d543d832ae95","dev":16777229,"ino":64113473,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-609b8fd6-5b2d-46be-90f3-d543d832ae95-PNcnYw","nonce":"609b8fd6-5b2d-46be-90f3-d543d832ae95","dev":16777229,"ino":64113473,"uid":501}
+✔ runtime boundary captured bridge hook denies before RELEASE after actual accepted companion (2410.920666ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6d5d2f15-49ba-4b04-8d7b-7f9c739a7c06-rw32wy","nonce":"6d5d2f15-49ba-4b04-8d7b-7f9c739a7c06","dev":16777229,"ino":64113651,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6d5d2f15-49ba-4b04-8d7b-7f9c739a7c06-rw32wy","nonce":"6d5d2f15-49ba-4b04-8d7b-7f9c739a7c06","dev":16777229,"ino":64113651,"uid":501}
+✖ runtime boundary RuntimePin durable before RELEASE and replay immutable across store reopen (1986.95525ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4483.030667
+
+✖ failing tests:
+
+test at v2/gateway/test/runtime-boundary.test.ts:101:1
+✖ runtime boundary RuntimePin durable before RELEASE and replay immutable across store reopen (1986.95525ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /ENTRYPOINT_MISMATCH/. Input:
+  
+  'Error: AFTER_PIN_FSYNC'
+  
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/runtime-boundary.test.ts:212:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: AFTER_PIN_FSYNC
+        at TicketCommandBridge.beforeRelease (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/runtime-boundary.test.ts:195:31)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/execution/ticket-command-bridge.ts:282:24,
+    expected: /ENTRYPOINT_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

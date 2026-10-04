@@ -1,0 +1,35 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-dtpe3ztk/v2/server", "exec", "node", "--test", "--test-isolation=none", "--test-concurrency=1", "--test-name-pattern=large approved subset", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-dtpe3ztk/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-bcd4b748-fc60-481d-954b-ca4121036225", "--label", "crew.phase05.task3=959db4f5-78cb-46a0-a7d9-1a4f5308d49a", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "0ba5b3f2c8519f2cdfdea94ae9229a1603b26a527aa22df6ee9ac974f64f6072", "name": "crew-v2-test-bcd4b748-fc60-481d-954b-ca4121036225", "mapping": "127.0.0.1:62994"}
+attachment DB container 0ba5b3f2c8519f2cdfdea94ae9229a1603b26a527aa22df6ee9ac974f64f6072 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HLbydF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HLbydF nonceSha256=8c9fbf673efd65610079c2ab550479ab3cf26a6a3803074f5ab27b14ab44b270
+attachment DB scratch identity dev=16777229 ino=64377822 uid=501 pid=32108
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HLbydF
+✖ large approved subset uses bounded native membership and current unit lookup work (1459.963542ms)
+ℹ {"totalUnits":2048,"selectedUnits":1024,"extractionQueries":2,"unitElementReads":1061888,"projectionKindReads":2048,"membershipCalls":2048,"membershipElementReads":1573376,"setMembershipCalls":0,"classificationElementReads":1024}
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1627.604417
+
+✖ failing tests:
+
+test at test/attachments-snapshots.test.ts:776:1
+✖ large approved subset uses bounded native membership and current unit lookup work (1459.963542ms)
+  AssertionError [ERR_ASSERTION]: {"extractionQueries":2,"unitElementReads":1061888,"projectionKindReads":2048,"membershipCalls":2048,"membershipElementReads":1573376,"setMembershipCalls":0,"classificationElementReads":1024}
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-dtpe3ztk/v2/server/test/attachments-snapshots.test.ts:878:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-dtpe3ztk/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-dtpe3ztk/v2/server/test/attachments-snapshots.test.ts:781:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

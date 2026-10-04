@@ -1,0 +1,29 @@
+{
+  "author": "Crew Task5 generated test fixture",
+  "reportlab": "4.4.9",
+  "PIL": "12.3.0",
+  "pypdf": "6.10.0",
+  "fixtures": {
+    "text": {
+      "bytes": 1335,
+      "sha256": "42e7fee83fca52e8901f2b48c84cc3ff94d1f22941ca644a8fc9da738343befe",
+      "deterministic": true
+    },
+    "scan": {
+      "bytes": 1645,
+      "sha256": "e0dd29c35085b59e7305bcc8dad57fc022671d74871cd1710b738322235c8ad9",
+      "deterministic": true
+    },
+    "mixed": {
+      "bytes": 2029,
+      "sha256": "e967451dd350be34adcd78a5a44e3d9112b28b051b3e3b32a79fe5848e277fa3",
+      "deterministic": true
+    },
+    "encrypted": {
+      "bytes": 1929,
+      "sha256": "e39ff9ad175663b2a603104c88cd80ab2f24f51a18ddc129a1a6bfc2c8bd66b8",
+      "deterministic": true
+    }
+  },
+  "passwordIndependentlyVerified": true
+}

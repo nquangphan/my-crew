@@ -1,0 +1,231 @@
+{
+  "reviewSha256": "2368a0b22ab163e2bb2c3d9bf2ed28be97bbb7cde33f0a522ea7c65927bc9d40",
+  "baseline": "0c838d21354bb40494a1280200ae281b2ff19e33",
+  "source": {
+    "v2/server/migrations/011_assistant.sql": {
+      "bytes": 42674,
+      "sha256": "fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841"
+    },
+    "v2/server/src/assistant/contracts.ts": {
+      "bytes": 33718,
+      "sha256": "adee25f453fa91e7498a1a300d3c7a4761147b8584e738a54818d9cb4b65412f"
+    },
+    "v2/server/src/assistant/store.ts": {
+      "bytes": 4392,
+      "sha256": "65034d2770a0f79d549d67d98aa779dc62dcc6b6ca54eab33cfa7ef91889564a"
+    },
+    "v2/server/src/assistant/inbox.ts": {
+      "bytes": 10153,
+      "sha256": "c6706c71261eaba23a8b3987523ded7b5af4bdc50b88042c1014fc0bf04b498f"
+    },
+    "v2/server/test/assistant-store.test.ts": {
+      "bytes": 59752,
+      "sha256": "5baf11e09187eee83f2e4e6ac7323b9f71d39526bf1f0183c83e2c2e6a407008"
+    },
+    "v2/server/test/support/assistant.ts": {
+      "bytes": 30622,
+      "sha256": "aa487cbf256211029c5d5570afec9072c2f41ec962dd42a402d38f45329e2014"
+    },
+    "v2/docs/flows/server-assistant.md": {
+      "bytes": 9265,
+      "sha256": "e3495fa0e2392d920a47827a8c2b192a223501fae9ff3398038f749baf872500"
+    }
+  },
+  "prefix001through010": {
+    "010_attachment_comment_text.sql": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+    "005_execution.sql": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+    "002_journal.sql": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+    "007_gateway.sql": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+    "008_model_pool.sql": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+    "004_tickets.sql": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+    "006_docs.sql": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+    "003_identity.sql": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+    "009_attachments.sql": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+    "001_platform.sql": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+  },
+  "finalCover": {
+    "label": "fix1-complete-cover-2",
+    "tests": 35,
+    "pass": 35,
+    "fail": 0,
+    "exit": 0,
+    "logSha256": "ad2bc6747344529cc8f6ca406879fee11f805c772524d7d4741e9e012afdc7ce"
+  },
+  "types": {
+    "label": "fix1-types",
+    "exit": 0,
+    "logSha256": "c9fa85e4aa6397b7fb2b2f6a8e3bd0cc9efdc93485f211cfc5ad154acc411465"
+  },
+  "biome": {
+    "files": 5,
+    "exit": 0,
+    "logSha256": "46bfe88c959dd8272ecffcca47a153403ab304b5ef546d96476b1cf321516364"
+  },
+  "backupRestore": [
+    {
+      "prefix": 10,
+      "dumpSha256": "2cb4b2f29368aa4766503b3177efd53cabae3f6791b0d160a322a01ba86f7d7f",
+      "dumpBytes": 225630,
+      "sourceDataSha256": "9589f4f33f2c2ac3da12efd90bea684d0b7635b276819fcee97b7776a71e7a5d",
+      "restoredDataSha256": "9589f4f33f2c2ac3da12efd90bea684d0b7635b276819fcee97b7776a71e7a5d",
+      "migrations": [
+        {
+          "version": 1,
+          "checksum": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+        },
+        {
+          "version": 2,
+          "checksum": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"
+        },
+        {
+          "version": 3,
+          "checksum": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"
+        },
+        {
+          "version": 4,
+          "checksum": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"
+        },
+        {
+          "version": 5,
+          "checksum": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"
+        },
+        {
+          "version": 6,
+          "checksum": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"
+        },
+        {
+          "version": 7,
+          "checksum": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"
+        },
+        {
+          "version": 8,
+          "checksum": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"
+        },
+        {
+          "version": 9,
+          "checksum": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"
+        },
+        {
+          "version": 10,
+          "checksum": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"
+        }
+      ]
+    },
+    {
+      "prefix": 11,
+      "dumpSha256": "d8cc158c83a88527a6d828d8c136fd64b76dc0ba062809ecc1632eeaed8c84c8",
+      "dumpBytes": 377096,
+      "sourceDataSha256": "b21ba736c233922f9dc10e4ce2178f0cf1c625946db2b9cb7d1fe7b9367da393",
+      "restoredDataSha256": "b21ba736c233922f9dc10e4ce2178f0cf1c625946db2b9cb7d1fe7b9367da393",
+      "migrations": [
+        {
+          "version": 1,
+          "checksum": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+        },
+        {
+          "version": 2,
+          "checksum": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"
+        },
+        {
+          "version": 3,
+          "checksum": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"
+        },
+        {
+          "version": 4,
+          "checksum": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"
+        },
+        {
+          "version": 5,
+          "checksum": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"
+        },
+        {
+          "version": 6,
+          "checksum": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"
+        },
+        {
+          "version": 7,
+          "checksum": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"
+        },
+        {
+          "version": 8,
+          "checksum": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"
+        },
+        {
+          "version": 9,
+          "checksum": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"
+        },
+        {
+          "version": 10,
+          "checksum": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"
+        },
+        {
+          "version": 11,
+          "checksum": "fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841"
+        }
+      ]
+    },
+    {
+      "prefix": 11,
+      "dumpSha256": "6a35574f54dbcfdf8a986bda6d598d0742417a1899cd8260369702bb341cbf01",
+      "dumpBytes": 378232,
+      "sourceDataSha256": "97eb9be60f22d1d41188a89023c367e8cece429cd024f059c1cf1d6011ef519f",
+      "restoredDataSha256": "97eb9be60f22d1d41188a89023c367e8cece429cd024f059c1cf1d6011ef519f",
+      "migrations": [
+        {
+          "version": 1,
+          "checksum": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+        },
+        {
+          "version": 2,
+          "checksum": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"
+        },
+        {
+          "version": 3,
+          "checksum": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"
+        },
+        {
+          "version": 4,
+          "checksum": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"
+        },
+        {
+          "version": 5,
+          "checksum": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"
+        },
+        {
+          "version": 6,
+          "checksum": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"
+        },
+        {
+          "version": 7,
+          "checksum": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"
+        },
+        {
+          "version": 8,
+          "checksum": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"
+        },
+        {
+          "version": 9,
+          "checksum": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"
+        },
+        {
+          "version": 10,
+          "checksum": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"
+        },
+        {
+          "version": 11,
+          "checksum": "fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841"
+        }
+      ]
+    }
+  ],
+  "docH2": [
+    "M\u1ee5c \u0111\u00edch",
+    "\u0110i\u1ec3m v\u00e0o",
+    "C\u00e1c b\u01b0\u1edbc",
+    "Files",
+    "D\u1eef li\u1ec7u",
+    "Flow li\u00ean quan",
+    "Tests"
+  ],
+  "resourcesClosed": true
+}

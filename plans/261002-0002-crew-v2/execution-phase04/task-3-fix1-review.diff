@@ -1,0 +1,288 @@
+# Review package: cf68a68..HEAD
+
+## Commits
+4db2d9e fix(v2): recheck runtime authority across workspace barrier
+
+## Files changed
+ v2/docs/flows/gateway-runtime.md          |   3 +
+ v2/gateway/src/runtime/isolation.ts       |  12 ++-
+ v2/gateway/test/effect-ledger.test.ts     |   2 +-
+ v2/gateway/test/runtime-workspace.test.ts | 138 +++++++++++++++++++++++++++++-
+ 4 files changed, 151 insertions(+), 4 deletions(-)
+
+## Diff
+diff --git a/v2/docs/flows/gateway-runtime.md b/v2/docs/flows/gateway-runtime.md
+index 9b3fd95..c8ceb5d 100644
+--- a/v2/docs/flows/gateway-runtime.md
++++ b/v2/docs/flows/gateway-runtime.md
+@@ -13,20 +13,21 @@ Phase04 Task3 cung cấp hợp đồng adapter chung, companion RuntimePin bền
+ 
+ ## Các bước
+ 
+ ### Luồng RELEASE
+ 
+ 1. `TicketCommandBridge` hiện hữu giữ registry/journal đã bind, reserve exact source/projection và READY trước claim005. Companion007 accepted và current scoped read đi trước callback `beforeRelease` được capture lúc mở bridge; callback nhận clone deep-frozen của actual LaunchRecord, Attempt, companion và command đã đọc từ transport.
+ 2. `RuntimeLaunch.beforeRelease` chạy trong queue riêng, gọi trusted Phase06 binding để nhận RuntimePin/input. Mặc định thiếu binding từ chối. `startReleased` chỉ nhận thao tác trong hook này, không có launcher khác. Nó đối chiếu command/attempt/fence/process/machine, source/projection/selection/modelChoice và certificationAdmission thực tế trong command, cùng exact journal READY và registry.resolve.
+ 3. `skillPath` là projection-relative path; không nhận absolute/đoạn rỗng/`.`/`..`. Catalogue entrypoint trusted được capture riêng và mặc định chưa cấu hình. Catalogue phải bind đúng source tree, projection manifest/tree và derivation hash, ánh xạ `skillName` sang path/hash từ recipe/build mapping đã review. Manifest chứa file không tự cấp quyền entrypoint. Consumer so path, resolve canonical trong chosen projection, chấp nhận internal link chỉ khi đích canonical vẫn thuộc projection và là file có trong manifest, rồi mở no-follow và so size/link count/hash bytes. Receipt lưu canonical absolute path này; Codex adapter sau đó phải so chính xác với item absolute trả từ `skills/list`, không tạo alias hay suy authority từ tên `SKILL.md`.
+ 4. `RuntimeIsolation` mặc định `ISOLATION_NOT_BOUND`. Trusted local observer phải tiêu actual server admission/certificate và kiểm constrained descendants. Exact context gồm source/projection/derivation/binary bytes/policy/OS và fixed-field context hash từ server008. Preflight có FAIL hoặc thiếu full-tree evidence luôn từ chối. Certified cần accepted matching receipt, còn hạn và đủ positive selected/negative unselected init/invoke/native Read/Bash/MCP/child/absolute/dotdot/symlink/hardlink/common-dir/network/toàn cây. Bounded test chỉ nhận challenge `admitted` đúng attempt/command/process/fence/machine/context/nonce, chưa hết hạn, budget hợp lệ và preflight UNVERIFIED; không đổi synthetic PASS thành production authority.
+ 5. Captured concrete `IsolationWorkspace` là bắt buộc; thiếu service hoặc structural fake bị từ chối. Runtime so actual `get(attemptId)` prepared state/ownerCommit/source/projection/workspace/home với RuntimePin và observed preflight, rồi gọi actual `withPrepared` để reverify ownership, Git/config/workspace bytes, pin và closure. Returned record được so lại identity/operationId trong transaction. Observer chạy trước queue để không re-enter isolation; lock order runtime queue → isolation queue → registry read, và giữ qua fsync companion để cleanup không chen giữa verify và ghi pin. Receipt lưu actual operation/identity/workspace/home/ownerCommit/source/projection.
++   Deadline của captured admitted challenge hoặc certified receipt được kiểm lại sau actual workspace verification ngay trước action, rồi sau action/fsync trước khi callback thành công. Kiểm này chỉ đọc deadline cũ, không gọi lại observer hoặc gia hạn budget/expiry. Nếu hết hạn sau ghi, immutable companion và guard vẫn giữ, callback throw để existing RELEASE đóng.
+ 6. Companion riêng `runtime-pins/<launch-hash>.json` ghi exclusive, fsync file và directory trước callback thành công. Nó giữ RuntimePin, input/checkpoint và entrypoint canonical; replay phải cùng bytes, thay credential/model/checkpoint/path bị conflict. Không sửa record journal005/007. Chỉ sau đó bridge gọi chính `Launcher.release` cũ, vẫn recheck companion/current/capacity. Callback throw hoặc trả giá trị không phải void giữ gate đóng, guard/pin retained. Generic bridge không gắn hook vẫn là API producer cũ; host runtime production bắt buộc gắn callback này.
+ 
+ ### Logical effect và tool policy
+ 
+ `EffectId` là lowercase hex64 của SHA256 trên canonical JSON array `[runId,stepOperationId,actionKind,targetIdentity,preconditionSha256]`. UUID vẫn dùng cho run/step/attempt/operation; provider call ID và args hash không là logical identity. `RuntimeAdapter` giữ đúng bảy method inventory, prepareIsolation, start, sendInput, checkpoint, cancel, reconcile.
+ 
+ `DurableEffectLedger` dùng AtomicRecords writer lock và queue riêng. Append-only transport binding `(attemptId,fence,toolCallId)` precedes immutable logical intent; intent fsync trước trả `execute`. Same call khác args hoặc same logical effect khác metadata/args trả conflict409. Phase06 operation authorizer mặc định thiếu→wait và không ghi intent. Hai operation khác nhau được phép có cùng args.
+ 
+ Receipt phải được verifier kiểm actual result/artifact bytes trước complete và mỗi lần đọc lại. Receipt exclusive/fsync đi trước trả model; fallback call khác nhận cùng verified receipt. Pending sau crash không trả execute lần nữa: target-specific reconciler có thể cung cấp verified receipt; không có chứng cứ thì append uncertain và trả wait. Chưa có target adapter cho durable remote idempotency; không hỗ trợ tự replay side effect theo key khi chưa có target-specific proof. Không expire intent/uncertain theo TTL, không thả server guard.
+ 
+@@ -52,10 +53,12 @@ Lock order: bridge queue → runtime companion queue → isolation queue → reg
+ 
+ ## Flow liên quan
+ 
+ `gateway-host` giữ journal/launcher/guard; `gateway-workflows` cung cấp registry và actual prepared workspace; `server-execution` cấp claim/fence; `server-models` sở hữu model choice/admission/certificate authority.
+ 
+ ## Tests
+ 
+ Tests dùng actual journal/registry/launcher và protocol transports riêng. SIGKILL tại READY/claim/companion/RuntimePin/authorization/RELEASE giữ one launch, không effect trước RELEASE, thiếu full-tree stopped proof giữ resource/pin. Test-only observer/certificate fixtures không phải native PASS. Frozen verification và resource identities ở `plans/261002-0002-crew-v2/execution-phase04/task-3-evidence`; PM sở hữu manifest/generated mapping và independent review.
+ 
+ `runtime-workspace.test.ts` dùng actual prepared API workspace và actual producer get/withPrepared để chặn wrong commit/attempt/source/projection, observed root/home, unprepared/stale state; cleanup race phải đợi callback ghi pin. Amendment ngày 2026-10-03: historical consumer RED vì thiếu rejection; current frozen six-file affected cover22/22, build/strict/Biome PASS. Historical105 thuộc candidate trước amendment, không cộng dồn hoặc dùng làm full-suite/native certification.
++
++FIX1 deadline có actual producer queue latch và controlled clock cho cả admitted/certified branch, kể cả expiry sau exclusive record fsync: bốn regression đều RED trên consumer d438ce1, sau sửa targeted bốn file20/20 PASS. Observer chỉ được gọi một lần, companion đã fsync không bị xóa khi expired. Cover22/105 là lịch sử, không cộng vào20. Ledger test hiện kiểm orderly close/reopen; SIGKILL thật giữa logical effect và receipt vẫn pending, khác với SIGKILL launcher đã kiểm ở lượt trước.
+diff --git a/v2/gateway/src/runtime/isolation.ts b/v2/gateway/src/runtime/isolation.ts
+index 34636a0..6c73c82 100644
+--- a/v2/gateway/src/runtime/isolation.ts
++++ b/v2/gateway/src/runtime/isolation.ts
+@@ -113,24 +113,34 @@ export class RuntimeIsolation {
+     this.matchWorkspace(expected, pin, observed);
+     return this.withPrepared(
+       expected.workspace,
+       expected.attemptHome,
+       pin.source,
+       pin.projection,
+       async ({ record }) => {
+         this.matchWorkspace(record, pin, observed);
+         if (record.operationId !== expected.operationId || !same(record.identity, expected.identity))
+           throw new Error('WORKSPACE_IDENTITY_MISMATCH');
+-        return action(structuredClone(record));
++        this.assertFresh(pin, observed);
++        const result = await action(structuredClone(record));
++        // A durable companion may now exist. Expiry denies release without deleting or renewing it.
++        this.assertFresh(pin, observed);
++        return result;
+       },
+     );
+   }
++  private assertFresh(pin: RuntimePin, observed: IsolationObservation): void {
++    const certified = pin.admission.kind === 'certified',
++      expiresAt = certified ? observed.certificate?.expiresAt : observed.admission?.expiresAt;
++    if (!expiresAt || !fresh(expiresAt))
++      throw new Error(certified ? 'CERTIFICATE_EXPIRED' : 'ADMISSION_EXPIRED');
++  }
+   private matchWorkspace(
+     record: IsolatedWorkspace | null,
+     pin: RuntimePin,
+     observed: IsolationObservation,
+   ): asserts record is IsolatedWorkspace {
+     if (
+       record?.state !== 'prepared' ||
+       record.attemptId !== pin.attemptId ||
+       record.ownerCommit !== pin.workspaceCommit ||
+       !same(record.source, pin.source) ||
+diff --git a/v2/gateway/test/effect-ledger.test.ts b/v2/gateway/test/effect-ledger.test.ts
+index 335125e..dd03f6f 100644
+--- a/v2/gateway/test/effect-ledger.test.ts
++++ b/v2/gateway/test/effect-ledger.test.ts
+@@ -90,21 +90,21 @@ test('effect ledger rejects transport or logical metadata conflict and unverifie
+     );
+     valid = true;
+     await ledger.complete(e.effectId, a, { sha256: digest, artifactIds: [] });
+     valid = false;
+     assert.equal(await ledger.reserve(e, { ...call(e), toolCallId: 'new' }), 'wait');
+   } finally {
+     await ledger.close();
+     await owned.cleanup();
+   }
+ });
+-test('effect ledger crash window pending never executes again without target proof', async () => {
++test('effect ledger orderly reopen keeps pending effects waiting without target proof', async () => {
+   const owned = await runtimeRoot();
+   let ledger = await DurableEffectLedger.open(owned.root, ports);
+   const e = effect(),
+     a = call(e);
+   try {
+     assert.equal(await ledger.reserve(e, a), 'execute');
+     await ledger.close();
+     ledger = await DurableEffectLedger.open(owned.root, ports);
+     assert.equal(await ledger.reserve(e, call(e)), 'reconcile');
+     assert.equal(await ledger.reconcile(e.effectId), 'uncertain');
+diff --git a/v2/gateway/test/runtime-workspace.test.ts b/v2/gateway/test/runtime-workspace.test.ts
+index ef9bec4..f6597e5 100644
+--- a/v2/gateway/test/runtime-workspace.test.ts
++++ b/v2/gateway/test/runtime-workspace.test.ts
+@@ -1,17 +1,17 @@
+ import assert from 'node:assert/strict';
+ import { randomUUID } from 'node:crypto';
+ import { join } from 'node:path';
+ import test from 'node:test';
+ import { setImmediate as nextTurn } from 'node:timers/promises';
+-import { atomicWrite, hash } from '../src/journal/atomic-records.ts';
+-import { probeContextHash, RuntimeIsolation } from '../src/runtime/isolation.ts';
++import { atomicWrite, hash, readRecord, writeExclusiveRecord } from '../src/journal/atomic-records.ts';
++import { probeContextHash, RuntimeIsolation, requiredRuntimeSurfaces } from '../src/runtime/isolation.ts';
+ import { workflowFixture } from './support/bridge-fixture.ts';
+ import { runtimeRoot } from './support/runtime-fixture.ts';
+ import { isolationObservation, runtimePinFixture } from './support/runtime-pins.ts';
+ import { runtimeWorkspaceFixture } from './support/runtime-workspace.ts';
+ 
+ test('runtime workspace actual prepared record rejects wrong commit attempt pins state and observed paths', async () => {
+   const owned = await runtimeRoot(),
+     w = await workflowFixture(owned.root);
+   await w.install();
+   const source = w.sources[1].source,
+@@ -100,10 +100,144 @@ test('runtime workspace actual prepared record rejects wrong commit attempt pins
+     release();
+     await write;
+     assert.equal(await cleanup, 'deleted');
+     await assert.rejects(isolation.assert(pin), /RUNTIME_WORKSPACE_MISMATCH/);
+   } finally {
+     await fixture.close();
+     await w.close();
+     await owned.cleanup();
+   }
+ });
++
++test('runtime workspace captured authority deadline survives neither queue wait nor companion fsync', async (t) => {
++  const owned = await runtimeRoot(),
++    w = await workflowFixture(owned.root);
++  await w.install();
++  const source = w.sources[1].source,
++    audit = w.projections.find((p) => p.sourceTreeSha256 === source.sourceTreeSha256 && p.runtime === 'api');
++  assert(audit);
++  const fixture = await runtimeWorkspaceFixture(owned.root, w.registry, source, audit.expected);
++  const base = runtimePinFixture();
++  base.source = source;
++  base.projection = audit.expected;
++  base.modelChoice.model.runtime = 'api';
++  base.isolationPolicyHash = audit.expected.derivation.policySha256;
++  base.workspaceCommit = fixture.commit;
++  base.modelChoice.probeContextSha256 = probeContextHash(isolationObservation(base).context);
++  const prepared = await fixture.prepare(base.attemptId);
++  const start = Date.now();
++  let now = start;
++  const clock = t.mock.method(Date, 'now', () => now);
++  try {
++    for (const kind of ['test-certification', 'certified'] as const) {
++      for (const stage of ['queue', 'fsync'] as const) {
++        await t.test(`${kind} expires during ${stage}`, async () => {
++          now = start;
++          const pin = structuredClone(base),
++            deadline = start + 60000;
++          if (kind === 'certified') {
++            const receiptId = randomUUID();
++            pin.admission = { kind, receiptId };
++            pin.modelChoice.certificationReceiptId = receiptId;
++          }
++          let observed: () => void = () => {};
++          const observationCaptured = new Promise<void>((resolve) => {
++            observed = resolve;
++          });
++          let observations = 0;
++          const isolation = new RuntimeIsolation({
++            workspaces: fixture.service,
++            observe: async (value) => {
++              observations++;
++              const result = await fixture.observe(value);
++              if (pin.admission.kind === 'certified') {
++                // Protocol-only receipt exercises the consumer branch; it is not native certification.
++                result.preflight.status = 'PASS';
++                result.certificate = {
++                  id: pin.admission.receiptId,
++                  runtime: pin.projection.runtime,
++                  machineId: pin.modelChoice.model.machineId,
++                  context: result.context,
++                  status: 'PASS',
++                  expiresAt: new Date(deadline).toISOString(),
++                  surfaces: requiredRuntimeSurfaces.map((surface) => ({
++                    surface,
++                    selectedWorked: true,
++                    unselectedDenied: true,
++                    traceSha256: 'a'.repeat(64),
++                  })),
++                };
++              } else {
++                assert(result.admission);
++                result.admission.expiresAt = new Date(deadline).toISOString();
++              }
++              observed();
++              return result;
++            },
++          });
++          const error = kind === 'certified' ? /CERTIFICATE_EXPIRED/ : /ADMISSION_EXPIRED/;
++          let actions = 0;
++          if (stage === 'queue') {
++            let entered: () => void = () => {},
++              release: () => void = () => {};
++            const holding = new Promise<void>((resolve) => {
++                entered = resolve;
++              }),
++              held = new Promise<void>((resolve) => {
++                release = resolve;
++              });
++            const barrier = fixture.service.withPrepared(
++              prepared.workspace,
++              prepared.attemptHome,
++              source,
++              audit.expected,
++              async () => {
++                entered();
++                await held;
++              },
++            );
++            await holding;
++            try {
++              const pending = isolation.withVerified(pin, async () => {
++                actions++;
++              });
++              const rejection = assert.rejects(pending, error);
++              void rejection.catch(() => {});
++              await observationCaptured;
++              // Drain observation validation before advancing the clock; only the actual producer queue remains held.
++              await nextTurn();
++              now = deadline;
++              release();
++              await barrier;
++              await rejection;
++              assert.equal(actions, 0);
++            } finally {
++              release();
++              await barrier;
++            }
++          } else {
++            const companion = join(owned.root, `${kind}-expired-companion.json`),
++              value = { formatVersion: 1, pin, workspace: prepared.identity };
++            const pending = isolation.withVerified(pin, async () => {
++              actions++;
++              await writeExclusiveRecord(companion, value);
++              now = deadline;
++            });
++            try {
++              await assert.rejects(pending, error);
++            } finally {
++              // Expiry after durable write must leave the exclusive companion intact for recovery.
++              assert.deepEqual(await readRecord(companion), value);
++              assert.equal(actions, 1);
++            }
++          }
++          assert.equal(observations, 1, 'deadline recheck must not renew authority or re-enter observer');
++        });
++      }
++    }
++  } finally {
++    clock.mock.restore();
++    await fixture.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});

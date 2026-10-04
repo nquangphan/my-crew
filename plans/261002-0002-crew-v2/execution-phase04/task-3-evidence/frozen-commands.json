@@ -1,0 +1,61 @@
+[
+  {
+    "name": "frozen-build",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "v2/gateway",
+      "build"
+    ],
+    "cwd": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo",
+    "pid": 68000,
+    "start": "Fri Oct  2 19:47:16 2026",
+    "exit": 0
+  },
+  {
+    "name": "frozen-strict",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "v2/gateway",
+      "exec",
+      "tsc",
+      "--noEmit",
+      "-p",
+      "test/support/runtime-typecheck.json"
+    ],
+    "cwd": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo",
+    "pid": 68022,
+    "start": "Fri Oct  2 19:47:17 2026",
+    "exit": 0
+  },
+  {
+    "name": "frozen-covering",
+    "argv": [
+      "node",
+      "--test",
+      "--test-concurrency=1",
+      "test/journal.test.ts",
+      "test/http-operations.test.ts",
+      "test/execution-bridge.test.ts",
+      "test/execution-bridge-db.test.ts",
+      "test/execution-crash.test.ts",
+      "test/stop-control.test.ts",
+      "test/pin-retirement.test.ts",
+      "test/retirement-crash.test.ts",
+      "test/workflow-admission.test.ts",
+      "test/isolation.test.ts",
+      "test/isolation-workspace.test.ts",
+      "test/model-probe.test.ts",
+      "test/current-credential-resolver.test.ts",
+      "test/runtime-boundary.test.ts",
+      "test/runtime-crash.test.ts",
+      "test/effect-ledger.test.ts",
+      "test/isolation-runtime.test.ts"
+    ],
+    "cwd": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway",
+    "pid": 68128,
+    "start": "Fri Oct  2 19:47:18 2026",
+    "exit": 0
+  }
+]

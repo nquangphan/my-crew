@@ -1,0 +1,6 @@
+{"stage": "red-snapshot-creation", "time": "2026-10-03T17:03:08.437647+07:00", "pressure": 1, "availableBytes": 6224822272, "idlePercent": 83.72, "diskBytes": 35210493952, "allowed": true}
+{"stage": "expiry-red", "time": "2026-10-03T17:03:09.255009+07:00", "pressure": 1, "availableBytes": 6131990528, "idlePercent": 71.34, "diskBytes": 35200667648, "allowed": true}
+{"stage": "green-source-overlay", "time": "2026-10-03T17:03:53.779200+07:00", "pressure": 1, "availableBytes": 6201573376, "idlePercent": 83.25, "diskBytes": 35203039232, "allowed": true}
+{"stage": "build", "time": "2026-10-03T17:03:54.367010+07:00", "pressure": 1, "availableBytes": 6167789568, "idlePercent": 87.78, "diskBytes": 35202981888, "allowed": true}
+{"stage": "strict", "time": "2026-10-03T17:03:55.407279+07:00", "pressure": 1, "availableBytes": 6184255488, "idlePercent": 89.9, "diskBytes": 35202928640, "allowed": true}
+{"stage": "targeted-cover", "time": "2026-10-03T17:03:56.347639+07:00", "pressure": 1, "availableBytes": 6244057088, "idlePercent": 88.99, "diskBytes": 35202928640, "allowed": true}

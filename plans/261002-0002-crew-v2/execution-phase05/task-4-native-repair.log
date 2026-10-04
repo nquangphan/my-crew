@@ -1,0 +1,44 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server
+> node scripts/test-db.ts '--test-name-pattern=attachment staging Linux native receiver' --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-staging.test.ts
+
+Traceback (most recent call last):
+  File "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/owned-cli/docker", line 10, in <module>
+    marker=json.loads((snapshot/'.owner.json').read_text());assert hashlib.sha256(marker['nonce'].encode()).hexdigest()==nonceHash
+AssertionError
+
+✖ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (244.697625ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 349.366666
+
+✖ failing tests:
+
+test at test/attachments-staging.test.ts:579:1
+✖ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (244.697625ms)
+  Error: Command failed: docker create --name crew-v2-attachments-native-1625b3a2-be6c-46c5-883f-7e7e71e54da6 --label crew.phase05.task1=native-db --network container:3e121907a536e6993b4bd5eca3fbe154396b789da8d679cee6a0e191c61b43fa --read-only --cap-drop ALL --memory 256m --cpus 1 --pids-limit 32 --tmpfs /tmp:rw,noexec,nosuid,size=64m -v /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/:/workspace:ro -w /workspace node:24.12.0@sha256:929c026d5a4e4a59685b3c1dbc1a8c3eb090aa95373d3a4fd668daa2493c8331 node v2/server/test/support/attachments.ts --native-attachment-probe crew_v2_test_136a495975e04fc5abb4ef6e358e6f30
+  Traceback (most recent call last):
+    File "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/owned-cli/docker", line 10, in <module>
+      marker=json.loads((snapshot/'.owner.json').read_text());assert hashlib.sha256(marker['nonce'].encode()).hexdigest()==nonceHash
+  AssertionError
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at ChildProcess.exithandler (node:child_process:417:12)
+      at ChildProcess.emit (node:events:508:28)
+      at maybeClose (node:internal/child_process:1100:16)
+      at ChildProcess._handle.onexit (node:internal/child_process:305:5) {
+    code: 1,
+    killed: false,
+    signal: null,
+    cmd: 'docker create --name crew-v2-attachments-native-1625b3a2-be6c-46c5-883f-7e7e71e54da6 --label crew.phase05.task1=native-db --network container:3e121907a536e6993b4bd5eca3fbe154396b789da8d679cee6a0e191c61b43fa --read-only --cap-drop ALL --memory 256m --cpus 1 --pids-limit 32 --tmpfs /tmp:rw,noexec,nosuid,size=64m -v /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/:/workspace:ro -w /workspace node:24.12.0@sha256:929c026d5a4e4a59685b3c1dbc1a8c3eb090aa95373d3a4fd668daa2493c8331 node v2/server/test/support/attachments.ts --native-attachment-probe crew_v2_test_136a495975e04fc5abb4ef6e358e6f30',
+    stdout: '',
+    stderr: `Traceback (most recent call last):\n  File "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/owned-cli/docker", line 10, in <module>\n    marker=json.loads((snapshot/'.owner.json').read_text());assert hashlib.sha256(marker['nonce'].encode()).hexdigest()==nonceHash\nAssertionError\n`
+  }
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

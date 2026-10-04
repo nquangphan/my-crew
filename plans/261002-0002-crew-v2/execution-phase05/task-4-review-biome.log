@@ -1,0 +1,3 @@
+ARGV ["pnpm", "exec", "biome", "check", "v2/server/src/attachments/jobs.ts", "v2/server/src/attachments/worker-runner.ts", "v2/server/src/attachments/worker-protocol.ts", "v2/server/src/attachments/worker-entry.ts", "v2/server/src/attachments/worker-diagnostic.ts", "v2/server/test/attachments-worker.test.ts", "v2/server/test/attachments-worker-live.test.ts"]
+EXIT 0
+Checked 7 files in 28ms. No fixes applied.

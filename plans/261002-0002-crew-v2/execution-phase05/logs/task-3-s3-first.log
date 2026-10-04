@@ -1,0 +1,58 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/attachments-grants.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-e64ddc9f-c840-42bb-b1ba-0f5af378052f", "--label", "crew.phase05.task3=18082af6-1010-4df1-a292-c55787b85f4d", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "a9e02f236ea5e263ea6fe2b36f96181af225e8440df2f79a2b007e4ba7c7a816", "name": "crew-v2-test-e64ddc9f-c840-42bb-b1ba-0f5af378052f", "mapping": "127.0.0.1:59830"}
+attachment DB container a9e02f236ea5e263ea6fe2b36f96181af225e8440df2f79a2b007e4ba7c7a816 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-akQDtd
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-akQDtd nonceSha256=1e47eaa9eb97022cf252df7a32bd6756ce7611120277978316b770e83fd5ae4e
+attachment DB scratch identity dev=16777229 ino=64093679 uid=501 pid=5759
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-akQDtd
+✖ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (785.678542ms)
+attachment DB container a9e02f236ea5e263ea6fe2b36f96181af225e8440df2f79a2b007e4ba7c7a816 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-muXERT
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-muXERT nonceSha256=7030d21010091a7e6fecf8d8adf2f71b53a8b2667869384fb1fd6171e5776bc0
+attachment DB scratch identity dev=16777229 ino=64093686 uid=501 pid=5759
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-muXERT
+✖ attachment Assistant directly reads submitted inbox representation; OFF preserves exact admission and revocation cuts access (761.932833ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1736.986875
+
+✖ failing tests:
+
+test at test/attachments-grants.test.ts:9:1
+✖ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (785.678542ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"ATTACHMENT_MIME_MISMATCH","message":"Loại tệp không khớp"}}
+  
+  415 !== 201
+  
+      at Object.linkFile (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/support/attachment-access.ts:92:203)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/attachments-grants.test.ts:11:11
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/attachments-grants.test.ts:10:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 415,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-grants.test.ts:27:1
+✖ attachment Assistant directly reads submitted inbox representation; OFF preserves exact admission and revocation cuts access (761.932833ms)
+  Error: RESPONSE_INVALID
+      at workerError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/src/attachments/worker-protocol.ts:28:24)
+      at Object.processJob [as process] (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/src/attachments/jobs.ts:304:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async publishKnownRepresentation (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/support/attachment-access-publication.ts:31:19)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/attachments-grants.test.ts:44:21
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-first-w5uwkmwu/v2/server/test/attachments-grants.test.ts:32:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    code: 'RESPONSE_INVALID'
+  }

@@ -1,0 +1,124 @@
+{
+  "observedAt": "2026-10-03T10:28:47.432016+00:00",
+  "kind": "static-read-fingerprints",
+  "runtimeCertification": "UNVERIFIED",
+  "currentBinaryAcquired": false,
+  "nativeCommandsRun": false,
+  "testCommandsRun": false,
+  "sourceMutations": false,
+  "commitIdentity": "PM-handoff-only-4db2d9e-not-Git-verified",
+  "entries": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase04/task-4-brief.md",
+      "bytes": 11530,
+      "sha256": "828949200ae82d7e454a75ef3fe10caa7808cb2885e047944adbc86da7e493d6"
+    },
+    {
+      "path": "v2/docs/index.md",
+      "bytes": 5514,
+      "sha256": "f38eb8d3e39c1b3ed845dc9373c9f4bbbe8476342152d8686111af7f6890c837"
+    },
+    {
+      "path": "v2/docs/flows/gateway-runtime.md",
+      "bytes": 11034,
+      "sha256": "da8c825aee274f3c61ad7dcf3ac735bcbc671b66325469ebb6d5663c444fcfeb"
+    },
+    {
+      "path": "v2/docs/flows/gateway-models.md",
+      "bytes": 16680,
+      "sha256": "c768b8ca6b041bd76c0023ac8c58270c5807c7e440aa083dc34a213b2e732028"
+    },
+    {
+      "path": "v2/docs/flows/gateway-workflows.md",
+      "bytes": 18356,
+      "sha256": "583b2e3624be35aad6b4fbbe01a9feada98336032fcd6d30367aca138e3aafd2"
+    },
+    {
+      "path": "v2/docs/flows/gateway-host.md",
+      "bytes": 27435,
+      "sha256": "af8cedb2bb39615c2b1f668c7c5e7cf6918076c667dcaa527811dd51a5edfe6e"
+    },
+    {
+      "path": "v2/gateway/src/runtime/contracts.ts",
+      "bytes": 3219,
+      "sha256": "5dee08063b7e8b6e137722169aa5cd12c2d09179d3262446e80ff4e0e59262ac"
+    },
+    {
+      "path": "v2/gateway/src/runtime/launch.ts",
+      "bytes": 8266,
+      "sha256": "05120c5968e1ded10174785ada5d802b60d8ad8b8d683b386f08992045c8548f"
+    },
+    {
+      "path": "v2/gateway/src/runtime/isolation.ts",
+      "bytes": 9149,
+      "sha256": "baa2dc21eca119cabfb2e3e303d31da249e806a75157b0bb0a074d01f3a6aefb"
+    },
+    {
+      "path": "v2/gateway/src/runtime/tool-policy.ts",
+      "bytes": 2080,
+      "sha256": "1afa829e22e4ea2d122278ef5afb942e90e78eb82fa9436b23eb9f177f20c7c2"
+    },
+    {
+      "path": "v2/gateway/src/runtime/effect-ledger.ts",
+      "bytes": 8100,
+      "sha256": "5a6794c878f4af383c23dd2b7bbfa1a16a6bb9683e1df94c5fa117b829be65c4"
+    },
+    {
+      "path": "v2/gateway/src/workflows/registry.ts",
+      "bytes": 36765,
+      "sha256": "ecb4f9ce997e285b653bd754a7d5f60cef192efe51385604ddfcbb47ff0cbedf"
+    },
+    {
+      "path": "v2/gateway/src/isolation/workspace.ts",
+      "bytes": 24581,
+      "sha256": "12cea09dcb51978015e77bacf2e878d5d8355d73908e7baea633a5ae4bd78b87"
+    },
+    {
+      "path": "v2/gateway/src/journal/process-journal.ts",
+      "bytes": 24691,
+      "sha256": "d0213eda13bd5d93848aa3a10b537c91d6b4f2303ba19a8fec8b7badd5230655"
+    },
+    {
+      "path": "v2/gateway/src/journal/gated-helper.ts",
+      "bytes": 4725,
+      "sha256": "cc3e7abd716ded39afef000472a35675d1bc79898ba0561f412c5e3c81f0f7ea"
+    },
+    {
+      "path": "v2/gateway/src/models/contracts.ts",
+      "bytes": 2460,
+      "sha256": "ca9f57c7fef2bc7c8936e60a244d39dbb58e08c268e451438a9225c1709ccc05"
+    },
+    {
+      "path": "v2/gateway/src/models/inventory.ts",
+      "bytes": 2237,
+      "sha256": "8ca558722a903f993e342f0fbb4fbe96d1feb67e35cb8581860be9d0497e10c3"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/superpowers-codex-native-skills-evidence.json",
+      "bytes": 16902,
+      "sha256": "d363985bc10bbdf25c86417ce52454af6b7927ece9428f1f50b950ba560cc169"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-6-report.md",
+      "bytes": 17743,
+      "sha256": "65c6008e590224e46ababc47eefaa7f376aa7edd53a35bce4ab1806a4394e380"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/native-tree-handoff.md",
+      "bytes": 1830,
+      "sha256": "10573b5dd64962e0a3e70c5cec46a0de65ab6cda9a10820326092841fa4f89d5"
+    }
+  ],
+  "primaryDocsFetched": [
+    "https://learn.chatgpt.com/docs/app-server",
+    "https://code.claude.com/docs/en/agent-sdk/skills",
+    "https://code.claude.com/docs/en/agent-sdk/sessions",
+    "https://code.claude.com/docs/en/cli-reference",
+    "https://code.claude.com/docs/en/agent-sdk/permissions",
+    "https://code.claude.com/docs/en/sandboxing"
+  ],
+  "failedPrimaryFetch": [
+    "https://code.claude.com/docs/en/agent-sdk/typescript",
+    "https://platform.claude.com/docs/en/agent-sdk/typescript"
+  ]
+}

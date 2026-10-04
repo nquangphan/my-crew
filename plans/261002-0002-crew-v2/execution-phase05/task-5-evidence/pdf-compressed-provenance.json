@@ -1,0 +1,7 @@
+{
+  "generator": "pdf-lib 1.17.1 public PDFDocument.save(useObjectStreams:true)",
+  "generatorReceipt": "500a02ae-d1e8-464c-b0dc-05682ac86660.json",
+  "file": "v2/server/test/fixtures/attachments/launch-compressed.pdf",
+  "bytes": 1009,
+  "sha256": "8093cee4f0204657115a3fcfed2ee034506711e55340a49cd356988de4c2e143"
+}

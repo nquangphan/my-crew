@@ -1,0 +1,602 @@
+{
+  "observedAt": "2026-10-02T05:22:10.443677+00:00",
+  "probe": "installed CLI static JSON schema generation; no app-server/session/turn",
+  "schemas": {
+    "SkillsListResponse.json": {
+      "sha256": "230f125d6c36ec1b1514018a0bb6d0627f7308ea82f1ef04cad85490de482bae",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "AbsolutePathBuf": {
+            "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
+            "type": "string"
+          },
+          "SkillDependencies": {
+            "properties": {
+              "tools": {
+                "items": {
+                  "$ref": "#/definitions/SkillToolDependency"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "tools"
+            ],
+            "type": "object"
+          },
+          "SkillErrorInfo": {
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "message",
+              "path"
+            ],
+            "type": "object"
+          },
+          "SkillInterface": {
+            "properties": {
+              "brandColor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "defaultPrompt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "displayName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "iconLarge": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/AbsolutePathBuf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "iconLargeUrl": {
+                "description": "Remote large icon URL from the plugin catalog.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "iconSmall": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/AbsolutePathBuf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "iconSmallUrl": {
+                "description": "Remote small icon URL from the plugin catalog.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "shortDescription": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "type": "object"
+          },
+          "SkillMetadata": {
+            "properties": {
+              "dependencies": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/SkillDependencies"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "interface": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/SkillInterface"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "$ref": "#/definitions/AbsolutePathBuf"
+              },
+              "pluginId": {
+                "description": "Owning plugin ID, matching `PluginSummary.id`, when known.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scope": {
+                "$ref": "#/definitions/SkillScope"
+              },
+              "shortDescription": {
+                "description": "Legacy short_description from SKILL.md. Prefer SKILL.json interface.short_description.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "description",
+              "enabled",
+              "name",
+              "path",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "SkillScope": {
+            "enum": [
+              "user",
+              "repo",
+              "system",
+              "admin"
+            ],
+            "type": "string"
+          },
+          "SkillToolDependency": {
+            "properties": {
+              "command": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "transport": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "type": "string"
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "type": "object"
+          },
+          "SkillsListEntry": {
+            "properties": {
+              "cwd": {
+                "type": "string"
+              },
+              "errors": {
+                "items": {
+                  "$ref": "#/definitions/SkillErrorInfo"
+                },
+                "type": "array"
+              },
+              "skills": {
+                "items": {
+                  "$ref": "#/definitions/SkillMetadata"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "cwd",
+              "errors",
+              "skills"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/definitions/SkillsListEntry"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SkillsListResponse",
+        "type": "object"
+      }
+    },
+    "SkillsListParams.json": {
+      "sha256": "1d245374e64c5acc9739dfc68a4fe5114c6c9147af04c480886f1846d2ca6239",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "cwds": {
+            "description": "When empty, defaults to the current session working directory.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forceReload": {
+            "description": "When true, bypass the skills cache and re-scan skills from disk.",
+            "type": "boolean"
+          }
+        },
+        "title": "SkillsListParams",
+        "type": "object"
+      }
+    }
+  },
+  "exitCode": 0,
+  "scratchRemoved": true,
+  "turnStartSchema": {
+    "sha256": "2dfcf68705896fadc344ccfeb2e9fe5a6bcbbb8b9a90cf449ce232b636daf05a",
+    "input": {
+      "items": {
+        "$ref": "#/definitions/UserInput"
+      },
+      "type": "array"
+    },
+    "inputDefinitions": {
+      "UserInput": {
+        "oneOf": [
+          {
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "text_elements": {
+                "default": [],
+                "description": "UI-defined spans within `text` used to render or persist special elements.",
+                "items": {
+                  "$ref": "#/definitions/TextElement"
+                },
+                "type": "array"
+              },
+              "type": {
+                "enum": [
+                  "text"
+                ],
+                "title": "TextUserInputType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "type"
+            ],
+            "title": "TextUserInput",
+            "type": "object"
+          },
+          {
+            "anyOf": [
+              {
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url"
+                ],
+                "title": "UrlUserInput",
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "fileId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fileId"
+                ],
+                "title": "FileIdUserInput",
+                "type": "object"
+              }
+            ],
+            "properties": {
+              "detail": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ImageDetail"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "type": {
+                "enum": [
+                  "image"
+                ],
+                "title": "ImageUserInputType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "title": "ImageUserInput",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "detail": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ImageDetail"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "localImage"
+                ],
+                "title": "LocalImageUserInputType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "type"
+            ],
+            "title": "LocalImageUserInput",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "audio"
+                ],
+                "title": "AudioUserInputType",
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "url"
+            ],
+            "title": "AudioUserInput",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "localAudio"
+                ],
+                "title": "LocalAudioUserInputType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "type"
+            ],
+            "title": "LocalAudioUserInput",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "skill"
+                ],
+                "title": "SkillUserInputType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "type"
+            ],
+            "title": "SkillUserInput",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "mention"
+                ],
+                "title": "MentionUserInputType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "type"
+            ],
+            "title": "MentionUserInput",
+            "type": "object"
+          }
+        ]
+      }
+    }
+  },
+  "sourceInspectedFiles": [
+    {
+      "path": ".codex-plugin/plugin.json",
+      "bytes": 1730,
+      "sha256": "3f12f376a61ee7362d8ba4cbf6341a290e3d7450cd7d3485ca5784849ff1e5e6"
+    },
+    {
+      "path": "README.md",
+      "bytes": 14389,
+      "sha256": "04fd40756d26d5f2132ddfbc5c3c35335b02bb456197308975f9d12eaa522382"
+    },
+    {
+      "path": "hooks/session-start",
+      "bytes": 2667,
+      "sha256": "5e92229e49d7cff5e0355ab84b0bceb0d27d53c565b33210132ce6e413ee9665"
+    },
+    {
+      "path": "skills/brainstorming/SKILL.md",
+      "bytes": 17548,
+      "sha256": "a32d2255354775aa124855aa7100cf276bea096fff4ebb3a0edf57be216e6c72"
+    },
+    {
+      "path": "skills/diagnosing-superpowers/SKILL.md",
+      "bytes": 6904,
+      "sha256": "5a652f8132cc901eb5ca61f89157839f87a2f20aed037fc7a2b51051bc37cd19"
+    },
+    {
+      "path": "skills/dispatching-parallel-agents/SKILL.md",
+      "bytes": 6078,
+      "sha256": "1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c"
+    },
+    {
+      "path": "skills/executing-plans/SKILL.md",
+      "bytes": 20405,
+      "sha256": "f38e8f2ddcf079f65493adc713c1fed78421dfaf5f4dbf6b3a6b2b1d95466e71"
+    },
+    {
+      "path": "skills/finishing-a-development-branch/SKILL.md",
+      "bytes": 7781,
+      "sha256": "8db5a922b242dd4e1bf824cb91c13b3e8d8e8a86d6ceaf7f0774eb9cce909d65"
+    },
+    {
+      "path": "skills/receiving-code-review/SKILL.md",
+      "bytes": 6203,
+      "sha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
+    },
+    {
+      "path": "skills/requesting-code-review/SKILL.md",
+      "bytes": 2977,
+      "sha256": "cfcee1b06774e7c0517f1e09be1a11f2d5680257072723e709ddbcf7e08b795a"
+    },
+    {
+      "path": "skills/subagent-driven-development/SKILL.md",
+      "bytes": 32577,
+      "sha256": "8dde5589ee083fb4999106d116f01c8fdaf3116a8a9813fdedeb80329de49046"
+    },
+    {
+      "path": "skills/systematic-debugging/SKILL.md",
+      "bytes": 9465,
+      "sha256": "808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787"
+    },
+    {
+      "path": "skills/test-driven-development/SKILL.md",
+      "bytes": 9578,
+      "sha256": "64b03fce4aee5a97a93160cea8111f3ba13a17b7c001db4bd5836d67fd10705d"
+    },
+    {
+      "path": "skills/using-git-worktrees/SKILL.md",
+      "bytes": 6813,
+      "sha256": "8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd"
+    },
+    {
+      "path": "skills/using-superpowers/SKILL.md",
+      "bytes": 3192,
+      "sha256": "82c5c8866ad7f5dd4440ce66bd7806ba48a2f13771beae5cf112e53f08fe36ba"
+    },
+    {
+      "path": "skills/using-superpowers/references/codex-tools.md",
+      "bytes": 4762,
+      "sha256": "1a38ad9b188c393052f58d95657a1c35ea6aafc8b5a27f198f3922912f70bbe7"
+    },
+    {
+      "path": "skills/verification-before-completion/SKILL.md",
+      "bytes": 3646,
+      "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
+    },
+    {
+      "path": "skills/writing-plans/SKILL.md",
+      "bytes": 10335,
+      "sha256": "a6c67c1900064347c2a329990dd3c555657c51c3ec53b259a08aa01a2c26139a"
+    },
+    {
+      "path": "skills/writing-skills/SKILL.md",
+      "bytes": 26623,
+      "sha256": "bbdfe742f853562e643a3d40d64476359d47881e39cef80a189283fa26d11ab9"
+    }
+  ],
+  "limitations": [
+    "static schemas only; no discovery RPC or native runtime invocation performed",
+    "installed SkillsListParams lacks newer documented perCwdExtraUserRoots",
+    "no runtime certificate; no namespace alias behavior proven"
+  ],
+  "officialDocs": [
+    "https://learn.chatgpt.com/docs/build-skills",
+    "https://learn.chatgpt.com/docs/app-server"
+  ],
+  "installedCliVersion": "0.159.3"
+}

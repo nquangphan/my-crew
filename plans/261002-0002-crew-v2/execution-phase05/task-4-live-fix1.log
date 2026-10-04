@@ -1,0 +1,27 @@
+worker live root intent /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120 nonce=d54352fe-62a0-4d7b-bc29-f5a4ec42b120 parentPid=94011
+worker live container intent crew-v2-extract-cf43d145-b4a2-438c-817b-d9600f7cfb96-1 scenario=boundary root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120/jobs/cf43d145-b4a2-438c-817b-d9600f7cfb96/1
+worker live stopped 13dd5c58c05c3959527f7713726e2bf483eedba8c88b0a24c4d328eb5868408e scenario=boundary status=exited pid=0 oom=false
+worker live container removed 13dd5c58c05c3959527f7713726e2bf483eedba8c88b0a24c4d328eb5868408e
+worker live container intent crew-v2-extract-b706f54e-2615-400a-b358-5b9859ca516b-1 scenario=pids root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120/jobs/b706f54e-2615-400a-b358-5b9859ca516b/1
+worker live stopped 197973538ab7567360d84676f132e7ac866b3869a72738b1eed692e8f1cd7930 scenario=pids status=exited pid=0 oom=false
+worker live container removed 197973538ab7567360d84676f132e7ac866b3869a72738b1eed692e8f1cd7930
+worker live container intent crew-v2-extract-b340db2e-eb02-4800-ab5e-1319104adcea-1 scenario=memory root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120/jobs/b340db2e-eb02-4800-ab5e-1319104adcea/1
+worker live stopped c5d19e52b51539691ea6bc1310efdfdecef92664ccc0881942213c794d92b308 scenario=memory status=exited pid=0 oom=true
+worker live container removed c5d19e52b51539691ea6bc1310efdfdecef92664ccc0881942213c794d92b308
+worker live container intent crew-v2-extract-7c48eed3-4fb6-4572-9673-0681990ee307-1 scenario=stdout-bomb root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120/jobs/7c48eed3-4fb6-4572-9673-0681990ee307/1
+worker live stopped 830acd2c6449abc4ad1f2af0cd14e2350bf24e47ce9869fb1919b82fbbd2cbe0 scenario=stdout-bomb status=exited pid=0 oom=false
+worker live container removed 830acd2c6449abc4ad1f2af0cd14e2350bf24e47ce9869fb1919b82fbbd2cbe0
+worker live container intent crew-v2-extract-ac79112d-8f58-4bf8-8a88-805b4bc1c717-1 scenario=timeout root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120/jobs/ac79112d-8f58-4bf8-8a88-805b4bc1c717/1
+worker live stopped 03eacdb2bb496fd985e95d771afc2c980840a6c1c4fa3c47285861ce84c24c28 scenario=timeout status=exited pid=0 oom=false
+worker live container removed 03eacdb2bb496fd985e95d771afc2c980840a6c1c4fa3c47285861ce84c24c28
+worker live observations [{"scenario":"boundary","containerId":"13dd5c58c05c3959527f7713726e2bf483eedba8c88b0a24c4d328eb5868408e","state":"stopped","exitCode":0,"oomKilled":false,"pid":0,"result":"report"},{"scenario":"pids","containerId":"197973538ab7567360d84676f132e7ac866b3869a72738b1eed692e8f1cd7930","state":"stopped","exitCode":0,"oomKilled":false,"pid":0,"result":"report"},{"scenario":"memory","containerId":"c5d19e52b51539691ea6bc1310efdfdecef92664ccc0881942213c794d92b308","state":"stopped","exitCode":137,"oomKilled":true,"pid":0,"result":"WORKER_DIAGNOSTIC_INVALID"},{"scenario":"stdout-bomb","containerId":"830acd2c6449abc4ad1f2af0cd14e2350bf24e47ce9869fb1919b82fbbd2cbe0","state":"stopped","exitCode":137,"oomKilled":false,"pid":0,"result":"WORKER_OUTPUT_LIMIT"},{"scenario":"timeout","containerId":"03eacdb2bb496fd985e95d771afc2c980840a6c1c4fa3c47285861ce84c24c28","state":"stopped","exitCode":137,"oomKilled":false,"pid":0,"result":"WORKER_TIMEOUT"}]
+worker live root removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-d54352fe-62a0-4d7b-bc29-f5a4ec42b120
+✔ attachment diagnostic image has no Task5 import dependency (30328.701167ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30402.884708

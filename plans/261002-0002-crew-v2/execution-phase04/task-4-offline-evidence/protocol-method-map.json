@@ -1,0 +1,919 @@
+{
+  "kind": "actual-pinned-generated-subset-map",
+  "runtimeVersion": "codex-cli 0.159.3",
+  "binarySha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+  "experimentalGeneratorFlagUsed": false,
+  "bundles": [
+    {
+      "kind": "json",
+      "files": 314,
+      "bytes": 3540819,
+      "bundleSha256": "4fbf973e454ab8b8c313817e1367db90072104775e70ed53b0e2f8a38a3c4b6a",
+      "fullInventoryVerified": true
+    },
+    {
+      "kind": "ts",
+      "files": 734,
+      "bytes": 428142,
+      "bundleSha256": "6fa0dd520dd954703fc242ce9e02153e055e06853a2b4b35ccb38d956840ca04",
+      "fullInventoryVerified": true
+    }
+  ],
+  "methods": [
+    {
+      "method": "initialize",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/InitializeParams",
+      "parameterProperties": [
+        "capabilities",
+        "clientInfo"
+      ],
+      "parameterRequired": [
+        "clientInfo"
+      ]
+    },
+    {
+      "method": "thread/start",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ThreadStartParams",
+      "parameterProperties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "ephemeral",
+        "model",
+        "modelProvider",
+        "personality",
+        "sandbox",
+        "serviceName",
+        "serviceTier",
+        "sessionStartSource",
+        "threadSource"
+      ],
+      "parameterRequired": []
+    },
+    {
+      "method": "thread/resume",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ThreadResumeParams",
+      "parameterProperties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "excludeTurns",
+        "model",
+        "modelProvider",
+        "personality",
+        "sandbox",
+        "serviceTier",
+        "threadId"
+      ],
+      "parameterRequired": [
+        "threadId"
+      ]
+    },
+    {
+      "method": "thread/fork",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ThreadForkParams",
+      "parameterProperties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "ephemeral",
+        "excludeTurns",
+        "lastTurnId",
+        "model",
+        "modelProvider",
+        "sandbox",
+        "serviceTier",
+        "threadId",
+        "threadSource"
+      ],
+      "parameterRequired": [
+        "threadId"
+      ]
+    },
+    {
+      "method": "skills/list",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/SkillsListParams",
+      "parameterProperties": [
+        "cwds",
+        "forceReload"
+      ],
+      "parameterRequired": []
+    },
+    {
+      "method": "turn/start",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/TurnStartParams",
+      "parameterProperties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "clientUserMessageId",
+        "cwd",
+        "disabledPluginIds",
+        "effort",
+        "input",
+        "model",
+        "outputSchema",
+        "personality",
+        "sandboxPolicy",
+        "serviceTier",
+        "serviceTierForTurn",
+        "summary",
+        "threadId",
+        "toolOutput",
+        "turnTrigger"
+      ],
+      "parameterRequired": [
+        "input",
+        "threadId"
+      ]
+    },
+    {
+      "method": "turn/steer",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/TurnSteerParams",
+      "parameterProperties": [
+        "clientUserMessageId",
+        "expectedTurnId",
+        "input",
+        "threadId"
+      ],
+      "parameterRequired": [
+        "expectedTurnId",
+        "input",
+        "threadId"
+      ]
+    },
+    {
+      "method": "turn/interrupt",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/TurnInterruptParams",
+      "parameterProperties": [
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "model/list",
+      "envelopeSchema": "ClientRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ModelListParams",
+      "parameterProperties": [
+        "cursor",
+        "includeHidden",
+        "limit"
+      ],
+      "parameterRequired": []
+    },
+    {
+      "method": "item/commandExecution/requestApproval",
+      "envelopeSchema": "ServerRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/CommandExecutionRequestApprovalParams",
+      "parameterProperties": [
+        "approvalId",
+        "command",
+        "commandActions",
+        "cwd",
+        "environmentId",
+        "itemId",
+        "kind",
+        "networkApprovalContext",
+        "proposedExecpolicyAmendment",
+        "proposedNetworkPolicyAmendments",
+        "reason",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "itemId",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "item/fileChange/requestApproval",
+      "envelopeSchema": "ServerRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/FileChangeRequestApprovalParams",
+      "parameterProperties": [
+        "grantRoot",
+        "itemId",
+        "reason",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "itemId",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "item/permissions/requestApproval",
+      "envelopeSchema": "ServerRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/PermissionsRequestApprovalParams",
+      "parameterProperties": [
+        "cwd",
+        "environmentId",
+        "itemId",
+        "permissions",
+        "reason",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "cwd",
+        "itemId",
+        "permissions",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "item/tool/call",
+      "envelopeSchema": "ServerRequest.json",
+      "envelopeRequired": [
+        "id",
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/DynamicToolCallParams",
+      "parameterProperties": [
+        "arguments",
+        "callId",
+        "namespace",
+        "threadId",
+        "tool",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "arguments",
+        "callId",
+        "threadId",
+        "tool",
+        "turnId"
+      ]
+    },
+    {
+      "method": "skills/changed",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/SkillsChangedNotification",
+      "parameterProperties": [],
+      "parameterRequired": []
+    },
+    {
+      "method": "turn/started",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/TurnStartedNotification",
+      "parameterProperties": [
+        "threadId",
+        "turn"
+      ],
+      "parameterRequired": [
+        "threadId",
+        "turn"
+      ]
+    },
+    {
+      "method": "turn/completed",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/TurnCompletedNotification",
+      "parameterProperties": [
+        "threadId",
+        "turn"
+      ],
+      "parameterRequired": [
+        "threadId",
+        "turn"
+      ]
+    },
+    {
+      "method": "item/started",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ItemStartedNotification",
+      "parameterProperties": [
+        "item",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "item",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "item/completed",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ItemCompletedNotification",
+      "parameterProperties": [
+        "completedAtMs",
+        "item",
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "completedAtMs",
+        "item",
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/AgentMessageDeltaNotification",
+      "parameterProperties": [
+        "delta",
+        "itemId",
+        "threadId",
+        "turnId"
+      ],
+      "parameterRequired": [
+        "delta",
+        "itemId",
+        "threadId",
+        "turnId"
+      ]
+    },
+    {
+      "method": "serverRequest/resolved",
+      "envelopeSchema": "ServerNotification.json",
+      "envelopeRequired": [
+        "method",
+        "params"
+      ],
+      "paramsRef": "#/definitions/ServerRequestResolvedNotification",
+      "parameterProperties": [
+        "requestId",
+        "threadId"
+      ],
+      "parameterRequired": [
+        "requestId",
+        "threadId"
+      ]
+    },
+    {
+      "method": "initialized",
+      "envelopeSchema": "ClientNotification.json",
+      "envelopeRequired": [
+        "method"
+      ],
+      "paramsRef": null,
+      "parameterProperties": [],
+      "parameterRequired": []
+    }
+  ],
+  "missingMethods": {
+    "ClientRequest.json": [],
+    "ServerRequest.json": [],
+    "ServerNotification.json": [],
+    "ClientNotification.json": []
+  },
+  "schemas": {
+    "v1/InitializeParams.json": {
+      "sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+      "properties": [
+        "capabilities",
+        "clientInfo"
+      ],
+      "required": [
+        "clientInfo"
+      ]
+    },
+    "v1/InitializeResponse.json": {
+      "sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "properties": [
+        "codexHome",
+        "platformFamily",
+        "platformOs",
+        "userAgent"
+      ],
+      "required": [
+        "codexHome",
+        "platformFamily",
+        "platformOs",
+        "userAgent"
+      ]
+    },
+    "v2/ModelListParams.json": {
+      "sha256": "de29a536c00a5b8f46f34dba417dabd93365305571a8ed200e33bea85db68b5a",
+      "properties": [
+        "cursor",
+        "includeHidden",
+        "limit"
+      ],
+      "required": []
+    },
+    "v2/ModelListResponse.json": {
+      "sha256": "bfbb3ee9f6e203e0b767587c17de94b9cb42f712d0d8168afbbbc3fcb4492f30",
+      "properties": [
+        "data",
+        "nextCursor"
+      ],
+      "required": [
+        "data"
+      ]
+    },
+    "v2/SkillsListParams.json": {
+      "sha256": "1d245374e64c5acc9739dfc68a4fe5114c6c9147af04c480886f1846d2ca6239",
+      "properties": [
+        "cwds",
+        "forceReload"
+      ],
+      "required": []
+    },
+    "v2/SkillsListResponse.json": {
+      "sha256": "230f125d6c36ec1b1514018a0bb6d0627f7308ea82f1ef04cad85490de482bae",
+      "properties": [
+        "data"
+      ],
+      "required": [
+        "data"
+      ],
+      "skillMetadata": {
+        "properties": {
+          "dependencies": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/SkillDependencies"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "interface": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/SkillInterface"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          },
+          "pluginId": {
+            "description": "Owning plugin ID, matching `PluginSummary.id`, when known.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "$ref": "#/definitions/SkillScope"
+          },
+          "shortDescription": {
+            "description": "Legacy short_description from SKILL.md. Prefer SKILL.json interface.short_description.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "enabled",
+          "name",
+          "path",
+          "scope"
+        ],
+        "type": "object"
+      }
+    },
+    "v2/ThreadStartParams.json": {
+      "sha256": "e9c6d3cc18d049bfbc0249add3808fb8e5a27e1a0b5a423767aafbc3859a9428",
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "ephemeral",
+        "model",
+        "modelProvider",
+        "personality",
+        "sandbox",
+        "serviceName",
+        "serviceTier",
+        "sessionStartSource",
+        "threadSource"
+      ],
+      "required": []
+    },
+    "v2/ThreadStartResponse.json": {
+      "sha256": "70d9c9a3a064edb76662ec7cd066d142ed9252b768272bc3a7d00788386755c0",
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "cwd",
+        "disabledPluginIds",
+        "instructionSources",
+        "model",
+        "modelProvider",
+        "reasoningEffort",
+        "sandbox",
+        "serviceTier",
+        "thread"
+      ],
+      "required": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "cwd",
+        "model",
+        "modelProvider",
+        "sandbox",
+        "thread"
+      ],
+      "instructionSources": {
+        "default": [],
+        "description": "Environment-native paths to instruction source files currently loaded for this thread.",
+        "items": {
+          "$ref": "#/definitions/LegacyAppPathString"
+        },
+        "type": "array"
+      }
+    },
+    "v2/ThreadResumeParams.json": {
+      "sha256": "c818e26d830ac4430791eab7d4a872d2384fa6006b14c505d8caf46e7e093527",
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "excludeTurns",
+        "model",
+        "modelProvider",
+        "personality",
+        "sandbox",
+        "serviceTier",
+        "threadId"
+      ],
+      "required": [
+        "threadId"
+      ]
+    },
+    "v2/ThreadResumeResponse.json": {
+      "sha256": "e7751c8dba039fa5f55971307e89e8b8541f2853840650ea8968bad8c23698d6",
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "collaborationMode",
+        "cwd",
+        "disabledPluginIds",
+        "instructionSources",
+        "itemsBackwardsCursor",
+        "model",
+        "modelProvider",
+        "reasoningEffort",
+        "sandbox",
+        "serviceTier",
+        "thread",
+        "turnsBackwardsCursor"
+      ],
+      "required": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "cwd",
+        "model",
+        "modelProvider",
+        "sandbox",
+        "thread"
+      ]
+    },
+    "v2/TurnStartParams.json": {
+      "sha256": "2dfcf68705896fadc344ccfeb2e9fe5a6bcbbb8b9a90cf449ce232b636daf05a",
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "clientUserMessageId",
+        "cwd",
+        "disabledPluginIds",
+        "effort",
+        "input",
+        "model",
+        "outputSchema",
+        "personality",
+        "sandboxPolicy",
+        "serviceTier",
+        "serviceTierForTurn",
+        "summary",
+        "threadId",
+        "toolOutput",
+        "turnTrigger"
+      ],
+      "required": [
+        "input",
+        "threadId"
+      ],
+      "skillUserInput": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "skill"
+            ],
+            "title": "SkillUserInputType",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "type"
+        ],
+        "title": "SkillUserInput",
+        "type": "object"
+      }
+    },
+    "v2/TurnStartResponse.json": {
+      "sha256": "12c5151421bb061297c9790ff795a44aa4b9bdb91fbb68012dcf0a08cf4198b1",
+      "properties": [
+        "turn"
+      ],
+      "required": [
+        "turn"
+      ]
+    },
+    "v2/TurnSteerParams.json": {
+      "sha256": "857e7a2b061ae46ed6aedea6a5fddd3a6ce14f0334bf7eafaf10d4cbe68ec78b",
+      "properties": [
+        "clientUserMessageId",
+        "expectedTurnId",
+        "input",
+        "threadId"
+      ],
+      "required": [
+        "expectedTurnId",
+        "input",
+        "threadId"
+      ]
+    },
+    "v2/TurnInterruptParams.json": {
+      "sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "properties": [
+        "threadId",
+        "turnId"
+      ],
+      "required": [
+        "threadId",
+        "turnId"
+      ]
+    },
+    "v2/TurnInterruptResponse.json": {
+      "sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "properties": [],
+      "required": []
+    },
+    "v2/TurnCompletedNotification.json": {
+      "sha256": "016870158603b0f84bd9f8f65f927161c9fd5128e5ec632087616462dc44e085",
+      "properties": [
+        "threadId",
+        "turn"
+      ],
+      "required": [
+        "threadId",
+        "turn"
+      ],
+      "turnStatus": {
+        "enum": [
+          "completed",
+          "interrupted",
+          "failed",
+          "inProgress"
+        ],
+        "type": "string"
+      },
+      "turnRequired": [
+        "id",
+        "items",
+        "status"
+      ]
+    },
+    "CommandExecutionRequestApprovalParams.json": {
+      "sha256": "16a71816c2d66e319c2c4aa83dd636dfdc43c61e72b6d5475e421ce08d8e6558",
+      "properties": [
+        "approvalId",
+        "command",
+        "commandActions",
+        "cwd",
+        "environmentId",
+        "itemId",
+        "kind",
+        "networkApprovalContext",
+        "proposedExecpolicyAmendment",
+        "proposedNetworkPolicyAmendments",
+        "reason",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ],
+      "required": [
+        "itemId",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ]
+    },
+    "CommandExecutionRequestApprovalResponse.json": {
+      "sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "properties": [
+        "decision"
+      ],
+      "required": [
+        "decision"
+      ]
+    },
+    "FileChangeRequestApprovalParams.json": {
+      "sha256": "13848b26814c286ad6425a20d01c1691c86790e1f9e2529399677a8a22fe0d18",
+      "properties": [
+        "grantRoot",
+        "itemId",
+        "reason",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ],
+      "required": [
+        "itemId",
+        "startedAtMs",
+        "threadId",
+        "turnId"
+      ]
+    },
+    "FileChangeRequestApprovalResponse.json": {
+      "sha256": "b95b03ee6be674e25cee2e863cc135a28620e1070addd2f34685aadee27cde08",
+      "properties": [
+        "decision"
+      ],
+      "required": [
+        "decision"
+      ]
+    },
+    "DynamicToolCallParams.json": {
+      "sha256": "401bba20cfbd95762bef0467d840430c46be53369093ad9f26425ba757e34efc",
+      "properties": [
+        "arguments",
+        "callId",
+        "namespace",
+        "threadId",
+        "tool",
+        "turnId"
+      ],
+      "required": [
+        "arguments",
+        "callId",
+        "threadId",
+        "tool",
+        "turnId"
+      ]
+    },
+    "DynamicToolCallResponse.json": {
+      "sha256": "abb082cad67f11fcc98ba75f2eff75d7d1723af0c657655329b83ff160451a02",
+      "properties": [
+        "contentItems",
+        "success"
+      ],
+      "required": [
+        "contentItems",
+        "success"
+      ]
+    }
+  },
+  "gaps": [
+    "SkillsListParams lacks perCwdExtraUserRoots",
+    "ThreadStartParams default output lacks dynamicTools",
+    "instructionSources optional default empty response metadata is not isolation authority",
+    "No actual app-server initialize/load/invoke/tool mediation/child/full-tree proof",
+    "Claude current stream-json/control declarations still missing",
+    "Exact release LICENSE/NOTICE evidence still pending",
+    "Generated Initialize TypeScript capabilities required nullable differs from JSON required list; review before binding use"
+  ]
+}

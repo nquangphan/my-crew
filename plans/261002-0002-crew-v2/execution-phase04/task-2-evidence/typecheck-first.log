@@ -1,0 +1,10 @@
+
+> @crew-v2/gateway@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> tsc --noEmit
+
+src/models/credential-provisioning.ts(106,77): error TS2345: Argument of type 'string' is not assignable to parameter of type '`${string}-${string}-${string}-${string}-${string}`'.
+src/models/security-bridge.ts(50,122): error TS2345: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'Buffer<ArrayBuffer>'.
+  Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+    Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+test/sync.test.ts(41,185): error TS7006: Parameter 's' implicitly has an 'any' type.
+ ELIFECYCLE  Command failed with exit code 1.

@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "node",
+    "--test",
+    "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway/test/retirement-crash.test.ts"
+  ],
+  "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9/v2/gateway",
+  "NODE_OPTIONS": "--loader=/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs",
+  "exit": 1,
+  "seconds": 7.358390958
+}

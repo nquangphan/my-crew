@@ -1,0 +1,162 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-access.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-api.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-grants.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-c40a1069-bdf7-4992-99bb-b76f75811002", "--label", "crew.phase05.task3=8f240677-f04d-490c-825b-cbb959a70b33", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee", "name": "crew-v2-test-c40a1069-bdf7-4992-99bb-b76f75811002", "mapping": "127.0.0.1:56134"}
+attachment DB container 9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IpSAin
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IpSAin nonceSha256=0f4efda96ca56d9b8bdbf0f43e76157cf47e72c28e8e9af3832b6f501ed90653
+attachment DB scratch identity dev=16777229 ino=64083734 uid=501 pid=71746
+✖ attachment access never follows a matching checksum across projects (925.259667ms)
+attachment DB container 9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zBzvaU
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zBzvaU nonceSha256=22eb1e8fc0c09dbc055d6b260f9c601098ce967baef117565437471d2be5c0ca
+attachment DB scratch identity dev=16777229 ino=64083762 uid=501 pid=71746
+✖ attachment references require a live ancestor in the exact tree and reuse original identity (397.7175ms)
+attachment DB container 9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wU421e
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wU421e nonceSha256=d26fa20b8b08c5390e2c0b9b5b48d0421482753886fd1c27ec29f03f021df658
+attachment DB scratch identity dev=16777229 ino=64083738 uid=501 pid=71747
+✖ attachment routes raw upload, CSRF, strict schema, metered replay and private responses (925.294333ms)
+attachment DB container 9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tib7hK
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tib7hK nonceSha256=56dff3790b61092c196e8268378e149ccb8b51ab9236b76f2f34b40d745f6c77
+attachment DB scratch identity dev=16777229 ino=64083764 uid=501 pid=71747
+✖ attachment routes authenticate again before conditional replies and current attempt downloads (401.334792ms)
+attachment DB container 9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-n4M0vF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-n4M0vF nonceSha256=7e52158bac1c17e6db973877f235a8143f095913a373387241882267216e365e
+attachment DB scratch identity dev=16777229 ino=64083737 uid=501 pid=71748
+✖ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (924.515125ms)
+attachment DB container 9f452280f05873ebe3386b9cc8374595e175d1478afc65bcc9709ad6ea28f8ee root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ONHokI
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ONHokI nonceSha256=ec1b99e63c6c0e253cbf143c073d44f07305878d5fa18dea77d71363099f3b6c
+attachment DB scratch identity dev=16777229 ino=64083733 uid=501 pid=71749
+✖ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (924.489542ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 0
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1521.46025
+
+✖ failing tests:
+
+test at test/attachments-access.test.ts:10:1
+✖ attachment access never follows a matching checksum across projects (925.259667ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"VALIDATION","message":"Yêu cầu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/attachment-access.ts:60:178)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-access.test.ts:12:11
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-access.test.ts:11:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-access.test.ts:28:1
+✖ attachment references require a live ancestor in the exact tree and reuse original identity (397.7175ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"VALIDATION","message":"Yêu cầu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/attachment-access.ts:60:178)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-access.test.ts:30:11
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-access.test.ts:29:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-api.test.ts:8:1
+✖ attachment routes raw upload, CSRF, strict schema, metered replay and private responses (925.294333ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"VALIDATION","message":"Yêu cầu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/attachment-access.ts:60:178)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-api.test.ts:9:47
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-api.test.ts:9:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-api.test.ts:30:1
+✖ attachment routes authenticate again before conditional replies and current attempt downloads (401.334792ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"VALIDATION","message":"Yêu cầu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/attachment-access.ts:60:178)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-api.test.ts:31:47
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-api.test.ts:31:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-grants.test.ts:9:1
+✖ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (924.515125ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"VALIDATION","message":"Yêu cầu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/attachment-access.ts:60:178)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-grants.test.ts:10:47
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-grants.test.ts:10:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-snapshots.test.ts:10:1
+✖ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (924.489542ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"VALIDATION","message":"Yêu cầu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at attachmentAccessFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/attachment-access.ts:60:178)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-snapshots.test.ts:12:10
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-green-first-puwko0x_/v2/server/test/attachments-snapshots.test.ts:11:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

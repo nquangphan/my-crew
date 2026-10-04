@@ -1,0 +1,134 @@
+[
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IpSAin",
+    "nonceSha256": "0f4efda96ca56d9b8bdbf0f43e76157cf47e72c28e8e9af3832b6f501ed90653",
+    "dev": 16777229,
+    "ino": 64083734,
+    "uid": 501,
+    "pid": 71746,
+    "sourceLog": "green-first",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zBzvaU",
+    "nonceSha256": "22eb1e8fc0c09dbc055d6b260f9c601098ce967baef117565437471d2be5c0ca",
+    "dev": 16777229,
+    "ino": 64083762,
+    "uid": 501,
+    "pid": 71746,
+    "sourceLog": "green-first",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wU421e",
+    "nonceSha256": "d26fa20b8b08c5390e2c0b9b5b48d0421482753886fd1c27ec29f03f021df658",
+    "dev": 16777229,
+    "ino": 64083738,
+    "uid": 501,
+    "pid": 71747,
+    "sourceLog": "green-first",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tib7hK",
+    "nonceSha256": "56dff3790b61092c196e8268378e149ccb8b51ab9236b76f2f34b40d745f6c77",
+    "dev": 16777229,
+    "ino": 64083764,
+    "uid": 501,
+    "pid": 71747,
+    "sourceLog": "green-first",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-n4M0vF",
+    "nonceSha256": "7e52158bac1c17e6db973877f235a8143f095913a373387241882267216e365e",
+    "dev": 16777229,
+    "ino": 64083737,
+    "uid": 501,
+    "pid": 71748,
+    "sourceLog": "green-first",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ONHokI",
+    "nonceSha256": "ec1b99e63c6c0e253cbf143c073d44f07305878d5fa18dea77d71363099f3b6c",
+    "dev": 16777229,
+    "ino": 64083733,
+    "uid": 501,
+    "pid": 71749,
+    "sourceLog": "green-first",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3dsYMf",
+    "nonceSha256": "f73eb429785ae6919eba803cb1a4242e3c502418782ce450e7a3e33b98803397",
+    "dev": 16777229,
+    "ino": 64084773,
+    "uid": 501,
+    "pid": 75165,
+    "sourceLog": "green-fixture",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y9AHLM",
+    "nonceSha256": "b4850f38cce0a38410daebe40ccbb0db824dea48abf8a7acc5f851cf7477907f",
+    "dev": 16777229,
+    "ino": 64084797,
+    "uid": 501,
+    "pid": 75165,
+    "sourceLog": "green-fixture",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XqM4Li",
+    "nonceSha256": "7c3586ce8a917e2a1e606aa94046ba25681c187e5f0ef9a5bfff6c8a557740cf",
+    "dev": 16777229,
+    "ino": 64084772,
+    "uid": 501,
+    "pid": 75166,
+    "sourceLog": "green-fixture",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hDQsp7",
+    "nonceSha256": "1a7520c8f4fbfc2ae2537aba2b68012b3c8bb33d30cf0bc2ffe2a2bad90801fb",
+    "dev": 16777229,
+    "ino": 64084796,
+    "uid": 501,
+    "pid": 75166,
+    "sourceLog": "green-fixture",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KagQcG",
+    "nonceSha256": "0ada9460d08bfec67325aa88201f7188f530a1823bab44ba4548efadd8c0a389",
+    "dev": 16777229,
+    "ino": 64084770,
+    "uid": 501,
+    "pid": 75167,
+    "sourceLog": "green-fixture",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-g8d1mo",
+    "nonceSha256": "efdf561ce19e0fc1de6a4522e63e3af753f56681c8f812c25ddf7b89fe4d0afa",
+    "dev": 16777229,
+    "ino": 64084768,
+    "uid": 501,
+    "pid": 75168,
+    "sourceLog": "green-fixture",
+    "state": "removed-after-pid-absent-and-exact-ownership",
+    "absent": true
+  }
+]

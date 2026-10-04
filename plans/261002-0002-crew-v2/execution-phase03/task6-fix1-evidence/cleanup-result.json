@@ -1,0 +1,36 @@
+{
+  "roots": [
+    {
+      "root": "/private/tmp/crew6-w-zwmZbY",
+      "creation": {
+        "nonce": "eae02eb3-3fa9-4811-96ca-ff63ab778bbe",
+        "root": "/private/tmp/crew6-w-zwmZbY",
+        "device": 16777229,
+        "inode": 64051971,
+        "ownerUid": 501
+      },
+      "bytesBefore": 4969846,
+      "status": "deleted-after-closure",
+      "blockers": []
+    },
+    {
+      "root": "/private/tmp/crew6-w-LfkGix",
+      "creation": {
+        "nonce": "9088d6ca-984b-45fc-acbc-e527735630a9",
+        "root": "/private/tmp/crew6-w-LfkGix",
+        "device": 16777229,
+        "inode": 64056156,
+        "ownerUid": 501
+      },
+      "bytesBefore": 5033559,
+      "status": "retained-unknown",
+      "blockers": [
+        {
+          "operationId": "e4f368bc-02b3-425e-b378-8c334975678a",
+          "reason": "DURABLE_INTENT_CRASH_FIXTURE"
+        }
+      ]
+    }
+  ],
+  "planSha256": "f2984249890c013109d9d49f2c58f8de824d74e44ed26365fee6506515a83786"
+}

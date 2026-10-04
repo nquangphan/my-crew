@@ -1,0 +1,196 @@
+TAP version 13
+# Subtest: attachment signatures outrank names and declared MIME
+ok 1 - attachment signatures outrank names and declared MIME
+  ---
+  duration_ms: 11.2885
+  type: 'test'
+  ...
+# Subtest: attachment OLE magic alone cannot prove encryption
+ok 2 - attachment OLE magic alone cannot prove encryption
+  ---
+  duration_ms: 0.394333
+  type: 'test'
+  ...
+# Subtest: attachment binary masquerading as text is unsupported
+ok 3 - attachment binary masquerading as text is unsupported
+  ---
+  duration_ms: 0.803666
+  type: 'test'
+  ...
+# Subtest: attachment Vietnamese DOCX preserves actual part paragraph locator
+ok 4 - attachment Vietnamese DOCX preserves actual part paragraph locator
+  ---
+  duration_ms: 50.839875
+  type: 'test'
+  ...
+# Subtest: attachment XLSX includes veryHidden sheet and literal cached formula
+ok 5 - attachment XLSX includes veryHidden sheet and literal cached formula
+  ---
+  duration_ms: 51.525584
+  type: 'test'
+  ...
+# Subtest: attachment XLSX absent formula cache is missing coverage
+ok 6 - attachment XLSX absent formula cache is missing coverage
+  ---
+  duration_ms: 9.658
+  type: 'test'
+  ...
+# Subtest: attachment XML rejects DTD and namespace alias is recognized
+ok 7 - attachment XML rejects DTD and namespace alias is recognized
+  ---
+  duration_ms: 1.437625
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["a","A"]
+ok 8 - attachment ZIP rejects paths ["a","A"]
+  ---
+  duration_ms: 0.935625
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["é","é"]
+ok 9 - attachment ZIP rejects paths ["é","é"]
+  ---
+  duration_ms: 1.293917
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["a/b","a\\\\b"]
+ok 10 - attachment ZIP rejects paths ["a/b","a\\\\b"]
+  ---
+  duration_ms: 0.897208
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["../a"]
+ok 11 - attachment ZIP rejects paths ["../a"]
+  ---
+  duration_ms: 0.569458
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["/a"]
+ok 12 - attachment ZIP rejects paths ["/a"]
+  ---
+  duration_ms: 0.886083
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects encryption
+ok 13 - attachment ZIP rejects encryption
+  ---
+  duration_ms: 1.195459
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects symlink
+ok 14 - attachment ZIP rejects symlink
+  ---
+  duration_ms: 0.511167
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects size mismatch
+ok 15 - attachment ZIP rejects size mismatch
+  ---
+  duration_ms: 3.746208
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects unknown compression
+ok 16 - attachment ZIP rejects unknown compression
+  ---
+  duration_ms: 1.178083
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects CRC and invalid offsets
+ok 17 - attachment ZIP rejects CRC and invalid offsets
+  ---
+  duration_ms: 1.741291
+  type: 'test'
+  ...
+# Subtest: attachment ZIP 2001 entries refused
+ok 18 - attachment ZIP 2001 entries refused
+  ---
+  duration_ms: 95.737416
+  type: 'test'
+  ...
+# Subtest: attachment office active content word/vbaProject.bin is blocked
+ok 19 - attachment office active content word/vbaProject.bin is blocked
+  ---
+  duration_ms: 12.389792
+  type: 'test'
+  ...
+# Subtest: attachment office active content word/embeddings/oleObject1.bin is blocked
+ok 20 - attachment office active content word/embeddings/oleObject1.bin is blocked
+  ---
+  duration_ms: 3.883625
+  type: 'test'
+  ...
+# Subtest: test/attachments-pdf-image.unit.test.ts
+not ok 3 - test/attachments-pdf-image.unit.test.ts
+  ---
+  duration_ms: 947.792292
+  type: 'test'
+  location: '/fixture/v2/server/test/attachments-pdf-image.unit.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: ~
+  signal: 'SIGSEGV'
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: attachment text preserves UTF8 source byte spans and literal scripts
+ok 22 - attachment text preserves UTF8 source byte spans and literal scripts
+  ---
+  duration_ms: 12.648166
+  type: 'test'
+  ...
+# Subtest: attachment text UTF16 endian BOM and invalid UTF8
+ok 23 - attachment text UTF16 endian BOM and invalid UTF8
+  ---
+  duration_ms: 5.659917
+  type: 'test'
+  ...
+# Subtest: attachment text cap preserves missing original tail
+ok 24 - attachment text cap preserves missing original tail
+  ---
+  duration_ms: 0.8225
+  type: 'test'
+  ...
+# Subtest: attachment csv retains multiline quoted cells without evaluating formula
+ok 25 - attachment csv retains multiline quoted cells without evaluating formula
+  ---
+  duration_ms: 0.859333
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "a\\"b,c"
+ok 26 - attachment malformed CSV "a\\"b,c"
+  ---
+  duration_ms: 0.795
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "\\"a\\"x,c"
+ok 27 - attachment malformed CSV "\\"a\\"x,c"
+  ---
+  duration_ms: 0.45875
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "\\"unclosed"
+ok 28 - attachment malformed CSV "\\"unclosed"
+  ---
+  duration_ms: 0.546792
+  type: 'test'
+  ...
+# Subtest: attachment CSV cap reports missing rows
+ok 29 - attachment CSV cap reports missing rows
+  ---
+  duration_ms: 1.397791
+  type: 'test'
+  ...
+# Subtest: attachment verification binds bytes and rejects missing coverage
+ok 30 - attachment verification binds bytes and rejects missing coverage
+  ---
+  duration_ms: 5.403042
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 29
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4213.214627

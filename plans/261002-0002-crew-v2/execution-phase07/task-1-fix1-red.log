@@ -1,0 +1,20 @@
+{"level":30,"time":1791039598735,"pid":85773,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:63804"}
+active-request-ready={"registryPath":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-rQ0uCK/registry.json","apiOrigin":"http://127.0.0.1:63804","resources":[{"kind":"scratch","id":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-rQ0uCK","ownershipNonce":"f8a13ac4-e563-44af-9a1f-1d766b6a8b89","startIdentity":"16777229:64643099"},{"kind":"container","id":"440c373e4732fb8d56cc05d58abfe682f894698ab03898a54062bfeb2233a45a","ownershipNonce":"f8a13ac4-e563-44af-9a1f-1d766b6a8b89","startIdentity":"440c373e4732fb8d56cc05d58abfe682f894698ab03898a54062bfeb2233a45a:2026-10-03T14:59:57.126231174Z"},{"kind":"database","id":"crew_v2_test_dfa151af876b49909f5e6e5a9d0fbb60","ownershipNonce":"f8a13ac4-e563-44af-9a1f-1d766b6a8b89","startIdentity":"440c373e4732fb8d56cc05d58abfe682f894698ab03898a54062bfeb2233a45a:16385"},{"kind":"listener","id":"web:63803","ownershipNonce":"f8a13ac4-e563-44af-9a1f-1d766b6a8b89","startIdentity":"85773:Sat Oct  3 21:59:56 2026:web:63803:f8a13ac4-e563-44af-9a1f-1d766b6a8b89"},{"kind":"listener","id":"api:63804","ownershipNonce":"f8a13ac4-e563-44af-9a1f-1d766b6a8b89","startIdentity":"85773:Sat Oct  3 21:59:56 2026:api:63804:f8a13ac4-e563-44af-9a1f-1d766b6a8b89"}]}
+✖ request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ (7109.6835ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7375.1115
+
+✖ failing tests:
+
+test at test/fixture-lifecycle.test.ts:149:1
+✖ request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ (7109.6835ms)
+  Error: ACTIVE_REQUEST_CLOSE_DEADLINE
+      at Timeout.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/web/test/fixture-lifecycle.test.ts:158:43)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7)

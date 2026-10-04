@@ -1,0 +1,11 @@
+scratch-timeout-ready={"scratchPath":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-fix2-ZAGNfP","registryPath":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-fix2-ZAGNfP/registry.json","startIdentity":"16777229:64675993"}
+scratch-timeout-own-cleanup={"scratchPath":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-fix2-ZAGNfP","absent":true}
+✔ unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry (274.157625ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 952.808292

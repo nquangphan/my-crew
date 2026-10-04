@@ -1,0 +1,6 @@
+{"action": "create", "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-native-link-idge8t7f", "dev": 16777229, "ino": 63490097, "uid": 501}
+{"command": ["/usr/bin/clang", "-fobjc-arc", "-Wall", "-Wextra", "-Werror", "v2/gateway/src/models/security-keychain.m", "-framework", "Foundation", "-framework", "Security", "-framework", "LocalAuthentication", "-o", "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-native-link-idge8t7f/security-keychain"], "exit": 0, "execution": "NOT_EXECUTED"}
+
+
+{"binarySha256": "c8f61542a46b0ca87088f6a2ae127ab854a34e82857d8d25b94ceb680edb1c4a", "byteSize": 52832}
+{"action": "removed", "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-native-link-idge8t7f", "dev": 16777229, "ino": 63490097, "uid": 501}

@@ -1,0 +1,19 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-claim-race-slwbjvq8/v2/server", "exec", "node", "--test", "--test-name-pattern=actual publication", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-claim-race-slwbjvq8/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-87d39e76-d185-4841-b14b-b45a220d3623", "--label", "crew.phase05.task3=e3c62ef8-c142-43a1-8172-365deb79f91d", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "75806ecd71b73b79cc0b22ac999d1ac5a35c89fed71fba690772b71303133903", "name": "crew-v2-test-87d39e76-d185-4841-b14b-b45a220d3623", "mapping": "127.0.0.1:49504"}
+attachment DB container 75806ecd71b73b79cc0b22ac999d1ac5a35c89fed71fba690772b71303133903 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eEFf4K
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eEFf4K nonceSha256=934d98a5013712c95e0d9fdfe1f3443bf74d9e5dae4ce0433384b1c48dc1c350
+attachment DB scratch identity dev=16777229 ino=64113271 uid=501 pid=52271
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eEFf4K
+attachment DB container 75806ecd71b73b79cc0b22ac999d1ac5a35c89fed71fba690772b71303133903 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QdVcgP
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QdVcgP nonceSha256=0aad7a3df4bb26ca8bd7ec2c4883146158b4f2c6697808aeb385dc43b3820cd7
+attachment DB scratch identity dev=16777229 ino=64113304 uid=501 pid=52271
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QdVcgP
+✔ actual publication and persisted 005 claim serialize in both winning orders across two pools (1668.767875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1850.962167

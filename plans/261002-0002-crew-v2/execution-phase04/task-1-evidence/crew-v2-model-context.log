@@ -1,0 +1,39 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts
+
+model-fixture-container {"containerId":"6e713cca9a8b1ce221be3aeb809f8330557e1a50168e83eed497961d096239a4","url":"postgres://postgres@127.0.0.1:55043/crew_v2_test"}
+{"level":30,"time":1790919520352,"pid":86322,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:55059"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (556.62325ms)
+✖ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (548.908459ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1292.508708
+
+✖ failing tests:
+
+test at test/model-certification.test.ts:106:1
+✖ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (548.908459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 200
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts:419:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-certification.test.ts:107:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

@@ -1,0 +1,28 @@
+✖ workflow real Superpowers API preserves exact official scripts and pins tool policy (2560.050125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2637.836167
+
+✖ failing tests:
+
+test at test/workflow-build.test.ts:73:1
+✖ workflow real Superpowers API preserves exact official scripts and pins tool policy (2560.050125ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert(policy.scripts.some((entry                  ) => entry.path === path))
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-build.test.ts:101:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

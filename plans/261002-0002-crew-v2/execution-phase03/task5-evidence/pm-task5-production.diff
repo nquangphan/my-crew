@@ -1,0 +1,1425 @@
+diff --git a/v2/gateway/src/commands/contracts.ts b/v2/gateway/src/commands/contracts.ts
+new file mode 100644
+index 0000000..4165a0b
+--- /dev/null
++++ b/v2/gateway/src/commands/contracts.ts
+@@ -0,0 +1,83 @@
++import type { ProjectionPin, Runtime, SourcePin, Workflow, WorkflowStatus } from '../host/status.ts';
++export type DomainPin = { workflow: Workflow; version: string; revision: string; checksum: string };
++export const toDomainPin = (source: SourcePin): DomainPin => ({
++  workflow: source.name,
++  version: source.version,
++  revision: source.sourceRevision,
++  checksum: source.sourceTreeSha256,
++});
++export type GatewayConfig = {
++  revision: number;
++  desired: Record<Workflow, { source: SourcePin; projections: Record<Runtime, ProjectionPin | null> }>;
++  maxJobs: number;
++  enabled: boolean;
++};
++export type Inventory = Record<Workflow, WorkflowStatus>;
++export type InstallReport = {
++  reportId: string;
++  bootId: string;
++  bootGeneration: string;
++  configRevision: number;
++  reportedAt: string;
++  results: Inventory;
++};
++export type GatewayCommand = {
++  id: string;
++  machineId: string;
++  type: string;
++  payload: Record<string, unknown>;
++  state: string;
++  result: unknown;
++  cursor: string;
++};
++export type Selection = {
++  runtime: Runtime;
++  sourceTreeSha256: string;
++  projectionManifestSha256: string;
++  projectionTreeSha256: string;
++  installReportId: string;
++  configRevision: number;
++  decisionId: string;
++};
++export type Command = {
++  id: string;
++  machineId: string;
++  ticketId: string;
++  type: string;
++  payload: Record<string, unknown>;
++  state: string;
++  result: unknown;
++};
++export type Permit = {
++  commandId: string;
++  ticketId: string;
++  machineId: string;
++  bindingRevision: number;
++  ticketRevision: number;
++  workflow: DomainPin;
++  checkedAt: string;
++  expiresAt: string;
++  telemetryId: string;
++  decisionId: string;
++};
++export type ResultInput = {
++  fence: string;
++  processInstanceId: string;
++  outcome: 'passed' | 'retry' | 'needs_input';
++  evidenceIds: string[];
++  reason: string | null;
++};
++export type Attempt = {
++  id: string;
++  commandId: string;
++  machineId: string;
++  ticketId: string;
++  fence: string;
++  processInstanceId: string;
++  state: 'active' | 'uncertain' | 'finalizing' | 'stopped';
++  workflowPin: DomainPin;
++  finalizedAt: string | null;
++  stoppedAt: string | null;
++  terminalResult: ResultInput | null;
++};
++export type ReadTransport = (route: string) => Promise<unknown>;
+diff --git a/v2/gateway/src/commands/http-client.ts b/v2/gateway/src/commands/http-client.ts
+new file mode 100644
+index 0000000..18d0cb5
+--- /dev/null
++++ b/v2/gateway/src/commands/http-client.ts
+@@ -0,0 +1,84 @@
++import type { HttpOperationJournal, HttpTransport } from '../journal/http-operations.ts';
++export class GatewayHttpError extends Error {
++  readonly status: number;
++  constructor(status: number, body: unknown) {
++    super((body as { error?: { code?: string } })?.error?.code ?? `HTTP_${status}`);
++    this.status = status;
++  }
++}
++export async function mutate<T>(
++  http: HttpOperationJournal,
++  operationId: string,
++  route: string,
++  phase: string,
++  body: unknown,
++): Promise<T> {
++  await http.prepare({ operationId, method: 'POST', route, phase, canonicalBody: body });
++  const response = await http.replay(operationId);
++  if (response.status < 200 || response.status >= 300)
++    throw new GatewayHttpError(response.status, response.body);
++  return response.body as T;
++}
++/** Bearer lives only in transport closure, never durable request bodies. */
++export function machineTransport(baseUrl: string, bearer: string, transport: typeof fetch = fetch) {
++  const base = new URL(baseUrl);
++  if (base.protocol !== 'https:' && !(base.protocol === 'http:' && base.hostname === '127.0.0.1'))
++    throw new Error('UNSAFE_SERVER_URL');
++  const request = async (route: string, method: string, body?: unknown, key?: string) => {
++    if (!route.startsWith('/v2/') || route.includes('..') || route.startsWith('//'))
++      throw new Error('UNSAFE_SERVER_ROUTE');
++    const response = await transport(new URL(route, base), {
++      method,
++      redirect: 'error',
++      signal: AbortSignal.timeout(30000),
++      headers: {
++        authorization: `Bearer ${bearer}`,
++        ...(key ? { 'idempotency-key': key } : {}),
++        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
++      },
++      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
++    });
++    return { status: response.status, body: await response.json() };
++  };
++  const write: HttpTransport = (req) => request(req.route, req.method, req.canonicalBody, req.idempotencyKey);
++  async function* stream(after: string, signal: AbortSignal) {
++    if (!/^(0|[1-9][0-9]*)$/.test(after)) throw new Error('INVALID_EVENT_CURSOR');
++    const response = await transport(new URL(`/v2/events/stream?after=${after}`, base), {
++      redirect: 'error',
++      signal,
++      headers: { authorization: `Bearer ${bearer}`, accept: 'text/event-stream' },
++    });
++    if (response.status !== 200 || !response.body) throw new GatewayHttpError(response.status, {});
++    const reader = response.body.getReader(),
++      decoder = new TextDecoder();
++    let buffer = '';
++    try {
++      for (;;) {
++        const next = await reader.read();
++        if (next.done) break;
++        buffer += decoder.decode(next.value, { stream: true });
++        if (buffer.length > 65536) throw new Error('EVENT_FRAME_TOO_LARGE');
++        for (;;) {
++          const boundary = buffer.indexOf('\n\n');
++          if (boundary < 0) break;
++          const frame = buffer.slice(0, boundary);
++          buffer = buffer.slice(boundary + 2);
++          const id = /^id: ?([0-9]+)$/m.exec(frame)?.[1];
++          if (id) yield id;
++        }
++      }
++    } finally {
++      await reader.cancel();
++      reader.releaseLock();
++    }
++  }
++  return {
++    write,
++    stream,
++    read: async (route: string) => {
++      const r = await request(route, 'GET');
++      if (r.status !== 200) throw new GatewayHttpError(r.status, r.body);
++      return r.body;
++    },
++  };
++}
+diff --git a/v2/gateway/src/execution/ticket-command-bridge.ts b/v2/gateway/src/execution/ticket-command-bridge.ts
+new file mode 100644
+index 0000000..1ae5668
+--- /dev/null
++++ b/v2/gateway/src/execution/ticket-command-bridge.ts
+@@ -0,0 +1,467 @@
++import { randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import {
++  type Attempt,
++  type Command,
++  type Permit,
++  type ReadTransport,
++  type ResultInput,
++  type Selection,
++  toDomainPin,
++} from '../commands/contracts.ts';
++import { mutate } from '../commands/http-client.ts';
++import { AtomicRecords, canonicalJson } from '../journal/atomic-records.ts';
++import type { HttpOperationJournal } from '../journal/http-operations.ts';
++import {
++  type AttemptProjectionPin,
++  Launcher,
++  type LauncherOptions,
++  type LaunchInput,
++  type LaunchRecord,
++  type ProcessJournal,
++} from '../journal/process-journal.ts';
++import type { WorkflowRegistry } from '../workflows/registry.ts';
++
++const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
++type BridgeRecord = {
++  formatVersion: 1;
++  command: Command;
++  selection: Selection;
++  permit: Permit;
++  input: LaunchInput;
++  attemptId: string | null;
++  released: boolean;
++  finalizeOp?: string | null;
++  runningOp?: string | null;
++  stopReason?: 'exit' | 'pause' | 'cancel';
++};
++export type BridgeOptions = {
++  machineId: string;
++  journal: ProcessJournal;
++  registry: WorkflowRegistry;
++  http: HttpOperationJournal;
++  read: ReadTransport;
++  permit?: (command: Command) => Promise<Permit>;
++  command?: string[];
++  recheckCapacity?: () => Promise<boolean>;
++  onDurableStage?: LauncherOptions['onDurableStage'];
++};
++export class TicketCommandBridge {
++  private readonly store: AtomicRecords;
++  private readonly options: BridgeOptions;
++  private readonly launcher: Launcher;
++  private constructor(store: AtomicRecords, options: BridgeOptions) {
++    this.store = store;
++    this.options = options;
++    this.launcher = new Launcher(options.journal, {
++      command: options.command,
++      recheckCapacity: options.recheckCapacity,
++      onDurableStage: options.onDurableStage,
++      verifyProjection: async (record, fence, attemptId) => {
++        const local = await this.store.get<BridgeRecord>(this.key(record.commandId));
++        if (!local || local.attemptId !== attemptId) throw new Error('ATTEMPT_MISMATCH');
++        const attempt = await this.current(local);
++        if (attempt.fence !== fence || attempt.state !== 'active') throw new Error('ATTEMPT_NOT_ACTIVE');
++        return this.companion(local, attempt);
++      },
++    });
++  }
++  static async open(root: string, options: BridgeOptions) {
++    const bridge = new TicketCommandBridge(await AtomicRecords.open(join(root, 'ticket-bridge')), options);
++    await options.journal.bindPinRetirementAuthority(async (record) => {
++      const local = await bridge.local(record.commandId),
++        attempt = await bridge.current(local),
++        pin = record.authorization;
++      if (
++        !pin ||
++        attempt.state !== 'stopped' ||
++        !attempt.finalizedAt ||
++        !attempt.stoppedAt ||
++        attempt.fence !== pin.fence ||
++        !same(pin, bridge.expectedCompanion(local, attempt))
++      )
++        throw new Error('FINALIZATION_MISMATCH');
++      return {
++        attemptId: attempt.id,
++        commandId: attempt.commandId,
++        ticketId: attempt.ticketId,
++        fence: attempt.fence,
++        processInstanceId: attempt.processInstanceId,
++        workflowPin: attempt.workflowPin,
++        state: 'stopped',
++        finalizedAt: attempt.finalizedAt,
++        projection: pin,
++      };
++    });
++    return bridge;
++  }
++  private key(id: string) {
++    return `${this.options.machineId}:${id}`;
++  }
++  private async storedCommand(id: string) {
++    const command = (await this.options.read(`/v2/machine/commands/${id}`)) as Command;
++    if (command.machineId !== this.options.machineId || command.id !== id)
++      throw new Error('COMMAND_SCOPE_MISMATCH');
++    return command;
++  }
++  async reserve(command: Command): Promise<LaunchRecord> {
++    return this.store.transaction(async () => {
++      const current = await this.storedCommand(command.id);
++      if (
++        !same(current.payload, command.payload) ||
++        current.ticketId !== command.ticketId ||
++        current.type !== command.type
++      )
++        throw new Error('COMMAND_CHANGED');
++      let local = await this.store.get<BridgeRecord>(this.key(command.id));
++      if (!local) {
++        if (!this.options.permit) throw new Error('DISPATCH_NOT_CONFIGURED');
++        const permit = await this.options.permit(current),
++          selection = current.payload.selection as Selection;
++        if (
++          !selection ||
++          !['claude', 'codex', 'api'].includes(selection.runtime) ||
++          selection.decisionId !== permit.decisionId ||
++          permit.commandId !== current.id ||
++          permit.ticketId !== current.ticketId ||
++          permit.machineId !== this.options.machineId
++        )
++          throw new Error('SELECTION_MISMATCH');
++        const source = await this.options.registry.current(permit.workflow.workflow);
++        if (
++          !source ||
++          !same(toDomainPin(source), permit.workflow) ||
++          source.sourceTreeSha256 !== selection.sourceTreeSha256
++        )
++          throw new Error('SOURCE_MISMATCH');
++        const projection = (await this.options.read('/v2/gateway/config')) as {
++          desired?: Record<string, { source: typeof source; projections: Record<string, unknown> }>;
++        };
++        const desired = projection.desired?.[source.name];
++        const selected = desired?.projections[selection.runtime] as LaunchInput['projection'] | null;
++        if (
++          !desired ||
++          !same(desired.source, source) ||
++          !selected ||
++          selected.manifestSha256 !== selection.projectionManifestSha256 ||
++          selected.treeSha256 !== selection.projectionTreeSha256
++        )
++          throw new Error('PROJECTION_UNAVAILABLE');
++        await this.options.registry.resolve(source, selected);
++        local = {
++          formatVersion: 1,
++          command: current,
++          selection: structuredClone(selection),
++          permit: structuredClone(permit),
++          input: {
++            commandId: current.id,
++            ticketId: current.ticketId,
++            processInstanceId: randomUUID(),
++            source,
++            projection: selected,
++          },
++          attemptId: null,
++          released: false,
++        };
++        await this.store.put(this.key(current.id), local);
++      }
++      if (!same(current.payload.selection, local.selection)) throw new Error('SELECTION_MISMATCH');
++      return this.options.journal.reserve(local.input);
++    });
++  }
++  private validateAttempt(local: BridgeRecord, attempt: Attempt) {
++    if (
++      !attempt ||
++      attempt.commandId !== local.command.id ||
++      attempt.ticketId !== local.command.ticketId ||
++      attempt.machineId !== this.options.machineId ||
++      attempt.processInstanceId !== local.input.processInstanceId ||
++      !same(attempt.workflowPin, toDomainPin(local.input.source)) ||
++      !/^\d+$/.test(attempt.fence)
++    )
++      throw new Error('ATTEMPT_MISMATCH');
++    if (local.attemptId && attempt.id !== local.attemptId) throw new Error('ATTEMPT_MISMATCH');
++  }
++  private async current(local: BridgeRecord): Promise<Attempt> {
++    const command = await this.storedCommand(local.command.id);
++    if (!same(command.payload.selection, local.selection)) throw new Error('SELECTION_MISMATCH');
++    if (!local.attemptId) throw new Error('CLAIM_UNCONFIRMED');
++    const attempt = (await this.options.read(`/v2/machine/attempts/${local.attemptId}`)) as Attempt;
++    this.validateAttempt(local, attempt);
++    return attempt;
++  }
++  private expectedCompanion(local: BridgeRecord, attempt: Attempt): AttemptProjectionPin {
++    return {
++      attemptId: attempt.id,
++      fence: attempt.fence,
++      processInstanceId: local.input.processInstanceId,
++      sourceTreeSha256: local.selection.sourceTreeSha256,
++      runtime: local.selection.runtime,
++      projectionManifestSha256: local.selection.projectionManifestSha256,
++      projectionTreeSha256: local.selection.projectionTreeSha256,
++      installReportId: local.selection.installReportId,
++    };
++  }
++  private async companion(local: BridgeRecord, attempt: Attempt): Promise<AttemptProjectionPin> {
++    const expected = this.expectedCompanion(local, attempt);
++    const { attemptId: _id, ...body } = expected;
++    const pin = await mutate<AttemptProjectionPin>(
++      this.options.http,
++      `${this.key(local.command.id)}:projection`,
++      `/v2/gateway/attempts/${attempt.id}/projection`,
++      'projection',
++      body,
++    );
++    if (!same(pin, expected)) throw new Error('PROJECTION_CONFLICT');
++    // Cached POST is followed by fresh scoped attempt+command reads before RELEASE.
++    const current = await this.current(local);
++    if (current.fence !== attempt.fence || current.state !== 'active') throw new Error('ATTEMPT_NOT_ACTIVE');
++    return pin;
++  }
++  async handle(command: Command): Promise<void> {
++    if (command.type === 'pause' || command.type === 'cancel') return this.stopCommand(command);
++    if (command.type === 'reconcile') {
++      const current = await this.storedCommand(command.id);
++      if (
++        !same(current.payload, command.payload) ||
++        current.type !== command.type ||
++        current.ticketId !== command.ticketId
++      )
++        throw new Error('COMMAND_CHANGED');
++      await this.ackTicket(command.id, 'received');
++      await this.reconcileOwned();
++      await this.ackTicket(command.id, 'completed');
++      return;
++    }
++    if (!['start', 'resume'].includes(command.type)) throw new Error('UNSUPPORTED_COMMAND');
++    const record = await this.reserve(command);
++    await this.store.transaction(async () => {
++      const local = (await this.store.get<BridgeRecord>(this.key(command.id)))!;
++      if (local.released) {
++        await this.current(local);
++        await this.options.journal.observe(record);
++        await this.ackTicket(command.id, 'completed');
++        return;
++      }
++      await this.ackTicket(command.id, 'received');
++      const ready = await this.options.journal.ready(record);
++      if (!ready) await this.launcher.spawnGated(record);
++      if ((await this.options.journal.observe(record)) !== 'running') throw new Error('PROCESS_UNKNOWN');
++      const response = await mutate<Attempt>(
++        this.options.http,
++        `${this.key(command.id)}:claim`,
++        `/v2/machine/commands/${command.id}/claim`,
++        'claim',
++        { processInstanceId: record.processInstanceId, permit: local.permit },
++      );
++      this.validateAttempt(local, response);
++      local.attemptId = response.id;
++      await this.store.put(this.key(command.id), local);
++      const attempt = await this.current(local);
++      if (attempt.state !== 'active') throw new Error('ATTEMPT_NOT_ACTIVE');
++      await this.companion(local, attempt);
++      await this.launcher.release(record, attempt.fence, attempt.id);
++      local.released = true;
++      await this.store.put(this.key(command.id), local);
++      await this.ackTicket(command.id, 'completed');
++    });
++  }
++  async reconnect(): Promise<void> {
++    // UUID after is a page anchor: reset null on every pass, never persist as event cursor.
++    let after: string | null = null;
++    for (;;) {
++      const page = (await this.options.read(
++        `/v2/machine/commands?limit=50${after ? `&after=${after}` : ''}`,
++      )) as { items: Command[]; nextCursor: string | null };
++      for (const command of page.items) await this.handle(command);
++      if (!page.nextCursor) break;
++      if (page.nextCursor === after) throw new Error('COMMAND_CURSOR_STUCK');
++      after = page.nextCursor;
++    }
++    await this.reconcileOwned();
++  }
++  private async reconcileOwned() {
++    for (const local of await this.store.all<BridgeRecord>()) {
++      if (!local.attemptId) continue;
++      const attempt = await this.current(local),
++        record = await this.options.journal.byInstance(local.input.processInstanceId);
++      if (!record) throw new Error('PROCESS_UNKNOWN');
++      if (await this.options.journal.pinRetirement(record)) continue;
++      const observation = await this.options.journal.observe(record);
++      if (observation === 'running' && attempt.state === 'uncertain')
++        await this.reconcileObservation(local, attempt, 'running', null);
++      if (observation === 'stopped' && attempt.state !== 'stopped')
++        await this.reconcileObservation(local, attempt, 'stopped', local.stopReason ?? 'exit');
++      if (observation === 'stopped' && attempt.state === 'stopped' && attempt.finalizedAt)
++        await this.retire(local.command.id);
++    }
++  }
++  private async ackTicket(id: string, phase: 'received' | 'completed') {
++    await mutate(
++      this.options.http,
++      `${this.key(id)}:${phase}`,
++      `/v2/machine/commands/${id}/ack`,
++      `ticket-${phase}`,
++      phase === 'received' ? { phase } : { phase, result: { ok: true } },
++    );
++    await this.storedCommand(id);
++  }
++  private async reconcileObservation(
++    local: BridgeRecord,
++    attempt: Attempt,
++    observation: 'running' | 'stopped',
++    stopReason: 'exit' | 'pause' | 'cancel' | null,
++  ) {
++    if (observation === 'running' && !local.runningOp) {
++      local.runningOp = randomUUID();
++      await this.store.put(this.key(local.command.id), local);
++    }
++    const operationId =
++      observation === 'running' ? local.runningOp! : `${this.key(local.command.id)}:reconcile:stopped`;
++    await mutate(
++      this.options.http,
++      operationId,
++      `/v2/machine/attempts/${attempt.id}/reconcile`,
++      'reconcile',
++      {
++        fence: attempt.fence,
++        processInstanceId: attempt.processInstanceId,
++        observation,
++        artifacts: [],
++        stopReason,
++      },
++    );
++    const current = await this.current(local);
++    if (observation === 'running') {
++      local.runningOp = null;
++      await this.store.put(this.key(local.command.id), local);
++    }
++    return current;
++  }
++  async reportStopped(commandId: string, reason: 'exit' | 'pause' | 'cancel' = 'exit') {
++    const local = await this.local(commandId),
++      attempt = await this.current(local),
++      record = (await this.options.journal.byInstance(local.input.processInstanceId))!;
++    if (!record || (await this.options.journal.observe(record)) !== 'stopped')
++      throw new Error('EXACT_EXIT_PROOF_REQUIRED');
++    if (local.stopReason && local.stopReason !== reason) throw new Error('STOP_REASON_CONFLICT');
++    local.stopReason = reason;
++    await this.store.put(this.key(commandId), local);
++    return this.reconcileObservation(local, attempt, 'stopped', reason);
++  }
++  private async local(commandId: string) {
++    const local = await this.store.get<BridgeRecord>(this.key(commandId));
++    if (!local) throw new Error('UNKNOWN_COMMAND');
++    return local;
++  }
++  async result(commandId: string, input: ResultInput) {
++    const local = await this.local(commandId),
++      attempt = await this.current(local);
++    if (input.fence !== attempt.fence || input.processInstanceId !== attempt.processInstanceId)
++      throw new Error('STALE_FENCE');
++    await mutate(
++      this.options.http,
++      `${this.key(commandId)}:result`,
++      `/v2/machine/attempts/${attempt.id}/result`,
++      'result',
++      input,
++    );
++    return this.current(local);
++  }
++  async finalize(commandId: string) {
++    return this.store.transaction(async () => {
++      const local = await this.local(commandId),
++        attempt = await this.current(local);
++      if (!attempt.terminalResult || !attempt.stoppedAt) throw new Error('FINAL_RESULT_PENDING');
++      if (!local.finalizeOp) {
++        local.finalizeOp = randomUUID();
++        await this.store.put(this.key(commandId), local);
++      }
++      await mutate(
++        this.options.http,
++        local.finalizeOp,
++        `/v2/machine/attempts/${attempt.id}/finalize`,
++        'finalize',
++        { fence: attempt.fence, processInstanceId: attempt.processInstanceId },
++      );
++      const current = await this.current(local);
++      local.finalizeOp = null;
++      await this.store.put(this.key(commandId), local);
++      return current;
++    });
++  }
++  async checkpoint(
++    commandId: string,
++    input: {
++      fence: string;
++      processInstanceId: string;
++      sequence: string;
++      step: string;
++      artifactIds: string[];
++      commit: string | null;
++    },
++  ) {
++    const local = await this.local(commandId),
++      attempt = await this.current(local);
++    await mutate(
++      this.options.http,
++      `${this.key(commandId)}:checkpoint:${input.sequence}`,
++      `/v2/machine/attempts/${attempt.id}/checkpoint`,
++      'checkpoint',
++      input,
++    );
++    return this.current(local);
++  }
++  private async stopCommand(command: Command) {
++    return this.store.transaction(async () => {
++      const current = await this.storedCommand(command.id);
++      if (
++        !same(current.payload, command.payload) ||
++        current.type !== command.type ||
++        current.ticketId !== command.ticketId
++      )
++        throw new Error('COMMAND_CHANGED');
++      const target = command.payload.attemptId;
++      const local = (await this.store.all<BridgeRecord>()).find((record) => record.attemptId === target);
++      if (!local || command.ticketId !== local.command.ticketId) throw new Error('OWNED_ATTEMPT_REQUIRED');
++      const attempt = await this.current(local);
++      const record = await this.options.journal.byInstance(attempt.processInstanceId);
++      if (!record) throw new Error('PROCESS_UNKNOWN');
++      await this.ackTicket(command.id, 'received');
++      const reason = command.type as 'pause' | 'cancel';
++      if (local.stopReason && local.stopReason !== reason) throw new Error('STOP_REASON_CONFLICT');
++      local.stopReason = reason;
++      await this.store.put(this.key(local.command.id), local);
++      if (await this.options.journal.pinRetirement(record)) {
++        await this.retire(local.command.id);
++      } else {
++        const observation = await this.options.journal.observe(record);
++        if (observation === 'unknown') throw new Error('PROCESS_UNKNOWN');
++        if (observation === 'running') {
++          const ready = await this.options.journal.ready(record);
++          if (!ready) throw new Error('PROCESS_UNKNOWN');
++          process.kill(-ready.processGroupId, 'SIGTERM');
++          await this.launcher.wait(record);
++        }
++        await this.reportStopped(local.command.id, reason);
++      }
++      await this.ackTicket(command.id, 'completed');
++    });
++  }
++  async retire(commandId: string) {
++    const local = await this.local(commandId);
++    const record = await this.options.journal.byInstance(local.input.processInstanceId);
++    if (!record) throw new Error('UNKNOWN_LAUNCH');
++    return this.options.journal.retirePinReference(record);
++  }
++  async wait(commandId: string) {
++    const local = await this.local(commandId);
++    const record = await this.options.journal.byInstance(local.input.processInstanceId);
++    if (!record) throw new Error('UNKNOWN_LAUNCH');
++    await this.launcher.wait(record);
++  }
++  async close() {
++    await this.launcher.close();
++    await this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/journal/gated-helper.ts b/v2/gateway/src/journal/gated-helper.ts
+index c127028..f6c3a4c 100644
+--- a/v2/gateway/src/journal/gated-helper.ts
++++ b/v2/gateway/src/journal/gated-helper.ts
+@@ -1,3 +1,4 @@
++import type { ChildProcess } from 'node:child_process';
+ import { access } from 'node:fs/promises';
+ import { join } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+@@ -14,7 +15,9 @@ let released = false;
+ let releaseRequested = false;
+ let initializing = false;
+ let gateClosed = false;
+-process.on('disconnect', async () => {
++let stopRequested = false;
++let supervisor: ChildProcess | null = null;
++const closeUnreleasedGate = async () => {
+   gateClosed = true;
+   if (!released) {
+     try {
+@@ -30,6 +33,12 @@ process.on('disconnect', async () => {
+       process.exit(0);
+     }
+   }
++};
++process.on('disconnect', closeUnreleasedGate);
++process.on('SIGTERM', () => {
++  stopRequested = true;
++  if (!released) void closeUnreleasedGate();
++  else if (supervisor?.exitCode === null && supervisor.signalCode === null) supervisor.kill('SIGTERM');
+ });
+ process.on(
+   'message',
+@@ -88,6 +97,7 @@ process.on(
+         const releasedReady = ready;
+         released = true;
+         const child = await identity.supervise(command);
++        supervisor = child;
+         let output = '';
+         child.stdout?.on('data', (chunk) => {
+           output += chunk;
+@@ -95,6 +105,7 @@ process.on(
+         });
+         child.once('error', () => process.exit(1));
+         child.once('close', async (code) => {
++          supervisor = null;
+           try {
+             if (code !== 0) throw new Error('TREE_UNKNOWN');
+             const proof = JSON.parse(output);
+@@ -112,6 +123,7 @@ process.on(
+             process.exit(1);
+           }
+         });
++        if (stopRequested && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+       }
+     } catch {
+       process.exit(1);
+diff --git a/v2/gateway/src/journal/native-identity.c b/v2/gateway/src/journal/native-identity.c
+index 23f63ba..02050a6 100644
+--- a/v2/gateway/src/journal/native-identity.c
++++ b/v2/gateway/src/journal/native-identity.c
+@@ -9,10 +9,37 @@
+ #include <sys/wait.h>
+ #include <fcntl.h>
+ #include <errno.h>
++#include <signal.h>
++
++static volatile sig_atomic_t supervised_child=0;
++static void request_stop(int signo){
++  (void)signo;
++  int saved_errno=errno;
++  pid_t child=(pid_t)supervised_child;
++  if(child>0)kill(child,SIGTERM);
++  errno=saved_errno;
++}
++/* Block and disarm before waitpid can make this PID reusable. */
++static pid_t reap_child(pid_t child,int *status,const sigset_t *mask){
++  if(sigprocmask(SIG_BLOCK,mask,NULL)<0)return -1;
++  supervised_child=0;
++  pid_t waited;
++  do{waited=waitpid(child,status,0);}while(waited<0&&errno==EINTR);
++  return waited;
++}
+ /* macOS NOTE_TRACK is unsupported: any fork makes full-tree proof unknown.
+    The initial child blocks on a pipe until NOTE_FORK|NOTE_EXIT is armed. */
+ static int supervise(int argc,char **argv){
+   if(argc<3)return 2;
++  sigset_t term_mask,prior_mask;
++  sigemptyset(&term_mask);
++  sigaddset(&term_mask,SIGTERM);
++  if(sigprocmask(SIG_BLOCK,&term_mask,&prior_mask)<0)return 3;
++  struct sigaction action;
++  memset(&action,0,sizeof(action));
++  action.sa_handler=request_stop;
++  sigemptyset(&action.sa_mask);
++  if(sigaction(SIGTERM,&action,NULL)<0)return 3;
+   int gate[2];
+   if(pipe(gate))return 3;
+   int queue=kqueue();
+@@ -20,6 +47,8 @@ static int supervise(int argc,char **argv){
+   pid_t child=fork();
+   if(child<0)return 3;
+   if(child==0){
++    action.sa_handler=SIG_DFL;
++    if(sigaction(SIGTERM,&action,NULL)<0)_exit(126);
+     close(gate[1]);
+     close(queue);
+     char byte;
+@@ -31,22 +60,30 @@ static int supervise(int argc,char **argv){
+     dup2(null,STDOUT_FILENO);
+     dup2(null,STDERR_FILENO);
+     if(null>2)close(null);
++    if(sigprocmask(SIG_SETMASK,&prior_mask,NULL)<0)_exit(126);
+     execvp(argv[2],&argv[2]);
+     _exit(127);
+   }
++  supervised_child=(sig_atomic_t)child;
+   close(gate[0]);
+   struct kevent change;
+   EV_SET(&change,child,EVFILT_PROC,EV_ADD|EV_CLEAR,NOTE_FORK|NOTE_EXIT,0,NULL);
+   if(kevent(queue,&change,1,NULL,0,NULL)<0){
+     close(gate[1]);
+-    waitpid(child,NULL,0);
++    reap_child(child,NULL,&term_mask);
++    close(queue);
++    return 4;
++  }
++  if(sigprocmask(SIG_SETMASK,&prior_mask,NULL)<0){
++    close(gate[1]);
++    reap_child(child,NULL,&term_mask);
+     close(queue);
+     return 4;
+   }
+   char byte=1;
+   if(write(gate[1],&byte,1)!=1){
+     close(gate[1]);
+-    waitpid(child,NULL,0);
++    reap_child(child,NULL,&term_mask);
+     close(queue);
+     return 4;
+   }
+@@ -58,18 +95,14 @@ static int supervise(int argc,char **argv){
+     if(count<0&&errno==EINTR)continue;
+     if(count!=1||(event.flags&EV_ERROR)){
+       close(queue);
+-      waitpid(child,NULL,0);
++      reap_child(child,NULL,&term_mask);
+       return 5;
+     }
+     if(event.fflags&NOTE_FORK)forked=1;
+     if(event.fflags&NOTE_EXIT)exited=1;
+   }
+   int status=0;
+-  pid_t waited;
+-  do{
+-    waited=waitpid(child,&status,0);
+-  }
+-  while(waited<0&&errno==EINTR);
++  pid_t waited=reap_child(child,&status,&term_mask);
+   close(queue);
+   if(waited!=child)return 5;
+   int code=WIFEXITED(status)?WEXITSTATUS(status):128+(WIFSIGNALED(status)?WTERMSIG(status):0);
+diff --git a/v2/gateway/src/journal/process-journal.ts b/v2/gateway/src/journal/process-journal.ts
+index f13b5e8..fcd2b42 100644
+--- a/v2/gateway/src/journal/process-journal.ts
++++ b/v2/gateway/src/journal/process-journal.ts
+@@ -39,6 +39,25 @@ export type AttemptProjectionPin = {
+   projectionTreeSha256: string;
+   installReportId: string;
+ };
++export type FinalizedPinAuthority = {
++  attemptId: string;
++  commandId: string;
++  ticketId: string;
++  fence: string;
++  processInstanceId: string;
++  workflowPin: { workflow: SourcePin['name']; version: string; revision: string; checksum: string };
++  state: 'stopped';
++  finalizedAt: string;
++  projection: AttemptProjectionPin;
++};
++export type PinRetirementReceipt = {
++  formatVersion: 1;
++  launchId: string;
++  input: LaunchInput;
++  authority: FinalizedPinAuthority;
++  stop: StopRecord;
++};
++export type PinRetirementAuthority = (record: Readonly<LaunchRecord>) => Promise<FinalizedPinAuthority>;
+ export type LaunchRecord = LaunchInput & {
+   formatVersion: 1;
+   launchId: string;
+@@ -78,6 +97,7 @@ export class ProcessJournal {
+   readonly identity: ProcessIdentity;
+   private readonly store: AtomicRecords;
+   private pinAuthority: PinAdmissionAuthority | null = null;
++  private retirementAuthority: PinRetirementAuthority | null = null;
+   private constructor(root: string, store: AtomicRecords, identity: ProcessIdentity) {
+     this.root = root;
+     this.store = store;
+@@ -90,6 +110,7 @@ export class ProcessJournal {
+     try {
+       await privateDirectory(join(path, 'proofs'));
+       await privateDirectory(join(path, 'admissions'));
++      await privateDirectory(join(path, 'retirements'));
+       const identity = await ProcessIdentity.open(path, await nativeSource());
+       return new ProcessJournal(path, store, identity);
+     } catch (error) {
+@@ -172,6 +193,7 @@ export class ProcessJournal {
+       const authority = await this.admissionAuthority();
+       const old = await this.store.get<LaunchRecord>(input.commandId);
+       if (old) {
++        if (await this.pinRetirement(old)) throw new Error('PIN_REFERENCE_RETIRED');
+         const {
+           formatVersion: _v,
+           launchId: _id,
+@@ -222,6 +244,7 @@ export class ProcessJournal {
+       stored.processInstanceId !== record.processInstanceId
+     )
+       throw new Error('UNKNOWN_LAUNCH');
++    if (await this.pinRetirement(stored)) throw new Error('PIN_REFERENCE_RETIRED');
+     const immutable = (r: LaunchRecord) => ({
+       commandId: r.commandId,
+       ticketId: r.ticketId,
+@@ -306,6 +329,104 @@ export class ProcessJournal {
+   async markStopped(record: LaunchRecord): Promise<void> {
+     if ((await this.observe(record)) !== 'stopped') throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+   }
++  /** Trusted host composition only. The verifier must perform current scoped authenticated
++   * 005 reads and verify the stored companion; no cached heartbeat or caller boolean. */
++  async bindPinRetirementAuthority(authority: PinRetirementAuthority): Promise<void> {
++    await this.store.transaction(async () => {
++      this.retirementAuthority = authority;
++    });
++  }
++  async pinRetirement(record: LaunchRecord): Promise<PinRetirementReceipt | null> {
++    const receipt = await readRecord<PinRetirementReceipt>(
++      join(this.root, 'retirements', `${hash(record.launchId)}.json`),
++    );
++    if (!receipt) return null;
++    const stored = await this.store.get<LaunchRecord>(record.commandId);
++    if (
++      !stored ||
++      receipt.launchId !== stored.launchId ||
++      receipt.launchId !== record.launchId ||
++      canonicalJson(receipt.input) !== canonicalJson(this.launchInput(record)) ||
++      !stored.authorization ||
++      canonicalJson(receipt.authority.projection) !== canonicalJson(stored.authorization)
++    )
++      throw new Error('PIN_RETIREMENT_CONFLICT');
++    return receipt;
++  }
++  /** Read only under the registry -> journal barrier for GC; historical processes() is unchanged. */
++  async activePinReferences(): Promise<LaunchRecord[]> {
++    const records = await this.processes(),
++      active: LaunchRecord[] = [];
++    for (const record of records) if (!(await this.pinRetirement(record))) active.push(record);
++    return active;
++  }
++  async retirePinReference(record: LaunchRecord): Promise<PinRetirementReceipt> {
++    if (!this.retirementAuthority) throw new Error('PIN_RETIREMENT_NOT_CONFIGURED');
++    const prior = await this.pinRetirement(record);
++    if (!prior && (await this.observe(record)) !== 'stopped') throw new Error('EXACT_EXIT_PROOF_REQUIRED');
++    return this.store.transaction(async () => {
++      await this.admissionAuthority();
++      const stored = await this.store.get<LaunchRecord>(record.commandId);
++      if (
++        !stored ||
++        stored.launchId !== record.launchId ||
++        canonicalJson(this.launchInput(stored)) !== canonicalJson(this.launchInput(record))
++      )
++        throw new Error('UNKNOWN_LAUNCH');
++      const ready = await readRecord<ReadyRecord>(this.proofPath(stored, 'ready'));
++      const stop = await readRecord<StopRecord>(this.proofPath(stored, 'stopped'));
++      if (
++        !ready ||
++        !stop ||
++        stop.launchId !== stored.launchId ||
++        stop.processInstanceId !== stored.processInstanceId ||
++        stop.startIdentity !== ready.startIdentity ||
++        stop.processGroupId !== ready.processGroupId ||
++        stop.groupEmpty !== true
++      )
++        throw new Error('EXACT_EXIT_PROOF_REQUIRED');
++      const authority = await this.retirementAuthority!(structuredClone(stored));
++      const pin = stored.authorization,
++        source = stored.source;
++      const expectedWorkflow = {
++        workflow: source.name,
++        version: source.version,
++        revision: source.sourceRevision,
++        checksum: source.sourceTreeSha256,
++      };
++      if (
++        !pin ||
++        !authority ||
++        authority.state !== 'stopped' ||
++        typeof authority.finalizedAt !== 'string' ||
++        !Number.isFinite(Date.parse(authority.finalizedAt)) ||
++        authority.attemptId !== pin.attemptId ||
++        authority.commandId !== stored.commandId ||
++        authority.ticketId !== stored.ticketId ||
++        authority.fence !== pin.fence ||
++        authority.processInstanceId !== stored.processInstanceId ||
++        canonicalJson(authority.workflowPin) !== canonicalJson(expectedWorkflow) ||
++        canonicalJson(authority.projection) !== canonicalJson(pin)
++      )
++        throw new Error('FINALIZATION_MISMATCH');
++      const receipt: PinRetirementReceipt = {
++        formatVersion: 1,
++        launchId: stored.launchId,
++        input: this.launchInput(stored),
++        authority: structuredClone(authority),
++        stop,
++      };
++      const old = await this.pinRetirement(stored);
++      if (old) {
++        if (canonicalJson(old) !== canonicalJson(receipt)) throw new Error('PIN_RETIREMENT_CONFLICT');
++        return old;
++      }
++      // Exclusive file + directory fsync precedes any reference filtering. Intents and
++      // LaunchRecord remain durable history; unknown intents never acquire this receipt.
++      await writeExclusiveRecord(join(this.root, 'retirements', `${hash(stored.launchId)}.json`), receipt);
++      return receipt;
++    });
++  }
+   async processes(): Promise<LaunchRecord[]> {
+     return this.store.all<LaunchRecord>();
+   }
+diff --git a/v2/gateway/src/sync/connection.ts b/v2/gateway/src/sync/connection.ts
+new file mode 100644
+index 0000000..3170804
+--- /dev/null
++++ b/v2/gateway/src/sync/connection.ts
+@@ -0,0 +1,86 @@
++import { randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import { mutate } from '../commands/http-client.ts';
++import { AtomicRecords } from '../journal/atomic-records.ts';
++import type { HttpOperationJournal } from '../journal/http-operations.ts';
++
++type ConnectionRecord = {
++  formatVersion: 1;
++  bootId: string;
++  previousGeneration: string;
++  bootGeneration: string | null;
++  sequence: string;
++  heartbeat: { operationId: string; body: Record<string, unknown> } | null;
++};
++export class GatewayConnection {
++  private readonly store: AtomicRecords;
++  private readonly http: HttpOperationJournal;
++  private constructor(store: AtomicRecords, http: HttpOperationJournal) {
++    this.store = store;
++    this.http = http;
++  }
++  static async open(root: string, http: HttpOperationJournal) {
++    return new GatewayConnection(await AtomicRecords.open(join(root, 'server-connection')), http);
++  }
++  async boot(bootId?: string, previousGeneration = '0'): Promise<{ bootId: string; bootGeneration: string }> {
++    return this.store.transaction(async () => {
++      let state = await this.store.get<ConnectionRecord>('current');
++      if (!state) {
++        state = {
++          formatVersion: 1,
++          bootId: bootId ?? randomUUID(),
++          previousGeneration,
++          bootGeneration: null,
++          sequence: '0',
++          heartbeat: null,
++        };
++        await this.store.put('current', state);
++      } else if (bootId && state.bootId !== bootId) throw new Error('BOOT_RECONCILIATION_REQUIRED');
++      const response = await mutate<{ bootGeneration: string }>(
++        this.http,
++        `boot:${state.bootId}`,
++        '/v2/gateway/boots',
++        'boot',
++        { bootId: state.bootId, previousGeneration: state.previousGeneration },
++      );
++      if (!/^[1-9][0-9]*$/.test(response.bootGeneration)) throw new Error('INVALID_BOOT_GENERATION');
++      state.bootGeneration = response.bootGeneration;
++      await this.store.put('current', state);
++      return { bootId: state.bootId, bootGeneration: state.bootGeneration };
++    });
++  }
++  async heartbeat(input: Record<string, unknown>): Promise<unknown> {
++    return this.store.transaction(async () => {
++      const state = await this.store.get<ConnectionRecord>('current');
++      if (!state?.bootGeneration) throw new Error('BOOT_REQUIRED');
++      if (!state.heartbeat) {
++        const sequence = String(BigInt(state.sequence) + 1n);
++        state.heartbeat = {
++          operationId: `heartbeat:${state.bootId}:${sequence}`,
++          body: {
++            ...structuredClone(input),
++            bootId: state.bootId,
++            bootGeneration: state.bootGeneration,
++            sequence,
++          },
++        };
++        await this.store.put('current', state);
++      }
++      const pending = state.heartbeat;
++      const response = await mutate(
++        this.http,
++        pending.operationId,
++        '/v2/gateway/heartbeat',
++        'heartbeat',
++        pending.body,
++      );
++      state.sequence = pending.body.sequence as string;
++      state.heartbeat = null;
++      await this.store.put('current', state);
++      return response;
++    });
++  }
++  close() {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/sync/event-pump.ts b/v2/gateway/src/sync/event-pump.ts
+new file mode 100644
+index 0000000..5090da6
+--- /dev/null
++++ b/v2/gateway/src/sync/event-pump.ts
+@@ -0,0 +1,48 @@
++import { join } from 'node:path';
++import type { ReadTransport } from '../commands/contracts.ts';
++import { AtomicRecords } from '../journal/atomic-records.ts';
++export type EventPumpOptions = {
++  read: ReadTransport;
++  stream?: (after: string, signal: AbortSignal) => AsyncIterable<string>;
++  reconcile: () => Promise<void>;
++};
++/** Stream is a wakeup, commands remain durable server truth. Poll is the reconnect fallback. */
++export class GatewayEventPump {
++  private readonly store: AtomicRecords;
++  private readonly options: EventPumpOptions;
++  private constructor(store: AtomicRecords, options: EventPumpOptions) {
++    this.store = store;
++    this.options = options;
++  }
++  static async open(root: string, options: EventPumpOptions) {
++    return new GatewayEventPump(await AtomicRecords.open(join(root, 'event-sync')), options);
++  }
++  async once(): Promise<void> {
++    await this.store.transaction(async () => {
++      const previous = await this.store.get<{ formatVersion: 1; cursor: string }>('cursor'),
++        after = previous?.cursor ?? '0';
++      let cursor: string | null = null;
++      if (this.options.stream) {
++        try {
++          for await (const id of this.options.stream(after, AbortSignal.timeout(15000))) {
++            cursor = id;
++            break;
++          }
++        } catch {
++          /* Offline SSE falls back to authenticated poll; no cursor advance. */
++        }
++      }
++      if (cursor === null) {
++        const page = (await this.options.read(`/v2/events?after=${after}&limit=50`)) as { cursor: string };
++        cursor = page.cursor;
++      }
++      if (!/^(0|[1-9][0-9]*)$/.test(cursor) || BigInt(cursor) < BigInt(after))
++        throw new Error('INVALID_EVENT_CURSOR');
++      await this.options.reconcile();
++      await this.store.put('cursor', { formatVersion: 1, cursor });
++    });
++  }
++  close() {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/sync/gateway-sync.ts b/v2/gateway/src/sync/gateway-sync.ts
+new file mode 100644
+index 0000000..72c9f11
+--- /dev/null
++++ b/v2/gateway/src/sync/gateway-sync.ts
+@@ -0,0 +1,241 @@
++import { randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import { Readable } from 'node:stream';
++import type {
++  GatewayCommand,
++  GatewayConfig,
++  InstallReport,
++  Inventory,
++  ReadTransport,
++} from '../commands/contracts.ts';
++import { mutate } from '../commands/http-client.ts';
++import type { SlotStatus, SourcePin } from '../host/status.ts';
++import { AtomicRecords, canonicalJson } from '../journal/atomic-records.ts';
++import type { HttpOperationJournal } from '../journal/http-operations.ts';
++import { fetchSource } from '../workflows/fetch.ts';
++import type { ProjectionAudit, WorkflowRegistry } from '../workflows/registry.ts';
++
++const names = ['bmad', 'superpowers'] as const;
++const runtimes = ['claude', 'codex', 'api'] as const;
++const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
++const slot = <T>(installed: T | null = null): SlotStatus<T> => ({
++  state: installed ? 'current' : 'missing',
++  installed,
++  lastError: null,
++  observedAt: installed ? new Date().toISOString() : null,
++});
++const empty = (): Inventory =>
++  Object.fromEntries(
++    names.map((name) => [
++      name,
++      { source: slot(), projections: Object.fromEntries(runtimes.map((r) => [r, slot()])) },
++    ]),
++  ) as Inventory;
++type SyncRecord = {
++  formatVersion: 1;
++  command: GatewayCommand;
++  report: InstallReport | null;
++  completion: { ok: boolean; code?: string } | null;
++  done: boolean;
++  attempts: number;
++  retryAt: number;
++};
++export type SyncOptions = {
++  machineId: string;
++  bootId: string;
++  bootGeneration: string;
++  registry: WorkflowRegistry;
++  http: HttpOperationJournal;
++  read: ReadTransport;
++  recipes: ProjectionAudit[];
++  archive?: (source: SourcePin) => Promise<Readable>;
++  now?: () => number;
++  random?: () => number;
++  reconcileHost?: () => Promise<void>;
++};
++export class GatewaySync {
++  private readonly store: AtomicRecords;
++  private readonly options: SyncOptions;
++  private constructor(store: AtomicRecords, options: SyncOptions) {
++    this.store = store;
++    this.options = options;
++  }
++  static async open(root: string, options: SyncOptions): Promise<GatewaySync> {
++    return new GatewaySync(await AtomicRecords.open(join(root, 'workflow-sync')), options);
++  }
++  private key(id: string) {
++    return `${this.options.machineId}:${id}`;
++  }
++  async reconcile(): Promise<void> {
++    await this.store.transaction(async () => {
++      const desired = (await this.options.read('/v2/gateway/config')) as
++        | GatewayConfig
++        | { desiredConfig: null };
++      const cursor = await this.store.get<{ formatVersion: 1; cursor: string }>('cursor');
++      let after = cursor?.cursor ?? '0';
++      for (;;) {
++        const page = (await this.options.read(`/v2/gateway/commands?after=${after}&limit=50`)) as {
++          items: GatewayCommand[];
++          nextCursor: string;
++        };
++        for (const command of page.items) {
++          if (command.machineId !== this.options.machineId) throw new Error('COMMAND_SCOPE_MISMATCH');
++          // Other namespaces (for example sync_models) have their own typed consumer.
++          if (!['sync_workflows', 'probe', 'reconcile_host'].includes(command.type)) continue;
++          const key = this.key(command.id),
++            old = await this.store.get<SyncRecord>(key);
++          if (!old)
++            await this.store.put(key, {
++              formatVersion: 1,
++              command,
++              report: null,
++              completion: null,
++              done: command.state === 'completed',
++              attempts: 0,
++              retryAt: 0,
++            });
++          else if (!same(old.command.payload, command.payload) || old.command.type !== command.type)
++            throw new Error('COMMAND_CONFLICT');
++        }
++        await this.store.put('cursor', { formatVersion: 1, cursor: page.nextCursor });
++        if (page.items.length < 50 || page.nextCursor === after) break;
++        after = page.nextCursor;
++      }
++      for (const record of await this.store.all<SyncRecord>()) {
++        if (!record.command || record.done) continue;
++        await this.process(record, 'revision' in desired ? desired : null);
++      }
++    });
++  }
++  private async complete(record: SyncRecord, result: { ok: boolean; code?: string }) {
++    record.completion ??= result;
++    await this.store.put(this.key(record.command.id), record);
++    await mutate(
++      this.options.http,
++      `${this.key(record.command.id)}:completed`,
++      `/v2/gateway/commands/${record.command.id}/ack`,
++      'gateway-completed',
++      { phase: 'completed', result: record.completion },
++    );
++    record.done = true;
++    await this.store.put(this.key(record.command.id), record);
++  }
++  private async process(record: SyncRecord, config: GatewayConfig | null) {
++    if (record.completion) return this.complete(record, record.completion);
++    if ((this.options.now ?? Date.now)() < record.retryAt) return;
++    await mutate(
++      this.options.http,
++      `${this.key(record.command.id)}:received`,
++      `/v2/gateway/commands/${record.command.id}/ack`,
++      'gateway-received',
++      { phase: 'received' },
++    );
++    if (record.command.type !== 'sync_workflows') {
++      if (record.command.type === 'reconcile_host') {
++        if (!this.options.reconcileHost)
++          return this.complete(record, { ok: false, code: 'RECONCILE_NOT_CONFIGURED' });
++        await this.options.reconcileHost();
++      }
++      return this.complete(record, { ok: true });
++    }
++    if (!record.report) {
++      if (!config || config.revision !== record.command.payload.configRevision)
++        return this.complete(record, { ok: false, code: 'SUPERSEDED' });
++      const results = empty();
++      for (const name of names) {
++        const desired = config.desired[name];
++        try {
++          const current = await this.options.registry.current(name);
++          if (!current || !same(current, desired.source))
++            await this.options.registry.installSource(
++              desired.source,
++              this.options.archive
++                ? await this.options.archive(desired.source)
++                : Readable.from([await fetchSource(desired.source)]),
++            );
++          await this.options.registry.verifySource(desired.source);
++          results[name].source = slot(desired.source);
++        } catch {
++          results[name].source = {
++            ...slot<SourcePin>(),
++            state: 'error',
++            lastError: { code: 'SOURCE_INSTALL_FAILED', message: 'Không cài được nguồn đã ghim' },
++          };
++          continue;
++        }
++        for (const runtime of runtimes) {
++          const pin = desired.projections[runtime];
++          if (!pin) continue;
++          try {
++            try {
++              await this.options.registry.resolve(desired.source, pin);
++            } catch {
++              const audit = this.options.recipes.find(
++                (a) =>
++                  a.runtime === runtime &&
++                  a.sourceTreeSha256 === desired.source.sourceTreeSha256 &&
++                  same(a.expected, pin),
++              );
++              if (!audit) throw new Error('PROJECTION_UNAVAILABLE');
++              const built = await this.options.registry.deriveProjection(
++                desired.source,
++                runtime,
++                audit.recipe,
++              );
++              if (!same(built, pin)) throw new Error('PROJECTION_MISMATCH');
++            }
++            results[name].projections[runtime] = slot(pin);
++          } catch {
++            results[name].projections[runtime] = {
++              ...slot(),
++              state: 'error',
++              lastError: { code: 'PROJECTION_INSTALL_FAILED', message: 'Không cài được projection đã ghim' },
++            };
++          }
++        }
++      }
++      record.report = {
++        reportId: randomUUID(),
++        bootId: this.options.bootId,
++        bootGeneration: this.options.bootGeneration,
++        configRevision: config.revision,
++        reportedAt: new Date().toISOString(),
++        results,
++      };
++      await this.store.put(this.key(record.command.id), record);
++    }
++    const report = record.report;
++    let response: { accepted: boolean; appliedRevision: number };
++    try {
++      response = await mutate(
++        this.options.http,
++        `report:${report.reportId}`,
++        '/v2/gateway/install-reports',
++        'install-report',
++        report,
++      );
++    } catch (error) {
++      if ((error as Error).message === 'CONFIG_REVISION_CONFLICT')
++        return this.complete(record, { ok: false, code: 'SUPERSEDED' });
++      throw error;
++    }
++    // Re-read desired after replay; a historical accepted response cannot complete a newer config.
++    const current = (await this.options.read('/v2/gateway/config')) as
++      | GatewayConfig
++      | { desiredConfig: null };
++    if (('revision' in current ? current.revision : null) !== report.configRevision)
++      return this.complete(record, { ok: false, code: 'SUPERSEDED' });
++    if (response.accepted && response.appliedRevision === report.configRevision)
++      return this.complete(record, { ok: true });
++    record.report = null;
++    record.attempts++;
++    const random = Math.max(0, Math.min(1, (this.options.random ?? Math.random)()));
++    record.retryAt =
++      (this.options.now ?? Date.now)() +
++      Math.min(60000, 1000 * 2 ** Math.min(record.attempts - 1, 6)) * (0.75 + random * 0.5);
++    await this.store.put(this.key(record.command.id), record);
++  }
++  close() {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/workflows/registry.ts b/v2/gateway/src/workflows/registry.ts
+index 447c0d7..21d1129 100644
+--- a/v2/gateway/src/workflows/registry.ts
++++ b/v2/gateway/src/workflows/registry.ts
+@@ -429,6 +429,10 @@ export class WorkflowRegistry {
+     if (manifestHash(await scanTree(join(path, 'tree'))) !== pin.sourceManifestSha256)
+       throw new Error('CHECKSUM_MISMATCH');
+   }
++  /** Verify cached immutable source bytes without fetching or changing current pointers. */
++  async verifySource(pin: SourcePin): Promise<void> {
++    await this.sourceVerified(structuredClone(pin));
++  }
+   async installSource(input: SourcePin, archive: Readable): Promise<SourcePin> {
+     this.options.signal?.throwIfAborted();
+     const pin = structuredClone(input);
+@@ -728,7 +732,7 @@ export class WorkflowRegistry {
+       validateProjectionPin(r.projection);
+     }
+     if (this.options.processJournal) {
+-      for (const process of await this.options.processJournal.processes())
++      for (const process of await this.options.processJournal.activePinReferences())
+         refs.push({
+           runId: process.authorization?.attemptId ?? process.launchId,
+           source: process.source,
+@@ -750,7 +754,9 @@ export class WorkflowRegistry {
+   }
+   async retentionInventory(): Promise<RetentionInventory[]> {
+     const records = await this.stagingInventory();
+-    const processes = this.options.processJournal ? await this.options.processJournal.processes() : [];
++    const processes = this.options.processJournal
++      ? await this.options.processJournal.activePinReferences()
++      : [];
+     const bytes = async (path: string): Promise<number | null> => {
+       const record = records.find((r) => r.state === 'published' && r.location === path);
+       if (!record?.identity || !record.publication) return null;
+diff --git a/v2/gateway/tsconfig.json b/v2/gateway/tsconfig.json
+index 5653bdf..0d71df0 100644
+--- a/v2/gateway/tsconfig.json
++++ b/v2/gateway/tsconfig.json
+@@ -9,5 +9,10 @@
+     "verbatimModuleSyntax": true,
+     "types": ["node"]
+   },
+-  "include": ["src/**/*.ts", "test/**/*.ts"]
++  "include": [
++    "src/**/*.ts",
++    "test/**/*.ts",
++    "../server/src/platform/thread-stream.d.ts",
++    "../server/src/platform/picomatch.d.ts"
++  ]
+ }

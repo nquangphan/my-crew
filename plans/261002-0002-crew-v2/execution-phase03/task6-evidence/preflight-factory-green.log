@@ -1,0 +1,13 @@
+✔ unbound isolation cannot accept caller supplied paths or proof (0.456ms)
+✔ factory rejects a fake registry even when the caller reports a passing certificate (0.17025ms)
+✔ discovery exclusions are explicit; ordinary product documents survive (0.106458ms)
+✔ policy is deny-by-default for data, fork, network and router source (0.204041ms)
+✔ workspace audit rejects hardlink, external symlink and nested common-dir; keeps internal document alias (5.459833ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 91.657583

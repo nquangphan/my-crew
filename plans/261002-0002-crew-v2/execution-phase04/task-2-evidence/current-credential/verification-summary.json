@@ -1,0 +1,105 @@
+{
+  "serverRed": {
+    "log": "server-red.log",
+    "exit": 1,
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "reason": "Missing GET route 404"
+  },
+  "serverGreen": {
+    "log": "server-green.log",
+    "exit": 0,
+    "tests": 4,
+    "pass": 4,
+    "fail": 0
+  },
+  "gatewayRed": {
+    "log": "gateway-red-exact.log",
+    "exit": 1,
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "reason": "Resolver NOT_IMPLEMENTED and missing callCurrent"
+  },
+  "gatewayGreen": {
+    "log": "gateway-green.log",
+    "exit": 0,
+    "tests": 4,
+    "pass": 4,
+    "fail": 0
+  },
+  "serverFrozenBaseline": {
+    "log": "server-covering.log",
+    "exit": 1,
+    "tests": 219,
+    "pass": 218,
+    "fail": 1,
+    "failure": "HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE: fetch EPIPE"
+  },
+  "baselineReproduction": {
+    "log": "continuation/server-single-repro.log",
+    "exit": 1,
+    "tests": 1,
+    "pass": 0,
+    "fail": 1
+  },
+  "gatewayPreparationFailure": {
+    "log": "continuation/gateway-covering.log",
+    "exit": 1,
+    "tests": 104,
+    "pass": 93,
+    "fail": 11,
+    "cause": "Reconstructed root had no build outputs; all failures host entrypoint/built journal module missing"
+  },
+  "serverReviewedFixtureRepair": {
+    "log": "final/server-repaired-case.log",
+    "exit": 0,
+    "tests": 1,
+    "pass": 1,
+    "fail": 0,
+    "base": "556cd8d+own23+f58testonly3",
+    "ruling": "PM15:57; full bounded valid import + both real413 responses + SSE close; no arithmetic union with old219 cover"
+  },
+  "gatewayFrozenFinal": {
+    "log": "final/gateway-covering.log",
+    "exit": 1,
+    "tests": 104,
+    "pass": 103,
+    "fail": 1,
+    "skip": 0,
+    "cancel": 0,
+    "failure": "host lifecycle: UI main exit and reopen preserve independent host boot; ECONNREFUSED",
+    "durationMs": 75843.819917
+  },
+  "hostNarrow": {
+    "log": "host-repro/host-single-repro.log",
+    "exit": 0,
+    "tests": 1,
+    "pass": 1,
+    "fail": 0,
+    "note": "No source changes; intermittent baseline failure, stale socket readiness only hypothesis"
+  },
+  "testAssertionCleanup": {
+    "log": "test-assertion-focused.log",
+    "exit": 0,
+    "tests": 4,
+    "pass": 4,
+    "fail": 0,
+    "productionChanges": false
+  },
+  "lint": {
+    "log": "test-cleanup/biome.log",
+    "exit": 0,
+    "files": 19,
+    "warnings": 0
+  },
+  "types": {
+    "server": "commands.json server-types exit0",
+    "gateway": "test-cleanup/commands.json gateway-types exit0"
+  },
+  "native": {
+    "signedKeychain": "UNVERIFIED; no execution",
+    "sourceUnchanged": true
+  }
+}

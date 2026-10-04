@@ -1,0 +1,12 @@
+{
+  "identity": {
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9",
+    "nonce": ".task6-frozen-7c644364-cd25-4771-ad0e-67452d85cbb9",
+    "device": 16777229,
+    "inode": 63966334,
+    "uid": 501
+  },
+  "bytes": 7750379,
+  "deleted": true,
+  "authority": "All exact cover/compiler/rerun tool runners completed; snapshot source stability verified. UNKNOWN fixture roots live outside snapshot and remain retained."
+}

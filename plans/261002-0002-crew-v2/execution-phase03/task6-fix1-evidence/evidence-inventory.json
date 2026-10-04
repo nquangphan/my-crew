@@ -1,0 +1,112 @@
+[
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/base-task-6-report.md",
+    "bytes": 13520,
+    "sha256": "c0b793d09e1877d35ef46d408a43bf96be05c2df8be8501b2c54eb210b4b303d"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/biome-final.log",
+    "bytes": 43,
+    "sha256": "0d3f968511a30b8fc5d94cf01f697bf89f35ad3dec85193d8d079c29c820605f"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/biome-format.log",
+    "bytes": 39,
+    "sha256": "83d02a51a43ebee1594d60ec78ff2b62bf251d49be9d2ac86f85dd8dd21a3695"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/cleanup-plan.json",
+    "bytes": 492679,
+    "sha256": "f2984249890c013109d9d49f2c58f8de824d74e44ed26365fee6506515a83786"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/cleanup-result.json",
+    "bytes": 965,
+    "sha256": "36041b2f79eb20a5ef083a585438a7a9f50e4a384a33458f60a23ec2358c7063"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/external-loader.mjs",
+    "bytes": 476,
+    "sha256": "169b05882637e08c80a77515372d68a714e1da3acbcbe57d11a551da80fe22ac"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/frozen-source-inventory.json",
+    "bytes": 740,
+    "sha256": "a23359b4cb1edd54fb6448cb1bcdfef35af7b198648d43e058fe1d90b2bbc5dc"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/isolation-green.log",
+    "bytes": 267373,
+    "sha256": "b686b6b938f79dfc319c1a04ee4a2d87afb3028dcc825cd546e9e22a634184b9"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/reconcile-once.py",
+    "bytes": 3661,
+    "sha256": "4d27fded6fe96149121a7cafd295c7fc1acfb06f2f8c4f3494f95f1d34b50a66"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/red-command.json",
+    "bytes": 610,
+    "sha256": "ac6868575e0e0189e9f49c64a14c906a832cb71a53ac71711cfb8117a4d8ac54"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/red-home-metadata.log",
+    "bytes": 356021,
+    "sha256": "1a4eff361c3c0c7516aa00a547c78c69ad31baefabb84df2d003af19f11c80dd"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/regression-summary.json",
+    "bytes": 1923,
+    "sha256": "a45ae91a256af03fa7350f30b219786d36108d57f19d8fd05a8cc877a3fd7d15"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/report-write-denial.txt",
+    "bytes": 904,
+    "sha256": "61874ca305828a418b785eed9c8827c9b4773db9856a8f523dd0b5d69d10e38c"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/snapshot-archive.json",
+    "bytes": 115,
+    "sha256": "33814aa667e839b58d10442d07c3e4f3f077d347d7ce9dff3114221a7fc2c2cd"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/snapshot-base-scoped.json",
+    "bytes": 571,
+    "sha256": "f0b0ac9262fb79b1a5a07d9fe0da646de80b6544887e44a2aff5cdc44dfae413"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/snapshot-cleanup.json",
+    "bytes": 481,
+    "sha256": "13c2e1bfc6d0315be34fba80b46ce52528ddb2ce4c933a60fbdd164c0db7613e"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/snapshot-identity.json",
+    "bytes": 252,
+    "sha256": "e74863dd81551a09e96a8d6584f9d64d6ce31af4bfd7a94061035b0f584df6d0"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/snapshot-stability.json",
+    "bytes": 713,
+    "sha256": "1c3e8117919d69677d46cfe547eac14236065f7111d97145c167639f8eb67a43"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/tsconfig.fix1.json",
+    "bytes": 301,
+    "sha256": "8996d52f68b906d9cb8bd588d799c364f5a66d009583d0e8639cb65ed1329f4d"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/types-final.log",
+    "bytes": 950,
+    "sha256": "f3ecd55c7e2abebdd9852984344868ba8ea04619748df3c173e3421b3a8d73a5"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task6-fix1-evidence/verification-final.json",
+    "bytes": 1449,
+    "sha256": "cafd582c43ffe5dcdf5ab79e374d07703d0207d54e89055acbc60d59ec5eca2c"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase03/task-6-report.md",
+    "bytes": 17743,
+    "sha256": "65c6008e590224e46ababc47eefaa7f376aa7edd53a35bce4ab1806a4394e380"
+  }
+]

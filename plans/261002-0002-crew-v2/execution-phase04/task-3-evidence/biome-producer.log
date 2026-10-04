@@ -1,0 +1,38 @@
+v2/gateway/src/execution/ticket-command-bridge.ts:255:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    253 │     const record = await this.reserve(command);
+    254 │     await this.store.transaction(async () => {
+  > 255 │       const local = (await this.store.get<BridgeRecord>(this.key(command.id)))!;
+        │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    256 │       if (local.released) {
+    257 │         await this.current(local);
+  
+
+v2/gateway/src/execution/ticket-command-bridge.ts:461:35 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    459 │     }
+    460 │     const operationId =
+  > 461 │       observation === 'running' ? local.runningOp! : `${this.key(local.command.id)}:reconcile:stopped`;
+        │                                   ^^^^^^^^^^^^^^^^
+    462 │     await mutate(
+    463 │       this.options.http,
+  
+
+v2/gateway/src/execution/ticket-command-bridge.ts:485:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    483 │     const local = await this.local(commandId),
+    484 │       attempt = await this.current(local),
+  > 485 │       record = (await this.options.journal.byInstance(local.input.processInstanceId))!;
+        │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    486 │     if (!record || (await this.options.journal.observe(record)) !== 'stopped')
+    487 │       throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+  
+
+Checked 1 file in 46ms. No fixes applied.
+Found 3 warnings.

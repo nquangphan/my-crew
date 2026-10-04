@@ -1,0 +1,77 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts
+
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CEM4rW
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CEM4rW nonceSha256=59f98dabcebf01a32f7529cc1d884e207f5280000360e71701fda9c19fd396f8
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CEM4rW
+✔ attachment staging reserves under owner quota and keeps bytes through ready commit (301.0865ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2mPEQ5
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2mPEQ5 nonceSha256=28e45321b40fd613a65b09a722cb0d441c27800538e093bc996d133e326a0bdc
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2mPEQ5
+✔ attachment staging refuses machine and stale compose revision (181.81ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9si1d8
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9si1d8 nonceSha256=01bb999099e8223ac6a1df6935f6e802af0d825e9397f294d519d13489154307
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9si1d8
+✔ attachment staging validates name MIME size limits and permits exact limit and empty text (285.294709ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGgftQ
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGgftQ nonceSha256=90b679d5402dc405390341b4a69f0c16432c8dd2d268b9f5c8cb6cb58d9fe57d
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGgftQ
+✔ attachment staging rejects wrong bytes malformed UTF binary text and magic before original publication (428.919584ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z30jcg
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z30jcg nonceSha256=eb2e69f0601c753ae3d48ee066ee3b8b218dca21329c43b45ee2ed1457dbfa60
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z30jcg
+✔ attachment staging accepts split UTF16 BOM as text without browser inline interpretation (238.572917ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9MPJn9
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9MPJn9 nonceSha256=2bc84d0947bac57e1d06855458af9e07881fd8c7662cb9edfae9dbf65083245d
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9MPJn9
+✔ attachment staging reserve replay checks canonical request and same digest keeps distinct originals (184.634708ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-P2Qn6Y
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-P2Qn6Y nonceSha256=749cdb9fb1b321ac60bb33f13d04c6985ffb72df06e868fc00631fec843349a6
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-P2Qn6Y
+✔ attachment staging serializes owner quota reservations and holds rejected and abandoned quota (228.229ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EiknT6
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EiknT6 nonceSha256=e193a3178eeaf83e8230ed3aad7f3a5a881966dff71a5dee72d7ed067b6de8af
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EiknT6
+✔ attachment staging validates ready PUT replay bytes and emits only owner-scoped exact metadata (234.618709ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZNesTO
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZNesTO nonceSha256=ba22f0433a6432ef8ed14b07fa9aacdbe16d6a200f287ae766fac071c268ef2e
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZNesTO
+✔ attachment staging refuses ready publication after generation CAS is superseded and retains durable blob intent (233.829709ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KLKxCV
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KLKxCV nonceSha256=ae6a74e1ae04739ed8ea8646cbd30af4865e85a8c6e4a1bb2fefcac728052e13
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KLKxCV
+✔ attachment staging abort waits in-flight producer then terminal close and never releases quota or publishes (219.29175ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Q0ao49
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Q0ao49 nonceSha256=bff367c3b423950c64ee161a9c93e53d8409b059ea290ed242a798697895f48e
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Q0ao49
+✔ attachment legacy revision actual appendComment bumps descendant subtree exactly once and rollback restores counters (164.702958ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-PiwoaH
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-PiwoaH nonceSha256=804d3a47b509a7386229ceb6d89c23c459105320d3beb780b437fb75a86b7902
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-PiwoaH
+✔ attachment staging schema preserves accepted policy and immutable original identity without absolute DB paths (177.21725ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tgm9vp
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tgm9vp nonceSha256=37587c91db0ea335fd2f93149915149d939b2138a734164410edc874724132ef
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tgm9vp
+✔ attachment staging heartbeat holds lease for a live writer and late generation loses publication (220.1215ms)
+﹣ attachment staging Linux registry refuses premature close then persists exact native receiver proof (0.10825ms) # SKIP
+attachment native container created 9cf2114cbe46baf30a34c0b450e885371df38d7ea33a836ee43d34344c1e8a6c pg=8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 database=crew_v2_test_7da4f428a7944f68bfd5318f2d76e701
+attachment DB container native-worker root /tmp/crew-v2-attachments-tpiFLX
+attachment DB scratch created /tmp/crew-v2-attachments-tpiFLX nonceSha256=c5d089aa7c40285dc90ae76fe6e3c6a8623e7eb636edb9e52b51445b11fe4a30
+attachment native exact ACK verified receiver=8253f76f-ed31-4b0c-bd84-56ab710e9331 generation=1 instance=538647e6-dcc0-41a0-8f20-4083c4f26453
+attachment native abort terminal verified receiver=d85a5ca5-6f65-4ae7-b476-e10b41310d17 generation=1 quota=held
+attachment DB scratch removed /tmp/crew-v2-attachments-tpiFLX
+attachment native container removed 9cf2114cbe46baf30a34c0b450e885371df38d7ea33a836ee43d34344c1e8a6c
+✔ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (652.844916ms)
+attachment DB container 8129f40a1bfcc8d6282fd8ca028f50953cc153c556278b3b5e6f0d9955e1b372 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Sr4BIk
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Sr4BIk nonceSha256=86eb9480b79801ae0bb94671898f4e0622c621ea8adb77a496ae1bb67b0aaebb
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Sr4BIk
+✔ attachment staging publication failure preserves original intent and terminal receiver proof (226.26325ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 4081.963583

@@ -1,0 +1,52 @@
+[
+  {
+    "path": "v2/server/migrations/009_attachments.sql",
+    "sha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+    "bytes": 20136
+  },
+  {
+    "path": "v2/server/src/attachments/config.ts",
+    "sha256": "821ce0d6d8deb92c405b2bb5ab009eff4c8515c9aecc265b5c6f5b033ec36b03",
+    "bytes": 3804
+  },
+  {
+    "path": "v2/server/src/attachments/contracts.ts",
+    "sha256": "5b6a496b4c0e86298a2d69d76f4666e07cbb783d8ca153ccb4f17fc4f45eb906",
+    "bytes": 11551
+  },
+  {
+    "path": "v2/server/src/attachments/receivers.ts",
+    "sha256": "0194f328810cd7e3e7e465147db1f053135b9f949bc708b4fe1e6c23cd6c1070",
+    "bytes": 15431
+  },
+  {
+    "path": "v2/server/src/attachments/staging.ts",
+    "sha256": "1dc322e68ee2ccb23d991f0b4fd312ceb31d04ab7abcb8d21367f83aa62fcb3d",
+    "bytes": 27550
+  },
+  {
+    "path": "v2/server/src/attachments/storage.ts",
+    "sha256": "b252f6b1f97fd08359c9f369bebf2f680fce2abc0a23793cd63d8eb678c9db2c",
+    "bytes": 15312
+  },
+  {
+    "path": "v2/server/test/attachments-storage.test.ts",
+    "sha256": "47a6fefadb13c4c7f4b72da43e421c254a0003967499e89bb678bc9c936f6ad8",
+    "bytes": 20433
+  },
+  {
+    "path": "v2/server/test/attachments-staging.test.ts",
+    "sha256": "f592a8f1b80f9f0c8a9218a887c4238a6685d50d0addf2d83ee6487eda90119b",
+    "bytes": 22869
+  },
+  {
+    "path": "v2/server/test/support/attachments.ts",
+    "sha256": "932f8acddc9e1cf4e907749bf17857518a620b8ef1af3cbb82c005348ebd64ba",
+    "bytes": 8552
+  },
+  {
+    "path": "v2/docs/flows/server-attachments.md",
+    "sha256": "4c829b062367c5441145d3c4e3627f045ea5f17dc6eb4bb22c84ec2e4c20a322",
+    "bytes": 6492
+  }
+]

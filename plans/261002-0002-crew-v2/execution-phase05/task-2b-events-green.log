@@ -1,0 +1,15 @@
+✔ attachment metadata event accepts exact owner draft and linked ticket scope (1.176209ms)
+✔ attachment metadata event rejects content paths compose identifiers and undeclared fields (0.370666ms)
+✔ attachment metadata event rejects invalid ids states extraction and partial or targeted scope (0.181166ms)
+✔ attachment inbox events accept metadata and enforce owner-only creation (1.571291ms)
+✔ attachment input wake events require exact target and specific machine audience (0.166709ms)
+✔ execution event whitelist accepts identifiers and rejects sensitive result data (1.380042ms)
+✔ ticket metadata events accept exact fields and reject content (0.918625ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.5955

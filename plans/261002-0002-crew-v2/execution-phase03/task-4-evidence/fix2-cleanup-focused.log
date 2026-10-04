@@ -1,0 +1,32 @@
+Admission boundary: snapshot CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-FnsSXG","device":"16777229","inode":"63466961","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (1304.716708ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-rtnJcw","device":"16777229","inode":"63467025","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (884.460917ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-HgyrhG","device":"16777229","inode":"63467095","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (1316.385042ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Rhv01F","device":"16777229","inode":"63467160","ownerUid":501,"deleted":true}
+✔ workflow admission reserve-first holds GC until real journal commit and survives cached replay (933.631ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-v6hClH","device":"16777229","inode":"63467233","ownerUid":501,"deleted":true}
+✔ workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape (971.375416ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-FCcOfa","device":"16777229","inode":"63467298","ownerUid":501,"deleted":true}
+✔ workflow admission bind waits for an in-flight standalone v1 reservation before GC (852.0945ms)
+Recovered admission checkpoint: admission source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-2slwpA","device":"16777229","inode":"63467361","ownerUid":501,"deleted":true}
+✔ workflow admission crash at admission retains unknown intent or denies a deleted pair after restart (1017.126ms)
+Recovered admission checkpoint: committed source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-6iUDp8","device":"16777229","inode":"63467427","ownerUid":501,"deleted":true}
+✔ workflow admission crash at committed retains unknown intent or denies a deleted pair after restart (1020.203958ms)
+Recovered admission checkpoint: quarantine source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-WYoTgU","device":"16777229","inode":"63467493","ownerUid":501,"deleted":true}
+✔ workflow admission crash at quarantine retains unknown intent or denies a deleted pair after restart (1010.168833ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9395.853542

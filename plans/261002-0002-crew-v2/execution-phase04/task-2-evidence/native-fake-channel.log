@@ -1,0 +1,13 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (0.936834ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.087375ms)
+✔ credential broker native bridge rejects unverified helper before any keychain access (0.189708ms)
+✔ credential broker serializes conflicting local writes and never returns bridge secret errors (0.194625ms)
+✔ credential broker native FD framing runs only against unsigned owned fake helper (783.384708ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 857.791625

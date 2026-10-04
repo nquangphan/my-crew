@@ -1,0 +1,3445 @@
+diff --git a/v2/docs/flows/gateway-models.md b/v2/docs/flows/gateway-models.md
+new file mode 100644
+index 0000000..471c5c0
+--- /dev/null
++++ b/v2/docs/flows/gateway-models.md
+@@ -0,0 +1,77 @@
++# Inventory model, probe và broker credential của gateway
++
++## Mục đích
++
++Gateway tiêu thụ SourceConfig của machine, SourcePin/ProjectionPin phase03 và protocol model/secret đã review của migration008. Module này chưa nối vào host entrypoint và không cấp dispatch permit, runtime certificate hoặc trạng thái available. Probe offline luôn UNVERIFIED với capabilities rỗng; source OFF không gửi entry mới. Server giữ quyền receipt clock, TTL và pool admission.
++
++## Điểm vào
++
++- `ModelInventory.collectInventory(config,workflows)` giữ nguyên API model list của owner, chỉ quan sát pair đang current và cùng source tree. Catalogue CLI từ trusted composition port chỉ là catalogue; thiếu binary hay isolated-home authentication chưa đo vẫn UNVERIFIED. Không thực thi CLI hoặc đọc/copy HOME owner.
++- `ModelProber.probeModel(key,pair,mode)` đối chiếu context với runtime/source/projection/derivation/policy. `executableContext` hash byte executable qua no-follow FD, không hash version string. Mỗi lần collect đọc lại context, không reuse PASS/certificate local. Thay binary/projection/derivation dẫn context mới; server008 đối chiếu receipt/certificate exact context.
++- `ModelReporter.reconnect` gọi machine GET desired trước collect. `currentBoot` là bootId/generation của producer007; module không đăng ký boot khác. AtomicRecords riêng cấp một sequence tăng chung inventory/applied mỗi boot. Counter fsync trước report: crash có thể bỏ qua số nhưng không cấp lại số. Report và HttpOperationJournal giữ reportId, operation ID, route, key và body trước HTTP; `replay(reportId)` dùng nguyên input lịch sử. Source status applied là observation caller, không tự suy ready. Digest applied phải khớp inventory body của cùng boot/revision. Reporter không đọc/ACK ba command workflow007 hoặc tạo sync_models completion; composition Task03 giữ command routing chung.
++
++## Các bước
++
++### Credential và native bridge
++
++`CredentialBroker` dùng generic-password service `com.2pcrew.v2.<machine>.<provider>`, account là UUID operation/envelope; ref gồm machine/provider/operation, không chứa secret. Put cùng operation đọc old/write/read-back; bytes khác bị conflict. Local writes serialize, remove idempotent. `withSecret` chỉ chấp nhận callback đã ghim trong trusted composition, cung cấp Readable channel một lần; kết quả callback không được trả ra API. Callback error được thay bằng mã cố định, channel bị destroy và owned buffer được zero. Callback là code trusted của broker/transport, không là renderer hay model child.
++
++`SecurityFrameworkBridge` yêu cầu helper macOS đã pin byte SHA-256, no-follow regular file, UID/mode/link count đúng và trusted signing/ACL verifier. Sau spawn, verifier nhận actual dormant PID + expected binary hash trước khi request bytes được gửi. Thiếu verifier mặc định `SECURITY_BRIDGE_UNVERIFIED`. Helper Objective-C gọi Security.framework SecItemAdd/Update/CopyMatching/Delete cho generic password trong data-protection keychain, không synchronizable, AfterFirstUnlockThisDeviceOnly và LAContext interactionNotAllowed. Đóng gói/signing/ACL proof thuộc phase09; callback boolean của fixture không chứng minh signing thật.
++
++ABI: dedicated FD3, bốn uint32 network-endian `{operation,serviceLength,accountLength,valueLength}` rồi bytes; operation 1=put, 2=read, 3=remove. Reply `{status,valueLength}` rồi bytes; 0=success, 1=not-found, -1=failure. Một operation/process, không secret argv/env/stdout/stderr; tối đa secret8192 bytes, reply8200 bytes, deadline3 giây. Source có thật và đã compile syntax/link development; chưa chạy helper Security.framework trên Keychain owner. Test mặc định fake SecurityBridge; fake native C helper chỉ kiểm FD ABI và không link Security.framework.
++
++`CredentialProvisioning` lưu X25519 PKCS8 private bytes trong Keychain namespace riêng machine, journal chỉ giữ keyId/public SPKI/state. Registration/confirmation dùng actual008 routes, encrypted challenge/AAD canonical và SHA-256 clear challenge. Rotation giữ retired private keys để hoàn tất pending envelope cũ; key loss không tự tạo ACK thành công. Secret envelope kiểm own machine/provider/current revision, canonical base64, X25519, nonce12/tag16, ciphertext SHA256 và AAD `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. HKDF info `crew-v2-secret-envelope-v1`, salt nonce12, AES-256-GCM. Put theo envelope ID và read-back hoàn tất trước fsync ACK intent và HTTP operation. Lost ACK replay cùng key/body/ref/operation; `replayAck(envelopeId)` chỉ dùng ACK intent đã fsync sau write/read-back, kiểm credentialRef vẫn còn trong Keychain rồi replay metadata, không cần transport private key hoặc gia hạn expiry. Server008 quyết định ACK lịch sử hay từ chối pending expired/key_lost/stale; không có intent thì không được ACK. không thay bằng provider state mới nhất hoặc UUID order. Host không lưu current provider ref pointer; authority current provisioning operation thuộc server008.
++
++`syncPending(readMachine)` GET own desired trước GET own pending envelopes, dùng decimal cursor008 và serverTime response. Mọi encrypted envelope durable trước cursor advance; failed ACK giữ queue, state pending và cần owner cấp lại khi key mất/expired/stale. Source API OFF trả disabled trước đọc envelope. ServerReceiptClock dùng server receipt + elapsed monotonic; host wall clock không kéo dài expiry, replay/backwards receipt không quay estimate lùi. Không có server receipt thì từ chối secret/challenge. TTL/admission cuối cùng vẫn do server quyết định. Plaintext/private key không đi vào generic HTTP journal, gateway journal, renderer, exception hay model child.
++
++### Protocol và HTTP
++
++Responses và Chat Completions có parser riêng: exact model ID, terminal protocol, function name/arguments và call ID không trùng. SSE yêu cầu bounded complete framing, terminal event/[DONE], exact model và correlated tool fragments. Offline shape evidence không cấp PASS. Authorized-live chỉ qua trusted authorization + call port; một call/probe, deadline tối đa30 giây, không retry model call ngầm. Capabilities chỉ đến từ observation đã đo: text riêng, tools cần execution/result correlation, stream cần observed framing, vision cần explicit measured image observation. Không suy file_pdf/docx/xlsx/csv từ vision. Producer verified derivative/provenance phase05 chưa nối vào module; không tự nhận đã consume hay ép native MIME khi extraction/OCR tương lai đã được review.
++
++`PinnedProviderTransport` ghim provider/model/protocol, request token cap128, một request in flight, nhận credential qua trusted one-use callback. Endpoint normalization khớp server008. HTTPS không literal-IP/localhost/credential/query/hash; HTTP chỉ loopback origin exact có localHttp explicit. Mỗi request resolve toàn bộ DNS answers, từ chối private/reserved/mapped/transition/documentation addresses, pin lookup socket về một allowed address và giữ hostname TLS. Không follow redirect. Body bound1 MiB, idle3 giây; caller ModelProber cấp absolute deadline/abort. DNS callback giữ đúng Node `all` contract. Transport thực hiện bounded protocol call; live tool/vision observation phải được trusted probe port cấp bằng measurement, không lấy catalogue/declared flag làm proof.
++
++AUTH (401/403): owner kiểm endpoint/token rồi cấp secret mới; gateway giữ pending nếu không lưu/ACK được. QUOTA (429): dừng admission mới và chờ Retry-After/backoff bounded1s–5min, không suy quota từ CLI catalogue hoặc tự gọi lại phí. 5xx/network/timeout → TRANSIENT; malformed tool → TOOL_PROTOCOL. Body/key/error provider không nằm trong ProbeResult/evidence digest. Probe receipt hết hạn theo server clock → unavailable dù host observedAt đi tới tương lai; explicit probe/config/binary/pin/auth/quota changes phải collect/report observation mới. Không mint certificate hoặc dispatch choice từ observation local.
++
++### Binding credential hiện hành
++
++`CurrentCredentialResolver.resolve(provider,revision,signal)` đọc mới cả `/v2/machine/model-sources` và `/v2/machine/api-credential-bindings`; kiểm machine/revision/API ON, provider duy nhất còn declared, endpoint/protocol/models/localHttp khớp provider đã chọn, status stored và scoped credentialRef còn tồn tại qua `broker.assertStored`. Thiếu/pending/OFF/removal/ref sai scope hoặc revision lệch đều từ chối. currentOperationId=null hợp lệ với stored ref được giữ qua revision; không suy ref từ operation ID hay lịch sử ACK. Không cache binding qua reconnect.
++
++Composition dùng `PinnedProviderTransport.callCurrent`, resolver cấp ref và closure kiểm lại đúng ref/currentOperationId cùng desired hiện hành. Transport kiểm lại sau resolve DNS và trước tạo header, rồi sau response trước khi trả kết quả; thay đổi quan sát được dẫn từ chối, response không trở thành probe thành công. `call` với explicit ref vẫn là port thấp cấp cho trusted protocol harness; caller đó tự chịu authority, không được xem như đã consume current binding. Các read có abort signal, không tự retry. Snapshot read là sampled authority: config có thể đổi sau snapshot hoặc trong lúc network đang chạy; không hứa atomic network lease, không tạo dispatch permit hoặc kill attempt đang chạy.
++
++File bổ sung: `gateway/src/models/current-credential-resolver.ts` và `gateway/test/current-credential-resolver.test.ts`. Test dùng broker thật với fake Security bridge và HTTP loopback protocol riêng: stored/null operation, reconnect, OFF/removal/status/revision/endpoint/protocol/ref conflicts, ref mới cùng tồn tại, thay đổi trước header và trong response. Không đọc owner Keychain hoặc gọi provider thật. ModelReporter consume/ACK `sync_models` vẫn là composition handoff chưa triển khai; không suy applied từ endpoint read hay probe response.
++
++## Files
++
++| File từ v2/ | Vai trò |
++|---|---|
++| gateway/src/models/contracts.ts | Mirror DTO actual008, dùng frozen host SourcePin/ProjectionPin |
++| gateway/src/models/inventory.ts | Catalogue và current-pair collection |
++| gateway/src/models/probe.ts | Context byte hash, protocol/SSE parser, offline/live gates |
++| gateway/src/models/provider-transport.ts | Endpoint/DNS/socket pinning và one-use credential transport |
++| gateway/src/models/model-reporter.ts | Shared durable report sequence và exact HTTP replay |
++| gateway/src/models/credential-broker.ts | Scoped credentialRef, put/read-back/channel/remove |
++| gateway/src/models/credential-provisioning.ts | Server clock, key/challenge/envelope/ACK/queue |
++| gateway/src/models/security-bridge.ts | Attested helper/signing gate và FD3 bridge |
++| gateway/src/models/security-keychain.m | Actual Security.framework generic-password adapter |
++| gateway/test/model-probe.test.ts | Protocol, offline/live authority, SSRF, stream và local HTTP |
++| gateway/test/model-reporter.test.ts | Desired GET, boot/revision/shared sequence/restart replay |
++| gateway/test/credential-broker.test.ts | Scoped refs, conflict/read-back, trusted channel và fake native FD |
++| gateway/test/credential-provisioning.test.ts | Actual008 crypto, lost ACK, stale/AAD/expiry/key loss |
++| gateway/test/support/model-fixture.ts | Exact test-root identity và cleanup receipts |
++| gateway/test/fixtures/models/security-channel.c | Unsigned FD fake, không Keychain |
++| gateway/src/models/current-credential-resolver.ts | Fresh current binding và recheck sampled authority |
++| gateway/test/current-credential-resolver.test.ts | Current ref, status/revision và network boundary regressions |
++
++## Dữ liệu
++
++Journal lưu metadata key/report/operation, encrypted pending envelope và immutable ACK intent; credential plaintext/private key giữ tại broker/Keychain, không trả cho renderer/model child. Snapshot current binding chỉ có metadata machine/provider/revision/ref; không là lease network hay dispatch permit.
++
++## Flow liên quan
++
++`server-models` cấp current desired, credential snapshot, provisioning và admission; `server-gateway` cấp boot/report context; `gateway-host` cấp AtomicRecords/HTTP journal. `gateway-workflows` cấp source/projection đã ghim. Phase05 cung cấp derivative/provenance về sau; host composition và runtime/signing certification còn là gates riêng.
++
++## Tests
++
++Focused tests dùng fake in-memory Security bridge, actual crypto, actual AtomicRecords/HttpOperationJournal restart và fake loopback HTTP listener; native FD fake compiled riêng trong fixture. Native source compile syntax bằng SDK hiện hành. Signed app/helper ACL, CLI subscription isolated-home authentication, paid/provider live calls, native runtime isolation và server dispatch authority đều UNVERIFIED. Không sửa host composition, journals007/005, migration008/009, dependencies, global HOME hoặc source v1. PM ánh xạ các file mới vào flow manifest và chạy generate/check sau khi tích hợp, rồi review spec/quality độc lập.
++
++Apple primary references: [generic password](https://developer.apple.com/documentation/security/ksecclassgenericpassword), [AfterFirstUnlockThisDeviceOnly](https://developer.apple.com/documentation/security/ksecattraccessibleafterfirstunlockthisdeviceonly); local SDK LAContext.h dòng350 xác nhận interactionNotAllowed available macOS10.13.
+diff --git a/v2/docs/flows/server-models.md b/v2/docs/flows/server-models.md
+index a3bcfd2..c8237de 100644
+--- a/v2/docs/flows/server-models.md
++++ b/v2/docs/flows/server-models.md
+@@ -58,3 +58,8 @@ Kiểm cuối dùng app production thật trong child process và HTTP secret ro
+ 
+ 
+ FIX1 đóng R1–R4 bằng regression PostgreSQL/HTTP thật: đồng thời command/decision cùng sai source bị chặn trước fresh005claim; counts attempt/guard/event và ticket state giữ nguyên. Bootstrap boot1 report với boot2 inventory/applied rollback actual005INSERT; boot2 report accepted/matching selection mới201. Envelope A pending→B stored→late A ACK/loss/replay không rewind B; UUID đảo thứ tự và timestamp bằng nhau vẫn chọn theo current operation được gán dưới lock. Key loss vô hiệu mọi pending cùng key, giữ history/new active key, resend cần confirmed key mới; normal rotation vẫn hoàn tất pending cũ. Prefix007/008 backup/restore và prior ba command types được chạy trong covering cuối. Runtime/native/Keychain remain UNVERIFIED; review độc lập của FIX1 vẫn là gate trước Task2/009.
++
++
++Task2 bổ sung `GET /v2/machine/api-credential-bindings`: chỉ bearer của chính machine được đọc, query rỗng, reauthenticate current credential trong transaction repeatable-read/read-only hiện có. Snapshot trả `machineId`, `configRevision` (null nếu chưa cấu hình), `apiEnabled` và các provider còn declared: `providerId/endpoint/protocol/status/credentialRef/currentOperationId`. Không đọc ciphertext, không cấp quyền mới hoặc thay pointer; state đến trực tiếp bảng008. Stored ref có thể giữ lại với currentOperationId=null sau revision cùng endpoint/protocol. Gateway phải đối chiếu snapshot mới với desired mới; không suy ref từ cursor, envelope history hoặc ACK cũ. Đây là quyền đọc trạng thái tại snapshot, không là lease giữ quyền gửi request tới provider.
++
++`server/test/model-current-credentials.test.ts` kiểm PostgreSQL/HTTP thật: operation UUID đảo thứ tự, late ACK/replay, reconnect, retained ref/null operation, new pending/lost key, OFF/removal, đổi endpoint/protocol, foreign machine/owner session và revoked giữa preflight với transaction read. Không đổi migration001–009; source manifest/generated do PM tích hợp.
+diff --git a/v2/gateway/src/models/contracts.ts b/v2/gateway/src/models/contracts.ts
+new file mode 100644
+index 0000000..68e6b15
+--- /dev/null
++++ b/v2/gateway/src/models/contracts.ts
+@@ -0,0 +1,91 @@
++import type { ProjectionPin, Runtime, SourcePin } from '../host/status.ts';
++export type Capability =
++  | 'tools'
++  | 'vision'
++  | 'text'
++  | 'stream'
++  | 'file_pdf'
++  | 'file_docx'
++  | 'file_xlsx'
++  | 'file_csv';
++export type ModelKey = { machineId: string; runtime: Runtime; providerId: string; modelId: string };
++export type ProbeContext = {
++  sourceTreeSha256: string;
++  projectionManifestSha256: string;
++  projectionTreeSha256: string;
++  derivationSha256: string;
++  binarySha256: string;
++  policySha256: string;
++  osVersion: string;
++};
++export type ProbeResult = {
++  key: ModelKey;
++  context: ProbeContext;
++  observedAt: string;
++  status: 'pass' | 'fail' | 'unverified';
++  capabilities: Capability[];
++  evidenceDigest: string;
++  errorCode: string | null;
++  runtimeVersion: string | null;
++};
++export type Pair = { source: SourcePin; projection: ProjectionPin };
++export type ApiProviderConfig = {
++  id: string;
++  endpoint: string;
++  protocol: 'responses' | 'chat-completions';
++  models: { id: string; declared: Capability[] }[];
++  credentialStatus: 'missing' | 'pending' | 'stored';
++  localHttp: { enabled: true; allowedOrigin: string } | null;
++};
++export type ApiCredentialBindings = {
++  machineId: string;
++  configRevision: number | null;
++  apiEnabled: boolean;
++  providers: {
++    providerId: string;
++    endpoint: string;
++    protocol: ApiProviderConfig['protocol'];
++    status: ApiProviderConfig['credentialStatus'];
++    credentialRef: string | null;
++    currentOperationId: string | null;
++  }[];
++};
++export type SourceConfig = {
++  revision: number;
++  enabled: Record<Runtime, boolean>;
++  apiProviders: ApiProviderConfig[];
++};
++export type ModelInventoryBody = { entries: ProbeResult[] };
++export type ModelAppliedBody = {
++  inventoryReportId: string;
++  sourceStatus: Record<Runtime, { state: 'disabled' | 'ready' | 'error'; errorCode: string | null }>;
++  observationDigest: string;
++};
++export type ModelReportEnvelope<T> = {
++  reportId: string;
++  bootId: string;
++  bootGeneration: string;
++  sequence: string;
++  configRevision: number;
++  body: T;
++};
++export type SecretEnvelope = {
++  id: string;
++  machineId: string;
++  providerId: string;
++  keyId: string;
++  configRevision: number;
++  operationId: string;
++  expiresAt: string;
++  ephemeralPublicKey: string;
++  nonce: string;
++  ciphertext: string;
++  tag: string;
++  ciphertextSha256: string;
++};
++export type SecretAck = {
++  operationId: string;
++  keyId: string;
++  ciphertextSha256: string;
++  credentialRef: string;
++};
+diff --git a/v2/gateway/src/models/credential-broker.ts b/v2/gateway/src/models/credential-broker.ts
+new file mode 100644
+index 0000000..1b780e5
+--- /dev/null
++++ b/v2/gateway/src/models/credential-broker.ts
+@@ -0,0 +1,111 @@
++import { randomUUID, timingSafeEqual } from 'node:crypto';
++import { Readable } from 'node:stream';
++import type { SecurityBridge } from './security-bridge.ts';
++export type SecretTransport = (channel: Readable) => Promise<void>;
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
++/** Callbacks are trusted composition ports, never renderer or model child callbacks. */
++export class CredentialBroker {
++  private readonly machineId: string;
++  private readonly bridge: SecurityBridge;
++  private tail: Promise<unknown> = Promise.resolve();
++  private readonly transports: ReadonlySet<SecretTransport>;
++  constructor(machineId: string, bridge: SecurityBridge, transports: readonly SecretTransport[]) {
++    if (!uuid.test(machineId)) throw new Error('INVALID_MACHINE');
++    this.machineId = machineId;
++    this.bridge = bridge;
++    this.transports = new Set(transports);
++  }
++  private location(ref: string) {
++    const [machine, provider, operation, extra] = ref.split('_');
++    if (
++      machine !== this.machineId ||
++      !provider ||
++      !operation ||
++      extra ||
++      !uuid.test(provider) ||
++      !uuid.test(operation)
++    )
++      throw new Error('INVALID_CREDENTIAL_REF');
++    return { service: `com.2pcrew.v2.${machine}.${provider}`, account: operation };
++  }
++  private serialize<T>(action: () => Promise<T>): Promise<T> {
++    const next = this.tail.then(action);
++    this.tail = next.catch(() => {});
++    return next;
++  }
++  async put(providerId: string, secret: Buffer, operationId: string = randomUUID()): Promise<string> {
++    const ref = `${this.machineId}_${providerId}_${operationId}`,
++      { service, account } = this.location(ref);
++    if (!secret.length || secret.length > 8192) throw new Error('CREDENTIAL_INVALID');
++    const copy = Buffer.from(secret);
++    return this.serialize(async () => {
++      try {
++        const old = await this.bridge.read(service, account);
++        if (old) {
++          try {
++            if (old.length !== copy.length || !timingSafeEqual(old, copy))
++              throw new Error('CREDENTIAL_CONFLICT');
++          } finally {
++            old.fill(0);
++          }
++        } else await this.bridge.put(service, account, copy);
++        const stored = await this.bridge.read(service, account);
++        try {
++          if (!stored || stored.length !== copy.length || !timingSafeEqual(stored, copy))
++            throw new Error('CREDENTIAL_READBACK_FAILED');
++        } finally {
++          stored?.fill(0);
++        }
++        return ref;
++      } catch (error) {
++        throw new Error(
++          error instanceof Error &&
++            ['CREDENTIAL_CONFLICT', 'CREDENTIAL_READBACK_FAILED'].includes(error.message)
++            ? error.message
++            : 'CREDENTIAL_STORE_FAILED',
++        );
++      } finally {
++        copy.fill(0);
++      }
++    });
++  }
++  async assertStored(ref: string): Promise<void> {
++    const { service, account } = this.location(ref);
++    let bytes: Buffer | null = null;
++    try {
++      bytes = await this.bridge.read(service, account);
++      if (!bytes?.length) throw new Error('CREDENTIAL_MISSING');
++    } catch {
++      throw new Error('CREDENTIAL_MISSING');
++    } finally {
++      bytes?.fill(0);
++    }
++  }
++  async withSecret(ref: string, callback: SecretTransport): Promise<void> {
++    if (!this.transports.has(callback)) throw new Error('UNTRUSTED_TRANSPORT');
++    const { service, account } = this.location(ref);
++    let bytes: Buffer | null = null;
++    let channel: Readable | undefined;
++    try {
++      bytes = await this.bridge.read(service, account);
++      if (!bytes) throw new Error('CREDENTIAL_MISSING');
++      channel = Readable.from([bytes]);
++      await callback(channel);
++    } catch {
++      throw new Error('CREDENTIAL_TRANSPORT_FAILED');
++    } finally {
++      channel?.destroy();
++      bytes?.fill(0);
++    }
++  }
++  async remove(ref: string): Promise<void> {
++    const { service, account } = this.location(ref);
++    await this.serialize(async () => {
++      try {
++        await this.bridge.remove(service, account);
++      } catch {
++        throw new Error('CREDENTIAL_STORE_FAILED');
++      }
++    });
++  }
++}
+diff --git a/v2/gateway/src/models/credential-provisioning.ts b/v2/gateway/src/models/credential-provisioning.ts
+new file mode 100644
+index 0000000..2684448
+--- /dev/null
++++ b/v2/gateway/src/models/credential-provisioning.ts
+@@ -0,0 +1,349 @@
++import {
++  createDecipheriv,
++  createPrivateKey,
++  createPublicKey,
++  diffieHellman,
++  generateKeyPairSync,
++  hkdfSync,
++  randomUUID,
++} from 'node:crypto';
++import { join } from 'node:path';
++import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts';
++import type { HttpOperationJournal } from '../journal/http-operations.ts';
++import type { SecretAck, SecretEnvelope, SourceConfig } from './contracts.ts';
++import type { CredentialBroker } from './credential-broker.ts';
++import type { SecurityBridge } from './security-bridge.ts';
++export class ServerReceiptClock {
++  private readonly monotonic: () => number;
++  private anchor: { server: number; mono: number } | null = null;
++  constructor(monotonic = () => performance.now()) {
++    this.monotonic = monotonic;
++  }
++  observe(serverTime: string): void {
++    const server = Date.parse(serverTime),
++      mono = this.monotonic();
++    if (!Number.isFinite(server) || !Number.isFinite(mono)) throw new Error('SERVER_TIME_INVALID');
++    // Replayed/backwards server clocks cannot move the expiry estimate backwards.
++    const prior = this.anchor ? this.anchor.server + Math.max(0, mono - this.anchor.mono) : server;
++    this.anchor = { server: Math.max(server, prior), mono };
++  }
++  assertFresh(expiresAt: string): void {
++    if (!this.anchor) throw new Error('SERVER_TIME_REQUIRED');
++    const elapsed = this.monotonic() - this.anchor.mono,
++      expires = Date.parse(expiresAt);
++    if (
++      !Number.isFinite(expires) ||
++      !Number.isFinite(elapsed) ||
++      elapsed < 0 ||
++      elapsed > 300000 ||
++      expires <= this.anchor.server + elapsed ||
++      expires > this.anchor.server + 300000
++    )
++      throw new Error('SECRET_EXPIRED');
++  }
++}
++type Box = {
++  ephemeralPublicKey: string;
++  nonce: string;
++  ciphertext: string;
++  tag: string;
++  ciphertextSha256: string;
++};
++function decode(value: string, min: number, max = min): Buffer {
++  const b = Buffer.from(value, 'base64');
++  if (b.toString('base64') !== value || b.length < min || b.length > max) throw new Error('ENVELOPE_INVALID');
++  return b;
++}
++function openBox(privateBytes: Buffer, box: Box, aad: unknown): Buffer {
++  let shared: Buffer | undefined, aes: Buffer | undefined, partial: Buffer | undefined;
++  try {
++    const key = createPrivateKey({ key: privateBytes, format: 'der', type: 'pkcs8' }),
++      pubBytes = decode(box.ephemeralPublicKey, 44, 200),
++      pub = createPublicKey({ key: pubBytes, format: 'der', type: 'spki' });
++    if (
++      key.asymmetricKeyType !== 'x25519' ||
++      pub.asymmetricKeyType !== 'x25519' ||
++      !pub.export({ type: 'spki', format: 'der' }).equals(pubBytes)
++    )
++      throw new Error();
++    const nonce = decode(box.nonce, 12),
++      tag = decode(box.tag, 16),
++      ciphertext = decode(box.ciphertext, 1, 8192);
++    if (hash(ciphertext) !== box.ciphertextSha256) throw new Error();
++    shared = diffieHellman({ privateKey: key, publicKey: pub });
++    aes = Buffer.from(hkdfSync('sha256', shared, nonce, 'crew-v2-secret-envelope-v1', 32));
++    const decipher = createDecipheriv('aes-256-gcm', aes, nonce);
++    decipher.setAAD(Buffer.from(canonicalJson(aad)));
++    decipher.setAuthTag(tag);
++    partial = decipher.update(ciphertext);
++    return Buffer.concat([partial, decipher.final()]);
++  } catch {
++    throw new Error('ENVELOPE_INVALID');
++  } finally {
++    shared?.fill(0);
++    aes?.fill(0);
++    partial?.fill(0);
++  }
++}
++type KeyRecord = { formatVersion: 1; id: string; publicKey: string | null; confirmed?: boolean };
++type AckIntent = { formatVersion: 1; envelopeHash: string; ack: SecretAck };
++export class CredentialProvisioning {
++  private readonly store: AtomicRecords;
++  private readonly machineId: string;
++  private readonly bridge: SecurityBridge;
++  private readonly broker: CredentialBroker;
++  private readonly http: HttpOperationJournal;
++  private readonly clock: ServerReceiptClock;
++  private constructor(
++    store: AtomicRecords,
++    machineId: string,
++    bridge: SecurityBridge,
++    broker: CredentialBroker,
++    http: HttpOperationJournal,
++    clock: ServerReceiptClock,
++  ) {
++    this.store = store;
++    this.machineId = machineId;
++    this.bridge = bridge;
++    this.broker = broker;
++    this.http = http;
++    this.clock = clock;
++  }
++  static async open(
++    root: string,
++    machineId: string,
++    bridge: SecurityBridge,
++    broker: CredentialBroker,
++    http: HttpOperationJournal,
++    clock: ServerReceiptClock,
++  ): Promise<CredentialProvisioning> {
++    return new CredentialProvisioning(
++      await AtomicRecords.open(join(root, 'credential-provisioning')),
++      machineId,
++      bridge,
++      broker,
++      http,
++      clock,
++    );
++  }
++  private service() {
++    return `com.2pcrew.v2.${this.machineId}.credential-keys`;
++  }
++  async registerKey(): Promise<string> {
++    return this.store.transaction(async () => {
++      let record = await this.store.get<KeyRecord>('active-key');
++      if (!record) {
++        record = { formatVersion: 1, id: randomUUID(), publicKey: null };
++        await this.store.put('active-key', record);
++      }
++      let privateBytes = await this.bridge.read(this.service(), record.id);
++      try {
++        if (!privateBytes) {
++          if (record.publicKey) throw new Error('KEY_LOST');
++          const keys = generateKeyPairSync('x25519');
++          privateBytes = keys.privateKey.export({ type: 'pkcs8', format: 'der' });
++          await this.bridge.put(this.service(), record.id, privateBytes);
++          const check = await this.bridge.read(this.service(), record.id);
++          try {
++            if (!check?.equals(privateBytes)) throw new Error('KEY_READBACK_FAILED');
++          } finally {
++            check?.fill(0);
++          }
++        }
++        const privateKey = createPrivateKey({ key: privateBytes, format: 'der', type: 'pkcs8' }),
++          publicKey = createPublicKey(privateKey).export({ type: 'spki', format: 'der' }).toString('base64');
++        if (record.publicKey && record.publicKey !== publicKey) throw new Error('KEY_LOST');
++        record.publicKey = publicKey;
++        await this.store.put('active-key', record);
++        if (record.confirmed) return record.id;
++        const registrationId = `credential-register:${record.id}`;
++        await this.http.prepare({
++          operationId: registrationId,
++          method: 'POST',
++          route: '/v2/machine/credential-keys',
++          phase: 'credential-register',
++          canonicalBody: { keyId: record.id, publicKeyX25519: publicKey },
++        });
++        const response = await this.http.replay(registrationId);
++        if (response.status < 200 || response.status >= 300) throw new Error('KEY_REGISTRATION_REJECTED');
++        const challenge = response.body as {
++          challengeId: string;
++          expiresAt: string;
++          encryptedChallenge: Box;
++        };
++        this.clock.assertFresh(challenge.expiresAt);
++        const clear = openBox(privateBytes, challenge.encryptedChallenge, {
++          machineId: this.machineId,
++          keyId: record.id,
++          challengeId: challenge.challengeId,
++          expiresAt: challenge.expiresAt,
++        });
++        let digest: string;
++        try {
++          digest = hash(clear);
++        } finally {
++          clear.fill(0);
++        }
++        const confirmationId = `credential-confirm:${record.id}`;
++        await this.http.prepare({
++          operationId: confirmationId,
++          method: 'POST',
++          route: `/v2/machine/credential-keys/${record.id}/confirm`,
++          phase: 'credential-confirm',
++          canonicalBody: { challengeId: challenge.challengeId, challengeSha256: digest },
++        });
++        const confirmation = await this.http.replay(confirmationId);
++        if (confirmation.status < 200 || confirmation.status >= 300)
++          throw new Error('KEY_CONFIRMATION_REJECTED');
++        record.confirmed = true;
++        await this.store.put('active-key', record);
++        return record.id;
++      } finally {
++        privateBytes?.fill(0);
++      }
++    });
++  }
++  async accept(
++    envelope: SecretEnvelope,
++    currentRevision: number,
++    allowedProviders: readonly string[],
++  ): Promise<string> {
++    if (envelope.machineId !== this.machineId || !allowedProviders.includes(envelope.providerId))
++      throw new Error('ENVELOPE_SCOPE_INVALID');
++    if (envelope.configRevision !== currentRevision) throw new Error('CONFIG_REVISION_CONFLICT');
++    this.clock.assertFresh(envelope.expiresAt);
++    const digest = hash(canonicalJson(envelope));
++    return this.store.transaction(async () => {
++      const old = await this.store.get<AckIntent>(envelope.id);
++      if (old && old.envelopeHash !== digest) throw new Error('ENVELOPE_INVALID');
++      if (old) return this.replayAck(envelope.id);
++      const privateBytes = await this.bridge.read(this.service(), envelope.keyId);
++      if (!privateBytes) {
++        const operationId = `credential-key-lost:${envelope.id}`;
++        await this.http.prepare({
++          operationId,
++          method: 'POST',
++          route: `/v2/machine/api-secret-envelopes/${envelope.id}/key-lost`,
++          phase: 'credential-key-lost',
++          canonicalBody: {},
++        });
++        await this.http.replay(operationId);
++        throw new Error('KEY_LOST');
++      }
++      let clear: Buffer | undefined;
++      try {
++        clear = openBox(privateBytes, envelope, {
++          machineId: this.machineId,
++          providerId: envelope.providerId,
++          keyId: envelope.keyId,
++          configRevision: envelope.configRevision,
++          operationId: envelope.operationId,
++          expiresAt: envelope.expiresAt,
++        });
++        const credentialRef = await this.broker.put(envelope.providerId, clear, envelope.id);
++        const ack: SecretAck = {
++          operationId: envelope.operationId,
++          keyId: envelope.keyId,
++          ciphertextSha256: envelope.ciphertextSha256,
++          credentialRef,
++        };
++        // Write/read-back completed before durable ACK intent; no clear bytes in either journal.
++        await this.store.put(envelope.id, { formatVersion: 1, envelopeHash: digest, ack });
++        const operationId = `credential-ack:${envelope.id}`;
++        await this.http.prepare({
++          operationId,
++          method: 'POST',
++          route: `/v2/machine/api-secret-envelopes/${envelope.id}/ack`,
++          phase: 'credential-ack',
++          canonicalBody: ack,
++        });
++        const response = await this.http.replay(operationId);
++        if (response.status < 200 || response.status >= 300) throw new Error('SECRET_ACK_REJECTED');
++        return credentialRef;
++      } finally {
++        privateBytes.fill(0);
++        clear?.fill(0);
++      }
++    });
++  }
++  async replayAck(envelopeId: string): Promise<string> {
++    const intent = await this.store.get<AckIntent>(envelopeId);
++    if (!intent) throw new Error('ACK_INTENT_MISSING');
++    await this.broker.assertStored(intent.ack.credentialRef);
++    // Only previously durable write/read-back intent may replay, including historical server ACK.
++    const operationId = `credential-ack:${envelopeId}`;
++    await this.http.prepare({
++      operationId,
++      method: 'POST',
++      route: `/v2/machine/api-secret-envelopes/${envelopeId}/ack`,
++      phase: 'credential-ack',
++      canonicalBody: intent.ack,
++    });
++    const response = await this.http.replay(operationId);
++    if (response.status < 200 || response.status >= 300) throw new Error('SECRET_ACK_REJECTED');
++    return intent.ack.credentialRef;
++  }
++  async rotateKey(): Promise<string> {
++    await this.store.transaction(async () => {
++      const old = await this.store.get<KeyRecord>('active-key');
++      if (old) await this.store.put(`key-history:${old.id}`, old);
++      // Keep retired private keys for their own pending envelopes; no deletion by age.
++      await this.store.put('active-key', { formatVersion: 1, id: randomUUID(), publicKey: null });
++    });
++    return this.registerKey();
++  }
++  async syncPending(
++    read: (route: string) => Promise<unknown>,
++  ): Promise<{ state: 'disabled' | 'pending' | 'stored'; nextCursor: string }> {
++    const config = (await read('/v2/machine/model-sources')) as SourceConfig | null;
++    if (!config) return { state: 'pending', nextCursor: '0' };
++    if (!config.enabled.api) return { state: 'disabled', nextCursor: '0' };
++    const cursor = await this.store.get<{ formatVersion: 1; cursor: string }>('envelope-cursor');
++    const batch = (await read(`/v2/machine/api-secret-envelopes?after=${cursor?.cursor ?? '0'}`)) as {
++      items: SecretEnvelope[];
++      nextCursor: string;
++      serverTime: string;
++    };
++    if (
++      !batch ||
++      !Array.isArray(batch.items) ||
++      batch.items.length > 100 ||
++      !/^(0|[1-9][0-9]*)$/.test(batch.nextCursor) ||
++      BigInt(batch.nextCursor) < BigInt(cursor?.cursor ?? '0')
++    )
++      throw new Error('ENVELOPE_BATCH_INVALID');
++    this.clock.observe(batch.serverTime);
++    await this.store.transaction(async () => {
++      for (const envelope of batch.items) {
++        if (envelope.machineId !== this.machineId) throw new Error('ENVELOPE_SCOPE_INVALID');
++        const id = `pending-envelope:${envelope.id}`,
++          old = await this.store.get<{ formatVersion: 1; envelope: SecretEnvelope | null }>(id);
++        if (old?.envelope && canonicalJson(old.envelope) !== canonicalJson(envelope))
++          throw new Error('ENVELOPE_INVALID');
++        if (!old) await this.store.put(id, { formatVersion: 1, envelope });
++      }
++      // Cursor advances only after every encrypted envelope is durable; failed ACKs remain queued.
++      await this.store.put('envelope-cursor', { formatVersion: 1, cursor: batch.nextCursor });
++    });
++    let pending = false;
++    try {
++      await this.registerKey();
++    } catch {
++      pending = true;
++    }
++    const providers = config.apiProviders.map((p) => p.id);
++    for (const row of await this.store.all<{ formatVersion: 1; envelope?: SecretEnvelope | null }>()) {
++      if (!row.envelope) continue;
++      try {
++        await this.accept(row.envelope, config.revision, providers);
++        await this.store.put(`pending-envelope:${row.envelope.id}`, { formatVersion: 1, envelope: null });
++      } catch {
++        pending = true;
++      }
++    }
++    return { state: pending ? 'pending' : 'stored', nextCursor: batch.nextCursor };
++  }
++  close(): Promise<void> {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/models/current-credential-resolver.ts b/v2/gateway/src/models/current-credential-resolver.ts
+new file mode 100644
+index 0000000..b94c537
+--- /dev/null
++++ b/v2/gateway/src/models/current-credential-resolver.ts
+@@ -0,0 +1,93 @@
++import type { ApiCredentialBindings, ApiProviderConfig, SourceConfig } from './contracts.ts';
++import type { CredentialBroker } from './credential-broker.ts';
++
++export type ResolvedCredential = {
++  credentialRef: string;
++  assertCurrent: () => Promise<void>;
++};
++/** Authenticated machine HTTP reads; sampled state is not a network lease or dispatch permit. */
++export class CurrentCredentialResolver {
++  private readonly machineId: string;
++  private readonly read: (path: string, signal: AbortSignal) => Promise<unknown>;
++  private readonly broker: CredentialBroker;
++  constructor(
++    machineId: string,
++    read: (path: string, signal: AbortSignal) => Promise<unknown>,
++    broker: CredentialBroker,
++  ) {
++    this.machineId = machineId;
++    this.read = read;
++    this.broker = broker;
++  }
++  private async readBounded(path: string, signal: AbortSignal): Promise<unknown> {
++    signal.throwIfAborted();
++    let abort = () => {};
++    const interrupted = new Promise<never>((_, reject) => {
++      abort = () => reject(new Error('CREDENTIAL_READ_ABORTED'));
++      signal.addEventListener('abort', abort, { once: true });
++    });
++    try {
++      return await Promise.race([this.read(path, signal), interrupted]);
++    } finally {
++      signal.removeEventListener('abort', abort);
++    }
++  }
++  async resolve(
++    provider: ApiProviderConfig,
++    revision: number,
++    signal: AbortSignal,
++  ): Promise<ResolvedCredential> {
++    const expected = structuredClone(provider);
++    const readCurrent = async () => {
++      const desired = (await this.readBounded('/v2/machine/model-sources', signal)) as SourceConfig | null;
++      const snapshot = (await this.readBounded(
++        '/v2/machine/api-credential-bindings',
++        signal,
++      )) as ApiCredentialBindings | null;
++      const providers = desired?.apiProviders?.filter((p) => p.id === expected.id);
++      const bindings = snapshot?.providers?.filter((p) => p.providerId === expected.id);
++      const configured = providers?.[0],
++        binding = bindings?.[0];
++      if (
++        !Number.isSafeInteger(revision) ||
++        revision < 1 ||
++        desired?.revision !== revision ||
++        desired.enabled.api !== true ||
++        snapshot?.machineId !== this.machineId ||
++        snapshot.configRevision !== revision ||
++        snapshot.apiEnabled !== true ||
++        providers?.length !== 1 ||
++        bindings?.length !== 1 ||
++        !configured ||
++        !binding ||
++        configured.credentialStatus !== 'stored' ||
++        binding.status !== 'stored' ||
++        configured.endpoint !== expected.endpoint ||
++        configured.protocol !== expected.protocol ||
++        JSON.stringify(configured.localHttp) !== JSON.stringify(expected.localHttp) ||
++        JSON.stringify(configured.models) !== JSON.stringify(expected.models) ||
++        binding.endpoint !== expected.endpoint ||
++        binding.protocol !== expected.protocol ||
++        typeof binding.credentialRef !== 'string' ||
++        !binding.credentialRef.startsWith(`${this.machineId}_${expected.id}_`) ||
++        !(binding.currentOperationId === null || typeof binding.currentOperationId === 'string')
++      )
++        throw new Error('CREDENTIAL_BINDING_UNAVAILABLE');
++      await this.broker.assertStored(binding.credentialRef);
++      signal.throwIfAborted();
++      return { credentialRef: binding.credentialRef, currentOperationId: binding.currentOperationId };
++    };
++    const pinned = await readCurrent();
++    return {
++      credentialRef: pinned.credentialRef,
++      assertCurrent: async () => {
++        const current = await readCurrent();
++        if (
++          current.credentialRef !== pinned.credentialRef ||
++          current.currentOperationId !== pinned.currentOperationId
++        )
++          throw new Error('CREDENTIAL_BINDING_CHANGED');
++      },
++    };
++  }
++}
+diff --git a/v2/gateway/src/models/inventory.ts b/v2/gateway/src/models/inventory.ts
+new file mode 100644
+index 0000000..d29d8c4
+--- /dev/null
++++ b/v2/gateway/src/models/inventory.ts
+@@ -0,0 +1,62 @@
++import type { Runtime, Workflow, WorkflowStatus } from '../host/status.ts';
++import type { ProbeResult, SourceConfig } from './contracts.ts';
++import type { ModelProber } from './probe.ts';
++export type InventoryPorts = {
++  machineId: string;
++  prober: ModelProber;
++  catalogue: (runtime: Exclude<Runtime, 'api'>) => Promise<string[]>;
++};
++/** No cached entitlement, quota, readiness, certificate or owner model-list inference. */
++export class ModelInventory {
++  private readonly ports: InventoryPorts;
++  constructor(ports: InventoryPorts) {
++    this.ports = ports;
++  }
++  async collectInventory(
++    config: SourceConfig,
++    workflows: Record<Workflow, WorkflowStatus>,
++  ): Promise<ProbeResult[]> {
++    const entries: ProbeResult[] = [];
++    for (const runtime of ['claude', 'codex', 'api'] as const) {
++      if (!config.enabled[runtime]) continue;
++      const models: { providerId: string; modelId: string }[] = [];
++      if (runtime === 'api')
++        for (const p of config.apiProviders)
++          for (const m of p.models) models.push({ providerId: p.id, modelId: m.id });
++      else {
++        let catalogue: string[] = [];
++        try {
++          catalogue = await this.ports.catalogue(runtime);
++        } catch {
++          /* absent is unverified */
++        }
++        for (const id of new Set(catalogue)) models.push({ providerId: runtime, modelId: id });
++      }
++      for (const workflow of ['bmad', 'superpowers'] as const) {
++        const status = workflows[workflow],
++          source = status.source.installed,
++          slot = status.projections[runtime],
++          projection = slot.installed;
++        if (
++          status.source.state !== 'current' ||
++          slot.state !== 'current' ||
++          !source ||
++          !projection ||
++          source.name !== workflow ||
++          projection.runtime !== runtime ||
++          projection.sourceTreeSha256 !== source.sourceTreeSha256
++        )
++          continue;
++        for (const model of models)
++          entries.push(
++            await this.ports.prober.probeModel(
++              { machineId: this.ports.machineId, runtime, ...model },
++              { source, projection },
++              'offline',
++            ),
++          );
++      }
++    }
++    return entries;
++  }
++}
+diff --git a/v2/gateway/src/models/model-reporter.ts b/v2/gateway/src/models/model-reporter.ts
+new file mode 100644
+index 0000000..3eed54b
+--- /dev/null
++++ b/v2/gateway/src/models/model-reporter.ts
+@@ -0,0 +1,124 @@
++import { randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import type { Workflow, WorkflowStatus } from '../host/status.ts';
++import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts';
++import type { HttpOperationJournal } from '../journal/http-operations.ts';
++import type {
++  ModelAppliedBody,
++  ModelInventoryBody,
++  ModelReportEnvelope,
++  ProbeResult,
++  SourceConfig,
++} from './contracts.ts';
++export type ReporterPorts = {
++  getDesired: () => Promise<SourceConfig | null>;
++  currentBoot: () => { bootId: string; bootGeneration: string } | null;
++};
++type Report = {
++  formatVersion: 1;
++  kind: 'inventory' | 'applied';
++  envelope: ModelReportEnvelope<ModelInventoryBody | ModelAppliedBody>;
++};
++export class ModelReporter {
++  private readonly store: AtomicRecords;
++  private readonly http: HttpOperationJournal;
++  private readonly ports: ReporterPorts;
++  private desired: SourceConfig | null = null;
++  private constructor(store: AtomicRecords, http: HttpOperationJournal, ports: ReporterPorts) {
++    this.store = store;
++    this.http = http;
++    this.ports = ports;
++  }
++  static async open(root: string, http: HttpOperationJournal, ports: ReporterPorts): Promise<ModelReporter> {
++    return new ModelReporter(await AtomicRecords.open(join(root, 'model-reports')), http, ports);
++  }
++  async reconnect(
++    workflows: Record<Workflow, WorkflowStatus>,
++    collect: (config: SourceConfig, workflows: Record<Workflow, WorkflowStatus>) => Promise<ProbeResult[]>,
++  ): Promise<string> {
++    this.desired = await this.ports.getDesired();
++    if (!this.desired) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
++    const snapshot = structuredClone(this.desired);
++    const entries = await collect(snapshot, workflows);
++    // A subsequent desired GET is required on the next reconnect; no owner-session revision.
++    return this.sendInventory({ entries });
++  }
++  async sendInventory(body: ModelInventoryBody): Promise<string> {
++    const config = this.desired;
++    if (!config) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
++    for (const entry of body.entries) {
++      if (!config.enabled[entry.key.runtime]) throw new Error('SOURCE_DISABLED');
++      if (
++        entry.key.runtime === 'api' &&
++        !config.apiProviders.some(
++          (p) => p.id === entry.key.providerId && p.models.some((m) => m.id === entry.key.modelId),
++        )
++      )
++        throw new Error('MODEL_NOT_CONFIGURED');
++    }
++    return this.send('inventory', body);
++  }
++  async sendApplied(body: ModelAppliedBody): Promise<string> {
++    const inventory = await this.store.get<Report>(body.inventoryReportId),
++      boot = this.ports.currentBoot();
++    if (
++      inventory?.kind !== 'inventory' ||
++      inventory.envelope.configRevision !== this.desired?.revision ||
++      inventory.envelope.bootId !== boot?.bootId ||
++      inventory.envelope.bootGeneration !== boot.bootGeneration ||
++      hash(canonicalJson(inventory.envelope.body)) !== body.observationDigest
++    )
++      throw new Error('INVENTORY_MISMATCH');
++    for (const runtime of ['claude', 'codex', 'api'] as const) {
++      if (!this.desired.enabled[runtime] && body.sourceStatus[runtime].state !== 'disabled')
++        throw new Error('SOURCE_DISABLED');
++      if (this.desired.enabled[runtime] && body.sourceStatus[runtime].state === 'disabled')
++        throw new Error('APPLIED_MISMATCH');
++    }
++    // Caller supplies measured source observation; this reporter never synthesizes ready.
++    return this.send('applied', body);
++  }
++  private async send(kind: Report['kind'], body: ModelInventoryBody | ModelAppliedBody): Promise<string> {
++    const boot = this.ports.currentBoot(),
++      revision = this.desired?.revision;
++    if (!boot || !/^[1-9][0-9]*$/.test(boot.bootGeneration) || !revision)
++      throw new Error('BOOT_NOT_CONFIGURED');
++    const id = await this.store.transaction(async () => {
++      const counterId = `sequence:${boot.bootId}:${boot.bootGeneration}`;
++      const old = await this.store.get<{ formatVersion: 1; sequence: string }>(counterId);
++      const sequence = (BigInt(old?.sequence ?? '0') + 1n).toString();
++      // Counter first: a crash can skip a value but can never reuse an allocated sequence.
++      await this.store.put(counterId, { formatVersion: 1, sequence });
++      const reportId = randomUUID(),
++        envelope = {
++          reportId,
++          ...boot,
++          sequence,
++          configRevision: revision,
++          body: JSON.parse(canonicalJson(body)),
++        };
++      await this.store.put(reportId, { formatVersion: 1, kind, envelope });
++      return reportId;
++    });
++    return this.replay(id);
++  }
++  async replay(id: string): Promise<string> {
++    const report = await this.store.get<Report>(id);
++    if (!report) throw new Error('UNKNOWN_MODEL_REPORT');
++    await this.http.prepare({
++      operationId: id,
++      method: 'POST',
++      route: `/v2/machine/models/${report.kind}`,
++      phase: `model-${report.kind}`,
++      canonicalBody: report.envelope,
++    });
++    const response = await this.http.replay(id);
++    if (response.status < 200 || response.status >= 300) throw new Error('MODEL_REPORT_REJECTED');
++    const body = response.body as { reportId?: unknown; accepted?: unknown };
++    if (body?.reportId !== id || body.accepted !== true) throw new Error('MODEL_REPORT_INVALID');
++    return id;
++  }
++  close(): Promise<void> {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/models/probe.ts b/v2/gateway/src/models/probe.ts
+new file mode 100644
+index 0000000..717b42a
+--- /dev/null
++++ b/v2/gateway/src/models/probe.ts
+@@ -0,0 +1,413 @@
++import { constants } from 'node:fs';
++import { open } from 'node:fs/promises';
++import { isIP } from 'node:net';
++import { release } from 'node:os';
++import { canonicalJson, hash } from '../journal/atomic-records.ts';
++import type { ApiProviderConfig, Capability } from './contracts.ts';
++export function validateEndpoint(p: ApiProviderConfig): URL {
++  let u: URL;
++  try {
++    u = new URL(p.endpoint);
++  } catch {
++    throw new Error('ENDPOINT_INVALID');
++  }
++  if (u.href !== p.endpoint || u.username || u.password || u.search || u.hash)
++    throw new Error('ENDPOINT_INVALID');
++  if (u.protocol === 'http:') {
++    if (
++      !p.localHttp ||
++      !['127.0.0.1', '[::1]'].includes(u.hostname) ||
++      !u.port ||
++      Number(u.port) < 1 ||
++      Number(u.port) > 65535 ||
++      p.localHttp.allowedOrigin !== u.origin
++    )
++      throw new Error('ENDPOINT_INVALID');
++  } else if (
++    u.protocol !== 'https:' ||
++    p.localHttp ||
++    isIP(u.hostname.replaceAll(/[[\]]/g, '')) ||
++    u.hostname === 'localhost' ||
++    u.hostname.endsWith('.localhost') ||
++    u.hostname.endsWith('.local')
++  )
++    throw new Error('ENDPOINT_INVALID');
++  if (!p.models.length || new Set(p.models.map((m) => m.id)).size !== p.models.length)
++    throw new Error('MODEL_LIST_INVALID');
++  return u;
++}
++function object(value: unknown): Record<string, unknown> {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROTOCOL');
++  return value as Record<string, unknown>;
++}
++function tool(name: unknown, args: unknown, id: unknown, seen: Set<string>): void {
++  if (name !== 'crew_probe_echo' || typeof args !== 'string' || typeof id !== 'string' || !id || seen.has(id))
++    throw new Error('TOOL_PROTOCOL');
++  seen.add(id);
++  try {
++    const a = object(JSON.parse(args));
++    if (a.value !== 'fixture' || Object.keys(a).length !== 1) throw new Error();
++  } catch {
++    throw new Error('TOOL_PROTOCOL');
++  }
++}
++/** Shape evidence only. Tools require correlated local execution and follow-up before live PASS. */
++export function parseProtocol(
++  protocol: 'responses' | 'chat-completions',
++  value: unknown,
++  modelId: string,
++): Capability[] {
++  const o = object(value),
++    result = new Set<Capability>(),
++    seen = new Set<string>();
++  if (o.model !== modelId) throw new Error('MODEL_MISMATCH');
++  if (protocol === 'responses') {
++    if (o.status !== 'completed' || !Array.isArray(o.output)) throw new Error('PROTOCOL');
++    for (const value of o.output) {
++      const item = object(value);
++      if (item.type === 'function_call') {
++        tool(item.name, item.arguments, item.call_id, seen);
++        result.add('tools');
++      } else if (item.type === 'message') {
++        if (!Array.isArray(item.content)) throw new Error('PROTOCOL');
++        for (const part of item.content) {
++          const content = object(part);
++          if (content.type !== 'output_text' || typeof content.text !== 'string' || !content.text.length)
++            throw new Error('PROTOCOL');
++          result.add('text');
++        }
++      } else throw new Error('PROTOCOL');
++    }
++  } else {
++    if (!Array.isArray(o.choices) || o.choices.length !== 1) throw new Error('PROTOCOL');
++    const choice = object(o.choices[0]),
++      message = object(choice.message);
++    if (message.role !== 'assistant' || !['stop', 'tool_calls'].includes(String(choice.finish_reason)))
++      throw new Error('PROTOCOL');
++    if (typeof message.content === 'string' && message.content.length) result.add('text');
++    if (message.tool_calls !== undefined) {
++      if (
++        !Array.isArray(message.tool_calls) ||
++        !message.tool_calls.length ||
++        choice.finish_reason !== 'tool_calls'
++      )
++        throw new Error('TOOL_PROTOCOL');
++      for (const value of message.tool_calls) {
++        const call = object(value),
++          fn = object(call.function);
++        if (call.type !== 'function') throw new Error('TOOL_PROTOCOL');
++        tool(fn.name, fn.arguments, call.id, seen);
++        result.add('tools');
++      }
++    }
++  }
++  if (!result.size) throw new Error('PROTOCOL');
++  return [...result];
++}
++
++import type { ModelKey, Pair, ProbeContext, ProbeResult } from './contracts.ts';
++export type ProbeResponse = {
++  status: number;
++  body: unknown;
++  retryAfter: string | null;
++  streamed: boolean;
++  toolExecution?: { callId: string; resultCallId: string; value: string };
++  imageObserved?: boolean;
++};
++export type ProbePorts = {
++  context: (key: ModelKey, pair: Pair) => Promise<{ context: ProbeContext; version: string | null } | null>;
++  provider: (key: ModelKey) => ApiProviderConfig | null;
++  offline?: (key: ModelKey, signal: AbortSignal) => Promise<ProbeResponse>;
++  authorizedLive?: {
++    authorize: (key: ModelKey, context: ProbeContext) => Promise<boolean>;
++    call: (key: ModelKey, signal: AbortSignal) => Promise<ProbeResponse>;
++  };
++  deadlineMs?: number;
++};
++export class ModelProber {
++  private readonly ports: ProbePorts;
++  private readonly cooldown = new Map<string, number>();
++  constructor(ports: ProbePorts) {
++    this.ports = ports;
++  }
++  async probeModel(key: ModelKey, pair: Pair, mode: 'offline' | 'authorized-live'): Promise<ProbeResult> {
++    const observedAt = new Date().toISOString();
++    const missing: ProbeContext = {
++      sourceTreeSha256: pair.source.sourceTreeSha256,
++      projectionManifestSha256: pair.projection.manifestSha256,
++      projectionTreeSha256: pair.projection.treeSha256,
++      derivationSha256: hash(canonicalJson(pair.projection.derivation)),
++      binarySha256: '0'.repeat(64),
++      policySha256: pair.projection.derivation.policySha256,
++      osVersion: release(),
++    };
++    let observation: Awaited<ReturnType<ProbePorts['context']>> = null;
++    try {
++      observation = await this.ports.context(key, pair);
++    } catch {
++      /* unavailable observation */
++    }
++    const context = observation?.context ?? missing;
++    const result = (
++      status: ProbeResult['status'],
++      capabilities: Capability[],
++      errorCode: string | null,
++    ): ProbeResult => ({
++      key,
++      context,
++      observedAt,
++      status,
++      capabilities,
++      errorCode,
++      runtimeVersion: observation?.version ?? null,
++      evidenceDigest: hash(canonicalJson({ key, context, status, capabilities, errorCode })),
++    });
++    if (!observation)
++      return result('unverified', [], key.runtime === 'api' ? 'BINARY_UNVERIFIED' : 'CLI_ABSENT');
++    if (
++      pair.projection.runtime !== key.runtime ||
++      pair.projection.sourceTreeSha256 !== pair.source.sourceTreeSha256 ||
++      context.sourceTreeSha256 !== pair.source.sourceTreeSha256 ||
++      context.projectionManifestSha256 !== pair.projection.manifestSha256 ||
++      context.projectionTreeSha256 !== pair.projection.treeSha256 ||
++      context.derivationSha256 !== hash(canonicalJson(pair.projection.derivation)) ||
++      context.policySha256 !== pair.projection.derivation.policySha256 ||
++      !/^[0-9a-f]{64}$/.test(context.binarySha256) ||
++      context.binarySha256 === '0'.repeat(64)
++    )
++      return result('unverified', [], 'CONTEXT_MISMATCH');
++    const provider = this.ports.provider(key);
++    if (
++      key.runtime === 'api' &&
++      (!provider || provider.id !== key.providerId || !provider.models.some((m) => m.id === key.modelId))
++    )
++      return result('unverified', [], 'MODEL_NOT_CONFIGURED');
++    if (provider) {
++      try {
++        validateEndpoint(provider);
++      } catch {
++        return result('fail', [], 'ENDPOINT_INVALID');
++      }
++    }
++    if (mode === 'authorized-live') {
++      try {
++        if (!this.ports.authorizedLive || !(await this.ports.authorizedLive.authorize(key, context)))
++          return result('unverified', [], 'LIVE_NOT_AUTHORIZED');
++      } catch {
++        return result('unverified', [], 'LIVE_NOT_AUTHORIZED');
++      }
++    }
++    const call = mode === 'offline' ? this.ports.offline : this.ports.authorizedLive?.call;
++    if (!call || key.runtime !== 'api')
++      return result(
++        'unverified',
++        [],
++        key.runtime === 'api' ? 'OFFLINE_UNVERIFIED' : 'ISOLATED_AUTH_UNVERIFIED',
++      );
++    const identity = canonicalJson(key);
++    if ((this.cooldown.get(identity) ?? 0) > performance.now()) return result('unverified', [], 'BACKOFF');
++    const controller = new AbortController(),
++      deadline = Math.min(30000, Math.max(1, this.ports.deadlineMs ?? 10000));
++    let timer: ReturnType<typeof setTimeout> | undefined;
++    try {
++      const response = await Promise.race([
++        call(key, controller.signal),
++        new Promise<never>((_resolve, reject) => {
++          timer = setTimeout(() => {
++            controller.abort();
++            reject(new Error('TRANSIENT'));
++          }, deadline);
++        }),
++      ]);
++      if (response.status === 401 || response.status === 403) return result('fail', [], 'AUTH');
++      if (response.status === 429) {
++        const raw = response.retryAfter ?? '1',
++          numeric = Number(raw),
++          seconds = Number.isFinite(numeric) ? numeric : Math.max(0, (Date.parse(raw) - Date.now()) / 1000);
++        this.cooldown.set(
++          identity,
++          performance.now() +
++            Math.min(300000, Math.max(1000, Number.isFinite(seconds) ? seconds * 1000 : 1000)),
++        );
++        return result('fail', [], 'QUOTA');
++      }
++      if (response.status >= 500 || response.status < 200) return result('unverified', [], 'TRANSIENT');
++      if (response.status >= 300) return result('fail', [], 'PROTOCOL');
++      const bodyText = canonicalJson(response.body);
++      if (Buffer.byteLength(bodyText) > 1048576) return result('fail', [], 'RESPONSE_TOO_LARGE');
++      if (!provider) return result('unverified', [], 'MODEL_NOT_CONFIGURED');
++      const parsed = parseProtocol(provider.protocol, response.body, key.modelId);
++      if (mode === 'offline') return result('unverified', [], 'OFFLINE_UNVERIFIED');
++      if (parsed.includes('tools')) {
++        const tool = response.toolExecution;
++        const wire = response.body as {
++          output?: { call_id?: string }[];
++          choices?: { message: { tool_calls?: { id: string }[] } }[];
++        };
++        const ids =
++          provider.protocol === 'responses'
++            ? wire.output?.filter((x) => x.call_id).map((x) => x.call_id)
++            : wire.choices?.[0]?.message.tool_calls?.map((x) => x.id);
++        if (
++          !tool ||
++          ids?.length !== 1 ||
++          ids[0] !== tool.callId ||
++          tool.callId !== tool.resultCallId ||
++          tool.value !== 'fixture'
++        )
++          return result('fail', [], 'TOOL_PROTOCOL');
++      }
++      if (response.streamed) parsed.push('stream');
++      if (
++        response.imageObserved &&
++        provider.models.find((m) => m.id === key.modelId)?.declared.includes('vision')
++      )
++        parsed.push('vision');
++      return result('pass', [...new Set(parsed)], null);
++    } catch (error) {
++      const code =
++        error instanceof Error &&
++        [
++          'MODEL_MISMATCH',
++          'TOOL_PROTOCOL',
++          'PROTOCOL',
++          'STREAM_PROTOCOL',
++          'VISION_UNSUPPORTED',
++          'RESPONSE_TOO_LARGE',
++          'SSRF_DENIED',
++        ].includes(error.message)
++          ? error.message
++          : 'TRANSIENT';
++      return result(code === 'TRANSIENT' ? 'unverified' : 'fail', [], code);
++    } finally {
++      clearTimeout(timer);
++      controller.abort();
++    }
++  }
++}
++/** Reads bytes without running a CLI or discovering owner HOME credentials. */
++export async function executableContext(
++  path: string,
++  pair: Pair,
++): Promise<{ context: ProbeContext; version: null } | null> {
++  let fd: Awaited<ReturnType<typeof open>> | undefined;
++  try {
++    fd = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
++    const stat = await fd.stat();
++    if (!stat.isFile() || stat.size > 128 * 1024 * 1024 || !(stat.mode & 0o111)) return null;
++    const bytes = await fd.readFile();
++    return {
++      version: null,
++      context: {
++        sourceTreeSha256: pair.source.sourceTreeSha256,
++        projectionManifestSha256: pair.projection.manifestSha256,
++        projectionTreeSha256: pair.projection.treeSha256,
++        derivationSha256: hash(canonicalJson(pair.projection.derivation)),
++        binarySha256: hash(bytes),
++        policySha256: pair.projection.derivation.policySha256,
++        osVersion: release(),
++      },
++    };
++  } catch {
++    return null;
++  } finally {
++    await fd?.close();
++  }
++}
++export function parseStream(
++  protocol: 'responses' | 'chat-completions',
++  text: string,
++  modelId: string,
++): unknown {
++  if (Buffer.byteLength(text) > 1048576 || !text.endsWith('\n\n')) throw new Error('STREAM_PROTOCOL');
++  let completed: unknown;
++  let done = false,
++    model: string | undefined,
++    content = '',
++    finish: string | null = null;
++  const calls = new Map<
++    number,
++    { id: string; type: string; function: { name: string; arguments: string } }
++  >();
++  for (const frame of text.replaceAll('\r\n', '\n').split('\n\n').filter(Boolean)) {
++    const data = frame
++      .split('\n')
++      .filter((line) => line.startsWith('data:'))
++      .map((line) => line.slice(5).trimStart())
++      .join('\n');
++    if (!data) continue;
++    if (done) throw new Error('STREAM_PROTOCOL');
++    if (data === '[DONE]') {
++      done = true;
++      continue;
++    }
++    let o: Record<string, unknown>;
++    try {
++      o = object(JSON.parse(data));
++    } catch {
++      throw new Error('STREAM_PROTOCOL');
++    }
++    if (protocol === 'responses') {
++      if (o.type === 'response.completed') {
++        if (completed) throw new Error('STREAM_PROTOCOL');
++        completed = o.response;
++        done = true;
++      } else if (typeof o.type !== 'string' || !o.type.startsWith('response.'))
++        throw new Error('STREAM_PROTOCOL');
++    } else {
++      if (o.model !== modelId || (model && model !== o.model)) throw new Error('MODEL_MISMATCH');
++      model = String(o.model);
++      if (!Array.isArray(o.choices) || o.choices.length !== 1) throw new Error('STREAM_PROTOCOL');
++      const choice = object(o.choices[0]),
++        delta = object(choice.delta);
++      if (choice.index !== 0 || finish) throw new Error('STREAM_PROTOCOL');
++      if (delta.content !== undefined) {
++        if (typeof delta.content !== 'string') throw new Error('STREAM_PROTOCOL');
++        content += delta.content;
++      }
++      if (delta.tool_calls !== undefined) {
++        if (!Array.isArray(delta.tool_calls)) throw new Error('STREAM_PROTOCOL');
++        for (const part of delta.tool_calls) {
++          const p = object(part);
++          if (!Number.isSafeInteger(p.index) || Number(p.index) < 0 || Number(p.index) > 8)
++            throw new Error('TOOL_PROTOCOL');
++          const index = Number(p.index),
++            call = calls.get(index) ?? { id: '', type: 'function', function: { name: '', arguments: '' } },
++            fn = p.function === undefined ? {} : object(p.function);
++          if (p.id !== undefined) {
++            if (call.id || typeof p.id !== 'string') throw new Error('TOOL_PROTOCOL');
++            call.id = p.id;
++          }
++          if (p.type !== undefined && p.type !== 'function') throw new Error('TOOL_PROTOCOL');
++          for (const k of ['name', 'arguments'] as const)
++            if (fn[k] !== undefined) {
++              if (typeof fn[k] !== 'string') throw new Error('TOOL_PROTOCOL');
++              call.function[k] += fn[k];
++            }
++          calls.set(index, call);
++        }
++      }
++      if (choice.finish_reason !== null && choice.finish_reason !== undefined)
++        finish = String(choice.finish_reason);
++    }
++  }
++  if (!done) throw new Error('STREAM_PROTOCOL');
++  const value =
++    protocol === 'responses'
++      ? completed
++      : {
++          model,
++          choices: [
++            {
++              finish_reason: finish,
++              message: {
++                role: 'assistant',
++                content,
++                ...(calls.size ? { tool_calls: [...calls.values()] } : {}),
++              },
++            },
++          ],
++        };
++  parseProtocol(protocol, value, modelId);
++  return value;
++}
+diff --git a/v2/gateway/src/models/provider-transport.ts b/v2/gateway/src/models/provider-transport.ts
+new file mode 100644
+index 0000000..d614c13
+--- /dev/null
++++ b/v2/gateway/src/models/provider-transport.ts
+@@ -0,0 +1,251 @@
++import { lookup } from 'node:dns/promises';
++import { request as httpRequest } from 'node:http';
++import { request as httpsRequest } from 'node:https';
++import { isIP } from 'node:net';
++import type { Readable } from 'node:stream';
++import type { ApiProviderConfig } from './contracts.ts';
++import type { CredentialBroker, SecretTransport } from './credential-broker.ts';
++import type { CurrentCredentialResolver } from './current-credential-resolver.ts';
++import { type ProbeResponse, parseProtocol, parseStream, validateEndpoint } from './probe.ts';
++export function assertPublicAddress(address: string): void {
++  if (isIP(address) === 4) {
++    const [a, b, c] = address.split('.').map(Number);
++    if (
++      a === 0 ||
++      a === 10 ||
++      a === 127 ||
++      a >= 224 ||
++      (a === 100 && b >= 64 && b <= 127) ||
++      (a === 169 && b === 254) ||
++      (a === 172 && b >= 16 && b <= 31) ||
++      (a === 192 && (b === 168 || (b === 0 && (c === 0 || c === 2)) || (b === 88 && c === 99))) ||
++      (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
++      (a === 203 && b === 0 && c === 113)
++    )
++      throw new Error('SSRF_DENIED');
++  } else if (isIP(address) === 6) {
++    // Admit only global unicast; special/mapped/transition/documentation ranges fail closed.
++    const parts = address.split(':');
++    const first = Number.parseInt(parts[0] ?? '', 16),
++      second = Number.parseInt(parts[1] || '0', 16);
++    if (
++      !Number.isFinite(first) ||
++      first < 0x2000 ||
++      first > 0x3fff ||
++      (first === 0x2001 && (second < 0x200 || second === 0xdb8)) ||
++      first === 0x2002 ||
++      first === 0x3fff
++    )
++      throw new Error('SSRF_DENIED');
++  } else throw new Error('SSRF_DENIED');
++}
++export function buildProbeRequest(provider: ApiProviderConfig, model: string): unknown {
++  validateEndpoint(provider);
++  if (!provider.models.some((m) => m.id === model)) throw new Error('MODEL_NOT_CONFIGURED');
++  const tool = {
++    name: 'crew_probe_echo',
++    description: 'Echo fixture only',
++    parameters: {
++      type: 'object',
++      properties: { value: { type: 'string', enum: ['fixture'] } },
++      required: ['value'],
++      additionalProperties: false,
++    },
++  };
++  return provider.protocol === 'responses'
++    ? {
++        model,
++        input: 'Reply fixture or call crew_probe_echo with value fixture.',
++        max_output_tokens: 128,
++        tools: [{ type: 'function', ...tool }],
++        stream: false,
++      }
++    : {
++        model,
++        messages: [{ role: 'user', content: 'Reply fixture or call crew_probe_echo with value fixture.' }],
++        max_completion_tokens: 128,
++        tools: [{ type: 'function', function: tool }],
++        stream: false,
++      };
++}
++/** Each request resolves/checks all answers and pins the socket lookup to one allowed IP. */
++async function send(
++  provider: ApiProviderConfig,
++  model: string,
++  body: unknown,
++  credential: Buffer,
++  signal: AbortSignal,
++  assertCurrent?: () => Promise<void>,
++): Promise<ProbeResponse> {
++  const base = validateEndpoint(provider),
++    url = new URL(base.href);
++  url.pathname = `${url.pathname.replace(/\/$/, '')}/${provider.protocol === 'responses' ? 'responses' : 'chat/completions'}`;
++  const hostname = url.hostname.replaceAll(/[[\]]/g, '');
++  const answers =
++    base.protocol === 'http:'
++      ? [{ address: hostname, family: isIP(hostname) }]
++      : await lookup(hostname, { all: true, verbatim: true });
++  if (!answers.length) throw new Error('SSRF_DENIED');
++  if (base.protocol === 'https:') for (const a of answers) assertPublicAddress(a.address);
++  const pinned = answers[0],
++    payload = Buffer.from(JSON.stringify(body));
++  if (!pinned) throw new Error('SSRF_DENIED');
++  try {
++    await assertCurrent?.();
++    signal.throwIfAborted();
++    return await new Promise<ProbeResponse>((resolve, reject) => {
++      const chunks: Buffer[] = [];
++      let size = 0;
++      const req = (url.protocol === 'https:' ? httpsRequest : httpRequest)(
++        url,
++        {
++          method: 'POST',
++          signal,
++          headers: {
++            'Content-Type': 'application/json',
++            'Content-Length': payload.length,
++            Authorization: `Bearer ${credential.toString('utf8')}`,
++          },
++          lookup: pinnedLookup(pinned),
++        },
++        (res) => {
++          res.setTimeout(3000, () => req.destroy(new Error('TRANSIENT')));
++          res.on('data', (chunk: Buffer) => {
++            size += chunk.length;
++            if (size > 1048576) req.destroy(new Error('RESPONSE_TOO_LARGE'));
++            else chunks.push(chunk);
++          });
++          res.on('aborted', () => reject(new Error('TRANSIENT')));
++          res.on('error', () => reject(new Error('TRANSIENT')));
++          res.on('end', () => {
++            const status = res.statusCode ?? 500;
++            if (status < 200 || status >= 300) {
++              resolve({
++                status,
++                body: null,
++                retryAfter:
++                  typeof res.headers['retry-after'] === 'string' ? res.headers['retry-after'] : null,
++                streamed: false,
++              });
++              return;
++            }
++            try {
++              const text = Buffer.concat(chunks).toString('utf8'),
++                streamed = String(res.headers['content-type']).startsWith('text/event-stream'),
++                parsed = streamed ? parseStream(provider.protocol, text, model) : JSON.parse(text);
++              parseProtocol(provider.protocol, parsed, model);
++              resolve({ status, body: parsed, retryAfter: null, streamed });
++            } catch (error) {
++              reject(
++                error instanceof Error &&
++                  ['MODEL_MISMATCH', 'TOOL_PROTOCOL', 'PROTOCOL', 'STREAM_PROTOCOL'].includes(error.message)
++                  ? error
++                  : new Error('PROTOCOL'),
++              );
++            }
++          });
++        },
++      );
++      req.setTimeout(3000, () => req.destroy(new Error('TRANSIENT')));
++      req.on('error', (error) =>
++        reject(new Error(error.message === 'RESPONSE_TOO_LARGE' ? 'RESPONSE_TOO_LARGE' : 'TRANSIENT')),
++      );
++      req.end(payload);
++    });
++  } finally {
++    payload.fill(0);
++  }
++}
++/** Compose deliver into CredentialBroker's trusted list before using call(). One call in flight. */
++export class PinnedProviderTransport {
++  private readonly provider: ApiProviderConfig;
++  private pending: {
++    model: string;
++    body: unknown;
++    signal: AbortSignal;
++    response: ProbeResponse | null;
++    assertCurrent?: () => Promise<void>;
++  } | null = null;
++  readonly deliver: SecretTransport;
++  constructor(provider: ApiProviderConfig) {
++    this.provider = structuredClone(provider);
++    this.deliver = async (channel: Readable) => {
++      const operation = this.pending;
++      if (!operation) throw new Error('TRANSPORT_NOT_PINNED');
++      const chunks: Buffer[] = [];
++      let count = 0;
++      try {
++        for await (const value of channel) {
++          const chunk = Buffer.from(value);
++          count += chunk.length;
++          if (count > 8192) {
++            chunk.fill(0);
++            throw new Error('CREDENTIAL_INVALID');
++          }
++          chunks.push(chunk);
++        }
++        const bytes = Buffer.concat(chunks);
++        try {
++          operation.response = await send(
++            this.provider,
++            operation.model,
++            operation.body,
++            bytes,
++            operation.signal,
++            operation.assertCurrent,
++          );
++        } finally {
++          bytes.fill(0);
++        }
++      } finally {
++        for (const chunk of chunks) chunk.fill(0);
++      }
++    };
++  }
++  /** Current server-bound path for composition. Explicit-ref call below is a low-level trusted port. */
++  async callCurrent(
++    model: string,
++    broker: CredentialBroker,
++    resolver: CurrentCredentialResolver,
++    configRevision: number,
++    signal: AbortSignal,
++  ): Promise<ProbeResponse> {
++    const current = await resolver.resolve(this.provider, configRevision, signal);
++    return this.call(model, broker, current.credentialRef, signal, current.assertCurrent);
++  }
++  async call(
++    model: string,
++    broker: CredentialBroker,
++    credentialRef: string,
++    signal: AbortSignal,
++    assertCurrent?: () => Promise<void>,
++  ): Promise<ProbeResponse> {
++    if (this.pending) throw new Error('TRANSPORT_BUSY');
++    const operation = {
++      model,
++      body: buildProbeRequest(this.provider, model),
++      signal,
++      assertCurrent,
++      response: null as ProbeResponse | null,
++    };
++    this.pending = operation;
++    try {
++      await broker.withSecret(credentialRef, this.deliver);
++      await assertCurrent?.();
++      signal.throwIfAborted();
++      if (!operation.response) throw new Error('TRANSIENT');
++      return operation.response;
++    } finally {
++      this.pending = null;
++    }
++  }
++}
++export function pinnedLookup(address: {
++  address: string;
++  family: number;
++}): import('node:net').LookupFunction {
++  return (_hostname, options, callback) => {
++    if (options.all) callback(null, [address]);
++    else callback(null, address.address, address.family);
++  };
++}
+diff --git a/v2/gateway/src/models/security-bridge.ts b/v2/gateway/src/models/security-bridge.ts
+new file mode 100644
+index 0000000..81d13e0
+--- /dev/null
++++ b/v2/gateway/src/models/security-bridge.ts
+@@ -0,0 +1,138 @@
++import { spawn } from 'node:child_process';
++import { constants } from 'node:fs';
++import { open } from 'node:fs/promises';
++import type { Duplex } from 'node:stream';
++import { hash } from '../journal/atomic-records.ts';
++export interface SecurityBridge {
++  put(service: string, account: string, value: Buffer): Promise<void>;
++  read(service: string, account: string): Promise<Buffer | null>;
++  remove(service: string, account: string): Promise<void>;
++}
++export type SecurityHelper = {
++  path: string;
++  sha256: string;
++  signedAclVerified?: (input: { pid: number; sha256: string }) => Promise<boolean>;
++};
++/** Signed packaging/ACL proof is supplied only by trusted phase09 composition. */
++export class SecurityFrameworkBridge implements SecurityBridge {
++  private readonly helper: SecurityHelper;
++  constructor(helper: SecurityHelper) {
++    this.helper = helper;
++  }
++  private async exchange(
++    op: number,
++    service: string,
++    account: string,
++    value: Buffer = Buffer.alloc(0),
++  ): Promise<Buffer | null> {
++    if (
++      !/^com\.2pcrew\.v2\.[A-Za-z0-9.-]{1,200}$/.test(service) ||
++      !/^[A-Za-z0-9_-]{1,200}$/.test(account) ||
++      value.length > 8192
++    )
++      throw new Error('SECURITY_SCOPE_INVALID');
++    let fd: Awaited<ReturnType<typeof open>> | undefined;
++    try {
++      if (
++        process.platform !== 'darwin' ||
++        !this.helper.path.startsWith('/') ||
++        !this.helper.signedAclVerified
++      )
++        throw new Error();
++      fd = await open(this.helper.path, constants.O_RDONLY | constants.O_NOFOLLOW);
++      const stat = await fd.stat();
++      if (
++        !stat.isFile() ||
++        stat.uid !== process.getuid?.() ||
++        stat.nlink !== 1 ||
++        (stat.mode & 0o077) !== 0 ||
++        !(stat.mode & 0o100) ||
++        stat.size > 4 * 1024 * 1024 ||
++        hash(await fd.readFile()) !== this.helper.sha256
++      )
++        throw new Error();
++    } catch {
++      await fd?.close();
++      throw new Error('SECURITY_BRIDGE_UNVERIFIED');
++    }
++    const s = Buffer.from(service),
++      a = Buffer.from(account),
++      frame = Buffer.alloc(16 + s.length + a.length + value.length);
++    frame.writeUInt32BE(op, 0);
++    frame.writeUInt32BE(s.length, 4);
++    frame.writeUInt32BE(a.length, 8);
++    frame.writeUInt32BE(value.length, 12);
++    s.copy(frame, 16);
++    a.copy(frame, 16 + s.length);
++    value.copy(frame, 16 + s.length + a.length);
++    try {
++      return await new Promise<Buffer | null>((resolve, reject) => {
++        const child = spawn(this.helper.path, [], { env: {}, stdio: ['ignore', 'ignore', 'ignore', 'pipe'] }),
++          channel = child.stdio[3] as Duplex;
++        const chunks: Buffer[] = [];
++        let size = 0,
++          settled = false;
++        const finish = (error: boolean, result: Buffer | null = null) => {
++          if (settled) {
++            result?.fill(0);
++            return;
++          }
++          settled = true;
++          clearTimeout(timer);
++          channel.destroy();
++          child.kill();
++          for (const chunk of chunks) chunk.fill(0);
++          if (error) reject(new Error('SECURITY_BRIDGE_FAILED'));
++          else resolve(result);
++        };
++        const timer = setTimeout(() => finish(true), 3000);
++        channel.on('data', (chunk: Buffer) => {
++          size += chunk.length;
++          if (size > 8200) finish(true);
++          else chunks.push(chunk);
++        });
++        channel.on('error', () => finish(true));
++        child.on('error', () => finish(true));
++        child.on('close', (code) => {
++          if (code !== 0 || size < 8) return finish(true);
++          const reply = Buffer.concat(chunks);
++          try {
++            const status = reply.readInt32BE(0),
++              len = reply.readUInt32BE(4);
++            if (len !== reply.length - 8 || len > 8192) return finish(true);
++            if (status === 1 && len === 0) return finish(false, null);
++            if (status !== 0) return finish(true);
++            finish(false, Buffer.from(reply.subarray(8)));
++          } finally {
++            reply.fill(0);
++          }
++        });
++        // Verify the loaded dormant helper's signing identity/ACL before releasing any request bytes.
++        if (!child.pid) finish(true);
++        else
++          this.helper.signedAclVerified?.({ pid: child.pid, sha256: this.helper.sha256 }).then(
++            (verified) => {
++              if (settled) return;
++              if (!verified) finish(true);
++              else channel.end(frame);
++            },
++            () => finish(true),
++          );
++      });
++    } finally {
++      frame.fill(0);
++      await fd?.close();
++    }
++  }
++  async put(service: string, account: string, value: Buffer): Promise<void> {
++    const bytes = await this.exchange(1, service, account, value);
++    bytes?.fill(0);
++  }
++  read(service: string, account: string): Promise<Buffer | null> {
++    return this.exchange(2, service, account);
++  }
++  async remove(service: string, account: string): Promise<void> {
++    const bytes = await this.exchange(3, service, account);
++    bytes?.fill(0);
++  }
++}
+diff --git a/v2/gateway/src/models/security-keychain.m b/v2/gateway/src/models/security-keychain.m
+new file mode 100644
+index 0000000..6cfcc34
+--- /dev/null
++++ b/v2/gateway/src/models/security-keychain.m
+@@ -0,0 +1,55 @@
++/* One request per dedicated FD 3. No credential argv/environment/stdout/stderr.
++ * Compile/package/sign only in phase09. Never run unsigned against owner Keychain. */
++#include <CoreFoundation/CoreFoundation.h>
++#include <Security/Security.h>
++#import <Foundation/Foundation.h>
++#import <LocalAuthentication/LocalAuthentication.h>
++static void wipe(void *p, size_t n) {volatile unsigned char *b=p;while(n--)*b++=0;}
++#include <arpa/inet.h>
++#include <errno.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++static int io(int fd, void *bytes, size_t n, int writing) {
++  unsigned char *p = bytes;
++  while(n) {ssize_t r=writing?write(fd,p,n):read(fd,p,n);if(r<0 && errno==EINTR)continue;if(r<=0)return -1;p+=r;n-=(size_t)r;}return 0;
++}
++static int reply(int32_t status,const void *bytes,uint32_t n) {
++  uint32_t h[2]={htonl((uint32_t)status),htonl(n)};
++  if(io(3,h,sizeof(h),1)<0)return 1;
++  return n && io(3,(void*)bytes,n,1)<0?1:0;
++}
++int main(void) {
++  uint32_t h[4];if(io(3,h,sizeof(h),0)<0)return 1;
++  uint32_t op=ntohl(h[0]),sn=ntohl(h[1]),an=ntohl(h[2]),vn=ntohl(h[3]);
++  if(op<1 || op>3 || sn<15 || sn>220 || an<1 || an>200 || vn>8192 || (op!=1 && vn))return 1;
++  char service[221]={0},account[201]={0};unsigned char value[8192]={0};
++  if(io(3,service,sn,0)<0 || io(3,account,an,0)<0 || io(3,value,vn,0)<0)return 1;
++  if(strncmp(service,"com.2pcrew.v2.",13)!=0 || strlen(service)!=sn || strlen(account)!=an) {wipe(value,sizeof(value));return 1;}
++  CFStringRef s=CFStringCreateWithBytes(NULL,(UInt8*)service,sn,kCFStringEncodingUTF8,false),a=CFStringCreateWithBytes(NULL,(UInt8*)account,an,kCFStringEncodingUTF8,false);
++  if(!s || !a) {wipe(value,sizeof(value));if(s)CFRelease(s);if(a)CFRelease(a);return 1;}
++  CFMutableDictionaryRef q=CFDictionaryCreateMutable(NULL,0,&kCFTypeDictionaryKeyCallBacks,&kCFTypeDictionaryValueCallBacks);
++  CFDictionarySetValue(q,kSecClass,kSecClassGenericPassword);CFDictionarySetValue(q,kSecAttrService,s);CFDictionarySetValue(q,kSecAttrAccount,a);
++  CFDictionarySetValue(q,kSecUseDataProtectionKeychain,kCFBooleanTrue);
++  LAContext *context=[[LAContext alloc] init]; context.interactionNotAllowed=YES;
++  CFDictionarySetValue(q,kSecUseAuthenticationContext,(__bridge CFTypeRef)context);
++  OSStatus status=errSecParam;CFTypeRef data=NULL;
++  if(op==1) {
++    CFDataRef d=CFDataCreate(NULL,value,vn);CFMutableDictionaryRef update=CFDictionaryCreateMutable(NULL,0,&kCFTypeDictionaryKeyCallBacks,&kCFTypeDictionaryValueCallBacks);
++    CFDictionarySetValue(update,kSecValueData,d);status=SecItemUpdate(q,update);
++    if(status==errSecItemNotFound) {
++      CFDictionarySetValue(q,kSecValueData,d);CFDictionarySetValue(q,kSecAttrAccessible,kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly);CFDictionarySetValue(q,kSecAttrSynchronizable,kCFBooleanFalse);status=SecItemAdd(q,NULL);
++    }
++    CFRelease(update);CFRelease(d);
++  } else if(op==2) {CFDictionarySetValue(q,kSecReturnData,kCFBooleanTrue);CFDictionarySetValue(q,kSecMatchLimit,kSecMatchLimitOne);status=SecItemCopyMatching(q,&data);}
++  else {status=SecItemDelete(q);if(status==errSecItemNotFound)status=errSecSuccess;}
++  wipe(value,sizeof(value));int result;
++  if(status==errSecItemNotFound && op==2)result=reply(1,NULL,0);
++  else if(status!=errSecSuccess)result=reply(-1,NULL,0);
++  else if(op==2) {
++    if(!data || CFGetTypeID(data)!=CFDataGetTypeID() || CFDataGetLength((CFDataRef)data)>8192)result=reply(-1,NULL,0);
++    else result=reply(0,CFDataGetBytePtr((CFDataRef)data),(uint32_t)CFDataGetLength((CFDataRef)data));
++  } else result=reply(0,NULL,0);
++  if(data)CFRelease(data);CFRelease(q);CFRelease(s);CFRelease(a);return result;
++}
+diff --git a/v2/gateway/test/credential-broker.test.ts b/v2/gateway/test/credential-broker.test.ts
+new file mode 100644
+index 0000000..6f0b37a
+--- /dev/null
++++ b/v2/gateway/test/credential-broker.test.ts
+@@ -0,0 +1,178 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { CredentialBroker, type SecretTransport } from '../src/models/credential-broker.ts';
++import type { SecurityBridge } from '../src/models/security-bridge.ts';
++import { modelFixtureRoot, removeModelFixture } from './support/model-fixture.ts';
++
++class FakeSecurity implements SecurityBridge {
++  readonly items = new Map<string, Buffer>();
++  async put(service: string, account: string, value: Buffer) {
++    this.items.set(`${service}/${account}`, Buffer.from(value));
++  }
++  async read(service: string, account: string) {
++    const b = this.items.get(`${service}/${account}`);
++    return b ? Buffer.from(b) : null;
++  }
++  async remove(service: string, account: string) {
++    this.items.delete(`${service}/${account}`);
++  }
++}
++test('credential broker scopes updates by machine/provider/operation and removes idempotently', async () => {
++  const bridge = new FakeSecurity(),
++    machine = randomUUID(),
++    provider = randomUUID(),
++    operation = randomUUID();
++  const broker = new CredentialBroker(machine, bridge, []);
++  const a = await broker.put(provider, Buffer.from('fixture-secret'), operation);
++  assert.match(a, /^[A-Za-z0-9_-]{1,200}$/);
++  assert.equal(await broker.put(provider, Buffer.from('fixture-secret'), operation), a);
++  assert.equal(bridge.items.size, 1);
++  const storedKey = [...bridge.items.keys()][0];
++  assert.ok(storedKey);
++  assert.match(storedKey, new RegExp(`^com.2pcrew.v2.${machine}.${provider}/`));
++  await assert.rejects(broker.put(provider, Buffer.from('different'), operation), /CONFLICT/);
++  await broker.remove(a);
++  await broker.remove(a);
++  assert.equal(bridge.items.size, 0);
++  const other = new CredentialBroker(randomUUID(), bridge, []);
++  await assert.rejects(other.remove(a), /INVALID_CREDENTIAL_REF/);
++});
++test('credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results', async () => {
++  const bridge = new FakeSecurity();
++  let received = '';
++  const trusted: SecretTransport = async (channel) => {
++    for await (const chunk of channel) received += chunk.toString();
++    throw new Error(received);
++  };
++  const broker = new CredentialBroker(randomUUID(), bridge, [trusted]);
++  const ref = await broker.put(randomUUID(), Buffer.from('no-log-fixture'));
++  await assert.rejects(
++    broker.withSecret(ref, async () => {}),
++    /UNTRUSTED_TRANSPORT/,
++  );
++  await assert.rejects(
++    broker.withSecret(ref, trusted),
++    (e) => e instanceof Error && e.message === 'CREDENTIAL_TRANSPORT_FAILED',
++  );
++  assert.equal(received, 'no-log-fixture');
++});
++
++export { FakeSecurity };
++
++import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
++
++test('credential broker native bridge rejects unverified helper before any keychain access', async () => {
++  const native = new SecurityFrameworkBridge({
++    path: '/nonexistent/crew-owned-helper',
++    sha256: '0'.repeat(64),
++  });
++  await assert.rejects(
++    native.put('com.2pcrew.v2.machine.provider', 'operation', Buffer.from('no-keychain-fixture')),
++    (e) => e instanceof Error && e.message === 'SECURITY_BRIDGE_UNVERIFIED',
++  );
++});
++test('credential broker serializes conflicting local writes and never returns bridge secret errors', async () => {
++  const bridge = new FakeSecurity(),
++    broker = new CredentialBroker(randomUUID(), bridge, []),
++    provider = randomUUID(),
++    operation = randomUUID();
++  const results = await Promise.allSettled([
++    broker.put(provider, Buffer.from('first'), operation),
++    broker.put(provider, Buffer.from('second'), operation),
++  ]);
++  assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
++  assert.equal(results.filter((r) => r.status === 'rejected').length, 1);
++  const bad: SecurityBridge = {
++    read: async () => {
++      throw new Error('plaintext fixture secret');
++    },
++    put: async () => {},
++    remove: async () => {
++      throw new Error('plaintext fixture secret');
++    },
++  };
++  const denied = new CredentialBroker(randomUUID(), bad, []);
++  await assert.rejects(
++    denied.put(provider, Buffer.from('fixture')),
++    (e) => e instanceof Error && e.message === 'CREDENTIAL_STORE_FAILED',
++  );
++});
++
++import { execFile } from 'node:child_process';
++import { chmod, readFile } from 'node:fs/promises';
++import { join } from 'node:path';
++import { promisify } from 'node:util';
++import { hash } from '../src/journal/atomic-records.ts';
++
++test('credential broker native FD framing runs only against unsigned owned fake helper', {
++  skip: process.platform !== 'darwin',
++}, async () => {
++  const root = await modelFixtureRoot('credential-broker');
++  const helper = join(root, 'fake-security-channel');
++  try {
++    await promisify(execFile)('/usr/bin/clang', [
++      '-Wall',
++      '-Wextra',
++      '-Werror',
++      new URL('./fixtures/models/security-channel.c', import.meta.url).pathname,
++      '-o',
++      helper,
++    ]);
++    await chmod(helper, 0o700);
++    const pids: number[] = [];
++    const sha256 = hash(await readFile(helper)),
++      native = new SecurityFrameworkBridge({
++        path: helper,
++        sha256,
++        signedAclVerified: async (input) => {
++          assert.equal(input.sha256, sha256);
++          assert.ok(input.pid > 0);
++          pids.push(input.pid);
++          console.log(
++            JSON.stringify({
++              type: 'task2-owned-process',
++              action: 'fake-helper-created',
++              pid: input.pid,
++              helper,
++            }),
++          );
++          return true;
++        },
++      });
++    await native.put('com.2pcrew.v2.fixture.provider', 'fixture-operation', Buffer.from('channel-fixture'));
++    const bytes = await native.read('com.2pcrew.v2.fixture.provider', 'fixture-operation');
++    assert.equal(bytes?.toString(), 'channel-fixture');
++    bytes?.fill(0);
++    await native.remove('com.2pcrew.v2.fixture.provider', 'fixture-operation');
++    await native.remove('com.2pcrew.v2.fixture.provider', 'fixture-operation');
++    for (const pid of pids) {
++      assert.throws(
++        () => process.kill(pid, 0),
++        (e) => (e as NodeJS.ErrnoException).code === 'ESRCH',
++      );
++      console.log(JSON.stringify({ type: 'task2-owned-process', action: 'fake-helper-reaped', pid, helper }));
++    }
++    await assert.rejects(
++      new SecurityFrameworkBridge({
++        path: helper,
++        sha256: '0'.repeat(64),
++        signedAclVerified: async () => true,
++      }).read('com.2pcrew.v2.fixture.provider', 'fixture-operation'),
++      /UNVERIFIED/,
++    );
++  } finally {
++    await removeModelFixture(root);
++  }
++});
++test('credential broker failed read-back cannot yield a stored ref', async () => {
++  const broker = new CredentialBroker(
++    randomUUID(),
++    { read: async () => null, put: async () => {}, remove: async () => {} },
++    [],
++  );
++  await assert.rejects(
++    broker.put(randomUUID(), Buffer.from('readback-fixture')),
++    /CREDENTIAL_READBACK_FAILED/,
++  );
++});
+diff --git a/v2/gateway/test/credential-provisioning.test.ts b/v2/gateway/test/credential-provisioning.test.ts
+new file mode 100644
+index 0000000..beb4b2f
+--- /dev/null
++++ b/v2/gateway/test/credential-provisioning.test.ts
+@@ -0,0 +1,190 @@
++import assert from 'node:assert/strict';
++import {
++  createCipheriv,
++  createHash,
++  createPublicKey,
++  diffieHellman,
++  generateKeyPairSync,
++  hkdfSync,
++  randomBytes,
++  randomUUID,
++} from 'node:crypto';
++import test from 'node:test';
++import { canonicalJson } from '../src/journal/atomic-records.ts';
++import { HttpOperationJournal, type HttpRequest } from '../src/journal/http-operations.ts';
++import type { SecretEnvelope } from '../src/models/contracts.ts';
++import { CredentialBroker } from '../src/models/credential-broker.ts';
++import { CredentialProvisioning, ServerReceiptClock } from '../src/models/credential-provisioning.ts';
++import type { SecurityBridge } from '../src/models/security-bridge.ts';
++import { modelFixtureRoot, removeModelFixture } from './support/model-fixture.ts';
++
++function seal(pub: string, text: string, aad: unknown) {
++  const ephemeral = generateKeyPairSync('x25519'),
++    nonce = randomBytes(12);
++  const shared = diffieHellman({
++    privateKey: ephemeral.privateKey,
++    publicKey: createPublicKey({ key: Buffer.from(pub, 'base64'), format: 'der', type: 'spki' }),
++  });
++  const aes = Buffer.from(hkdfSync('sha256', shared, nonce, 'crew-v2-secret-envelope-v1', 32));
++  const c = createCipheriv('aes-256-gcm', aes, nonce);
++  c.setAAD(Buffer.from(canonicalJson(aad)));
++  const ciphertext = Buffer.concat([c.update(text), c.final()]);
++  shared.fill(0);
++  aes.fill(0);
++  return {
++    ephemeralPublicKey: ephemeral.publicKey.export({ type: 'spki', format: 'der' }).toString('base64'),
++    nonce: nonce.toString('base64'),
++    ciphertext: ciphertext.toString('base64'),
++    tag: c.getAuthTag().toString('base64'),
++    ciphertextSha256: createHash('sha256').update(ciphertext).digest('hex'),
++  };
++}
++test('credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss', async () => {
++  const root = await modelFixtureRoot('credential-provisioning');
++  const items = new Map<string, Buffer>();
++  const bridge: SecurityBridge = {
++    put: async (s, a, b) => {
++      items.set(`${s}/${a}`, Buffer.from(b));
++    },
++    read: async (s, a) => {
++      const b = items.get(`${s}/${a}`);
++      return b ? Buffer.from(b) : null;
++    },
++    remove: async (s, a) => {
++      items.delete(`${s}/${a}`);
++    },
++  };
++  const machineId = randomUUID(),
++    providerId = randomUUID(),
++    broker = new CredentialBroker(machineId, bridge, []);
++  let mono = 0;
++  const clock = new ServerReceiptClock(() => mono);
++  clock.observe('2026-10-02T07:00:00.000Z');
++  const sent: HttpRequest[] = [];
++  let publicKey = '',
++    keyId = '',
++    lose = true;
++  const transport = async (request: Readonly<HttpRequest>) => {
++    sent.push(request);
++    if (request.route === '/v2/machine/credential-keys') {
++      const b = request.canonicalBody as { keyId: string; publicKeyX25519: string };
++      publicKey = b.publicKeyX25519;
++      keyId = b.keyId;
++      const challengeId = randomUUID(),
++        expiresAt = '2026-10-02T07:05:00.000Z';
++      return {
++        status: 200,
++        body: {
++          challengeId,
++          expiresAt,
++          encryptedChallenge: seal(publicKey, 'challenge-fixture', {
++            machineId,
++            keyId,
++            challengeId,
++            expiresAt,
++          }),
++        },
++      };
++    }
++    if (request.route.endsWith('/confirm'))
++      assert.equal(
++        (request.canonicalBody as { challengeSha256: string }).challengeSha256,
++        createHash('sha256').update('challenge-fixture').digest('hex'),
++      );
++    if (request.route.endsWith('/ack') && lose) throw new Error('lost ACK');
++    return { status: 200, body: { status: request.route.endsWith('/confirm') ? 'active' : 'acked' } };
++  };
++  let http = await HttpOperationJournal.open(root, transport);
++  let provisioning = await CredentialProvisioning.open(root, machineId, bridge, broker, http, clock);
++  try {
++    assert.equal(await provisioning.registerKey(), keyId);
++    assert.match(publicKey, /^[A-Za-z0-9+/]+=*$/);
++    const base = {
++      id: randomUUID(),
++      machineId,
++      providerId,
++      keyId,
++      configRevision: 2,
++      operationId: randomUUID(),
++      expiresAt: '2026-10-02T07:05:00.000Z',
++    };
++    const aad = {
++      machineId,
++      providerId,
++      keyId,
++      configRevision: 2,
++      operationId: base.operationId,
++      expiresAt: base.expiresAt,
++    };
++    const envelope: SecretEnvelope = { ...base, ...seal(publicKey, 'crypto-fixture-secret', aad) };
++    await assert.rejects(provisioning.accept(envelope, 2, [providerId]), /lost ACK/);
++    assert.equal([...items.values()].filter((b) => b.toString() === 'crypto-fixture-secret').length, 1);
++    const first = sent.at(-1);
++    assert.ok(first);
++    assert.equal(JSON.stringify(sent).includes('crypto-fixture-secret'), false);
++    await provisioning.close();
++    await http.close();
++    lose = false;
++    http = await HttpOperationJournal.open(root, transport);
++    provisioning = await CredentialProvisioning.open(root, machineId, bridge, broker, http, clock);
++    await provisioning.accept(envelope, 2, [providerId]);
++    assert.deepEqual(sent.at(-1), first);
++    await assert.rejects(
++      provisioning.accept({ ...envelope, id: randomUUID(), operationId: randomUUID() }, 2, [providerId]),
++      /ENVELOPE_INVALID/,
++    );
++    await assert.rejects(
++      provisioning.accept({ ...envelope, id: randomUUID() }, 3, [providerId]),
++      /CONFIG_REVISION/,
++    );
++    mono = 300001;
++    await assert.rejects(provisioning.accept({ ...envelope, id: randomUUID() }, 2, [providerId]), /EXPIRED/);
++    for (const key of [...items.keys()]) if (key.includes('.credential-keys/')) items.delete(key);
++    assert.equal(
++      await provisioning.replayAck(envelope.id),
++      (first.canonicalBody as { credentialRef: string }).credentialRef,
++    );
++    const attemptsBefore = sent.length;
++    for (const [name, value] of items) if (value.toString() === 'crypto-fixture-secret') items.delete(name);
++    await assert.rejects(provisioning.replayAck(envelope.id), /CREDENTIAL_MISSING/);
++    assert.equal(sent.length, attemptsBefore);
++    mono = 0;
++    await assert.rejects(provisioning.accept({ ...envelope, id: randomUUID() }, 2, [providerId]), /KEY_LOST/);
++    assert.equal(sent.at(-1)?.route.endsWith('/key-lost'), true);
++  } finally {
++    await provisioning.close();
++    await http.close();
++    await removeModelFixture(root);
++  }
++});
++test('credential broker expiry needs bounded server receipt clock and ignores host wall clock', () => {
++  let mono = 10;
++  const clock = new ServerReceiptClock(() => mono);
++  assert.throws(() => clock.assertFresh('2026-10-02T07:05:00.000Z'), /SERVER_TIME_REQUIRED/);
++  clock.observe('2026-10-02T07:00:00.000Z');
++  mono += 300000;
++  assert.throws(() => clock.assertFresh('2026-10-02T07:05:00.000Z'), /EXPIRED/);
++});
++test('credential broker reconnect gets own desired/serverTime before secret envelopes and rejects disabled source', async () => {
++  const root = await modelFixtureRoot('credential-provisioning');
++  const bridge: SecurityBridge = { read: async () => null, put: async () => {}, remove: async () => {} };
++  const broker = new CredentialBroker(randomUUID(), bridge, []),
++    clock = new ServerReceiptClock();
++  const http = await HttpOperationJournal.open(root, async () => ({ status: 200, body: {} }));
++  const provisioning = await CredentialProvisioning.open(root, randomUUID(), bridge, broker, http, clock);
++  const routes: string[] = [];
++  try {
++    const result = await provisioning.syncPending(async (route) => {
++      routes.push(route);
++      return route === '/v2/machine/model-sources'
++        ? { revision: 4, enabled: { api: false, claude: false, codex: false }, apiProviders: [] }
++        : { items: [], nextCursor: '0', serverTime: '2026-10-02T07:00:00.000Z' };
++    });
++    assert.deepEqual(routes, ['/v2/machine/model-sources']);
++    assert.equal(result.state, 'disabled');
++  } finally {
++    await provisioning.close();
++    await http.close();
++    await removeModelFixture(root);
++  }
++});
+diff --git a/v2/gateway/test/current-credential-resolver.test.ts b/v2/gateway/test/current-credential-resolver.test.ts
+new file mode 100644
+index 0000000..c150a64
+--- /dev/null
++++ b/v2/gateway/test/current-credential-resolver.test.ts
+@@ -0,0 +1,212 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { createServer } from 'node:http';
++import test from 'node:test';
++import type { ApiCredentialBindings, ApiProviderConfig, SourceConfig } from '../src/models/contracts.ts';
++import { CredentialBroker } from '../src/models/credential-broker.ts';
++import { CurrentCredentialResolver } from '../src/models/current-credential-resolver.ts';
++import { PinnedProviderTransport } from '../src/models/provider-transport.ts';
++
++async function fixture() {
++  const machineId = randomUUID(),
++    providerId = randomUUID(),
++    values = new Map<string, Buffer>();
++  const provider: ApiProviderConfig = {
++    id: providerId,
++    endpoint: 'https://example.com/v1/',
++    protocol: 'responses',
++    models: [{ id: 'chosen', declared: ['text'] }],
++    credentialStatus: 'stored',
++    localHttp: null,
++  };
++  const desired: SourceConfig = {
++    revision: 2,
++    enabled: { claude: false, codex: false, api: true },
++    apiProviders: [provider],
++  };
++  const binding: ApiCredentialBindings = {
++    machineId,
++    configRevision: 2,
++    apiEnabled: true,
++    providers: [
++      {
++        providerId,
++        endpoint: provider.endpoint,
++        protocol: provider.protocol,
++        status: 'stored',
++        credentialRef: null,
++        currentOperationId: null,
++      },
++    ],
++  };
++  const bridge = {
++    async put(s: string, a: string, b: Buffer) {
++      values.set(s + a, Buffer.from(b));
++    },
++    async read(s: string, a: string) {
++      const b = values.get(s + a);
++      return b ? Buffer.from(b) : null;
++    },
++    async remove(s: string, a: string) {
++      values.delete(s + a);
++    },
++  };
++  const requests: string[] = [];
++  let onRead: (path: string) => void = () => {};
++  const read = async (path: string) => {
++    requests.push(path);
++    onRead(path);
++    return structuredClone(path === '/v2/machine/model-sources' ? desired : binding);
++  };
++  const broker = new CredentialBroker(machineId, bridge, []);
++  const currentBinding = binding.providers[0];
++  assert.ok(currentBinding);
++  currentBinding.credentialRef = await broker.put(providerId, Buffer.from('fixture-only'));
++  return {
++    machineId,
++    provider,
++    desired,
++    binding,
++    currentBinding,
++    broker,
++    bridge,
++    read,
++    requests,
++    values,
++    setOnRead(fn: typeof onRead) {
++      onRead = fn;
++    },
++  };
++}
++const signal = () => AbortSignal.timeout(2000);
++test('resolver reads fresh desired and current binding; stored ref with null operation survives revision and reconnect', async () => {
++  const f = await fixture();
++  const a = await new CurrentCredentialResolver(f.machineId, f.read, f.broker).resolve(
++    f.provider,
++    2,
++    signal(),
++  );
++  assert.equal(a.credentialRef, f.currentBinding.credentialRef);
++  await a.assertCurrent();
++  assert.deepEqual(f.requests, [
++    '/v2/machine/model-sources',
++    '/v2/machine/api-credential-bindings',
++    '/v2/machine/model-sources',
++    '/v2/machine/api-credential-bindings',
++  ]);
++  assert.equal(
++    (await new CurrentCredentialResolver(f.machineId, f.read, f.broker).resolve(f.provider, 2, signal()))
++      .credentialRef,
++    a.credentialRef,
++  );
++});
++test('resolver rejects OFF, removal, pending, missing, foreign, revision, endpoint, protocol, and provider ref conflicts', async () => {
++  const mutations: ((f: Awaited<ReturnType<typeof fixture>>) => void)[] = [
++    (f) => {
++      f.desired.enabled.api = false;
++    },
++    (f) => {
++      f.binding.apiEnabled = false;
++    },
++    (f) => {
++      f.desired.apiProviders = [];
++    },
++    (f) => {
++      f.binding.providers = [];
++    },
++    (f) => {
++      f.currentBinding.status = 'pending';
++    },
++    (f) => {
++      f.currentBinding.status = 'missing';
++    },
++    (f) => {
++      f.currentBinding.credentialRef = null;
++    },
++    (f) => {
++      f.binding.machineId = randomUUID();
++    },
++    (f) => {
++      f.binding.configRevision = 3;
++    },
++    (f) => {
++      f.desired.revision = 3;
++    },
++    (f) => {
++      f.currentBinding.endpoint = 'https://other.example/';
++    },
++    (f) => {
++      f.currentBinding.protocol = 'chat-completions';
++    },
++    (f) => {
++      f.currentBinding.credentialRef = `${f.machineId}_${randomUUID()}_${randomUUID()}`;
++    },
++    (f) => {
++      f.values.clear();
++    },
++  ];
++  for (const mutate of mutations) {
++    const f = await fixture();
++    mutate(f);
++    await assert.rejects(
++      new CurrentCredentialResolver(f.machineId, f.read, f.broker).resolve(f.provider, 2, signal()),
++      /CREDENTIAL_BINDING_UNAVAILABLE|CREDENTIAL_MISSING/,
++    );
++  }
++});
++test('resolver rejects observed ref changes even when both credentials remain stored', async () => {
++  const f = await fixture(),
++    resolver = new CurrentCredentialResolver(f.machineId, f.read, f.broker),
++    current = await resolver.resolve(f.provider, 2, signal());
++  f.currentBinding.credentialRef = await f.broker.put(f.provider.id, Buffer.from('new-fixture'));
++  await assert.rejects(current.assertCurrent(), /CREDENTIAL_BINDING_CHANGED/);
++});
++test('current transport refuses changed state before headers and rejects a response when authority changes in flight', async () => {
++  const f = await fixture();
++  let hits = 0,
++    onRequest = () => {};
++  const server = createServer((_req, res) => {
++    hits++;
++    onRequest();
++    res.setHeader('content-type', 'application/json');
++    res.end(
++      JSON.stringify({
++        model: 'chosen',
++        status: 'completed',
++        output: [{ type: 'message', content: [{ type: 'output_text', text: 'fixture' }] }],
++      }),
++    );
++  });
++  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
++  try {
++    const address = server.address();
++    assert.ok(address && typeof address !== 'string');
++    const origin = `http://127.0.0.1:${address.port}`;
++    f.provider.endpoint = `${origin}/v1/`;
++    f.provider.localHttp = { enabled: true, allowedOrigin: origin };
++    f.currentBinding.endpoint = f.provider.endpoint;
++    const transport = new PinnedProviderTransport(f.provider),
++      broker = new CredentialBroker(f.machineId, f.bridge, [transport.deliver]),
++      resolver = new CurrentCredentialResolver(f.machineId, f.read, broker);
++    assert.equal((await transport.callCurrent('chosen', broker, resolver, 2, signal())).status, 200);
++    assert.equal(hits, 1);
++    let reads = 0;
++    f.setOnRead((path) => {
++      if (path === '/v2/machine/model-sources' && ++reads === 2) f.desired.enabled.api = false;
++    });
++    await assert.rejects(transport.callCurrent('chosen', broker, resolver, 2, signal()));
++    assert.equal(hits, 1);
++    f.setOnRead(() => {});
++    f.desired.enabled.api = true;
++    onRequest = () => {
++      f.currentBinding.status = 'pending';
++      f.currentBinding.credentialRef = null;
++    };
++    await assert.rejects(transport.callCurrent('chosen', broker, resolver, 2, signal()));
++    assert.equal(hits, 2);
++  } finally {
++    await new Promise<void>((resolve, reject) =>
++      server.close((error) => (error ? reject(error) : resolve())),
++    );
++  }
++});
+diff --git a/v2/gateway/test/fixtures/models/security-channel.c b/v2/gateway/test/fixtures/models/security-channel.c
+new file mode 100644
+index 0000000..35ea23c
+--- /dev/null
++++ b/v2/gateway/test/fixtures/models/security-channel.c
+@@ -0,0 +1,20 @@
++/* Unsigned owned fake FD3 protocol. Does not link Security.framework or access Keychain. */
++#include <stdint.h>
++#include <unistd.h>
++#include <arpa/inet.h>
++#include <stdlib.h>
++#include <string.h>
++static int receive(void *p,size_t n) {char *b=p;while(n){ssize_t r=read(3,b,n);if(r<=0)return 1;b+=r;n-=r;}return 0;}
++int main(int argc,char **argv) {
++  (void)argv;if(argc!=1)return 1;
++  uint32_t h[4];if(receive(h,sizeof(h)))return 1;uint32_t op=ntohl(h[0]),sn=ntohl(h[1]),an=ntohl(h[2]),vn=ntohl(h[3]);
++  if(sn>220 || an>200 || vn>8192)return 1;
++  char s[221]={0},a[201]={0},v[8193]={0};if(receive(s,sn)||receive(a,an)||receive(v,vn))return 1;
++  if(strcmp(s,"com.2pcrew.v2.fixture.provider") || strcmp(a,"fixture-operation"))return 1;
++  if(op==1 && strcmp(v,"channel-fixture"))return 1;
++  const char *value=op==2?"channel-fixture":"";
++  uint32_t reply[2]={htonl(0),htonl((uint32_t)strlen(value))};
++  if(write(3,reply,sizeof(reply))!=(ssize_t)sizeof(reply))return 1;
++  if(*value && write(3,value,strlen(value))!=(ssize_t)strlen(value))return 1;
++  memset(v,0,sizeof(v));return 0;
++}
+diff --git a/v2/gateway/test/model-probe.test.ts b/v2/gateway/test/model-probe.test.ts
+new file mode 100644
+index 0000000..0e67c75
+--- /dev/null
++++ b/v2/gateway/test/model-probe.test.ts
+@@ -0,0 +1,439 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import type { ApiProviderConfig } from '../src/models/contracts.ts';
++import { parseProtocol, validateEndpoint } from '../src/models/probe.ts';
++
++const provider: ApiProviderConfig = {
++  id: 'provider',
++  endpoint: 'https://provider.example/v1/',
++  protocol: 'responses',
++  models: [{ id: 'chosen', declared: ['text', 'tools', 'vision'] }],
++  credentialStatus: 'stored',
++  localHttp: null,
++};
++test('model probe separates Responses and Chat Completions and rejects model/tool mismatches', () => {
++  assert.deepEqual(
++    parseProtocol(
++      'responses',
++      {
++        model: 'chosen',
++        status: 'completed',
++        output: [{ type: 'message', content: [{ type: 'output_text', text: 'ok' }] }],
++      },
++      'chosen',
++    ),
++    ['text'],
++  );
++  assert.deepEqual(
++    parseProtocol(
++      'chat-completions',
++      {
++        model: 'chosen',
++        choices: [
++          {
++            finish_reason: 'tool_calls',
++            message: {
++              role: 'assistant',
++              tool_calls: [
++                {
++                  id: 'call-1',
++                  type: 'function',
++                  function: { name: 'crew_probe_echo', arguments: '{"value":"fixture"}' },
++                },
++              ],
++            },
++          },
++        ],
++      },
++      'chosen',
++    ),
++    ['tools'],
++  );
++  assert.throws(() => parseProtocol('responses', { model: 'wrong', output: [] }, 'chosen'), /MODEL_MISMATCH/);
++  assert.throws(
++    () =>
++      parseProtocol(
++        'responses',
++        {
++          model: 'chosen',
++          status: 'completed',
++          output: [{ type: 'function_call', name: 'crew_probe_echo', call_id: 'x', arguments: 'invalid' }],
++        },
++        'chosen',
++      ),
++    /TOOL_PROTOCOL/,
++  );
++  assert.throws(
++    () => parseProtocol('chat-completions', { model: 'chosen', output: [] }, 'chosen'),
++    /PROTOCOL/,
++  );
++});
++test('model probe mirrors server canonical endpoint/local HTTP policy', () => {
++  assert.equal(validateEndpoint(provider).href, provider.endpoint);
++  for (const endpoint of [
++    'https://127.0.0.1/v1/',
++    'https://localhost/v1/',
++    'https://provider.example/v1/?x=1',
++    'https://provider.example:443/v1/',
++    'http://127.0.0.1:1234/v1/',
++  ])
++    assert.throws(() => validateEndpoint({ ...provider, endpoint }), /ENDPOINT_INVALID/);
++  assert.equal(
++    validateEndpoint({
++      ...provider,
++      endpoint: 'http://127.0.0.1:1234/v1/',
++      localHttp: { enabled: true, allowedOrigin: 'http://127.0.0.1:1234' },
++    }).port,
++    '1234',
++  );
++});
++
++import { initialStatus, type ProjectionPin, type SourcePin } from '../src/host/status.ts';
++import { ModelInventory } from '../src/models/inventory.ts';
++import { ModelProber, parseStream } from '../src/models/probe.ts';
++
++const source: SourcePin = {
++  name: 'bmad',
++  version: '1',
++  sourceRevision: 'revision',
++  sourceUrl: 'https://example.com/source',
++  payloadSha256: 'a'.repeat(64),
++  packageIntegrity: null,
++  sourceManifestSha256: 'b'.repeat(64),
++  sourceTreeSha256: 'c'.repeat(64),
++};
++const projection: ProjectionPin = {
++  runtime: 'api',
++  sourceTreeSha256: source.sourceTreeSha256,
++  manifestSha256: 'd'.repeat(64),
++  treeSha256: 'e'.repeat(64),
++  derivation: {
++    tool: 'fixture',
++    version: '1',
++    options: [],
++    layoutSchema: 'v1',
++    policySha256: 'f'.repeat(64),
++  },
++};
++const key = { machineId: 'machine', runtime: 'api' as const, providerId: 'provider', modelId: 'chosen' };
++const context = {
++  sourceTreeSha256: source.sourceTreeSha256,
++  projectionManifestSha256: projection.manifestSha256,
++  projectionTreeSha256: projection.treeSha256,
++  derivationSha256: '9d1a1641d7e401d04351e03ec03ae84037d3c870ec8a680821c41bd63936d645',
++  binarySha256: '2'.repeat(64),
++  policySha256: 'f'.repeat(64),
++  osVersion: 'fixture-os',
++};
++const reply = {
++  model: 'chosen',
++  status: 'completed',
++  output: [{ type: 'message', content: [{ type: 'output_text', text: 'fixture' }] }],
++};
++const ports = { context: async () => ({ context, version: 'fixture' }), provider: () => provider };
++test('model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED', async () => {
++  const prober = new ModelProber({
++    ...ports,
++    offline: async () => ({ status: 200, body: reply, retryAfter: null, streamed: false }),
++  });
++  const result = await prober.probeModel(key, { source, projection }, 'offline');
++  assert.equal(result.status, 'unverified');
++  assert.deepEqual(result.capabilities, []);
++  assert.equal(
++    (await prober.probeModel(key, { source, projection }, 'authorized-live')).errorCode,
++    'LIVE_NOT_AUTHORIZED',
++  );
++  const absent = new ModelProber({ ...ports, context: async () => null });
++  assert.equal(
++    (
++      await absent.probeModel(
++        { ...key, runtime: 'codex' },
++        { source, projection: { ...projection, runtime: 'codex' } },
++        'offline',
++      )
++    ).errorCode,
++    'CLI_ABSENT',
++  );
++});
++test('model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines', async () => {
++  for (const [status, code] of [
++    [401, 'AUTH'],
++    [429, 'QUOTA'],
++    [503, 'TRANSIENT'],
++  ] as const) {
++    const prober = new ModelProber({
++      ...ports,
++      authorizedLive: {
++        authorize: async () => true,
++        call: async () => ({ status, body: 'private-provider-body', retryAfter: '2', streamed: false }),
++      },
++    });
++    const result = await prober.probeModel(key, { source, projection }, 'authorized-live');
++    assert.equal(result.errorCode, code);
++    assert.equal(JSON.stringify(result).includes('private-provider-body'), false);
++  }
++  const prober = new ModelProber({
++    ...ports,
++    deadlineMs: 15,
++    authorizedLive: {
++      authorize: async () => true,
++      call: async (_key, signal) =>
++        new Promise((_resolve, reject) =>
++          signal.addEventListener('abort', () => reject(new Error('private-secret'))),
++        ),
++    },
++  });
++  const result = await prober.probeModel(key, { source, projection }, 'authorized-live');
++  assert.equal(result.errorCode, 'TRANSIENT');
++});
++test('model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation', async () => {
++  const prober = new ModelProber({
++    ...ports,
++    authorizedLive: {
++      authorize: async () => true,
++      call: async () => ({ status: 200, body: reply, retryAfter: null, streamed: false }),
++    },
++  });
++  assert.deepEqual((await prober.probeModel(key, { source, projection }, 'authorized-live')).capabilities, [
++    'text',
++  ]);
++  const tools = {
++    model: 'chosen',
++    status: 'completed',
++    output: [
++      { type: 'function_call', name: 'crew_probe_echo', call_id: 'call-1', arguments: '{"value":"fixture"}' },
++    ],
++  };
++  const bad = new ModelProber({
++    ...ports,
++    authorizedLive: {
++      authorize: async () => true,
++      call: async () => ({
++        status: 200,
++        body: tools,
++        retryAfter: null,
++        streamed: false,
++        toolExecution: { callId: 'call-1', resultCallId: 'wrong', value: 'fixture' },
++      }),
++    },
++  });
++  assert.equal(
++    (await bad.probeModel(key, { source, projection }, 'authorized-live')).errorCode,
++    'TOOL_PROTOCOL',
++  );
++});
++test('model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins', async () => {
++  const workflows = initialStatus().workflows;
++  workflows.bmad = {
++    source: { state: 'current', installed: source, lastError: null, observedAt: null },
++    projections: {
++      ...workflows.bmad.projections,
++      api: { state: 'current', installed: projection, lastError: null, observedAt: null },
++    },
++  };
++  const inventory = new ModelInventory({
++    machineId: 'machine',
++    prober: new ModelProber(ports),
++    catalogue: async () => ['catalogue-is-not-entitlement'],
++  });
++  const config = {
++    revision: 1,
++    enabled: { claude: false, codex: false, api: true },
++    apiProviders: [provider],
++  };
++  const results = await inventory.collectInventory(config, workflows);
++  assert.deepEqual(
++    results.map((r) => r.key.modelId),
++    ['chosen'],
++  );
++  assert.equal(results[0]?.status, 'unverified');
++  assert.deepEqual(
++    await inventory.collectInventory({ ...config, enabled: { ...config.enabled, api: false } }, workflows),
++    [],
++  );
++  assert.deepEqual(await inventory.collectInventory(config, initialStatus().workflows), []);
++  assert.equal(
++    (
++      await new ModelProber({
++        ...ports,
++        context: async () => ({
++          context: { ...context, projectionTreeSha256: '0'.repeat(64) },
++          version: 'fixture',
++        }),
++      }).probeModel(key, { source, projection }, 'offline')
++    ).errorCode,
++    'CONTEXT_MISMATCH',
++  );
++});
++test('model probe stream parser requires complete bounded framing and exact model', () => {
++  assert.deepEqual(
++    parseStream(
++      'responses',
++      `data: ${JSON.stringify({ type: 'response.completed', response: reply })}\n\n`,
++      'chosen',
++    ),
++    reply,
++  );
++  assert.throws(
++    () =>
++      parseStream(
++        'responses',
++        `data: ${JSON.stringify({ type: 'response.completed', response: reply })}`,
++        'chosen',
++      ),
++    /STREAM_PROTOCOL/,
++  );
++  assert.throws(
++    () =>
++      parseStream(
++        'responses',
++        `data: ${JSON.stringify({ type: 'response.completed', response: { ...reply, model: 'wrong' } })}\n\n`,
++        'chosen',
++      ),
++    /MODEL_MISMATCH/,
++  );
++});
++
++import { assertPublicAddress, buildProbeRequest } from '../src/models/provider-transport.ts';
++
++test('model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model', () => {
++  for (const address of [
++    '127.0.0.1',
++    '10.1.2.3',
++    '172.16.0.1',
++    '192.168.2.1',
++    '169.254.169.254',
++    '100.64.0.1',
++    '0.0.0.0',
++    '224.0.0.1',
++    '192.0.2.1',
++    '::1',
++    '::ffff:127.0.0.1',
++    'fe80::1',
++    'fc00::1',
++    '2001:db8::1',
++  ])
++    assert.throws(() => assertPublicAddress(address), /SSRF_DENIED/);
++  assert.doesNotThrow(() => assertPublicAddress('8.8.8.8'));
++  assert.doesNotThrow(() => assertPublicAddress('2606:4700:4700::1111'));
++  const request = buildProbeRequest(provider, 'chosen') as { model: string };
++  assert.equal(request.model, 'chosen');
++  assert.throws(() => buildProbeRequest(provider, 'undeclared'), /MODEL_NOT_CONFIGURED/);
++});
++
++import { randomUUID } from 'node:crypto';
++import { createServer } from 'node:http';
++import { CredentialBroker } from '../src/models/credential-broker.ts';
++import { PinnedProviderTransport } from '../src/models/provider-transport.ts';
++
++test('model probe pinned transport uses one-use credential channel and bounded local HTTP response', async () => {
++  const calls: unknown[] = [];
++  const server = createServer(async (req, res) => {
++    const chunks = [];
++    for await (const part of req) chunks.push(part);
++    calls.push(JSON.parse(Buffer.concat(chunks).toString()));
++    assert.equal(req.headers.authorization, 'Bearer transport-fixture');
++    res.setHeader('Content-Type', 'application/json');
++    res.end(JSON.stringify(reply));
++  });
++  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
++  const port = (server.address() as { port: number }).port,
++    origin = `http://127.0.0.1:${port}`;
++  const transport = new PinnedProviderTransport({
++    ...provider,
++    endpoint: `${origin}/v1/`,
++    localHttp: { enabled: true, allowedOrigin: origin },
++  });
++  const items = new Map<string, Buffer>();
++  const broker = new CredentialBroker(
++    randomUUID(),
++    {
++      read: async (s, a) => {
++        const value = items.get(`${s}/${a}`);
++        return value ? Buffer.from(value) : null;
++      },
++      put: async (s, a, b) => {
++        items.set(`${s}/${a}`, Buffer.from(b));
++      },
++      remove: async (s, a) => {
++        items.delete(`${s}/${a}`);
++      },
++    },
++    [transport.deliver],
++  );
++  try {
++    const ref = await broker.put(randomUUID(), Buffer.from('transport-fixture'));
++    const result = await transport.call('chosen', broker, ref, AbortSignal.timeout(1000));
++    assert.deepEqual(result.body, reply);
++    assert.equal(calls.length, 1);
++    assert.equal((calls[0] as { model: string }).model, 'chosen');
++    await broker.remove(ref);
++    assert.equal(items.size, 0);
++  } finally {
++    server.closeAllConnections();
++    await new Promise<void>((resolve) => server.close(() => resolve()));
++  }
++});
++test('model probe IPv6 guard canonicalizes zero-padded special ranges', () => {
++  for (const address of ['2001:0db8::1', '2001:0000::1', '2001:0010::1', '3fff::1', '192.88.99.1'])
++    assert.throws(() => assertPublicAddress(address), /SSRF_DENIED/);
++  assert.doesNotThrow(() => assertPublicAddress('192.2.1.1'));
++});
++test('model probe correlated tools and explicit measured vision grant only their recorded capabilities', async () => {
++  const body = {
++    model: 'chosen',
++    status: 'completed',
++    output: [
++      { type: 'function_call', name: 'crew_probe_echo', call_id: 'call-1', arguments: '{"value":"fixture"}' },
++    ],
++  };
++  const prober = new ModelProber({
++    ...ports,
++    authorizedLive: {
++      authorize: async () => true,
++      call: async () => ({
++        status: 200,
++        body,
++        retryAfter: null,
++        streamed: false,
++        toolExecution: { callId: 'call-1', resultCallId: 'call-1', value: 'fixture' },
++        imageObserved: true,
++      }),
++    },
++  });
++  assert.deepEqual((await prober.probeModel(key, { source, projection }, 'authorized-live')).capabilities, [
++    'tools',
++    'vision',
++  ]);
++});
++test('model probe Chat stream correlates fragments and requires done plus terminal reason', () => {
++  const frame = (delta: unknown, finish_reason: string | null) =>
++    `data: ${JSON.stringify({ model: 'chosen', choices: [{ index: 0, delta, finish_reason }] })}\n\n`;
++  const text =
++    frame({ role: 'assistant', content: 'fix' }, null) +
++    frame({ content: 'ture' }, 'stop') +
++    'data: [DONE]\n\n';
++  assert.deepEqual(
++    parseProtocol('chat-completions', parseStream('chat-completions', text, 'chosen'), 'chosen'),
++    ['text'],
++  );
++  assert.throws(
++    () => parseStream('chat-completions', text.replace('data: [DONE]\n\n', ''), 'chosen'),
++    /STREAM_PROTOCOL/,
++  );
++});
++
++import { pinnedLookup } from '../src/models/provider-transport.ts';
++
++test('model probe pinned DNS socket lookup honors Node all-address contract without new DNS', () => {
++  const lookup = pinnedLookup({ address: '8.8.8.8', family: 4 });
++  lookup('provider.example', { all: true }, (error, addresses) => {
++    assert.equal(error, null);
++    assert.deepEqual(addresses, [{ address: '8.8.8.8', family: 4 }]);
++  });
++  lookup('provider.example', { family: 4 }, (error, address, family) => {
++    assert.equal(error, null);
++    assert.equal(address, '8.8.8.8');
++    assert.equal(family, 4);
++  });
++});
+diff --git a/v2/gateway/test/model-reporter.test.ts b/v2/gateway/test/model-reporter.test.ts
+new file mode 100644
+index 0000000..b1f0025
+--- /dev/null
++++ b/v2/gateway/test/model-reporter.test.ts
+@@ -0,0 +1,87 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { initialStatus } from '../src/host/status.ts';
++import { canonicalJson, hash } from '../src/journal/atomic-records.ts';
++import { HttpOperationJournal, type HttpRequest } from '../src/journal/http-operations.ts';
++import type { ModelInventoryBody, ModelReportEnvelope } from '../src/models/contracts.ts';
++import { ModelReporter } from '../src/models/model-reporter.ts';
++import { modelFixtureRoot, removeModelFixture } from './support/model-fixture.ts';
++
++test('model reporter gets current desired before reconnect and restart replays exact shared sequence', async () => {
++  const root = await modelFixtureRoot('model-reporter');
++  const sent: HttpRequest[] = [],
++    order: string[] = [];
++  let lose = true,
++    revision = 2;
++  const boot = { bootId: randomUUID(), bootGeneration: '2' };
++  let http = await HttpOperationJournal.open(root, async (request) => {
++    sent.push(request);
++    if (lose) throw new Error('lost reply');
++    return {
++      status: 200,
++      body: {
++        reportId: (request.canonicalBody as ModelReportEnvelope<ModelInventoryBody>).reportId,
++        accepted: true,
++      },
++    };
++  });
++  const ports = {
++    currentBoot: () => boot,
++    getDesired: async () => {
++      order.push('GET');
++      return { revision, enabled: { claude: false, codex: false, api: true }, apiProviders: [] };
++    },
++  };
++  let reporter = await ModelReporter.open(root, http, ports);
++  try {
++    await assert.rejects(
++      reporter.reconnect(initialStatus().workflows, async () => {
++        order.push('probe');
++        return [];
++      }),
++      /lost reply/,
++    );
++    assert.deepEqual(order, ['GET', 'probe']);
++    const first = sent[0]?.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
++    assert.equal(first.sequence, '1');
++    assert.equal(first.configRevision, 2);
++    await reporter.close();
++    await http.close();
++    lose = false;
++    http = await HttpOperationJournal.open(root, async (request) => {
++      sent.push(request);
++      return {
++        status: 200,
++        body: {
++          reportId: (request.canonicalBody as ModelReportEnvelope<ModelInventoryBody>).reportId,
++          accepted: true,
++        },
++      };
++    });
++    reporter = await ModelReporter.open(root, http, ports);
++    assert.equal(await reporter.replay(first.reportId), first.reportId);
++    assert.deepEqual(sent[0], sent[1]);
++    revision = 3;
++    await reporter.reconnect(initialStatus().workflows, async () => []);
++    const inventory = sent.at(-1)?.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
++    assert.equal(inventory.sequence, '2');
++    await reporter.sendApplied({
++      inventoryReportId: inventory.reportId,
++      sourceStatus: {
++        claude: { state: 'disabled', errorCode: null },
++        codex: { state: 'disabled', errorCode: null },
++        api: { state: 'error', errorCode: 'AUTH' },
++      },
++      observationDigest: hash(canonicalJson(inventory.body)),
++    });
++    const last = sent.at(-1);
++    assert.ok(last);
++    assert.equal((last.canonicalBody as { sequence: string }).sequence, '3');
++    assert.equal((last.canonicalBody as { configRevision: number }).configRevision, 3);
++  } finally {
++    await reporter.close();
++    await http.close();
++    await removeModelFixture(root);
++  }
++});
+diff --git a/v2/gateway/test/support/model-fixture.ts b/v2/gateway/test/support/model-fixture.ts
+new file mode 100644
+index 0000000..6627271
+--- /dev/null
++++ b/v2/gateway/test/support/model-fixture.ts
+@@ -0,0 +1,35 @@
++import { lstat, mkdtemp, realpath, rm } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++
++const identities = new Map<string, { dev: number; ino: number; uid: number }>();
++export async function modelFixtureRoot(label: string): Promise<string> {
++  const root = await mkdtemp(join(await realpath(tmpdir()), `crew-task2-${label}-`)),
++    stat = await lstat(root);
++  const identity = { dev: stat.dev, ino: stat.ino, uid: stat.uid };
++  identities.set(root, identity);
++  console.log(JSON.stringify({ type: 'task2-owned-resource', action: 'create', root, ...identity }));
++  return root;
++}
++export async function removeModelFixture(root: string): Promise<void> {
++  const identity = identities.get(root),
++    stat = await lstat(root);
++  if (
++    !identity ||
++    stat.isSymbolicLink() ||
++    !stat.isDirectory() ||
++    stat.dev !== identity.dev ||
++    stat.ino !== identity.ino ||
++    stat.uid !== identity.uid
++  )
++    throw new Error('FIXTURE_IDENTITY_MISMATCH');
++  await rm(root, { recursive: true, force: false });
++  identities.delete(root);
++  try {
++    await lstat(root);
++    throw new Error('FIXTURE_NOT_REMOVED');
++  } catch (error) {
++    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
++  }
++  console.log(JSON.stringify({ type: 'task2-owned-resource', action: 'removed', root, ...identity }));
++}
+diff --git a/v2/server/src/models/contracts.ts b/v2/server/src/models/contracts.ts
+index 00e22d0..860dda2 100644
+--- a/v2/server/src/models/contracts.ts
++++ b/v2/server/src/models/contracts.ts
+@@ -82,6 +82,19 @@ export type ApiProviderConfig = {
+   credentialStatus: 'missing' | 'pending' | 'stored';
+   localHttp: { enabled: true; allowedOrigin: string } | null;
+ };
++export type ApiCredentialBindings = {
++  machineId: string;
++  configRevision: number | null;
++  apiEnabled: boolean;
++  providers: {
++    providerId: string;
++    endpoint: string;
++    protocol: ApiProviderConfig['protocol'];
++    status: ApiProviderConfig['credentialStatus'];
++    credentialRef: string | null;
++    currentOperationId: string | null;
++  }[];
++};
+ export type SourceConfig = {
+   revision: number;
+   enabled: Record<Source, boolean>;
+diff --git a/v2/server/src/models/routes.ts b/v2/server/src/models/routes.ts
+index a89ec17..3412a10 100644
+--- a/v2/server/src/models/routes.ts
++++ b/v2/server/src/models/routes.ts
+@@ -36,6 +36,7 @@ import {
+   confirmCredentialKey,
+   markSecretKeyLost,
+   provisionSecret,
++  readApiCredentialBindings,
+   readSecretEnvelopes,
+   registerCredentialKey,
+ } from './secret-envelopes.ts';
+@@ -77,6 +78,14 @@ export function registerModelRoutes(
+       if (current.kind !== actor.kind || current.id !== actor.id) fail('UNAUTHENTICATED', 401);
+       return work(tx);
+     });
++  app.get(
++    '/v2/machine/api-credential-bindings',
++    { schema: { querystring: objectSchema({}) } },
++    async (request) => {
++      const actor = await machine(request);
++      return read(request, actor, (tx) => readApiCredentialBindings(tx, actor.id));
++    },
++  );
+   app.post<{ Body: CredentialKeyRegistration }>(
+     '/v2/machine/credential-keys',
+     { schema: { body: registrationSchema } },
+diff --git a/v2/server/src/models/secret-envelopes.ts b/v2/server/src/models/secret-envelopes.ts
+index 5bd52fd..b503c9b 100644
+--- a/v2/server/src/models/secret-envelopes.ts
++++ b/v2/server/src/models/secret-envelopes.ts
+@@ -13,6 +13,7 @@ import { canonicalJson } from '../journal/canonical.ts';
+ import type { Id, Tx } from '../platform/contracts.ts';
+ import { readSourceConfig } from './config.ts';
+ import type {
++  ApiCredentialBindings,
+   CredentialKeyConfirmation,
+   CredentialKeyRegistration,
+   SecretAck,
+@@ -221,3 +222,23 @@ export async function markSecretKeyLost(tx: Tx, machineId: Id, id: Id, now = new
+   await tx`update api_providers p set status='missing',credential_ref=null where p.machine_id=${machineId} and p.status='pending' and exists(select 1 from api_secret_envelopes e where e.machine_id=p.machine_id and e.provider_id=p.id and e.operation_id=p.current_operation_id and e.key_id=${r.key_id})`;
+   return { operationId: r.operation_id, status: 'pending' };
+ }
++
++/** Current metadata only. Caller supplies the authenticated repeatable-read snapshot. */
++export async function readApiCredentialBindings(tx: Tx, machineId: Id): Promise<ApiCredentialBindings> {
++  const [config] = await tx`select revision,enabled from model_source_configs where machine_id=${machineId}`;
++  const providers =
++    await tx`select id,endpoint,protocol,status,credential_ref,current_operation_id from api_providers where machine_id=${machineId} and declared order by id`;
++  return {
++    machineId,
++    configRevision: config ? Number(config.revision) : null,
++    apiEnabled: config ? (config.enabled as { api: boolean }).api : false,
++    providers: providers.map((p) => ({
++      providerId: String(p.id),
++      endpoint: String(p.endpoint),
++      protocol: p.protocol as ApiCredentialBindings['providers'][number]['protocol'],
++      status: p.status as ApiCredentialBindings['providers'][number]['status'],
++      credentialRef: p.credential_ref === null ? null : String(p.credential_ref),
++      currentOperationId: p.current_operation_id === null ? null : String(p.current_operation_id),
++    })),
++  };
++}
+diff --git a/v2/server/test/model-current-credentials.test.ts b/v2/server/test/model-current-credentials.test.ts
+new file mode 100644
+index 0000000..0f09b1d
+--- /dev/null
++++ b/v2/server/test/model-current-credentials.test.ts
+@@ -0,0 +1,306 @@
++import assert from 'node:assert/strict';
++import {
++  createDecipheriv,
++  createHash,
++  createPublicKey,
++  diffieHellman,
++  generateKeyPairSync,
++  hkdfSync,
++  randomUUID,
++} from 'node:crypto';
++import test from 'node:test';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import type { SecretEnvelope } from '../src/models/contracts.ts';
++import { databaseFixture } from './support/db.ts';
++import { modelFixture } from './support/model-http.ts';
++
++const path = '/v2/machine/api-credential-bindings';
++type Bindings = {
++  machineId: string;
++  configRevision: number | null;
++  apiEnabled: boolean;
++  providers: {
++    providerId: string;
++    endpoint: string;
++    protocol: string;
++    status: string;
++    credentialRef: string | null;
++    currentOperationId: string | null;
++  }[];
++};
++async function fixture(db: Parameters<Parameters<ReturnType<typeof databaseFixture>>[0]>[0]) {
++  const f = await modelFixture(db),
++    providerId = randomUUID();
++  await db`insert into projects(id,name,key,machine_id,checkout_path) values(${randomUUID()},'fixture','CURRENTCRED',${f.machineId},'/tmp/current-credential-fixture')`;
++  const config = {
++    expectedRevision: 0,
++    enabled: { claude: false, codex: false, api: true },
++    apiProviders: [
++      {
++        id: providerId,
++        endpoint: 'https://example.com/v1/',
++        protocol: 'responses',
++        models: [{ id: 'chosen', declared: ['text'] }],
++        localHttp: null,
++      },
++    ],
++  };
++  assert.equal((await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, config)).statusCode, 200);
++  const keys = generateKeyPairSync('x25519'),
++    keyId = randomUUID();
++  const reg = await f.machine.post('/v2/machine/credential-keys', {
++    keyId,
++    publicKeyX25519: keys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64'),
++  });
++  assert.equal(reg.statusCode, 200, reg.text);
++  const ch = reg.json<{
++    challengeId: string;
++    expiresAt: string;
++    encryptedChallenge: Pick<SecretEnvelope, 'ephemeralPublicKey' | 'nonce' | 'ciphertext' | 'tag'>;
++  }>();
++  const nonce = Buffer.from(ch.encryptedChallenge.nonce, 'base64'),
++    shared = diffieHellman({
++      privateKey: keys.privateKey,
++      publicKey: createPublicKey({
++        key: Buffer.from(ch.encryptedChallenge.ephemeralPublicKey, 'base64'),
++        format: 'der',
++        type: 'spki',
++      }),
++    });
++  const aes = Buffer.from(hkdfSync('sha256', shared, nonce, 'crew-v2-secret-envelope-v1', 32)),
++    d = createDecipheriv('aes-256-gcm', aes, nonce);
++  d.setAAD(
++    Buffer.from(
++      canonicalJson({ machineId: f.machineId, keyId, challengeId: ch.challengeId, expiresAt: ch.expiresAt }),
++    ),
++  );
++  d.setAuthTag(Buffer.from(ch.encryptedChallenge.tag, 'base64'));
++  const proof = Buffer.concat([d.update(Buffer.from(ch.encryptedChallenge.ciphertext, 'base64')), d.final()]);
++  assert.equal(
++    (
++      await f.machine.post(`/v2/machine/credential-keys/${keyId}/confirm`, {
++        challengeId: ch.challengeId,
++        challengeSha256: createHash('sha256').update(proof).digest('hex'),
++      })
++    ).statusCode,
++    200,
++  );
++  proof.fill(0);
++  shared.fill(0);
++  aes.fill(0);
++  const provision = async (operationId: string = randomUUID(), revision = 1) => {
++    const response = await f.owner.post(`/v2/machines/${f.machineId}/api-providers/${providerId}/secret`, {
++      expectedRevision: revision,
++      keyId,
++      operationId,
++      secret: 'current-credential-fixture-only',
++    });
++    assert.equal(response.statusCode, 200, response.text);
++    const e = (await f.machine.get('/v2/machine/api-secret-envelopes'))
++      .json<{ items: SecretEnvelope[] }>()
++      .items.find((e) => e.operationId === operationId);
++    assert.ok(e);
++    return e;
++  };
++  const ack = (e: SecretEnvelope, ref: string) =>
++    f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, {
++      operationId: e.operationId,
++      keyId: e.keyId,
++      ciphertextSha256: e.ciphertextSha256,
++      credentialRef: ref,
++    });
++  const get = async () => {
++    const r = await f.machine.get(path);
++    assert.equal(r.statusCode, 200, r.text);
++    return r.json<Bindings>();
++  };
++  return { f, providerId, keyId, config, provision, ack, get };
++}
++test('current credential machine-own read exposes metadata only and never selects by UUID or late historical ACK', async () => {
++  await databaseFixture(8)(async (db) => {
++    const s = await fixture(db);
++    try {
++      const a = await s.provision('ffffffff-ffff-4fff-8fff-ffffffffffff'),
++        b = await s.provision('00000000-0000-4000-8000-000000000001');
++      assert.equal((await s.ack(b, 'current-ref-b')).statusCode, 200);
++      const before = await s.get();
++      assert.deepEqual(before, {
++        machineId: s.f.machineId,
++        configRevision: 1,
++        apiEnabled: true,
++        providers: [
++          {
++            providerId: s.providerId,
++            endpoint: 'https://example.com/v1/',
++            protocol: 'responses',
++            status: 'stored',
++            credentialRef: 'current-ref-b',
++            currentOperationId: b.operationId,
++          },
++        ],
++      });
++      assert.equal((await s.ack(a, 'historical-ref-a')).statusCode, 200);
++      assert.deepEqual(await s.get(), before);
++      assert.equal((await s.ack(a, 'historical-ref-a')).statusCode, 200);
++      assert.deepEqual(await s.get(), before);
++      const response = (await s.f.machine.get(path)).text;
++      for (const value of [
++        'current-credential-fixture-only',
++        a.ciphertext,
++        b.ciphertext,
++        'ephemeralPublicKey',
++        'ciphertext',
++        'secret',
++        'privateKey',
++      ])
++        assert.equal(response.includes(value), false);
++      const reconnect = await modelFixture(db, { prior: s.f.prior });
++      try {
++        assert.deepEqual((await reconnect.machine.get(path)).json(), before);
++      } finally {
++        await reconnect.close();
++      }
++    } finally {
++      await s.f.close();
++    }
++  });
++});
++test('current credential retained stored ref legitimately has null operation after same endpoint revision; pending/loss/OFF/removal stay exact', async () => {
++  await databaseFixture(8)(async (db) => {
++    const s = await fixture(db);
++    try {
++      const a = await s.provision();
++      assert.equal((await s.ack(a, 'retained-ref')).statusCode, 200);
++      assert.equal(
++        (
++          await s.f.owner.put(`/v2/machines/${s.f.machineId}/model-sources`, {
++            ...s.config,
++            expectedRevision: 1,
++            enabled: { claude: true, codex: false, api: true },
++          })
++        ).statusCode,
++        200,
++      );
++      const kept = await s.get();
++      assert.equal(kept.configRevision, 2);
++      assert.equal(kept.providers[0]?.credentialRef, 'retained-ref');
++      assert.equal(kept.providers[0]?.currentOperationId, null);
++      const b = await s.provision(randomUUID(), 2);
++      const pending = await s.get();
++      assert.equal(pending.providers[0]?.status, 'pending');
++      assert.equal(pending.providers[0]?.credentialRef, null);
++      assert.equal(pending.providers[0]?.currentOperationId, b.operationId);
++      assert.equal(
++        (await s.f.machine.post(`/v2/machine/api-secret-envelopes/${b.id}/key-lost`, {})).statusCode,
++        200,
++      );
++      const lost = await s.get();
++      assert.equal(lost.providers[0]?.status, 'missing');
++      assert.equal(lost.providers[0]?.credentialRef, null);
++      assert.equal((await s.ack(a, 'retained-ref')).statusCode, 200);
++      assert.deepEqual(await s.get(), lost);
++      assert.equal(
++        (
++          await s.f.owner.put(`/v2/machines/${s.f.machineId}/model-sources`, {
++            ...s.config,
++            expectedRevision: 2,
++            enabled: { claude: false, codex: false, api: false },
++          })
++        ).statusCode,
++        200,
++      );
++      assert.equal((await s.get()).apiEnabled, false);
++      assert.equal(
++        (
++          await s.f.owner.put(`/v2/machines/${s.f.machineId}/model-sources`, {
++            expectedRevision: 3,
++            enabled: { claude: false, codex: false, api: false },
++            apiProviders: [],
++          })
++        ).statusCode,
++        200,
++      );
++      assert.deepEqual((await s.get()).providers, []);
++    } finally {
++      await s.f.close();
++    }
++  });
++});
++test('current credential endpoint/protocol change detaches credential and read cannot cross machine or owner session', async () => {
++  await databaseFixture(8)(async (db) => {
++    const s = await fixture(db);
++    try {
++      const a = await s.provision();
++      assert.equal((await s.ack(a, 'old-origin-ref')).statusCode, 200);
++      assert.equal(
++        (
++          await s.f.owner.put(`/v2/machines/${s.f.machineId}/model-sources`, {
++            ...s.config,
++            expectedRevision: 1,
++            apiProviders: [
++              {
++                ...s.config.apiProviders[0],
++                endpoint: 'https://other.example/v1/',
++                protocol: 'chat-completions',
++              },
++            ],
++          })
++        ).statusCode,
++        200,
++      );
++      const changed = await s.get();
++      assert.equal(changed.configRevision, 2);
++      assert.equal(changed.providers[0]?.status, 'missing');
++      assert.equal(changed.providers[0]?.credentialRef, null);
++      assert.equal(changed.providers[0]?.endpoint, 'https://other.example/v1/');
++      assert.equal(changed.providers[0]?.protocol, 'chat-completions');
++      const foreign = (await s.f.owner.post('/v2/machines', { name: 'foreign' })).json<{
++        machine: { id: string };
++        token: string;
++      }>();
++      const response = await s.f.request(path, 'GET', undefined, {
++        authorization: `Bearer ${foreign.token}`,
++      });
++      assert.equal(response.statusCode, 200);
++      assert.deepEqual(response.json(), {
++        machineId: foreign.machine.id,
++        configRevision: null,
++        apiEnabled: false,
++        providers: [],
++      });
++      assert.equal(
++        (
++          await s.f.request(`${path}?machineId=${s.f.machineId}`, 'GET', undefined, {
++            authorization: `Bearer ${foreign.token}`,
++          })
++        ).statusCode,
++        400,
++      );
++      assert.equal((await s.f.owner.get(path)).statusCode, 403);
++      await db`update machines set revoked_at=now() where id=${s.f.machineId}`;
++      assert.equal((await s.f.machine.get(path)).statusCode, 401);
++    } finally {
++      await s.f.close();
++    }
++  });
++});
++test('current credential read reauthenticates actual credential after preflight in existing repeatable-read snapshot', async () => {
++  await databaseFixture(8)(async (db) => {
++    const f = await modelFixture(db, {
++      configure: async (_app, _options, deps) => {
++        const actual = deps.auth.authenticate;
++        deps.auth.authenticate = async (request) => {
++          const actor = await actual(request);
++          if (request.url === path && actor.kind === 'machine')
++            await db`update machines set revoked_at=now() where id=${actor.id}`;
++          return actor;
++        };
++      },
++    });
++    try {
++      assert.equal((await f.machine.get(path)).statusCode, 401);
++    } finally {
++      await f.close();
++    }
++  });
++});

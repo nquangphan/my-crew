@@ -1,0 +1,162 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (2.067792ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.179ms)
+✔ credential broker native bridge rejects unverified helper before any keychain access (0.217834ms)
+✔ credential broker serializes conflicting local writes and never returns bridge secret errors (0.191292ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs","dev":16777229,"ino":63872549,"uid":501}
+{"type":"task2-owned-process","action":"fake-helper-created","pid":92600,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-created","pid":92676,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-created","pid":92677,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-created","pid":92678,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-reaped","pid":92600,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-reaped","pid":92676,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-reaped","pid":92677,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-process","action":"fake-helper-reaped","pid":92678,"helper":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs/fake-security-channel"}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-kTNpVs","dev":16777229,"ino":63872549,"uid":501}
+✔ credential broker native FD framing runs only against unsigned owned fake helper (581.426875ms)
+✔ credential broker failed read-back cannot yield a stored ref (0.182209ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-GrIC2R","dev":16777229,"ino":63872562,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-GrIC2R","dev":16777229,"ino":63872562,"uid":501}
+✔ credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss (472.248292ms)
+✔ credential broker expiry needs bounded server receipt clock and ignores host wall clock (0.15325ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-2Db7LA","dev":16777229,"ino":63872744,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-2Db7LA","dev":16777229,"ino":63872744,"uid":501}
+✔ credential broker reconnect gets own desired/serverTime before secret envelopes and rejects disabled source (96.84625ms)
+✔ FIX1 R1 registration TTL upper bound uses estimated current server time without extending expired receipts (0.807625ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-ack-reconnect-eYlgte","dev":16777229,"ino":63872779,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-ack-reconnect-eYlgte","dev":16777229,"ino":63872779,"uid":501}
+✔ FIX1 R2 public reconnect replays committed lost ACK after expiry and revision change without rewriting secret (559.707583ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix2-current-credential-lRiHwJ","dev":16777229,"ino":63873045,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix2-current-credential-lRiHwJ","dev":16777229,"ino":63873045,"uid":501}
+✔ FIX2 public sync distinguishes missing current A from healthy current B and historical ACK without promotion (1210.813083ms)
+✔ resolver reads fresh desired and current binding; stored ref with null operation survives revision and reconnect (3.051833ms)
+✔ resolver rejects OFF, removal, pending, missing, foreign, revision, endpoint, protocol, and provider ref conflicts (1.540083ms)
+✔ resolver rejects observed ref changes even when both credentials remain stored (0.1675ms)
+✔ current transport refuses changed state before headers and rejects a response when authority changes in flight (27.345916ms)
+✔ oversized second frame cannot crash host or replace boot (240.580167ms)
+✔ absolute frame deadline closes a drip client despite continuing bytes (1605.335ms)
+✔ SIGTERM stops with an unfinished frame and a new host binds (303.82925ms)
+✔ crash residue in recovery and empty init lock does not wedge reboot (523.062625ms)
+✔ empty host lock from interrupted initialization is recoverable (218.714833ms)
+✔ live contender cannot take over host or change its socket (117.012416ms)
+✔ unknown symlink recovery residue is not deleted or followed (191.719041ms)
+✔ stop drains a stalled dispatch only until its bounded deadline (351.850083ms)
+✔ macOS guard retains one inode across release and old-fd contender ordering (78.004625ms)
+✔ host lifecycle: UI main exit and reopen preserve independent host boot (415.5625ms)
+✔ host lifecycle: preexisting token symlink cannot overwrite another file (83.737083ms)
+✔ host lifecycle: unauthenticated socket client cannot read status (198.77625ms)
+✔ host lifecycle: crash leaves recoverable lock and a new boot can bind the socket (642.949792ms)
+✔ host lifecycle: transient macOS user agent owns host after client exits (184.026042ms)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (386.47975ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (105.346958ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (506.316708ms)
+✔ journal command reservation survives restart and concurrent journal writer is rejected (397.605667ms)
+✔ journal READY child cannot run side effects until exact projection authorization and durable release (1911.6315ms)
+✔ journal crash windows retain reservation, require READY identity and never release before authorization (11304.593167ms)
+✔ journal PID birth mismatch and capacity/projection failure remain gated and unknown (1449.781125ms)
+✔ journal descendant that escapes the dedicated process group leaves tree unknown (2801.198291ms)
+✔ journal concurrent launcher calls reserve one dormant child and never a second process (1649.885041ms)
+✔ journal native binary tamper fails closed and cannot become exit proof (1944.295917ms)
+✔ journal built entrypoint resolves the gated helper and owned native source without a global install (1534.07175ms)
+✔ journal concurrent releases for the same fenced claim execute the workflow side effect once (1199.176291ms)
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (4.086709ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (3.467ms)
+✔ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (1.730625ms)
+✔ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (16.1495ms)
+✔ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.606875ms)
+✔ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.822333ms)
+✔ model probe stream parser requires complete bounded framing and exact model (0.6535ms)
+✔ model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model (0.287791ms)
+✔ model probe pinned transport uses one-use credential channel and bounded local HTTP response (12.375833ms)
+✔ model probe IPv6 guard canonicalizes zero-padded special ranges (0.225333ms)
+✔ model probe correlated tools and explicit measured vision grant only their recorded capabilities (0.280417ms)
+✔ model probe Chat stream correlates fragments and requires done plus terminal reason (0.124541ms)
+✔ model probe pinned DNS socket lookup honors Node all-address contract without new DNS (0.061916ms)
+✔ FIX1 R4 SSE accepts LF CRLF CR mixed endings and BOM but retains raw bound and final blank frame (1.899666ms)
+✔ FIX1 R5 Responses correlates multi-fragment tool and text with lifecycle metadata and terminal body (0.501667ms)
+✔ FIX1 R5 nullable annotation metadata is correlated with final text (0.177917ms)
+✔ FIX1 R5 Responses rejects orphan duplicate conflicting and terminal-failure sequences (1.555167ms)
+✔ FIX1 R6 broker transport prober preserves closed protocol/size/SSRF outcomes and redacts unknown errors (20.536625ms)
+✔ FIX1 R5 documented response_id and optional function status remain correlated (0.294583ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-model-reporter-xw9Jd7","dev":16777229,"ino":63872546,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-model-reporter-xw9Jd7","dev":16777229,"ino":63872546,"uid":501}
+✔ model reporter gets current desired before reconnect and restart replays exact shared sequence (505.442042ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-reporter-race-0YPT0c","dev":16777229,"ino":63872746,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-reporter-race-0YPT0c","dev":16777229,"ino":63872746,"uid":501}
+✔ FIX1 R3 overlapping collections keep immutable config and boot instead of relabelling stale observations (493.873041ms)
+✔ resources reservations and unverified creation never grant deletion; unknown process retains (383.395125ms)
+✔ resources attested path swapped to symlink or hardlinked bytes is retained unchanged (1537.21175ms)
+✔ resources proven stopped run deletes only its owned scratch and retries idempotently (4525.38125ms)
+✔ resources exact stop does not permit parent symlink swap, hardlink alias, dirty or shared cleanup (4637.493ms)
+✔ resources cancellation retains attested scratch even with exact stopped proof (2786.751875ms)
+✔ resources cleanup recovers a crash after quarantine rename before durable state update (3787.307125ms)
+✔ resources callback cannot attest a symlink to the owner checkout (1445.348584ms)
+✔ resources abort after durable quarantine retains owned bytes and retry removes the same inode (3529.072334ms)
+✔ resources runtime output changes directory link count after attest and still cleans up after exact stop (2424.102791ms)
+✔ resources actual partial native deletion retains quarantine and retries after its owned immutable flag clears (1657.699917ms)
+✔ telemetry each dispatch samples again and pressure change blocks second dispatch (10.455625ms)
+✔ telemetry stale, disk, RAM, CPU, concurrency and ownership fail closed for all dispatch kinds (0.212875ms)
+✔ telemetry macOS sample obtains live pressure, page memory and disk without a cached result (24.450083ms)
+Admission boundary: snapshot CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-OBVDsL","device":"16777229","inode":"63872606","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (2747.142833ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-5m6jEO","device":"16777229","inode":"63873529","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (2281.959083ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-4EGwbF","device":"16777229","inode":"63874175","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (2463.062083ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-lLHkaE","device":"16777229","inode":"63875560","ownerUid":501,"deleted":true}
+✔ workflow admission reserve-first holds GC until real journal commit and survives cached replay (2162.426334ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Hluz87","device":"16777229","inode":"63876209","ownerUid":501,"deleted":true}
+✔ workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape (3044.133166ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-LhZwyZ","device":"16777229","inode":"63877049","ownerUid":501,"deleted":true}
+✔ workflow admission bind waits for an in-flight standalone v1 reservation before GC (1713.744292ms)
+Recovered admission checkpoint: admission source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-simqgQ","device":"16777229","inode":"63877543","ownerUid":501,"deleted":true}
+✔ workflow admission crash at admission retains unknown intent or denies a deleted pair after restart (1965.812834ms)
+Recovered admission checkpoint: committed source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-ABPA9W","device":"16777229","inode":"63878060","ownerUid":501,"deleted":true}
+✔ workflow admission crash at committed retains unknown intent or denies a deleted pair after restart (1848.045333ms)
+Recovered admission checkpoint: quarantine source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-jPlEdj","device":"16777229","inode":"63878571","ownerUid":501,"deleted":true}
+✔ workflow admission crash at quarantine retains unknown intent or denies a deleted pair after restart (2500.42825ms)
+BMAD independent supervised builds: [{"id":"aafc48de-157a-48ee-8870-e55532b3e48a","identity":{"bytes":0,"device":"16777229","inode":"63886450","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"aafc48de-157a-48ee-8870-e55532b3e48a","device":"16777229","inode":"63886450","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"1f9d488c-0f57-455b-a680-73c5542e4a78","identity":{"bytes":0,"device":"16777229","inode":"63880838","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"1f9d488c-0f57-455b-a680-73c5542e4a78","device":"16777229","inode":"63880838","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"17caf845-323b-40f3-9e20-7021c678af2b","identity":{"bytes":0,"device":"16777229","inode":"63874165","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"17caf845-323b-40f3-9e20-7021c678af2b","device":"16777229","inode":"63874165","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"f379d5b3-9462-4019-b376-b30315f7555f","identity":{"bytes":0,"device":"16777229","inode":"63890410","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"f379d5b3-9462-4019-b376-b30315f7555f","device":"16777229","inode":"63890410","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}}]
+✔ workflow real official BMAD installer builds deterministic Claude and API artifacts (65795.674875ms)
+✔ workflow real Superpowers API preserves exact official scripts and pins tool policy (2272.266375ms)
+✔ workflow frozen builder rejects dependency and uv tampering before execution (7529.949458ms)
+✔ workflow fix cancellation cannot rewind existing A after B activation (1799.636125ms)
+✔ workflow fix abort during existing verification preserves B activation (2698.909834ms)
+✔ workflow fix repeated completed malformed operations reclaim exact stages (2533.437584ms)
+✔ workflow audited native Superpowers candidate has its independent artifact pin (1.921125ms)
+Native independent build identities: [{"id":"05f73bea-7ab5-4da4-ab6a-c39bcdfc1609","identity":{"bytes":0,"device":"16777229","inode":"63874738","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}},{"id":"3492ac5a-0275-48fe-81c1-2988ca1eeeee","identity":{"bytes":0,"device":"16777229","inode":"63875867","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}}]
+✔ workflow native full-tree artifact preserves bytes and modes with two real build roots and fixed discovery geometry (14791.441959ms)
+✔ workflow durable operation recovers killed reserve/create/rename/quarantine checkpoints (12491.346709ms)
+Retained genuine fork UNKNOWN fixtures: ["/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-8nHUG6"]
+✔ workflow operation native timeout yields real stop receipt and fork remains UNKNOWN (3741.171ms)
+✔ workflow no-follow deletion unlinks symlink itself and rejects hardlink aliases (1438.527625ms)
+✔ workflow published GC releases registry reference but preserves recovered unready process reference (3759.638042ms)
+✔ workflow registry installs verified immutable source (2373.187667ms)
+✔ workflow registry separates runtime roots and retains old immutable pairs through restart (3324.825625ms)
+✔ workflow registry rejects source and projection tampering on every resolve (2137.350666ms)
+✔ workflow registry rejects unknown runtime recipes and expected projection mismatch (1807.350167ms)
+✔ workflow registry rejects malicious archives before activating and keeps old current (2966.230875ms)
+✔ workflow registry detects truncated extraction and wrong npm integrity (1626.446208ms)
+✔ workflow registry rejects unapproved download URL and redirect and bounds response (9.965084ms)
+✔ workflow registry canonical manifest ignores archive order and ownership times (1838.040375ms)
+✔ workflow registry audit builder checks pinned payload and materializes official Claude layout (1.247709ms)
+✔ workflow registry API projection contains official fixture skill/script and audited policy (1484.009709ms)
+✔ workflow registry derivation version/options/layout/policy independently change projection pin (2469.236125ms)
+✔ workflow registry accepts internal symlink (797.933209ms)
+✔ workflow registry source update preserves retained source and old runtime pair (1556.5455ms)
+✔ workflow registry expected projection checksum failure never publishes runtime tree (970.934541ms)
+✔ workflow registry recovers ProcessJournal pair after registry release (1130.966459ms)
+✔ workflow registry pinned official npm and Git archives verify distinct provenance and Claude bytes (8322.824916ms)
+✔ workflow registry cancellation before publish preserves previous active source (806.911416ms)
+ℹ tests 114
+ℹ suites 0
+ℹ pass 114
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 75899.289709

@@ -1,0 +1,115 @@
+{
+  "scope": "only exact paths from producer evidence/logs; no global prefix scan",
+  "roots": [
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-dependencies-gm01zv4k",
+      "present": true,
+      "device": "16777229",
+      "inode": "63247976",
+      "ownerUid": 501,
+      "diskEntryBytes": 55582679,
+      "entryCount": 6315,
+      "reason": "dependency-acquisition-root: historical parentStopped field is not native full-tree receipt; retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-5FwpiL",
+      "present": true,
+      "device": "16777229",
+      "inode": "63259679",
+      "ownerUid": 501,
+      "diskEntryBytes": 94285,
+      "entryCount": 20,
+      "reason": "legacy supervised build stage already reclaimed; remaining receipt/cache/metadata retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-nIzXQb",
+      "present": true,
+      "device": "16777229",
+      "inode": "63263017",
+      "ownerUid": 501,
+      "diskEntryBytes": 94307,
+      "entryCount": 20,
+      "reason": "legacy supervised build stage already reclaimed; remaining receipt/cache/metadata retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-gblZwb",
+      "present": true,
+      "device": "16777229",
+      "inode": "63269544",
+      "ownerUid": 501,
+      "diskEntryBytes": 94987,
+      "entryCount": 20,
+      "reason": "legacy supervised build stage already reclaimed; remaining receipt/cache/metadata retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-4MsAKr",
+      "present": true,
+      "device": "16777229",
+      "inode": "63272894",
+      "ownerUid": 501,
+      "diskEntryBytes": 94385,
+      "entryCount": 20,
+      "reason": "legacy supervised build stage already reclaimed; remaining receipt/cache/metadata retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-F5tLcH",
+      "present": true,
+      "device": "16777229",
+      "inode": "63276285",
+      "ownerUid": 501,
+      "diskEntryBytes": 179072,
+      "entryCount": 21,
+      "reason": "legacy supervised build stage already reclaimed; remaining receipt/cache/metadata retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-zNCEA9",
+      "present": true,
+      "device": "16777229",
+      "inode": "63280327",
+      "ownerUid": 501,
+      "diskEntryBytes": 179072,
+      "entryCount": 21,
+      "reason": "legacy supervised build stage already reclaimed; remaining receipt/cache/metadata retained",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-hafa5J",
+      "present": true,
+      "device": "16777229",
+      "inode": "63327515",
+      "ownerUid": 501,
+      "diskEntryBytes": 47888,
+      "entryCount": 20,
+      "reason": "genuine fork observed: no full-tree stop authority, retained UNKNOWN",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-PRz5fS",
+      "present": true,
+      "device": "16777229",
+      "inode": "63370652",
+      "ownerUid": 501,
+      "diskEntryBytes": 48541,
+      "entryCount": 20,
+      "reason": "genuine fork observed: no full-tree stop authority, retained UNKNOWN",
+      "deletionAuthorized": false
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-pAy3zv",
+      "present": true,
+      "device": "16777229",
+      "inode": "63395557",
+      "ownerUid": 501,
+      "diskEntryBytes": 48541,
+      "entryCount": 20,
+      "reason": "genuine fork observed: no full-tree stop authority, retained UNKNOWN",
+      "deletionAuthorized": false
+    }
+  ]
+}

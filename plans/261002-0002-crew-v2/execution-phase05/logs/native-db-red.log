@@ -1,0 +1,65 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts '--test-name-pattern=Linux native receiver uses actual'
+
+attachment native container created 7a039027d1c9956bfafc7b5555283afce30a44c6fd7aeedfd1249f00bb54d985 pg=9c2bbbedeecfb687e2f41943d7488018e9d4cf715d89aa515201c9d1d026794b database=crew_v2_test_ba70bb22dc304caa805b017268961e51
+attachment DB container native-worker root /tmp/crew-v2-attachments-6m2BRM
+attachment DB scratch created /tmp/crew-v2-attachments-6m2BRM nonceSha256=54eb468aa9915e5d433215f2fe1f9a60e46ee0fcfc3eb1d84599b49b80f3525d
+attachment DB scratch removed /tmp/crew-v2-attachments-6m2BRM
+
+file:///workspace/v2/server/src/attachments/receivers.ts:258
+      if (!operation?.terminal || operation.active) throw new Error('RECEIVER_WRITER_STILL_ACTIVE');
+                                                          ^
+
+Error: RECEIVER_WRITER_STILL_ACTIVE
+    at Object.closeAndAcknowledge (file:///workspace/v2/server/src/attachments/receivers.ts:258:59)
+    at nativeReceiverExercise (file:///workspace/v2/server/test/support/attachments.ts:267:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///workspace/v2/server/test/support/attachments.ts:273:50
+
+Node.js v24.12.0
+
+attachment native container removed 7a039027d1c9956bfafc7b5555283afce30a44c6fd7aeedfd1249f00bb54d985
+✖ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (675.226667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 766.043833
+
+✖ failing tests:
+
+test at test/attachments-staging.test.ts:572:1
+✖ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (675.226667ms)
+  Error: Command failed: docker start -a 7a039027d1c9956bfafc7b5555283afce30a44c6fd7aeedfd1249f00bb54d985
+  file:///workspace/v2/server/src/attachments/receivers.ts:258
+        if (!operation?.terminal || operation.active) throw new Error('RECEIVER_WRITER_STILL_ACTIVE');
+                                                            ^
+  
+  Error: RECEIVER_WRITER_STILL_ACTIVE
+      at Object.closeAndAcknowledge (file:///workspace/v2/server/src/attachments/receivers.ts:258:59)
+      at nativeReceiverExercise (file:///workspace/v2/server/test/support/attachments.ts:267:34)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async file:///workspace/v2/server/test/support/attachments.ts:273:50
+  
+  Node.js v24.12.0
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at ChildProcess.exithandler (node:child_process:417:12)
+      at ChildProcess.emit (node:events:508:28)
+      at maybeClose (node:internal/child_process:1100:16)
+      at Socket.<anonymous> (node:internal/child_process:457:11)
+      at Socket.emit (node:events:508:28)
+      at Pipe.<anonymous> (node:net:346:12) {
+    code: 1,
+    killed: false,
+    signal: null,
+    cmd: 'docker start -a 7a039027d1c9956bfafc7b5555283afce30a44c6fd7aeedfd1249f00bb54d985',
+    stdout: 'attachment DB container native-worker root /tmp/crew-v2-attachments-6m2BRM\nattachment DB scratch created /tmp/crew-v2-attachments-6m2BRM nonceSha256=54eb468aa9915e5d433215f2fe1f9a60e46ee0fcfc3eb1d84599b49b80f3525d\nattachment DB scratch removed /tmp/crew-v2-attachments-6m2BRM\n',
+    stderr: "file:///workspace/v2/server/src/attachments/receivers.ts:258\n      if (!operation?.terminal || operation.active) throw new Error('RECEIVER_WRITER_STILL_ACTIVE');\n                                                          ^\n\nError: RECEIVER_WRITER_STILL_ACTIVE\n    at Object.closeAndAcknowledge (file:///workspace/v2/server/src/attachments/receivers.ts:258:59)\n    at nativeReceiverExercise (file:///workspace/v2/server/test/support/attachments.ts:267:34)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/v2/server/test/support/attachments.ts:273:50\n\nNode.js v24.12.0\n"
+  }
+ ELIFECYCLE  Test failed. See above for more details.

@@ -1,0 +1,2150 @@
+[
+  {
+    "path": "LICENSE",
+    "type": "file",
+    "mode": 420,
+    "size": 1572
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/assets/brain-methods.csv",
+    "type": "file",
+    "mode": 420,
+    "size": 19519
+  },
+  {
+    "path": "web-bundles/brainstorming-coach/brain-methods.csv",
+    "type": "file",
+    "mode": 420,
+    "size": 16265
+  },
+  {
+    "path": "src/core-skills/bmad-advanced-elicitation/assets/methods.csv",
+    "type": "file",
+    "mode": 420,
+    "size": 14854
+  },
+  {
+    "path": "src/bmm-skills/module-help.csv",
+    "type": "file",
+    "mode": 420,
+    "size": 4893
+  },
+  {
+    "path": "src/core-skills/module-help.csv",
+    "type": "file",
+    "mode": 420,
+    "size": 2562
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/assets/brain-selector.html",
+    "type": "file",
+    "mode": 420,
+    "size": 244638
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/assets/validation-report-template.html",
+    "type": "file",
+    "mode": 420,
+    "size": 10893
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/validation-report-template.html",
+    "type": "file",
+    "mode": 420,
+    "size": 10945
+  },
+  {
+    "path": "tools/installer/ide/_config-driven.js",
+    "type": "file",
+    "mode": 420,
+    "size": 37898
+  },
+  {
+    "path": "tools/installer/bmad-cli.js",
+    "type": "file",
+    "mode": 493,
+    "size": 3392
+  },
+  {
+    "path": "tools/bundle-web-bundles.js",
+    "type": "file",
+    "mode": 420,
+    "size": 3920
+  },
+  {
+    "path": "tools/installer/modules/channel-plan.js",
+    "type": "file",
+    "mode": 420,
+    "size": 6844
+  },
+  {
+    "path": "tools/installer/modules/channel-resolver.js",
+    "type": "file",
+    "mode": 420,
+    "size": 8419
+  },
+  {
+    "path": "tools/installer/cli-utils.js",
+    "type": "file",
+    "mode": 420,
+    "size": 3711
+  },
+  {
+    "path": "tools/installer/core/config.js",
+    "type": "file",
+    "mode": 420,
+    "size": 2367
+  },
+  {
+    "path": "tools/installer/modules/custom-module-manager.js",
+    "type": "file",
+    "mode": 420,
+    "size": 36083
+  },
+  {
+    "path": "tools/installer/core/existing-install.js",
+    "type": "file",
+    "mode": 420,
+    "size": 3445
+  },
+  {
+    "path": "tools/installer/modules/external-manager.js",
+    "type": "file",
+    "mode": 420,
+    "size": 28227
+  },
+  {
+    "path": "tools/installer/file-ops.js",
+    "type": "file",
+    "mode": 420,
+    "size": 5587
+  },
+  {
+    "path": "tools/format-workflow-md.js",
+    "type": "file",
+    "mode": 493,
+    "size": 7255
+  },
+  {
+    "path": "tools/installer/fs-native.js",
+    "type": "file",
+    "mode": 420,
+    "size": 2989
+  },
+  {
+    "path": "tools/installer/modules/git-env.js",
+    "type": "file",
+    "mode": 420,
+    "size": 1765
+  },
+  {
+    "path": "tools/installer/core/install-paths.js",
+    "type": "file",
+    "mode": 420,
+    "size": 3713
+  },
+  {
+    "path": "tools/installer/commands/install.js",
+    "type": "file",
+    "mode": 420,
+    "size": 6614
+  },
+  {
+    "path": "tools/installer/ide/shared/installed-skills.js",
+    "type": "file",
+    "mode": 420,
+    "size": 1867
+  },
+  {
+    "path": "tools/installer/core/installer.js",
+    "type": "file",
+    "mode": 420,
+    "size": 72514
+  },
+  {
+    "path": "tools/installer/core/legacy-warnings.js",
+    "type": "file",
+    "mode": 420,
+    "size": 4956
+  },
+  {
+    "path": "tools/installer/list-options.js",
+    "type": "file",
+    "mode": 420,
+    "size": 8273
+  },
+  {
+    "path": "tools/installer/ide/manager.js",
+    "type": "file",
+    "mode": 420,
+    "size": 11009
+  },
+  {
+    "path": "tools/installer/core/manifest-generator.js",
+    "type": "file",
+    "mode": 420,
+    "size": 33815
+  },
+  {
+    "path": "tools/installer/core/manifest.js",
+    "type": "file",
+    "mode": 420,
+    "size": 15874
+  },
+  {
+    "path": "tools/installer/message-loader.js",
+    "type": "file",
+    "mode": 420,
+    "size": 1956
+  },
+  {
+    "path": "tools/migrate-custom-module-paths.js",
+    "type": "file",
+    "mode": 493,
+    "size": 3659
+  },
+  {
+    "path": "tools/installer/modules/module-help-schema.js",
+    "type": "file",
+    "mode": 420,
+    "size": 650
+  },
+  {
+    "path": "tools/installer/modules/official-modules.js",
+    "type": "file",
+    "mode": 420,
+    "size": 87867
+  },
+  {
+    "path": "tools/installer/ide/shared/path-utils.js",
+    "type": "file",
+    "mode": 420,
+    "size": 8042
+  },
+  {
+    "path": "tools/installer/ide/platform-codes.js",
+    "type": "file",
+    "mode": 420,
+    "size": 2502
+  },
+  {
+    "path": "tools/installer/modules/plugin-resolver.js",
+    "type": "file",
+    "mode": 420,
+    "size": 13847
+  },
+  {
+    "path": "tools/installer/project-root.js",
+    "type": "file",
+    "mode": 420,
+    "size": 8612
+  },
+  {
+    "path": "tools/installer/prompts.js",
+    "type": "file",
+    "mode": 420,
+    "size": 26084
+  },
+  {
+    "path": "tools/installer/set-overrides.js",
+    "type": "file",
+    "mode": 420,
+    "size": 14194
+  },
+  {
+    "path": "tools/installer/core/shim-policy.js",
+    "type": "file",
+    "mode": 420,
+    "size": 5602
+  },
+  {
+    "path": "tools/installer/ide/shared/skill-manifest.js",
+    "type": "file",
+    "mode": 420,
+    "size": 2314
+  },
+  {
+    "path": "tools/installer/commands/status.js",
+    "type": "file",
+    "mode": 420,
+    "size": 2023
+  },
+  {
+    "path": "tools/installer/ui.js",
+    "type": "file",
+    "mode": 420,
+    "size": 88502
+  },
+  {
+    "path": "tools/installer/commands/uninstall.js",
+    "type": "file",
+    "mode": 420,
+    "size": 6259
+  },
+  {
+    "path": "tools/installer/core/uv-check.js",
+    "type": "file",
+    "mode": 420,
+    "size": 7165
+  },
+  {
+    "path": "tools/validate-sidebar-order.js",
+    "type": "file",
+    "mode": 420,
+    "size": 13575
+  },
+  {
+    "path": "tools/installer/modules/version-resolver.js",
+    "type": "file",
+    "mode": 420,
+    "size": 9002
+  },
+  {
+    "path": "tools/installer/core/wsl-node-check.js",
+    "type": "file",
+    "mode": 420,
+    "size": 3103
+  },
+  {
+    "path": "tools/installer/yaml-format.js",
+    "type": "file",
+    "mode": 493,
+    "size": 7673
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/bmad-manifest.json",
+    "type": "file",
+    "mode": 420,
+    "size": 464
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/assets/brain-icons.json",
+    "type": "file",
+    "mode": 420,
+    "size": 41231
+  },
+  {
+    "path": "web-bundles/bundles.json",
+    "type": "file",
+    "mode": 420,
+    "size": 9067
+  },
+  {
+    "path": "greptile.json",
+    "type": "file",
+    "mode": 420,
+    "size": 3307
+  },
+  {
+    "path": ".claude-plugin/marketplace.json",
+    "type": "file",
+    "mode": 420,
+    "size": 2349
+  },
+  {
+    "path": "package.json",
+    "type": "file",
+    "mode": 420,
+    "size": 5187
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/types/academic-lit.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1544
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/references/acceptance-verdict.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5575
+  },
+  {
+    "path": "AGENTS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1036
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/references/aggregate-views.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4333
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/agents/artifact-analyzer.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2646
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-project-context/references/best-practices.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9379
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-product-brief/assets/brief-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1606
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-correct-course/checklist.md",
+    "type": "file",
+    "mode": 420,
+    "size": 11634
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-qa-generate-e2e-tests/checklist.md",
+    "type": "file",
+    "mode": 420,
+    "size": 891
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-story/checklist.md",
+    "type": "file",
+    "mode": 420,
+    "size": 14349
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-dev-story/checklist.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4389
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/references/claims-check.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1430
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/references/claims-check.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1430
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/references/claims-check.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1362
+  },
+  {
+    "path": "CLAUDE.md",
+    "type": "file",
+    "mode": 420,
+    "size": 11
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/color-themes.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1084
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/types/competitive.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1512
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/compile-epic-context.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2992
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/compile-epic-context.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2918
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/converge.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2961
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/references/create-party.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9037
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/references/creative-tools.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1895
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/references/customer-faq.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3697
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/references/deletion-check.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1009
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/references/deletion-check.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1009
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/references/deletion-check.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1009
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/design-directions.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1056
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/design-example-editorial.md",
+    "type": "file",
+    "mode": 420,
+    "size": 7363
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/design-example-mobile.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4957
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/design-example-shadcn.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6376
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/references/design-md-spec.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3298
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-story/discover-inputs.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3911
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/types/domain.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1712
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/draft.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1909
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/review-prompts/edge-case-hunter.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8361
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/review-prompts/edge-case-hunter.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8361
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/review-prompts/edge-case-hunter.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8434
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/editorial-common.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5811
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/templates/epics-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1105
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/references/evidence-gathering.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5071
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/excalidraw-wireframe.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1901
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/experience-example-mobile.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5123
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/experience-example-shadcn.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9279
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/finalize.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4898
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/finalize.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1797
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/references/fix-sprint-status.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2747
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/references/generate-tracking.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2636
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/generate-trail.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1992
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/assets/headless-schemas.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2038
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-spec/assets/headless-schemas.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1187
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/headless-schemas.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2615
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/references/headless.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2660
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/references/headless.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3314
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/references/headless.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2310
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/headless.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4989
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/html-briefing.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2434
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/in-chat-techniques.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2200
+  },
+  {
+    "path": "web-bundles/brainstorming-coach/INSTRUCTIONS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4690
+  },
+  {
+    "path": "web-bundles/market-and-industry-research/INSTRUCTIONS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5532
+  },
+  {
+    "path": "web-bundles/prd-coach/INSTRUCTIONS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5582
+  },
+  {
+    "path": "web-bundles/prfaq-coach/INSTRUCTIONS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5023
+  },
+  {
+    "path": "web-bundles/product-brief-coach/INSTRUCTIONS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5131
+  },
+  {
+    "path": "web-bundles/ux-coach/INSTRUCTIONS.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5496
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/references/internal-faq.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3928
+  },
+  {
+    "path": "tools/javascript-conventions.md",
+    "type": "file",
+    "mode": 420,
+    "size": 218
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/assets/key-screens.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2186
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/lens-adversarial.md",
+    "type": "file",
+    "mode": 420,
+    "size": 779
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/lens-edge-case-hunter.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5857
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/lens-prose.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1354
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/lens-structure.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1582
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/lens-verification-gap.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9518
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/lifecycle.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1137
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/types/market.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1337
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/references/mode-agent-team.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2052
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/references/mode-auto.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1095
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/mode-autonomous.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1895
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/mode-facilitator.md",
+    "type": "file",
+    "mode": 420,
+    "size": 970
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/mode-partner.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1606
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/references/mode-subagent.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4191
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/references/party-memory.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3903
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/assets/prd-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10030
+  },
+  {
+    "path": "web-bundles/prd-coach/prd-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9895
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/assets/prd-validation-checklist.md",
+    "type": "file",
+    "mode": 420,
+    "size": 7432
+  },
+  {
+    "path": "web-bundles/prd-coach/prd-validation-checklist.md",
+    "type": "file",
+    "mode": 420,
+    "size": 7363
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/references/press-release.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4308
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/assets/prfaq-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1434
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/process.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1955
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/references/readiness-gate.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1821
+  },
+  {
+    "path": "README_CN.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5801
+  },
+  {
+    "path": "README_KR.md",
+    "type": "file",
+    "mode": 420,
+    "size": 7640
+  },
+  {
+    "path": "README_VN.md",
+    "type": "file",
+    "mode": 420,
+    "size": 7785
+  },
+  {
+    "path": "README.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6163
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/README.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1769
+  },
+  {
+    "path": "src/core-skills/v6-shims/README.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1507
+  },
+  {
+    "path": "tools/installer/README.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1815
+  },
+  {
+    "path": "web-bundles/README.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3010
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/assets/research.template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 460
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/references/resume.md",
+    "type": "file",
+    "mode": 420,
+    "size": 737
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/references/retro-document.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10215
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/references/reviewer-gate.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3245
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/run.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9459
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/selection.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2341
+  },
+  {
+    "path": "tools/skill-validator.md",
+    "type": "file",
+    "mode": 420,
+    "size": 21568
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-analyst/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4579
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-architect/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4527
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-dev/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4589
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-pm/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4525
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-ux-designer/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4546
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 14104
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5116
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-generate-project-context/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 818
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 14113
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10955
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-product-brief/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 11654
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-project-context/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 13027
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-spec/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 17314
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5334
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10806
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 696
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1084
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4078
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-correct-course/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 14142
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-qa-generate-e2e-tests/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5721
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 13554
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3177
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-checkpoint-preview/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2051
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-architecture/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3035
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-prd/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2973
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-story/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 23690
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-dev-auto/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1971
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-dev-story/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 26867
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-document-project/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1262
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-domain-research/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1882
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-edit-prd/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3008
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-market-research/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1882
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-quick-dev/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1928
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-sprint-status/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2394
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-technical-research/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1912
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-validate-prd/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3021
+  },
+  {
+    "path": "src/core-skills/bmad-advanced-elicitation/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5222
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9765
+  },
+  {
+    "path": "src/core-skills/bmad-customize/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6730
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9298
+  },
+  {
+    "path": "src/core-skills/bmad-forge-idea/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10491
+  },
+  {
+    "path": "src/core-skills/bmad-help/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4975
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9628
+  },
+  {
+    "path": "src/core-skills/bmad-review/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9425
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-editorial-review-prose/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 534
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-editorial-review-structure/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 768
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-editorial-review/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1148
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-review-adversarial-general/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 397
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-review-edge-case-hunter/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 512
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-review-verification-gap/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 474
+  },
+  {
+    "path": "tools/tests/fixtures/validate-skills/bmad/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 171
+  },
+  {
+    "path": "tools/tests/fixtures/validate-skills/deprecated-shim/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 356
+  },
+  {
+    "path": "tools/tests/fixtures/validate-skills/missing-trigger/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 275
+  },
+  {
+    "path": "tools/tests/fixtures/validate-skills/with-trigger/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 216
+  },
+  {
+    "path": "web-bundles/brainstorming-coach/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6692
+  },
+  {
+    "path": "web-bundles/market-and-industry-research/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5177
+  },
+  {
+    "path": "web-bundles/prd-coach/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10128
+  },
+  {
+    "path": "web-bundles/prfaq-coach/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 11223
+  },
+  {
+    "path": "web-bundles/product-brief-coach/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8276
+  },
+  {
+    "path": "web-bundles/ux-coach/SKILL.md",
+    "type": "file",
+    "mode": 420,
+    "size": 13515
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-spec/assets/spec-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2361
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/spec-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4033
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/spec-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4753
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/assets/spine-template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4357
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/references/status-view.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1674
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/step-01-clarify-and-route.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10653
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/step-01-clarify-and-route.md",
+    "type": "file",
+    "mode": 420,
+    "size": 11045
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/steps/step-01-gather-context.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8195
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/step-01-orientation.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5004
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/steps/step-01-validate-prerequisites.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10960
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/steps/step-02-design-epics.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8809
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/step-02-plan.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3342
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/step-02-plan.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6274
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/steps/step-02-review.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2939
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/step-02-walkthrough.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4172
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/steps/step-03-create-stories.md",
+    "type": "file",
+    "mode": 420,
+    "size": 8351
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/step-03-detail-pass.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4990
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/step-03-implement.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3801
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/step-03-implement.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4015
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/steps/step-03-triage.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5438
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/steps/step-04-final-validation.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5354
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/steps/step-04-present.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6654
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/step-04-review.md",
+    "type": "file",
+    "mode": 420,
+    "size": 14719
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/step-04-review.md",
+    "type": "file",
+    "mode": 420,
+    "size": 10927
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/step-04-testing.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2698
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/step-05-present.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1338
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/step-05-wrapup.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1554
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/step-oneshot.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6170
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-spec/assets/stories-schema.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3489
+  },
+  {
+    "path": "src/core-skills/bmad-review/references/structure-models.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1972
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/sync-sprint-status.md",
+    "type": "file",
+    "mode": 420,
+    "size": 411
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/synthesis.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2788
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/references/team-discussion.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2327
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/types/technical.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1654
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-project-context/references/template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 2664
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-story/template.md",
+    "type": "file",
+    "mode": 420,
+    "size": 948
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/types/user-voice.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1758
+  },
+  {
+    "path": "web-bundles/ux-coach/ux-validation.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4865
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/references/validate.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5630
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/references/validate.md",
+    "type": "file",
+    "mode": 420,
+    "size": 592
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/references/validate.md",
+    "type": "file",
+    "mode": 420,
+    "size": 6779
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/references/verdict.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4523
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/review-prompts/verification-gap.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9821
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/review-prompts/verification-gap.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9821
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/review-prompts/verification-gap.md",
+    "type": "file",
+    "mode": 420,
+    "size": 9751
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/references/verification.md",
+    "type": "file",
+    "mode": 420,
+    "size": 4222
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/agents/web-researcher.md",
+    "type": "file",
+    "mode": 420,
+    "size": 1756
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/workflow.md",
+    "type": "file",
+    "mode": 420,
+    "size": 5708
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/workflow.md",
+    "type": "file",
+    "mode": 420,
+    "size": 3945
+  },
+  {
+    "path": "tools/validate-published-implementation-model.mjs",
+    "type": "file",
+    "mode": 420,
+    "size": 1778
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/scripts/brain.py",
+    "type": "file",
+    "mode": 420,
+    "size": 38735
+  },
+  {
+    "path": "src/scripts/config_utils.py",
+    "type": "file",
+    "mode": 420,
+    "size": 4197
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/git_evidence.py",
+    "type": "file",
+    "mode": 420,
+    "size": 11355
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/scripts/lint_spine.py",
+    "type": "file",
+    "mode": 420,
+    "size": 10472
+  },
+  {
+    "path": "src/core-skills/bmad-customize/scripts/list_customizable_skills.py",
+    "type": "file",
+    "mode": 420,
+    "size": 8061
+  },
+  {
+    "path": "src/scripts/memlog.py",
+    "type": "file",
+    "mode": 420,
+    "size": 9187
+  },
+  {
+    "path": "src/core-skills/bmad-advanced-elicitation/scripts/pick_methods.py",
+    "type": "file",
+    "mode": 420,
+    "size": 9961
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/scripts/recon_kit.py",
+    "type": "file",
+    "mode": 420,
+    "size": 12417
+  },
+  {
+    "path": "src/scripts/render_skill.py",
+    "type": "file",
+    "mode": 420,
+    "size": 15534
+  },
+  {
+    "path": "src/scripts/resolve_config.py",
+    "type": "file",
+    "mode": 420,
+    "size": 2182
+  },
+  {
+    "path": "src/scripts/resolve_customization.py",
+    "type": "file",
+    "mode": 493,
+    "size": 5230
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/scripts/resolve_party.py",
+    "type": "file",
+    "mode": 420,
+    "size": 11076
+  },
+  {
+    "path": "src/core-skills/bmad-forge-idea/scripts/resolve_personas.py",
+    "type": "file",
+    "mode": 420,
+    "size": 10176
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/scripts/sprint_plan.py",
+    "type": "file",
+    "mode": 420,
+    "size": 28454
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/sprint_status.py",
+    "type": "file",
+    "mode": 420,
+    "size": 29799
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/scripts/tests/test_brain.py",
+    "type": "file",
+    "mode": 420,
+    "size": 11345
+  },
+  {
+    "path": "src/scripts/tests/test_config_utils.py",
+    "type": "file",
+    "mode": 420,
+    "size": 3237
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/tests/test_git_evidence.py",
+    "type": "file",
+    "mode": 420,
+    "size": 28857
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/scripts/tests/test_lint_spine.py",
+    "type": "file",
+    "mode": 420,
+    "size": 9932
+  },
+  {
+    "path": "src/core-skills/bmad-customize/scripts/tests/test_list_customizable_skills.py",
+    "type": "file",
+    "mode": 420,
+    "size": 9244
+  },
+  {
+    "path": "src/scripts/tests/test_memlog.py",
+    "type": "file",
+    "mode": 420,
+    "size": 10133
+  },
+  {
+    "path": "src/core-skills/bmad-advanced-elicitation/scripts/tests/test_pick_methods.py",
+    "type": "file",
+    "mode": 420,
+    "size": 8059
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/scripts/tests/test_recon_kit.py",
+    "type": "file",
+    "mode": 420,
+    "size": 4913
+  },
+  {
+    "path": "src/scripts/tests/test_resolve_config.py",
+    "type": "file",
+    "mode": 420,
+    "size": 4470
+  },
+  {
+    "path": "src/scripts/tests/test_resolve_customization.py",
+    "type": "file",
+    "mode": 420,
+    "size": 7302
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/scripts/tests/test_resolve_party.py",
+    "type": "file",
+    "mode": 420,
+    "size": 7537
+  },
+  {
+    "path": "src/core-skills/bmad-forge-idea/scripts/tests/test_resolve_personas.py",
+    "type": "file",
+    "mode": 420,
+    "size": 7191
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/scripts/tests/test_sprint_plan.py",
+    "type": "file",
+    "mode": 420,
+    "size": 21953
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/tests/test_sprint_status.py",
+    "type": "file",
+    "mode": 420,
+    "size": 59477
+  },
+  {
+    "path": "tools/tests/test_validate_skills.py",
+    "type": "file",
+    "mode": 420,
+    "size": 20329
+  },
+  {
+    "path": "src/core-skills/bmad-review/scripts/tests/test_word_metrics.py",
+    "type": "file",
+    "mode": 420,
+    "size": 1556
+  },
+  {
+    "path": "tools/validate_skills.py",
+    "type": "file",
+    "mode": 420,
+    "size": 23139
+  },
+  {
+    "path": "src/core-skills/bmad-review/scripts/word_metrics.py",
+    "type": "file",
+    "mode": 420,
+    "size": 3441
+  },
+  {
+    "path": "src/scripts/__pycache__/config_utils.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 6953
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/scripts/__pycache__/sprint_plan.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 41568
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/__pycache__/sprint_status.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 33069
+  },
+  {
+    "path": "src/scripts/tests/__pycache__/test_config_utils.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 6253
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/tests/__pycache__/test_git_evidence.cpython-311-pytest-9.1.1.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 104958
+  },
+  {
+    "path": "src/scripts/tests/__pycache__/test_resolve_config.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 8216
+  },
+  {
+    "path": "src/scripts/tests/__pycache__/test_resolve_customization.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 13625
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/scripts/tests/__pycache__/test_sprint_plan.cpython-311-pytest-9.1.1.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 98027
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/tests/__pycache__/test_sprint_status.cpython-311-pytest-9.1.1.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 244935
+  },
+  {
+    "path": "tools/tests/__pycache__/test_validate_skills.cpython-311.pyc",
+    "type": "file",
+    "mode": 420,
+    "size": 42694
+  },
+  {
+    "path": "tools/validate-svg-changes.sh",
+    "type": "file",
+    "mode": 493,
+    "size": 11240
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-analyst/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 4465
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-architect/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 2745
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-dev/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 3331
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-pm/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 3062
+  },
+  {
+    "path": "src/bmm-skills/agents/bmad-agent-ux-designer/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 2488
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-architecture/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 6335
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-create-epics-and-stories/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1617
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prd/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 8193
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-prfaq/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1570
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-product-brief/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 5513
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-project-context/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 967
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-spec/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 2277
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1558
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-ux/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 4558
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build-auto/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 5250
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-build/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 6713
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-code-review/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 5219
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-correct-course/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1592
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-qa-generate-e2e-tests/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1591
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1579
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-walkthrough/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1561
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-architecture/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1623
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-prd/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1568
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-create-story/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1595
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-dev-story/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1565
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-edit-prd/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1653
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-sprint-status/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1561
+  },
+  {
+    "path": "src/bmm-skills/v6-shims/bmad-validate-prd/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1683
+  },
+  {
+    "path": "src/core-skills/bmad-advanced-elicitation/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 2640
+  },
+  {
+    "path": "src/core-skills/bmad-brainstorming/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 4389
+  },
+  {
+    "path": "src/core-skills/bmad-deep-recon/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 9503
+  },
+  {
+    "path": "src/core-skills/bmad-forge-idea/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1822
+  },
+  {
+    "path": "src/core-skills/bmad-party-mode/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 12505
+  },
+  {
+    "path": "src/core-skills/bmad-review/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 5860
+  },
+  {
+    "path": "src/core-skills/v6-shims/bmad-editorial-review/customize.toml",
+    "type": "file",
+    "mode": 420,
+    "size": 1190
+  },
+  {
+    "path": "removals.txt",
+    "type": "file",
+    "mode": 420,
+    "size": 2898
+  },
+  {
+    "path": "bmad-modules.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 5816
+  },
+  {
+    "path": "tools/installer/install-messages.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 1846
+  },
+  {
+    "path": "src/bmm-skills/module.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 3988
+  },
+  {
+    "path": "src/core-skills/module.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 1104
+  },
+  {
+    "path": "tools/installer/ide/platform-codes.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 8565
+  },
+  {
+    "path": "src/bmm-skills/plan/bmad-sprint-planning/sprint-status-template.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 2397
+  },
+  {
+    "path": "src/bmm-skills/ship/bmad-retrospective/scripts/tests/fixtures/sprint-status-template.yaml",
+    "type": "file",
+    "mode": 420,
+    "size": 2397
+  }
+]

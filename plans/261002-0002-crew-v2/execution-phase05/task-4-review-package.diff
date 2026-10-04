@@ -1,0 +1,2906 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 4007bcb..f2f653a 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -124,43 +124,50 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/test/sync.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/telemetry.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/workflow-admission.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-build.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-fix.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-native-projection.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-operations.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/tsconfig.json` | [gateway-host](flows/gateway-host.md) (file) |
++| `server/extractor.Dockerfile` | [attachment-extraction](flows/attachment-extraction.md) (file) |
++| `server/extractor.dockerignore` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+ | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+ | `server/migrations/004_tickets.sql` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/migrations/005_execution.sql` | [server-execution](flows/server-execution.md) (file) |
+ | `server/migrations/006_docs.sql` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/migrations/007_gateway.sql` | [server-gateway](flows/server-gateway.md) (file) |
+ | `server/migrations/008_model_pool.sql` | [server-models](flows/server-models.md) (file) |
+ | `server/migrations/009_attachments.sql` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/migrations/010_attachment_comment_text.sql` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+ | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
++| `server/src/attachments/jobs.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/messages.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/receivers.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/routing.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/staging.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/storage.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/submissions.ts` | [server-attachments](flows/server-attachments.md) (file) |
++| `server/src/attachments/worker-diagnostic.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
++| `server/src/attachments/worker-entry.ts` | [attachment-extraction](flows/attachment-extraction.md) (điểm vào) |
++| `server/src/attachments/worker-protocol.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
++| `server/src/attachments/worker-runner.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/auth/session.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
+ | `server/src/docs/checksum.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/src/docs/contracts.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/src/docs/import.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+@@ -211,20 +218,22 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-routing.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-staging.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-storage.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-submissions.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
++| `server/test/attachments-worker-live.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
++| `server/test/attachments-worker.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attempts.test.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/commands.test.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/completion.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/dependencies.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/deploy.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/docs-events.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/docs-import-cli.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/docs-import.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/docs-read.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index a14488c..8d503de 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -350,12 +350,27 @@ flows:
+       - gateway/src/models/security-bridge.ts
+       - gateway/src/models/security-keychain.m
+     tests:
+       - gateway/test/credential-broker.test.ts
+       - gateway/test/credential-provisioning.test.ts
+       - gateway/test/current-credential-resolver.test.ts
+       - gateway/test/model-probe.test.ts
+       - gateway/test/model-reporter.test.ts
+       - gateway/test/support/model-fixture.ts
+       - gateway/test/fixtures/models/security-channel.c
++  attachment-extraction:
++    title: Worker trích xuất attachment có giới hạn
++    doc: docs/flows/attachment-extraction.md
++    entrypoints:
++      - server/src/attachments/worker-entry.ts
++    files:
++      - server/src/attachments/jobs.ts
++      - server/src/attachments/worker-diagnostic.ts
++      - server/src/attachments/worker-protocol.ts
++      - server/src/attachments/worker-runner.ts
++      - server/extractor.Dockerfile
++      - server/extractor.dockerignore
++    tests:
++      - server/test/attachments-worker-live.test.ts
++      - server/test/attachments-worker.test.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/attachment-extraction.md b/v2/docs/flows/attachment-extraction.md
+new file mode 100644
+index 0000000..ab2fdbe
+--- /dev/null
++++ b/v2/docs/flows/attachment-extraction.md
+@@ -0,0 +1,51 @@
++# Trích xuất attachment trong worker có giới hạn
++
++## Mục đích
++
++Giữ original bất biến, trích xuất ngoài tiến trình HTTP và kiểm chứng bytes derivative ở parent. Boundary kỹ thuật và corpus parser có gate riêng. Task4 cung cấp protocol, job fencing và diagnostic; chưa có parser Task5 hoặc chứng nhận production, nên `ExtractorRunner.start` và CLI mode `extract` mặc định trả `PRODUCTION_CORPUS_REQUIRED`.
++
++## Điểm vào
++
++- `server/src/attachments/jobs.ts` → `createExtractionJobs`: factory nội bộ nhận DB, BlobStore, runner và config/root tin cậy. Entry `processExtraction` cũ từ chối `EXTRACTION_CONFIG_REQUIRED`; không đọc root từ môi trường hay registry toàn cục.
++- `server/src/attachments/worker-runner.ts` → `runExtractorDiagnostic`: chạy đúng image local immutable bằng helper container chung; `createDockerExtractorRunner` kiểm config và cấp inspect/stop/result với identity exact.
++- `server/src/attachments/worker-entry.ts` → CLI: đọc request và original chỉ đọc, kiểm hash và giới hạn 25 MiB, chọn mode từ argv của parent. `WorkerInput.original` không có byteLength; parent kiểm length DB khi copy, entry kiểm hash độc lập.
++
++## Các bước
++
++1. `jobs.ts` → `createExtractionJobs`: chụp config/limits bất biến, chỉ capacity1. `process` khóa admission advisory và extraction/upload trong SQL009, yêu cầu ready/durable/once-linked original và đúng accepted config hash. Config cũ không có projection tương ứng trả `CONFIG_NOT_AVAILABLE`; không tái dựng bằng giới hạn mới.
++2. `jobs.ts` → `process`: ghi generation, deterministic worker name và lease trước bytes/spawn. `worker-runner.ts` → `prepareWorkerDirectory` tạo private job scratch độc quyền với nonce/dev/ino/UID; jobs ghi GC journal trước stage bytes. Original được đọc từ actual BlobStore, đếm/băm toàn bộ và copy riêng; chỉ thư mục input của lượt này có mode0755 và file0444 cho UID65532 trong bind chỉ đọc.
++3. `worker-runner.ts` → `spawnWorkerContainer`: fsync start intent gồm nonce/name/image/source và đường dẫn/hash binary Docker trước create. Không dùng shell, request CLI override, writable host mount hoặc `--rm`. Container networknone, rootfs readonly, capdropALL, no-new-privileges, UID65532, RAM+swap512MiB, CPU1, pids32, tmpfs/tmp16MiB và/output100MiB. `--log-driver=none` chặn daemon spool stdout/stderr; attach vẫn chuyển framed bytes cho parent. Inspect chỉ nhận exact ID/name/nonce/source/image; thiếu hoặc mismatch giữ unknown. State created chưa chứng minh đã dừng vì attach có thể start trễ.
++4. `worker-protocol.ts` → `readWorkerFrames`, `validateWorkerResult`: file-start/chunk/end/result, chunk decoded tối đa64KiB, line thường128KiB, terminal8MiB, output100MiB, units100000 và files10000. Tạo stage exclusive/nofollow; băm/đếm bytes thực, đối chiếu terminal, generation/original/job/config/extractor, filename, MIME/modality và unit coverage. Missing/truncated/duplicate/path/hash/size sai không publish; code vấn đề allowlist, message cố định tiếng Việt.
++5. `jobs.ts` → `process`: terminal hợp lệ và actual container stopped trước đọc output và publish qua BlobStore/fsync. Kiểm generation/worker trước từng file và trong transaction cuối; rollback hoặc stale sau publication giữ owned orphan cho Task7. Không xóa file có thể đã được ref. Manifest dùng canonical JSON; verified là kiểm kỹ thuật, không chứng minh model hiểu nội dung.
++6. `jobs.ts`, `worker-runner.ts`: lease hết hạn không là stop proof. Retry cần cả container stopped và private publisher closed ACK của generation cũ; thiếu ACK trả `WORKER_PUBLISHER_UNKNOWN`, không cấp generation mới. ACK chỉ sau pending result và mọi FD/work settle. Native recovery của publisher bị chết mà chưa ACK thuộc Task7 và vẫn mặc định từ chối. Timeout/overflow gửi stop rồi inspect; unknown giữ lease/resource/intent và không cleanup hay replacement. Chỉ sau exact container stopped mới đóng pipes và dừng chính Docker attach CLI do parent spawn, rồi await actual client closure; giữ lỗi overflow đầu tiên thay vì để watchdog sau đó ghi đè.
++7. `worker-diagnostic.ts` → `diagnosticMain`: selected original đọc được, output riêng ghi được, rồi kiểm network/foreign host/source/original/credential-env/socket/UID/native PNG. Các lượt riêng kiểm pids, cgroup memory, stdout bomb và timeout. DiagnosticReport không phải WorkerResult và không cấp corpus PASS. `removeStoppedWorkerContainer` ghi reconciliation receipt rồi chỉ rm exact stopped ID; caller giữ scratch khi stop unknown.
++
++## Files
++
++| Đường dẫn từ `v2/` | Vai trò và symbol |
++|---|---|
++| `server/src/attachments/jobs.ts` | Job admission/CAS/config, `createExtractionJobs`, entry cũ default deny |
++| `server/src/attachments/worker-runner.ts` | Owned intent, Docker controls, diagnostic, inspect/stop/reconciliation |
++| `server/src/attachments/worker-protocol.ts` | WorkerInput, bounded frames và parent result validation |
++| `server/src/attachments/worker-entry.ts` | CLI request/original hash và mode gate |
++| `server/src/attachments/worker-diagnostic.ts` | Canaries độc lập parser, không import Task5 |
++| `server/extractor.Dockerfile` | Linux glibc Node24.14 pinned digest, private pnpm prefix, frozen scripts-disabled install/native probe |
++| `server/extractor.dockerignore` | Loại host dependencies/env/storage/cache/workspace files khỏi context |
++| `server/test/attachments-worker.test.ts` | Pure protocol/filesystem và actual private PostgreSQL009 CAS/config/fencing |
++| `server/test/attachments-worker-live.test.ts` | Opt-in target-image canaries và closure receipts |
++
++## Dữ liệu
++
++SQL009 `attachment_extractions`, `attachment_derivatives`, `attachment_gc` giữ immutable identity/config/manifest và generation. Job scratch `jobs/<uuid>/<generation>` có `.owner.json`, `.publisher.intent.json`, `.publisher.closed.json`, `.start-intent.json`, `.container.json`, `.attach.json`, diagnostic/reconciliation receipts. DB chỉ lưu key tương đối. Raw stderr bị discard và cap64KiB; public lỗi dùng code cố định. Unknown không suy quyền xóa từ TTL/tên đường dẫn.
++
++Build context do PM tạo từ whitelist source hash, audited package và Linux frozen lock; không copy Darwin dependencies. Dockerfile ghim `node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8`, target Linuxamd64/glibc. Arm64 cần receipt riêng. Không thay builder/binfmt/global host settings. Diagnostic receipt luôn corpusunverified; production image tương lai phải rebuild cùng full parser corpus và boundary rồi review.
++
++## Flow liên quan
++
++`server-attachments` cấp actual BlobStore/config/contracts và migration009; `server-platform` cấp DB fixture và migration checksums. Task2/3 không được import khi chưa nghiệm thu. Task5 cấp parser/provenance và final corpus receipt; Task7 cấp native crash/recovery, orphan reconciliation và cleanup. Host composition/supervisor thuộc controller/phase09; chưa nối production trong Task4.
++
++## Tests
++
++Pure: `node --test server/test/attachments-worker.test.ts` từ `v2/` (DB cases skip nếu chưa có fixture). Actual private PG: `pnpm --dir v2/server test --test-file <absolute attachments-worker.test.ts>` từ repo root. Tests dùng raw SQL009 fixture submitted inbox, actual BlobStore và controlled fake runner cho DB protocol; fake không cấp isolation certificate. Không dùng active Task2b hoặc shared attachments support.
++
++Live: `CREW_V2_EXTRACTOR_LIVE_TEST=1 CREW_V2_EXTRACTOR_BUILD_RECEIPT_PATH=<PM absolute receipt.json> node --test v2/server/test/attachments-worker-live.test.ts`. Helper đọc target receipt/image identity, tạo receipt trước own scratch/container, giữ nonce/dev/ino/UID, await actual stopped/attach closure trước rm, unknown giữ lại. Thiếu Docker/image/receipt là unverified, không fallback sang HTTP parser. Kết quả từng gate và source/evidence hashes nằm report Task4; targeted pass không thay full frozen covering, strict types, Biome và review độc lập.
+diff --git a/v2/docs/flows/server-platform.md b/v2/docs/flows/server-platform.md
+index 6ad90c0..d0e75b9 100644
+--- a/v2/docs/flows/server-platform.md
++++ b/v2/docs/flows/server-platform.md
+@@ -40,20 +40,28 @@
+ | `server/src/db/client.ts` | `connectDb` |
+ | `server/src/db/migrate.ts` | `MigrationSet`, `captureMigrations`, `migrate` |
+ | `server/migrations/001_platform.sql` | Bảng `system_identity` và marker `crew-v2` |
+ | `server/scripts/test-db.ts` | Container test riêng, cổng loopback ngẫu nhiên và cleanup |
+ | `server/scripts/test-db-signals.mjs` | Regression probe cho cleanup khi child bỏ qua tín hiệu |
+ | `server/test/support/db.ts` | `databaseFixture` |
+ | `server/test/platform.test.ts` | Kiểm thử cấu hình, migration, fixture và backup/restore |
+ 
+ ## Dữ liệu
+ 
++Task05/4 thêm đúng bốn dependency pin cho image trích xuất Linux: `pdfjs-dist@6.3.289`,
++`@napi-rs/canvas@1.0.3`, `yauzl@3.4.0`, `saxes@6.0.0`. Lock được sinh riêng trên
++Linux amd64 bằng Node24.14.0/pnpm10.32.1, không chạy install script; 75 package nền
++giữ nguyên, 17 package mới được đối chiếu integrity với registry chính thức. Không
++cài dependency trên máy owner trong bước này. Native canvas PNG đã chạy trong image
++Linux ghim digest; kiểm tra này chưa chứng nhận parser/corpus production. Xem
++`attachment-extraction` cho recipe, giới hạn worker và các gate còn đóng.
++
+ Cấu hình mẫu nằm tại `server/.env.example`; giá trị thật cấp từ nơi giữ secret. Migration không chạy khi import module hoặc khởi động app. Người vận hành chọn prefix phát hành bằng `CREW_V2_MIGRATION_THROUGH` rồi chạy `pnpm --dir v2/server db:migrate`. Trước khi migrate DB v2 có dữ liệu phải backup và diễn tập restore. CLI không tự lấy file SQL mới xuất hiện giữa lượt chạy.
+ 
+ Test chỉ dùng container tạm với trust auth trên loopback; URL test lấy từ runner, không dùng `CREW_V2_DATABASE_URL`. Image PostgreSQL đã xác minh khi triển khai: `postgres:18.6`, digest `sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722`.
+ 
+ ## Flow liên quan
+ 
+ `domain-foundation` cung cấp policy thuần. Các flow journal, identity, tickets, execution và docs ở phần tiếp theo tiêu thụ `MigrationSet`, fixture DB và hợp đồng route; flow này không cài các nghiệp vụ đó.
+ 
+ ## Tests
+ 
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 02888da..2ce93b9 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -22,20 +22,21 @@
+ | `server/` | API/DB v2 riêng, migration có checksum; fixtures PostgreSQL riêng, không dùng DB v1 |
+ | `gateway/` | Host/journal/workflow registry, bridge và model broker theo các gate review riêng |
+ | `desktop/` | Cửa sổ Electron mỏng, kết nối host qua IPC; không sở hữu job |
+ | `docs/` | Kiến trúc, manifest flow và bảng tra file |
+ 
+ ## Danh sách flow
+ 
+ <!-- crew-docs:flows:start -->
+ | Flow | Id | Điểm vào |
+ |------|----|----------|
++| [Worker trích xuất attachment có giới hạn](flows/attachment-extraction.md) | `attachment-extraction` | `server/src/attachments/worker-entry.ts` |
+ | [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
+ | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
+ | [Inventory, credential broker và probe model trên gateway](flows/gateway-models.md) | `gateway-models` | — |
+ | [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
+ | [Storage và staging attachment Crew v2](flows/server-attachments.md) | `server-attachments` | — |
+ | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |
+ | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
+ | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |
+ | [Control plane gateway và boot/config/report](flows/server-gateway.md) | `server-gateway` | `server/src/gateway/routes.ts` |
+diff --git a/v2/server/extractor.Dockerfile b/v2/server/extractor.Dockerfile
+new file mode 100644
+index 0000000..d8cf97c
+--- /dev/null
++++ b/v2/server/extractor.Dockerfile
+@@ -0,0 +1,10 @@
++ARG TARGETPLATFORM
++FROM --platform=$TARGETPLATFORM node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
++WORKDIR /extractor
++COPY package.json pnpm-lock.yaml ./
++RUN npm install --global --prefix /opt/pnpm --ignore-scripts --no-audit --no-fund pnpm@10.32.1
++RUN /opt/pnpm/bin/pnpm install --prod --frozen-lockfile --ignore-scripts
++COPY --chown=65532:65532 src/attachments ./src/attachments
++RUN node -e "const c=require('@napi-rs/canvas');const b=c.createCanvas(1,1).toBuffer('image/png');if(b.length===0)process.exit(1)"
++USER 65532:65532
++ENTRYPOINT ["node","--max-old-space-size=384","src/attachments/worker-entry.ts"]
+diff --git a/v2/server/extractor.dockerignore b/v2/server/extractor.dockerignore
+new file mode 100644
+index 0000000..ea8e9f4
+--- /dev/null
++++ b/v2/server/extractor.dockerignore
+@@ -0,0 +1,10 @@
++**/node_modules
++**/.env*
++**/.git
++**/.cache
++**/storage
++**/jobs
++**/test
++**/plans
++**/.DS_Store
++**/*.log
+diff --git a/v2/server/package.json b/v2/server/package.json
+index 18fc725..544e92a 100644
+--- a/v2/server/package.json
++++ b/v2/server/package.json
+@@ -11,17 +11,21 @@
+     "test": "node scripts/test-db.ts",
+     "test:signals": "node scripts/test-db-signals.mjs SIGTERM && node scripts/test-db-signals.mjs SIGINT && node scripts/test-db-signals.mjs SIGTERM --pause-child",
+     "test:unit": "node --test test/*.unit.test.ts",
+     "typecheck": "tsc --noEmit",
+     "db:migrate": "node src/db/migrate.ts"
+   },
+   "dependencies": {
+     "fastify": "5.12.5",
+     "postgres": "3.4.9",
+     "yaml": "2.9.1",
+-    "picomatch": "4.0.7"
++    "picomatch": "4.0.7",
++    "pdfjs-dist": "6.3.289",
++    "@napi-rs/canvas": "1.0.3",
++    "yauzl": "3.4.0",
++    "saxes": "6.0.0"
+   },
+   "devDependencies": {
+     "typescript": "7.0.2",
+     "@types/node": "26.6.3"
+   }
+ }
+diff --git a/v2/server/pnpm-lock.yaml b/v2/server/pnpm-lock.yaml
+index e926bc2..4da45af 100644
+--- a/v2/server/pnpm-lock.yaml
++++ b/v2/server/pnpm-lock.yaml
+@@ -1,32 +1,44 @@
+ lockfileVersion: '9.0'
+ 
+ settings:
+   autoInstallPeers: true
+   excludeLinksFromLockfile: false
+ 
+ importers:
+ 
+   .:
+     dependencies:
++      '@napi-rs/canvas':
++        specifier: 1.0.3
++        version: 1.0.3
+       fastify:
+         specifier: 5.12.5
+         version: 5.12.5
++      pdfjs-dist:
++        specifier: 6.3.289
++        version: 6.3.289
+       picomatch:
+         specifier: 4.0.7
+         version: 4.0.7
+       postgres:
+         specifier: 3.4.9
+         version: 3.4.9
++      saxes:
++        specifier: 6.0.0
++        version: 6.0.0
+       yaml:
+         specifier: 2.9.1
+         version: 2.9.1
++      yauzl:
++        specifier: 3.4.0
++        version: 3.4.0
+     devDependencies:
+       '@types/node':
+         specifier: 26.6.3
+         version: 26.6.3
+       typescript:
+         specifier: 7.0.2
+         version: 7.0.2
+ 
+ packages:
+ 
+@@ -41,20 +53,95 @@ packages:
+ 
+   '@fastify/forwarded@3.0.2':
+     resolution: {integrity: sha512-NE8HgKLgYejV9lDpqkEFaDKMLYelJBVfHekhB0UKvX0ghagXRJqg68feg8er1NPXxG4N9i6vPxzt8E+3wHfcmA==}
+ 
+   '@fastify/merge-json-schemas@0.2.1':
+     resolution: {integrity: sha512-OA3KGBCy6KtIvLf8DINC5880o5iBlDX4SxzLQS8HorJAbqluzLRn80UXU0bxZn7UOFhFgpRJDasfwn9nG4FG4A==}
+ 
+   '@fastify/proxy-addr@5.1.1':
+     resolution: {integrity: sha512-zv07Y9GEuDsJPegZoDFd4SDWaZOW8N2pa0GSrYmKpId/tjt1Hgo3BjZBVjdVpfVrHaA+Qv5jawtS2O50J5xM9g==}
+ 
++  '@napi-rs/canvas-android-arm64@1.0.3':
++    resolution: {integrity: sha512-7kSCdUhoXiO+AaIMXdBGdtp6EctZNkmF62Rea/BmVQlwKaM3bBhOzyGUzxyxz9dv5vdBfpyAaxhSRSJF4kqK4A==}
++    engines: {node: '>= 10'}
++    cpu: [arm64]
++    os: [android]
++
++  '@napi-rs/canvas-darwin-arm64@1.0.3':
++    resolution: {integrity: sha512-ds14V1BPagLszQyaDTeggny5fNeTCqsUQ5QhFj9VDxSEfzrVxXtdbR0LoFyKa0Siaaw8KvqSk4t7k/WoZJwvbg==}
++    engines: {node: '>= 10'}
++    cpu: [arm64]
++    os: [darwin]
++
++  '@napi-rs/canvas-darwin-x64@1.0.3':
++    resolution: {integrity: sha512-qof3LRAAycmkV2I1izZo9RoSHF8kCQr5O05sFwv0jK8rSdYV6KHVwimo6Qb7RxZj40WHKbLHm5JDaUF0o5XUAA==}
++    engines: {node: '>= 10'}
++    cpu: [x64]
++    os: [darwin]
++
++  '@napi-rs/canvas-linux-arm-gnueabihf@1.0.3':
++    resolution: {integrity: sha512-FU2kKZLmolHA9+KcUA+l1+xH3WTLUUTQDU/kLv9SEUr2TrRPu94aytOeizFJDHPs/QBcw4QL1mCQhetQXYBbag==}
++    engines: {node: '>= 10'}
++    cpu: [arm]
++    os: [linux]
++
++  '@napi-rs/canvas-linux-arm64-gnu@1.0.3':
++    resolution: {integrity: sha512-GVSjntxKeA+/y/ZKf1F+cmUw1WeIkE5aMRPqnZUlBTBvBcrvgWccJAWuYCKPX4QJQwZILIIwhgdAbl51yj6fpA==}
++    engines: {node: '>= 10'}
++    cpu: [arm64]
++    os: [linux]
++    libc: [glibc]
++
++  '@napi-rs/canvas-linux-arm64-musl@1.0.3':
++    resolution: {integrity: sha512-J51oK/axyZ13kxycumSMfLiDZMdWdOVvqDFI28BpuViZHE3A0bQfr8B5vg8YnPEnqLD3BSn1hkdlh2buspEcNQ==}
++    engines: {node: '>= 10'}
++    cpu: [arm64]
++    os: [linux]
++    libc: [musl]
++
++  '@napi-rs/canvas-linux-riscv64-gnu@1.0.3':
++    resolution: {integrity: sha512-CtQgQjoVTX67jS9XuCTtJ40Sl7wRLMguoFnnGnfDmCWf7kzKFZVwj5ynqUOIGKFMSB61ZCuQlwPvVNxYTTseaw==}
++    engines: {node: '>= 10'}
++    cpu: [riscv64]
++    os: [linux]
++    libc: [glibc]
++
++  '@napi-rs/canvas-linux-x64-gnu@1.0.3':
++    resolution: {integrity: sha512-jtfzAHFp+FRaR7zGT4jyCe6wUgAG/dVb5A4Apd8FY9jKarntDfUAlJXscugiH7ZF5kKnu7/lHFk9LaDPcrGEVQ==}
++    engines: {node: '>= 10'}
++    cpu: [x64]
++    os: [linux]
++    libc: [glibc]
++
++  '@napi-rs/canvas-linux-x64-musl@1.0.3':
++    resolution: {integrity: sha512-xTzaUCKUHTY4bCGadeeRZggbRVbGUT1petg7Z8r9AJR2+D9Bqu6nQAgqBGC6D47tA70LjaaaLTrJ7wNY1T74dg==}
++    engines: {node: '>= 10'}
++    cpu: [x64]
++    os: [linux]
++    libc: [musl]
++
++  '@napi-rs/canvas-win32-arm64-msvc@1.0.3':
++    resolution: {integrity: sha512-ktVLuBkI6QVOm5BwO/WbdGwxgeetAMJa7TTmR8qBarXF0OU2NKjvjUtPJAl2y8t+zBRczJl/1VOl9gua6WcK2g==}
++    engines: {node: '>= 10'}
++    cpu: [arm64]
++    os: [win32]
++
++  '@napi-rs/canvas-win32-x64-msvc@1.0.3':
++    resolution: {integrity: sha512-SGhlQ8bDjL1Cz2KnsKMasr/5sTcwG/SZkB6WCJxLsmSm/3aS2C+3p39bA7iZ2/94+NkVDySZfbiGoaSZSFHYxA==}
++    engines: {node: '>= 10'}
++    cpu: [x64]
++    os: [win32]
++
++  '@napi-rs/canvas@1.0.3':
++    resolution: {integrity: sha512-OlI657a5XXvKGFX7kNeIzJ8rO7IXt87Mqu2H8rXE46viAuOfum/JA7ysX7+eBhxNKznT+RCZh418mndlcFX3+w==}
++    engines: {node: '>= 10'}
++
+   '@pinojs/redact@0.4.0':
+     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
+ 
+   '@types/node@26.6.3':
+     resolution: {integrity: sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg==}
+ 
+   '@typescript/typescript-aix-ppc64@7.0.2':
+     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
+     engines: {node: '>=16.20.0'}
+     cpu: [ppc64]
+@@ -241,20 +328,27 @@ packages:
+   json-schema-traverse@1.0.0:
+     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
+ 
+   light-my-request@6.6.0:
+     resolution: {integrity: sha512-CHYbu8RtboSIoVsHZ6Ye4cj4Aw/yg2oAFimlF7mNvfDV192LR7nDiKtSIfCuLT7KokPSTn/9kfVLm5OGN0A28A==}
+ 
+   on-exit-leak-free@2.1.2:
+     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
+     engines: {node: '>=14.0.0'}
+ 
++  pdfjs-dist@6.3.289:
++    resolution: {integrity: sha512-ZHjSVpDa3D6izMq8/04lvkhkATUmL9px6ChPaXc1k6nU2Mrhlg1/7F0bdUqCwUjw3NsPTfPZsMDUU6ZIcRaeQw==}
++    engines: {node: '>=22.13.0 || >=24'}
++
++  pend@1.2.0:
++    resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
++
+   picomatch@4.0.7:
+     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
+     engines: {node: '>=12'}
+ 
+   pino-abstract-transport@3.0.0:
+     resolution: {integrity: sha512-wlfUczU+n7Hy/Ha5j9a/gZNy7We5+cXp8YL+X+PG8S0KXxw7n/JXA3c46Y0zQznIJ83URJiwy7Lh56WLokNuxg==}
+ 
+   pino-std-serializers@7.1.0:
+     resolution: {integrity: sha512-BndPH67/JxGExRgiX1dX0w1FvZck5Wa4aal9198SrRhZjH3GxKQUKIBnYJTdj2HDN3UQAS06HlfcSbQj2OHmaw==}
+ 
+@@ -298,20 +392,24 @@ packages:
+     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
+ 
+   safe-regex2@5.1.1:
+     resolution: {integrity: sha512-mOSBvHGDZMuIEZMdOz/aCEYDCv0E7nfcNsIhUF+/P+xC7Hyf3FkvymqgPbg9D1EdSGu+uKbJgy09K/RKKc7kJA==}
+     hasBin: true
+ 
+   safe-stable-stringify@2.5.0:
+     resolution: {integrity: sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA==}
+     engines: {node: '>=10'}
+ 
++  saxes@6.0.0:
++    resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
++    engines: {node: '>=v12.22.7'}
++
+   secure-json-parse@4.1.0:
+     resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
+ 
+   semver@7.8.5:
+     resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+     engines: {node: '>=10'}
+     hasBin: true
+ 
+   set-cookie-parser@2.7.2:
+     resolution: {integrity: sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==}
+@@ -332,25 +430,32 @@ packages:
+     engines: {node: '>=20'}
+ 
+   typescript@7.0.2:
+     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
+     engines: {node: '>=16.20.0'}
+     hasBin: true
+ 
+   undici-types@8.9.0:
+     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+ 
++  xmlchars@2.2.0:
++    resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
++
+   yaml@2.9.1:
+     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+     engines: {node: '>= 14.6'}
+     hasBin: true
+ 
++  yauzl@3.4.0:
++    resolution: {integrity: sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw==}
++    engines: {node: '>=12'}
++
+ snapshots:
+ 
+   '@fastify/ajv-compiler@4.0.6':
+     dependencies:
+       ajv: 8.20.0
+       ajv-formats: 3.0.1(ajv@8.20.0)
+       fast-uri: 4.2.1
+ 
+   '@fastify/error@4.2.0': {}
+ 
+@@ -362,20 +467,67 @@ snapshots:
+ 
+   '@fastify/merge-json-schemas@0.2.1':
+     dependencies:
+       dequal: 2.0.3
+ 
+   '@fastify/proxy-addr@5.1.1':
+     dependencies:
+       '@fastify/forwarded': 3.0.2
+       ipaddr.js: 2.5.0
+ 
++  '@napi-rs/canvas-android-arm64@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-darwin-arm64@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-darwin-x64@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-linux-arm-gnueabihf@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-linux-arm64-gnu@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-linux-arm64-musl@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-linux-riscv64-gnu@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-linux-x64-gnu@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-linux-x64-musl@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-win32-arm64-msvc@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas-win32-x64-msvc@1.0.3':
++    optional: true
++
++  '@napi-rs/canvas@1.0.3':
++    optionalDependencies:
++      '@napi-rs/canvas-android-arm64': 1.0.3
++      '@napi-rs/canvas-darwin-arm64': 1.0.3
++      '@napi-rs/canvas-darwin-x64': 1.0.3
++      '@napi-rs/canvas-linux-arm-gnueabihf': 1.0.3
++      '@napi-rs/canvas-linux-arm64-gnu': 1.0.3
++      '@napi-rs/canvas-linux-arm64-musl': 1.0.3
++      '@napi-rs/canvas-linux-riscv64-gnu': 1.0.3
++      '@napi-rs/canvas-linux-x64-gnu': 1.0.3
++      '@napi-rs/canvas-linux-x64-musl': 1.0.3
++      '@napi-rs/canvas-win32-arm64-msvc': 1.0.3
++      '@napi-rs/canvas-win32-x64-msvc': 1.0.3
++
+   '@pinojs/redact@0.4.0': {}
+ 
+   '@types/node@26.6.3':
+     dependencies:
+       undici-types: 8.9.0
+ 
+   '@typescript/typescript-aix-ppc64@7.0.2':
+     optional: true
+ 
+   '@typescript/typescript-darwin-arm64@7.0.2':
+@@ -517,20 +669,26 @@ snapshots:
+   json-schema-traverse@1.0.0: {}
+ 
+   light-my-request@6.6.0:
+     dependencies:
+       cookie: 1.1.1
+       process-warning: 4.0.1
+       set-cookie-parser: 2.7.2
+ 
+   on-exit-leak-free@2.1.2: {}
+ 
++  pdfjs-dist@6.3.289:
++    optionalDependencies:
++      '@napi-rs/canvas': 1.0.3
++
++  pend@1.2.0: {}
++
+   picomatch@4.0.7: {}
+ 
+   pino-abstract-transport@3.0.0:
+     dependencies:
+       split2: 4.2.0
+ 
+   pino-std-serializers@7.1.0: {}
+ 
+   pino@10.3.1:
+     dependencies:
+@@ -565,20 +723,24 @@ snapshots:
+   reusify@1.1.0: {}
+ 
+   rfdc@1.4.1: {}
+ 
+   safe-regex2@5.1.1:
+     dependencies:
+       ret: 0.5.0
+ 
+   safe-stable-stringify@2.5.0: {}
+ 
++  saxes@6.0.0:
++    dependencies:
++      xmlchars: 2.2.0
++
+   secure-json-parse@4.1.0: {}
+ 
+   semver@7.8.5: {}
+ 
+   set-cookie-parser@2.7.2: {}
+ 
+   sonic-boom@4.2.1:
+     dependencies:
+       atomic-sleep: 1.0.0
+ 
+@@ -608,11 +770,17 @@ snapshots:
+       '@typescript/typescript-netbsd-arm64': 7.0.2
+       '@typescript/typescript-netbsd-x64': 7.0.2
+       '@typescript/typescript-openbsd-arm64': 7.0.2
+       '@typescript/typescript-openbsd-x64': 7.0.2
+       '@typescript/typescript-sunos-x64': 7.0.2
+       '@typescript/typescript-win32-arm64': 7.0.2
+       '@typescript/typescript-win32-x64': 7.0.2
+ 
+   undici-types@8.9.0: {}
+ 
++  xmlchars@2.2.0: {}
++
+   yaml@2.9.1: {}
++
++  yauzl@3.4.0:
++    dependencies:
++      pend: 1.2.0
+diff --git a/v2/server/src/attachments/jobs.ts b/v2/server/src/attachments/jobs.ts
+new file mode 100644
+index 0000000..fe4d9b0
+--- /dev/null
++++ b/v2/server/src/attachments/jobs.ts
+@@ -0,0 +1,313 @@
++import { createHash, randomUUID } from 'node:crypto';
++import { constants } from 'node:fs';
++import { chmod, open } from 'node:fs/promises';
++import { join } from 'node:path';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Db } from '../platform/contracts.ts';
++import type { AttachmentConfig } from './config.ts';
++import type { BlobStore, Derivative, Extraction } from './contracts.ts';
++import { noSymlinkComponents, readPrivateJson, syncDirectory, writePrivateJson } from './storage.ts';
++import {
++  validateWorkerInput,
++  validateWorkerResult,
++  type WorkerInput,
++  workerError,
++} from './worker-protocol.ts';
++import { assertWorkerDirectory, type ExtractorRunner, prepareWorkerDirectory } from './worker-runner.ts';
++export async function processExtraction(
++  _db: Db,
++  _id: string,
++  _runner: ExtractorRunner,
++  _store: BlobStore,
++  _now: () => Date,
++): Promise<Extraction> {
++  throw workerError('EXTRACTION_CONFIG_REQUIRED');
++}
++type Options = {
++  db: Db;
++  runner: ExtractorRunner;
++  store: BlobStore;
++  config: AttachmentConfig;
++  now: () => Date;
++};
++export function createExtractionJobs(options: Options): { process(id: string): Promise<Extraction> } {
++  // Capture only trusted operator values. No request roots, ambient env or registry.
++  const config: AttachmentConfig = Object.freeze({
++    ...options.config,
++    limits: Object.freeze({ ...options.config.limits }),
++    allowedExtensions: [...options.config.allowedExtensions],
++  });
++  const { db, runner, store, now } = options;
++  if (config.workerConcurrency !== 1) throw workerError('EXTRACTOR_CAPACITY_NOT_AUTHORIZED');
++  const identityInput = validateWorkerInput({
++    version: 1,
++    jobId: randomUUID(),
++    generation: '1',
++    original: { attachmentId: randomUUID(), sha256: '0'.repeat(64), ownerId: 'owner' },
++    mime: 'text/plain',
++    inputName: 'original',
++    extractorVersion: 'validation',
++    config: { policySha256: config.policySha256, limits: config.limits },
++  });
++  void identityInput;
++  const active = new Set<string>();
++  async function processJob(id: string): Promise<Extraction> {
++    if (!/^[0-9a-f-]{36}$/.test(id)) throw workerError('EXTRACTION_ID_INVALID');
++    if (active.has(id)) throw workerError('EXTRACTION_BUSY');
++    active.add(id);
++    let reserved: WorkerInput | undefined;
++    let workerId = '';
++    let path = '';
++    let pending: Promise<unknown> | undefined;
++    let publishingClosed = false;
++    try {
++      const [prior] = await db`select * from attachment_extractions where id=${id}`;
++      if (!prior) throw workerError('EXTRACTION_NOT_FOUND');
++      if (prior.manifest) return prior.manifest as Extraction;
++      if (prior.config_sha256 !== config.policySha256) throw workerError('CONFIG_NOT_AVAILABLE');
++      const priorId = prior.worker_id === null ? null : String(prior.worker_id);
++      if (priorId) {
++        const state = await runner.inspect(priorId);
++        if (state !== 'stopped')
++          throw workerError(state === 'unknown' ? 'WORKER_CONTAINER_UNKNOWN' : 'EXTRACTION_BUSY');
++        if (prior.lease_until && (prior.lease_until as Date).getTime() > now().getTime())
++          throw workerError('EXTRACTION_BUSY');
++        try {
++          const priorPath = join(config.storageRoot, 'jobs', id, String(prior.generation));
++          const marker = await assertWorkerDirectory(config.storageRoot, priorPath);
++          const ack = await readPrivateJson(config.storageRoot, join(priorPath, '.publisher.closed.json'));
++          if (
++            ack.nonce !== marker.nonce ||
++            ack.workerId !== priorId ||
++            ack.generation !== String(prior.generation) ||
++            ack.state !== 'closed'
++          )
++            throw workerError('WORKER_PUBLISHER_UNKNOWN');
++        } catch {
++          throw workerError('WORKER_PUBLISHER_UNKNOWN');
++        }
++      }
++      const claimed = await db.begin(async (tx) => {
++        // Capacity serializes admissions across service instances, not only this local map.
++        await tx`select pg_advisory_xact_lock(507004)`;
++        const [job] = await tx`select * from attachment_extractions where id=${id} for update`;
++        if (
++          !job ||
++          String(job.generation) !== String(prior.generation) ||
++          job.worker_id !== prior.worker_id ||
++          job.manifest ||
++          job.config_sha256 !== config.policySha256
++        )
++          throw workerError('STALE_EXTRACTION_GENERATION');
++        const [count] =
++          await tx`select count(*) as n from attachment_extractions where status='running' and id<>${id}`;
++        if (Number(count.n) >= config.workerConcurrency) throw workerError('EXTRACTOR_CAPACITY');
++        const [upload] = await tx`select * from attachment_uploads where id=${job.attachment_id} for update`;
++        if (
++          upload?.state !== 'ready' ||
++          !upload.durable_at ||
++          !upload.linked_at ||
++          upload.expected_sha256 !== job.original_sha256 ||
++          upload.owner_id !== 'owner'
++        )
++          throw workerError('WORKER_ORIGINAL_INVALID');
++        const generation = (BigInt(String(job.generation)) + 1n).toString();
++        const name = `crew-v2-extract-${id}-${generation}`;
++        const input = validateWorkerInput({
++          version: 1,
++          jobId: id,
++          generation,
++          original: {
++            attachmentId: String(job.attachment_id),
++            sha256: String(job.original_sha256),
++            ownerId: 'owner',
++          },
++          mime: String(upload.detected_mime),
++          inputName: 'original',
++          extractorVersion: String(job.extractor_version),
++          config: { policySha256: config.policySha256, limits: config.limits },
++        });
++        await tx`update attachment_extractions set status='running',generation=${generation},worker_id=${name},lease_until=${new Date(now().getTime() + config.workerWallMs + 10000)},error_code=null where id=${id} and generation=${String(job.generation)}`;
++        return {
++          input,
++          blob: {
++            key: String(upload.storage_key),
++            sha256: String(upload.expected_sha256),
++            byteLength: Number(upload.expected_bytes),
++          },
++          name,
++        };
++      });
++      reserved = claimed.input;
++      workerId = claimed.name;
++      if ((await store.verify(claimed.blob)) !== 'present') throw workerError('WORKER_ORIGINAL_INVALID');
++      path = await prepareWorkerDirectory(config.storageRoot, reserved);
++      const ownership = await assertWorkerDirectory(config.storageRoot, path, reserved);
++      await writePrivateJson(config.storageRoot, join(path, '.publisher.intent.json'), {
++        pid: globalThis.process.pid,
++        workerId,
++        generation: reserved.generation,
++        nonce: ownership.nonce,
++      });
++      await db`insert into attachment_gc(id,attachment_id,extraction_id,kind,owned_key,ownership_nonce,state,generation,not_before) values(${randomUUID()},${reserved.original.attachmentId},${id},'job_scratch',${`jobs/${id}/${reserved.generation}`},${String(ownership.nonce)},'candidate',${reserved.generation},${new Date(now().getTime() + config.cleanupGraceMs)})`;
++      const inputPath = join(path, 'input');
++      const fd = await open(
++        join(inputPath, 'original'),
++        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
++        0o444,
++      );
++      try {
++        let bytes = 0;
++        const hash = createHash('sha256');
++        for await (const chunk of await store.open(claimed.blob)) {
++          bytes += chunk.length;
++          if (bytes > claimed.blob.byteLength || bytes > config.maxFileBytes || chunk.length > 65536)
++            throw workerError('WORKER_ORIGINAL_INVALID');
++          hash.update(chunk);
++          await fd.writeFile(chunk);
++        }
++        if (bytes !== claimed.blob.byteLength || hash.digest('hex') !== reserved.original.sha256)
++          throw workerError('WORKER_ORIGINAL_INVALID');
++        await fd.sync();
++      } finally {
++        await fd.close();
++      }
++      await writePrivateJson(config.storageRoot, join(inputPath, 'request.json'), reserved);
++      await chmod(join(inputPath, 'request.json'), 0o444);
++      await chmod(inputPath, 0o755);
++      await syncDirectory(inputPath);
++      const started = await runner.start(reserved, path);
++      if (started.workerId !== workerId) throw workerError('WORKER_CONTAINER_UNKNOWN');
++      let timer: ReturnType<typeof setTimeout> | undefined;
++      pending = runner.result(workerId, path);
++      pending.catch(() => {});
++      const timeout = new Promise<never>((_, reject) => {
++        timer = setTimeout(() => reject(workerError('WORKER_TIMEOUT')), config.workerWallMs);
++      });
++      let raw: unknown;
++      try {
++        raw = await Promise.race([pending, timeout]);
++      } finally {
++        clearTimeout(timer);
++      }
++      const result = validateWorkerResult(reserved, raw);
++      if ((await runner.inspect(workerId)) !== 'stopped') throw workerError('WORKER_CONTAINER_UNKNOWN');
++      await assertWorkerDirectory(config.storageRoot, path, reserved);
++      const derivatives: Derivative[] = [];
++      for (const file of result.files) {
++        const [current] =
++          await db`select generation,status,worker_id from attachment_extractions where id=${id}`;
++        if (
++          !current ||
++          String(current.generation) !== reserved.generation ||
++          current.status !== 'running' ||
++          current.worker_id !== workerId
++        )
++          throw workerError('STALE_EXTRACTION_GENERATION');
++        const filename = join(path, 'output', file.relativeName);
++        await noSymlinkComponents(config.storageRoot, filename);
++        const handle = await open(filename, constants.O_RDONLY | constants.O_NOFOLLOW);
++        try {
++          const st = await handle.stat();
++          if (!st.isFile() || st.size !== file.byteLength) throw workerError('WORKER_FILE_MISMATCH');
++          const hash = createHash('sha256');
++          for await (const chunk of handle.createReadStream({ autoClose: false, highWaterMark: 65536 }))
++            hash.update(chunk);
++          if (hash.digest('hex') !== file.sha256) throw workerError('WORKER_FILE_MISMATCH');
++          const derivativeId = randomUUID();
++          const published = await store.publishDerivative(
++            {
++              attachmentId: reserved.original.attachmentId,
++              extractionId: id,
++              derivativeId,
++              generation: reserved.generation,
++              expectedBytes: file.byteLength,
++              expectedSha256: file.sha256,
++            },
++            handle.createReadStream({ autoClose: false, start: 0, highWaterMark: 65536 }),
++            new AbortController().signal,
++          );
++          if (published.sha256 !== file.sha256 || published.byteLength !== file.byteLength)
++            throw workerError('WORKER_FILE_MISMATCH');
++          derivatives.push({
++            id: derivativeId,
++            original: reserved.original,
++            extractionId: id,
++            kind: file.kind,
++            mime: file.mime,
++            sha256: file.sha256,
++            byteLength: file.byteLength,
++            unitIds: file.unitIds,
++            verification: 'verified',
++            extractorVersion: reserved.extractorVersion,
++            configSha256: reserved.config.policySha256,
++          });
++        } finally {
++          await handle.close();
++        }
++      }
++      const body = {
++        id,
++        original: reserved.original,
++        status: result.status,
++        extractorVersion: reserved.extractorVersion,
++        configSha256: reserved.config.policySha256,
++        units: result.units,
++        derivatives,
++        problems: result.problems,
++        verification: 'verified' as const,
++      };
++      const extraction: Extraction = {
++        ...body,
++        manifestSha256: createHash('sha256').update(canonicalJson(body)).digest('hex'),
++      };
++      const generation = reserved.generation;
++      await db.begin(async (tx) => {
++        const [current] = await tx`select * from attachment_extractions where id=${id} for update`;
++        if (
++          !current ||
++          String(current.generation) !== generation ||
++          current.status !== 'running' ||
++          current.worker_id !== workerId ||
++          current.config_sha256 !== config.policySha256 ||
++          current.original_sha256 !== extraction.original.sha256
++        )
++          throw workerError('STALE_EXTRACTION_GENERATION');
++        for (const derivative of derivatives)
++          await tx`insert into attachment_derivatives(id,extraction_id,attachment_id,blob_key,sha256,byte_length,mime,kind,unit_ids,verification) values(${derivative.id},${id},${derivative.original.attachmentId},${`derivatives/${derivative.original.attachmentId}/${id}/${derivative.id}`},${derivative.sha256},${derivative.byteLength},${derivative.mime},${derivative.kind},${tx.json(derivative.unitIds)},'verified')`;
++        await tx`update attachment_extractions set status=${extraction.status},manifest=${tx.json(JSON.parse(canonicalJson(extraction)))},manifest_sha256=${extraction.manifestSha256},completed_at=${now()},lease_until=null,error_code=null where id=${id} and generation=${generation}`;
++      });
++      publishingClosed = true;
++      return extraction;
++    } catch (error) {
++      const code =
++        error instanceof Error &&
++        'code' in error &&
++        typeof error.code === 'string' &&
++        /^[A-Z_]+$/.test(error.code)
++          ? error.code
++          : 'WORKER_FAILED';
++      if (reserved) {
++        const state = await runner.stop(workerId);
++        if (state === 'stopped') {
++          if (pending) await pending.catch(() => {});
++          publishingClosed = true;
++        }
++        await db`update attachment_extractions set error_code=${state === 'unknown' ? 'WORKER_CONTAINER_UNKNOWN' : code},status=${state === 'unknown' ? 'running' : 'failed'} where id=${id} and generation=${reserved.generation} and worker_id=${workerId}`;
++      }
++      throw workerError(code);
++    } finally {
++      if (publishingClosed && reserved && path) {
++        const marker = await assertWorkerDirectory(config.storageRoot, path, reserved);
++        await writePrivateJson(config.storageRoot, join(path, '.publisher.closed.json'), {
++          workerId,
++          generation: reserved.generation,
++          nonce: marker.nonce,
++          state: 'closed',
++        });
++      }
++      active.delete(id);
++    }
++  }
++  return { process: processJob };
++}
+diff --git a/v2/server/src/attachments/worker-diagnostic.ts b/v2/server/src/attachments/worker-diagnostic.ts
+new file mode 100644
+index 0000000..5ac6869
+--- /dev/null
++++ b/v2/server/src/attachments/worker-diagnostic.ts
+@@ -0,0 +1,152 @@
++import { spawn } from 'node:child_process';
++import { createHash } from 'node:crypto';
++import { access, open, readFile, unlink } from 'node:fs/promises';
++import { createRequire } from 'node:module';
++import { connect } from 'node:net';
++import { networkInterfaces } from 'node:os';
++import type { DiagnosticReport } from './worker-runner.ts';
++
++const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
++async function deniedWrite(path: string): Promise<boolean> {
++  try {
++    const fd = await open(path, 'r+');
++    await fd.close();
++    return false;
++  } catch {
++    return true;
++  }
++}
++async function absent(path: string): Promise<boolean> {
++  try {
++    await access(path);
++    return false;
++  } catch {
++    return true;
++  }
++}
++async function networkDenied(): Promise<boolean> {
++  return new Promise((resolve) => {
++    const socket = connect({ host: '1.1.1.1', port: 80 });
++    let done = false;
++    const finish = (denied: boolean) => {
++      if (done) return;
++      done = true;
++      socket.destroy();
++      resolve(denied);
++    };
++    socket.once('connect', () => finish(false));
++    socket.once('error', () => finish(true));
++    socket.setTimeout(500, () => finish(true));
++  });
++}
++export async function diagnosticMain(): Promise<DiagnosticReport> {
++  const canary = JSON.parse(await readFile('/input/canary.json', 'utf8')) as {
++    scenario: string;
++    foreignPath: string;
++  };
++  const checks: DiagnosticReport['checks'] = [];
++  const check = (name: string, pass: boolean, evidence: unknown) =>
++    checks.push({ name, status: pass ? 'pass' : 'fail', evidenceSha256: hash(evidence) });
++  if (canary.scenario === 'stdout-bomb') {
++    while (true) {
++      if (!process.stdout.write(Buffer.alloc(65536, 65)))
++        await new Promise<void>((resolve) => process.stdout.once('drain', resolve));
++    }
++  }
++  if (canary.scenario === 'memory') {
++    const buffers: Buffer[] = [];
++    while (true) buffers.push(Buffer.alloc(16 * 1024 * 1024, 1));
++  }
++  if (canary.scenario === 'timeout') {
++    await new Promise<void>(() => {
++      setInterval(() => {}, 1000);
++    });
++  }
++  if (canary.scenario === 'pids') {
++    const children: ReturnType<typeof spawn>[] = [];
++    let blocked = false;
++    try {
++      for (let i = 0; i < 40; i++) {
++        const child = spawn(process.execPath, ['-e', 'setTimeout(()=>{},30000)'], { stdio: 'ignore' });
++        const failed = await new Promise<boolean>((resolve) => {
++          child.once('error', () => resolve(true));
++          child.once('spawn', () => resolve(false));
++        });
++        if (failed) {
++          blocked = true;
++          break;
++        }
++        children.push(child);
++      }
++    } finally {
++      await Promise.all(
++        children.map(
++          (child) =>
++            new Promise<void>((resolve) => {
++              child.once('close', () => resolve());
++              child.kill('SIGKILL');
++            }),
++        ),
++      );
++    }
++    check('pids-limit', blocked, { spawned: children.length, blocked });
++  } else {
++    const bytes = await readFile('/input/original');
++    check('selected-original-readable', bytes.equals(Buffer.from('original')), {
++      bytes: bytes.length,
++      sha256: hash([...bytes]),
++    });
++    const writable = await open('/output/diagnostic-probe.txt', 'wx', 0o600);
++    try {
++      await writable.writeFile('bounded-canary');
++      await writable.sync();
++    } finally {
++      await writable.close();
++    }
++    check(
++      'private-output-writable',
++      (await readFile('/output/diagnostic-probe.txt', 'utf8')) === 'bounded-canary',
++      { bytes: 14 },
++    );
++    await unlink('/output/diagnostic-probe.txt');
++    const external = Object.entries(networkInterfaces()).filter(([key]) => key !== 'lo');
++    check(
++      'network-denied',
++      external.length === 0 && (await networkDenied()),
++      external.map(([key]) => key),
++    );
++    check(
++      'foreign-host-unavailable',
++      typeof canary.foreignPath === 'string' && (await absent(canary.foreignPath)),
++      { foreignPathSha256: hash(canary.foreignPath) },
++    );
++    check('readonly-source', await deniedWrite('/extractor/src/attachments/worker-entry.ts'), {
++      path: 'worker-entry',
++    });
++    check('readonly-original', await deniedWrite('/input/original'), { path: 'original' });
++    // Only inside the owned Linux diagnostic container; keys, never values.
++    const unexpected = (await readFile('/proc/self/environ', 'utf8'))
++      .split('\0')
++      .map((pair) => pair.split('=')[0] ?? '')
++      .filter((key) => /DATABASE|TOKEN|SECRET|PASSWORD|API_KEY|WORKFLOW/i.test(key));
++    check('no-credential-db-workflow-env', unexpected.length === 0, { unexpectedCount: unexpected.length });
++    check('no-docker-socket', await absent('/var/run/docker.sock'), { path: 'docker-socket' });
++    check('no-host-source', (await absent('/workspace')) && (await absent('/Users')), {
++      paths: ['workspace', 'Users'],
++    });
++    check('nonroot', process.getuid?.() === 65532, { uid: process.getuid?.() });
++    try {
++      const canvas = createRequire(import.meta.url)('@napi-rs/canvas') as {
++        createCanvas(w: number, h: number): { toBuffer(format: string): Buffer };
++      };
++      const png = canvas.createCanvas(1, 1).toBuffer('image/png');
++      check('native-png-probe', png.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), {
++        pngSha256: hash([...png]),
++        bytes: png.length,
++      });
++    } catch {
++      check('native-png-probe', false, { code: 'WORKER_IMAGE_INCOMPATIBLE' });
++    }
++  }
++  return { kind: 'diagnostic-report', imageDigest: '', sourceTreeSha256: '', checks };
++}
+diff --git a/v2/server/src/attachments/worker-entry.ts b/v2/server/src/attachments/worker-entry.ts
+new file mode 100644
+index 0000000..cbf50f8
+--- /dev/null
++++ b/v2/server/src/attachments/worker-entry.ts
+@@ -0,0 +1,36 @@
++import { createHash } from 'node:crypto';
++import { constants } from 'node:fs';
++import { open } from 'node:fs/promises';
++import { diagnosticMain } from './worker-diagnostic.ts';
++import { validateWorkerInput, workerError } from './worker-protocol.ts';
++
++async function main(): Promise<void> {
++  const mode = process.argv.slice(2);
++  if (mode.length !== 2 || mode[0] !== '--mode' || !['diagnostic', 'extract'].includes(mode[1] ?? ''))
++    throw workerError('WORKER_MODE_INVALID');
++  const request = await open('/input/request.json', constants.O_RDONLY | constants.O_NOFOLLOW);
++  let input: ReturnType<typeof validateWorkerInput>;
++  try {
++    if ((await request.stat()).size > 65536) throw workerError('WORKER_INPUT_INVALID');
++    input = validateWorkerInput(JSON.parse(await request.readFile('utf8')));
++  } finally {
++    await request.close();
++  }
++  const original = await open('/input/original', constants.O_RDONLY | constants.O_NOFOLLOW);
++  try {
++    const st = await original.stat();
++    if (!st.isFile() || st.size > 25 * 1024 * 1024) throw workerError('WORKER_ORIGINAL_INVALID');
++    const hash = createHash('sha256');
++    for await (const chunk of original.createReadStream({ autoClose: false, highWaterMark: 65536 }))
++      hash.update(chunk);
++    if (hash.digest('hex') !== input.original.sha256) throw workerError('WORKER_ORIGINAL_INVALID');
++  } finally {
++    await original.close();
++  }
++  if (mode[1] === 'extract') throw workerError('PRODUCTION_CORPUS_REQUIRED');
++  process.stdout.write(`${JSON.stringify(await diagnosticMain())}\n`);
++}
++main().catch(() => {
++  process.stderr.write('WORKER_FAILED\n');
++  process.exitCode = 1;
++});
+diff --git a/v2/server/src/attachments/worker-protocol.ts b/v2/server/src/attachments/worker-protocol.ts
+new file mode 100644
+index 0000000..a8e285e
+--- /dev/null
++++ b/v2/server/src/attachments/worker-protocol.ts
+@@ -0,0 +1,473 @@
++import { createHash } from 'node:crypto';
++import { constants } from 'node:fs';
++import { type FileHandle, open } from 'node:fs/promises';
++import { join } from 'node:path';
++import type { Writable } from 'node:stream';
++import type { WorkerConfig } from './config.ts';
++import type { AttachmentRef, WorkerResult } from './contracts.ts';
++import { noSymlinkComponents, syncDirectory } from './storage.ts';
++export type WorkerInput = {
++  version: 1;
++  jobId: string;
++  generation: string;
++  original: AttachmentRef;
++  mime: string;
++  inputName: 'original';
++  extractorVersion: string;
++  config: WorkerConfig;
++};
++export const workerBounds = Object.freeze({
++  chunk: 65536,
++  line: 131072,
++  terminal: 8 * 1024 * 1024,
++  output: 100 * 1024 * 1024,
++  units: 100000,
++  files: 10000,
++});
++export function workerError(code: string): Error & { code: string } {
++  return Object.assign(new Error(code), { code });
++}
++const sha = /^[0-9a-f]{64}$/;
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++const name = /^[a-z0-9-]+\.(txt|png)$/;
++const problemCopy: Record<string, string> = {
++  EXTRACTOR_UNAVAILABLE: 'Bộ trích xuất chưa khả dụng.',
++  EXTRACTOR_FAILED: 'Không thể trích xuất tệp.',
++  LIMIT_EXCEEDED: 'Vượt giới hạn xử lý tệp.',
++  ACTIVE_CONTENT_BLOCKED: 'Nội dung chủ động đã bị chặn.',
++  UNSUPPORTED_TYPE: 'Loại tệp chưa được hỗ trợ.',
++  UNSUPPORTED_ENCODING: 'Mã hóa chưa được hỗ trợ.',
++  CORRUPT_DOCUMENT: 'Tài liệu không hợp lệ.',
++  CORRUPT_XML: 'XML không hợp lệ.',
++  PASSWORD_REQUIRED: 'Tệp yêu cầu mật khẩu.',
++  EXTERNAL_RESOURCE_UNAVAILABLE: 'Tài nguyên ngoài không khả dụng.',
++  UNSUPPORTED_VISUAL: 'Nội dung hình ảnh chưa được hỗ trợ.',
++  FORMULA_CACHE_MISSING: 'Thiếu giá trị công thức đã lưu.',
++  STALE_EXTRACTION_GENERATION: 'Thế hệ trích xuất đã cũ.',
++  HASH_MISMATCH: 'Checksum không khớp.',
++  DATA_LOSS: 'Thiếu dữ liệu đầu vào.',
++};
++function record(value: unknown): value is Record<string, unknown> {
++  return value !== null && typeof value === 'object' && !Array.isArray(value);
++}
++function exact(value: Record<string, unknown>, keys: string[]): boolean {
++  return Object.keys(value).length === keys.length && keys.every((k) => Object.hasOwn(value, k));
++}
++function integer(value: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): value is number {
++  return typeof value === 'number' && Number.isSafeInteger(value) && value >= min && value <= max;
++}
++function text(value: unknown, max = 1024): value is string {
++  return (
++    typeof value === 'string' &&
++    value.length > 0 &&
++    value.length <= max &&
++    ![...value].some((c) => c.charCodeAt(0) < 32)
++  );
++}
++function strings(value: unknown): value is string[] {
++  return (
++    Array.isArray(value) &&
++    value.length <= workerBounds.units &&
++    value.every((v) => text(v)) &&
++    new Set(value).size === value.length
++  );
++}
++function locator(value: unknown): boolean {
++  if (!record(value)) return false;
++  const box = (b: unknown) =>
++    Array.isArray(b) && b.length === 4 && b.every((v) => typeof v === 'number' && Number.isFinite(v));
++  switch (value.kind) {
++    case 'text':
++      return (
++        exact(value, ['kind', 'byteStart', 'byteEnd', 'lineStart', 'lineEnd']) &&
++        integer(value.byteStart) &&
++        integer(value.byteEnd) &&
++        value.byteEnd >= value.byteStart &&
++        integer(value.lineStart, 1) &&
++        integer(value.lineEnd, 1) &&
++        value.lineEnd >= value.lineStart
++      );
++    case 'pdf':
++      return (
++        exact(value, ['kind', 'page', 'box', 'rotation']) &&
++        integer(value.page, 1) &&
++        box(value.box) &&
++        integer(value.rotation, 0, 359)
++      );
++    case 'image':
++      return (
++        exact(value, ['kind', 'width', 'height', 'box']) &&
++        integer(value.width, 1) &&
++        integer(value.height, 1) &&
++        box(value.box)
++      );
++    case 'docx':
++      return (
++        exact(value, ['kind', 'part', 'paragraph', 'table', 'row', 'cell']) &&
++        text(value.part) &&
++        integer(value.paragraph) &&
++        ['table', 'row', 'cell'].every((k) => value[k] === null || integer(value[k]))
++      );
++    case 'sheet':
++      return (
++        exact(value, ['kind', 'part', 'sheet', 'range', 'hidden']) &&
++        text(value.part) &&
++        text(value.sheet) &&
++        text(value.range) &&
++        typeof value.hidden === 'boolean'
++      );
++    case 'csv':
++      return (
++        exact(value, ['kind', 'rowStart', 'rowEnd', 'columnStart', 'columnEnd']) &&
++        integer(value.rowStart, 1) &&
++        integer(value.rowEnd, 1) &&
++        value.rowEnd >= value.rowStart &&
++        integer(value.columnStart, 1) &&
++        integer(value.columnEnd, 1) &&
++        value.columnEnd >= value.columnStart
++      );
++    default:
++      return false;
++  }
++}
++function locatorKey(value: unknown): string {
++  return record(value) ? JSON.stringify(value, Object.keys(value).sort()) : '';
++}
++export function validateWorkerInput(value: unknown): WorkerInput {
++  if (
++    !record(value) ||
++    !exact(value, [
++      'version',
++      'jobId',
++      'generation',
++      'original',
++      'mime',
++      'inputName',
++      'extractorVersion',
++      'config',
++    ]) ||
++    value.version !== 1 ||
++    !text(value.jobId) ||
++    !uuid.test(value.jobId) ||
++    !text(value.generation) ||
++    !/^[1-9][0-9]{0,18}$/.test(value.generation) ||
++    !text(value.mime, 255) ||
++    value.inputName !== 'original' ||
++    !text(value.extractorVersion, 512) ||
++    !record(value.original) ||
++    !exact(value.original, ['attachmentId', 'sha256', 'ownerId']) ||
++    !text(value.original.attachmentId) ||
++    !uuid.test(value.original.attachmentId) ||
++    !text(value.original.sha256) ||
++    !sha.test(value.original.sha256) ||
++    value.original.ownerId !== 'owner' ||
++    !record(value.config) ||
++    !exact(value.config, ['policySha256', 'limits']) ||
++    !text(value.config.policySha256) ||
++    !sha.test(value.config.policySha256) ||
++    !record(value.config.limits)
++  )
++    throw workerError('WORKER_INPUT_INVALID');
++  const maxima: Record<string, number> = {
++    maxExpandedBytes: 104857600,
++    maxEntryBytes: 20971520,
++    maxZipEntries: 2000,
++    maxCompressionRatio: 100,
++    maxXmlDepth: 64,
++    maxTextNodeBytes: 1048576,
++    maxTextBytes: 10485760,
++    maxCsvRows: 100000,
++    maxCsvColumns: 1000,
++    maxCsvFieldBytes: 1048576,
++    maxPdfPages: 200,
++    pdfDpi: 144,
++    maxPagePixels: 20000000,
++    maxImagePixels: 40000000,
++    maxOutputBytes: 104857600,
++  };
++  if (
++    !exact(value.config.limits, Object.keys(maxima)) ||
++    Object.entries(maxima).some(
++      ([k, m]) => !integer((value.config as { limits: Record<string, unknown> }).limits?.[k], 1, m),
++    )
++  )
++    throw workerError('WORKER_INPUT_INVALID');
++  return JSON.parse(JSON.stringify(value)) as WorkerInput;
++}
++export function validateWorkerResult(input: WorkerInput, result: unknown): WorkerResult {
++  validateWorkerInput(input);
++  const fail = () => {
++    throw workerError('WORKER_RESULT_INVALID');
++  };
++  if (record(result) && result.generation !== input.generation)
++    throw workerError('STALE_EXTRACTION_GENERATION');
++  if (
++    !record(result) ||
++    !exact(result, [
++      'version',
++      'jobId',
++      'generation',
++      'original',
++      'extractorVersion',
++      'configSha256',
++      'status',
++      'units',
++      'files',
++      'problems',
++    ]) ||
++    result.version !== 1 ||
++    result.jobId !== input.jobId ||
++    result.extractorVersion !== input.extractorVersion ||
++    result.configSha256 !== input.config.policySha256 ||
++    !record(result.original) ||
++    !exact(result.original, ['attachmentId', 'sha256', 'ownerId']) ||
++    result.original.attachmentId !== input.original.attachmentId ||
++    result.original.sha256 !== input.original.sha256 ||
++    result.original.ownerId !== 'owner' ||
++    !['complete', 'partial', 'encrypted', 'corrupt', 'unsupported', 'blocked', 'failed'].includes(
++      String(result.status),
++    ) ||
++    !Array.isArray(result.units) ||
++    result.units.length > workerBounds.units ||
++    !Array.isArray(result.files) ||
++    result.files.length > workerBounds.files ||
++    !Array.isArray(result.problems) ||
++    result.problems.length > workerBounds.units
++  )
++    return fail();
++  if (Buffer.byteLength(JSON.stringify(result)) > workerBounds.terminal) return fail();
++  const units = new Map<string, { needs: unknown; state: unknown }>();
++  const locators = new Set<string>();
++  for (const unit of result.units) {
++    if (
++      !record(unit) ||
++      !exact(unit, ['id', 'locator', 'needs', 'state', 'reason']) ||
++      !text(unit.id) ||
++      !locator(unit.locator) ||
++      !['text', 'vision'].includes(String(unit.needs)) ||
++      !['available', 'missing'].includes(String(unit.state)) ||
++      (unit.state === 'available' ? unit.reason !== null : !text(unit.reason)) ||
++      units.has(unit.id) ||
++      locators.has(locatorKey(unit.locator))
++    )
++      return fail();
++    units.set(unit.id, { needs: unit.needs, state: unit.state });
++    locators.add(locatorKey(unit.locator));
++  }
++  let bytes = 0;
++  const names = new Set<string>();
++  const covered = new Set<string>();
++  for (const file of result.files) {
++    if (
++      !record(file) ||
++      !exact(file, ['relativeName', 'kind', 'mime', 'sha256', 'byteLength', 'unitIds']) ||
++      !text(file.relativeName, 255) ||
++      !name.test(file.relativeName) ||
++      names.has(file.relativeName) ||
++      !text(file.sha256) ||
++      !sha.test(file.sha256) ||
++      !integer(file.byteLength) ||
++      !strings(file.unitIds) ||
++      file.unitIds.length === 0 ||
++      !(
++        (file.kind === 'text' && file.mime === 'text/plain' && file.relativeName.endsWith('.txt')) ||
++        (file.kind === 'image' && file.mime === 'image/png' && file.relativeName.endsWith('.png'))
++      )
++    )
++      return fail();
++    names.add(file.relativeName);
++    bytes += file.byteLength;
++    if (bytes > input.config.limits.maxOutputBytes || bytes > workerBounds.output) return fail();
++    for (const id of file.unitIds) {
++      const unit = units.get(id);
++      if (unit?.state !== 'available' || unit.needs !== (file.kind === 'image' ? 'vision' : 'text'))
++        return fail();
++      covered.add(id);
++    }
++  }
++  for (const [id, unit] of units) if (unit.state === 'available' && !covered.has(id)) return fail();
++  if (
++    result.status === 'complete' &&
++    ([...units.values()].some((u) => u.state !== 'available') || result.problems.length > 0)
++  )
++    return fail();
++  for (const problem of result.problems)
++    if (
++      !record(problem) ||
++      !exact(problem, ['code', 'message', 'unitIds']) ||
++      !text(problem.code, 64) ||
++      !Object.hasOwn(problemCopy, problem.code) ||
++      !text(problem.message, 512) ||
++      !strings(problem.unitIds) ||
++      problem.unitIds.some((id) => !units.has(id))
++    )
++      return fail();
++  const safe = JSON.parse(JSON.stringify(result)) as WorkerResult;
++  for (const problem of safe.problems)
++    problem.message = problemCopy[problem.code] ?? 'Không thể trích xuất tệp.';
++  return safe;
++}
++export type WorkerFrame =
++  | { kind: 'file-start'; name: string; mime: string; bytes: number; sha256: string }
++  | { kind: 'file-chunk'; name: string; base64: string }
++  | { kind: 'file-end'; name: string }
++  | { kind: 'result'; body: WorkerResult };
++export async function writeFrame(output: Writable, frame: WorkerFrame): Promise<void> {
++  const line = JSON.stringify(frame);
++  const limit = frame.kind === 'result' ? workerBounds.terminal : workerBounds.line;
++  if (
++    Buffer.byteLength(line) > limit ||
++    (frame.kind === 'file-chunk' && Buffer.from(frame.base64, 'base64').length > workerBounds.chunk)
++  )
++    throw workerError('WORKER_OUTPUT_LIMIT');
++  await new Promise<void>((resolve, reject) =>
++    output.write(`${line}\n`, (error) => (error ? reject(error) : resolve())),
++  );
++}
++export async function readWorkerFrames(
++  input: WorkerInput,
++  stream: AsyncIterable<Uint8Array>,
++  directory: string,
++): Promise<WorkerResult> {
++  validateWorkerInput(input);
++  await noSymlinkComponents(directory, directory);
++  const files = new Map<string, { bytes: number; sha256: string; mime: string }>();
++  type Active = {
++    name: string;
++    fd: FileHandle;
++    bytes: number;
++    expected: number;
++    expectedHash: string;
++    mime: string;
++    hash: ReturnType<typeof createHash>;
++  };
++  let active: Active | null = null;
++  let result: WorkerResult | null = null;
++  let pending = Buffer.alloc(0);
++  let total = 0;
++  let wire = 0;
++  async function line(bytes: Buffer): Promise<void> {
++    let frame: unknown;
++    try {
++      frame = JSON.parse(bytes.toString('utf8'));
++    } catch {
++      throw workerError('WORKER_FRAME_INVALID');
++    }
++    if (!record(frame) || result) throw workerError('WORKER_FRAME_INVALID');
++    if (frame.kind !== 'result' && bytes.length > workerBounds.line) throw workerError('WORKER_OUTPUT_LIMIT');
++    switch (frame.kind) {
++      case 'file-start': {
++        if (
++          active ||
++          !exact(frame, ['kind', 'name', 'mime', 'bytes', 'sha256']) ||
++          !text(frame.name, 255) ||
++          !name.test(frame.name) ||
++          files.has(frame.name) ||
++          files.size >= workerBounds.files ||
++          !integer(frame.bytes, 0, input.config.limits.maxOutputBytes) ||
++          !text(frame.sha256) ||
++          !sha.test(frame.sha256) ||
++          !['text/plain', 'image/png'].includes(String(frame.mime))
++        )
++          throw workerError('WORKER_FRAME_INVALID');
++        const fd = await open(
++          join(directory, frame.name),
++          constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
++          0o600,
++        );
++        active = {
++          name: frame.name,
++          fd,
++          bytes: 0,
++          expected: frame.bytes,
++          expectedHash: frame.sha256,
++          mime: String(frame.mime),
++          hash: createHash('sha256'),
++        };
++        break;
++      }
++      case 'file-chunk': {
++        if (
++          !active ||
++          !exact(frame, ['kind', 'name', 'base64']) ||
++          frame.name !== active.name ||
++          typeof frame.base64 !== 'string' ||
++          frame.base64.length > 87384 ||
++          !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(frame.base64)
++        )
++          throw workerError('WORKER_FRAME_INVALID');
++        const decoded = Buffer.from(frame.base64, 'base64');
++        if (decoded.toString('base64') !== frame.base64 || decoded.length > workerBounds.chunk)
++          throw workerError('WORKER_OUTPUT_LIMIT');
++        active.bytes += decoded.length;
++        total += decoded.length;
++        if (
++          active.bytes > active.expected ||
++          total > input.config.limits.maxOutputBytes ||
++          total > workerBounds.output
++        )
++          throw workerError('WORKER_OUTPUT_LIMIT');
++        active.hash.update(decoded);
++        await active.fd.writeFile(decoded);
++        break;
++      }
++      case 'file-end': {
++        if (!active || !exact(frame, ['kind', 'name']) || frame.name !== active.name)
++          throw workerError('WORKER_FRAME_INVALID');
++        const actual = active.hash.digest('hex');
++        if (actual !== active.expectedHash || active.bytes !== active.expected)
++          throw workerError('WORKER_FILE_MISMATCH');
++        await active.fd.sync();
++        await active.fd.close();
++        files.set(active.name, { bytes: active.bytes, sha256: actual, mime: active.mime });
++        active = null;
++        break;
++      }
++      case 'result': {
++        if (active || !exact(frame, ['kind', 'body'])) throw workerError('WORKER_FRAME_INVALID');
++        result = validateWorkerResult(input, frame.body);
++        if (result.files.length !== files.size) throw workerError('WORKER_FILE_MISMATCH');
++        for (const file of result.files) {
++          const saved = files.get(file.relativeName);
++          if (
++            !saved ||
++            saved.bytes !== file.byteLength ||
++            saved.sha256 !== file.sha256 ||
++            saved.mime !== file.mime
++          )
++            throw workerError('WORKER_FILE_MISMATCH');
++        }
++        break;
++      }
++      default:
++        throw workerError('WORKER_FRAME_INVALID');
++    }
++  }
++  try {
++    for await (const chunk of stream) {
++      wire += chunk.length;
++      if (wire > Math.ceil((workerBounds.output * 4) / 3) + workerBounds.terminal + workerBounds.files * 1024)
++        throw workerError('WORKER_OUTPUT_LIMIT');
++      pending = Buffer.concat([pending, chunk]);
++      let end = pending.indexOf(10);
++      while (end >= 0) {
++        if (end > workerBounds.terminal) throw workerError('WORKER_OUTPUT_LIMIT');
++        await line(pending.subarray(0, end));
++        pending = pending.subarray(end + 1);
++        end = pending.indexOf(10);
++      }
++      if (pending.length > workerBounds.terminal) throw workerError('WORKER_OUTPUT_LIMIT');
++      if (
++        pending.length > workerBounds.line &&
++        !pending.subarray(0, 24).toString('utf8').startsWith('{"kind":"result","body":')
++      )
++        throw workerError('WORKER_OUTPUT_LIMIT');
++    }
++    if (active || pending.length || !result) throw workerError('WORKER_FRAME_TRUNCATED');
++    await syncDirectory(directory);
++    return result;
++  } finally {
++    const handle = active as Active | null;
++    if (handle) await handle.fd.close();
++  }
++}
+diff --git a/v2/server/src/attachments/worker-runner.ts b/v2/server/src/attachments/worker-runner.ts
+new file mode 100644
+index 0000000..359415b
+--- /dev/null
++++ b/v2/server/src/attachments/worker-runner.ts
+@@ -0,0 +1,461 @@
++import { execFile, spawn } from 'node:child_process';
++import { createHash, randomUUID } from 'node:crypto';
++import { constants } from 'node:fs';
++import { lstat, mkdir, open, readFile, realpath } from 'node:fs/promises';
++import { isAbsolute, join, relative } from 'node:path';
++import { promisify } from 'node:util';
++import type { WorkerResult } from './contracts.ts';
++import { noSymlinkComponents, readPrivateJson, syncDirectory, writePrivateJson } from './storage.ts';
++import { readWorkerFrames, validateWorkerInput, type WorkerInput, workerError } from './worker-protocol.ts';
++export type ExtractorRunnerConfig = {
++  dockerBinary: string;
++  imageDigest: string;
++  sourceTreeSha256: string;
++  storageRoot: string;
++  wallMs: number;
++};
++export interface ExtractorRunner {
++  start(input: WorkerInput, directory: string): Promise<{ workerId: string }>;
++  inspect(id: string): Promise<'running' | 'stopped' | 'unknown'>;
++  stop(id: string): Promise<'stopped' | 'unknown'>;
++  result(id: string, directory: string): Promise<WorkerResult>;
++}
++export type ExtractorBuildReceipt = {
++  targetPlatform: 'linux/amd64' | 'linux/arm64';
++  libc: 'glibc';
++  baseIndexDigest: string;
++  basePlatformDigest: string;
++  nativePackage: string;
++  nativeIntegrity: string;
++  lockSha256: string;
++  sourceTreeSha256: string;
++  imageDigest: string;
++  stage: 'diagnostic' | 'production';
++  boundaryResult: 'pass' | 'fail' | 'unverified';
++  corpusResult: 'pass' | 'fail' | 'unverified';
++};
++export type DiagnosticReport = {
++  kind: 'diagnostic-report';
++  imageDigest: string;
++  sourceTreeSha256: string;
++  checks: { name: string; status: 'pass' | 'fail' | 'unverified'; evidenceSha256: string }[];
++};
++const runFile = promisify(execFile);
++const sha = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
++const workerName = (input: WorkerInput) => `crew-v2-extract-${input.jobId}-${input.generation}`;
++function validateConfig(config: ExtractorRunnerConfig): void {
++  if (
++    !isAbsolute(config.dockerBinary) ||
++    !isAbsolute(config.storageRoot) ||
++    !/^sha256:[0-9a-f]{64}$/.test(config.imageDigest) ||
++    !/^[0-9a-f]{64}$/.test(config.sourceTreeSha256) ||
++    !Number.isSafeInteger(config.wallMs) ||
++    config.wallMs < 1 ||
++    config.wallMs > 120000
++  )
++    throw workerError('WORKER_CONFIG_INVALID');
++}
++async function directory(root: string, path: string, exclusive = false): Promise<void> {
++  await noSymlinkComponents(root, join(path, '..'));
++  try {
++    await mkdir(path, { mode: 0o700 });
++    await syncDirectory(join(path, '..'));
++  } catch (error) {
++    if (exclusive || (error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
++  }
++  await noSymlinkComponents(root, path);
++  const stat = await lstat(path);
++  if (!stat.isDirectory() || (stat.mode & 0o077) !== 0) throw workerError('WORKER_DIRECTORY_INVALID');
++}
++export async function prepareWorkerDirectory(root: string, input: WorkerInput): Promise<string> {
++  validateWorkerInput(input);
++  await noSymlinkComponents(root, root);
++  if ((await realpath(root)) !== root) throw workerError('WORKER_DIRECTORY_INVALID');
++  await directory(root, join(root, 'jobs'));
++  await directory(root, join(root, 'jobs', input.jobId));
++  const path = join(root, 'jobs', input.jobId, input.generation);
++  await directory(root, path, true);
++  const st = await lstat(path);
++  await writePrivateJson(root, join(path, '.owner.json'), {
++    kind: 'job_scratch',
++    jobId: input.jobId,
++    generation: input.generation,
++    nonce: randomUUID(),
++    dev: st.dev,
++    ino: st.ino,
++    uid: st.uid,
++  });
++  await directory(root, join(path, 'input'));
++  await directory(root, join(path, 'output'));
++  return path;
++}
++export async function assertWorkerDirectory(
++  root: string,
++  path: string,
++  input?: WorkerInput,
++): Promise<Record<string, unknown>> {
++  const rel = relative(root, path);
++  if (!/^jobs\/[0-9a-f-]{36}\/[1-9][0-9]{0,18}$/.test(rel)) throw workerError('WORKER_DIRECTORY_INVALID');
++  const marker = await readPrivateJson(root, join(path, '.owner.json'));
++  const st = await lstat(path);
++  if (
++    marker.kind !== 'job_scratch' ||
++    typeof marker.nonce !== 'string' ||
++    marker.dev !== st.dev ||
++    marker.ino !== st.ino ||
++    marker.uid !== st.uid ||
++    rel !== `jobs/${marker.jobId}/${marker.generation}` ||
++    (input && (marker.jobId !== input.jobId || marker.generation !== input.generation))
++  )
++    throw workerError('WORKER_DIRECTORY_INVALID');
++  return marker;
++}
++type Intent = {
++  workerId: string;
++  nonce: string;
++  imageDigest: string;
++  sourceTreeSha256: string;
++  binary: string;
++  binarySha256: string;
++  mode: 'diagnostic' | 'extract';
++};
++async function readIntent(
++  config: ExtractorRunnerConfig,
++  id: string,
++): Promise<{ intent: Intent; path: string } | null> {
++  const match = /^crew-v2-extract-([0-9a-f-]{36})-([1-9][0-9]{0,18})$/.exec(id);
++  if (!match?.[1] || !match[2]) return null;
++  const path = join(config.storageRoot, 'jobs', match[1], match[2]);
++  try {
++    const owner = await assertWorkerDirectory(config.storageRoot, path);
++    const value = await readPrivateJson(config.storageRoot, join(path, '.start-intent.json'));
++    if (
++      value.workerId !== id ||
++      value.nonce !== owner.nonce ||
++      value.imageDigest !== config.imageDigest ||
++      value.sourceTreeSha256 !== config.sourceTreeSha256 ||
++      typeof value.binary !== 'string' ||
++      typeof value.binarySha256 !== 'string' ||
++      !['extract', 'diagnostic'].includes(String(value.mode))
++    )
++      return null;
++    return { intent: value as Intent, path };
++  } catch {
++    return null;
++  }
++}
++async function command(intent: Intent, args: string[]): Promise<string> {
++  if (
++    (await realpath(intent.binary)) !== intent.binary ||
++    sha(await readFile(intent.binary)) !== intent.binarySha256
++  )
++    throw workerError('WORKER_BINARY_CHANGED');
++  try {
++    const result = await runFile(intent.binary, args, {
++      timeout: 10000,
++      maxBuffer: 65536,
++      env: { PATH: '/usr/bin:/bin', HOME: '/nonexistent' },
++    });
++    return result.stdout;
++  } catch {
++    throw workerError('EXTRACTOR_UNAVAILABLE');
++  }
++}
++async function container(
++  config: ExtractorRunnerConfig,
++  id: string,
++): Promise<{ state: 'running' | 'stopped' | 'created'; id: string; intent: Intent } | null> {
++  const saved = await readIntent(config, id);
++  if (!saved) return null;
++  try {
++    const rows: unknown = JSON.parse(await command(saved.intent, ['inspect', id]));
++    if (!Array.isArray(rows) || rows.length !== 1) return null;
++    const row = rows[0] as {
++      Id?: unknown;
++      Image?: unknown;
++      Name?: unknown;
++      State?: { Running?: unknown; Status?: unknown };
++      Config?: { Labels?: Record<string, unknown> };
++    };
++    if (
++      typeof row.Id !== 'string' ||
++      !/^[0-9a-f]{64}$/.test(row.Id) ||
++      row.Image !== saved.intent.imageDigest ||
++      row.Name !== `/${id}` ||
++      row.Config?.Labels?.['crew.v2.nonce'] !== saved.intent.nonce ||
++      row.Config?.Labels?.['crew.v2.source'] !== config.sourceTreeSha256 ||
++      row.Config?.Labels?.['crew.v2.extraction'] !== id
++    )
++      return null;
++    const state =
++      row.State?.Running === true
++        ? 'running'
++        : row.State?.Running === false && ['exited', 'dead'].includes(String(row.State.Status))
++          ? 'stopped'
++          : row.State?.Running === false && row.State.Status === 'created'
++            ? 'created'
++            : null;
++    return state ? { state, id: row.Id, intent: saved.intent } : null;
++  } catch {
++    return null;
++  }
++}
++async function stopContainer(config: ExtractorRunnerConfig, id: string): Promise<'stopped' | 'unknown'> {
++  let observed = await container(config, id);
++  if (!observed) return 'unknown';
++  if (observed.state === 'stopped') return 'stopped';
++  try {
++    await command(observed.intent, ['stop', '--time=1', observed.id]);
++  } catch {
++    /* inspect remains authority */
++  }
++  observed = await container(config, id);
++  return observed?.state === 'stopped' ? 'stopped' : 'unknown';
++}
++async function spawnWorkerContainer(
++  config: ExtractorRunnerConfig,
++  path: string,
++  mode: 'diagnostic' | 'extract',
++): Promise<{
++  id: string;
++  stream: AsyncIterable<Uint8Array>;
++  closed: Promise<void>;
++  failure: Promise<never>;
++  fault: () => string | null;
++  stop: () => Promise<'stopped' | 'unknown'>;
++}> {
++  validateConfig(config);
++  const owner = await assertWorkerDirectory(config.storageRoot, path);
++  const input = validateWorkerInput(JSON.parse(await readFile(join(path, 'input', 'request.json'), 'utf8')));
++  if (owner.jobId !== input.jobId || owner.generation !== input.generation)
++    throw workerError('WORKER_DIRECTORY_INVALID');
++  const id = workerName(input);
++  const binary = await realpath(config.dockerBinary);
++  const intent: Intent = {
++    workerId: id,
++    nonce: String(owner.nonce),
++    imageDigest: config.imageDigest,
++    sourceTreeSha256: config.sourceTreeSha256,
++    binary,
++    binarySha256: sha(await readFile(binary)),
++    mode,
++  };
++  // EXCL intent is durable before any spawn. Existing/unknown intent never creates a replacement.
++  await writePrivateJson(config.storageRoot, join(path, '.start-intent.json'), intent);
++  const image: unknown = JSON.parse(await command(intent, ['image', 'inspect', config.imageDigest]));
++  if (!Array.isArray(image) || (image[0] as { Id?: unknown }).Id !== config.imageDigest)
++    throw workerError('WORKER_IMAGE_INCOMPATIBLE');
++  const argv = [
++    'create',
++    '--log-driver=none',
++    '--pull=never',
++    '--name',
++    id,
++    '--label',
++    `crew.v2.extraction=${id}`,
++    '--label',
++    `crew.v2.nonce=${intent.nonce}`,
++    '--label',
++    `crew.v2.source=${config.sourceTreeSha256}`,
++    '--network=none',
++    '--read-only',
++    '--cap-drop=ALL',
++    '--security-opt=no-new-privileges',
++    '--user=65532:65532',
++    '--memory=512m',
++    '--memory-swap=512m',
++    '--cpus=1',
++    '--pids-limit=32',
++    '--tmpfs=/tmp:rw,noexec,nosuid,size=16m',
++    '--mount',
++    `type=bind,src=${join(path, 'input')},dst=/input,readonly`,
++    '--tmpfs=/output:rw,noexec,nosuid,size=100m,uid=65532,gid=65532',
++    config.imageDigest,
++    '--mode',
++    mode,
++  ];
++  const actual = (await command(intent, argv)).trim();
++  if (!/^[0-9a-f]{64}$/.test(actual)) throw workerError('WORKER_CONTAINER_UNKNOWN');
++  await writePrivateJson(config.storageRoot, join(path, '.container.json'), {
++    id: actual,
++    workerId: id,
++    nonce: intent.nonce,
++  });
++  const checked = await container(config, id);
++  if (!checked || checked.id !== actual) throw workerError('WORKER_CONTAINER_UNKNOWN');
++  // Revalidate trusted binary immediately before the long-lived attach spawn.
++  if (sha(await readFile(binary)) !== intent.binarySha256) throw workerError('WORKER_BINARY_CHANGED');
++  const child = spawn(binary, ['start', '--attach', actual], {
++    stdio: ['ignore', 'pipe', 'pipe'],
++    env: { PATH: '/usr/bin:/bin', HOME: '/nonexistent' },
++  });
++  let timer: ReturnType<typeof setTimeout> | undefined;
++  const closed = new Promise<void>((resolve, reject) => {
++    child.once('error', () => reject(workerError('EXTRACTOR_UNAVAILABLE')));
++    child.once('close', () => resolve());
++  }).finally(() => clearTimeout(timer));
++  closed.catch(() => {});
++  let rejectFailure: (error: Error) => void = () => {};
++  const failure = new Promise<never>((_, reject) => {
++    rejectFailure = reject;
++  });
++  failure.catch(() => {});
++  const stopAttached = async (): Promise<'stopped' | 'unknown'> => {
++    const state = await stopContainer(config, id);
++    if (state === 'stopped') {
++      // The exact container is gone; only this owned attach client remains. Its
++      // backpressured pipes must close before awaiting CLI closure, not afterwards.
++      child.stdout.destroy();
++      child.stderr.destroy();
++      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
++      await closed;
++    }
++    return state;
++  };
++  let stopping = false;
++  let fault: string | null = null;
++  const fail = async (code: string) => {
++    if (stopping) return;
++    stopping = true;
++    fault = code;
++    const state = await stopAttached();
++    rejectFailure(workerError(state === 'stopped' ? code : 'WORKER_CONTAINER_UNKNOWN'));
++  };
++  let stderr = 0;
++  child.stderr.on('data', (bytes: Buffer) => {
++    stderr += bytes.length;
++    if (stderr > 65536) void fail('WORKER_STDERR_LIMIT');
++  });
++  timer = setTimeout(() => {
++    void fail('WORKER_TIMEOUT');
++  }, config.wallMs);
++  await writePrivateJson(config.storageRoot, join(path, '.attach.json'), {
++    pid: child.pid ?? null,
++    workerId: id,
++    containerId: actual,
++    nonce: intent.nonce,
++  });
++  return {
++    id,
++    stream: child.stdout,
++    closed,
++    failure,
++    fault: () => fault,
++    stop: stopAttached,
++  };
++}
++export function createDockerExtractorRunner(config: ExtractorRunnerConfig): ExtractorRunner {
++  validateConfig(config);
++  const frozen = Object.freeze({ ...config });
++  return {
++    async start() {
++      throw workerError('PRODUCTION_CORPUS_REQUIRED');
++    },
++    async inspect(id) {
++      const state = (await container(frozen, id))?.state;
++      return state === 'running' || state === 'stopped' ? state : 'unknown';
++    },
++    async stop(id) {
++      return stopContainer(frozen, id);
++    },
++    async result(id, path) {
++      const saved = await readIntent(frozen, id);
++      if (!saved || saved.path !== path || saved.intent.mode !== 'extract')
++        throw workerError('WORKER_RESULT_UNAVAILABLE');
++      if ((await this.inspect(id)) !== 'stopped') throw workerError('WORKER_CONTAINER_UNKNOWN');
++      const input = validateWorkerInput(
++        JSON.parse(await readFile(join(path, 'input', 'request.json'), 'utf8')),
++      );
++      const fd = await open(join(path, '.stdout.frames'), constants.O_RDONLY | constants.O_NOFOLLOW);
++      try {
++        return await readWorkerFrames(input, fd.createReadStream({ autoClose: false }), join(path, 'output'));
++      } finally {
++        await fd.close();
++      }
++    },
++  };
++}
++export async function runExtractorDiagnostic(
++  config: ExtractorRunnerConfig,
++  path: string,
++): Promise<DiagnosticReport> {
++  const run = await spawnWorkerContainer(config, path, 'diagnostic');
++  let bytes = 0;
++  const chunks: Buffer[] = [];
++  let failed = false;
++  try {
++    const consume = async () => {
++      for await (const chunk of run.stream) {
++        bytes += chunk.length;
++        if (bytes > 65536) {
++          failed = true;
++          await run.stop();
++          break;
++        }
++        chunks.push(Buffer.from(chunk));
++      }
++      await run.closed;
++    };
++    await Promise.race([consume(), run.failure]);
++    if ((await container(config, run.id))?.state !== 'stopped') throw workerError('WORKER_CONTAINER_UNKNOWN');
++    if (failed) throw workerError('WORKER_OUTPUT_LIMIT');
++    if (run.fault()) throw workerError(run.fault() ?? 'WORKER_FAILED');
++    let report: unknown;
++    try {
++      report = JSON.parse(Buffer.concat(chunks).toString('utf8'));
++    } catch {
++      throw workerError('WORKER_DIAGNOSTIC_INVALID');
++    }
++    const candidate = report as DiagnosticReport;
++    if (
++      candidate?.kind !== 'diagnostic-report' ||
++      !Array.isArray(candidate.checks) ||
++      candidate.checks.length > 32 ||
++      candidate.checks.some(
++        (c) =>
++          !c ||
++          typeof c.name !== 'string' ||
++          !['pass', 'fail', 'unverified'].includes(c.status) ||
++          !/^[0-9a-f]{64}$/.test(c.evidenceSha256),
++      )
++    )
++      throw workerError('WORKER_DIAGNOSTIC_INVALID');
++    const answer = {
++      kind: 'diagnostic-report' as const,
++      imageDigest: config.imageDigest,
++      sourceTreeSha256: config.sourceTreeSha256,
++      checks: candidate.checks,
++    };
++    await writePrivateJson(config.storageRoot, join(path, '.diagnostic.json'), answer);
++    return answer;
++  } catch (error) {
++    const state = await run.stop();
++    if (state === 'unknown') throw workerError('WORKER_CONTAINER_UNKNOWN');
++    await run.closed;
++    if (failed) throw workerError('WORKER_OUTPUT_LIMIT');
++    if (run.fault()) throw workerError(run.fault() ?? 'WORKER_FAILED');
++    throw error;
++  }
++}
++export async function removeStoppedWorkerContainer(
++  config: ExtractorRunnerConfig,
++  id: string,
++): Promise<'removed' | 'unknown'> {
++  const observed = await container(config, id);
++  if (observed?.state !== 'stopped') return 'unknown';
++  const saved = await readIntent(config, id);
++  if (!saved) return 'unknown';
++  // Persist reconciliation receipt before removing an exact stopped ID; never rm -f.
++  await writePrivateJson(config.storageRoot, join(saved.path, '.reconciled.json'), {
++    workerId: id,
++    id: observed.id,
++    nonce: observed.intent.nonce,
++    state: 'stopped',
++  });
++  try {
++    await command(observed.intent, ['rm', observed.id]);
++    return 'removed';
++  } catch {
++    return 'unknown';
++  }
++}
+diff --git a/v2/server/test/attachments-worker-live.test.ts b/v2/server/test/attachments-worker-live.test.ts
+new file mode 100644
+index 0000000..f284d64
+--- /dev/null
++++ b/v2/server/test/attachments-worker-live.test.ts
+@@ -0,0 +1,212 @@
++import assert from 'node:assert/strict';
++import { execFile } from 'node:child_process';
++import { createHash, randomUUID } from 'node:crypto';
++import { chmod, lstat, mkdir, readFile, realpath, rm } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { isAbsolute, join } from 'node:path';
++import { env } from 'node:process';
++import { test } from 'node:test';
++import { promisify } from 'node:util';
++import { loadAttachmentConfig } from '../src/attachments/config.ts';
++import { writePrivateJson } from '../src/attachments/storage.ts';
++import type { WorkerInput } from '../src/attachments/worker-protocol.ts';
++import {
++  createDockerExtractorRunner,
++  type ExtractorBuildReceipt,
++  type ExtractorRunnerConfig,
++  prepareWorkerDirectory,
++  removeStoppedWorkerContainer,
++  runExtractorDiagnostic,
++} from '../src/attachments/worker-runner.ts';
++
++const exec = promisify(execFile);
++const sha = (value: string) => createHash('sha256').update(value).digest('hex');
++type Observation = {
++  scenario: string;
++  containerId: string;
++  state: string;
++  exitCode: number;
++  oomKilled: boolean;
++  pid: number;
++  result: string;
++};
++export async function buildAndRunDiagnosticFixture(options: {
++  includeExtractors: boolean;
++  target: 'linux/amd64' | 'linux/arm64';
++}): Promise<ExtractorBuildReceipt> {
++  // A PM-owned target build precedes this fixture. This consumes its exact receipt;
++  // it does not replace a failed frozen build or silently invoke another builder.
++  if (options.includeExtractors) throw new Error('EXTRACTOR_NOT_INSTALLED');
++  const receiptPath = env.CREW_V2_EXTRACTOR_BUILD_RECEIPT_PATH;
++  if (!receiptPath || !isAbsolute(receiptPath)) throw new Error('EXTRACTOR_BUILD_RECEIPT_REQUIRED');
++  const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as ExtractorBuildReceipt;
++  assert.equal(receipt.targetPlatform, options.target);
++  assert.equal(receipt.stage, 'diagnostic');
++  assert.equal(receipt.corpusResult, 'unverified');
++  assert.match(receipt.imageDigest, /^sha256:[0-9a-f]{64}$/);
++  assert.match(receipt.sourceTreeSha256, /^[0-9a-f]{64}$/);
++  const dockerBinary = await realpath('/usr/local/bin/docker');
++  const inspected = await exec(dockerBinary, ['image', 'inspect', receipt.imageDigest], { maxBuffer: 65536 });
++  const image = JSON.parse(inspected.stdout)[0] as { Id: string; Os: string; Architecture: string };
++  assert.equal(image.Id, receipt.imageDigest);
++  assert.equal(`${image.Os}/${image.Architecture}`, options.target);
++  const nonce = randomUUID();
++  const root = join(await realpath(tmpdir()), `crew-v2-attachments-live-${nonce}`);
++  console.info(`worker live root intent ${root} nonce=${nonce} parentPid=${process.pid}`);
++  await mkdir(root, { mode: 0o700 });
++  const identity = await lstat(root);
++  await writePrivateJson(root, join(root, '.fixture-owner.json'), {
++    nonce,
++    dev: identity.dev,
++    ino: identity.ino,
++    uid: identity.uid,
++  });
++  const foreign = join(root, 'foreign-sentinel');
++  await writePrivateJson(root, foreign, { sentinel: randomUUID() });
++  const observations: Observation[] = [];
++  let safeToRemove = true;
++  try {
++    for (const scenario of ['boundary', 'pids', 'memory', 'stdout-bomb', 'timeout']) {
++      const policy = loadAttachmentConfig({ CREW_V2_ATTACHMENT_STORAGE_ROOT: root });
++      const input: WorkerInput = {
++        version: 1,
++        jobId: randomUUID(),
++        generation: '1',
++        original: { attachmentId: randomUUID(), sha256: sha('original'), ownerId: 'owner' },
++        mime: 'text/plain',
++        inputName: 'original',
++        extractorVersion: `crew-extractor-v1+pdfjs6.3.289+canvas1.0.3+yauzl3.4.0+saxes6.0.0+${receipt.sourceTreeSha256}`,
++        config: { policySha256: policy.policySha256, limits: policy.limits },
++      };
++      const path = await prepareWorkerDirectory(root, input);
++      const inputDirectory = join(path, 'input');
++      await writePrivateJson(root, join(inputDirectory, 'request.json'), input);
++      await chmod(join(inputDirectory, 'request.json'), 0o444);
++      // Exclusive own file, readable only through the readonly input bind.
++      const { open } = await import('node:fs/promises');
++      const original = await open(join(inputDirectory, 'original'), 'wx', 0o444);
++      try {
++        await original.writeFile('original');
++        await original.sync();
++      } finally {
++        await original.close();
++      }
++      await writePrivateJson(root, join(inputDirectory, 'canary.json'), { scenario, foreignPath: foreign });
++      await chmod(join(inputDirectory, 'canary.json'), 0o444);
++      await chmod(inputDirectory, 0o755);
++      const config: ExtractorRunnerConfig = {
++        dockerBinary,
++        imageDigest: receipt.imageDigest,
++        sourceTreeSha256: receipt.sourceTreeSha256,
++        storageRoot: root,
++        wallMs: scenario === 'timeout' ? 1500 : 20000,
++      };
++      const workerId = `crew-v2-extract-${input.jobId}-1`;
++      console.info(`worker live container intent ${workerId} scenario=${scenario} root=${path}`);
++      let outcome = '';
++      let diagnostic: Awaited<ReturnType<typeof runExtractorDiagnostic>> | undefined;
++      try {
++        diagnostic = await runExtractorDiagnostic(config, path);
++        outcome = 'report';
++      } catch (error) {
++        outcome = error instanceof Error ? error.message : 'WORKER_FAILED';
++      }
++      const runner = createDockerExtractorRunner(config);
++      let state = await runner.inspect(workerId);
++      if (state === 'running') state = await runner.stop(workerId);
++      if (state !== 'stopped') {
++        safeToRemove = false;
++        throw new Error(`WORKER_CONTAINER_UNKNOWN:${workerId}`);
++      }
++      const info = await exec(dockerBinary, ['inspect', workerId], { maxBuffer: 65536 });
++      const row = JSON.parse(info.stdout)[0] as {
++        Id: string;
++        State: { Status: string; ExitCode: number; OOMKilled: boolean; Pid: number };
++        HostConfig: {
++          LogConfig: { Type: string };
++          Memory: number;
++          MemorySwap: number;
++          PidsLimit: number;
++          NetworkMode: string;
++          ReadonlyRootfs: boolean;
++          CapDrop: string[];
++          SecurityOpt: string[];
++        };
++      };
++      console.info(
++        `worker live stopped ${row.Id} scenario=${scenario} status=${row.State.Status} pid=${row.State.Pid} oom=${row.State.OOMKilled}`,
++      );
++      assert.equal(row.State.Pid, 0);
++      assert.equal(row.HostConfig.Memory, 512 * 1024 * 1024);
++      assert.equal(row.HostConfig.MemorySwap, 512 * 1024 * 1024);
++      assert.equal(row.HostConfig.PidsLimit, 32);
++      assert.equal(row.HostConfig.NetworkMode, 'none');
++      assert.equal(row.HostConfig.ReadonlyRootfs, true);
++      assert.equal(row.HostConfig.LogConfig.Type, 'none');
++      assert.ok(row.HostConfig.CapDrop.includes('ALL'));
++      observations.push({
++        scenario,
++        containerId: row.Id,
++        state,
++        exitCode: row.State.ExitCode,
++        oomKilled: row.State.OOMKilled,
++        pid: row.State.Pid,
++        result: outcome,
++      });
++      await writePrivateJson(root, join(path, '.live-observation.json'), observations.at(-1));
++      // Removal only after exact ID/labels/image inspection by the production helper.
++      assert.equal(await removeStoppedWorkerContainer(config, workerId), 'removed');
++      console.info(`worker live container removed ${row.Id}`);
++      if (scenario === 'boundary' || scenario === 'pids') {
++        assert.ok(diagnostic);
++        const expected =
++          scenario === 'pids'
++            ? ['pids-limit']
++            : [
++                'selected-original-readable',
++                'private-output-writable',
++                'network-denied',
++                'foreign-host-unavailable',
++                'readonly-source',
++                'readonly-original',
++                'no-credential-db-workflow-env',
++                'no-docker-socket',
++                'no-host-source',
++                'nonroot',
++                'native-png-probe',
++              ];
++        assert.deepEqual(diagnostic.checks.map((check) => check.name).sort(), expected.sort());
++        for (const check of diagnostic.checks) assert.equal(check.status, 'pass', check.name);
++        assert.equal(diagnostic.kind, 'diagnostic-report');
++        console.info(`worker live diagnostic evidence ${JSON.stringify(diagnostic)}`);
++      }
++      if (scenario === 'memory')
++        assert.equal(row.State.OOMKilled, true, 'memory canary must hit actual cgroup bound');
++      if (scenario === 'stdout-bomb') assert.equal(outcome, 'WORKER_OUTPUT_LIMIT');
++      if (scenario === 'timeout') assert.equal(outcome, 'WORKER_TIMEOUT');
++    }
++    console.info(`worker live observations ${JSON.stringify(observations)}`);
++    return { ...receipt, boundaryResult: 'pass', corpusResult: 'unverified' };
++  } finally {
++    const current = await lstat(root);
++    const marker = JSON.parse(await readFile(join(root, '.fixture-owner.json'), 'utf8')) as { nonce: string };
++    if (
++      safeToRemove &&
++      marker.nonce === nonce &&
++      current.dev === identity.dev &&
++      current.ino === identity.ino &&
++      current.uid === identity.uid
++    ) {
++      await rm(root, { recursive: true });
++      console.info(`worker live root removed ${root}`);
++    } else console.info(`worker live root retained ${root}`);
++  }
++}
++test('attachment diagnostic image has no Task5 import dependency', {
++  skip: env.CREW_V2_EXTRACTOR_LIVE_TEST !== '1',
++}, async () => {
++  const result = await buildAndRunDiagnosticFixture({ includeExtractors: false, target: 'linux/amd64' });
++  assert.equal(result.stage, 'diagnostic');
++  assert.equal(result.boundaryResult, 'pass');
++  assert.equal(result.corpusResult, 'unverified');
++});
+diff --git a/v2/server/test/attachments-worker.test.ts b/v2/server/test/attachments-worker.test.ts
+new file mode 100644
+index 0000000..0e9f81b
+--- /dev/null
++++ b/v2/server/test/attachments-worker.test.ts
+@@ -0,0 +1,563 @@
++import assert from 'node:assert/strict';
++import { createHash, randomUUID } from 'node:crypto';
++import { lstat, mkdir, readFile, realpath, rm, symlink } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { env } from 'node:process';
++import { test } from 'node:test';
++import { loadAttachmentConfig } from '../src/attachments/config.ts';
++import type { WorkerResult } from '../src/attachments/contracts.ts';
++import { createExtractionJobs, processExtraction } from '../src/attachments/jobs.ts';
++import { createFileBlobStore, prepareOwnedUpload, writePrivateJson } from '../src/attachments/storage.ts';
++import {
++  readWorkerFrames,
++  validateWorkerResult,
++  type WorkerInput,
++} from '../src/attachments/worker-protocol.ts';
++import type { ExtractorRunner } from '../src/attachments/worker-runner.ts';
++import { createDockerExtractorRunner, prepareWorkerDirectory } from '../src/attachments/worker-runner.ts';
++import type { Db } from '../src/platform/contracts.ts';
++import { databaseFixture } from './support/db.ts';
++
++const digest = (value: string) => createHash('sha256').update(value).digest('hex');
++test('attachment worker duplicate locator cannot bypass coverage by JSON key order', () => {
++  const input = workerInputFixture();
++  const good = workerResultFixture(input);
++  const unit = good.units[0];
++  assert.ok(unit);
++  const duplicate = {
++    ...unit,
++    id: 'u2',
++    locator: { byteEnd: 5, byteStart: 0, lineEnd: 1, lineStart: 1, kind: 'text' },
++  };
++  assert.throws(
++    () =>
++      validateWorkerResult(input, {
++        ...good,
++        units: [unit, duplicate],
++        files: good.files.map((f) => ({ ...f, unitIds: ['u1', 'u2'] })),
++      }),
++    { code: 'WORKER_RESULT_INVALID' },
++  );
++});
++test('attachment worker Docker inspect rejects foreign identity and pending created start', async () =>
++  scratch(async (root) => {
++    const input = workerInputFixture();
++    const path = await prepareWorkerDirectory(root, input);
++    const owner = JSON.parse(await readFile(join(path, '.owner.json'), 'utf8')) as { nonce: string };
++    const id = `crew-v2-extract-${input.jobId}-1`;
++    const imageDigest = `sha256:${digest('image')}`,
++      sourceTreeSha256 = digest('source');
++    const binary = join(root, 'owned-docker-fixture');
++    const inspection = join(root, 'inspection.json');
++    const code = `#!${process.execPath}\nimport {readFileSync} from 'node:fs';process.stdout.write(readFileSync(${JSON.stringify(inspection)}));\n`;
++    const { open } = await import('node:fs/promises');
++    const handle = await open(binary, 'wx', 0o700);
++    try {
++      await handle.writeFile(code);
++      await handle.sync();
++    } finally {
++      await handle.close();
++    }
++    await writePrivateJson(root, join(path, '.start-intent.json'), {
++      workerId: id,
++      nonce: owner.nonce,
++      imageDigest,
++      sourceTreeSha256,
++      binary,
++      binarySha256: digest(code),
++      mode: 'diagnostic',
++    });
++    const config = { dockerBinary: binary, imageDigest, sourceTreeSha256, storageRoot: root, wallMs: 1000 };
++    const runner = createDockerExtractorRunner(config);
++    const row = {
++      Id: digest('container'),
++      Image: imageDigest,
++      Name: `/${id}`,
++      Config: {
++        Labels: {
++          'crew.v2.nonce': owner.nonce,
++          'crew.v2.source': sourceTreeSha256,
++          'crew.v2.extraction': id,
++        },
++      },
++      State: { Running: false, Status: 'exited' },
++    };
++    async function inspect(value: unknown) {
++      const fd = await open(inspection, 'w', 0o600);
++      try {
++        await fd.writeFile(JSON.stringify([value]));
++      } finally {
++        await fd.close();
++      }
++      return runner.inspect(id);
++    }
++    assert.equal(await inspect(row), 'stopped');
++    assert.equal(await inspect({ ...row, Image: `sha256:${digest('foreign')}` }), 'unknown');
++    assert.equal(
++      await inspect({ ...row, Config: { Labels: { ...row.Config.Labels, 'crew.v2.nonce': randomUUID() } } }),
++      'unknown',
++    );
++    assert.equal(await inspect({ ...row, State: { Running: false, Status: 'created' } }), 'unknown');
++  }));
++export function workerInputFixture(): WorkerInput {
++  const config = loadAttachmentConfig({ CREW_V2_ATTACHMENT_STORAGE_ROOT: '/tmp/crew-worker-fixture' });
++  return {
++    version: 1,
++    jobId: randomUUID(),
++    generation: '1',
++    original: { attachmentId: randomUUID(), sha256: digest('original'), ownerId: 'owner' },
++    mime: 'text/plain',
++    inputName: 'original',
++    extractorVersion: 'fixture-v1',
++    config: { policySha256: config.policySha256, limits: config.limits },
++  };
++}
++export function workerResultFixture(input: WorkerInput): WorkerResult {
++  return {
++    version: 1,
++    jobId: input.jobId,
++    generation: input.generation,
++    original: input.original,
++    extractorVersion: input.extractorVersion,
++    configSha256: input.config.policySha256,
++    status: 'complete',
++    units: [
++      {
++        id: 'u1',
++        locator: { kind: 'text', byteStart: 0, byteEnd: 5, lineStart: 1, lineEnd: 1 },
++        needs: 'text',
++        state: 'available',
++        reason: null,
++      },
++    ],
++    files: [
++      {
++        relativeName: 'text-1.txt',
++        kind: 'text',
++        mime: 'text/plain',
++        sha256: digest('hello'),
++        byteLength: 5,
++        unitIds: ['u1'],
++      },
++    ],
++    problems: [],
++  };
++}
++test('attachment worker rejects stale results before persisting derivatives', () => {
++  const input = workerInputFixture();
++  assert.throws(() => validateWorkerResult(input, { ...workerResultFixture(input), generation: '0' }), {
++    code: 'STALE_EXTRACTION_GENERATION',
++  });
++});
++test('attachment worker accepts exact result and rejects identity changes', () => {
++  const input = workerInputFixture();
++  assert.equal(validateWorkerResult(input, workerResultFixture(input)).files[0]?.byteLength, 5);
++  for (const mutation of [
++    { jobId: randomUUID() },
++    { original: { ...input.original, sha256: digest('other') } },
++    { extractorVersion: 'other' },
++    { configSha256: digest('other') },
++    { version: 2 },
++  ]) {
++    assert.throws(() => validateWorkerResult(input, { ...workerResultFixture(input), ...mutation }), {
++      code: 'WORKER_RESULT_INVALID',
++    });
++  }
++});
++test('attachment worker rejects paths sizes hashes and false coverage', () => {
++  const input = workerInputFixture();
++  const good = workerResultFixture(input);
++  const file = good.files[0];
++  assert.ok(file);
++  for (const mutation of [
++    { relativeName: '../../x.txt' },
++    { relativeName: 'A.txt' },
++    { byteLength: -1 },
++    { byteLength: 101 * 1024 * 1024 },
++    { sha256: 'bad' },
++    { unitIds: ['unknown'] },
++    { kind: 'image', mime: 'text/plain' },
++  ]) {
++    assert.throws(() => validateWorkerResult(input, { ...good, files: [{ ...file, ...mutation }] }), {
++      code: 'WORKER_RESULT_INVALID',
++    });
++  }
++  assert.throws(() => validateWorkerResult(input, { ...good, files: [] }), { code: 'WORKER_RESULT_INVALID' });
++  assert.throws(
++    () =>
++      validateWorkerResult(input, {
++        ...good,
++        units: [{ ...good.units[0], state: 'missing', reason: 'unknown' }],
++      }),
++    { code: 'WORKER_RESULT_INVALID' },
++  );
++  assert.throws(() => validateWorkerResult(input, { ...good, units: [good.units[0], good.units[0]] }), {
++    code: 'WORKER_RESULT_INVALID',
++  });
++});
++async function scratch(work: (root: string) => Promise<void>): Promise<void> {
++  const nonce = randomUUID();
++  const root = join(await realpath(tmpdir()), `crew-v2-attachments-worker-${nonce}`);
++  // Receipt exists in memory before creation; deletion requires the same dev/ino/UID.
++  console.info(`worker fixture intent root=${root} nonce=${nonce} pid=${process.pid}`);
++  await mkdir(root, { mode: 0o700 });
++  const identity = await lstat(root);
++  try {
++    await work(root);
++  } finally {
++    const current = await lstat(root);
++    if (current.dev === identity.dev && current.ino === identity.ino && current.uid === identity.uid) {
++      await rm(root, { recursive: true });
++      console.info(
++        `worker fixture removed root=${root} dev=${identity.dev} ino=${identity.ino} uid=${identity.uid}`,
++      );
++    } else await Promise.reject(new Error('TEST_RESOURCE_IDENTITY_CHANGED'));
++  }
++}
++const chunks = async function* (text: string) {
++  const bytes = Buffer.from(text);
++  for (let at = 0; at < bytes.length; at += 7) yield bytes.subarray(at, at + 7);
++};
++const output = (input: WorkerInput) =>
++  [
++    { kind: 'file-start', name: 'text-1.txt', mime: 'text/plain', bytes: 5, sha256: digest('hello') },
++    { kind: 'file-chunk', name: 'text-1.txt', base64: 'aGVsbG8=' },
++    { kind: 'file-end', name: 'text-1.txt' },
++    { kind: 'result', body: workerResultFixture(input) },
++  ]
++    .map((frame) => `${JSON.stringify(frame)}\n`)
++    .join('');
++test('attachment worker bounded frames verify actual bytes and refuse forged terminal', async () => {
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    const result = await readWorkerFrames(input, chunks(output(input)), root);
++    assert.equal(result.files.length, 1);
++    assert.equal(await readFile(join(root, 'text-1.txt'), 'utf8'), 'hello');
++  });
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    await assert.rejects(
++      readWorkerFrames(input, chunks(output(input).replace('aGVsbG8=', 'd29ybGQ=')), root),
++      { code: 'WORKER_FILE_MISMATCH' },
++    );
++  });
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    await assert.rejects(
++      readWorkerFrames(input, chunks(output(input).replace('"byteLength":5', '"byteLength":4')), root),
++      { code: 'WORKER_FILE_MISMATCH' },
++    );
++  });
++});
++test('attachment worker frames cannot follow output symlink or reuse a filename', async () => {
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    await symlink('/dev/null', join(root, 'text-1.txt'));
++    await assert.rejects(readWorkerFrames(input, chunks(output(input)), root), { code: 'EEXIST' });
++  });
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    const data = output(input);
++    await assert.rejects(readWorkerFrames(input, chunks(data + data), root), {
++      code: 'WORKER_FRAME_INVALID',
++    });
++  });
++});
++test('attachment worker detects truncated streams and bounds decoded chunk before write', async () => {
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    await assert.rejects(readWorkerFrames(input, chunks(output(input).slice(0, -1)), root), {
++      code: 'WORKER_FRAME_TRUNCATED',
++    });
++  });
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    const bomb =
++      JSON.stringify({
++        kind: 'file-start',
++        name: 'bomb.txt',
++        mime: 'text/plain',
++        bytes: 65537,
++        sha256: digest('bomb'),
++      }) +
++      '\n' +
++      JSON.stringify({
++        kind: 'file-chunk',
++        name: 'bomb.txt',
++        base64: Buffer.alloc(65537).toString('base64'),
++      }) +
++      '\n';
++    await assert.rejects(readWorkerFrames(input, chunks(bomb), root), { code: 'WORKER_OUTPUT_LIMIT' });
++    assert.equal((await lstat(join(root, 'bomb.txt'))).size, 0);
++  });
++});
++test('attachment worker creates exclusive owned job intent and preserves it on unknown', async () => {
++  await scratch(async (root) => {
++    const input = workerInputFixture();
++    const directory = await prepareWorkerDirectory(root, input);
++    assert.ok(directory.endsWith(`/jobs/${input.jobId}/1`));
++    assert.equal(JSON.parse(await readFile(join(directory, '.owner.json'), 'utf8')).jobId, input.jobId);
++    await assert.rejects(prepareWorkerDirectory(root, input), { code: 'EEXIST' });
++  });
++});
++test('attachment worker extraction defaults denied before Task5 corpus receipt', async () => {
++  const runner = createDockerExtractorRunner({
++    dockerBinary: '/usr/local/bin/docker',
++    imageDigest: `sha256:${digest('image')}`,
++    sourceTreeSha256: digest('source'),
++    storageRoot: '/tmp/worker',
++    wallMs: 120000,
++  });
++  await assert.rejects(runner.start(workerInputFixture(), '/tmp/worker/jobs/unknown'), {
++    code: 'PRODUCTION_CORPUS_REQUIRED',
++  });
++});
++test('attachment worker legacy entry refuses ambient root and configuration', async () => {
++  await assert.rejects(
++    processExtraction({} as Db, randomUUID(), {} as never, {} as never, () => new Date()),
++    { code: 'EXTRACTION_CONFIG_REQUIRED' },
++  );
++  assert.throws(() =>
++    createExtractionJobs({
++      db: {} as Db,
++      runner: {} as never,
++      store: {} as never,
++      config: loadAttachmentConfig({ CREW_V2_ATTACHMENT_STORAGE_ROOT: '/tmp/unsafe/../root' }),
++      now: () => new Date(),
++    }),
++  );
++});
++test('attachment worker stops unterminated nonterminal line before more stream reads', async () =>
++  scratch(async (root) => {
++    const input = workerInputFixture();
++    async function* bomb() {
++      yield Buffer.from('{"kind":"file-chunk","name":"a.txt","base64":"');
++      yield Buffer.alloc(131072, 65);
++      throw new Error('STREAM_WAS_READ_PAST_LINE_LIMIT');
++    }
++    await assert.rejects(readWorkerFrames(input, bomb(), root), { code: 'WORKER_OUTPUT_LIMIT' });
++  }));
++test('attachment worker problem codes are allowlisted and messages cannot expose content', () => {
++  const input = workerInputFixture();
++  const result = {
++    ...workerResultFixture(input),
++    status: 'partial',
++    problems: [{ code: 'LIMIT_EXCEEDED', message: 'private-file-contents', unitIds: ['u1'] }],
++  };
++  assert.equal(validateWorkerResult(input, result).problems[0]?.message, 'Vượt giới hạn xử lý tệp.');
++  assert.throws(
++    () =>
++      validateWorkerResult(input, {
++        ...result,
++        problems: [{ code: 'UNREVIEWED_CODE', message: 'anything', unitIds: ['u1'] }],
++      }),
++    { code: 'WORKER_RESULT_INVALID' },
++  );
++});
++async function jobFixture(db: Db, root: string) {
++  const config = loadAttachmentConfig({
++    CREW_V2_ATTACHMENT_STORAGE_ROOT: root,
++    CREW_V2_ATTACHMENT_WORKER_WALL_MS: '100',
++  });
++  const conversation = randomUUID(),
++    compose = randomUUID(),
++    attachmentId = randomUUID(),
++    jobId = randomUUID(),
++    nonce = randomUUID();
++  const store = await createFileBlobStore({
++    root,
++    persistIntent: async (intent) => {
++      if (intent.kind !== 'orphan_derivative') return;
++      await db`insert into attachment_gc(id,attachment_id,extraction_id,kind,owned_key,ownership_nonce,state,generation,not_before) values(${randomUUID()},${intent.attachmentId},${intent.extractionId},${intent.kind},${intent.stageKey},${intent.ownershipNonce},'candidate',1,now()+interval '1 hour') on conflict(owned_key) do nothing`;
++    },
++  });
++  await db`insert into attachment_conversations(id) values(${conversation})`;
++  await db`insert into attachment_compose_sessions(id,conversation_id,purpose,state,expires_at) values(${compose},${conversation},'assistant_message','submitted',now()+interval '1 hour')`;
++  await prepareOwnedUpload(root, attachmentId, nonce);
++  const _original = Buffer.from('original');
++  await store.receive(
++    { attachmentId, generation: '1', expectedBytes: 8, expectedSha256: digest('original') },
++    chunks('original'),
++    new AbortController().signal,
++  );
++  await db`insert into attachment_uploads(id,compose_id,file_name,declared_mime,detected_mime,expected_bytes,expected_sha256,storage_key,ownership_nonce,policy_sha256,accepted_config,state,generation,durable_at,linked_at,expires_at) values(${attachmentId},${compose},'fixture.txt','text/plain','text/plain',8,${digest('original')},${`uploads/${attachmentId}/original`},${nonce},${config.policySha256},${db.json(JSON.parse(JSON.stringify({ limits: config.limits })))},'ready',1,now(),now(),now()+interval '1 hour')`;
++  await db`insert into attachment_extractions(id,attachment_id,original_sha256,extractor_version,config_sha256,status) values(${jobId},${attachmentId},${digest('original')},'fixture-v1',${config.policySha256},'pending')`;
++  let state: 'running' | 'stopped' | 'unknown' = 'stopped';
++  let input: WorkerInput | undefined;
++  let directory = '';
++  let started = 0;
++  let stale = false;
++  let fenced = false;
++  const runner: ExtractorRunner = {
++    async start(value, path) {
++      started++;
++      input = value;
++      directory = path;
++      state = 'running';
++      const [row] = await db`select worker_id,generation from attachment_extractions where id=${jobId}`;
++      assert.equal(row.worker_id, `crew-v2-extract-${jobId}-${value.generation}`);
++      assert.equal(String(row.generation), value.generation);
++      return { workerId: String(row.worker_id) };
++    },
++    async inspect() {
++      return state;
++    },
++    async stop() {
++      return state === 'unknown' ? 'unknown' : 'stopped';
++    },
++    async result() {
++      if (!input) throw new Error('FIXTURE_NOT_STARTED');
++      if (state === 'unknown') await new Promise((resolve) => setTimeout(resolve, 200));
++      state = state === 'unknown' ? 'unknown' : 'stopped';
++      const result = workerResultFixture(input);
++      await readWorkerFrames(input, chunks(output(input)), join(directory, 'output'));
++      if (fenced) await db`update attachment_extractions set generation=generation+1 where id=${jobId}`;
++      return stale ? { ...result, generation: '0' } : result;
++    },
++  };
++  return {
++    config,
++    store,
++    runner,
++    jobId,
++    setUnknown() {
++      state = 'unknown';
++    },
++    setStale() {
++      stale = true;
++    },
++    setFence() {
++      fenced = true;
++    },
++    get started() {
++      return started;
++    },
++  };
++}
++test(
++  'attachment worker DB generation CAS commits verified bytes once',
++  { skip: !env.CREW_V2_TEST_DATABASE_URL },
++  () =>
++    databaseFixture(9)(async (db) =>
++      scratch(async (root) => {
++        const f = await jobFixture(db, root);
++        const jobs = createExtractionJobs({
++          db,
++          runner: f.runner,
++          store: f.store,
++          config: f.config,
++          now: () => new Date(),
++        });
++        const result = await jobs.process(f.jobId);
++        assert.equal(result.status, 'complete');
++        assert.equal(result.derivatives.length, 1);
++        assert.equal(
++          await f.store.verify({
++            key: `derivatives/${result.original.attachmentId}/${result.id}/${result.derivatives[0]?.id}`,
++            sha256: digest('hello'),
++            byteLength: 5,
++          }),
++          'present',
++        );
++        assert.equal((await jobs.process(f.jobId)).manifestSha256, result.manifestSha256);
++        assert.equal(f.started, 1);
++      }),
++    ),
++);
++test(
++  'attachment worker DB refuses unavailable accepted configuration and stale result',
++  { skip: !env.CREW_V2_TEST_DATABASE_URL },
++  () =>
++    databaseFixture(9)(async (db) =>
++      scratch(async (root) => {
++        const f = await jobFixture(db, root);
++        await db`update attachment_extractions set config_sha256=${digest('old')} where id=${f.jobId}`;
++        const jobs = createExtractionJobs({
++          db,
++          runner: f.runner,
++          store: f.store,
++          config: f.config,
++          now: () => new Date(),
++        });
++        await assert.rejects(jobs.process(f.jobId), { code: 'CONFIG_NOT_AVAILABLE' });
++        assert.equal(f.started, 0);
++        await db`update attachment_extractions set config_sha256=${f.config.policySha256} where id=${f.jobId}`;
++        f.setStale();
++        await assert.rejects(jobs.process(f.jobId), { code: 'STALE_EXTRACTION_GENERATION' });
++        const [rows] = await db`select count(*) as n from attachment_derivatives`;
++        assert.equal(Number(rows.n), 0);
++      }),
++    ),
++);
++test(
++  'attachment worker DB expired lease with unknown prior worker blocks replacement',
++  { skip: !env.CREW_V2_TEST_DATABASE_URL },
++  () =>
++    databaseFixture(9)(async (db) =>
++      scratch(async (root) => {
++        const f = await jobFixture(db, root);
++        await db`update attachment_extractions set status='running',generation=1,worker_id=${`crew-v2-extract-${f.jobId}-1`},lease_until=now()-interval '1 hour' where id=${f.jobId}`;
++        f.setUnknown();
++        const jobs = createExtractionJobs({
++          db,
++          runner: f.runner,
++          store: f.store,
++          config: f.config,
++          now: () => new Date(),
++        });
++        await assert.rejects(jobs.process(f.jobId), { code: 'WORKER_CONTAINER_UNKNOWN' });
++        const [row] =
++          await db`select status,generation,worker_id from attachment_extractions where id=${f.jobId}`;
++        assert.equal(row.status, 'running');
++        assert.equal(String(row.generation), '1');
++        assert.equal(f.started, 0);
++      }),
++    ),
++);
++test(
++  'attachment worker DB stopped container without publisher closure cannot retry expired generation',
++  { skip: !env.CREW_V2_TEST_DATABASE_URL },
++  () =>
++    databaseFixture(9)(async (db) =>
++      scratch(async (root) => {
++        const f = await jobFixture(db, root);
++        await db`update attachment_extractions set status='running',generation=1,worker_id=${`crew-v2-extract-${f.jobId}-1`},lease_until=now()-interval '1 hour' where id=${f.jobId}`;
++        const jobs = createExtractionJobs({
++          db,
++          runner: f.runner,
++          store: f.store,
++          config: f.config,
++          now: () => new Date(),
++        });
++        await assert.rejects(jobs.process(f.jobId), { code: 'WORKER_PUBLISHER_UNKNOWN' });
++        assert.equal(f.started, 0);
++      }),
++    ),
++);
++test(
++  'attachment worker DB concurrent call starts once and fencing forbids publication',
++  { skip: !env.CREW_V2_TEST_DATABASE_URL },
++  () =>
++    databaseFixture(9)(async (db) =>
++      scratch(async (root) => {
++        const f = await jobFixture(db, root);
++        f.setFence();
++        const jobs = createExtractionJobs({
++          db,
++          runner: f.runner,
++          store: f.store,
++          config: f.config,
++          now: () => new Date(),
++        });
++        const first = jobs.process(f.jobId);
++        await assert.rejects(jobs.process(f.jobId), { code: 'EXTRACTION_BUSY' });
++        await assert.rejects(first, { code: 'STALE_EXTRACTION_GENERATION' });
++        assert.equal(f.started, 1);
++        const [row] = await db`select count(*) n from attachment_derivatives`;
++        assert.equal(Number(row.n), 0);
++        const [gc] = await db`select count(*) n from attachment_gc where kind='orphan_derivative'`;
++        assert.equal(Number(gc.n), 0);
++      }),
++    ),
++);

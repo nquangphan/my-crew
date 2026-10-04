@@ -1,0 +1,35 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/api-acceptance.test.ts
+
+{"level":30,"time":1790916995910,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57672"}
+{"level":30,"time":1790916996296,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57677"}
+✔ HTTP persistence graph commands events docs reconnect restart and backup restore (1076.406667ms)
+ℹ {"realHttp":true,"port0":true,"prefix":6,"restartPool":true,"firstUrl":"http://127.0.0.1:57672","reopenedUrl":"http://127.0.0.1:57677","containerId":"0bfd5bffe5fa98bdf4fab3085270874af8bd7a78c3706e68cb4ff3f7906f819f","restoredName":"crew_v2_restore_8aad56bc779347c38c1b918d4acfb352","dumpBytes":74979}
+{"level":30,"time":1790916996830,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57689"}
+✔ HTTP ticket cached replay cannot race current binding or machine revocation across pools (349.572875ms)
+{"level":30,"time":1790916997145,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57699"}
+{"level":30,"time":1790916998237,"pid":68904,"hostname":"Phans-MacBook-Pro.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+{"level":30,"time":1790916999260,"pid":68904,"hostname":"Phans-MacBook-Pro.local","reqId":"req-c","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✔ real SSE current credential revocation and owner expiry close streams without future data (2313.181208ms)
+{"level":30,"time":1790916999503,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57716"}
+{"level":30,"time":1790916999665,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57719"}
+✔ HTTP default dispatch denies; reported evidence stays finalizing until trusted research test attestation (440.722458ms)
+{"level":30,"time":1790916999896,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57725"}
+✔ HTTP all machine ticket mutation families reject cached replay after rebind (318.679917ms)
+{"level":30,"time":1790917000231,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57731"}
+✔ HTTP fifth repair result remains fenced until confirmed physical stop (327.332959ms)
+{"level":30,"time":1790917000541,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57736"}
+✔ current credential and event scope share one snapshot across rebind and revocation (265.007834ms)
+{"level":50,"time":1790917000743,"pid":68904,"hostname":"Phans-MacBook-Pro.local","reqId":"req-1","code":"INTERNAL_ERROR","msg":"Lỗi API"}
+✔ buildApp composes without migrations or listener; unknown DB errors are generic503 (251.6725ms)
+{"level":30,"time":1790917001064,"pid":68904,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57746"}
+✔ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (410.674375ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5948.366291

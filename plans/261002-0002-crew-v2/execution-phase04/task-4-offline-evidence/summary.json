@@ -1,0 +1,124 @@
+{
+  "kind": "bounded-offline-metadata-summary",
+  "allFourExitZero": true,
+  "protocolSchemaGenerationInvoked": false,
+  "runtimeInitInvoked": false,
+  "modelOrAuthInvoked": false,
+  "evidenceIntegrityReadback": true,
+  "entries": [
+    {
+      "stem": "claude-version",
+      "startedAt": "2026-10-03T11:46:30.027777+00:00",
+      "finishedAt": "2026-10-03T11:46:30.161193+00:00",
+      "pressureLevel": "2",
+      "availableBytes": 4336320512,
+      "quotaRemainingPercent": 73,
+      "argv": [
+        "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+        "--version"
+      ],
+      "stdoutBytes": 22,
+      "stdoutSha256": "3a5495706ad266f8675071284ae47afcf75aec014b4d93ad164de16cf4d01c42",
+      "scratchIdentity": {
+        "root": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk",
+        "device": 16777229,
+        "inode": 64470735,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "scratchRetained": true,
+      "wholeTreeProof": "UNVERIFIED"
+    },
+    {
+      "stem": "codex-version",
+      "startedAt": "2026-10-03T11:46:42.506736+00:00",
+      "finishedAt": "2026-10-03T11:46:42.695022+00:00",
+      "pressureLevel": "2",
+      "availableBytes": 4268933120,
+      "quotaRemainingPercent": 73,
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "--version"
+      ],
+      "stdoutBytes": 18,
+      "stdoutSha256": "da4d955cd9c193a96d80544a5a98d1e6baf53eb35e995d45c175a9c7dbac792a",
+      "scratchIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-version-vdftxo34",
+        "device": 16777229,
+        "inode": 64470806,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "scratchRetained": true,
+      "wholeTreeProof": "UNVERIFIED"
+    },
+    {
+      "stem": "claude-help",
+      "startedAt": "2026-10-03T11:46:54.249001+00:00",
+      "finishedAt": "2026-10-03T11:46:54.408730+00:00",
+      "pressureLevel": "2",
+      "availableBytes": 4563189760,
+      "quotaRemainingPercent": 73,
+      "argv": [
+        "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+        "--help"
+      ],
+      "stdoutBytes": 22114,
+      "stdoutSha256": "f12192d0e60545166396125ff47163f89bcfe4ed0a976771e7fb9bbf7e1ca486",
+      "scratchIdentity": {
+        "root": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie",
+        "device": 16777229,
+        "inode": 64470881,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "scratchRetained": true,
+      "wholeTreeProof": "UNVERIFIED"
+    },
+    {
+      "stem": "codex-help",
+      "startedAt": "2026-10-03T11:47:07.244371+00:00",
+      "finishedAt": "2026-10-03T11:47:07.377970+00:00",
+      "pressureLevel": "2",
+      "availableBytes": 3460562944,
+      "quotaRemainingPercent": 73,
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "--help"
+      ],
+      "stdoutBytes": 5849,
+      "stdoutSha256": "4a7f0188d4d6e6d812c5cfbcf82468336b899acd5e437de7450421a403c0071e",
+      "scratchIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-oxa3wnb2",
+        "device": 16777229,
+        "inode": 64470951,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "scratchRetained": true,
+      "wholeTreeProof": "UNVERIFIED"
+    }
+  ],
+  "knownFromExecutableVersion": {
+    "claude": "2.1.284 (Claude Code)",
+    "codex": "codex-cli 0.159.3"
+  },
+  "primaryCurrentDocs": [
+    {
+      "url": "https://learn.chatgpt.com/docs/app-server",
+      "use": "version-specific generator recipe; not installed schema proof"
+    },
+    {
+      "url": "https://learn.chatgpt.com/docs/developer-commands",
+      "use": "generator experimental fields require explicit option; not permission to invoke"
+    },
+    {
+      "url": "https://learn.chatgpt.com/docs/open-source",
+      "use": "public component source listing; no exact release license established"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "use": "public terms and product embedding conditions; no binary-specific redistribution clearance"
+    }
+  ]
+}

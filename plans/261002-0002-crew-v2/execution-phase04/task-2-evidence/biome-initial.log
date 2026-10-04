@@ -1,0 +1,1438 @@
+v2/gateway/src/models/model-reporter.ts:35:8 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    33 │   async sendApplied(body:ModelAppliedBody):Promise<string> {
+    34 │     const inventory=await this.store.get<Report>(body.inventoryReportId),boot=this.ports.currentBoot();
+  > 35 │     if(!inventory || inventory.kind!=='inventory' || inventory.envelope.configRevision!==this.desired?.revision || inventory.envelope.bootId!==boot?.bootId || inventory.envelope.bootGeneration!==boot.bootGeneration || hash(canonicalJson(inventory.envelope.body))!==body.observationDigest) throw new Error('INVENTORY_MISMATCH');
+       │        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    36 │     for(const runtime of ['claude','codex','api'] as const) {
+    37 │       if(!this.desired.enabled[runtime] && body.sourceStatus[runtime].state!=='disabled') throw new Error('SOURCE_DISABLED');
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    33 33 │     async sendApplied(body:ModelAppliedBody):Promise<string> {
+    34 34 │       const inventory=await this.store.get<Report>(body.inventoryReportId),boot=this.ports.currentBoot();
+    35    │ - ····if(!inventory·||·inventory.kind!=='inventory'·||·inventory.envelope.configRevision!==this.desired?.revision·||·inventory.envelope.bootId!==boot?.bootId·||·inventory.envelope.bootGeneration!==boot.bootGeneration·||·hash(canonicalJson(inventory.envelope.body))!==body.observationDigest)·throw·new·Error('INVENTORY_MISMATCH');
+       35 │ + ····if(inventory?.kind!=='inventory'·||·inventory.envelope.configRevision!==this.desired?.revision·||·inventory.envelope.bootId!==boot?.bootId·||·inventory.envelope.bootGeneration!==boot.bootGeneration·||·hash(canonicalJson(inventory.envelope.body))!==body.observationDigest)·throw·new·Error('INVENTORY_MISMATCH');
+    36 36 │       for(const runtime of ['claude','codex','api'] as const) {
+    37 37 │         if(!this.desired.enabled[runtime] && body.sourceStatus[runtime].state!=='disabled') throw new Error('SOURCE_DISABLED');
+  
+
+v2/gateway/test/credential-broker.test.ts:20:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    18 │   assert.equal(await broker.put(provider, Buffer.from('fixture-secret'), operation), a);
+    19 │   assert.equal(bridge.items.size, 1);
+  > 20 │   assert.match([...bridge.items.keys()][0]!, new RegExp(`^com.2pcrew.v2.${machine}.${provider}/`));
+       │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    21 │   await assert.rejects(broker.put(provider, Buffer.from('different'), operation), /CONFLICT/);
+    22 │   await broker.remove(a); await broker.remove(a);
+  
+
+v2/gateway/test/credential-provisioning.test.ts:48:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    46 │     await assert.rejects(provisioning.accept(envelope,2,[providerId]),/lost ACK/);
+    47 │     assert.equal([...items.values()].filter(b=>b.toString()==='crypto-fixture-secret').length,1);
+  > 48 │     const first=sent.at(-1)!; assert.equal(JSON.stringify(sent).includes('crypto-fixture-secret'),false);
+       │                 ^^^^^^^^^^^^
+    49 │     await provisioning.close(); await http.close();lose=false;
+    50 │     http=await HttpOperationJournal.open(root,transport); provisioning=await CredentialProvisioning.open(root,machineId,bridge,broker,http,clock);
+  
+
+v2/gateway/test/credential-provisioning.test.ts:57:18 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     mono=0; for(const key of [...items.keys()]) if(key.includes('.credential-keys/'))items.delete(key);
+    56 │     await assert.rejects(provisioning.accept({...envelope,id:randomUUID()},2,[providerId]),/KEY_LOST/);
+  > 57 │     assert.equal(sent.at(-1)!.route.endsWith('/key-lost'),true);
+       │                  ^^^^^^^^^^^^
+    58 │   } finally {await provisioning.close();await http.close();await rm(root,{recursive:true,force:true});}
+    59 │ });
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    55 55 │       mono=0; for(const key of [...items.keys()]) if(key.includes('.credential-keys/'))items.delete(key);
+    56 56 │       await assert.rejects(provisioning.accept({...envelope,id:randomUUID()},2,[providerId]),/KEY_LOST/);
+    57    │ - ····assert.equal(sent.at(-1)!.route.endsWith('/key-lost'),true);
+       57 │ + ····assert.equal(sent.at(-1)?.route.endsWith('/key-lost'),true);
+    58 58 │     } finally {await provisioning.close();await http.close();await rm(root,{recursive:true,force:true});}
+    59 59 │   });
+  
+
+v2/gateway/test/model-reporter.test.ts:23:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    21 │     await assert.rejects(reporter.reconnect(initialStatus().workflows,async () => {order.push('probe');return [];}),/lost reply/);
+    22 │     assert.deepEqual(order,['GET','probe']);
+  > 23 │     const first = sent[0]!.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
+       │                   ^^^^^^^^
+    24 │     assert.equal(first.sequence,'1'); assert.equal(first.configRevision,2);
+    25 │     await reporter.close(); await http.close();
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    21 21 │       await assert.rejects(reporter.reconnect(initialStatus().workflows,async () => {order.push('probe');return [];}),/lost reply/);
+    22 22 │       assert.deepEqual(order,['GET','probe']);
+    23    │ - ····const·first·=·sent[0]!.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+       23 │ + ····const·first·=·sent[0]?.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+    24 24 │       assert.equal(first.sequence,'1'); assert.equal(first.configRevision,2);
+    25 25 │       await reporter.close(); await http.close();
+  
+
+v2/gateway/test/model-reporter.test.ts:33:21 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    31 │     revision=3;
+    32 │     await reporter.reconnect(initialStatus().workflows,async()=>[]);
+  > 33 │     const inventory=sent.at(-1)!.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
+       │                     ^^^^^^^^^^^^
+    34 │     assert.equal(inventory.sequence,'2');
+    35 │     await reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    31 31 │       revision=3;
+    32 32 │       await reporter.reconnect(initialStatus().workflows,async()=>[]);
+    33    │ - ····const·inventory=sent.at(-1)!.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+       33 │ + ····const·inventory=sent.at(-1)?.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+    34 34 │       assert.equal(inventory.sequence,'2');
+    35 35 │       await reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+  
+
+v2/gateway/test/model-reporter.test.ts:36:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    34 │     assert.equal(inventory.sequence,'2');
+    35 │     await reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+  > 36 │     assert.equal((sent.at(-1)!.canonicalBody as {sequence:string}).sequence,'3');
+       │                   ^^^^^^^^^^^^
+    37 │     assert.equal((sent.at(-1)!.canonicalBody as {configRevision:number}).configRevision,3);
+    38 │   } finally {await reporter.close();await http.close();await rm(root,{recursive:true,force:true});}
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    34 34 │       assert.equal(inventory.sequence,'2');
+    35 35 │       await reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+    36    │ - ····assert.equal((sent.at(-1)!.canonicalBody·as·{sequence:string}).sequence,'3');
+       36 │ + ····assert.equal((sent.at(-1)?.canonicalBody·as·{sequence:string}).sequence,'3');
+    37 37 │       assert.equal((sent.at(-1)!.canonicalBody as {configRevision:number}).configRevision,3);
+    38 38 │     } finally {await reporter.close();await http.close();await rm(root,{recursive:true,force:true});}
+  
+
+v2/gateway/test/model-reporter.test.ts:37:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    35 │     await reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+    36 │     assert.equal((sent.at(-1)!.canonicalBody as {sequence:string}).sequence,'3');
+  > 37 │     assert.equal((sent.at(-1)!.canonicalBody as {configRevision:number}).configRevision,3);
+       │                   ^^^^^^^^^^^^
+    38 │   } finally {await reporter.close();await http.close();await rm(root,{recursive:true,force:true});}
+    39 │ });
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    35 35 │       await reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+    36 36 │       assert.equal((sent.at(-1)!.canonicalBody as {sequence:string}).sequence,'3');
+    37    │ - ····assert.equal((sent.at(-1)!.canonicalBody·as·{configRevision:number}).configRevision,3);
+       37 │ + ····assert.equal((sent.at(-1)?.canonicalBody·as·{configRevision:number}).configRevision,3);
+    38 38 │     } finally {await reporter.close();await http.close();await rm(root,{recursive:true,force:true});}
+    39 39 │   });
+  
+
+v2/gateway/src/models/contracts.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1  1 │   import type { ProjectionPin, Runtime, SourcePin } from '../host/status.ts';
+     2    │ - export·type·Capability·=·'tools'·|·'vision'·|·'text'·|·'stream'·|·'file_pdf'·|·'file_docx'·|·'file_xlsx'·|·'file_csv';
+        2 │ + export·type·Capability·=
+        3 │ + ··|·'tools'
+        4 │ + ··|·'vision'
+        5 │ + ··|·'text'
+        6 │ + ··|·'stream'
+        7 │ + ··|·'file_pdf'
+        8 │ + ··|·'file_docx'
+        9 │ + ··|·'file_xlsx'
+       10 │ + ··|·'file_csv';
+     3 11 │   export type ModelKey = { machineId: string; runtime: Runtime; providerId: string; modelId: string };
+     4    │ - export·type·ProbeContext·=·{·sourceTreeSha256:·string;·projectionManifestSha256:·string;·projectionTreeSha256:·string;·derivationSha256:·string;·binarySha256:·string;·policySha256:·string;·osVersion:·string·};
+     5    │ - export·type·ProbeResult·=·{·key:·ModelKey;·context:·ProbeContext;·observedAt:·string;·status:·'pass'|'fail'|'unverified';·capabilities:·Capability[];·evidenceDigest:·string;·errorCode:·string|null;·runtimeVersion:·string|null·};
+       12 │ + export·type·ProbeContext·=·{
+       13 │ + ··sourceTreeSha256:·string;
+       14 │ + ··projectionManifestSha256:·string;
+       15 │ + ··projectionTreeSha256:·string;
+       16 │ + ··derivationSha256:·string;
+       17 │ + ··binarySha256:·string;
+       18 │ + ··policySha256:·string;
+       19 │ + ··osVersion:·string;
+       20 │ + };
+       21 │ + export·type·ProbeResult·=·{
+       22 │ + ··key:·ModelKey;
+       23 │ + ··context:·ProbeContext;
+       24 │ + ··observedAt:·string;
+       25 │ + ··status:·'pass'·|·'fail'·|·'unverified';
+       26 │ + ··capabilities:·Capability[];
+       27 │ + ··evidenceDigest:·string;
+       28 │ + ··errorCode:·string·|·null;
+       29 │ + ··runtimeVersion:·string·|·null;
+       30 │ + };
+     6 31 │   export type Pair = { source: SourcePin; projection: ProjectionPin };
+     7    │ - export·type·ApiProviderConfig·=·{·id:·string;·endpoint:·string;·protocol:·'responses'|'chat-completions';·models:·{id:·string;·declared:·Capability[]}[];·credentialStatus:·'missing'|'pending'|'stored';·localHttp:·{enabled:·true;·allowedOrigin:·string}|null·};
+     8    │ - export·type·SourceConfig·=·{·revision:·number;·enabled:·Record<Runtime,·boolean>;·apiProviders:·ApiProviderConfig[]·};
+       32 │ + export·type·ApiProviderConfig·=·{
+       33 │ + ··id:·string;
+       34 │ + ··endpoint:·string;
+       35 │ + ··protocol:·'responses'·|·'chat-completions';
+       36 │ + ··models:·{·id:·string;·declared:·Capability[]·}[];
+       37 │ + ··credentialStatus:·'missing'·|·'pending'·|·'stored';
+       38 │ + ··localHttp:·{·enabled:·true;·allowedOrigin:·string·}·|·null;
+       39 │ + };
+       40 │ + export·type·SourceConfig·=·{
+       41 │ + ··revision:·number;
+       42 │ + ··enabled:·Record<Runtime,·boolean>;
+       43 │ + ··apiProviders:·ApiProviderConfig[];
+       44 │ + };
+     9 45 │   export type ModelInventoryBody = { entries: ProbeResult[] };
+    10    │ - export·type·ModelAppliedBody·=·{·inventoryReportId:·string;·sourceStatus:·Record<Runtime,·{state:·'disabled'|'ready'|'error';·errorCode:·string|null}>;·observationDigest:·string·};
+    11    │ - export·type·ModelReportEnvelope<T>·=·{reportId:·string;·bootId:·string;·bootGeneration:·string;·sequence:·string;·configRevision:·number;·body:·T};
+    12    │ - export·type·SecretEnvelope·=·{·id:·string;·machineId:·string;·providerId:·string;·keyId:·string;·configRevision:·number;·operationId:·string;·expiresAt:·string;·ephemeralPublicKey:·string;·nonce:·string;·ciphertext:·string;·tag:·string;·ciphertextSha256:·string·};
+    13    │ - export·type·SecretAck·=·{operationId:·string;·keyId:·string;·ciphertextSha256:·string;·credentialRef:·string};
+       46 │ + export·type·ModelAppliedBody·=·{
+       47 │ + ··inventoryReportId:·string;
+       48 │ + ··sourceStatus:·Record<Runtime,·{·state:·'disabled'·|·'ready'·|·'error';·errorCode:·string·|·null·}>;
+       49 │ + ··observationDigest:·string;
+       50 │ + };
+       51 │ + export·type·ModelReportEnvelope<T>·=·{
+       52 │ + ··reportId:·string;
+       53 │ + ··bootId:·string;
+       54 │ + ··bootGeneration:·string;
+       55 │ + ··sequence:·string;
+       56 │ + ··configRevision:·number;
+       57 │ + ··body:·T;
+       58 │ + };
+       59 │ + export·type·SecretEnvelope·=·{
+       60 │ + ··id:·string;
+       61 │ + ··machineId:·string;
+       62 │ + ··providerId:·string;
+       63 │ + ··keyId:·string;
+       64 │ + ··configRevision:·number;
+       65 │ + ··operationId:·string;
+       66 │ + ··expiresAt:·string;
+       67 │ + ··ephemeralPublicKey:·string;
+       68 │ + ··nonce:·string;
+       69 │ + ··ciphertext:·string;
+       70 │ + ··tag:·string;
+       71 │ + ··ciphertextSha256:·string;
+       72 │ + };
+       73 │ + export·type·SecretAck·=·{
+       74 │ + ··operationId:·string;
+       75 │ + ··keyId:·string;
+       76 │ + ··ciphertextSha256:·string;
+       77 │ + ··credentialRef:·string;
+       78 │ + };
+    14 79 │   
+  
+
+v2/gateway/src/models/credential-broker.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     8   8 │     private readonly machineId: string;
+     9   9 │     private readonly bridge: SecurityBridge;
+    10     │ - ··private·tail:Promise<unknown>·=·Promise.resolve();
+        10 │ + ··private·tail:·Promise<unknown>·=·Promise.resolve();
+    11  11 │     private readonly transports: ReadonlySet<SecretTransport>;
+    12  12 │     constructor(machineId: string, bridge: SecurityBridge, transports: readonly SecretTransport[]) {
+    13  13 │       if (!uuid.test(machineId)) throw new Error('INVALID_MACHINE');
+    14     │ - ····this.machineId·=·machineId;·this.bridge·=·bridge;·this.transports·=·new·Set(transports);
+        14 │ + ····this.machineId·=·machineId;
+        15 │ + ····this.bridge·=·bridge;
+        16 │ + ····this.transports·=·new·Set(transports);
+    15  17 │     }
+    16  18 │     private location(ref: string) {
+    17  19 │       const [machine, provider, operation, extra] = ref.split('_');
+    18     │ - ····if·(machine·!==·this.machineId·||·!provider·||·!operation·||·extra·||·!uuid.test(provider)·||·!uuid.test(operation))·throw·new·Error('INVALID_CREDENTIAL_REF');
+    19     │ - ····return·{service:·`com.2pcrew.v2.${machine}.${provider}`,·account:·operation};
+        20 │ + ····if·(
+        21 │ + ······machine·!==·this.machineId·||
+        22 │ + ······!provider·||
+        23 │ + ······!operation·||
+        24 │ + ······extra·||
+        25 │ + ······!uuid.test(provider)·||
+        26 │ + ······!uuid.test(operation)
+        27 │ + ····)
+        28 │ + ······throw·new·Error('INVALID_CREDENTIAL_REF');
+        29 │ + ····return·{·service:·`com.2pcrew.v2.${machine}.${provider}`,·account:·operation·};
+    20  30 │     }
+    21     │ - ··private·serialize<T>(action:()=>Promise<T>):Promise<T>·{const·next=this.tail.then(action);this.tail=next.catch(()=>{});return·next;}
+    22     │ - ··async·put(providerId:string,secret:Buffer,operationId:string=randomUUID()):Promise<string>·{
+    23     │ - ····const·ref=`${this.machineId}_${providerId}_${operationId}`,{service,account}=this.location(ref);
+    24     │ - ····if(!secret.length·||·secret.length>8192)·throw·new·Error('CREDENTIAL_INVALID');
+    25     │ - ····const·copy=Buffer.from(secret);
+    26     │ - ····return·this.serialize(async()=>·{
+        31 │ + ··private·serialize<T>(action:·()·=>·Promise<T>):·Promise<T>·{
+        32 │ + ····const·next·=·this.tail.then(action);
+        33 │ + ····this.tail·=·next.catch(()·=>·{});
+        34 │ + ····return·next;
+        35 │ + ··}
+        36 │ + ··async·put(providerId:·string,·secret:·Buffer,·operationId:·string·=·randomUUID()):·Promise<string>·{
+        37 │ + ····const·ref·=·`${this.machineId}_${providerId}_${operationId}`,
+        38 │ + ······{·service,·account·}·=·this.location(ref);
+        39 │ + ····if·(!secret.length·||·secret.length·>·8192)·throw·new·Error('CREDENTIAL_INVALID');
+        40 │ + ····const·copy·=·Buffer.from(secret);
+        41 │ + ····return·this.serialize(async·()·=>·{
+    27  42 │         try {
+    28     │ - ········const·old=await·this.bridge.read(service,account);
+    29     │ - ········if(old)·{try·{if(old.length!==copy.length·||·!timingSafeEqual(old,copy))·throw·new·Error('CREDENTIAL_CONFLICT');}·finally·{old.fill(0);}}
+    30     │ - ········else·await·this.bridge.put(service,account,copy);
+    31     │ - ········const·stored=await·this.bridge.read(service,account);
+    32     │ - ········try·{if(!stored·||·stored.length!==copy.length·||·!timingSafeEqual(stored,copy))·throw·new·Error('CREDENTIAL_READBACK_FAILED');}·finally·{stored?.fill(0);}
+        43 │ + ········const·old·=·await·this.bridge.read(service,·account);
+        44 │ + ········if·(old)·{
+        45 │ + ··········try·{
+        46 │ + ············if·(old.length·!==·copy.length·||·!timingSafeEqual(old,·copy))
+        47 │ + ··············throw·new·Error('CREDENTIAL_CONFLICT');
+        48 │ + ··········}·finally·{
+        49 │ + ············old.fill(0);
+        50 │ + ··········}
+        51 │ + ········}·else·await·this.bridge.put(service,·account,·copy);
+        52 │ + ········const·stored·=·await·this.bridge.read(service,·account);
+        53 │ + ········try·{
+        54 │ + ··········if·(!stored·||·stored.length·!==·copy.length·||·!timingSafeEqual(stored,·copy))
+        55 │ + ············throw·new·Error('CREDENTIAL_READBACK_FAILED');
+        56 │ + ········}·finally·{
+        57 │ + ··········stored?.fill(0);
+        58 │ + ········}
+    33  59 │           return ref;
+    34     │ - ······}·catch(error)·{throw·new·Error(error·instanceof·Error·&&·['CREDENTIAL_CONFLICT','CREDENTIAL_READBACK_FAILED'].includes(error.message)?error.message:'CREDENTIAL_STORE_FAILED');}
+    35     │ - ······finally·{copy.fill(0);}
+        60 │ + ······}·catch·(error)·{
+        61 │ + ········throw·new·Error(
+        62 │ + ··········error·instanceof·Error·&&
+        63 │ + ············['CREDENTIAL_CONFLICT',·'CREDENTIAL_READBACK_FAILED'].includes(error.message)
+        64 │ + ············?·error.message
+        65 │ + ············:·'CREDENTIAL_STORE_FAILED',
+        66 │ + ········);
+        67 │ + ······}·finally·{
+        68 │ + ········copy.fill(0);
+        69 │ + ······}
+    36  70 │       });
+    37  71 │     }
+    38  72 │     async withSecret(ref: string, callback: SecretTransport): Promise<void> {
+    39  73 │       if (!this.transports.has(callback)) throw new Error('UNTRUSTED_TRANSPORT');
+    40     │ - ····const·{service,account}·=·this.location(ref);
+    41     │ - ····let·bytes:·Buffer|null·=·null;
+    42     │ - ····let·channel:·Readable|undefined;
+        74 │ + ····const·{·service,·account·}·=·this.location(ref);
+        75 │ + ····let·bytes:·Buffer·|·null·=·null;
+        76 │ + ····let·channel:·Readable·|·undefined;
+    43  77 │       try {
+    44     │ - ······bytes·=·await·this.bridge.read(service,account);
+        78 │ + ······bytes·=·await·this.bridge.read(service,·account);
+    45  79 │         if (!bytes) throw new Error('CREDENTIAL_MISSING');
+    46  80 │         channel = Readable.from([bytes]);
+    47  81 │         await callback(channel);
+    48     │ - ····}·catch·{throw·new·Error('CREDENTIAL_TRANSPORT_FAILED');}
+    49     │ - ····finally·{channel?.destroy();·bytes?.fill(0);}
+        82 │ + ····}·catch·{
+        83 │ + ······throw·new·Error('CREDENTIAL_TRANSPORT_FAILED');
+        84 │ + ····}·finally·{
+        85 │ + ······channel?.destroy();
+        86 │ + ······bytes?.fill(0);
+        87 │ + ····}
+    50  88 │     }
+    51     │ - ··async·remove(ref:string):Promise<void>·{const·{service,account}=this.location(ref);await·this.serialize(async()=>{try·{await·this.bridge.remove(service,account);}·catch·{throw·new·Error('CREDENTIAL_STORE_FAILED');}});}
+        89 │ + ··async·remove(ref:·string):·Promise<void>·{
+        90 │ + ····const·{·service,·account·}·=·this.location(ref);
+        91 │ + ····await·this.serialize(async·()·=>·{
+        92 │ + ······try·{
+        93 │ + ········await·this.bridge.remove(service,·account);
+        94 │ + ······}·catch·{
+        95 │ + ········throw·new·Error('CREDENTIAL_STORE_FAILED');
+        96 │ + ······}
+        97 │ + ····});
+        98 │ + ··}
+    52  99 │   }
+    53 100 │   
+  
+
+v2/gateway/src/models/inventory.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     2  2 │   import type { ProbeResult, SourceConfig } from './contracts.ts';
+     3  3 │   import type { ModelProber } from './probe.ts';
+     4    │ - export·type·InventoryPorts={machineId:string;prober:ModelProber;catalogue:(runtime:Exclude<Runtime,'api'>)=>Promise<string[]>};
+        4 │ + export·type·InventoryPorts·=·{
+        5 │ + ··machineId:·string;
+        6 │ + ··prober:·ModelProber;
+        7 │ + ··catalogue:·(runtime:·Exclude<Runtime,·'api'>)·=>·Promise<string[]>;
+        8 │ + };
+     5  9 │   /** No cached entitlement, quota, readiness, certificate or owner model-list inference. */
+     6 10 │   export class ModelInventory {
+     7    │ - ··private·readonly·ports:InventoryPorts;
+     8    │ - ··constructor(ports:InventoryPorts)·{this.ports=ports;}
+     9    │ - ··async·collectInventory(config:SourceConfig,workflows:Record<Workflow,WorkflowStatus>):Promise<ProbeResult[]>·{
+    10    │ - ····const·entries:ProbeResult[]=[];
+    11    │ - ····for(const·runtime·of·['claude','codex','api']·as·const)·{
+    12    │ - ······if(!config.enabled[runtime])·continue;
+    13    │ - ······const·models:{providerId:string;modelId:string}[]=[];
+    14    │ - ······if(runtime==='api')·for(const·p·of·config.apiProviders)·for(const·m·of·p.models)·models.push({providerId:p.id,modelId:m.id});
+    15    │ - ······else·{let·catalogue:string[]=[];try·{catalogue=await·this.ports.catalogue(runtime);}·catch·{·/*·absent·is·unverified·*/·}
+    16    │ - ········for(const·id·of·new·Set(catalogue))·models.push({providerId:runtime,modelId:id});}
+    17    │ - ······for(const·workflow·of·['bmad','superpowers']·as·const)·{
+    18    │ - ········const·status=workflows[workflow],source=status.source.installed,slot=status.projections[runtime],projection=slot.installed;
+    19    │ - ········if(status.source.state!=='current'·||·slot.state!=='current'·||·!source·||·!projection·||·source.name!==workflow·||·projection.runtime!==runtime·||·projection.sourceTreeSha256!==source.sourceTreeSha256)·continue;
+    20    │ - ········for(const·model·of·models)·entries.push(await·this.ports.prober.probeModel({machineId:this.ports.machineId,runtime,...model},{source,projection},'offline'));
+       11 │ + ··private·readonly·ports:·InventoryPorts;
+       12 │ + ··constructor(ports:·InventoryPorts)·{
+       13 │ + ····this.ports·=·ports;
+       14 │ + ··}
+       15 │ + ··async·collectInventory(
+       16 │ + ····config:·SourceConfig,
+       17 │ + ····workflows:·Record<Workflow,·WorkflowStatus>,
+       18 │ + ··):·Promise<ProbeResult[]>·{
+       19 │ + ····const·entries:·ProbeResult[]·=·[];
+       20 │ + ····for·(const·runtime·of·['claude',·'codex',·'api']·as·const)·{
+       21 │ + ······if·(!config.enabled[runtime])·continue;
+       22 │ + ······const·models:·{·providerId:·string;·modelId:·string·}[]·=·[];
+       23 │ + ······if·(runtime·===·'api')
+       24 │ + ········for·(const·p·of·config.apiProviders)
+       25 │ + ··········for·(const·m·of·p.models)·models.push({·providerId:·p.id,·modelId:·m.id·});
+       26 │ + ······else·{
+       27 │ + ········let·catalogue:·string[]·=·[];
+       28 │ + ········try·{
+       29 │ + ··········catalogue·=·await·this.ports.catalogue(runtime);
+       30 │ + ········}·catch·{
+       31 │ + ··········/*·absent·is·unverified·*/
+       32 │ + ········}
+       33 │ + ········for·(const·id·of·new·Set(catalogue))·models.push({·providerId:·runtime,·modelId:·id·});
+       34 │ + ······}
+       35 │ + ······for·(const·workflow·of·['bmad',·'superpowers']·as·const)·{
+       36 │ + ········const·status·=·workflows[workflow],
+       37 │ + ··········source·=·status.source.installed,
+       38 │ + ··········slot·=·status.projections[runtime],
+       39 │ + ··········projection·=·slot.installed;
+       40 │ + ········if·(
+       41 │ + ··········status.source.state·!==·'current'·||
+       42 │ + ··········slot.state·!==·'current'·||
+       43 │ + ··········!source·||
+       44 │ + ··········!projection·||
+       45 │ + ··········source.name·!==·workflow·||
+       46 │ + ··········projection.runtime·!==·runtime·||
+       47 │ + ··········projection.sourceTreeSha256·!==·source.sourceTreeSha256
+       48 │ + ········)
+       49 │ + ··········continue;
+       50 │ + ········for·(const·model·of·models)
+       51 │ + ··········entries.push(
+       52 │ + ············await·this.ports.prober.probeModel(
+       53 │ + ··············{·machineId:·this.ports.machineId,·runtime,·...model·},
+       54 │ + ··············{·source,·projection·},
+       55 │ + ··············'offline',
+       56 │ + ············),
+       57 │ + ··········);
+    21 58 │         }
+    22 59 │       }
+  
+
+v2/gateway/src/models/model-reporter.ts:6:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  × Sort the imported names.
+  
+    4 │ import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts';
+    5 │ import type { HttpOperationJournal } from '../journal/http-operations.ts';
+  > 6 │ import type { ModelAppliedBody, ModelInventoryBody, ModelReportEnvelope, SourceConfig, ProbeResult } from './contracts.ts';
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    7 │ export type ReporterPorts = {getDesired: () => Promise<SourceConfig|null>; currentBoot: () => {bootId:string; bootGeneration:string}|null};
+    8 │ type Report = {formatVersion:1;kind:'inventory'|'applied'; envelope:ModelReportEnvelope<ModelInventoryBody|ModelAppliedBody>};
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     4  4 │   import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts';
+     5  5 │   import type { HttpOperationJournal } from '../journal/http-operations.ts';
+     6    │ - import·type·{·ModelAppliedBody,·ModelInventoryBody,·ModelReportEnvelope,·SourceConfig,·ProbeResult·}·from·'./contracts.ts';
+        6 │ + import·type·{·ModelAppliedBody,·ModelInventoryBody,·ModelReportEnvelope,·ProbeResult,·SourceConfig·}·from·'./contracts.ts';
+     7  7 │   export type ReporterPorts = {getDesired: () => Promise<SourceConfig|null>; currentBoot: () => {bootId:string; bootGeneration:string}|null};
+     8  8 │   type Report = {formatVersion:1;kind:'inventory'|'applied'; envelope:ModelReportEnvelope<ModelInventoryBody|ModelAppliedBody>};
+  
+
+v2/gateway/src/models/model-reporter.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     4   4 │   import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts';
+     5   5 │   import type { HttpOperationJournal } from '../journal/http-operations.ts';
+     6     │ - import·type·{·ModelAppliedBody,·ModelInventoryBody,·ModelReportEnvelope,·SourceConfig,·ProbeResult·}·from·'./contracts.ts';
+     7     │ - export·type·ReporterPorts·=·{getDesired:·()·=>·Promise<SourceConfig|null>;·currentBoot:·()·=>·{bootId:string;·bootGeneration:string}|null};
+     8     │ - type·Report·=·{formatVersion:1;kind:'inventory'|'applied';·envelope:ModelReportEnvelope<ModelInventoryBody|ModelAppliedBody>};
+         6 │ + import·type·{
+         7 │ + ··ModelAppliedBody,
+         8 │ + ··ModelInventoryBody,
+         9 │ + ··ModelReportEnvelope,
+        10 │ + ··SourceConfig,
+        11 │ + ··ProbeResult,
+        12 │ + }·from·'./contracts.ts';
+        13 │ + export·type·ReporterPorts·=·{
+        14 │ + ··getDesired:·()·=>·Promise<SourceConfig·|·null>;
+        15 │ + ··currentBoot:·()·=>·{·bootId:·string;·bootGeneration:·string·}·|·null;
+        16 │ + };
+        17 │ + type·Report·=·{
+        18 │ + ··formatVersion:·1;
+        19 │ + ··kind:·'inventory'·|·'applied';
+        20 │ + ··envelope:·ModelReportEnvelope<ModelInventoryBody·|·ModelAppliedBody>;
+        21 │ + };
+     9  22 │   export class ModelReporter {
+    10  23 │     private readonly store: AtomicRecords;
+    11  24 │     private readonly http: HttpOperationJournal;
+    12  25 │     private readonly ports: ReporterPorts;
+    13     │ - ··private·desired:·SourceConfig|null·=·null;
+    14     │ - ··private·constructor(store:AtomicRecords,http:HttpOperationJournal,ports:ReporterPorts)·{this.store=store;this.http=http;this.ports=ports;}
+    15     │ - ··static·async·open(root:string,http:HttpOperationJournal,ports:ReporterPorts):·Promise<ModelReporter>·{return·new·ModelReporter(await·AtomicRecords.open(join(root,'model-reports')),http,ports);}
+    16     │ - ··async·reconnect(workflows:Record<Workflow,WorkflowStatus>,collect:(config:SourceConfig,workflows:Record<Workflow,WorkflowStatus>)=>Promise<ProbeResult[]>):Promise<string>·{
+    17     │ - ····this.desired=await·this.ports.getDesired();
+    18     │ - ····if(!this.desired)·throw·new·Error('MODEL_CONFIG_NOT_CONFIGURED');
+    19     │ - ····const·snapshot=structuredClone(this.desired);
+    20     │ - ····const·entries=await·collect(snapshot,workflows);
+        26 │ + ··private·desired:·SourceConfig·|·null·=·null;
+        27 │ + ··private·constructor(store:·AtomicRecords,·http:·HttpOperationJournal,·ports:·ReporterPorts)·{
+        28 │ + ····this.store·=·store;
+        29 │ + ····this.http·=·http;
+        30 │ + ····this.ports·=·ports;
+        31 │ + ··}
+        32 │ + ··static·async·open(root:·string,·http:·HttpOperationJournal,·ports:·ReporterPorts):·Promise<ModelReporter>·{
+        33 │ + ····return·new·ModelReporter(await·AtomicRecords.open(join(root,·'model-reports')),·http,·ports);
+        34 │ + ··}
+        35 │ + ··async·reconnect(
+        36 │ + ····workflows:·Record<Workflow,·WorkflowStatus>,
+        37 │ + ····collect:·(config:·SourceConfig,·workflows:·Record<Workflow,·WorkflowStatus>)·=>·Promise<ProbeResult[]>,
+        38 │ + ··):·Promise<string>·{
+        39 │ + ····this.desired·=·await·this.ports.getDesired();
+        40 │ + ····if·(!this.desired)·throw·new·Error('MODEL_CONFIG_NOT_CONFIGURED');
+        41 │ + ····const·snapshot·=·structuredClone(this.desired);
+        42 │ + ····const·entries·=·await·collect(snapshot,·workflows);
+    21  43 │       // A subsequent desired GET is required on the next reconnect; no owner-session revision.
+    22     │ - ····return·this.sendInventory({entries});
+        44 │ + ····return·this.sendInventory({·entries·});
+    23  45 │     }
+    24     │ - ··async·sendInventory(body:ModelInventoryBody):Promise<string>·{
+    25     │ - ····const·config=this.desired;
+    26     │ - ····if(!config)·throw·new·Error('MODEL_CONFIG_NOT_CONFIGURED');
+    27     │ - ····for(const·entry·of·body.entries)·{
+    28     │ - ······if(!config.enabled[entry.key.runtime])·throw·new·Error('SOURCE_DISABLED');
+    29     │ - ······if(entry.key.runtime==='api'·&&·!config.apiProviders.some(p=>p.id===entry.key.providerId·&&·p.models.some(m=>m.id===entry.key.modelId)))·throw·new·Error('MODEL_NOT_CONFIGURED');
+        46 │ + ··async·sendInventory(body:·ModelInventoryBody):·Promise<string>·{
+        47 │ + ····const·config·=·this.desired;
+        48 │ + ····if·(!config)·throw·new·Error('MODEL_CONFIG_NOT_CONFIGURED');
+        49 │ + ····for·(const·entry·of·body.entries)·{
+        50 │ + ······if·(!config.enabled[entry.key.runtime])·throw·new·Error('SOURCE_DISABLED');
+        51 │ + ······if·(
+        52 │ + ········entry.key.runtime·===·'api'·&&
+        53 │ + ········!config.apiProviders.some(
+        54 │ + ··········(p)·=>·p.id·===·entry.key.providerId·&&·p.models.some((m)·=>·m.id·===·entry.key.modelId),
+        55 │ + ········)
+        56 │ + ······)
+        57 │ + ········throw·new·Error('MODEL_NOT_CONFIGURED');
+    30  58 │       }
+    31     │ - ····return·this.send('inventory',body);
+        59 │ + ····return·this.send('inventory',·body);
+    32  60 │     }
+    33     │ - ··async·sendApplied(body:ModelAppliedBody):Promise<string>·{
+    34     │ - ····const·inventory=await·this.store.get<Report>(body.inventoryReportId),boot=this.ports.currentBoot();
+    35     │ - ····if(!inventory·||·inventory.kind!=='inventory'·||·inventory.envelope.configRevision!==this.desired?.revision·||·inventory.envelope.bootId!==boot?.bootId·||·inventory.envelope.bootGeneration!==boot.bootGeneration·||·hash(canonicalJson(inventory.envelope.body))!==body.observationDigest)·throw·new·Error('INVENTORY_MISMATCH');
+    36     │ - ····for(const·runtime·of·['claude','codex','api']·as·const)·{
+    37     │ - ······if(!this.desired.enabled[runtime]·&&·body.sourceStatus[runtime].state!=='disabled')·throw·new·Error('SOURCE_DISABLED');
+    38     │ - ······if(this.desired.enabled[runtime]·&&·body.sourceStatus[runtime].state==='disabled')·throw·new·Error('APPLIED_MISMATCH');
+        61 │ + ··async·sendApplied(body:·ModelAppliedBody):·Promise<string>·{
+        62 │ + ····const·inventory·=·await·this.store.get<Report>(body.inventoryReportId),
+        63 │ + ······boot·=·this.ports.currentBoot();
+        64 │ + ····if·(
+        65 │ + ······!inventory·||
+        66 │ + ······inventory.kind·!==·'inventory'·||
+        67 │ + ······inventory.envelope.configRevision·!==·this.desired?.revision·||
+        68 │ + ······inventory.envelope.bootId·!==·boot?.bootId·||
+        69 │ + ······inventory.envelope.bootGeneration·!==·boot.bootGeneration·||
+        70 │ + ······hash(canonicalJson(inventory.envelope.body))·!==·body.observationDigest
+        71 │ + ····)
+        72 │ + ······throw·new·Error('INVENTORY_MISMATCH');
+        73 │ + ····for·(const·runtime·of·['claude',·'codex',·'api']·as·const)·{
+        74 │ + ······if·(!this.desired.enabled[runtime]·&&·body.sourceStatus[runtime].state·!==·'disabled')
+        75 │ + ········throw·new·Error('SOURCE_DISABLED');
+        76 │ + ······if·(this.desired.enabled[runtime]·&&·body.sourceStatus[runtime].state·===·'disabled')
+        77 │ + ········throw·new·Error('APPLIED_MISMATCH');
+    39  78 │       }
+    40  79 │       // Caller supplies measured source observation; this reporter never synthesizes ready.
+    41     │ - ····return·this.send('applied',body);
+        80 │ + ····return·this.send('applied',·body);
+    42  81 │     }
+    43     │ - ··private·async·send(kind:Report['kind'],body:ModelInventoryBody|ModelAppliedBody):Promise<string>·{
+    44     │ - ····const·boot=this.ports.currentBoot(),revision=this.desired?.revision;
+    45     │ - ····if(!boot·||·!/^[1-9][0-9]*$/.test(boot.bootGeneration)·||·!revision)·throw·new·Error('BOOT_NOT_CONFIGURED');
+    46     │ - ····const·id=await·this.store.transaction(async()=>·{
+    47     │ - ······const·counterId=`sequence:${boot.bootId}:${boot.bootGeneration}`;
+    48     │ - ······const·old=await·this.store.get<{formatVersion:1;sequence:string}>(counterId);
+    49     │ - ······const·sequence=(BigInt(old?.sequence??'0')+1n).toString();
+        82 │ + ··private·async·send(kind:·Report['kind'],·body:·ModelInventoryBody·|·ModelAppliedBody):·Promise<string>·{
+        83 │ + ····const·boot·=·this.ports.currentBoot(),
+        84 │ + ······revision·=·this.desired?.revision;
+        85 │ + ····if·(!boot·||·!/^[1-9][0-9]*$/.test(boot.bootGeneration)·||·!revision)
+        86 │ + ······throw·new·Error('BOOT_NOT_CONFIGURED');
+        87 │ + ····const·id·=·await·this.store.transaction(async·()·=>·{
+        88 │ + ······const·counterId·=·`sequence:${boot.bootId}:${boot.bootGeneration}`;
+        89 │ + ······const·old·=·await·this.store.get<{·formatVersion:·1;·sequence:·string·}>(counterId);
+        90 │ + ······const·sequence·=·(BigInt(old?.sequence·??·'0')·+·1n).toString();
+    50  91 │         // Counter first: a crash can skip a value but can never reuse an allocated sequence.
+    51     │ - ······await·this.store.put(counterId,{formatVersion:1,sequence});
+    52     │ - ······const·reportId=randomUUID(),envelope={reportId,...boot,sequence,configRevision:revision,body:JSON.parse(canonicalJson(body))};
+    53     │ - ······await·this.store.put(reportId,{formatVersion:1,kind,envelope});
+        92 │ + ······await·this.store.put(counterId,·{·formatVersion:·1,·sequence·});
+        93 │ + ······const·reportId·=·randomUUID(),
+        94 │ + ········envelope·=·{
+        95 │ + ··········reportId,
+        96 │ + ··········...boot,
+        97 │ + ··········sequence,
+        98 │ + ··········configRevision:·revision,
+        99 │ + ··········body:·JSON.parse(canonicalJson(body)),
+       100 │ + ········};
+       101 │ + ······await·this.store.put(reportId,·{·formatVersion:·1,·kind,·envelope·});
+    54 102 │         return reportId;
+    55 103 │       });
+    56 104 │       return this.replay(id);
+    57 105 │     }
+    58     │ - ··async·replay(id:string):Promise<string>·{
+    59     │ - ····const·report=await·this.store.get<Report>(id);
+    60     │ - ····if(!report)·throw·new·Error('UNKNOWN_MODEL_REPORT');
+    61     │ - ····await·this.http.prepare({operationId:id,method:'POST',route:`/v2/machine/models/${report.kind}`,phase:`model-${report.kind}`,canonicalBody:report.envelope});
+    62     │ - ····const·response=await·this.http.replay(id);
+    63     │ - ····if(response.status<200·||·response.status>=300)·throw·new·Error('MODEL_REPORT_REJECTED');
+    64     │ - ····const·body=response.body·as·{reportId?:unknown;accepted?:unknown};
+    65     │ - ····if(body?.reportId!==id·||·body.accepted!==true)·throw·new·Error('MODEL_REPORT_INVALID');
+       106 │ + ··async·replay(id:·string):·Promise<string>·{
+       107 │ + ····const·report·=·await·this.store.get<Report>(id);
+       108 │ + ····if·(!report)·throw·new·Error('UNKNOWN_MODEL_REPORT');
+       109 │ + ····await·this.http.prepare({
+  18 more lines truncated
+  
+
+v2/gateway/src/models/security-bridge.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     5   5 │   import { hash } from '../journal/atomic-records.ts';
+     6   6 │   export interface SecurityBridge {
+     7     │ - ··put(service:string,account:string,value:Buffer):Promise<void>;
+     8     │ - ··read(service:string,account:string):Promise<Buffer|null>;
+     9     │ - ··remove(service:string,account:string):Promise<void>;
+         7 │ + ··put(service:·string,·account:·string,·value:·Buffer):·Promise<void>;
+         8 │ + ··read(service:·string,·account:·string):·Promise<Buffer·|·null>;
+         9 │ + ··remove(service:·string,·account:·string):·Promise<void>;
+    10  10 │   }
+    11     │ - export·type·SecurityHelper·=·{path:string;sha256:string;·signedAclVerified?:()=>Promise<boolean>};
+        11 │ + export·type·SecurityHelper·=·{·path:·string;·sha256:·string;·signedAclVerified?:·()·=>·Promise<boolean>·};
+    12  12 │   /** Signed packaging/ACL proof is supplied only by trusted phase09 composition. */
+    13  13 │   export class SecurityFrameworkBridge implements SecurityBridge {
+    14     │ - ··private·readonly·helper:SecurityHelper;
+    15     │ - ··constructor(helper:SecurityHelper)·{this.helper=helper;}
+    16     │ - ··private·async·exchange(op:number,service:string,account:string,value:Buffer=Buffer.alloc(0)):Promise<Buffer|null>·{
+    17     │ - ····if(!/^com\.2pcrew\.v2\.[A-Za-z0-9.-]{1,200}$/.test(service)·||·!/^[A-Za-z0-9_-]{1,200}$/.test(account)·||·value.length>8192)·throw·new·Error('SECURITY_SCOPE_INVALID');
+    18     │ - ····let·fd:Awaited<ReturnType<typeof·open>>|undefined;
+        14 │ + ··private·readonly·helper:·SecurityHelper;
+        15 │ + ··constructor(helper:·SecurityHelper)·{
+        16 │ + ····this.helper·=·helper;
+        17 │ + ··}
+        18 │ + ··private·async·exchange(
+        19 │ + ····op:·number,
+        20 │ + ····service:·string,
+        21 │ + ····account:·string,
+        22 │ + ····value:·Buffer·=·Buffer.alloc(0),
+        23 │ + ··):·Promise<Buffer·|·null>·{
+        24 │ + ····if·(
+        25 │ + ······!/^com\.2pcrew\.v2\.[A-Za-z0-9.-]{1,200}$/.test(service)·||
+        26 │ + ······!/^[A-Za-z0-9_-]{1,200}$/.test(account)·||
+        27 │ + ······value.length·>·8192
+        28 │ + ····)
+        29 │ + ······throw·new·Error('SECURITY_SCOPE_INVALID');
+        30 │ + ····let·fd:·Awaited<ReturnType<typeof·open>>·|·undefined;
+    19  31 │       try {
+    20     │ - ······if(process.platform!=='darwin'·||·!this.helper.path.startsWith('/')·||·!await·this.helper.signedAclVerified?.())·throw·new·Error();
+    21     │ - ······fd=await·open(this.helper.path,constants.O_RDONLY|constants.O_NOFOLLOW);const·stat=await·fd.stat();
+    22     │ - ······if(!stat.isFile()·||·stat.uid!==process.getuid?.()·||·stat.nlink!==1·||·(stat.mode&0o077)!==0·||·!(stat.mode&0o100)·||·stat.size>4*1024*1024·||·hash(await·fd.readFile())!==this.helper.sha256)·throw·new·Error();
+    23     │ - ····}·catch·{throw·new·Error('SECURITY_BRIDGE_UNVERIFIED');}
+    24     │ - ····finally·{await·fd?.close();}
+    25     │ - ····const·s=Buffer.from(service),a=Buffer.from(account),frame=Buffer.alloc(16+s.length+a.length+value.length);
+    26     │ - ····frame.writeUInt32BE(op,0);frame.writeUInt32BE(s.length,4);frame.writeUInt32BE(a.length,8);frame.writeUInt32BE(value.length,12);s.copy(frame,16);a.copy(frame,16+s.length);value.copy(frame,16+s.length+a.length);
+        32 │ + ······if·(
+        33 │ + ········process.platform·!==·'darwin'·||
+        34 │ + ········!this.helper.path.startsWith('/')·||
+        35 │ + ········!(await·this.helper.signedAclVerified?.())
+        36 │ + ······)
+        37 │ + ········throw·new·Error();
+        38 │ + ······fd·=·await·open(this.helper.path,·constants.O_RDONLY·|·constants.O_NOFOLLOW);
+        39 │ + ······const·stat·=·await·fd.stat();
+        40 │ + ······if·(
+        41 │ + ········!stat.isFile()·||
+        42 │ + ········stat.uid·!==·process.getuid?.()·||
+        43 │ + ········stat.nlink·!==·1·||
+        44 │ + ········(stat.mode·&·0o077)·!==·0·||
+        45 │ + ········!(stat.mode·&·0o100)·||
+        46 │ + ········stat.size·>·4·*·1024·*·1024·||
+        47 │ + ········hash(await·fd.readFile())·!==·this.helper.sha256
+        48 │ + ······)
+        49 │ + ········throw·new·Error();
+        50 │ + ····}·catch·{
+        51 │ + ······throw·new·Error('SECURITY_BRIDGE_UNVERIFIED');
+        52 │ + ····}·finally·{
+        53 │ + ······await·fd?.close();
+        54 │ + ····}
+        55 │ + ····const·s·=·Buffer.from(service),
+        56 │ + ······a·=·Buffer.from(account),
+        57 │ + ······frame·=·Buffer.alloc(16·+·s.length·+·a.length·+·value.length);
+        58 │ + ····frame.writeUInt32BE(op,·0);
+        59 │ + ····frame.writeUInt32BE(s.length,·4);
+        60 │ + ····frame.writeUInt32BE(a.length,·8);
+        61 │ + ····frame.writeUInt32BE(value.length,·12);
+        62 │ + ····s.copy(frame,·16);
+        63 │ + ····a.copy(frame,·16·+·s.length);
+        64 │ + ····value.copy(frame,·16·+·s.length·+·a.length);
+    27  65 │       try {
+    28     │ - ······return·await·new·Promise<Buffer|null>((resolve,reject)=>·{
+    29     │ - ········const·child=spawn(this.helper.path,[],{env:{},stdio:['ignore','ignore','ignore','pipe']}),channel=child.stdio[3]·as·Duplex;
+    30     │ - ········const·chunks:Buffer[]=[];let·size=0,settled=false;
+    31     │ - ········const·finish=(error:boolean,result:Buffer|null=null)=>·{
+    32     │ - ··········if(settled)·{result?.fill(0);return;}settled=true;clearTimeout(timer);channel.destroy();child.kill();for(const·chunk·of·chunks)chunk.fill(0);
+    33     │ - ··········if(error)·reject(new·Error('SECURITY_BRIDGE_FAILED'));else·resolve(result);
+        66 │ + ······return·await·new·Promise<Buffer·|·null>((resolve,·reject)·=>·{
+        67 │ + ········const·child·=·spawn(this.helper.path,·[],·{·env:·{},·stdio:·['ignore',·'ignore',·'ignore',·'pipe']·}),
+        68 │ + ··········channel·=·child.stdio[3]·as·Duplex;
+        69 │ + ········const·chunks:·Buffer[]·=·[];
+        70 │ + ········let·size·=·0,
+        71 │ + ··········settled·=·false;
+        72 │ + ········const·finish·=·(error:·boolean,·result:·Buffer·|·null·=·null)·=>·{
+        73 │ + ··········if·(settled)·{
+        74 │ + ············result?.fill(0);
+        75 │ + ············return;
+        76 │ + ··········}
+        77 │ + ··········settled·=·true;
+        78 │ + ··········clearTimeout(timer);
+        79 │ + ··········channel.destroy();
+        80 │ + ··········child.kill();
+        81 │ + ··········for·(const·chunk·of·chunks)·chunk.fill(0);
+        82 │ + ··········if·(error)·reject(new·Error('SECURITY_BRIDGE_FAILED'));
+        83 │ + ··········else·resolve(result);
+    34  84 │           };
+    35     │ - ········const·timer=setTimeout(()=>finish(true),3000);
+    36     │ - ········channel.on('data',(chunk:Buffer)=>·{size+=chunk.length;if(size>8200)finish(true);else·chunks.push(chunk);});
+    37     │ - ········channel.on('error',()=>finish(true));child.on('error',()=>finish(true));
+    38     │ - ········child.on('close',code=>·{
+    39     │ - ··········if(code!==0·||·size<8)·return·finish(true);
+    40     │ - ··········const·reply=Buffer.concat(chunks);
+    41     │ - ··········try·{const·status=reply.readInt32BE(0),len=reply.readUInt32BE(4);if(len!==reply.length-8·||·len>8192)·return·finish(true);
+    42     │ - ············if(status===1·&&·len===0)·return·finish(false,null);if(status!==0)·return·finish(true);
+    43     │ - ············finish(false,Buffer.from(reply.subarray(8)));
+    44     │ - ··········}·finally·{reply.fill(0);}
+        85 │ + ········const·timer·=·setTimeout(()·=>·finish(true),·3000);
+        86 │ + ········channel.on('data',·(chunk:·Buffer)·=>·{
+        87 │ + ··········size·+=·chunk.length;
+        88 │ + ··········if·(size·>·8200)·finish(true);
+        89 │ + ··········else·chunks.push(chunk);
+        90 │ + ········});
+        91 │ + ········channel.on('error',·()·=>·finish(true));
+        92 │ + ········child.on('error',·()·=>·finish(true));
+        93 │ + ········child.on('close',·(code)·=>·{
+        94 │ + ··········if·(code·!==·0·||·size·<·8)·return·finish(true);
+        95 │ + ··········const·reply·=·Buffer.concat(chunks);
+        96 │ + ··········try·{
+        97 │ + ············const·status·=·reply.readInt32BE(0),
+        98 │ + ··············len·=·reply.readUInt32BE(4);
+        99 │ + ············if·(len·!==·reply.length·-·8·||·len·>·8192)·return·finish(true);
+       100 │ + ············if·(status·===·1·&&·len·===·0)·return·finish(false,·null);
+       101 │ + ············if·(status·!==·0)·return·finish(true);
+       102 │ + ············finish(false,·Buffer.from(reply.subarray(8)));
+       103 │ + ··········}·finally·{
+       104 │ + ············reply.fill(0);
+       105 │ + ··········}
+    45 106 │           });
+    46 107 │           channel.end(frame);
+    47 108 │         });
+    48     │ - ····}·finally·{frame.fill(0);}
+       109 │ + ····}·finally·{
+       110 │ + ······frame.fill(0);
+       111 │ + ····}
+    49 112 │     }
+    50     │ - ··async·put(service:string,account:string,value:Buffer):Promise<void>·{const·bytes=await·this.exchange(1,service,account,value);bytes?.fill(0);}
+    51     │ - ··read(service:string,account:string):Promise<Buffer|null>·{return·this.exchange(2,service,account);}
+    52     │ - ··async·remove(service:string,account:string):Promise<void>·{const·bytes=await·this.exchange(3,service,account);bytes?.fill(0);}
+       113 │ + ··async·put(service:·string,·account:·string,·value:·Buffer):·Promise<void>·{
+       114 │ + ····const·bytes·=·await·this.exchange(1,·service,·account,·value);
+       115 │ + ····bytes?.fill(0);
+       116 │ + ··}
+       117 │ + ··read(service:·string,·account:·string):·Promise<Buffer·|·null>·{
+       118 │ + ····return·this.exchange(2,·service,·account);
+  7 more lines truncated
+  
+
+v2/gateway/test/credential-broker.test.ts:37:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━
+
+  × Some imports or exports are not organized.
+  
+    35 │   assert.equal(received, 'no-log-fixture');
+    36 │ });
+  > 37 │ export { FakeSecurity };
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^
+  > 38 │ import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
+        ...
+  > 67 │     await assert.rejects(new SecurityFrameworkBridge({path:helper,sha256:'0'.repeat(64),signedAclVerified:async()=>true}).read('com.2pcrew.v2.fixture.provider','fixture-operation'),/UNVERIFIED/);
+  > 68 │   } finally {await rm(root,{recursive:true,force:true});}
+  > 69 │ });
+       │ ^^^
+    70 │ 
+  
+  i This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    35 │   assert.equal(received, 'no-log-fixture');
+    36 │ });
+  > 37 │ export { FakeSecurity };
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^
+    38 │ import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
+    39 │ test('credential broker native bridge rejects unverified helper before any keychain access',async()=> {
+  
+  i This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    36 │ });
+    37 │ export { FakeSecurity };
+  > 38 │ import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    39 │ test('credential broker native bridge rejects unverified helper before any keychain access',async()=> {
+    40 │   const native=new SecurityFrameworkBridge({path:'/nonexistent/crew-owned-helper',sha256:'0'.repeat(64)});
+  
+  i This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    37 │ export { FakeSecurity };
+    38 │ import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
+  > 39 │ test('credential broker native bridge rejects unverified helper before any keychain access',async()=> {
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 40 │   const native=new SecurityFrameworkBridge({path:'/nonexistent/crew-owned-helper',sha256:'0'.repeat(64)});
+  > 41 │   await assert.rejects(native.put('com.2pcrew.v2.machine.provider','operation',Buffer.from('no-keychain-fixture')),e=>e instanceof Error && e.message==='SECURITY_BRIDGE_UNVERIFIED');
+  > 42 │ });
+       │ ^^^
+    43 │ test('credential broker serializes conflicting local writes and never returns bridge secret errors',async()=> {
+    44 │   const bridge=new FakeSecurity(),broker=new CredentialBroker(randomUUID(),bridge,[]),provider=randomUUID(),operation=randomUUID();
+  
+  i Sort these imports.
+  
+    50 │   await assert.rejects(denied.put(provider,Buffer.from('fixture')),e=>e instanceof Error && e.message==='CREDENTIAL_STORE_FAILED');
+    51 │ });
+  > 52 │ import { execFile } from 'node:child_process';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 53 │ import { promisify } from 'node:util';
+  > 54 │ import { chmod,mkdtemp,readFile,realpath,rm } from 'node:fs/promises';
+  > 55 │ import { join } from 'node:path';
+  > 56 │ import { tmpdir } from 'node:os';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    57 │ import { hash } from '../src/journal/atomic-records.ts';
+    58 │ test('credential broker native FD framing runs only against unsigned owned fake helper', {skip:process.platform!=='darwin'},async()=> {
+  
+  i This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    56 │ import { tmpdir } from 'node:os';
+    57 │ import { hash } from '../src/journal/atomic-records.ts';
+  > 58 │ test('credential broker native FD framing runs only against unsigned owned fake helper', {skip:process.platform!=='darwin'},async()=> {
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 59 │   const root=await mkdtemp(join(await realpath(tmpdir()),'crew-security-channel-'));
+        ...
+  > 67 │     await assert.rejects(new SecurityFrameworkBridge({path:helper,sha256:'0'.repeat(64),signedAclVerified:async()=>true}).read('com.2pcrew.v2.fixture.provider','fixture-operation'),/UNVERIFIED/);
+  > 68 │   } finally {await rm(root,{recursive:true,force:true});}
+  > 69 │ });
+       │ ^^^
+    70 │ 
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+    35 35 │     assert.equal(received, 'no-log-fixture');
+    36 36 │   });
+       37 │ + 
+    37 38 │   export { FakeSecurity };
+       39 │ + 
+    38 40 │   import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
+       41 │ + 
+    39 42 │   test('credential broker native bridge rejects unverified helper before any keychain access',async()=> {
+    40 43 │     const native=new SecurityFrameworkBridge({path:'/nonexistent/crew-owned-helper',sha256:'0'.repeat(64)});
+    ····· │ 
+    51 54 │   });
+    52 55 │   import { execFile } from 'node:child_process';
+    53    │ - import·{·promisify·}·from·'node:util';
+    54    │ - import·{·chmod,mkdtemp,readFile,realpath,rm·}·from·'node:fs/promises';
+       56 │ + import·{·chmod,mkdtemp,readFile,realpath,rm·}·from·'node:fs/promises';
+       57 │ + import·{·tmpdir·}·from·'node:os';
+    55 58 │   import { join } from 'node:path';
+    56    │ - import·{·tmpdir·}·from·'node:os';
+       59 │ + import·{·promisify·}·from·'node:util';
+    57 60 │   import { hash } from '../src/journal/atomic-records.ts';
+       61 │ + 
+    58 62 │   test('credential broker native FD framing runs only against unsigned owned fake helper', {skip:process.platform!=='darwin'},async()=> {
+    59 63 │     const root=await mkdtemp(join(await realpath(tmpdir()),'crew-security-channel-'));
+  
+
+v2/gateway/test/credential-broker.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     7   7 │   class FakeSecurity implements SecurityBridge {
+     8   8 │     readonly items = new Map<string, Buffer>();
+     9     │ - ··async·put(service:·string,·account:·string,·value:·Buffer)·{·this.items.set(`${service}/${account}`,·Buffer.from(value));·}
+    10     │ - ··async·read(service:·string,·account:·string)·{const·b·=·this.items.get(`${service}/${account}`);·return·b·?·Buffer.from(b)·:·null;}
+    11     │ - ··async·remove(service:·string,·account:·string)·{this.items.delete(`${service}/${account}`);}
+         9 │ + ··async·put(service:·string,·account:·string,·value:·Buffer)·{
+        10 │ + ····this.items.set(`${service}/${account}`,·Buffer.from(value));
+        11 │ + ··}
+        12 │ + ··async·read(service:·string,·account:·string)·{
+        13 │ + ····const·b·=·this.items.get(`${service}/${account}`);
+        14 │ + ····return·b·?·Buffer.from(b)·:·null;
+        15 │ + ··}
+        16 │ + ··async·remove(service:·string,·account:·string)·{
+        17 │ + ····this.items.delete(`${service}/${account}`);
+        18 │ + ··}
+    12  19 │   }
+    13  20 │   test('credential broker scopes updates by machine/provider/operation and removes idempotently', async () => {
+    14     │ - ··const·bridge·=·new·FakeSecurity(),·machine·=·randomUUID(),·provider·=·randomUUID(),·operation·=·randomUUID();
+        21 │ + ··const·bridge·=·new·FakeSecurity(),
+        22 │ + ····machine·=·randomUUID(),
+        23 │ + ····provider·=·randomUUID(),
+        24 │ + ····operation·=·randomUUID();
+    15  25 │     const broker = new CredentialBroker(machine, bridge, []);
+    16  26 │     const a = await broker.put(provider, Buffer.from('fixture-secret'), operation);
+    ······ │ 
+    20  30 │     assert.match([...bridge.items.keys()][0]!, new RegExp(`^com.2pcrew.v2.${machine}.${provider}/`));
+    21  31 │     await assert.rejects(broker.put(provider, Buffer.from('different'), operation), /CONFLICT/);
+    22     │ - ··await·broker.remove(a);·await·broker.remove(a);
+        32 │ + ··await·broker.remove(a);
+        33 │ + ··await·broker.remove(a);
+    23  34 │     assert.equal(bridge.items.size, 0);
+    24  35 │     const other = new CredentialBroker(randomUUID(), bridge, []);
+    ······ │ 
+    28  39 │     const bridge = new FakeSecurity();
+    29  40 │     let received = '';
+    30     │ - ··const·trusted:·SecretTransport·=·async·(channel)·=>·{for·await(const·chunk·of·channel)·received·+=·chunk.toString();·throw·new·Error(received);};
+        41 │ + ··const·trusted:·SecretTransport·=·async·(channel)·=>·{
+        42 │ + ····for·await·(const·chunk·of·channel)·received·+=·chunk.toString();
+        43 │ + ····throw·new·Error(received);
+        44 │ + ··};
+    31  45 │     const broker = new CredentialBroker(randomUUID(), bridge, [trusted]);
+    32  46 │     const ref = await broker.put(randomUUID(), Buffer.from('no-log-fixture'));
+    33     │ - ··await·assert.rejects(broker.withSecret(ref,·async·()·=>·{}),·/UNTRUSTED_TRANSPORT/);
+    34     │ - ··await·assert.rejects(broker.withSecret(ref,·trusted),·e·=>·e·instanceof·Error·&&·e.message·===·'CREDENTIAL_TRANSPORT_FAILED');
+        47 │ + ··await·assert.rejects(
+        48 │ + ····broker.withSecret(ref,·async·()·=>·{}),
+        49 │ + ····/UNTRUSTED_TRANSPORT/,
+        50 │ + ··);
+        51 │ + ··await·assert.rejects(
+        52 │ + ····broker.withSecret(ref,·trusted),
+        53 │ + ····(e)·=>·e·instanceof·Error·&&·e.message·===·'CREDENTIAL_TRANSPORT_FAILED',
+        54 │ + ··);
+    35  55 │     assert.equal(received, 'no-log-fixture');
+    36  56 │   });
+    37  57 │   export { FakeSecurity };
+    38  58 │   import { SecurityFrameworkBridge } from '../src/models/security-bridge.ts';
+    39     │ - test('credential·broker·native·bridge·rejects·unverified·helper·before·any·keychain·access',async()=>·{
+    40     │ - ··const·native=new·SecurityFrameworkBridge({path:'/nonexistent/crew-owned-helper',sha256:'0'.repeat(64)});
+    41     │ - ··await·assert.rejects(native.put('com.2pcrew.v2.machine.provider','operation',Buffer.from('no-keychain-fixture')),e=>e·instanceof·Error·&&·e.message==='SECURITY_BRIDGE_UNVERIFIED');
+        59 │ + test('credential·broker·native·bridge·rejects·unverified·helper·before·any·keychain·access',·async·()·=>·{
+        60 │ + ··const·native·=·new·SecurityFrameworkBridge({
+        61 │ + ····path:·'/nonexistent/crew-owned-helper',
+        62 │ + ····sha256:·'0'.repeat(64),
+        63 │ + ··});
+        64 │ + ··await·assert.rejects(
+        65 │ + ····native.put('com.2pcrew.v2.machine.provider',·'operation',·Buffer.from('no-keychain-fixture')),
+        66 │ + ····(e)·=>·e·instanceof·Error·&&·e.message·===·'SECURITY_BRIDGE_UNVERIFIED',
+        67 │ + ··);
+    42  68 │   });
+    43     │ - test('credential·broker·serializes·conflicting·local·writes·and·never·returns·bridge·secret·errors',async()=>·{
+    44     │ - ··const·bridge=new·FakeSecurity(),broker=new·CredentialBroker(randomUUID(),bridge,[]),provider=randomUUID(),operation=randomUUID();
+    45     │ - ··const·results=await·Promise.allSettled([broker.put(provider,Buffer.from('first'),operation),broker.put(provider,Buffer.from('second'),operation)]);
+    46     │ - ··assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+    47     │ - ··assert.equal(results.filter(r=>r.status==='rejected').length,1);
+    48     │ - ··const·bad:SecurityBridge={read:async()=>{throw·new·Error('plaintext·fixture·secret');},put:async()=>{},remove:async()=>{throw·new·Error('plaintext·fixture·secret');}};
+    49     │ - ··const·denied=new·CredentialBroker(randomUUID(),bad,[]);
+    50     │ - ··await·assert.rejects(denied.put(provider,Buffer.from('fixture')),e=>e·instanceof·Error·&&·e.message==='CREDENTIAL_STORE_FAILED');
+        69 │ + test('credential·broker·serializes·conflicting·local·writes·and·never·returns·bridge·secret·errors',·async·()·=>·{
+        70 │ + ··const·bridge·=·new·FakeSecurity(),
+        71 │ + ····broker·=·new·CredentialBroker(randomUUID(),·bridge,·[]),
+        72 │ + ····provider·=·randomUUID(),
+        73 │ + ····operation·=·randomUUID();
+        74 │ + ··const·results·=·await·Promise.allSettled([
+        75 │ + ····broker.put(provider,·Buffer.from('first'),·operation),
+        76 │ + ····broker.put(provider,·Buffer.from('second'),·operation),
+        77 │ + ··]);
+        78 │ + ··assert.equal(results.filter((r)·=>·r.status·===·'fulfilled').length,·1);
+        79 │ + ··assert.equal(results.filter((r)·=>·r.status·===·'rejected').length,·1);
+        80 │ + ··const·bad:·SecurityBridge·=·{
+        81 │ + ····read:·async·()·=>·{
+        82 │ + ······throw·new·Error('plaintext·fixture·secret');
+        83 │ + ····},
+        84 │ + ····put:·async·()·=>·{},
+        85 │ + ····remove:·async·()·=>·{
+        86 │ + ······throw·new·Error('plaintext·fixture·secret');
+        87 │ + ····},
+        88 │ + ··};
+        89 │ + ··const·denied·=·new·CredentialBroker(randomUUID(),·bad,·[]);
+        90 │ + ··await·assert.rejects(
+        91 │ + ····denied.put(provider,·Buffer.from('fixture')),
+        92 │ + ····(e)·=>·e·instanceof·Error·&&·e.message·===·'CREDENTIAL_STORE_FAILED',
+        93 │ + ··);
+    51  94 │   });
+    52  95 │   import { execFile } from 'node:child_process';
+    53  96 │   import { promisify } from 'node:util';
+    54     │ - import·{·chmod,mkdtemp,readFile,realpath,rm·}·from·'node:fs/promises';
+        97 │ + import·{·chmod,·mkdtemp,·readFile,·realpath,·rm·}·from·'node:fs/promises';
+    55  98 │   import { join } from 'node:path';
+    56  99 │   import { tmpdir } from 'node:os';
+    57 100 │   import { hash } from '../src/journal/atomic-records.ts';
+    58     │ - test('credential·broker·native·FD·framing·runs·only·against·unsigned·owned·fake·helper',·{skip:process.platform!=='darwin'},async()=>·{
+    59     │ - ··const·root=await·mkdtemp(join(await·realpath(tmpdir()),'crew-security-channel-'));
+    60     │ - ··const·helper=join(root,'fake-security-channel');
+       101 │ + test('credential·broker·native·FD·framing·runs·only·against·unsigned·owned·fake·helper',·{
+       102 │ + ··skip:·process.platform·!==·'darwin',
+       103 │ + },·async·()·=>·{
+       104 │ + ··const·root·=·await·mkdtemp(join(await·realpath(tmpdir()),·'crew-security-channel-'));
+       105 │ + ··const·helper·=·join(root,·'fake-security-channel');
+    61 106 │     try {
+    62     │ - ····await·promisify(execFile)('/usr/bin/clang',['-Wall','-Wextra','-Werror',new·URL('./fixtures/models/security-channel.c',import.meta.url).pathname,'-o',helper]);await·chmod(helper,0o700);
+    63     │ - ····const·sha256=hash(await·readFile(helper)),native=new·SecurityFrameworkBridge({path:helper,sha256,signedAclVerified:async()=>true});
+    64     │ - ····await·native.put('com.2pcrew.v2.fixture.provider','fixture-operation',Buffer.from('channel-fixture'));
+    65     │ - ····const·bytes=await·native.read('com.2pcrew.v2.fixture.provider','fixture-operation');assert.equal(bytes?.toString(),'channel-fixture');bytes?.fill(0);
+    66     │ - ····await·native.remove('com.2pcrew.v2.fixture.provider','fixture-operation');await·native.remove('com.2pcrew.v2.fixture.provider','fixture-operation');
+    67     │ - ····await·assert.rejects(new·SecurityFrameworkBridge({path:helper,sha256:'0'.repeat(64),signedAclVerified:async()=>true}).read('com.2pcrew.v2.fixture.provider','fixture-operation'),/UNVERIFIED/);
+    68     │ - ··}·finally·{await·rm(root,{recursive:true,force:true});}
+       107 │ + ····await·promisify(execFile)('/usr/bin/clang',·[
+       108 │ + ······'-Wall',
+       109 │ + ······'-Wextra',
+       110 │ + ······'-Werror',
+       111 │ + ······new·URL('./fixtures/models/security-channel.c',·import.meta.url).pathname,
+       112 │ + ······'-o',
+       113 │ + ······helper,
+       114 │ + ····]);
+       115 │ + ····await·chmod(helper,·0o700);
+       116 │ + ····const·sha256·=·hash(await·readFile(helper)),
+       117 │ + ······native·=·new·SecurityFrameworkBridge({·path:·helper,·sha256,·signedAclVerified:·async·()·=>·true·});
+       118 │ + ····await·native.put('com.2pcrew.v2.fixture.provider',·'fixture-operation',·Buffer.from('channel-fixture'));
+       119 │ + ····const·bytes·=·await·native.read('com.2pcrew.v2.fixture.provider',·'fixture-operation');
+       120 │ + ····assert.equal(bytes?.toString(),·'channel-fixture');
+       121 │ + ····bytes?.fill(0);
+       122 │ + ····await·native.remove('com.2pcrew.v2.fixture.provider',·'fixture-operation');
+       123 │ + ····await·native.remove('com.2pcrew.v2.fixture.provider',·'fixture-operation');
+       124 │ + ····await·assert.rejects(
+       125 │ + ······new·SecurityFrameworkBridge({
+       126 │ + ········path:·helper,
+       127 │ + ········sha256:·'0'.repeat(64),
+       128 │ + ········signedAclVerified:·async·()·=>·true,
+       129 │ + ······}).read('com.2pcrew.v2.fixture.provider',·'fixture-operation'),
+       130 │ + ······/UNVERIFIED/,
+       131 │ + ····);
+       132 │ + ··}·finally·{
+  4 more lines truncated
+  
+
+v2/gateway/test/credential-provisioning.test.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━
+
+  × Some imports or exports are not organized.
+  
+   > 1 │ import assert from 'node:assert/strict';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 2 │ import { createCipheriv, createHash, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
+   > 3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+   > 4 │ import { tmpdir } from 'node:os';
+        ...
+  > 19 │   return {ephemeralPublicKey:ephemeral.publicKey.export({type:'spki',format:'der'}).toString('base64'),nonce:nonce.toString('base64'),ciphertext:ciphertext.toString('base64'),tag:c.getAuthTag().toString('base64'),ciphertextSha256:createHash('sha256').update(ciphertext).digest('hex')};
+  > 20 │ }
+       │ ^
+    21 │ test('credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss',async()=> {
+    22 │   const root=await mkdtemp(join(await realpath(tmpdir()),'crew-model-crypto-'));
+  
+  i Sort these imports.
+  
+   > 1 │ import assert from 'node:assert/strict';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 2 │ import { createCipheriv, createHash, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
+   > 3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+   > 4 │ import { tmpdir } from 'node:os';
+        ...
+  > 10 │ import { CredentialProvisioning,ServerReceiptClock } from '../src/models/credential-provisioning.ts';
+  > 11 │ import type { SecretEnvelope } from '../src/models/contracts.ts';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    12 │ import type { SecurityBridge } from '../src/models/security-bridge.ts';
+    13 │ function seal(pub: string, text: string, aad: unknown) {
+  
+  i This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    11 │ import type { SecretEnvelope } from '../src/models/contracts.ts';
+    12 │ import type { SecurityBridge } from '../src/models/security-bridge.ts';
+  > 13 │ function seal(pub: string, text: string, aad: unknown) {
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 14 │   const ephemeral=generateKeyPairSync('x25519'),nonce=randomBytes(12);
+        ...
+  > 19 │   return {ephemeralPublicKey:ephemeral.publicKey.export({type:'spki',format:'der'}).toString('base64'),nonce:nonce.toString('base64'),ciphertext:ciphertext.toString('base64'),tag:c.getAuthTag().toString('base64'),ciphertextSha256:createHash('sha256').update(ciphertext).digest('hex')};
+  > 20 │ }
+       │ ^
+    21 │ test('credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss',async()=> {
+    22 │   const root=await mkdtemp(join(await realpath(tmpdir()),'crew-model-crypto-'));
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     7  7 │   import { canonicalJson } from '../src/journal/atomic-records.ts';
+     8  8 │   import { HttpOperationJournal, type HttpRequest } from '../src/journal/http-operations.ts';
+     9    │ - import·{·CredentialBroker·}·from·'../src/models/credential-broker.ts';
+    10    │ - import·{·CredentialProvisioning,ServerReceiptClock·}·from·'../src/models/credential-provisioning.ts';
+    11    │ - import·type·{·SecretEnvelope·}·from·'../src/models/contracts.ts';
+        9 │ + import·type·{·SecretEnvelope·}·from·'../src/models/contracts.ts';
+       10 │ + import·{·CredentialBroker·}·from·'../src/models/credential-broker.ts';
+       11 │ + import·{·CredentialProvisioning,ServerReceiptClock·}·from·'../src/models/credential-provisioning.ts';
+    12 12 │   import type { SecurityBridge } from '../src/models/security-bridge.ts';
+       13 │ + 
+    13 14 │   function seal(pub: string, text: string, aad: unknown) {
+    14 15 │     const ephemeral=generateKeyPairSync('x25519'),nonce=randomBytes(12);
+  
+
+v2/gateway/test/credential-provisioning.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     1   1 │   import assert from 'node:assert/strict';
+     2     │ - import·{·createCipheriv,·createHash,·createPublicKey,·diffieHellman,·generateKeyPairSync,·hkdfSync,·randomBytes,·randomUUID·}·from·'node:crypto';
+         2 │ + import·{
+         3 │ + ··createCipheriv,
+         4 │ + ··createHash,
+         5 │ + ··createPublicKey,
+         6 │ + ··diffieHellman,
+         7 │ + ··generateKeyPairSync,
+         8 │ + ··hkdfSync,
+         9 │ + ··randomBytes,
+        10 │ + ··randomUUID,
+        11 │ + }·from·'node:crypto';
+     3  12 │   import { mkdtemp, realpath, rm } from 'node:fs/promises';
+     4  13 │   import { tmpdir } from 'node:os';
+    ······ │ 
+     8  17 │   import { HttpOperationJournal, type HttpRequest } from '../src/journal/http-operations.ts';
+     9  18 │   import { CredentialBroker } from '../src/models/credential-broker.ts';
+    10     │ - import·{·CredentialProvisioning,ServerReceiptClock·}·from·'../src/models/credential-provisioning.ts';
+        19 │ + import·{·CredentialProvisioning,·ServerReceiptClock·}·from·'../src/models/credential-provisioning.ts';
+    11  20 │   import type { SecretEnvelope } from '../src/models/contracts.ts';
+    12  21 │   import type { SecurityBridge } from '../src/models/security-bridge.ts';
+    13  22 │   function seal(pub: string, text: string, aad: unknown) {
+    14     │ - ··const·ephemeral=generateKeyPairSync('x25519'),nonce=randomBytes(12);
+    15     │ - ··const·shared=diffieHellman({privateKey:ephemeral.privateKey,publicKey:createPublicKey({key:Buffer.from(pub,'base64'),format:'der',type:'spki'})});
+    16     │ - ··const·aes=Buffer.from(hkdfSync('sha256',shared,nonce,'crew-v2-secret-envelope-v1',32));
+    17     │ - ··const·c=createCipheriv('aes-256-gcm',aes,nonce);·c.setAAD(Buffer.from(canonicalJson(aad)));
+    18     │ - ··const·ciphertext=Buffer.concat([c.update(text),c.final()]);·shared.fill(0);aes.fill(0);
+    19     │ - ··return·{ephemeralPublicKey:ephemeral.publicKey.export({type:'spki',format:'der'}).toString('base64'),nonce:nonce.toString('base64'),ciphertext:ciphertext.toString('base64'),tag:c.getAuthTag().toString('base64'),ciphertextSha256:createHash('sha256').update(ciphertext).digest('hex')};
+        23 │ + ··const·ephemeral·=·generateKeyPairSync('x25519'),
+        24 │ + ····nonce·=·randomBytes(12);
+        25 │ + ··const·shared·=·diffieHellman({
+        26 │ + ····privateKey:·ephemeral.privateKey,
+        27 │ + ····publicKey:·createPublicKey({·key:·Buffer.from(pub,·'base64'),·format:·'der',·type:·'spki'·}),
+        28 │ + ··});
+        29 │ + ··const·aes·=·Buffer.from(hkdfSync('sha256',·shared,·nonce,·'crew-v2-secret-envelope-v1',·32));
+        30 │ + ··const·c·=·createCipheriv('aes-256-gcm',·aes,·nonce);
+        31 │ + ··c.setAAD(Buffer.from(canonicalJson(aad)));
+        32 │ + ··const·ciphertext·=·Buffer.concat([c.update(text),·c.final()]);
+        33 │ + ··shared.fill(0);
+        34 │ + ··aes.fill(0);
+        35 │ + ··return·{
+        36 │ + ····ephemeralPublicKey:·ephemeral.publicKey.export({·type:·'spki',·format:·'der'·}).toString('base64'),
+        37 │ + ····nonce:·nonce.toString('base64'),
+        38 │ + ····ciphertext:·ciphertext.toString('base64'),
+        39 │ + ····tag:·c.getAuthTag().toString('base64'),
+        40 │ + ····ciphertextSha256:·createHash('sha256').update(ciphertext).digest('hex'),
+        41 │ + ··};
+    20  42 │   }
+    21     │ - test('credential·broker·provisioning·persists·private·key·and·exact·ACK·across·lost·reply;·rejects·stale/AAD/key·loss',async()=>·{
+    22     │ - ··const·root=await·mkdtemp(join(await·realpath(tmpdir()),'crew-model-crypto-'));
+    23     │ - ··const·items=new·Map<string,Buffer>();
+    24     │ - ··const·bridge:·SecurityBridge={put:async(s,a,b)=>{items.set(`${s}/${a}`,Buffer.from(b));},read:async(s,a)=>{const·b=items.get(`${s}/${a}`);return·b?Buffer.from(b):null;},remove:async(s,a)=>{items.delete(`${s}/${a}`);}};
+    25     │ - ··const·machineId=randomUUID(),providerId=randomUUID(),·broker=new·CredentialBroker(machineId,bridge,[]);
+    26     │ - ··let·mono=0;·const·clock=new·ServerReceiptClock(()=>mono);·clock.observe('2026-10-02T07:00:00.000Z');
+    27     │ - ··const·sent:HttpRequest[]=[];let·publicKey='',keyId='',lose=true;
+    28     │ - ··const·transport=async(request:Readonly<HttpRequest>)=>·{
+        43 │ + test('credential·broker·provisioning·persists·private·key·and·exact·ACK·across·lost·reply;·rejects·stale/AAD/key·loss',·async·()·=>·{
+        44 │ + ··const·root·=·await·mkdtemp(join(await·realpath(tmpdir()),·'crew-model-crypto-'));
+        45 │ + ··const·items·=·new·Map<string,·Buffer>();
+        46 │ + ··const·bridge:·SecurityBridge·=·{
+        47 │ + ····put:·async·(s,·a,·b)·=>·{
+        48 │ + ······items.set(`${s}/${a}`,·Buffer.from(b));
+        49 │ + ····},
+        50 │ + ····read:·async·(s,·a)·=>·{
+        51 │ + ······const·b·=·items.get(`${s}/${a}`);
+        52 │ + ······return·b·?·Buffer.from(b)·:·null;
+        53 │ + ····},
+        54 │ + ····remove:·async·(s,·a)·=>·{
+        55 │ + ······items.delete(`${s}/${a}`);
+        56 │ + ····},
+        57 │ + ··};
+        58 │ + ··const·machineId·=·randomUUID(),
+        59 │ + ····providerId·=·randomUUID(),
+        60 │ + ····broker·=·new·CredentialBroker(machineId,·bridge,·[]);
+        61 │ + ··let·mono·=·0;
+        62 │ + ··const·clock·=·new·ServerReceiptClock(()·=>·mono);
+        63 │ + ··clock.observe('2026-10-02T07:00:00.000Z');
+        64 │ + ··const·sent:·HttpRequest[]·=·[];
+        65 │ + ··let·publicKey·=·'',
+        66 │ + ····keyId·=·'',
+        67 │ + ····lose·=·true;
+        68 │ + ··const·transport·=·async·(request:·Readonly<HttpRequest>)·=>·{
+    29  69 │       sent.push(request);
+    30     │ - ····if(request.route==='/v2/machine/credential-keys')·{
+    31     │ - ······const·b=request.canonicalBody·as·{keyId:string;publicKeyX25519:string};·publicKey=b.publicKeyX25519;keyId=b.keyId;
+    32     │ - ······const·challengeId=randomUUID(),expiresAt='2026-10-02T07:05:00.000Z';
+    33     │ - ······return·{status:200,body:{challengeId,expiresAt,encryptedChallenge:seal(publicKey,'challenge-fixture',{machineId,keyId,challengeId,expiresAt})}};
+        70 │ + ····if·(request.route·===·'/v2/machine/credential-keys')·{
+        71 │ + ······const·b·=·request.canonicalBody·as·{·keyId:·string;·publicKeyX25519:·string·};
+        72 │ + ······publicKey·=·b.publicKeyX25519;
+        73 │ + ······keyId·=·b.keyId;
+        74 │ + ······const·challengeId·=·randomUUID(),
+        75 │ + ········expiresAt·=·'2026-10-02T07:05:00.000Z';
+        76 │ + ······return·{
+        77 │ + ········status:·200,
+        78 │ + ········body:·{
+        79 │ + ··········challengeId,
+        80 │ + ··········expiresAt,
+        81 │ + ··········encryptedChallenge:·seal(publicKey,·'challenge-fixture',·{
+        82 │ + ············machineId,
+        83 │ + ············keyId,
+        84 │ + ············challengeId,
+        85 │ + ············expiresAt,
+        86 │ + ··········}),
+        87 │ + ········},
+        88 │ + ······};
+    34  89 │       }
+    35     │ - ····if(request.route.endsWith('/ack')·&&·lose)·throw·new·Error('lost·ACK');
+    36     │ - ····return·{status:200,body:{status:request.route.endsWith('/confirm')?'active':'acked'}};
+        90 │ + ····if·(request.route.endsWith('/ack')·&&·lose)·throw·new·Error('lost·ACK');
+        91 │ + ····return·{·status:·200,·body:·{·status:·request.route.endsWith('/confirm')·?·'active'·:·'acked'·}·};
+    37  92 │     };
+    38     │ - ··let·http=await·HttpOperationJournal.open(root,transport);
+    39     │ - ··let·provisioning=await·CredentialProvisioning.open(root,machineId,bridge,broker,http,clock);
+        93 │ + ··let·http·=·await·HttpOperationJournal.open(root,·transport);
+        94 │ + ··let·provisioning·=·await·CredentialProvisioning.open(root,·machineId,·bridge,·broker,·http,·clock);
+    40  95 │     try {
+    41     │ - ····assert.equal(await·provisioning.registerKey(),keyId);
+    42     │ - ····assert.match(publicKey,/^[A-Za-z0-9+/]+=*$/);
+    43     │ - ····const·base={id:randomUUID(),machineId,providerId,keyId,configRevision:2,operationId:randomUUID(),expiresAt:'2026-10-02T07:05:00.000Z'};
+    44     │ - ····const·aad={machineId,providerId,keyId,configRevision:2,operationId:base.operationId,expiresAt:base.expiresAt};
+    45     │ - ····const·envelope:SecretEnvelope={...base,...seal(publicKey,'crypto-fixture-secret',aad)};
+    46     │ - ····await·assert.rejects(provisioning.accept(envelope,2,[providerId]),/lost·ACK/);
+    47     │ - ····assert.equal([...items.values()].filter(b=>b.toString()==='crypto-fixture-secret').length,1);
+    48     │ - ····const·first=sent.at(-1)!;·assert.equal(JSON.stringify(sent).includes('crypto-fixture-secret'),false);
+    49     │ - ····await·provisioning.close();·await·http.close();lose=false;
+    50     │ - ····http=await·HttpOperationJournal.open(root,transport);·provisioning=await·CredentialProvisioning.open(root,machineId,bridge,broker,http,clock);
+    51     │ - ····await·provisioning.accept(envelope,2,[providerId]);assert.deepEqual(sent.at(-1),first);
+    52     │ - ····await·assert.rejects(provisioning.accept({...envelope,id:randomUUID(),operationId:randomUUID()},2,[providerId]),/ENVELOPE_INVALID/);
+    53     │ - ····await·assert.rejects(provisioning.accept({...envelope,id:randomUUID()},3,[providerId]),/CONFIG_REVISION/);
+    54     │ - ····mono=300001;·await·assert.rejects(provisioning.accept({...envelope,id:randomUUID()},2,[providerId]),/EXPIRED/);
+    55     │ - ····mono=0;·for(const·key·of·[...items.keys()])·if(key.includes('.credential-keys/'))items.delete(key);
+    56     │ - ····await·assert.rejects(provisioning.accept({...envelope,id:randomUUID()},2,[providerId]),/KEY_LOST/);
+    57     │ - ····assert.equal(sent.at(-1)!.route.endsWith('/key-lost'),true);
+    58     │ - ··}·finally·{await·provisioning.close();await·http.close();await·rm(root,{recursive:true,force:true});}
+        96 │ + ····assert.equal(await·provisioning.registerKey(),·keyId);
+        97 │ + ····assert.match(publicKey,·/^[A-Za-z0-9+/]+=*$/);
+        98 │ + ····const·base·=·{
+        99 │ + ······id:·randomUUID(),
+       100 │ + ······machineId,
+       101 │ + ······providerId,
+       102 │ + ······keyId,
+       103 │ + ······configRevision:·2,
+       104 │ + ······operationId:·randomUUID(),
+       105 │ + ······expiresAt:·'2026-10-02T07:05:00.000Z',
+       106 │ + ····};
+       107 │ + ····const·aad·=·{
+       108 │ + ······machineId,
+       109 │ + ······providerId,
+       110 │ + ······keyId,
+       111 │ + ······configRevision:·2,
+  82 more lines truncated
+  
+
+v2/gateway/test/model-reporter.test.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  × Some imports or exports are not organized.
+  
+   > 1 │ import assert from 'node:assert/strict';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 2 │ import { randomUUID } from 'node:crypto';
+   > 3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+   > 4 │ import { tmpdir } from 'node:os';
+        ...
+  > 37 │     assert.equal((sent.at(-1)!.canonicalBody as {configRevision:number}).configRevision,3);
+  > 38 │   } finally {await reporter.close();await http.close();await rm(root,{recursive:true,force:true});}
+  > 39 │ });
+       │ ^^^
+    40 │ 
+  
+  i Sort these imports.
+  
+   > 1 │ import assert from 'node:assert/strict';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 2 │ import { randomUUID } from 'node:crypto';
+   > 3 │ import { mkdtemp, realpath, rm } from 'node:fs/promises';
+   > 4 │ import { tmpdir } from 'node:os';
+        ...
+  > 10 │ import { ModelReporter } from '../src/models/model-reporter.ts';
+  > 11 │ import type { ModelReportEnvelope, ModelInventoryBody } from '../src/models/contracts.ts';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    12 │ test('model reporter gets current desired before reconnect and restart replays exact shared sequence', async () => {
+    13 │   const root = await mkdtemp(join(await realpath(tmpdir()),'crew-model-report-'));
+  
+  i This statement must be preceded by a blank line. Add a newline before this statement.
+  
+    10 │ import { ModelReporter } from '../src/models/model-reporter.ts';
+    11 │ import type { ModelReportEnvelope, ModelInventoryBody } from '../src/models/contracts.ts';
+  > 12 │ test('model reporter gets current desired before reconnect and restart replays exact shared sequence', async () => {
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 13 │   const root = await mkdtemp(join(await realpath(tmpdir()),'crew-model-report-'));
+        ...
+  > 37 │     assert.equal((sent.at(-1)!.canonicalBody as {configRevision:number}).configRevision,3);
+  > 38 │   } finally {await reporter.close();await http.close();await rm(root,{recursive:true,force:true});}
+  > 39 │ });
+       │ ^^^
+    40 │ 
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+     6  6 │   import test from 'node:test';
+     7  7 │   import { initialStatus } from '../src/host/status.ts';
+     8    │ - import·{·HttpOperationJournal,·type·HttpRequest·}·from·'../src/journal/http-operations.ts';
+     9    │ - import·{·canonicalJson,·hash·}·from·'../src/journal/atomic-records.ts';
+    10    │ - import·{·ModelReporter·}·from·'../src/models/model-reporter.ts';
+    11    │ - import·type·{·ModelReportEnvelope,·ModelInventoryBody·}·from·'../src/models/contracts.ts';
+        8 │ + import·{·canonicalJson,·hash·}·from·'../src/journal/atomic-records.ts';
+        9 │ + import·{·HttpOperationJournal,·type·HttpRequest·}·from·'../src/journal/http-operations.ts';
+       10 │ + import·type·{·ModelInventoryBody,·ModelReportEnvelope·}·from·'../src/models/contracts.ts';
+       11 │ + import·{·ModelReporter·}·from·'../src/models/model-reporter.ts';
+       12 │ + 
+    12 13 │   test('model reporter gets current desired before reconnect and restart replays exact shared sequence', async () => {
+    13 14 │     const root = await mkdtemp(join(await realpath(tmpdir()),'crew-model-report-'));
+  
+
+v2/gateway/test/model-reporter.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    11 11 │   import type { ModelReportEnvelope, ModelInventoryBody } from '../src/models/contracts.ts';
+    12 12 │   test('model reporter gets current desired before reconnect and restart replays exact shared sequence', async () => {
+    13    │ - ··const·root·=·await·mkdtemp(join(await·realpath(tmpdir()),'crew-model-report-'));
+    14    │ - ··const·sent:·HttpRequest[]·=·[],·order:string[]=[];
+    15    │ - ··let·lose·=·true,·revision=2;
+    16    │ - ··const·boot·=·{bootId:·randomUUID(),bootGeneration:'2'};
+    17    │ - ··let·http·=·await·HttpOperationJournal.open(root,async·request·=>·{sent.push(request);·if(lose)·throw·new·Error('lost·reply');·return·{status:200,body:{reportId:(request.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>).reportId,accepted:true}};});
+    18    │ - ··const·ports·=·{currentBoot:()=>boot,·getDesired:async()=>{order.push('GET');return·{revision,·enabled:{claude:false,codex:false,api:true},apiProviders:[]};}};
+    19    │ - ··let·reporter·=·await·ModelReporter.open(root,http,ports);
+       13 │ + ··const·root·=·await·mkdtemp(join(await·realpath(tmpdir()),·'crew-model-report-'));
+       14 │ + ··const·sent:·HttpRequest[]·=·[],
+       15 │ + ····order:·string[]·=·[];
+       16 │ + ··let·lose·=·true,
+       17 │ + ····revision·=·2;
+       18 │ + ··const·boot·=·{·bootId:·randomUUID(),·bootGeneration:·'2'·};
+       19 │ + ··let·http·=·await·HttpOperationJournal.open(root,·async·(request)·=>·{
+       20 │ + ····sent.push(request);
+       21 │ + ····if·(lose)·throw·new·Error('lost·reply');
+       22 │ + ····return·{
+       23 │ + ······status:·200,
+       24 │ + ······body:·{
+       25 │ + ········reportId:·(request.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>).reportId,
+       26 │ + ········accepted:·true,
+       27 │ + ······},
+       28 │ + ····};
+       29 │ + ··});
+       30 │ + ··const·ports·=·{
+       31 │ + ····currentBoot:·()·=>·boot,
+       32 │ + ····getDesired:·async·()·=>·{
+       33 │ + ······order.push('GET');
+       34 │ + ······return·{·revision,·enabled:·{·claude:·false,·codex:·false,·api:·true·},·apiProviders:·[]·};
+       35 │ + ····},
+       36 │ + ··};
+       37 │ + ··let·reporter·=·await·ModelReporter.open(root,·http,·ports);
+    20 38 │     try {
+    21    │ - ····await·assert.rejects(reporter.reconnect(initialStatus().workflows,async·()·=>·{order.push('probe');return·[];}),/lost·reply/);
+    22    │ - ····assert.deepEqual(order,['GET','probe']);
+       39 │ + ····await·assert.rejects(
+       40 │ + ······reporter.reconnect(initialStatus().workflows,·async·()·=>·{
+       41 │ + ········order.push('probe');
+       42 │ + ········return·[];
+       43 │ + ······}),
+       44 │ + ······/lost·reply/,
+       45 │ + ····);
+       46 │ + ····assert.deepEqual(order,·['GET',·'probe']);
+    23 47 │       const first = sent[0]!.canonicalBody as ModelReportEnvelope<ModelInventoryBody>;
+    24    │ - ····assert.equal(first.sequence,'1');·assert.equal(first.configRevision,2);
+    25    │ - ····await·reporter.close();·await·http.close();
+    26    │ - ····lose=false;
+    27    │ - ····http·=·await·HttpOperationJournal.open(root,async·request·=>·{sent.push(request);return·{status:200,body:{reportId:(request.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>).reportId,accepted:true}};});
+    28    │ - ····reporter·=·await·ModelReporter.open(root,http,ports);
+    29    │ - ····assert.equal(await·reporter.replay(first.reportId),first.reportId);
+    30    │ - ····assert.deepEqual(sent[0],sent[1]);
+    31    │ - ····revision=3;
+    32    │ - ····await·reporter.reconnect(initialStatus().workflows,async()=>[]);
+    33    │ - ····const·inventory=sent.at(-1)!.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+    34    │ - ····assert.equal(inventory.sequence,'2');
+    35    │ - ····await·reporter.sendApplied({inventoryReportId:inventory.reportId,sourceStatus:{claude:{state:'disabled',errorCode:null},codex:{state:'disabled',errorCode:null},api:{state:'error',errorCode:'AUTH'}},observationDigest:hash(canonicalJson(inventory.body))});
+    36    │ - ····assert.equal((sent.at(-1)!.canonicalBody·as·{sequence:string}).sequence,'3');
+    37    │ - ····assert.equal((sent.at(-1)!.canonicalBody·as·{configRevision:number}).configRevision,3);
+    38    │ - ··}·finally·{await·reporter.close();await·http.close();await·rm(root,{recursive:true,force:true});}
+       48 │ + ····assert.equal(first.sequence,·'1');
+       49 │ + ····assert.equal(first.configRevision,·2);
+       50 │ + ····await·reporter.close();
+       51 │ + ····await·http.close();
+       52 │ + ····lose·=·false;
+       53 │ + ····http·=·await·HttpOperationJournal.open(root,·async·(request)·=>·{
+       54 │ + ······sent.push(request);
+       55 │ + ······return·{
+       56 │ + ········status:·200,
+       57 │ + ········body:·{
+       58 │ + ··········reportId:·(request.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>).reportId,
+       59 │ + ··········accepted:·true,
+       60 │ + ········},
+       61 │ + ······};
+       62 │ + ····});
+       63 │ + ····reporter·=·await·ModelReporter.open(root,·http,·ports);
+       64 │ + ····assert.equal(await·reporter.replay(first.reportId),·first.reportId);
+       65 │ + ····assert.deepEqual(sent[0],·sent[1]);
+       66 │ + ····revision·=·3;
+       67 │ + ····await·reporter.reconnect(initialStatus().workflows,·async·()·=>·[]);
+       68 │ + ····const·inventory·=·sent.at(-1)!.canonicalBody·as·ModelReportEnvelope<ModelInventoryBody>;
+       69 │ + ····assert.equal(inventory.sequence,·'2');
+       70 │ + ····await·reporter.sendApplied({
+       71 │ + ······inventoryReportId:·inventory.reportId,
+       72 │ + ······sourceStatus:·{
+       73 │ + ········claude:·{·state:·'disabled',·errorCode:·null·},
+       74 │ + ········codex:·{·state:·'disabled',·errorCode:·null·},
+       75 │ + ········api:·{·state:·'error',·errorCode:·'AUTH'·},
+       76 │ + ······},
+       77 │ + ······observationDigest:·hash(canonicalJson(inventory.body)),
+       78 │ + ····});
+       79 │ + ····assert.equal((sent.at(-1)!.canonicalBody·as·{·sequence:·string·}).sequence,·'3');
+       80 │ + ····assert.equal((sent.at(-1)!.canonicalBody·as·{·configRevision:·number·}).configRevision,·3);
+       81 │ + ··}·finally·{
+       82 │ + ····await·reporter.close();
+       83 │ + ····await·http.close();
+       84 │ + ····await·rm(root,·{·recursive:·true,·force:·true·});
+       85 │ + ··}
+    39 86 │   });
+    40 87 │   
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 19.
+Checked 12 files in 28ms. No fixes applied.
+Found 20 errors.
+Found 19 warnings.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

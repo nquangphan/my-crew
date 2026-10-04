@@ -1,0 +1,79 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (1.852167ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.193709ms)
+✖ credential broker native bridge rejects unverified helper before any keychain access (0.288417ms)
+✔ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.82825ms)
+✔ model probe mirrors server canonical endpoint/local HTTP policy (3.30375ms)
+✔ model probe offline never grants capability; CLI missing and unauthorized live stay UNVERIFIED (1.702125ms)
+✔ model probe authorized response maps auth/quota/network errors without leaking and bounds deadlines (17.927209ms)
+✔ model probe text PASS does not infer files/vision/tools; tool execution requires exact correlation (0.284708ms)
+✔ model probe inventory preserves owner API models, skips OFF/missing pair and invalidates context by bytes/pins (0.384542ms)
+✔ model probe stream parser requires complete bounded framing and exact model (0.210416ms)
+✖ model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model (0.298042ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 9
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 100.215042
+
+✖ failing tests:
+
+test at test/credential-broker.test.ts:39:1
+✖ credential broker native bridge rejects unverified helper before any keychain access (0.288417ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/credential-broker.test.ts:41:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at SecurityFrameworkBridge.put (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/security-bridge.ts:8:81)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/credential-broker.test.ts:41:31)
+        at Test.runInAsyncScope (node:async_hooks:228:14)
+        at Test.run (node:internal/test_runner/test:1118:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+        at Test.postRun (node:internal/test_runner/test:1247:19)
+        at Test.run (node:internal/test_runner/test:1175:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/model-probe.test.ts:67:1
+✖ model probe DNS guard rejects private/reserved/mapped addresses and request pins owner model (0.298042ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /SSRF_DENIED/. Input:
+  
+  'Error: NOT_IMPLEMENTED'
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:68:208)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at assertPublicAddress (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/provider-transport.ts:2:66)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:68:219
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:68:208)
+        at Test.runInAsyncScope (node:async_hooks:228:14)
+        at Test.run (node:internal/test_runner/test:1118:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+        at Test.postRun (node:internal/test_runner/test:1247:19)
+        at Test.run (node:internal/test_runner/test:1175:12),
+    expected: /SSRF_DENIED/,
+    operator: 'throws',
+    diff: 'simple'
+  }

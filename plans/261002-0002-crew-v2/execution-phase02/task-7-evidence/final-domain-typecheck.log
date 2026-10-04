@@ -1,0 +1,4 @@
+
+> @crew-v2/domain@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2
+> tsc --noEmit
+

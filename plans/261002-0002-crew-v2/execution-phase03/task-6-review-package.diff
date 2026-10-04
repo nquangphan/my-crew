@@ -1,0 +1,2125 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 6aa4d74..4007bcb 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -24,20 +24,24 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/commands/http-client.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/execution/ticket-command-bridge.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/host/gateway-host.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/host/main.ts` | [gateway-host](flows/gateway-host.md) (điểm vào) |
+ | `gateway/src/host/process-lock.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/host/status.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/ipc/server.ts` | [gateway-host](flows/gateway-host.md) (file) |
++| `gateway/src/isolation/inventory.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
++| `gateway/src/isolation/policy.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
++| `gateway/src/isolation/preflight.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
++| `gateway/src/isolation/workspace.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/journal/atomic-records.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/journal/gated-helper.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/journal/http-operations.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/journal/native-identity.c` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/journal/native.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/journal/process-journal.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/models/contracts.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/credential-broker.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/credential-provisioning.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/current-credential-resolver.ts` | [gateway-models](flows/gateway-models.md) (file) |
+@@ -81,35 +85,39 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/test/fixtures/workflow-builder/pnpm-lock.yaml` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/provenance.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/real-projections.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/verified-content.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflows/bmad-6.12.0.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflows/official-audits.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflows/superpowers-6.4.2.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/host-failures.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
++| `gateway/test/isolation-workspace.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
++| `gateway/test/isolation.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/journal.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/model-probe.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/model-reporter.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/pin-retirement.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/resources.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/retirement-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/stop-control.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/audit-dependency-content.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/audit-dependency-provenance.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/bridge-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/bridge-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/compare-real-builds.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/freeze-dependencies.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/freeze-real-projections.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
++| `gateway/test/support/isolation-probe.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
++| `gateway/test/support/isolation-typecheck.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/model-fixture.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/pin-retirement-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/probe-bmad-build.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/reclaim-proven-build-probes.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/workflow-admission-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/workflow-archives.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/workflow-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 1a6e209..a14488c 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -224,58 +224,66 @@ flows:
+     tests:
+       - server/test/docs-read.test.ts
+       - server/test/api-acceptance.test.ts
+       - server/test/support/http.ts
+   gateway-workflows:
+     title: Registry workflow ghim nguồn và runtime projection
+     doc: docs/flows/gateway-workflows.md
+     entrypoints:
+       - gateway/src/workflows/registry.ts
+     files:
++      - gateway/src/isolation/inventory.ts
++      - gateway/src/isolation/policy.ts
++      - gateway/src/isolation/preflight.ts
++      - gateway/src/isolation/workspace.ts
+       - gateway/src/workflows/api-policy.ts
+       - gateway/src/workflows/audit.ts
+       - gateway/src/workflows/builder.ts
+       - gateway/src/workflows/fetch.ts
+       - gateway/src/workflows/native-projection.ts
+       - gateway/src/workflows/operation-native.c
+       - gateway/src/workflows/operations.ts
+       - gateway/src/workflows/pins.ts
+       - gateway/src/workflows/retention.ts
+       - gateway/src/workflows/stage.ts
+     tests:
+-      - gateway/test/workflow-admission.test.ts
+-      - gateway/test/workflow-build.test.ts
+-      - gateway/test/workflow-fix.test.ts
+-      - gateway/test/workflow-native-projection.test.ts
+-      - gateway/test/workflow-operations.test.ts
+-      - gateway/test/workflow-registry.test.ts
+-      - gateway/test/support/workflow-archives.ts
++      - gateway/test/fixtures/workflow-builder/dependencies.json
++      - gateway/test/fixtures/workflow-builder/dependencies.tgz
++      - gateway/test/fixtures/workflow-builder/independent-builds.json
++      - gateway/test/fixtures/workflow-builder/package.json
++      - gateway/test/fixtures/workflow-builder/pnpm-lock.yaml
++      - gateway/test/fixtures/workflow-builder/provenance.json
++      - gateway/test/fixtures/workflow-builder/real-projections.json
++      - gateway/test/fixtures/workflow-builder/verified-content.json
++      - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
++      - gateway/test/fixtures/workflows/official-audits.json
++      - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
++      - gateway/test/isolation-workspace.test.ts
++      - gateway/test/isolation.test.ts
+       - gateway/test/support/audit-dependency-content.ts
+       - gateway/test/support/audit-dependency-provenance.ts
+       - gateway/test/support/compare-real-builds.py
+       - gateway/test/support/freeze-dependencies.py
+       - gateway/test/support/freeze-real-projections.ts
++      - gateway/test/support/isolation-probe.ts
++      - gateway/test/support/isolation-typecheck.json
+       - gateway/test/support/probe-bmad-build.ts
+       - gateway/test/support/reclaim-proven-build-probes.ts
+       - gateway/test/support/workflow-admission-crash-worker.ts
++      - gateway/test/support/workflow-archives.ts
+       - gateway/test/support/workflow-crash-worker.ts
+-      - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
+-      - gateway/test/fixtures/workflows/official-audits.json
+-      - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
+-      - gateway/test/fixtures/workflow-builder/dependencies.json
+-      - gateway/test/fixtures/workflow-builder/dependencies.tgz
+-      - gateway/test/fixtures/workflow-builder/independent-builds.json
+-      - gateway/test/fixtures/workflow-builder/package.json
+-      - gateway/test/fixtures/workflow-builder/pnpm-lock.yaml
+-      - gateway/test/fixtures/workflow-builder/provenance.json
+-      - gateway/test/fixtures/workflow-builder/real-projections.json
+-      - gateway/test/fixtures/workflow-builder/verified-content.json
++      - gateway/test/workflow-admission.test.ts
++      - gateway/test/workflow-build.test.ts
++      - gateway/test/workflow-fix.test.ts
++      - gateway/test/workflow-native-projection.test.ts
++      - gateway/test/workflow-operations.test.ts
++      - gateway/test/workflow-registry.test.ts
+   server-gateway:
+     title: Control plane gateway và boot/config/report
+     doc: docs/flows/server-gateway.md
+     entrypoints:
+       - server/src/gateway/routes.ts
+     files:
+       - server/src/gateway/contracts.ts
+       - server/src/gateway/service.ts
+       - server/migrations/007_gateway.sql
+     tests:
+diff --git a/v2/docs/flows/gateway-host.md b/v2/docs/flows/gateway-host.md
+index a8825c2..5e17844 100644
+--- a/v2/docs/flows/gateway-host.md
++++ b/v2/docs/flows/gateway-host.md
+@@ -132,10 +132,14 @@ FIX2 kiểm actual reservation cùng GC tại snapshot/quarantine/delete, reserv
+ 
+ Task 5 kiểm thêm ma trận actual PostgreSQL prefix8: selection/decision/report sai hoặc runtime bị tắt không
+ RELEASE, companion vẫn giữ selection claim sau config update, lost result/finalize với terminal event duy nhất,
+ production final pending và native pause/cancel/ACK replay. SIGKILL thật tại reserve/spawn/READY/claim/companion/
+ authorize/release không tạo launch thứ hai; root UNKNOWN được giữ cùng device/inode/UID. Gated/pending-startup/
+ repeated-TERM/completed helper và fork escaped process vẫn giữ ranh giới STOP. Gateway tsconfig include thêm
+ đúng hai ambient declaration đã review của server (`platform/thread-stream.d.ts`, `platform/picomatch.d.ts`)
+ cho actual integration imports; strict và library checking vẫn bật, build config chỉ compile gateway src.
+ 
+ GatewaySync gọi readonly `WorkflowRegistry.verifySource` trước báo source current, kể cả mọi projection null; healthy cache không fetch lại archive, source bị sửa báo error. Prefix8 coexistence test để sync_models queued/result null trong khi workflow cursor tiến và revision mới vẫn applied.
++
++Task6 bổ sung script `pnpm --dir v2/gateway isolation:probe -- --runtime claude|codex --no-model` gọi fixture cách ly có chọn runtime và kiểm API inventory. Không gửi prompt/turn/auth hay gọi model. Kết quả test/CLI không là chứng nhận native Read/Skill/MCP/child; các bề mặt chưa đo vẫn UNVERIFIED và production disabled. Helper thuộc flow `gateway-workflows`; package script thuộc flow này.
++
++Fixture `retirement-crash.test.ts` sau SIGKILL chờ lấy được khóa OS thật ở hai thư mục journal và workflow, rồi release trước khi mở fixture lại. Chỉ retry lỗi đúng `Host guard unavailable (75)`, deadline1500ms/backoff10–100ms; không xóa lockfile, force unlock hay suy STOP từ deadline/PID. Full cover126/127 còn lưu một lỗi timing baseline; whole file sau sửa3/3 PASS, không gộp thành127 PASS. Production ProcessLock/STOP proof giữ nguyên.
+diff --git a/v2/docs/flows/gateway-workflows.md b/v2/docs/flows/gateway-workflows.md
+index 0385774..0c10cee 100644
+--- a/v2/docs/flows/gateway-workflows.md
++++ b/v2/docs/flows/gateway-workflows.md
+@@ -2,52 +2,58 @@
+ 
+ ## Mục đích
+ 
+ Giữ BMAD và Superpowers cạnh nhau trong registry riêng của host. Exact official source bytes, provenance và canonical tree được kiểm trước publish; mỗi runtime có projection pin riêng. Task 4 tạo artifact local, chưa cấp quyền dispatch, gọi model hoặc chứng nhận cách ly runtime.
+ 
+ ## Điểm vào
+ 
+ - `registry.ts` → `WorkflowRegistry.open`, `installSource`, `deriveProjection`, `resolve`, `retain`, `release`, `reclaim`, `collectPublished`, `retentionInventory`.
+ - `audit.ts` → candidate source, Superpowers Claude/API và BMAD installer artifacts; application phải audit/preapprove exact pins.
+ - `native-projection.ts` → standalone Codex native artifact được review riêng; không phải marketplace package.
++- `isolation/preflight.ts` → `createIsolationPreflight` bind registry thật và root riêng; các hàm module chưa bind từ chối. Factory cung cấp `prepareWorkspace`, `preflightSourceIsolation`, `cleanup`, `close`; không cấp quyền launch.
+ 
+ ## Các bước
+ 
+ 1. `pins.ts`, `fetch.ts`: validate strict SourcePin/ProjectionPin và URL HTTPS exact repository/release/revision; kiểm từng redirect, tối đa ba redirect, archive 32 MiB và download 30 giây. BMAD npm kiểm cả payload SHA-256 và SHA-512 SRI trước extract. URL allowlist không tự chứng minh provenance của stream do caller cung cấp.
+ 2. `stage.ts`: parser tar-stream ghim 3.1.7; chặn traversal, Unicode NFC/case collision, duplicate, special/hardlink entries và executable ngoài audit. Tree tối đa 128 MiB/20.000 entries, gzip có expanded bound. Ghi link sau files/directories; canonical target phải trong tree, không dangling/cycle/escape. Directory 0755, regular file 0644/0755 theo audit, symlink mode null.
+ 3. Canonical entries sort byte UTF-8 theo path slash/NFC. Manifest ghi path/type/mode/bytes/sha256/target; loại filesystem mtime/UID/GID/xattrs/archive order. Source tree hash bind sourceManifestSha256/sourceRevision/packageIntegrity/payloadSha256. Projection tree hash bind sourceTreeSha256/runtime/manifestSha256/derivation tool/version/options/layoutSchema/policySha256. Pin/manifest/current pointer nằm ngoài counted tree. Exact payload khác vẫn tạo source tree pin khác dù manifest giống.
+ 4. `registry.ts`: AtomicRecords OS writer lock và transaction queue serialize reserve/build/publish/activation. Durable intent trước create, ownership marker và device/inode/UID trước build; fsync tree/record/parent rồi rename. Verify immutable path nếu đã tồn tại; không overwrite. Abort được kiểm trước operation và ngay trước activation, kể cả cached source A sau current B; cached projection cũng kiểm cancellation.
+ 5. `builder.ts`: exact BMAD package-local official `bmad-cli.js install --directory <owned> --yes --modules bmm --tools claude-code --no-shims`, fixed user/language inputs. Frozen 13 direct dependencies/99 direct+transitive packages, exact lock/package/payload hashes/SRI/file-byte evidence. Node 24.14.0 và uv 0.11.3 được bind bằng binary hash; không global install. Child HOME/TMP/XDG riêng, không inherited env/credential/proxy/module path. Sandbox deny network/fork, giới hạn writes trong stage. Upstream update/module lookup không được ra ngoài sandbox; installer bytes không sửa.
+ 6. BMAD generated operational dates chỉ normalize tại `_bmad/_config/manifest.yaml`, `_bmad/core/config.yaml`, `_bmad/bmm/config.yaml` về epoch; cập nhật tương ứng hash của đúng các file ấy trong files-manifest.csv. Skill text/config/script/renderer gốc giữ byte. Hai build độc lập phải cho cùng canonical manifest và exact expected pin. `_bmad/scripts/render_skill.py` giữ nguyên; original SKILL vẫn yêu cầu `uv run --no-cache` khi workflow chạy. Task 4 không chạy renderer thay cho runtime hay tuyên bố workflow thực đã PASS.
+ 7. Superpowers Claude giữ `.claude-plugin/plugin.json`, `skills`, `hooks` original. API giữ exact official skill/script/support bytes và adapter-policy có toàn bộ officialInventory, skills, scripts có đuôi và executable không đuôi như `sdd-workspace`/`review-package`. BMAD API giữ output installer/config/renderer cùng policy riêng. Policy bind manifest, effect ledger, per-call grants và certified boundary; model/tool execution disabled, isolationCertificate null. Không prompt PM/dev/QC của Crew.
+ 8. Superpowers Codex native `superpowers-codex-native-skills-v1`: giữ full upstream tree byte/mode, `.agents`/marketplace manifest đã có nguyên vẹn; thêm đúng `.agents/skills` và 15 relative links `<name> -> ../../skills/<name>`. Hai owned build roots kiểm actual hash, target và sibling scripts. Native policy nằm ngoài counted tree, được reverify khi resolve. Consumer cố định: P ở sibling ngoài project CWD/ancestors, scratch `.agents/skills -> P/.agents/skills`; không transplant links, không nạp root AGENTS/hook/marketplace từ P. Không YAML/source rewrite/alias router. Runtime bootstrap/namespace/tools/child/isolation vẫn UNVERIFIED; marketplace 6.4.2 thiếu immutable package/metadata vẫn là gate riêng.
+ 9. `operations.ts`, `operation-native.c`: attested private parent/objects; native FD no-follow traversal/quarantine/delete kiểm device/inode/UID/type, regular nlink1, foreign mount/hardlink fail closed; symlink được unlink như entry. Directory nlink chỉ quan sát. Bounded installer executor 90 giây, disk accounting 256 MiB/30.000 entries/depth128, log/file bound64 MiB. Arm kqueue NOTE_FORK/NOTE_EXIT trước gated exec rồi actual waitpid. Protected receipt bind operation ID + device/inode; bất kỳ fork/lost receipt giữ UNKNOWN. Không sửa Task2 ProcessJournal/ResourceRegistry để giả stopped.
+ 10. Pure operations có closure proof khi exclusive writer được reacquire; restart reconcile reserve/create/rename/receipt/quarantine windows. Completed failed stages có byte accounting và reclaim/retry theo identity; unresolved stages tối đa8 trước STAGING_RETRY_LIMIT. Published GC xử lý projection trước source, giữ current source, projection dependency, registry refs và mọi recovered ProcessJournal refs. `retentionInventory` ghi exact pair/bytes/reason/release requirement; accepted005-finalization producer chưa có thì giữ riêng nhóm process references, không khóa cleanup của pure/unreferenced groups. Heartbeat/stopped/ACK không phải terminal release authority.
+    FIX2 admission authority: managed `ProcessJournal.reserve` giữ cùng journal transaction mà GC/recovered publication reclaim giữ xuyên snapshot → native quarantine → delete. Registry queue luôn đứng trước journal queue; reserve validator chỉ resolve immutable pair, không lấy registry queue. GC-first làm reserve sau đó reject trước LaunchRecord nếu pair đã mất; reserve-first ghi durable pin admission intent rồi actual LaunchRecord dưới barrier, nên GC phải thấy protected ref. Bind marker/binding bền vững chặn unbound/reopened journal; bind chờ standalone transaction đang chạy. Missing journal attachment từ chối published GC và giữ recovered publication quarantine, nhưng pure-stage reclaim vẫn có closure authority riêng. `pendingPinAdmissions` bảo vệ intent crash chưa commit, dedupe exact committed records và inventory `durable-pin-admission-intent`; không TTL/closed boolean/fake release. Consumer Task5/04 phải dùng bound registry+journal cùng host root; cross-process writers vẫn bị OS guard loại trừ.
+ 11. `resolve` recheck full pins, payload/SRI, manifest/tree và native policy/geometry. HTTP desired/applied/boot/dispatch/companion integration thuộc Task3/5; Task4 không mutate server state hoặc bypass admission.
++12. Task6 clone độc lập tại exact HEAD bằng Git trực tiếp, không fork: xuất reachable pack qua stdin commit bất biến và stdout độc quyền, kiểm giới hạn64 MiB/header/trailer, index strict single-thread, update-ref/checkout chỉ trong scratch. HEAD/tree/common-dir/clean checkout và no-alternates/no-hardlink được kiểm trước loại discovery. Giữ product docs; inventory từng đường dẫn `.agents`, `.claude`, `.codex`, `_bmad`, instruction/config bị chuyển ra sibling `excluded`. Git object database vẫn chứa bytes bị loại; policy chặn toàn bộ `.git` và probe đo denial trực tiếp. Owner linked-worktree ngoài read root hiện fail closed; trusted common-dir binding cần composition/review riêng.
++13. Private HOME/config/TMP/XDG, frozen source/projection/policy/executable identities; sandbox deny data mặc định, network/fork và securityd, chỉ grant paths hệ thống cần chạy cùng workspace/home/P/stage riêng. Literal `/` phục vụ dyld openat, không grant descendants. Nofork kernel EXIT+wait receipt của `OwnedOperations` là authority; PID/start numeric không có trong API này nên evidence ghi unavailable. Intent command bền vững trước execute; missing receipt giữ workspace/pins và chặn probe sau reopen. Lock order isolation queue → registry read/reference; registry không gọi ngược isolation.
++14. No-model probes đọc exact selected SKILL bytes và canaries; absolute, symlink, `..`, Git config/objectdb bị deny, alias/hardlink/config/pin tamper fail trước runtime. Claude CLI plugin list chỉ thấy selected Superpowers, SDK control initialize chưa trả inventory trong bounded run. Codex stdin initialize trả metadata nhưng EOF chưa có skills/list/hooks/list/config/read responses. Lịch sử Unix socket EPERM không chứng minh runtime thiếu hỗ trợ IPC. Native Read/Skill/MCP/child/renderer invoke/full-tree đều UNVERIFIED; overall luôn UNVERIFIED khi các canary sạch, FAIL khi integrity/cross-source lỗi, `productionEnabled:false`. API chỉ inventory artifact; không gọi provider/model.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+ | `gateway/src/workflows/pins.ts`, `fetch.ts`, `stage.ts` | Frozen DTO/URL/hash/download/parser/tree |
+ | `gateway/src/workflows/registry.ts`, `retention.ts` | Publish/recover/reclaim/GC/reference inventory |
+ | `gateway/src/workflows/audit.ts`, `api-policy.ts`, `native-projection.ts` | Official artifact audit và policy từng runtime |
+ | `gateway/src/workflows/builder.ts`, `operations.ts`, `operation-native.c` | Frozen actual installer và native operation authority |
+ | `gateway/test/workflow-registry.test.ts`, `workflow-fix.test.ts`, `workflow-admission.test.ts` | Matrix/supply chain/cached cancellation/repeated stage failures |
+ | `gateway/test/workflow-build.test.ts`, `workflow-native-projection.test.ts`, `workflow-operations.test.ts` | Actual builds/policy/native links/lifetime/crash/FD cleanup/GC |
+ | `gateway/test/support/workflow-archives.ts`, `workflow-crash-worker.ts`, `workflow-admission-crash-worker.ts` | Synthetic matrix và actual crash checkpoints |
+ | `gateway/test/support/audit-dependency-content.ts`, `audit-dependency-provenance.ts` | Primary npm exact metadata/SRI/file byte audits |
+ | `gateway/test/support/freeze-dependencies.py`, `freeze-real-projections.ts`, `compare-real-builds.py` | Frozen dependency payload/two-build pins/comparison |
+ | `gateway/test/support/probe-bmad-build.ts`, `reclaim-proven-build-probes.ts` | Owned actual installer probe và identity-bound receipt cleanup |
+ | `gateway/test/fixtures/workflows/*` | Exact official archives và original source/Claude golden |
+ | `gateway/test/fixtures/workflow-builder/*` | Frozen dependencies/lock/provenance/file hashes/real projection golden |
++| `gateway/src/isolation/workspace.ts`, `policy.ts`, `inventory.ts`, `preflight.ts` | Bound clean workspace, candidate sandbox và no-model evidence |
++| `gateway/test/isolation.test.ts`, `isolation-workspace.test.ts`, `support/isolation-probe.ts`, `support/isolation-typecheck.json` | Actual canary/discovery, durable missing-proof/reopen và strict scoped checker |
+ 
+ ## Dữ liệu
+ 
+ Source BMAD npm6.12.0 revision `05bfbd46d00766ec88eb9b42e76be2c575d64d7b`, payload `ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2`, source tree `45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317`. npm gitHead/tag/SRI là provenance riêng; không khẳng định Git archive byte tương đương. [Exact npm metadata](https://registry.npmjs.org/bmad-method/6.12.0).
+ 
+ Superpowers6.4.2 revision `8ca22dba9a94f28898bbce59f2537ff4d87c747d`, payload `29714b2c4c727ecc6600f9e5982a0dcbb829860ba79626f1941a0f233e85331a`, source tree `76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46`. [Pinned source](https://github.com/obra/superpowers/tree/8ca22dba9a94f28898bbce59f2537ff4d87c747d).
+ 
+ | Artifact | Projection tree SHA-256 |
+ |---|---|
+ | BMAD Claude | `3d67e8d6fada5cd20e41922c3cf761ce73e63a61691f1e536579badae1aed54a` |
+@@ -73,10 +79,12 @@ chỉ khi ref cuối được release mới GC; identity retired không được
+ flow gateway-host giữ chứng cứ no-fork, không nới quyền đối với fork hoặc mất witness.
+ 
+ `WorkflowRegistry.verifySource(pin)` chỉ gọi verifier hiện có trên payload, metadata và source tree; không fetch, không đổi current pointer hoặc recipe/hash. Consumer GatewaySync dùng nó để cache bị sửa không thể báo source current khi desired projections đều null; regression có cache lành offline không tải lại.
+ 
+ Task5 FIX1 giữ history sau rebind: bridge dùng `pinRetirement` kiểm receipt bất biến trước scoped005 read;
+ receipt chưa có hoặc identity xung đột vẫn giữ reference và lỗi riêng record. Boot mới chỉ ghi nhận
+ UNKNOWN có exact scoped attempt/companion thành `retained-unknown`, không bỏ pin/guard. Existing
+ admission barrier kiểm snapshot và orphan intent trước lifecycle receipt; observe chạy trước barrier
+ vì nó ghi journal, callback dưới barrier không gọi registry queue. Snapshot desired cũ không được
+ hoàn tất nhầm command mới; cache nguồn/projection và pending report giữ nguyên qua deferred pass.
++
++Task6: `isolation:probe -- --runtime claude|codex --no-model` chỉ nhận exact arguments và chạy owned fixture cho runtime đã chọn cùng API audit. Frozen covering set dùng21 gateway test files đã review cộng2 isolation tests; không lấy peer model/attachment candidate. Evidence `execution-phase03/task6-evidence` giữ RED→GREEN policy/Git attempts, stdin hashes, exact argv/policy/exit/receipt, sanitized matrix và resource identities. Durable reserved-intent negative fixture được giữ vì thiếu closure proof; không xóa history hoặc chế STOP để cleanup. BMAD runtime discovery/invoke, common/system skill inventory và linked owner source chưa được chứng nhận; Phase04 phải đo selected/unselected load+invoke trước enable.
+diff --git a/v2/gateway/package.json b/v2/gateway/package.json
+index 9838bfd..c550246 100644
+--- a/v2/gateway/package.json
++++ b/v2/gateway/package.json
+@@ -3,21 +3,22 @@
+   "private": true,
+   "type": "module",
+   "packageManager": "pnpm@10.32.1",
+   "engines": {
+     "node": ">=24.12"
+   },
+   "scripts": {
+     "start": "pnpm build && node dist/src/host/main.js",
+     "build": "tsc -p tsconfig.build.json",
+     "test": "pnpm build && node --test test/*.test.ts",
+-    "typecheck": "tsc --noEmit"
++    "typecheck": "tsc --noEmit",
++    "isolation:probe": "node test/support/isolation-probe.ts"
+   },
+   "devDependencies": {
+     "@types/node": "26.6.3",
+     "@types/tar-stream": "3.1.4",
+     "typescript": "7.0.2"
+   },
+   "dependencies": {
+     "tar-stream": "3.1.7"
+   }
+ }
+diff --git a/v2/gateway/src/isolation/inventory.ts b/v2/gateway/src/isolation/inventory.ts
+new file mode 100644
+index 0000000..d998954
+--- /dev/null
++++ b/v2/gateway/src/isolation/inventory.ts
+@@ -0,0 +1,194 @@
++import { constants } from 'node:fs';
++import { lstat, open, readdir, readlink, realpath } from 'node:fs/promises';
++import { basename, join, relative, sep } from 'node:path';
++import { hash } from '../journal/atomic-records.ts';
++import type { ExecutionReceipt } from '../workflows/operations.ts';
++import type { ManifestEntry, ProjectionPin, Runtime, SourcePin } from '../workflows/pins.ts';
++
++export type InventoryEntry = {
++  path: string;
++  type: 'file' | 'directory' | 'symlink';
++  sha256: string | null;
++  mode: number;
++  bytes: number;
++  target?: string;
++  classification: 'product' | 'discovery' | 'selected' | 'runtime-system';
++  reason: string | null;
++};
++export type Surface = {
++  surface: string;
++  status: 'PASS' | 'FAIL' | 'UNVERIFIED';
++  measured: boolean;
++  reason: string;
++};
++export type CommandEvidence = {
++  operationId: string;
++  argv: string[];
++  executable: string;
++  executableSha256: string;
++  policySha256: string;
++  policy: string;
++  stageIdentity: { device: string; inode: string; ownerUid: number } | null;
++  output: string;
++  receipt: ExecutionReceipt | null;
++  error: string | null;
++  stdin?: { path: string; device: number; inode: number; ownerUid: number; sha256: string; body: string };
++  numericPidStart: 'unavailable-in-reviewed-receipt';
++};
++export type InventoryEvidence = {
++  formatVersion: 1;
++  runtime: Runtime;
++  source: SourcePin;
++  projection: ProjectionPin;
++  workspace: string;
++  attemptHome: string;
++  os: { platform: string; release: string; arch: string };
++  productionEnabled: false;
++  policyVersion: string;
++  commands: CommandEvidence[];
++  entries: InventoryEntry[];
++  projectionEntries: ManifestEntry[];
++  exclusions: InventoryEntry[];
++  surfaces: Surface[];
++  discovery: unknown;
++  origins: DiscoveryOrigin[];
++  blockers: string[];
++  sha256: string;
++};
++export type DiscoveryOrigin = {
++  path: string;
++  kind: string;
++  classification: 'selected' | 'runtime-system' | 'blocked' | 'unverified';
++  sha256: string | null;
++};
++export async function classifyOrigin(
++  path: string,
++  kind: string,
++  projectionRoot: string,
++  attemptHome: string,
++  workspace?: string,
++): Promise<DiscoveryOrigin> {
++  const system = join(attemptHome, 'codex/skills/.system');
++  const result: DiscoveryOrigin = {
++    path: '<outside-boundary>',
++    kind,
++    classification: 'blocked',
++    sha256: null,
++  };
++  if (
++    !contained(projectionRoot, path) &&
++    !contained(system, path) &&
++    !(workspace && contained(workspace, path))
++  )
++    return result;
++  const actual = await realpath(path).catch(() => null);
++  if (!actual) return { ...result, path: '<missing>', classification: 'unverified' };
++  if (contained(projectionRoot, actual)) {
++    result.classification = 'selected';
++    result.path = `$PROJECTION/${relative(projectionRoot, actual)}`;
++  } else if (contained(system, actual)) {
++    result.classification = 'runtime-system';
++    result.path = `$ATTEMPT_HOME/codex/skills/.system/${relative(system, actual)}`;
++  } else return result;
++  const s = await lstat(actual);
++  if (s.isFile()) {
++    if (s.nlink !== 1) return { ...result, classification: 'blocked' };
++    result.sha256 = await fileDigest(actual);
++  }
++  return result;
++}
++const directories = new Set([
++  '.agents',
++  '.claude',
++  '.codex',
++  '.gemini',
++  '.cursor',
++  '.windsurf',
++  '.opencode',
++  '_bmad',
++  '.bmad',
++  '.superpowers',
++]);
++const files = new Set([
++  'AGENTS.md',
++  'AGENTS.override.md',
++  'CLAUDE.md',
++  'CLAUDE.local.md',
++  'GEMINI.md',
++  '.mcp.json',
++  '.cursorrules',
++  '.windsurfrules',
++]);
++export function discoveryReason(path: string): string | null {
++  const parts = path.split('/');
++  if (parts.some((p) => directories.has(p))) return 'runtime-discovery-directory';
++  if (files.has(basename(path))) return 'runtime-instruction-or-configuration';
++  if (path === '.github/copilot-instructions.md' || path.startsWith('.github/instructions/'))
++    return 'runtime-instructions';
++  return null;
++}
++export function contained(root: string, path: string): boolean {
++  const rel = relative(root, path);
++  return rel === '' || (!rel.startsWith(`..${sep}`) && rel !== '..' && !rel.startsWith(sep));
++}
++export async function fileDigest(path: string): Promise<string> {
++  const fd = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
++  try {
++    const s = await fd.stat();
++    if (!s.isFile() || s.nlink !== 1 || s.size > 32 * 1024 * 1024) throw new Error('UNSAFE_INVENTORY_FILE');
++    return hash(await fd.readFile());
++  } finally {
++    await fd.close();
++  }
++}
++export async function auditWorkspace(
++  root: string,
++  selectedMount?: { path: string; target: string },
++  executableTargets: readonly string[] = [],
++): Promise<{ entries: InventoryEntry[]; blockers: string[] }> {
++  if ((await realpath(root)) !== root) throw new Error('WORKSPACE_ALIAS');
++  const entries: InventoryEntry[] = [],
++    blockers: string[] = [];
++  let total = 0;
++  async function visit(dir: string, depth: number): Promise<void> {
++    if (depth > 100 || entries.length > 30000) throw new Error('INVENTORY_LIMIT');
++    for (const name of (await readdir(dir)).sort()) {
++      const full = join(dir, name),
++        rel = relative(root, full).split(sep).join('/');
++      if (rel === '.git') continue; // independently verified by Git's common-dir/config commands
++      if (name === '.git') {
++        blockers.push(`GIT_DISCOVERY:${rel}`);
++        continue;
++      }
++      const s = await lstat(full),
++        reason = discoveryReason(rel);
++      const entry: InventoryEntry = {
++        path: rel,
++        type: s.isSymbolicLink() ? 'symlink' : s.isDirectory() ? 'directory' : 'file',
++        mode: s.mode & 0o777,
++        bytes: s.size,
++        sha256: null,
++        classification: reason ? 'discovery' : 'product',
++        reason,
++      };
++      entries.push(entry);
++      if (s.uid !== process.getuid?.()) blockers.push(`FOREIGN_OWNER:${rel}`);
++      if (s.isSymbolicLink()) {
++        entry.target = await readlink(full);
++        const target = await realpath(full).catch(() => null);
++        if (selectedMount && rel === selectedMount.path && target === selectedMount.target)
++          entry.classification = 'selected';
++        else if (target && executableTargets.includes(target)) entry.classification = 'runtime-system';
++        else if (!target || !contained(root, target)) blockers.push(`SYMLINK_ORIGIN:${rel}`);
++      } else if (s.isDirectory()) await visit(full, depth + 1);
++      else if (s.isFile()) {
++        total += s.size;
++        if (total > 256 * 1024 * 1024) throw new Error('INVENTORY_LIMIT');
++        if (s.nlink !== 1) blockers.push(`HARDLINK:${rel}`);
++        else entry.sha256 = await fileDigest(full);
++      } else blockers.push(`SPECIAL_FILE:${rel}`);
++    }
++  }
++  await visit(root, 0);
++  return { entries, blockers };
++}
+diff --git a/v2/gateway/src/isolation/policy.ts b/v2/gateway/src/isolation/policy.ts
+new file mode 100644
+index 0000000..c165eb6
+--- /dev/null
++++ b/v2/gateway/src/isolation/policy.ts
+@@ -0,0 +1,53 @@
++import { isAbsolute, normalize } from 'node:path';
++import { canonicalJson, hash } from '../journal/atomic-records.ts';
++
++export const ISOLATION_POLICY_VERSION = 'crew-source-preflight-v1';
++export type PolicyInput = {
++  workspace: string;
++  attemptHome: string;
++  projectionRoot: string;
++  executable: string;
++  operationRoot: string;
++};
++function path(value: string): string {
++  if (
++    !isAbsolute(value) ||
++    normalize(value) !== value ||
++    [...value].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127) ||
++    value === '/'
++  )
++    throw new Error('UNSAFE_POLICY_PATH');
++  return JSON.stringify(value);
++}
++/** This is a no-model measurement policy, never an invocation certificate. */
++export function isolationPolicy(input: PolicyInput): string {
++  const read = [input.workspace, input.attemptHome, input.projectionRoot, input.operationRoot];
++  return [
++    '(version 1)',
++    '(allow default)',
++    '(deny process-fork)',
++    '(deny network*)',
++    '(deny mach-lookup (global-name "com.apple.securityd") (global-name "com.apple.securityd.xpc") (global-name "com.apple.securityd.system"))',
++    '(deny file-read*)',
++    '(allow file-read-metadata)',
++    // macOS dyld-support.sb: libignition opens / as an openat root; this grants no descendants.
++    '(allow file-read* (literal "/"))',
++    `(allow file-read* ${['/System', '/Library/Apple', '/private/var/db/dyld', '/usr/lib', '/usr/share', '/private/etc', '/dev', '/bin', '/usr/bin'].map((p) => `(subpath ${path(p)})`).join(' ')} (literal ${path(input.executable)}) ${read.map((p) => `(subpath ${path(p)})`).join(' ')})`,
++    `(deny file-read* (subpath ${path(`${input.workspace}/.git`)}))`,
++    '(deny file-write*)',
++    `(allow file-write* (literal "/dev/null") (subpath ${path(input.attemptHome)}) (subpath ${path(input.operationRoot)}))`,
++  ]
++    .filter(Boolean)
++    .join('\n');
++}
++export function policyIdentity(policy: string): string {
++  return hash(canonicalJson({ version: ISOLATION_POLICY_VERSION, sandbox: policy }));
++}
++export function routerPolicy() {
++  return Object.freeze({
++    version: ISOLATION_POLICY_VERSION,
++    workflowSource: null,
++    productionEnabled: false,
++    blockers: ['INVOCATION_CERTIFICATE_MISSING', 'DESCENDANT_TREE_CERTIFICATE_MISSING'],
++  });
++}
+diff --git a/v2/gateway/src/isolation/preflight.ts b/v2/gateway/src/isolation/preflight.ts
+new file mode 100644
+index 0000000..fa0ec81
+--- /dev/null
++++ b/v2/gateway/src/isolation/preflight.ts
+@@ -0,0 +1,434 @@
++import { randomUUID } from 'node:crypto';
++import { access, open, readdir, symlink, unlink, writeFile } from 'node:fs/promises';
++import { arch, platform, release } from 'node:os';
++import { dirname, join } from 'node:path';
++import { canonicalJson, hash, syncDirectory } from '../journal/atomic-records.ts';
++import type { ProjectionPin, Runtime, SourcePin } from '../workflows/pins.ts';
++import type { WorkflowRegistry } from '../workflows/registry.ts';
++import { classifyOrigin, type InventoryEvidence, type Surface } from './inventory.ts';
++import { ISOLATION_POLICY_VERSION } from './policy.ts';
++import { IsolationWorkspace } from './workspace.ts';
++export type PreflightInput = {
++  runtime: Runtime;
++  source: SourcePin;
++  projection: ProjectionPin;
++  workspace: string;
++  attemptHome: string;
++};
++export type PreflightResult = {
++  status: 'PASS' | 'UNVERIFIED' | 'FAIL';
++  evidence: InventoryEvidence;
++  blockers: string[];
++};
++type Options = {
++  root: string;
++  registry: WorkflowRegistry;
++  executables?: Partial<Record<'claude' | 'codex', string>>;
++};
++async function discoveryInput(home: string, messages: unknown[]): Promise<string> {
++  const path = join(home, `discovery-${randomUUID()}.jsonl`);
++  const fd = await open(path, 'wx', 0o400);
++  try {
++    await fd.writeFile(`${messages.map((m) => JSON.stringify(m)).join('\n')}\n`);
++    await fd.sync();
++  } finally {
++    await fd.close();
++  }
++  await syncDirectory(home);
++  return path;
++}
++function jsonLines(output: string): unknown[] {
++  return output
++    .split('\n')
++    .filter((line) => line.startsWith('{'))
++    .flatMap((line) => {
++      try {
++        return [JSON.parse(line)];
++      } catch {
++        return [];
++      }
++    });
++}
++
++export async function createIsolationPreflight(options: Options) {
++  const executables = Object.freeze({ ...options.executables });
++  const service = await IsolationWorkspace.open(options.root, options.registry, Object.values(executables));
++  const preflight = async (input: PreflightInput): Promise<PreflightResult> => {
++    input = structuredClone(input);
++    const evidence: InventoryEvidence = {
++      formatVersion: 1,
++      runtime: input.runtime,
++      source: structuredClone(input.source),
++      projection: structuredClone(input.projection),
++      workspace: input.workspace,
++      attemptHome: input.attemptHome,
++      os: { platform: platform(), release: release(), arch: arch() },
++      productionEnabled: false,
++      policyVersion: ISOLATION_POLICY_VERSION,
++      commands: [],
++      entries: [],
++      projectionEntries: [],
++      exclusions: [],
++      surfaces: [],
++      discovery: null,
++      origins: [],
++      blockers: [],
++      sha256: '',
++    };
++    const add = (surface: string, status: Surface['status'], measured: boolean, reason: string) =>
++      evidence.surfaces.push({ surface, status, measured, reason });
++    try {
++      if (input.runtime !== input.projection.runtime) throw new Error('RUNTIME_PIN_MISMATCH');
++      await service.withPrepared(
++        input.workspace,
++        input.attemptHome,
++        input.source,
++        input.projection,
++        async ({ record, projectionRoot, projectionEntries }) => {
++          evidence.entries = record.entries;
++          evidence.exclusions = record.exclusions;
++          evidence.projectionEntries = projectionEntries;
++          add(
++            'pins-and-workspace',
++            'PASS',
++            true,
++            'registry bytes, owned identity and frozen workspace/Git inventory reverified',
++          );
++          const scope = { workspace: input.workspace, attemptHome: input.attemptHome, projectionRoot };
++          const checkCommand = (command: InventoryEvidence['commands'][number]) => {
++            if (!command.receipt) throw new Error('PROCESS_CLOSURE_UNVERIFIED');
++            if (command.error === 'DISCOVERY_STDIN_CHANGED') throw new Error('DISCOVERY_STDIN_CHANGED');
++          };
++          const selectedEntry = projectionEntries.find(
++            (e) => e.type === 'file' && e.path.endsWith('SKILL.md') && e.bytes < 32000,
++          );
++          if (selectedEntry) {
++            const e = await service.measure(
++              record.attemptId,
++              input.workspace,
++              '/bin/cat',
++              [join(projectionRoot, selectedEntry.path)],
++              scope,
++            );
++            evidence.commands.push(e);
++            checkCommand(e);
++            add(
++              'shell-selected-projection-read',
++              e.receipt?.exitCode === 0 && hash(e.output) === selectedEntry.sha256 ? 'PASS' : 'UNVERIFIED',
++              true,
++              'selected audited bytes compared with registry manifest; not Skill invocation',
++            );
++          } else
++            add(
++              'shell-selected-projection-read',
++              'UNVERIFIED',
++              false,
++              'selected readable skill fixture unavailable',
++            );
++          const probeId = randomUUID(),
++            allowed = join(input.attemptHome, `canary-${probeId}`),
++            forbidden = join(dirname(input.workspace), 'excluded', `canary-${probeId}`);
++          const alias = join(input.attemptHome, `alias-${probeId}`),
++            text = `CREW_OWNED_CANARY_${probeId}`;
++          await writeFile(allowed, text, { flag: 'wx', mode: 0o600 });
++          await writeFile(forbidden, text, { flag: 'wx', mode: 0o600 });
++          await symlink(forbidden, alias);
++          const packs = (await readdir(join(input.workspace, '.git/objects/pack'))).filter((name) =>
++            /^pack-[0-9a-f]{40}\.pack$/.test(name),
++          );
++          if (packs.length !== 1) throw new Error('GIT_PACK_INVENTORY_CHANGED');
++          const probes = [
++            ['shell-selected-owned-read', allowed, true],
++            ['shell-absolute-other-source-denial', forbidden, false],
++            ['shell-symlink-other-source-denial', alias, false],
++            ['shell-dotdot-other-source-denial', `${input.attemptHome}/../excluded/canary-${probeId}`, false],
++            ['shell-common-dir-denial', join(input.workspace, '.git/config'), false],
++            ['shell-git-objectdb-denial', join(input.workspace, '.git/objects/pack', packs[0]), false],
++          ] as const;
++          let shellWorks = false;
++          for (const [surface, path, expected] of probes) {
++            const e = await service.measure(record.attemptId, input.workspace, '/bin/cat', [path], scope);
++            evidence.commands.push(e);
++            checkCommand(e);
++            const observed = e.receipt?.exitCode === 0 && e.output === text;
++            if (expected) {
++              shellWorks = observed;
++              add(
++                surface,
++                observed ? 'PASS' : 'UNVERIFIED',
++                true,
++                observed ? 'owned canary read with nofork receipt' : 'sandbox command unavailable',
++              );
++            } else {
++              const escaped = e.receipt?.exitCode === 0 || e.output.includes(text);
++              const denied =
++                shellWorks &&
++                !!e.receipt &&
++                e.receipt.exitCode !== 0 &&
++                /Operation not permitted|Permission denied/.test(e.output);
++              add(
++                surface,
++                escaped ? 'FAIL' : denied ? 'PASS' : 'UNVERIFIED',
++                true,
++                escaped
++                  ? 'cross-boundary read observed'
++                  : denied
++                    ? 'kernel data read denied'
++                    : 'denial not established',
++              );
++            }
++          }
++          // These are pure fixture files. Remove only when every referencing child has a genuine receipt.
++          if (evidence.commands.every((e) => e.receipt?.treeEmpty && !e.receipt.forkObserved)) {
++            await unlink(alias);
++            await unlink(allowed);
++            await unlink(forbidden);
++          }
++          if (input.runtime === 'api') {
++            add(
++              'api-artifact-inventory',
++              'PASS',
++              true,
++              'verified audited adapter projection; no provider or model request',
++            );
++          } else {
++            const executable = executables[input.runtime];
++            if (
++              !executable ||
++              !(await access(executable).then(
++                () => true,
++                () => false,
++              ))
++            )
++              add('runtime-discovery', 'UNVERIFIED', false, 'RUNTIME_EXECUTABLE_NOT_BOUND_OR_MISSING');
++            else {
++              const version = await service.measure(
++                record.attemptId,
++                input.workspace,
++                executable,
++                ['--version'],
++                scope,
++              );
++              evidence.commands.push(version);
++              checkCommand(version);
++              if (version.receipt?.exitCode !== 0)
++                add('runtime-version', 'UNVERIFIED', true, 'runtime unavailable within sandbox');
++              else {
++                add('runtime-version', 'PASS', true, version.output.trim());
++                if (input.runtime === 'claude') {
++                  const command = await service.measure(
++                    record.attemptId,
++                    input.workspace,
++                    executable,
++                    [
++                      '--setting-sources',
++                      '',
++                      '--settings',
++                      '{}',
++                      '--strict-mcp-config',
++                      '--mcp-config',
++                      '{"mcpServers":{}}',
++                      '--plugin-dir',
++                      projectionRoot,
++                      'plugin',
++                      'list',
++                      '--json',
++                    ],
++                    {
++                      ...scope,
++                      environment: ['DISABLE_AUTOUPDATER=1', 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1'],
++                    },
++                  );
++                  evidence.commands.push(command);
++                  checkCommand(command);
++                  evidence.discovery = { kind: 'installed-plugin-cli-only', output: command.output };
++                  if (command.receipt?.exitCode === 0) {
++                    let plugins: unknown;
++                    try {
++                      plugins = JSON.parse(command.output);
++                    } catch {
++                      plugins = null;
++                    }
++                    if (Array.isArray(plugins))
++                      for (const plugin of plugins) {
++                        if (typeof plugin?.installPath === 'string')
++                          evidence.origins.push(
++                            await classifyOrigin(
++                              plugin.installPath,
++                              'claude-plugin',
++                              projectionRoot,
++                              input.attemptHome,
++                            ),
++                          );
++                        else
++                          evidence.origins.push({
++                            path: '<unrecognized-plugin>',
++                            kind: 'claude-plugin',
++                            classification: 'unverified',
++                            sha256: null,
++                          });
++                      }
++                    add(
++                      'plugin-origin-inventory',
++                      evidence.origins.some((o) => o.classification === 'blocked')
++                        ? 'FAIL'
++                        : evidence.origins.length &&
++                            evidence.origins.every((o) => o.classification === 'selected')
++                          ? 'PASS'
++                          : 'UNVERIFIED',
++                      true,
++                      'CLI plugin origins compared with verified selected projection; hooks/invoke untested',
++                    );
++                  }
++                  const stdin = await discoveryInput(input.attemptHome, [
++                    {
++                      type: 'control_request',
++                      request_id: 'crew-preflight-initialize',
++                      request: { subtype: 'initialize' },
++                    },
++                  ]);
++                  const initialize = await service.measure(
++                    record.attemptId,
++                    input.workspace,
++                    executable,
++                    [
++                      '--print',
++                      '--input-format',
++                      'stream-json',
++                      '--output-format',
++                      'stream-json',
++                      '--verbose',
++                      '--no-session-persistence',
++                      '--permission-prompts',
++                      'none',
++                      '--setting-sources',
++                      '',
++                      '--settings',
++                      '{}',
++                      '--strict-mcp-config',
++                      '--mcp-config',
++                      '{"mcpServers":{}}',
++                      '--plugin-dir',
++                      projectionRoot,
++                    ],
++                    {
++                      ...scope,
++                      stdin,
++                      environment: ['DISABLE_AUTOUPDATER=1', 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1'],
++                    },
++                  );
++                  evidence.commands.push(initialize);
++                  checkCommand(initialize);
++                  evidence.discovery = { plugins: command.output, initialize: jsonLines(initialize.output) };
++                  if (initialize.receipt) await unlink(stdin);
++                  add(
++                    'runtime-discovery',
++                    'UNVERIFIED',
++                    true,
++                    'CLI plugin list does not certify loaded skills/hooks/MCP or native invocation',
++                  );
++                } else {
++                  const stdin = await discoveryInput(input.attemptHome, [
++                    {
++                      id: 1,
++                      method: 'initialize',
++                      params: {
++                        clientInfo: { name: 'crew_isolation_probe', version: '1' },
++                        capabilities: { experimentalApi: true },
++                      },
++                    },
++                    { method: 'initialized' },
++                    { id: 2, method: 'skills/list', params: { cwds: [input.workspace], forceReload: true } },
++                    { id: 3, method: 'hooks/list', params: { cwds: [input.workspace] } },
++                    { id: 4, method: 'config/read', params: { cwd: input.workspace, includeLayers: true } },
++                  ]);
++                  const command = await service.measure(
++                    record.attemptId,
++                    input.workspace,
++                    executable,
++                    ['app-server', '--listen', 'stdio://'],
++                    { ...scope, stdin },
++                  );
++                  evidence.commands.push(command);
++                  checkCommand(command);
++                  evidence.discovery = jsonLines(command.output);
++                  for (const message of evidence.discovery as {
++                    id?: number;
++                    result?: { data?: { skills?: { path?: string }[] }[] };
++                  }[]) {
++                    if (message.id !== 2) continue;
++                    for (const group of message.result?.data ?? [])
++                      for (const skill of group.skills ?? []) {
++                        if (typeof skill.path === 'string')
++                          evidence.origins.push(
++                            await classifyOrigin(
++                              skill.path,
++                              'codex-skill',
++                              projectionRoot,
++                              input.attemptHome,
++                              input.workspace,
++                            ),
++                          );
++                        else
++                          evidence.origins.push({
++                            path: '<unrecognized-skill>',
++                            kind: 'codex-skill',
++                            classification: 'unverified',
++                            sha256: null,
++                          });
++                      }
++                  }
++                  if (evidence.origins.some((o) => o.classification === 'blocked'))
++                    add('skill-origin-inventory', 'FAIL', true, 'CROSS_WORKFLOW_SOURCE');
++                  add(
++                    'runtime-discovery',
++                    'UNVERIFIED',
++                    true,
++                    'bounded stdin discovery; incomplete responses or unmeasured invocation cannot certify runtime',
++                  );
++                  if (command.receipt) await unlink(stdin);
++                }
++              }
++            }
++          }
++          await service.verify(input.workspace, input.attemptHome, input.source, input.projection);
++        },
++      );
++    } catch (error) {
++      const reason = error instanceof Error ? error.message : 'PREFLIGHT_FAILED';
++      add(
++        'preflight-integrity',
++        reason === 'PROCESS_CLOSURE_UNVERIFIED' ? 'UNVERIFIED' : 'FAIL',
++        true,
++        reason,
++      );
++    }
++    for (const [surface, reason] of [
++      ['native-Read', 'NATIVE_READ_UNVERIFIED'],
++      ['native-Skill', 'NATIVE_SKILL_UNVERIFIED'],
++      ['MCP-load-and-invoke', 'MCP_INVOKE_UNVERIFIED'],
++      ['child-inheritance', 'CHILD_POLICY_UNVERIFIED'],
++      ['whole-process-tree', 'FULL_TREE_PROOF_UNVERIFIED'],
++      ['official-renderer-invoke', 'RENDERER_INVOKE_UNVERIFIED'],
++    ])
++      add(surface, 'UNVERIFIED', false, reason);
++    evidence.blockers = [
++      ...new Set(evidence.surfaces.filter((s) => s.status !== 'PASS').map((s) => s.reason)),
++    ];
++    evidence.sha256 = hash(canonicalJson(evidence));
++    return {
++      status: evidence.surfaces.some((s) => s.status === 'FAIL') ? 'FAIL' : 'UNVERIFIED',
++      evidence,
++      blockers: evidence.blockers,
++    };
++  };
++  return Object.freeze({
++    prepareWorkspace: service.prepareWorkspace.bind(service),
++    preflightSourceIsolation: preflight,
++    cleanup: service.cleanup.bind(service),
++    close: service.close.bind(service),
++  });
++}
++export async function preflightSourceIsolation(_input: PreflightInput): Promise<never> {
++  throw new Error('ISOLATION_NOT_BOUND');
++}
+diff --git a/v2/gateway/src/isolation/workspace.ts b/v2/gateway/src/isolation/workspace.ts
+new file mode 100644
+index 0000000..b98b562
+--- /dev/null
++++ b/v2/gateway/src/isolation/workspace.ts
+@@ -0,0 +1,627 @@
++import { createHash, randomUUID } from 'node:crypto';
++import { lstat, mkdir, open, readFile, realpath, rename, symlink, writeFile } from 'node:fs/promises';
++import { dirname, join, resolve } from 'node:path';
++import {
++  AtomicRecords,
++  canonicalJson,
++  hash,
++  privateDirectory,
++  syncDirectory,
++} from '../journal/atomic-records.ts';
++import { type OwnedIdentity, OwnedOperations } from '../workflows/operations.ts';
++import { type ManifestEntry, type ProjectionPin, type SourcePin, same } from '../workflows/pins.ts';
++import { WorkflowRegistry } from '../workflows/registry.ts';
++import {
++  auditWorkspace,
++  type CommandEvidence,
++  contained,
++  fileDigest,
++  type InventoryEntry,
++} from './inventory.ts';
++import { isolationPolicy, policyIdentity } from './policy.ts';
++
++const HOME_CONFIG = Object.freeze({
++  'codex/config.toml': 'cli_auth_credentials_store = "file"\n[analytics]\nenabled = false\n',
++  'claude/settings.json': '{}\n',
++});
++
++export type IsolatedWorkspace = {
++  formatVersion: 1;
++  attemptId: string;
++  operationId: string;
++  identity: OwnedIdentity;
++  workspace: string;
++  attemptHome: string;
++  source: SourcePin;
++  projection: ProjectionPin;
++  ownerCommit: string;
++  ownerCheckout: string;
++  commonDir: string;
++  exclusions: InventoryEntry[];
++  entries: InventoryEntry[];
++  state: 'preparing' | 'prepared' | 'retained' | 'deleted';
++  commands: string[];
++  gitInventorySha256: string;
++  commitInput?: { path: string; device: number; inode: number; ownerUid: number; sha256: string };
++  productionEnabled: false;
++};
++type CommandRecord = {
++  formatVersion: 1;
++  kind: 'isolation-command';
++  attemptId: string;
++  identity: OwnedIdentity | null;
++  state: 'reserved' | 'pending' | 'complete' | 'unknown' | 'deleted';
++  evidence: CommandEvidence;
++};
++export class IsolationWorkspace {
++  private readonly registry: WorkflowRegistry;
++  private readonly store: AtomicRecords;
++  private readonly operations: OwnedOperations;
++  private readonly executableTargets: readonly string[];
++  readonly root: string;
++  private constructor(
++    root: string,
++    registry: WorkflowRegistry,
++    store: AtomicRecords,
++    operations: OwnedOperations,
++    executableTargets: readonly string[],
++  ) {
++    this.root = root;
++    this.registry = registry;
++    this.store = store;
++    this.operations = operations;
++    this.executableTargets = Object.freeze([...executableTargets]);
++  }
++  static async open(
++    root: string,
++    registry: WorkflowRegistry,
++    executablePaths: readonly string[] = [],
++  ): Promise<IsolationWorkspace> {
++    if (!(registry instanceof WorkflowRegistry)) throw new Error('TRUSTED_REGISTRY_REQUIRED');
++    await privateDirectory(root);
++    const store = await AtomicRecords.open(join(root, 'journal'));
++    try {
++      const targets: string[] = [];
++      for (const path of executablePaths) {
++        const target = await realpath(path).catch(() => null);
++        if (target) targets.push(target);
++      }
++      return new IsolationWorkspace(
++        root,
++        registry,
++        store,
++        await OwnedOperations.open(join(root, 'operations'), store),
++        targets,
++      );
++    } catch (error) {
++      await store.close();
++      throw error;
++    }
++  }
++  private key(attemptId: string): string {
++    return `isolation-workspace-${hash(attemptId)}`;
++  }
++  async get(attemptId: string): Promise<IsolatedWorkspace | null> {
++    return this.store.get(this.key(attemptId));
++  }
++  async commands(attemptId: string): Promise<CommandEvidence[]> {
++    const records = await this.store.all<CommandRecord>();
++    return records
++      .filter((r) => r.kind === 'isolation-command' && r.attemptId === attemptId)
++      .map((r) => r.evidence);
++  }
++  /** Only the bound preflight implementation uses this executor; it conveys no launch authority. */
++  async measure(
++    attemptId: string,
++    cwd: string,
++    executable: string,
++    args: string[],
++    scope: {
++      workspace: string;
++      attemptHome: string;
++      projectionRoot: string;
++      extraRead?: string[];
++      extraWrite?: string[];
++      environment?: string[];
++      stdin?: string;
++    },
++  ): Promise<CommandEvidence> {
++    const binary = await realpath(executable);
++    const stat = await lstat(binary);
++    if (!stat.isFile()) throw new Error('INVALID_EXECUTABLE');
++    const id = randomUUID(),
++      stage = join(this.operations.root, 'stages', id);
++    let policy = isolationPolicy({ ...scope, executable: binary, operationRoot: stage });
++    // Preparation-only Git grants are derived by this module, never by the public preflight input.
++    for (const p of scope.extraRead ?? []) policy += `\n(allow file-read* (subpath ${JSON.stringify(p)}))`;
++    for (const p of scope.extraWrite ?? []) policy += `\n(allow file-write* (subpath ${JSON.stringify(p)}))`;
++    const policyFile = join(stage, 'sandbox.sb');
++    let stdin: CommandEvidence['stdin'];
++    if (scope.stdin) {
++      if (!contained(scope.attemptHome, scope.stdin) || (await realpath(scope.stdin)) !== scope.stdin)
++        throw new Error('UNSAFE_DISCOVERY_STDIN');
++      const s = await lstat(scope.stdin);
++      if (
++        !s.isFile() ||
++        s.nlink !== 1 ||
++        s.uid !== process.getuid?.() ||
++        s.size > 32768 ||
++        (s.mode & 0o777) !== 0o400
++      )
++        throw new Error('UNSAFE_DISCOVERY_STDIN');
++      const body = await readFile(scope.stdin, 'utf8');
++      stdin = { path: scope.stdin, device: s.dev, inode: s.ino, ownerUid: s.uid, sha256: hash(body), body };
++    }
++    const command = stdin
++      ? [
++          '/bin/sh',
++          '-c',
++          'exec "$@" < "$CREW_ISOLATION_DISCOVERY_INPUT"',
++          'crew-isolation-discovery',
++          binary,
++          ...args,
++        ]
++      : [binary, ...args];
++    const argv = [
++      '/usr/bin/env',
++      `HOME=${scope.attemptHome}`,
++      `CLAUDE_CONFIG_DIR=${join(scope.attemptHome, 'claude')}`,
++      `CODEX_HOME=${join(scope.attemptHome, 'codex')}`,
++      `TMPDIR=${join(scope.attemptHome, 'tmp')}`,
++      `CLAUDE_CODE_TMPDIR=${join(scope.attemptHome, 'tmp')}`,
++      `XDG_CACHE_HOME=${join(scope.attemptHome, 'cache')}`,
++      `XDG_CONFIG_HOME=${join(scope.attemptHome, 'config')}`,
++      `XDG_DATA_HOME=${join(scope.attemptHome, 'data')}`,
++      ...(scope.environment ?? []),
++      ...(stdin ? [`CREW_ISOLATION_DISCOVERY_INPUT=${stdin.path}`] : []),
++      '/usr/bin/sandbox-exec',
++      '-f',
++      policyFile,
++      ...command,
++    ];
++    const evidence: CommandEvidence = {
++      operationId: id,
++      argv,
++      executable: binary,
++      executableSha256: hash(await readFile(binary)),
++      policySha256: policyIdentity(policy),
++      policy,
++      stageIdentity: null,
++      output: '',
++      receipt: null,
++      error: null,
++      numericPidStart: 'unavailable-in-reviewed-receipt',
++    };
++    if (stdin) evidence.stdin = stdin;
++    const record: CommandRecord = {
++      formatVersion: 1,
++      kind: 'isolation-command',
++      attemptId,
++      identity: null,
++      state: 'reserved',
++      evidence,
++    };
++    await this.store.put(`command-${id}`, record);
++    try {
++      const identity = await this.operations.create(id);
++      record.identity = identity;
++      evidence.stageIdentity = identity;
++      record.state = 'pending';
++      await this.store.put(`command-${id}`, record);
++      for (const name of ['home', 'tmp']) await mkdir(join(stage, name), { mode: 0o700 });
++      await writeFile(policyFile, policy, { mode: 0o600 });
++      evidence.receipt = await this.operations.execute(id, identity, cwd, argv, 10);
++      evidence.output = await readFile(join(stage, 'execution.log'), 'utf8');
++      if (evidence.output.length > 2 * 1024 * 1024) throw new Error('INVENTORY_OUTPUT_LIMIT');
++      if (stdin) {
++        const s = await lstat(stdin.path);
++        if (
++          s.dev !== stdin.device ||
++          s.ino !== stdin.inode ||
++          s.uid !== stdin.ownerUid ||
++          s.nlink !== 1 ||
++          (await fileDigest(stdin.path)) !== stdin.sha256
++        )
++          throw new Error('DISCOVERY_STDIN_CHANGED');
++      }
++      await this.store.put(`command-${id}`, { ...record, state: 'complete', evidence });
++      await this.operations.remove('stages', id, identity);
++      await this.store.put(`command-${id}`, { ...record, state: 'deleted', evidence });
++    } catch (error) {
++      evidence.error = error instanceof Error ? error.message : 'MEASUREMENT_FAILED';
++      await this.store.put(`command-${id}`, {
++        ...record,
++        state: evidence.receipt ? 'complete' : 'unknown',
++        evidence,
++      });
++    }
++    return evidence;
++  }
++  async prepareWorkspace(
++    ownerCheckout: string,
++    attemptId: string,
++    inputSource: SourcePin,
++    inputProjection: ProjectionPin,
++  ): Promise<IsolatedWorkspace> {
++    return this.store.transaction(async () => {
++      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/.test(attemptId)) throw new Error('INVALID_ATTEMPT_ID');
++      if (await this.get(attemptId)) throw new Error('ATTEMPT_ALREADY_RESERVED');
++      if ((await realpath(ownerCheckout)) !== resolve(ownerCheckout)) throw new Error('OWNER_CHECKOUT_ALIAS');
++      const source = structuredClone(inputSource),
++        projection = structuredClone(inputProjection);
++      const selected = await this.registry.resolve(source, projection);
++      if (
++        contained(ownerCheckout, this.root) ||
++        contained(this.root, ownerCheckout) ||
++        contained(ownerCheckout, selected.projectionRoot)
++      )
++        throw new Error('ISOLATION_ROOT_OVERLAP');
++      const operationId = randomUUID();
++      await this.store.put(this.key(attemptId), {
++        formatVersion: 1,
++        state: 'preparing',
++        attemptId,
++        operationId,
++        source,
++        projection,
++      });
++      await this.registry.retain(`isolation:${attemptId}`, source, projection);
++      const identity = await this.operations.create(operationId),
++        base = join(this.operations.root, 'stages', operationId);
++      const workspace = join(base, 'workspace'),
++        attemptHome = join(base, 'home');
++      for (const p of [
++        'home/claude',
++        'home/codex',
++        'home/hooks',
++        'home/template',
++        'home/tmp',
++        'home/cache',
++        'home/config',
++        'home/data',
++        'tmp',
++        'excluded',
++      ])
++        await mkdir(join(base, p), { recursive: true, mode: 0o700 });
++      for (const [path, bytes] of Object.entries(HOME_CONFIG))
++        await writeFile(join(attemptHome, path), bytes, { flag: 'wx', mode: 0o600 });
++      const record: IsolatedWorkspace = {
++        formatVersion: 1,
++        attemptId,
++        operationId,
++        identity,
++        workspace,
++        attemptHome,
++        source,
++        projection,
++        ownerCommit: '',
++        ownerCheckout,
++        commonDir: '',
++        exclusions: [],
++        entries: [],
++        state: 'preparing',
++        commands: [],
++        gitInventorySha256: '',
++        productionEnabled: false,
++      };
++      await this.store.put(this.key(attemptId), record);
++      const git = async (args: string[], extraRead: string[] = [ownerCheckout]): Promise<string> => {
++        const e = await this.measure(
++          attemptId,
++          base,
++          '/Library/Developer/CommandLineTools/usr/bin/git',
++          ['-c', `core.hooksPath=${join(attemptHome, 'hooks')}`, '-c', 'core.fsmonitor=false', ...args],
++          {
++            workspace: base,
++            attemptHome,
++            projectionRoot: selected.projectionRoot,
++            extraRead: [
++              ...extraRead,
++              '/Applications/Xcode.app/Contents/Developer',
++              '/Library/Developer/CommandLineTools',
++            ],
++            extraWrite: [base],
++            environment: [
++              'GIT_CONFIG_NOSYSTEM=1',
++              'GIT_CONFIG_GLOBAL=/dev/null',
++              'GIT_TERMINAL_PROMPT=0',
++              'GIT_OPTIONAL_LOCKS=0',
++              `GIT_TEMPLATE_DIR=${join(attemptHome, 'template')}`,
++            ],
++          },
++        );
++        record.commands.push(e.operationId);
++        await this.store.put(this.key(attemptId), record);
++        if (e.receipt?.exitCode !== 0 || e.error)
++          throw new Error(`GIT_MEASUREMENT_FAILED:${e.error ?? e.receipt?.exitCode}`);
++        return e.output.trim();
++      };
++      try {
++        // Common-dir discovery may point outside a worktree. This command only resolves its path.
++        record.commonDir = await git([
++          '-C',
++          ownerCheckout,
++          'rev-parse',
++          '--path-format=absolute',
++          '--git-common-dir',
++        ]);
++        if (
++          !record.commonDir.startsWith('/') ||
++          [...record.commonDir].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)
++        )
++          throw new Error('INVALID_GIT_COMMON_DIR');
++        const reads = [ownerCheckout, record.commonDir];
++        record.ownerCommit = await git(
++          ['-C', ownerCheckout, 'rev-parse', '--verify', 'HEAD^{commit}'],
++          reads,
++        );
++        if (!/^[0-9a-f]{40}$/.test(record.ownerCommit)) throw new Error('INVALID_OWNER_COMMIT');
++        await git(['init', '--template', join(attemptHome, 'template'), workspace], []);
++        const inputPath = join(base, 'commit-input');
++        const inputBytes = `${record.ownerCommit}\n`;
++        const fd = await open(inputPath, 'wx', 0o400);
++        try {
++          await fd.writeFile(inputBytes);
++          await fd.sync();
++          const s = await fd.stat();
++          record.commitInput = {
++            path: inputPath,
++            device: s.dev,
++            inode: s.ino,
++            ownerUid: s.uid,
++            sha256: hash(inputBytes),
++          };
++        } finally {
++          await fd.close();
++        }
++        await syncDirectory(base);
++        await this.store.put(this.key(attemptId), record);
++        const packOutput = join(base, `export-${randomUUID()}.pack`);
++        await this.store.put(`pack-intent-${operationId}`, {
++          formatVersion: 1,
++          attemptId,
++          operationId,
++          parent: identity,
++          path: packOutput,
++          maximumBytes: 64 * 1024 * 1024,
++        });
++        const packed = await this.measure(
++          attemptId,
++          base,
++          '/bin/sh',
++          [
++            '-c',
++            'ulimit -S -f 65536 && set -C && exec "$@" < "$CREW_ISOLATION_COMMIT_INPUT" > "$CREW_ISOLATION_PACK_OUTPUT"',
++            'crew-isolation-pack',
++            '/Library/Developer/CommandLineTools/usr/bin/git',
++            '-c',
++            `core.hooksPath=${join(attemptHome, 'hooks')}`,
++            '-c',
++            'core.fsmonitor=false',
++            '-C',
++            ownerCheckout,
++            'pack-objects',
++            '--stdout',
++            '--revs',
++            '--quiet',
++            '--threads=1',
++          ],
++          {
++            workspace: base,
++            attemptHome,
++            projectionRoot: selected.projectionRoot,
++            extraRead: [...reads, '/Library/Developer/CommandLineTools'],
++            extraWrite: [base],
++            environment: [
++              'GIT_CONFIG_NOSYSTEM=1',
++              'GIT_CONFIG_GLOBAL=/dev/null',
++              'GIT_TERMINAL_PROMPT=0',
++              'GIT_OPTIONAL_LOCKS=0',
++              `CREW_ISOLATION_COMMIT_INPUT=${inputPath}`,
++              `CREW_ISOLATION_PACK_OUTPUT=${packOutput}`,
++            ],
++          },
++        );
++        record.commands.push(packed.operationId);
++        await this.store.put(this.key(attemptId), record);
++        if (packed.receipt?.exitCode !== 0 || packed.error || packed.output !== '')
++          throw new Error('GIT_PACK_EXPORT_FAILED');
++        const inputStat = await lstat(inputPath);
++        if (
++          inputStat.dev !== record.commitInput.device ||
++          inputStat.ino !== record.commitInput.inode ||
++          inputStat.uid !== record.commitInput.ownerUid ||
++          inputStat.nlink !== 1 ||
++          hash(await readFile(inputPath)) !== record.commitInput.sha256
++        )
++          throw new Error('COMMIT_INPUT_CHANGED');
++        const packStat = await lstat(packOutput);
++        if (
++          !packStat.isFile() ||
++          packStat.isSymbolicLink() ||
++          packStat.nlink !== 1 ||
++          packStat.uid !== process.getuid?.() ||
++          packStat.size < 32 ||
++          packStat.size > 64 * 1024 * 1024
++        )
++          throw new Error('INVALID_OWNED_PACK');
++        const packBytes = await readFile(packOutput);
++        const packHash = createHash('sha1').update(packBytes.subarray(0, -20)).digest('hex');
++        if (
++          packBytes.subarray(0, 4).toString() !== 'PACK' ||
++          packBytes.readUInt32BE(4) !== 2 ||
++          packBytes.subarray(-20).toString('hex') !== packHash
++        )
++          throw new Error('PACK_CHECKSUM_MISMATCH');
++        await this.store.put(`pack-receipt-${operationId}`, {
++          formatVersion: 1,
++          attemptId,
++          path: packOutput,
++          device: packStat.dev,
++          inode: packStat.ino,
++          ownerUid: packStat.uid,
++          bytes: packStat.size,
++          sha256: hash(packBytes),
++          sha1: packHash,
++          command: packed.operationId,
++        });
++        const packPath = join(workspace, `.git/objects/pack/pack-${packHash}.pack`);
++        await rename(packOutput, packPath);
++        const indexed = await git(['index-pack', '--strict', '--threads=1', packPath], []);
++        if (indexed !== packHash) throw new Error('PACK_INDEX_MISMATCH');
++        await git(['-C', workspace, 'update-ref', 'HEAD', record.ownerCommit], []);
++        await git(['-C', workspace, 'checkout', '--detach', '--force', record.ownerCommit], reads);
++        const actual = await git(['-C', workspace, 'rev-parse', '--verify', 'HEAD^{commit}'], []);
++        const common = await git(
++          ['-C', workspace, 'rev-parse', '--path-format=absolute', '--git-common-dir'],
++          [],
++        );
++        if (
++          actual !== record.ownerCommit ||
++          common !== join(workspace, '.git') ||
++          (await realpath(common)) !== common
++        )
++          throw new Error('CLONE_IDENTITY_MISMATCH');
++        const ownerTree = await git(
++          ['-C', ownerCheckout, 'rev-parse', `${record.ownerCommit}^{tree}`],
++          reads,
++        );
++        if ((await git(['-C', workspace, 'rev-parse', 'HEAD^{tree}'], [])) !== ownerTree)
++          throw new Error('CLONE_TREE_MISMATCH');
++        if (await git(['-C', workspace, 'status', '--porcelain', '--untracked-files=all'], []))
++          throw new Error('CLONE_NOT_CLEAN');
++        const before = await auditWorkspace(workspace);
++        if (before.blockers.length) throw new Error(before.blockers.join(';'));
++        record.exclusions = before.entries.filter((e) => e.classification === 'discovery');
++        const excludedRoots: string[] = [];
++        for (const entry of record.exclusions) {
++          if (excludedRoots.some((p) => entry.path.startsWith(`${p}/`))) continue;
++          const target = join(base, 'excluded', entry.path);
++          await mkdir(dirname(target), { recursive: true, mode: 0o700 });
++          await rename(join(workspace, entry.path), target);
++          excludedRoots.push(entry.path);
++        }
++        if (projection.runtime === 'codex') {
++          if (projection.derivation.layoutSchema !== 'superpowers-codex-native-skills-v1')
++            throw new Error('NATIVE_DISCOVERY_GEOMETRY_UNVERIFIED');
++          await mkdir(join(workspace, '.agents'), { mode: 0o700 });
++          await symlink(join(selected.projectionRoot, '.agents/skills'), join(workspace, '.agents/skills'));
++        }
++        const after = await auditWorkspace(
++          workspace,
++          projection.runtime === 'codex'
++            ? { path: '.agents/skills', target: join(selected.projectionRoot, '.agents/skills') }
++            : undefined,
++        );
++        if (after.blockers.length) throw new Error(after.blockers.join(';'));
++        record.entries = after.entries;
++        record.state = 'prepared';
++        const gitInventory = await auditWorkspace(join(workspace, '.git'));
++        if (
++          gitInventory.blockers.length ||
++          gitInventory.entries.some((e) => ['objects/info/alternates', 'commondir'].includes(e.path))
++        )
++          throw new Error('CLONE_METADATA_ALIAS');
++        record.gitInventorySha256 = hash(canonicalJson(gitInventory.entries));
++        await this.registry.resolve(source, projection);
++        await this.store.put(this.key(attemptId), record);
++        return structuredClone(record);
++      } catch (error) {
++        record.state = 'retained';
++        await this.store.put(this.key(attemptId), record);
++        throw error;
++      }
++    });
++  }
++  async verify(
++    workspace: string,
++    attemptHome: string,
++    source: SourcePin,
++    projection: ProjectionPin,
++  ): Promise<{ record: IsolatedWorkspace; projectionRoot: string; projectionEntries: ManifestEntry[] }> {
++    const records = await this.store.all<IsolatedWorkspace>();
++    const record = records.find(
++      (r) => r.workspace === workspace && r.attemptHome === attemptHome && r.state === 'prepared',
++    );
++    if (!record || !same(record.source, source) || !same(record.projection, projection))
++      throw new Error('WORKSPACE_BINDING_MISMATCH');
++    if (
++      (await this.commands(record.attemptId)).some(
++        (c) => !c.receipt || c.receipt.forkObserved || !c.receipt.treeEmpty,
++      )
++    )
++      throw new Error('PROCESS_CLOSURE_UNVERIFIED');
++    const identity = await this.operations.attest('stages', record.operationId, record.operationId);
++    if (identity.device !== record.identity.device || identity.inode !== record.identity.inode)
++      throw new Error('WORKSPACE_IDENTITY_MISMATCH');
++    if ((await realpath(workspace)) !== workspace || (await realpath(attemptHome)) !== attemptHome)
++      throw new Error('WORKSPACE_ALIAS');
++    const selected = await this.registry.resolve(source, projection);
++    const homeInventory = await auditWorkspace(attemptHome, undefined, this.executableTargets);
++    if (homeInventory.blockers.length) throw new Error('CROSS_WORKFLOW_SOURCE');
++    for (const [path, bytes] of Object.entries(HOME_CONFIG))
++      if ((await fileDigest(join(attemptHome, path))) !== hash(bytes))
++        throw new Error('PRIVATE_CONFIG_CHANGED');
++    const gitInventory = await auditWorkspace(join(workspace, '.git'));
++    if (
++      gitInventory.blockers.length ||
++      hash(canonicalJson(gitInventory.entries)) !== record.gitInventorySha256
++    )
++      throw new Error('GIT_METADATA_CHANGED');
++    const audit = await auditWorkspace(
++      workspace,
++      projection.runtime === 'codex'
++        ? { path: '.agents/skills', target: join(selected.projectionRoot, '.agents/skills') }
++        : undefined,
++    );
++    if (audit.blockers.length) throw new Error('CROSS_WORKFLOW_SOURCE');
++    if (canonicalJson(audit.entries) !== canonicalJson(record.entries))
++      throw new Error('WORKSPACE_BYTES_CHANGED');
++    return {
++      record,
++      projectionRoot: selected.projectionRoot,
++      projectionEntries: selected.manifest.projection,
++    };
++  }
++  withPrepared<T>(
++    workspace: string,
++    attemptHome: string,
++    source: SourcePin,
++    projection: ProjectionPin,
++    action: (verified: {
++      record: IsolatedWorkspace;
++      projectionRoot: string;
++      projectionEntries: ManifestEntry[];
++    }) => Promise<T>,
++  ): Promise<T> {
++    // Fixed order: isolation transaction -> registry read; registry never calls back into isolation.
++    return this.store.transaction(async () =>
++      action(await this.verify(workspace, attemptHome, source, projection)),
++    );
++  }
++  async cleanup(attemptId: string): Promise<'deleted' | 'retained'> {
++    return this.store.transaction(async () => {
++      const record = await this.get(attemptId);
++      if (!record?.identity) return 'retained';
++      if (record.state === 'deleted') return 'deleted';
++      const commands = await this.commands(attemptId);
++      if (commands.some((c) => !c.receipt || c.receipt.forkObserved || !c.receipt.treeEmpty))
++        return 'retained';
++      await this.operations.remove('stages', record.operationId, record.identity);
++      await this.registry.release(`isolation:${attemptId}`, record.source, record.projection);
++      await this.store.put(this.key(attemptId), { ...record, state: 'deleted' });
++      return 'deleted';
++    });
++  }
++  async close(): Promise<void> {
++    await this.store.close();
++  }
++}
++export async function prepareWorkspace(
++  _ownerCheckout: string,
++  _attemptId: string,
++  _source: SourcePin,
++  _projection: ProjectionPin,
++): Promise<never> {
++  throw new Error('ISOLATION_NOT_BOUND');
++}
+diff --git a/v2/gateway/test/isolation-workspace.test.ts b/v2/gateway/test/isolation-workspace.test.ts
+new file mode 100644
+index 0000000..b96b45a
+--- /dev/null
++++ b/v2/gateway/test/isolation-workspace.test.ts
+@@ -0,0 +1,296 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import {
++  link,
++  lstat,
++  mkdir,
++  mkdtemp,
++  readFile,
++  realpath,
++  symlink,
++  unlink,
++  writeFile,
++} from 'node:fs/promises';
++import { join } from 'node:path';
++import { Readable } from 'node:stream';
++import test from 'node:test';
++import { createIsolationPreflight } from '../src/isolation/preflight.ts';
++import { IsolationWorkspace } from '../src/isolation/workspace.ts';
++import { AtomicRecords } from '../src/journal/atomic-records.ts';
++import { WorkflowRegistry } from '../src/workflows/registry.ts';
++
++test('actual exact clone preserves product docs, quarantines discovery and revalidates selected pins', async () => {
++  const root = await realpath(await mkdtemp('/private/tmp/crew6-w-'));
++  const st = await lstat(root);
++  const creation = { nonce: randomUUID(), root, device: st.dev, inode: st.ino, ownerUid: st.uid };
++  console.log('Task6 owned fixture creation', JSON.stringify(creation));
++  const original = JSON.parse(
++    await readFile(new URL('./fixtures/workflows/official-audits.json', import.meta.url), 'utf8'),
++  ).superpowers;
++  const sourceAudit = original.source;
++  const real = JSON.parse(
++    await readFile(new URL('./fixtures/workflow-builder/real-projections.json', import.meta.url), 'utf8'),
++  ).superpowers;
++  const audit = real.codex;
++  const registry = await WorkflowRegistry.open(join(root, 'registry'), {
++    sources: [sourceAudit],
++    projections: [audit, real.api, original.projections.claude],
++  });
++  let service = await IsolationWorkspace.open(join(root, 'isolation'), registry);
++  let bound: Awaited<ReturnType<typeof createIsolationPreflight>> | undefined;
++  try {
++    await registry.installSource(
++      sourceAudit.pin,
++      Readable.from(await readFile(new URL('./fixtures/workflows/superpowers-6.4.2.tgz', import.meta.url))),
++    );
++    const projection = await registry.deriveProjection(sourceAudit.pin, 'codex', audit.recipe);
++    const owner = join(root, 'owner'),
++      home = join(root, 'fixture-home');
++    for (const p of [owner, home, join(home, 'template'), join(home, 'hooks')])
++      await mkdir(p, { mode: 0o700 });
++    const git = async (...args: string[]) => {
++      const e = await service.measure(
++        'fixture',
++        owner,
++        '/Library/Developer/CommandLineTools/usr/bin/git',
++        [
++          '-c',
++          `core.hooksPath=${join(home, 'hooks')}`,
++          '-c',
++          'core.fsmonitor=false',
++          '-c',
++          'gc.auto=0',
++          '-c',
++          'maintenance.auto=false',
++          ...args,
++        ],
++        {
++          workspace: owner,
++          attemptHome: home,
++          projectionRoot: (await registry.resolve(sourceAudit.pin, projection)).projectionRoot,
++          extraRead: [owner, '/Library/Developer/CommandLineTools'],
++          extraWrite: [owner],
++          environment: [
++            'GIT_CONFIG_NOSYSTEM=1',
++            'GIT_CONFIG_GLOBAL=/dev/null',
++            `GIT_TEMPLATE_DIR=${join(home, 'template')}`,
++          ],
++        },
++      );
++      console.log('Task6 fixture Git', JSON.stringify(e));
++      assert.equal(e.receipt?.exitCode, 0, e.output || e.error || 'missing receipt');
++      return e.output.trim();
++    };
++    await git('init', owner);
++    await mkdir(join(owner, 'docs'));
++    await mkdir(join(owner, '.agents/skills/foreign'), { recursive: true });
++    await writeFile(join(owner, 'docs/product.md'), 'product specifications remain');
++    await writeFile(join(owner, 'AGENTS.md'), 'foreign instructions');
++    await writeFile(join(owner, '.agents/skills/foreign/SKILL.md'), 'foreign skill');
++    await git('-C', owner, 'add', '--all');
++    await git(
++      '-C',
++      owner,
++      '-c',
++      'user.name=Fixture',
++      '-c',
++      'user.email=fixture@example.invalid',
++      '-c',
++      'commit.gpgSign=false',
++      'commit',
++      '-m',
++      'fixture',
++    );
++    const commit = await git('-C', owner, 'rev-parse', 'HEAD');
++    const workspace = await service.prepareWorkspace(owner, 'clone-test', sourceAudit.pin, projection);
++    assert.equal(workspace.ownerCommit, commit);
++    assert.equal(
++      await readFile(join(workspace.workspace, 'docs/product.md'), 'utf8'),
++      'product specifications remain',
++    );
++    assert(workspace.exclusions.some((e) => e.path === 'AGENTS.md'));
++    assert(workspace.exclusions.some((e) => e.path === '.agents/skills/foreign/SKILL.md'));
++    assert.equal(await readFile(join(owner, 'AGENTS.md'), 'utf8'), 'foreign instructions');
++    await service.verify(workspace.workspace, workspace.attemptHome, sourceAudit.pin, projection);
++    await service.close();
++    const missingRuntime = await createIsolationPreflight({
++      root: join(root, 'isolation'),
++      registry,
++      executables: { codex: join(root, 'missing-runtime') },
++    });
++    bound = missingRuntime;
++    const input = {
++      runtime: 'codex' as const,
++      source: sourceAudit.pin,
++      projection,
++      workspace: workspace.workspace,
++      attemptHome: workspace.attemptHome,
++    };
++    const missing = await missingRuntime.preflightSourceIsolation(input);
++    console.log('Task6 missing runtime evidence', JSON.stringify(missing));
++    assert.equal(missing.status, 'UNVERIFIED');
++    assert.equal(missing.evidence.productionEnabled, false);
++    assert(
++      missing.evidence.surfaces
++        .filter((s) => s.surface.startsWith('shell-'))
++        .every((s) => s.status === 'PASS'),
++    );
++    const foreign = join(root, 'foreign-canary');
++    await writeFile(foreign, 'foreign workflow');
++    for (const [name, create] of [
++      ['hardlink', link],
++      ['symlink', symlink],
++    ] as const) {
++      const target = join(workspace.workspace, name);
++      await create(foreign, target);
++      const denied = await missingRuntime.preflightSourceIsolation(input);
++      assert.equal(denied.status, 'FAIL');
++      assert(denied.blockers.includes('CROSS_WORKFLOW_SOURCE'));
++      assert(denied.blockers.includes('NATIVE_READ_UNVERIFIED'));
++      assert.equal(denied.evidence.commands.length, 0);
++      await unlink(target);
++    }
++    const homeAlias = join(workspace.attemptHome, 'foreign');
++    await symlink(foreign, homeAlias);
++    assert.equal((await missingRuntime.preflightSourceIsolation(input)).status, 'FAIL');
++    await unlink(homeAlias);
++    const privateConfig = join(workspace.attemptHome, 'codex/config.toml'),
++      configBytes = await readFile(privateConfig);
++    await writeFile(privateConfig, '[mcp_servers.foreign]\ncommand="foreign"\n');
++    assert(
++      (await missingRuntime.preflightSourceIsolation(input)).blockers.includes('PRIVATE_CONFIG_CHANGED'),
++    );
++    await writeFile(privateConfig, configBytes);
++    const gitConfig = join(workspace.workspace, '.git/config'),
++      gitBytes = await readFile(gitConfig);
++    await writeFile(gitConfig, '[core]\nworktree = /foreign\n');
++    assert((await missingRuntime.preflightSourceIsolation(input)).blockers.includes('GIT_METADATA_CHANGED'));
++    await writeFile(gitConfig, gitBytes);
++    assert.equal(
++      (
++        await missingRuntime.preflightSourceIsolation({
++          ...input,
++          projection: { ...projection, treeSha256: '0'.repeat(64) },
++        })
++      ).status,
++      'FAIL',
++    );
++    const selected = await registry.resolve(sourceAudit.pin, projection),
++      selectedPath = join(selected.projectionRoot, 'AGENTS.md'),
++      selectedBytes = await readFile(selectedPath);
++    await writeFile(selectedPath, 'tampered selected bytes');
++    assert.equal((await missingRuntime.preflightSourceIsolation(input)).status, 'FAIL');
++    await writeFile(selectedPath, selectedBytes);
++    await missingRuntime.close();
++    const live = await createIsolationPreflight({
++      root: join(root, 'isolation'),
++      registry,
++      executables: {
++        codex: '/Users/phannhatquang/.local/bin/codex',
++        claude: '/Users/phannhatquang/.local/bin/claude',
++      },
++    });
++    bound = live;
++    if (process.env.CREW_ISOLATION_PROBE_RUNTIME !== 'claude') {
++      const codex = await live.preflightSourceIsolation(input);
++      console.log('Task6 Codex no-model evidence', JSON.stringify(codex));
++      assert.equal(codex.status, 'UNVERIFIED');
++    }
++    for (const runtime of ['claude', 'api'] as const) {
++      if (runtime === 'claude' && process.env.CREW_ISOLATION_PROBE_RUNTIME === 'codex') continue;
++      const a = runtime === 'api' ? real.api : original.projections.claude;
++      const pin = await registry.deriveProjection(sourceAudit.pin, runtime, a.recipe);
++      const w = await live.prepareWorkspace(owner, `${runtime}-probe`, sourceAudit.pin, pin);
++      const result = await live.preflightSourceIsolation({
++        runtime,
++        source: sourceAudit.pin,
++        projection: pin,
++        workspace: w.workspace,
++        attemptHome: w.attemptHome,
++      });
++      console.log(`Task6 ${runtime} no-model evidence`, JSON.stringify(result));
++      assert.equal(result.status, 'UNVERIFIED');
++      assert.equal(result.evidence.productionEnabled, false);
++      assert.equal(await live.cleanup(`${runtime}-probe`), 'deleted');
++    }
++    await live.close();
++    service = await IsolationWorkspace.open(join(root, 'isolation'), registry, [
++      '/Users/phannhatquang/.local/bin/codex',
++      '/Users/phannhatquang/.local/bin/claude',
++    ]);
++    await assert.rejects(
++      () =>
++        service.verify(workspace.workspace, workspace.attemptHome, sourceAudit.pin, {
++          ...projection,
++          treeSha256: '0'.repeat(64),
++        }),
++      /BINDING_MISMATCH/,
++    );
++    await writeFile(join(workspace.workspace, 'docs/product.md'), 'changed');
++    await assert.rejects(
++      () => service.verify(workspace.workspace, workspace.attemptHome, sourceAudit.pin, projection),
++      /BYTES_CHANGED/,
++    );
++    assert.equal(await service.cleanup('clone-test'), 'deleted');
++    // Negative crash fixture: durable reserved intent, no process or STOP receipt is invented.
++    const pending = await service.prepareWorkspace(owner, 'pending-crash', sourceAudit.pin, projection);
++    await service.close();
++    const journal = await AtomicRecords.open(join(root, 'isolation/journal'));
++    const operationId = randomUUID();
++    try {
++      await journal.put(`command-${operationId}`, {
++        formatVersion: 1,
++        kind: 'isolation-command',
++        attemptId: 'pending-crash',
++        identity: null,
++        state: 'reserved',
++        evidence: {
++          operationId,
++          argv: [],
++          executable: '<never-started-negative-fixture>',
++          executableSha256: '',
++          policySha256: '',
++          policy: '',
++          stageIdentity: null,
++          output: '',
++          receipt: null,
++          error: 'DURABLE_INTENT_CRASH_FIXTURE',
++          numericPidStart: 'unavailable-in-reviewed-receipt',
++        },
++      });
++    } finally {
++      await journal.close();
++    }
++    bound = await createIsolationPreflight({ root: join(root, 'isolation'), registry });
++    const unresolved = await bound.preflightSourceIsolation({
++      ...input,
++      workspace: pending.workspace,
++      attemptHome: pending.attemptHome,
++    });
++    assert.equal(unresolved.status, 'UNVERIFIED');
++    assert(unresolved.blockers.includes('PROCESS_CLOSURE_UNVERIFIED'));
++    assert.equal(unresolved.evidence.commands.length, 0);
++    assert.equal(await bound.cleanup('pending-crash'), 'retained');
++    assert((await registry.retained()).some((ref) => ref.runId === 'isolation:pending-crash'));
++    console.log(
++      'Task6 durable pending retained',
++      JSON.stringify({
++        attemptId: 'pending-crash',
++        operationId,
++        workspace: pending.workspace,
++        identity: pending.identity,
++        result: unresolved,
++      }),
++    );
++    await bound.close();
++    service = await IsolationWorkspace.open(join(root, 'isolation'), registry);
++    assert.equal(await service.cleanup('pending-crash'), 'retained');
++    assert.equal((await service.get('pending-crash'))?.state, 'prepared');
++  } finally {
++    console.log('Task6 fixture commands', JSON.stringify(await service.commands('clone-test')));
++    console.log('Task6 fixture retained root', JSON.stringify(creation));
++    await bound?.close();
++    await service.close();
++    await registry.close();
++  }
++});
+diff --git a/v2/gateway/test/isolation.test.ts b/v2/gateway/test/isolation.test.ts
+new file mode 100644
+index 0000000..c192cd9
+--- /dev/null
++++ b/v2/gateway/test/isolation.test.ts
+@@ -0,0 +1,104 @@
++import assert from 'node:assert/strict';
++import { link, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import test from 'node:test';
++import { auditWorkspace, classifyOrigin, discoveryReason } from '../src/isolation/inventory.ts';
++import { isolationPolicy, routerPolicy } from '../src/isolation/policy.ts';
++import { createIsolationPreflight, preflightSourceIsolation } from '../src/isolation/preflight.ts';
++import { prepareWorkspace } from '../src/isolation/workspace.ts';
++
++test('unbound isolation cannot accept caller supplied paths or proof', async () => {
++  await assert.rejects(
++    () => prepareWorkspace('/tmp/owner', 'attempt', {} as never, {} as never),
++    /ISOLATION_NOT_BOUND/,
++  );
++  await assert.rejects(
++    () =>
++      preflightSourceIsolation({
++        runtime: 'codex',
++        source: {} as never,
++        projection: {} as never,
++        workspace: '/tmp/forged',
++        attemptHome: '/tmp/forged',
++      }),
++    /ISOLATION_NOT_BOUND/,
++  );
++});
++test('factory rejects a fake registry even when the caller reports a passing certificate', async () => {
++  await assert.rejects(
++    () =>
++      createIsolationPreflight({
++        root: '/private/tmp/unused',
++        registry: { resolve: async () => ({ status: 'PASS' }) } as never,
++      }),
++    /TRUSTED_REGISTRY_REQUIRED/,
++  );
++});
++test('discovery exclusions are explicit; ordinary product documents survive', () => {
++  for (const path of [
++    'AGENTS.md',
++    'nested/CLAUDE.md',
++    '.agents/skills/a/SKILL.md',
++    '.claude/settings.json',
++    '.codex/config.toml',
++    '_bmad/agents/a.md',
++    '.mcp.json',
++  ])
++    assert(discoveryReason(path), path);
++  for (const path of ['docs/product.md', 'src/agents.ts', '.github/workflows/test.yml', 'README.md'])
++    assert.equal(discoveryReason(path), null, path);
++});
++test('policy is deny-by-default for data, fork, network and router source', () => {
++  const p = isolationPolicy({
++    workspace: '/private/tmp/owned/w',
++    attemptHome: '/private/tmp/owned/h',
++    projectionRoot: '/private/tmp/P',
++    executable: '/usr/bin/true',
++    operationRoot: '/private/tmp/op',
++  });
++  assert(p.includes('(deny file-read*)'));
++  assert(p.includes('(deny process-fork)'));
++  assert(p.includes('(deny network*)'));
++  assert(!routerPolicy().workflowSource);
++  assert.equal(routerPolicy().productionEnabled, false);
++  assert.throws(
++    () =>
++      isolationPolicy({
++        workspace: '/tmp/a\n(bad)',
++        attemptHome: '/tmp/h',
++        projectionRoot: '/tmp/p',
++        executable: '/bin/true',
++        operationRoot: '/tmp/o',
++      }),
++    /UNSAFE_POLICY_PATH/,
++  );
++});
++test('workspace audit rejects hardlink, external symlink and nested common-dir; keeps internal document alias', async () => {
++  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-isolation-audit-')));
++  try {
++    const w = join(root, 'w');
++    await mkdir(w);
++    await writeFile(join(w, 'README.md'), 'product');
++    assert.equal(
++      (await classifyOrigin(join(root, 'foreign-secret'), 'skill', w, join(root, 'home'))).classification,
++      'blocked',
++    );
++    assert.equal(
++      (await classifyOrigin(join(w, 'README.md'), 'skill', w, join(root, 'home'))).classification,
++      'selected',
++    );
++    await symlink('README.md', join(w, 'manual.md'));
++    assert.equal((await auditWorkspace(w)).blockers.length, 0);
++    await writeFile(join(root, 'canary'), 'foreign');
++    await symlink('../canary', join(w, 'escape'));
++    assert((await auditWorkspace(w)).blockers.some((b) => b.includes('SYMLINK_ORIGIN')));
++    await link(join(root, 'canary'), join(w, 'hard'));
++    assert((await auditWorkspace(w)).blockers.some((b) => b.includes('HARDLINK')));
++    await mkdir(join(w, 'nested'));
++    await writeFile(join(w, 'nested/.git'), 'gitdir: ../../foreign');
++    assert((await auditWorkspace(w)).blockers.some((b) => b.includes('GIT_DISCOVERY')));
++  } finally {
++    await rm(root, { recursive: true, force: true });
++  }
++});
+diff --git a/v2/gateway/test/retirement-crash.test.ts b/v2/gateway/test/retirement-crash.test.ts
+index d615b94..6da0057 100644
+--- a/v2/gateway/test/retirement-crash.test.ts
++++ b/v2/gateway/test/retirement-crash.test.ts
+@@ -1,15 +1,16 @@
+ import assert from 'node:assert/strict';
+ import { fork } from 'node:child_process';
+ import { readFile } from 'node:fs/promises';
+ import { join } from 'node:path';
+ import test from 'node:test';
++import { AtomicRecords } from '../src/journal/atomic-records.ts';
+ import type { FinalizedPinAuthority } from '../src/journal/process-journal.ts';
+ import { bridgeRoot, workflowFixture } from './support/bridge-fixture.ts';
+ 
+ for (const stage of ['before-write', 'after-write', 'after-filter'])
+   test(`terminal retirement SIGKILL ${stage} preserves durable proof and reference authority`, async () => {
+     const owned = await bridgeRoot();
+     const child = fork(
+       new URL('./support/pin-retirement-crash-worker.ts', import.meta.url),
+       [owned.root, stage],
+       { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] },
+@@ -26,20 +27,44 @@ for (const stage of ['before-write', 'after-write', 'after-filter'])
+           resolve();
+         });
+         child.once('exit', () => {
+           clearTimeout(timer);
+           reject(new Error(`EARLY_EXIT ${stderr}`));
+         });
+       });
+       const ended = new Promise<void>((resolve) => child.once('exit', () => resolve()));
+       child.kill('SIGKILL');
+       await ended;
++      // The worker exit can precede EOF/exit of its independent lockf holders.
++      // Reacquire each exact OS guard, without interpreting a delay as process STOP.
++      for (const directory of ['process-journal', 'workflows']) {
++        const deadline = performance.now() + 1500;
++        let backoff = 10;
++        for (;;) {
++          try {
++            const guard = await AtomicRecords.open(join(owned.root, directory));
++            await guard.close();
++            break;
++          } catch (error) {
++            if (
++              !(error instanceof Error) ||
++              error.message !== 'Host guard unavailable (75)' ||
++              performance.now() >= deadline
++            )
++              throw error;
++            await new Promise((resolve) =>
++              setTimeout(resolve, Math.min(backoff, deadline - performance.now())),
++            );
++            backoff = Math.min(backoff * 2, 100);
++          }
++        }
++      }
+       const w = await workflowFixture(owned.root);
+       try {
+         const [record] = await w.journal.processes();
+         assert(record);
+         assert.equal((await w.journal.activePinReferences()).length, stage === 'before-write' ? 1 : 0);
+         const prior = await w.journal.pinRetirement(record);
+         assert.equal(prior === null, stage === 'before-write');
+         const ready = prior?.stop ?? (await w.journal.ready(record));
+         assert(ready);
+         assert.equal(await w.journal.identity.groupEmpty(ready.processGroupId), true);
+diff --git a/v2/gateway/test/support/isolation-probe.ts b/v2/gateway/test/support/isolation-probe.ts
+new file mode 100644
+index 0000000..4e7d936
+--- /dev/null
++++ b/v2/gateway/test/support/isolation-probe.ts
+@@ -0,0 +1,13 @@
++const args = process.argv.slice(2).filter((arg) => arg !== '--');
++if (
++  args.length !== 3 ||
++  args[0] !== '--runtime' ||
++  !['claude', 'codex'].includes(args[1]) ||
++  args[2] !== '--no-model'
++) {
++  throw new Error('Usage: isolation:probe -- --runtime claude|codex --no-model');
++}
++process.env.CREW_ISOLATION_PROBE_RUNTIME = args[1];
++await import('../isolation-workspace.test.ts');
++
++export {};
+diff --git a/v2/gateway/test/support/isolation-typecheck.json b/v2/gateway/test/support/isolation-typecheck.json
+new file mode 100644
+index 0000000..77b6785
+--- /dev/null
++++ b/v2/gateway/test/support/isolation-typecheck.json
+@@ -0,0 +1,9 @@
++{
++  "extends": "../../tsconfig.json",
++  "include": [
++    "../../src/isolation/*.ts",
++    "../isolation.test.ts",
++    "../isolation-workspace.test.ts",
++    "./isolation-probe.ts"
++  ]
++}

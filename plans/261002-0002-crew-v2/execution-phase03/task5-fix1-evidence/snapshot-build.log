@@ -1,0 +1,7 @@
+
+> @crew-v2/gateway@ build /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway
+> tsc -p tsconfig.build.json
+
+src/workflows/stage.ts(6,17): error TS2307: Cannot find module 'tar-stream' or its corresponding type declarations.
+ ELIFECYCLE  Command failed with exit code 2.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

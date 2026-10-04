@@ -1,0 +1,17 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/task-1-http-probe.test.mjs
+
+readonly probe PG=d7110de97350bf2145b1cf6320760dffa3c15bc68aafd1aa983446a3c836af2f
+{"level":30,"time":1790927230102,"pid":97284,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62482"}
+readonly observed path=/v2/tickets Content-Length=1048587 actualStatus=413 response={"error":{"code":"BODY_TOO_LARGE","message":"Dữ liệu vượt giới hạn"}}
+readonly observed path=/v2/docs/imports Content-Length=25165835 actualStatus=413 response={"error":{"code":"BODY_TOO_LARGE","message":"Dữ liệu vượt giới hạn"}}
+✔ readonly actual oversized HTTP response observation (438.908667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 654.966166

@@ -1,0 +1,36 @@
+[
+  {
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/server-red.log",
+    "containerId": "ee59b3c2c067755bb53ceee95176e317094d7d990e9b779292ae723b26f329a6",
+    "url": "postgres://postgres@127.0.0.1:60272/crew_v2_test",
+    "inspectExit": 1,
+    "stdout": "\n",
+    "stderr": "error: no such object: ee59b3c2c067755bb53ceee95176e317094d7d990e9b779292ae723b26f329a6\n",
+    "absent": true
+  },
+  {
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/server-green.log",
+    "containerId": "b0d36d27664f5bb3eff923693cebbb6a9e61aed0cf40fe90957421c3c05a9c11",
+    "url": "postgres://postgres@127.0.0.1:62577/crew_v2_test",
+    "inspectExit": 1,
+    "stdout": "\n",
+    "stderr": "error: no such object: b0d36d27664f5bb3eff923693cebbb6a9e61aed0cf40fe90957421c3c05a9c11\n",
+    "absent": true
+  },
+  {
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/server-covering.log",
+    "containerId": "12c0ac915874a28f26ef99cb8d00d5c2e791ceff73f907a7c01b790b83722684",
+    "url": "postgres://postgres@127.0.0.1:65060/crew_v2_test",
+    "inspectExit": 1,
+    "stdout": "\n",
+    "stderr": "error: no such object: 12c0ac915874a28f26ef99cb8d00d5c2e791ceff73f907a7c01b790b83722684\n",
+    "absent": true
+  },
+  {
+    "log": "final/server-repaired-case.log",
+    "containerId": "dbf53eddcc2091d4a19b24579b49b9f03386076499af720d733c30fbbf48a53f",
+    "inspectExit": 1,
+    "stderr": "error: no such object: dbf53eddcc2091d4a19b24579b49b9f03386076499af720d733c30fbbf48a53f\n",
+    "absent": true
+  }
+]

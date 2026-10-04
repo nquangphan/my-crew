@@ -1,0 +1,16 @@
+v2/gateway/src/models/security-keychain.c:26:94: error: call to undeclared function 'explicit_bzero'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+   26 |   if(strncmp(service,"com.2pcrew.v2.",13)!=0 || strlen(service)!=sn || strlen(account)!=an) {explicit_bzero(value,sizeof(value));return 1;}
+      |                                                                                              ^
+v2/gateway/src/models/security-keychain.c:28:17: error: call to undeclared function 'explicit_bzero'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+   28 |   if(!s || !a) {explicit_bzero(value,sizeof(value));if(s)CFRelease(s);if(a)CFRelease(a);return 1;}
+      |                 ^
+v2/gateway/src/models/security-keychain.c:32:50: error: 'kSecUseAuthenticationUIFail' is deprecated: first deprecated in macOS 11.0 - Instead of kSecUseAuthenticationUI, use kSecUseAuthenticationContext and set LAContext.interactionNotAllowed property [-Werror,-Wdeprecated-declarations]
+   32 |   CFDictionarySetValue(q,kSecUseAuthenticationUI,kSecUseAuthenticationUIFail);
+      |                                                  ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Security.framework/Headers/SecItem.h:1078:26: note: 'kSecUseAuthenticationUIFail' has been explicitly marked deprecated here
+ 1078 | extern const CFStringRef kSecUseAuthenticationUIFail
+      |                          ^
+v2/gateway/src/models/security-keychain.c:43:3: error: call to undeclared function 'explicit_bzero'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+   43 |   explicit_bzero(value,sizeof(value));int result;
+      |   ^
+4 errors generated.

@@ -1,0 +1,32 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts '--test-name-pattern=review F1|review F2'
+
+attachment DB container e8069a84ae2aefee86fcaa6392ae18ab497615ee0d14ad486d8caf4902c9c695 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDqoZR
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDqoZR nonceSha256=a1b2b8f8ab042b065d81c88a030d79564dbb2abecccf9e0c8982352e42e8939d
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDqoZR
+✔ attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator (474.0535ms)
+attachment DB container e8069a84ae2aefee86fcaa6392ae18ab497615ee0d14ad486d8caf4902c9c695 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WTqQUI
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WTqQUI nonceSha256=b3222fc602a7bacb61b03bfcb73c814467ee7321d5ff5b4736c44f31a1a6ce49
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WTqQUI
+✔ attachment staging review F2 rejects every invalid one-byte text control before original publication (1621.513667ms)
+attachment DB container e8069a84ae2aefee86fcaa6392ae18ab497615ee0d14ad486d8caf4902c9c695 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mm3Nbc
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mm3Nbc nonceSha256=25a0079e4194edf1210dc89fcea6fff5f311bd2f8d874d22edbb34ef4ba7dff8
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mm3Nbc
+✔ attachment staging review F1 noncooperative replay times out but stays BUSY until actual teardown (341.484ms)
+attachment DB container e8069a84ae2aefee86fcaa6392ae18ab497615ee0d14ad486d8caf4902c9c695 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eGNVed
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eGNVed nonceSha256=4dd0d76802b417fe7dd274676008f2b257d7022a8fa94ac9a97c17ab5a51e454
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eGNVed
+✔ attachment staging review F1 caller abort closes replay input and tracks rejected pending next (241.347875ms)
+attachment DB container e8069a84ae2aefee86fcaa6392ae18ab497615ee0d14ad486d8caf4902c9c695 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IfrVGt
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IfrVGt nonceSha256=7f0aad38d9866112089cab8e73d3d7304b7ac67d9405c8df50420f7c4c56bc0e
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IfrVGt
+✔ attachment staging review F1 deadline before verified replay success retains tracked verification (384.574833ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3175.611917

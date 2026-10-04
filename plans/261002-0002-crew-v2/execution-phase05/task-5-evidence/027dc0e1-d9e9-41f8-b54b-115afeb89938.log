@@ -1,0 +1,232 @@
+TAP version 13
+# Subtest: attachment signatures outrank names and declared MIME
+ok 1 - attachment signatures outrank names and declared MIME
+  ---
+  duration_ms: 11.988459
+  type: 'test'
+  ...
+# Subtest: attachment OLE magic alone cannot prove encryption
+ok 2 - attachment OLE magic alone cannot prove encryption
+  ---
+  duration_ms: 0.399542
+  type: 'test'
+  ...
+# Subtest: attachment binary masquerading as text is unsupported
+ok 3 - attachment binary masquerading as text is unsupported
+  ---
+  duration_ms: 0.859541
+  type: 'test'
+  ...
+# Subtest: attachment Vietnamese DOCX preserves actual part paragraph locator
+ok 4 - attachment Vietnamese DOCX preserves actual part paragraph locator
+  ---
+  duration_ms: 70.782417
+  type: 'test'
+  ...
+# Subtest: attachment XLSX includes veryHidden sheet and literal cached formula
+ok 5 - attachment XLSX includes veryHidden sheet and literal cached formula
+  ---
+  duration_ms: 20.154042
+  type: 'test'
+  ...
+# Subtest: attachment XLSX absent formula cache is missing coverage
+ok 6 - attachment XLSX absent formula cache is missing coverage
+  ---
+  duration_ms: 8.943083
+  type: 'test'
+  ...
+# Subtest: attachment XML rejects DTD and namespace alias is recognized
+ok 7 - attachment XML rejects DTD and namespace alias is recognized
+  ---
+  duration_ms: 1.49875
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["a","A"]
+ok 8 - attachment ZIP rejects paths ["a","A"]
+  ---
+  duration_ms: 0.834
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["é","é"]
+ok 9 - attachment ZIP rejects paths ["é","é"]
+  ---
+  duration_ms: 1.400333
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["a/b","a\\\\b"]
+ok 10 - attachment ZIP rejects paths ["a/b","a\\\\b"]
+  ---
+  duration_ms: 0.93125
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["../a"]
+ok 11 - attachment ZIP rejects paths ["../a"]
+  ---
+  duration_ms: 0.734667
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["/a"]
+ok 12 - attachment ZIP rejects paths ["/a"]
+  ---
+  duration_ms: 0.967834
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects encryption
+ok 13 - attachment ZIP rejects encryption
+  ---
+  duration_ms: 47.981875
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects symlink
+ok 14 - attachment ZIP rejects symlink
+  ---
+  duration_ms: 0.471416
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects size mismatch
+ok 15 - attachment ZIP rejects size mismatch
+  ---
+  duration_ms: 4.512292
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects unknown compression
+ok 16 - attachment ZIP rejects unknown compression
+  ---
+  duration_ms: 0.683792
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects CRC and invalid offsets
+ok 17 - attachment ZIP rejects CRC and invalid offsets
+  ---
+  duration_ms: 3.850083
+  type: 'test'
+  ...
+# Subtest: attachment ZIP 2001 entries refused
+ok 18 - attachment ZIP 2001 entries refused
+  ---
+  duration_ms: 26.630584
+  type: 'test'
+  ...
+# Subtest: attachment office active content word/vbaProject.bin is blocked
+ok 19 - attachment office active content word/vbaProject.bin is blocked
+  ---
+  duration_ms: 64.39975
+  type: 'test'
+  ...
+# Subtest: attachment office active content word/embeddings/oleObject1.bin is blocked
+ok 20 - attachment office active content word/embeddings/oleObject1.bin is blocked
+  ---
+  duration_ms: 4.48225
+  type: 'test'
+  ...
+# Subtest: attachment DOCX image has real paragraph component and no fabricated cell
+ok 21 - attachment DOCX image has real paragraph component and no fabricated cell
+  ---
+  duration_ms: 113.641292
+  type: 'test'
+  ...
+# Subtest: attachment image creates only normalized vision coverage
+ok 22 - attachment image creates only normalized vision coverage
+  ---
+  duration_ms: 103.140375
+  type: 'test'
+  ...
+# Subtest: attachment huge image is blocked before native allocation
+ok 23 - attachment huge image is blocked before native allocation
+  ---
+  duration_ms: 1.106542
+  type: 'test'
+  ...
+# Subtest: attachment truncated image is corrupt
+ok 24 - attachment truncated image is corrupt
+  ---
+  duration_ms: 0.687041
+  type: 'test'
+  ...
+# Subtest: attachment scan cannot become complete text coverage
+ok 25 - attachment scan cannot become complete text coverage
+  ---
+  duration_ms: 339.900708
+  type: 'test'
+  ...
+# Subtest: attachment PDF text supplements every page vision
+ok 26 - attachment PDF text supplements every page vision
+  ---
+  duration_ms: 32.35575
+  type: 'test'
+  ...
+# Subtest: attachment encrypted PDF and corrupt PDF never available
+ok 27 - attachment encrypted PDF and corrupt PDF never available
+  ---
+  duration_ms: 8.627
+  type: 'test'
+  ...
+# Subtest: attachment PDF page limit has explicit missing page
+ok 28 - attachment PDF page limit has explicit missing page
+  ---
+  duration_ms: 59.600584
+  type: 'test'
+  ...
+# Subtest: attachment text preserves UTF8 source byte spans and literal scripts
+ok 29 - attachment text preserves UTF8 source byte spans and literal scripts
+  ---
+  duration_ms: 9.837375
+  type: 'test'
+  ...
+# Subtest: attachment text UTF16 endian BOM and invalid UTF8
+ok 30 - attachment text UTF16 endian BOM and invalid UTF8
+  ---
+  duration_ms: 3.983375
+  type: 'test'
+  ...
+# Subtest: attachment text cap preserves missing original tail
+ok 31 - attachment text cap preserves missing original tail
+  ---
+  duration_ms: 0.702917
+  type: 'test'
+  ...
+# Subtest: attachment csv retains multiline quoted cells without evaluating formula
+ok 32 - attachment csv retains multiline quoted cells without evaluating formula
+  ---
+  duration_ms: 0.795708
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "a\\"b,c"
+ok 33 - attachment malformed CSV "a\\"b,c"
+  ---
+  duration_ms: 0.719333
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "\\"a\\"x,c"
+ok 34 - attachment malformed CSV "\\"a\\"x,c"
+  ---
+  duration_ms: 0.448667
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "\\"unclosed"
+ok 35 - attachment malformed CSV "\\"unclosed"
+  ---
+  duration_ms: 0.426542
+  type: 'test'
+  ...
+# Subtest: attachment CSV cap reports missing rows
+ok 36 - attachment CSV cap reports missing rows
+  ---
+  duration_ms: 0.642625
+  type: 'test'
+  ...
+# Subtest: attachment verification binds bytes and rejects missing coverage
+ok 37 - attachment verification binds bytes and rejects missing coverage
+  ---
+  duration_ms: 42.802292
+  type: 'test'
+  ...
+1..37
+# tests 37
+# suites 0
+# pass 37
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4632.634961

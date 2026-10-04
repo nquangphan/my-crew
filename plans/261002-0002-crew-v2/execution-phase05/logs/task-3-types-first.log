@@ -1,0 +1,17 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-first-svovvi_4/v2/server", "typecheck"]
+privatePG {"command": [], "id": "", "name": "", "mapping": ""}
+
+> @crew-v2/server@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-first-svovvi_4/v2/server
+> tsc --noEmit
+
+src/attachments/routes.ts(57,99): error TS2345: Argument of type 'UndefinedToUnknown<KeysOf<T> extends never ? unknown : T>' is not assignable to parameter of type 'T'.
+  'T' could be instantiated with an arbitrary type which could be unrelated to 'UndefinedToUnknown<KeysOf<T> extends never ? unknown : T>'.
+src/attachments/routes.ts(58,45): error TS2345: Argument of type 'UndefinedToUnknown<KeysOf<T> extends never ? unknown : T>' is not assignable to parameter of type 'T'.
+  'T' could be instantiated with an arbitrary type which could be unrelated to 'UndefinedToUnknown<KeysOf<T> extends never ? unknown : T>'.
+src/attachments/snapshots.ts(50,64): error TS2339: Property 'includes' does not exist on type 'never'.
+src/attachments/snapshots.ts(86,40): error TS2339: Property 'projectId' does not exist on type 'InputTarget'.
+  Property 'projectId' does not exist on type '{ kind: "message"; messageId: string; }'.
+src/attachments/snapshots.ts(87,85): error TS2339: Property 'projectId' does not exist on type 'InputTarget'.
+  Property 'projectId' does not exist on type '{ kind: "message"; messageId: string; }'.
+ ELIFECYCLE  Command failed with exit code 1.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

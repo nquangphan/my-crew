@@ -1,0 +1,80 @@
+[
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-5FwpiL",
+    "deletedStage": "real-bmad-build",
+    "reclaimedBytes": 20095063,
+    "remainingBytes": 0,
+    "receipt": {
+      "formatVersion": 1,
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 139,
+      "timedOut": false
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-nIzXQb",
+    "deletedStage": "real-bmad-build",
+    "reclaimedBytes": 20095063,
+    "remainingBytes": 0,
+    "receipt": {
+      "formatVersion": 1,
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 134,
+      "timedOut": false
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-gblZwb",
+    "deletedStage": "real-bmad-build",
+    "reclaimedBytes": 20095757,
+    "remainingBytes": 0,
+    "receipt": {
+      "formatVersion": 1,
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 1,
+      "timedOut": false
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-4MsAKr",
+    "deletedStage": "real-bmad-build",
+    "reclaimedBytes": 20095200,
+    "remainingBytes": 0,
+    "receipt": {
+      "formatVersion": 1,
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 1,
+      "timedOut": false
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-F5tLcH",
+    "deletedStage": "real-bmad-build",
+    "reclaimedBytes": 21774141,
+    "remainingBytes": 0,
+    "receipt": {
+      "formatVersion": 1,
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 0,
+      "timedOut": false
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-real-build-zNCEA9",
+    "deletedStage": "real-bmad-build",
+    "reclaimedBytes": 21774141,
+    "remainingBytes": 0,
+    "receipt": {
+      "formatVersion": 1,
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 0,
+      "timedOut": false
+    }
+  }
+]

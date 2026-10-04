@@ -1,0 +1,28 @@
+{
+  "reviewedCommit": "556cd8d",
+  "workingHead": "556cd8d106715b0c3ccc5893e8383b44083230db",
+  "tests": [
+    "v2/gateway/test/host-failures.test.ts",
+    "v2/gateway/test/host-lifecycle.test.ts",
+    "v2/gateway/test/http-operations.test.ts",
+    "v2/gateway/test/journal.test.ts",
+    "v2/gateway/test/resources.test.ts",
+    "v2/gateway/test/telemetry.test.ts",
+    "v2/gateway/test/workflow-admission.test.ts",
+    "v2/gateway/test/workflow-build.test.ts",
+    "v2/gateway/test/workflow-fix.test.ts",
+    "v2/gateway/test/workflow-native-projection.test.ts",
+    "v2/gateway/test/workflow-operations.test.ts",
+    "v2/gateway/test/workflow-registry.test.ts",
+    "v2/gateway/test/credential-broker.test.ts",
+    "v2/gateway/test/credential-provisioning.test.ts",
+    "v2/gateway/test/model-probe.test.ts",
+    "v2/gateway/test/model-reporter.test.ts"
+  ],
+  "excludedPeers": [
+    "test/sync.test.ts",
+    "test/execution-bridge.test.ts",
+    "test/execution-bridge-db.test.ts",
+    "test/pin-retirement.test.ts"
+  ]
+}

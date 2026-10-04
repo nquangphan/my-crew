@@ -1,0 +1,27 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts
+
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PpmhgL","device":"16777229","inode":"63486098","uid":501}
+{"level":30,"time":1790927238109,"pid":97634,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62528"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PpmhgL","device":"16777229","inode":"63486098","uid":501,"deleted":true}
+✖ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (3352.476209ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3509.424417
+
+✖ failing tests:
+
+test at ../gateway/test/execution-bridge-db.test.ts:15:1
+✖ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (3352.476209ms)
+  TypeError: bridge.retire is not a function
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts:45:31
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+ ELIFECYCLE  Test failed. See above for more details.

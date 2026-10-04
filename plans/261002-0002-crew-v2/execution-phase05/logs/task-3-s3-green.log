@@ -1,0 +1,20 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-green-cdk6c4e7/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-s3-green-cdk6c4e7/v2/server/test/attachments-grants.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-21eadfd1-ff6b-4ed1-868c-5f1398f00c80", "--label", "crew.phase05.task3=91b4819a-562a-42a6-aa4f-308fbd6538e5", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "a9f0ad0297d1eff556d94b38d25db46c2facc5ccadbcd161f2a7dcd2912caee9", "name": "crew-v2-test-21eadfd1-ff6b-4ed1-868c-5f1398f00c80", "mapping": "127.0.0.1:60466"}
+attachment DB container a9f0ad0297d1eff556d94b38d25db46c2facc5ccadbcd161f2a7dcd2912caee9 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oeD2xK
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oeD2xK nonceSha256=672638fc3b2a732635fd3ea919aa737589264b2dc87d8c583c9219b2f380a517
+attachment DB scratch identity dev=16777229 ino=64094790 uid=501 pid=10763
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oeD2xK
+✔ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (829.838708ms)
+attachment DB container a9f0ad0297d1eff556d94b38d25db46c2facc5ccadbcd161f2a7dcd2912caee9 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6MlMiS
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6MlMiS nonceSha256=6c0ab3b50de292b0311fb5746943574597cb7975989805d4fabb31758438ee36
+attachment DB scratch identity dev=16777229 ino=64094813 uid=501 pid=10763
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6MlMiS
+✔ attachment Assistant directly reads submitted inbox representation; OFF preserves exact admission and revocation cuts access (1382.267208ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2403.627125

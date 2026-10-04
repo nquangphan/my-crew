@@ -1,0 +1,25 @@
+✖ attachment missing coverage append is bounded before allocation grows (0.958875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.863875
+
+✖ failing tests:
+
+test at v2/server/test/attachments-text-csv.unit.test.ts:282:1
+✖ attachment missing coverage append is bounded before allocation grows (0.958875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-text-csv.unit.test.ts:282:250)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /LIMIT_EXCEEDED/,
+    operator: 'throws',
+    diff: 'simple'
+  }

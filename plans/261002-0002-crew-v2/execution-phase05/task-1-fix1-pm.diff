@@ -1,0 +1,571 @@
+diff --git a/v2/docs/flows/server-attachments.md b/v2/docs/flows/server-attachments.md
+index 064421d..6fe1b51 100644
+--- a/v2/docs/flows/server-attachments.md
++++ b/v2/docs/flows/server-attachments.md
+@@ -18,7 +18,7 @@ Owner giữ original trước khi tạo ticket, comment hoặc gửi inbox. Mỗ
+ 3. Stream không giữ SQL transaction. Storage băm/đếm bytes và giới hạn từng write 64 KiB. Staging kiểm magic và text decoding trước publication, heartbeat theo policy/generation và max wall; abort không tạo callback publish sau terminal. Nếu upstream stream còn một `next` chưa settle, operation chưa ACK và chưa có stop proof.
+ 4. Sau stage file sync/close + directory sync, publication tạo hard-link độc quyền rồi sync directory và unlink stage. Destination đã có chỉ được replay nếu cùng inode của chính stage; checksum bằng nhau không chứng minh ownership. Intent local giữ key/generation/hash/length/nonce; derivative bắt buộc có callback ghi GC journal trước bytes.
+ 5. Managed receiver chờ mọi work/FD/control connection settle, đóng private socket rồi mới ghi/fsync closed ACK. Ready mutation kiểm lại compose, upload generation, receiver, abort flag và exact closed proof. `attachment.changed` chỉ có `{attachmentId,state,extraction}`; draft chưa có live link có project/ticket/audience null. Event contract chưa đăng ký khiến ready transaction rollback; original/intent vẫn được giữ.
+-6. PUT ready replay băm toàn bộ body và kiểm original hiện hữu; bytes khác trả conflict. Abandon giữ quota và bytes, gửi abort cho receiver; cleanup tương lai chỉ được release quota khi terminal deleted + stop/ownership proof. Original từng có `linked_at` không được automatic GC trong phase05.
++6. PUT ready replay băm toàn bộ body và kiểm original hiện hữu; bytes khác trả conflict. Replay dùng accepted uploadMaxWallMs và kiểm caller abort/deadline trước success, cả khi iterator hoặc verify đang chờ. Deadline trả ATTACHMENT_UPLOAD_TIMEOUT409, không STOP/ACK/quota release. Registry replay theo DB/upload giữ pending next/return/verify cùng cleanup identity; request có thể timeout nhưng lượt tiếp theo BUSY tới actual teardown. Closure thiếu/thất bại giữ unknown/BUSY. Timer/listener được clear, late bytes không được nhận thành success. Validator chạy cho mọi decoded text, gồm EOF prefix và decoder flush; one-byte control bị415 trước publication, vẫn giữ empty/ASCII/tabLFCR/splitUTF16. Abandon giữ quota và bytes, gửi abort cho receiver; cleanup tương lai chỉ được release quota khi terminal deleted + stop/ownership proof. Original từng có `linked_at` không được automatic GC trong phase05.
+ 7. SQL009 thêm inbox/messages/routes, immutable snapshots/manifests/receipts, scoped authorizations/grants/sessions, extraction/derivatives/GC và dispatch input pins cho task sau. Trigger009 trên actual legacy `comments` lấy root → affected descendants → input revisions; một INSERT bump mỗi descendant đúng một lần, lazy base1→2. Rollback comment cũng rollback counters; event consumer không bump lại.
+ 
+ ## Files
+@@ -49,3 +49,5 @@ Original dùng `uploads/<uuid>/original`, stage có generation và receiver UUID
+ Pure run: `node --test v2/server/test/attachments-storage.test.ts`. Native run cùng file trong immutable Node24.12.0 Linux container riêng, network none, read-only repo, tmpfs và resource bounds; macOS fixture port chỉ chứng minh terminal protocol, không cấp native gone proof. DB tests chỉ được chạy `databaseFixture(9)` sau actual008 được PM review READY/checksum, event metadata đã đăng ký. Cuối task chạy một covering qua `pnpm --dir v2/server test --test-file <absolute-wrapper.test.mjs>` với đúng 24 file test server đã review ở candidate d249a82 và ba file test Task1, typecheck và Biome sau final production change; report ghi commands/exits/counts/checksums/resource cleanup. Khi gate008 chưa READY, chưa công bố DB/integration hoàn tất.
+ 
+ Actual008 đã độc lập SPEC+QUALITY READY tại candidate d249a82, checksum `d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f`. Test Task1 dùng actual PostgreSQL private runner, migration009 pinned `fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a`. Native driver chạy immutable Linux Node24.12.0 trong namespace network của đúng private PG container, chỉ proxy loopback random để kiểm actual receiver lifecycle. Đây là connectivity của test có kiểm soát; không phải extraction sandbox hoặc certification. Driver kiểm birth identity DB, heartbeat, socket abort khi producer đang chờ, ACK chỉ sau terminal, replay ACK sau local map release và quota còn giữ. Backup `pg_dump -Fc`/restore prefix008→009 và prefix009 giữ marker, legacy ticket, reserved identity và checksum; deliberate test-owned drift bị từ chối. Fault sau publication giữ blob/intent nhưng vẫn ghi terminal close ACK.
++
++FIX1/5 đáp ứng hai P2 của review f58f27d: actual PostgreSQL regressions kiểm saved wall policy khác currentconfig, stalled/caller-abort/verification/noncooperative cleanup;29 control một byte và EOF UTF8/UTF16 dở dang bị từ chối, receiver terminal/quota giữ/original chưa có. Probe Linux privatePG có exact birth/ACK và cùng EOF/replay cases, dùng immutable Nodeimage/resource bounds; các artifact nằm execution-phase05/task-1-fix1-*. Original report/evidence giữ nguyên; báo cáo FIX1 riêng, không suy timeout thành process STOP hoặc chứng nhận recovery Task7.
+diff --git a/v2/server/src/attachments/staging.ts b/v2/server/src/attachments/staging.ts
+index 62fe379..aedfb6b 100644
+--- a/v2/server/src/attachments/staging.ts
++++ b/v2/server/src/attachments/staging.ts
+@@ -57,6 +57,126 @@ const textExt = new Set([
+   'xml',
+   'log',
+ ]);
++function validateDecodedText(text: string): void {
++  for (const char of text)
++    if (char.charCodeAt(0) < 32 && ![9, 10, 13].includes(char.charCodeAt(0)))
++      throw new ApiError('ATTACHMENT_BINARY_TEXT', 415, 'Nội dung tệp không khớp');
++}
++
++// A timeout ends the replay result, not a noncooperative input iterator. Keep its
++// teardown owned across factories using this DB until actual input closure settles.
++type ReplayOperation = { cleanup: Promise<void> | null; state: 'reading' | 'closing' | 'unknown' };
++const readyReplays = new WeakMap<Db, Map<Id, ReplayOperation>>();
++async function verifyReadyReplay(input: {
++  db: Db;
++  id: Id;
++  body: AsyncIterable<Uint8Array>;
++  signal: AbortSignal;
++  maxWallMs: number;
++  original: { key: string; sha256: string; byteLength: number };
++  store: StageFactoryInput['store'];
++}): Promise<void> {
++  let operations = readyReplays.get(input.db);
++  if (!operations) {
++    operations = new Map();
++    readyReplays.set(input.db, operations);
++  }
++  if (operations.has(input.id))
++    throw new ApiError('ATTACHMENT_UPLOAD_BUSY', 409, 'Dữ liệu gửi lại trước chưa kết thúc');
++  const iterator = input.body[Symbol.asyncIterator]();
++  const operation: ReplayOperation = { cleanup: null, state: 'reading' };
++  operations.set(input.id, operation);
++  const deadline = performance.now() + input.maxWallMs;
++  const timeout = new AbortController();
++  const combined = AbortSignal.any([input.signal, timeout.signal]);
++  const wall = setTimeout(() => timeout.abort(), input.maxWallMs);
++  let pending: Promise<unknown> = Promise.resolve();
++  let exhausted = false;
++  function assertActive(): void {
++    if (input.signal.aborted) throw new ApiError('ATTACHMENT_ABORTED', 409, 'Tải tệp bị hủy');
++    if (timeout.signal.aborted || performance.now() >= deadline)
++      throw new ApiError('ATTACHMENT_UPLOAD_TIMEOUT', 409, 'Tải tệp đã quá thời hạn');
++  }
++  async function bounded<T>(work: () => Promise<T>): Promise<T> {
++    assertActive();
++    const current = Promise.resolve().then(work);
++    pending = current;
++    return new Promise<T>((resolve, reject) => {
++      const abort = () => {
++        combined.removeEventListener('abort', abort);
++        try {
++          assertActive();
++        } catch (error) {
++          reject(error);
++        }
++      };
++      combined.addEventListener('abort', abort, { once: true });
++      current.then(
++        (value) => {
++          combined.removeEventListener('abort', abort);
++          resolve(value);
++        },
++        (error) => {
++          combined.removeEventListener('abort', abort);
++          reject(error);
++        },
++      );
++      if (combined.aborted) abort();
++    });
++  }
++  function cleanup(): Promise<void> {
++    if (operation.cleanup) return operation.cleanup;
++    operation.state = 'closing';
++    const current = pending;
++    const closing = Promise.resolve().then(async () => {
++      if (iterator.return) return iterator.return();
++      if (exhausted) return { done: true };
++      throw new Error('REPLAY_INPUT_CLOSURE_UNAVAILABLE');
++    });
++    const owners = operations;
++    operation.cleanup = (async () => {
++      const [closed] = await Promise.allSettled([closing, current]);
++      if (closed.status !== 'fulfilled' || closed.value.done !== true) {
++        operation.state = 'unknown';
++        throw new ApiError('ATTACHMENT_REPLAY_CLEANUP_UNKNOWN', 503, 'Dữ liệu gửi lại chưa đóng');
++      }
++      if (owners?.get(input.id) === operation) owners.delete(input.id);
++    })();
++    // This owned handle remains in the registry on unknown closure. Observe its
++    // rejection even when the request has already timed out; never invent STOP.
++    void operation.cleanup.catch(() => {});
++    return operation.cleanup;
++  }
++  try {
++    const hash = createHash('sha256');
++    let count = 0;
++    while (true) {
++      const next = await bounded(() => iterator.next());
++      assertActive();
++      if (next.done) {
++        exhausted = true;
++        break;
++      }
++      const chunk = next.value;
++      if (!(chunk instanceof Uint8Array))
++        throw new ApiError('ATTACHMENT_CONTENT_INVALID', 400, 'Dữ liệu tải lên không hợp lệ');
++      count += chunk.byteLength;
++      if (count > input.original.byteLength)
++        throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
++      hash.update(chunk);
++    }
++    if (count !== input.original.byteLength || hash.digest('hex') !== input.original.sha256)
++      throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
++    if ((await bounded(() => input.store.verify(input.original))) !== 'present')
++      throw new ApiError('ATTACHMENT_DATA_LOSS', 409, 'Tệp gốc không khả dụng');
++    const closed = cleanup();
++    await bounded(() => closed);
++    assertActive();
++  } finally {
++    clearTimeout(wall);
++    cleanup();
++  }
++}
+ function ownerOnly(actor: Actor): void {
+   if (actor.kind !== 'owner' || actor.id !== 'owner')
+     throw new ApiError('OWNER_REQUIRED', 403, 'Chỉ chủ dự án được thao tác tệp');
+@@ -295,29 +415,23 @@ export function createStageServices(input: StageFactoryInput & { fault?: Storage
+         sha256: String(row.expected_sha256),
+         byteLength: Number(row.expected_bytes),
+       };
++      const accepted = row.accepted_config as AttachmentConfig;
+       if (!begin.receiver) {
+         // Binary retry identity includes the complete bytes, never just the upload UUID.
+-        const h = createHash('sha256');
+-        let count = 0;
+-        for await (const chunk of body) {
+-          if (signal.aborted) throw new ApiError('ATTACHMENT_ABORTED', 409, 'Tải tệp bị hủy');
+-          if (!(chunk instanceof Uint8Array))
+-            throw new ApiError('ATTACHMENT_CONTENT_INVALID', 400, 'Dữ liệu tải lên không hợp lệ');
+-          count += chunk.byteLength;
+-          if (count > original.byteLength)
+-            throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
+-          h.update(chunk);
+-        }
+-        if (signal.aborted || count !== original.byteLength || h.digest('hex') !== original.sha256)
+-          throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
+-        if ((await store.verify(original)) !== 'present')
+-          throw new ApiError('ATTACHMENT_DATA_LOSS', 409, 'Tệp gốc không khả dụng');
++        await verifyReadyReplay({
++          db,
++          id,
++          body,
++          signal,
++          original,
++          store,
++          maxWallMs: accepted.uploadMaxWallMs,
++        });
+         return mapAttachment(row);
+       }
+       const receiver = begin.receiver;
+       const abort = new AbortController();
+       const combined = AbortSignal.any([signal, abort.signal]);
+-      const accepted = row.accepted_config as AttachmentConfig;
+       let stopped = false;
+       let heartbeat: ReturnType<typeof setTimeout> | undefined;
+       let pending: Promise<void> = Promise.resolve();
+@@ -395,20 +509,15 @@ export function createStageServices(input: StageFactoryInput & { fault?: Storage
+                       const text = decoder.decode(decode.subarray(offset, offset + accepted.chunkBytes), {
+                         stream: true,
+                       });
+-                      if (
+-                        [...text].some(
+-                          (char) => char.charCodeAt(0) < 32 && ![9, 10, 13].includes(char.charCodeAt(0)),
+-                        )
+-                      )
+-                        throw new ApiError('ATTACHMENT_BINARY_TEXT', 415, 'Nội dung tệp không khớp');
++                      validateDecodedText(text);
+                     }
+                 }
+                 yield chunk;
+               }
+               if (isText) {
+                 if (!decoder) decoder = new TextDecoder('utf-8', { fatal: true });
+-                decoder.decode(prefix, { stream: true });
+-                decoder.decode();
++                validateDecodedText(decoder.decode(prefix, { stream: true }));
++                validateDecodedText(decoder.decode());
+               }
+             } catch (error) {
+               if (error instanceof TypeError)
+diff --git a/v2/server/test/attachments-staging.test.ts b/v2/server/test/attachments-staging.test.ts
+index bb6e722..838d9a0 100644
+--- a/v2/server/test/attachments-staging.test.ts
++++ b/v2/server/test/attachments-staging.test.ts
+@@ -1,5 +1,6 @@
+ import assert from 'node:assert/strict';
+ import test from 'node:test';
++import { createStageServices } from '../src/attachments/staging.ts';
+ import {
+   attachmentFixture,
+   bufferBody,
+@@ -614,3 +615,345 @@ test('attachment staging publication failure preserves original intent and termi
+ test('attachment migration restores reviewed 008 through 009 and retains attachment checksum against drift', async () => {
+   await databaseFixture(8)(verifyAttachmentMigrationRestore);
+ });
++
++test('attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator', async () => {
++  await databaseFixture(9)(async (db) => {
++    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
++    try {
++      const bytes = Buffer.from('ok');
++      const slot = await composeAndReserve(f, bytes);
++      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
++      const [before] =
++        await db`select generation,receiver_id,quota_released_at from attachment_uploads where id=${slot.id}`;
++      let returned = 0,
++        active = 0,
++        calls = 0,
++        resolveNext: (value: IteratorResult<Uint8Array>) => void = () => {};
++      const stalled: AsyncIterableIterator<Uint8Array> = {
++        [Symbol.asyncIterator]() {
++          return this;
++        },
++        next() {
++          if (calls++) return Promise.resolve({ done: true, value: undefined });
++          active++;
++          return new Promise((resolve) => {
++            resolveNext = (value) => {
++              active--;
++              resolve(value);
++            };
++          });
++        },
++        async return() {
++          returned++;
++          resolveNext({ done: true, value: undefined });
++          return { done: true, value: undefined };
++        },
++      };
++      const replay = createStageServices({
++        db,
++        store: f.store,
++        receivers: f.receivers,
++        now: f.clock.now,
++        config: { ...f.config, uploadMaxWallMs: 5000 },
++      });
++      assert.equal(
++        (await replay.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
++        'ready',
++      );
++      const started = performance.now();
++      // Test watchdog supplies the old unbounded branch with correct bytes so RED
++      // fails an assertion rather than leaking a never-settled read/timer.
++      const watchdog = setTimeout(() => resolveNext({ done: false, value: bytes }), 250);
++      try {
++        await assert.rejects(replay.receive(slot.id, owner, stalled, new AbortController().signal), {
++          code: 'ATTACHMENT_UPLOAD_TIMEOUT',
++        });
++      } finally {
++        clearTimeout(watchdog);
++        if (active) await stalled.return?.();
++      }
++      assert.ok(performance.now() - started < 240);
++      assert.equal(returned, 1);
++      assert.equal(active, 0);
++      const [after] =
++        await db`select state,generation,receiver_id,quota_released_at,storage_key from attachment_uploads where id=${slot.id}`;
++      assert.equal(after.state, 'ready');
++      assert.equal(after.generation, before.generation);
++      assert.equal(after.receiver_id, before.receiver_id);
++      assert.equal(after.quota_released_at, null);
++      assert.equal(
++        await f.store.verify({
++          key: String(after.storage_key),
++          sha256: sha(bytes),
++          byteLength: bytes.length,
++        }),
++        'present',
++      );
++      assert.equal((await db`select cursor from events where type='attachment.changed'`).length, 1);
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('attachment staging review F2 rejects every invalid one-byte text control before original publication', async () => {
++  await databaseFixture(9)(async (db) => {
++    const f = await attachmentFixture(db);
++    try {
++      for (let byte = 0; byte < 32; byte++) {
++        if ([9, 10, 13].includes(byte)) continue;
++        const bytes = Buffer.from([byte]);
++        const slot = await composeAndReserve(f, bytes);
++        await assert.rejects(
++          f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal),
++          { code: 'ATTACHMENT_BINARY_TEXT' },
++          `control ${byte}`,
++        );
++        const [row] =
++          await db`select u.state,u.storage_key,u.quota_released_at,r.state as receiver_state from attachment_uploads u join attachment_receivers r on r.id=u.receiver_id where u.id=${slot.id}`;
++        assert.equal(row.state, 'rejected');
++        assert.equal(row.receiver_state, 'closed');
++        assert.equal(row.quota_released_at, null);
++        assert.equal(
++          await f.store.verify({ key: String(row.storage_key), sha256: sha(bytes), byteLength: 1 }),
++          'missing',
++        );
++      }
++      for (const bytes of [Buffer.from([0xc3]), Buffer.from([0xff, 0xfe, 0x01])]) {
++        const slot = await composeAndReserve(f, bytes);
++        await assert.rejects(
++          f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal),
++          { code: 'ATTACHMENT_BINARY_TEXT' },
++        );
++        const [row] =
++          await db`select u.storage_key,u.quota_released_at,r.state from attachment_uploads u join attachment_receivers r on r.id=u.receiver_id where u.id=${slot.id}`;
++        assert.equal(row.state, 'closed');
++        assert.equal(row.quota_released_at, null);
++        assert.equal(
++          await f.store.verify({
++            key: String(row.storage_key),
++            sha256: sha(bytes),
++            byteLength: bytes.length,
++          }),
++          'missing',
++        );
++      }
++      for (const bytes of [
++        Buffer.alloc(0),
++        Buffer.from('a'),
++        Buffer.from('\t'),
++        Buffer.from('\n'),
++        Buffer.from('\r'),
++      ]) {
++        const slot = await composeAndReserve(f, bytes);
++        assert.equal(
++          (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
++          'ready',
++        );
++      }
++      assert.equal((await db`select cursor from events where type='attachment.changed'`).length, 5);
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('attachment staging review F1 noncooperative replay times out but stays BUSY until actual teardown', async () => {
++  await databaseFixture(9)(async (db) => {
++    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
++    let release = () => {},
++      closed = 0;
++    let task: Promise<unknown> | undefined;
++    let producerClosed: Promise<void> | undefined;
++    try {
++      const bytes = Buffer.from('ok');
++      const slot = await composeAndReserve(f, bytes);
++      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
++      let entered = () => {},
++        finished = () => {};
++      const started = new Promise<void>((resolve) => {
++        entered = resolve;
++      });
++      const done = new Promise<void>((resolve) => {
++        finished = resolve;
++      });
++      producerClosed = done;
++      const barrier = new Promise<void>((resolve) => {
++        release = resolve;
++      });
++      async function* source() {
++        try {
++          entered();
++          await barrier;
++          yield bytes;
++        } finally {
++          closed++;
++          finished();
++        }
++      }
++      task = f.stage.receive(slot.id, owner, source(), new AbortController().signal);
++      const rejected = assert.rejects(task, { code: 'ATTACHMENT_UPLOAD_TIMEOUT' });
++      await started;
++      const since = performance.now();
++      await rejected;
++      assert.ok(performance.now() - since < 240);
++      assert.equal(closed, 0);
++      const replacement = createStageServices({
++        db,
++        store: f.store,
++        receivers: f.receivers,
++        now: f.clock.now,
++        config: f.config,
++      });
++      await assert.rejects(
++        replacement.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal),
++        { code: 'ATTACHMENT_UPLOAD_BUSY' },
++      );
++      const [before] =
++        await db`select state,generation,receiver_id,quota_released_at from attachment_uploads where id=${slot.id}`;
++      assert.equal(before.state, 'ready');
++      assert.equal(before.quota_released_at, null);
++      release();
++      await done;
++      assert.equal(closed, 1);
++      assert.equal(
++        (await replacement.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
++        'ready',
++      );
++      const [after] =
++        await db`select state,generation,receiver_id,quota_released_at from attachment_uploads where id=${slot.id}`;
++      assert.deepEqual(after, before);
++      assert.equal((await db`select cursor from events where type='attachment.changed'`).length, 1);
++    } finally {
++      release();
++      if (task) await task.catch(() => {});
++      if (producerClosed) await producerClosed;
++      await f.close();
++    }
++  });
++});
++
++test('attachment staging review F1 caller abort closes replay input and tracks rejected pending next', async () => {
++  await databaseFixture(9)(async (db) => {
++    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
++    try {
++      const bytes = Buffer.from('ok');
++      const slot = await composeAndReserve(f, bytes);
++      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
++      const abort = new AbortController();
++      let returned = 0;
++      const source: AsyncIterableIterator<Uint8Array> = {
++        [Symbol.asyncIterator]() {
++          return this;
++        },
++        async next() {
++          abort.abort();
++          throw new Error('INPUT_ABORTED');
++        },
++        async return() {
++          returned++;
++          return { done: true, value: undefined };
++        },
++      };
++      await assert.rejects(f.stage.receive(slot.id, owner, source, abort.signal), {
++        code: 'ATTACHMENT_ABORTED',
++      });
++      assert.equal(
++        (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
++        'ready',
++      );
++      assert.equal(returned, 1);
++      const preAborted = new AbortController();
++      preAborted.abort();
++      let reads = 0;
++      const preSource: AsyncIterableIterator<Uint8Array> = {
++        [Symbol.asyncIterator]() {
++          return this;
++        },
++        async next() {
++          reads++;
++          return { done: false, value: bytes };
++        },
++        async return() {
++          returned++;
++          return { done: true, value: undefined };
++        },
++      };
++      await assert.rejects(f.stage.receive(slot.id, owner, preSource, preAborted.signal), {
++        code: 'ATTACHMENT_ABORTED',
++      });
++      assert.equal(reads, 0);
++      assert.equal(
++        (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
++        'ready',
++      );
++      assert.equal(returned, 2);
++      const [row] = await db`select state,quota_released_at from attachment_uploads where id=${slot.id}`;
++      assert.equal(row.state, 'ready');
++      assert.equal(row.quota_released_at, null);
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('attachment staging review F1 deadline before verified replay success retains tracked verification', async () => {
++  await databaseFixture(9)(async (db) => {
++    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
++    let release = () => {};
++    let verifySettled: Promise<void> | undefined;
++    try {
++      const bytes = Buffer.from('ok');
++      const slot = await composeAndReserve(f, bytes);
++      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
++      let enter = () => {};
++      const started = new Promise<void>((resolve) => {
++        enter = resolve;
++      });
++      const barrier = new Promise<void>((resolve) => {
++        release = resolve;
++      });
++      let verified = () => {};
++      verifySettled = new Promise<void>((resolve) => {
++        verified = resolve;
++      });
++      const replay = createStageServices({
++        db,
++        receivers: f.receivers,
++        now: f.clock.now,
++        config: f.config,
++        store: {
++          ...f.store,
++          async verify(blob) {
++            enter();
++            await barrier;
++            try {
++              return await f.store.verify(blob);
++            } finally {
++              verified();
++            }
++          },
++        },
++      });
++      const task = replay.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
++      const rejected = assert.rejects(task, { code: 'ATTACHMENT_UPLOAD_TIMEOUT' });
++      await started;
++      await rejected;
++      await assert.rejects(f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal), {
++        code: 'ATTACHMENT_UPLOAD_BUSY',
++      });
++      release();
++      // Await the actual owned verify settlement before allowing another replay.
++      await verifySettled;
++      await new Promise((resolve) => setImmediate(resolve));
++      assert.equal(
++        (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
++        'ready',
++      );
++    } finally {
++      release();
++      if (verifySettled) await verifySettled;
++      await f.close();
++    }
++  });
++});

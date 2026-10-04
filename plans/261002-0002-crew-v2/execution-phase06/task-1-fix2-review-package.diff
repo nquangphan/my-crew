@@ -1,0 +1,83 @@
+diff --git a/v2/server/src/assistant/inbox.ts b/v2/server/src/assistant/inbox.ts
+--- a/v2/server/src/assistant/inbox.ts
++++ b/v2/server/src/assistant/inbox.ts
+@@ -152,7 +152,7 @@
+       or (w.target_kind='ticket' and exists(
+         select 1 from tickets ticket join assistant_scopes s on s.root_ticket_id=ticket.root_id
+         and s.project_id=ticket.project_id and s.turn_id=t.id
+-        where ticket.id=w.target_id and s.expires_at>now() and
++        where ticket.id=w.target_id and s.expires_at>clock_timestamp() and
+           (t.message_id is null or exists(select 1 from attachment_message_routes r
+             join tickets routed on routed.id=r.ticket_id where r.message_id=t.message_id
+             and r.revoked_at is null and r.project_id=s.project_id and routed.root_id=s.root_ticket_id)))))`;
+diff --git a/v2/server/test/assistant-store.test.ts b/v2/server/test/assistant-store.test.ts
+--- a/v2/server/test/assistant-store.test.ts
++++ b/v2/server/test/assistant-store.test.ts
+@@ -1203,3 +1203,58 @@
+       await f.close();
+     }
+   }));
++
++for (const [state, operation] of [
++  ['pending', 'claim'],
++  ['claimed', 'claim'],
++  ['claimed', 'ack'],
++  ['acked', 'ack'],
++] as const) {
++  test(`assistant FIX2 expired scope rejects ${operation} from ${state} after DB wall-clock deadline`, async () =>
++    databaseFixture(11)(async (db) => {
++      const { reconcileWork, claimWork, ackWork } = await import('../src/assistant/inbox.ts');
++      const f = await assistantFixture(db);
++      try {
++        const m = await f.submitMessage();
++        const fence = await f.seedTurn(m.conversation.id, null);
++        await db.begin((tx) => reconcileWork(tx));
++        const [work] =
++          await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null`;
++        assert.ok(work);
++        if (state !== 'pending')
++          await db`update assistant_work_inbox set state='claimed',turn_id=${fence.turnId},claim_generation=${fence.generation},attempts=1 where id=${work.id}`;
++        if (state === 'acked')
++          await db`update assistant_work_inbox set state='acked',acked_at=clock_timestamp() where id=${work.id}`;
++        const [before] = await db`select * from assistant_work_inbox where id=${work.id}`;
++        const snapshot = randomUUID();
++        await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++        values(${snapshot},'ticket',${f.request.id},1,0,'{}',${'a'.repeat(64)})`;
++        await assert.rejects(
++          db.begin(async (tx) => {
++            // now() is fixed at this transaction's start. The fixture grants a short
++            // scope after that start, then waits for the actual DB deadline itself.
++            const scopeId = randomUUID();
++            await tx`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
++          values(${scopeId},${fence.turnId},${f.request.id},null,${f.project.id},'[]','[]',${snapshot},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '100 milliseconds')`;
++            await tx`select pg_sleep_until(expires_at) from assistant_scopes where id=${scopeId}`;
++            const [witness] =
++              await tx`select now() as transaction_started_at,expires_at,clock_timestamp() as checked_at,
++          now()<expires_at as started_before_expiry,clock_timestamp()>=expires_at as wall_clock_expired
++          from assistant_scopes where id=${scopeId}`;
++            assert.equal(witness?.started_before_expiry, true);
++            assert.equal(witness?.wall_clock_expired, true);
++            console.info(
++              'assistant FIX2 DB expiry witness',
++              JSON.stringify({ state, operation, ...witness }),
++            );
++            await (operation === 'claim' ? claimWork : ackWork)(tx, String(work.id), fence);
++          }),
++          { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
++        );
++        const [after] = await db`select * from assistant_work_inbox where id=${work.id}`;
++        assert.deepEqual(after, before, 'rejected operation preserves every persisted work field');
++      } finally {
++        await f.close();
++      }
++    }));
++}
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+--- a/v2/docs/flows/server-assistant.md
++++ b/v2/docs/flows/server-assistant.md
+@@ -48,3 +48,5 @@
+ `assistant-store.test.ts` chạy với private PostgreSQL18.6 và accepted baseline `0c838d2` cộng đúng source T1. Kiểm duplicate/restart, rollback cursor, concurrent ingestion, descendant revision, event/reconcile dedup, fence stale/unknown, generation rollback/overflow, bất biến linkage/receipt, effect ordinal, budget uncertain, R3 consent và R4 prelaunch/retirement. Pure validation dùng public compiler thực của Fastify, kiểm mọi DTO/variant cùng các negative nested, không mở HTTP/socket/model. Backup prefix010 được restore trước upgrade; prefix011 có dữ liệu cũng được dump/restore rồi đối chiếu SHA256 toàn bộ bảng và từng migration. Report Phase06/T1 ghi lần chạy cuối, các RED và identity/cleanup; các fixture SQL không chứng minh HTTP/admission/certification production. Typecheck frozen baseline, Biome các file sở hữu và kiểm đúng bảy H2 đi cùng source freeze.
+ 
+ FIX1 bổ sung regression S1–S5: cross-message trước replay, root scope đúng route/monitor và hết hạn, selection mượn model/machine, assessment/dispatch ghép khác ticket, receipt/reservation sai request/ownership, released INSERT thiếu proof; positive terminal-proof row được backup/restore và đối chiếu toàn bộ dữ liệu. Không sửa guard005 hoặc migrations đã chốt.
++
++FIX2 kiểm scope expiry bằng `clock_timestamp()` tại lần kiểm sau khóa và trước replay; không dùng `now()` cố định ở đầu transaction. Bốn regression thực tạo transaction trước deadline, chờ chính deadline PostgreSQL qua `pg_sleep_until`, ghi witness `now()<expires_at` và `clock_timestamp()>=expires_at`, rồi kiểm claim mới/claim replay/ACK/ACK replay đều bị từ chối và toàn bộ work row (state, attempts, claim, ACK) giữ nguyên. Cover ảnh hưởng chỉ chạy các test fence/scope/expiry; evidence S2–S5 và restore của FIX1 được giữ riêng, không cộng dồn thành lượt full suite mới.

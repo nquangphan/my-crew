@@ -1,0 +1,222 @@
+{
+  "status": "FROZEN PENDING FIX1 INDEPENDENT REVIEW",
+  "baseline": "c5f9ad352e02a991c84e69f8500208814e895b5d",
+  "ownPaths": [
+    {
+      "path": "v2/server/src/attachments/snapshots.ts",
+      "bytes": 16398,
+      "sha256": "c498e9e953c7eae2aa840c9fc97cef0e0b5bcf88071315be60ebb9bf918f3969",
+      "baselineSha256": "c7938443c8c1d76d37bcc196643aa44b004ccf3917b86a0fd2a2914c17ef8926",
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/server/test/attachments-snapshots.test.ts",
+      "bytes": 31643,
+      "sha256": "14cd2467cca851ecbfce4aaaa71b892b8b8002e59e22106d59f2de0fd1b7b464",
+      "baselineSha256": "5c0e58ffeaf2e48eb57d86d9474122a67f1bdf93b4e8d4d7fdcdd37dab9c082d",
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/server/test/support/attachment-access-publication.ts",
+      "bytes": 5388,
+      "sha256": "579fc484af1bf8bfc8b2931f3de7342a324d4a42e48f433a77b13e5f63df10a4",
+      "baselineSha256": "861f4032065fdae539ab582e80dd486e4bb088c6d48318cebd4e9c4527de0d79",
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/server/test/support/attachment-snapshot-work.ts",
+      "bytes": 1689,
+      "sha256": "577ea7bfc40f8bc86965c3babd353e4c77638d2f338b6e3183cfb2191ceb4c3a",
+      "baselineSha256": null,
+      "greenManifestMatch": true,
+      "typesManifestMatch": true
+    },
+    {
+      "path": "v2/docs/flows/server-attachments.md",
+      "bytes": 24646,
+      "sha256": "43c9ae3c71245987ba51379e096af99a37ef386d5ef4cca2307d07877cf3b9a0",
+      "baselineSha256": "e3339a12e13dfab56c19d10ca21d67df4c7169e69aaa6bd1a5feac1925cd848a",
+      "greenManifestMatch": false,
+      "typesManifestMatch": true
+    }
+  ],
+  "protectedFrozenPaths": [
+    {
+      "path": "v2/server/src/app.ts",
+      "frozenBytes": 4149,
+      "frozenSha256": "c0052279dc95a5f512047add2ca8dcd1c94935c45c79ab218721a0bb58e493c3",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "c0052279dc95a5f512047add2ca8dcd1c94935c45c79ab218721a0bb58e493c3",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/package.json",
+      "frozenBytes": 843,
+      "frozenSha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "8e01dac8d9073a87cab6d1ad5cbf40dc718bb8dafa153844c2c16297083c7a02",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/contracts.ts",
+      "frozenBytes": 11551,
+      "frozenSha256": "5b6a496b4c0e86298a2d69d76f4666e07cbb783d8ca153ccb4f17fc4f45eb906",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "04c81e230c2cf3ff34eeff6751aaeb4dc508003a66e9ed5b48917b23ded5b305",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/jobs.ts",
+      "frozenBytes": 15120,
+      "frozenSha256": "2984081650f272b0404902d9bac5c15430656d1bfd3b3430f6c5f043dcc8221d",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "2984081650f272b0404902d9bac5c15430656d1bfd3b3430f6c5f043dcc8221d",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/messages.ts",
+      "frozenBytes": 11390,
+      "frozenSha256": "c88e5e1ea870541244f7cace3e3cefab7c7f55a94a5beb25f492592f150c3508",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "c88e5e1ea870541244f7cace3e3cefab7c7f55a94a5beb25f492592f150c3508",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/routing.ts",
+      "frozenBytes": 10106,
+      "frozenSha256": "b6ff9476d4926437b55c015043a6337d1c2feff951893837781dcf765160234c",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "b6ff9476d4926437b55c015043a6337d1c2feff951893837781dcf765160234c",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-protocol.ts",
+      "frozenBytes": 17349,
+      "frozenSha256": "836615d455854469acc8280c3d66e97adff1b190df7a2ece234e101b1d156aa5",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "96fbee3bd5e7a9023ae141642e1c137c9e00351b2bae57dd5e2194cfaf92308f",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-runner.ts",
+      "frozenBytes": 16751,
+      "frozenSha256": "5080d8182fbd59e984f6e7856cf063a147221308fda5fe1f0de1a99f51f0cf48",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "7c28d38d321cb8ffa51d53b46b690cf5e22c7777abfd9e9052678d6f5faeca1e",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/src/attachments/worker-entry.ts",
+      "frozenBytes": 1636,
+      "frozenSha256": "826cbb9395f0a4837e9f862b92fa8cb9c81e664e0752840cf1ac81d45d4b6566",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "c19399d7d9de83a0dc467315672251bc3fb3ccb68511d6483a79073abdc74acf",
+      "currentMatchesFrozen": false,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/001_platform.sql",
+      "frozenBytes": 286,
+      "frozenSha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/002_journal.sql",
+      "frozenBytes": 837,
+      "frozenSha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/003_identity.sql",
+      "frozenBytes": 1294,
+      "frozenSha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/004_tickets.sql",
+      "frozenBytes": 4975,
+      "frozenSha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/005_execution.sql",
+      "frozenBytes": 3270,
+      "frozenSha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/006_docs.sql",
+      "frozenBytes": 4364,
+      "frozenSha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/007_gateway.sql",
+      "frozenBytes": 6548,
+      "frozenSha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/008_model_pool.sql",
+      "frozenBytes": 15261,
+      "frozenSha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/009_attachments.sql",
+      "frozenBytes": 20136,
+      "frozenSha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    },
+    {
+      "path": "v2/server/migrations/010_attachment_comment_text.sql",
+      "frozenBytes": 253,
+      "frozenSha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+      "greenAndTypesMatchFrozen": true,
+      "currentSha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d",
+      "currentMatchesFrozen": true,
+      "ownership": "excluded; no FIX1 edit"
+    }
+  ],
+  "peerDivergencePolicy": "Tests/types archive exact accepted baseline. Current peer divergence is recorded, never restored or accepted as FIX1 source.",
+  "sourcePatchSha256": "86db1a014ef8ca4f20e5173f5e5be8c4cad0a3c7af0d4d2b9d906e402b22a47a",
+  "noGitOrIndexMutation": true
+}

@@ -1,0 +1,49 @@
+attachment scratch created /tmp/crew-v2-attachments-ejPrJD nonceSha256=ef1da710cd0e7e8f0a113c909b016cedf279f75470b804d9817071bfd1ac4362
+attachment scratch removed /tmp/crew-v2-attachments-ejPrJD
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (22.459291ms)
+attachment scratch created /tmp/crew-v2-attachments-MxnyDj nonceSha256=9c65acf1349668a6e48add284b7f98c8da23ceba5ae7c9a763a4a8c3480335d6
+attachment scratch removed /tmp/crew-v2-attachments-MxnyDj
+✔ attachment storage rejects truncated and oversized streams without publishing original (10.368083ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.628166ms)
+attachment scratch created /tmp/crew-v2-attachments-jYKVAX nonceSha256=518991e288022e73b7c0b09d93e0a7c355f97c80e90bf9fe48c5bbf7034e8453
+attachment scratch removed /tmp/crew-v2-attachments-jYKVAX
+✔ attachment storage derivative publication is separate from original (15.405125ms)
+attachment scratch created /tmp/crew-v2-attachments-9aebdv nonceSha256=85965e5b87907133558a1faee9bb160f9d8fa4741ab07c5240515553cd8ede38
+attachment scratch removed /tmp/crew-v2-attachments-9aebdv
+✔ attachment storage leaves a published blob inspectable after injected failure (8.288916ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (0.25075ms)
+attachment scratch created /tmp/crew-v2-attachments-UsRbUa nonceSha256=3a2f66340d0cb4eb0bf205dac843b2c681fe3380ce1e8a57e137594cd1f22e29
+attachment scratch removed /tmp/crew-v2-attachments-UsRbUa
+✔ attachment storage rejects a symlink owner marker before opening stage (4.886458ms)
+attachment scratch created /tmp/crew-v2-attachments-tgnSVs nonceSha256=f0249f3c3b7496b2f8de56b4cc9cdf66b9f2124892d8d27f8a9fe3c53489a3a6
+attachment scratch removed /tmp/crew-v2-attachments-tgnSVs
+✔ attachment storage binds publication to exact attachment and generation (6.23125ms)
+attachment scratch created /tmp/crew-v2-attachments-d4VnBM nonceSha256=72d3145611f5ebebafb96f1a57d8a2673bf230a53b31f4fbe35ae57618d486b5
+attachment scratch removed /tmp/crew-v2-attachments-d4VnBM
+✔ attachment storage never accepts a foreign existing destination even with equal digest (21.244541ms)
+attachment scratch created /tmp/crew-v2-attachments-7URhRk nonceSha256=8650331ae4b63ba9c2c1818e097a1194371261799f1212f924217ce7afc4f7b0
+attachment scratch removed /tmp/crew-v2-attachments-7URhRk
+✔ attachment storage prevents publication after abort at stage flush (4.140958ms)
+attachment scratch created /tmp/crew-v2-attachments-j0NChe nonceSha256=db99a8965a1b335ab0fb8f0ffcc9e80b82332ea8255bc24097b795cb51970f92
+attachment scratch removed /tmp/crew-v2-attachments-j0NChe
+✔ attachment storage can reopen durable root and verify originals (6.255625ms)
+attachment scratch created /tmp/crew-v2-attachments-SHQ5Jk nonceSha256=64dd19fd9146fee4cbe0e6ce2b9587c68910fc4ccd41343a96255f8a2b930e2c
+attachment scratch removed /tmp/crew-v2-attachments-SHQ5Jk
+✔ attachment storage requires durable journal integration before derivative bytes (3.303417ms)
+attachment scratch created /tmp/crew-v2-attachments-GRZ4u8 nonceSha256=6f0ec0fe545f3b6630e570529337bd3d0fdf686834d603d168f03e52f816022f
+attachment scratch removed /tmp/crew-v2-attachments-GRZ4u8
+✔ attachment storage publishes multiple derivatives in one extraction generation without collision (12.451625ms)
+attachment scratch created /tmp/crew-v2-attachments-ZjJgLF nonceSha256=7405bed34f10c3eed5989d5736c6f536d5ff1a265450754402f1b590635127d3
+attachment scratch removed /tmp/crew-v2-attachments-ZjJgLF
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (8.834125ms)
+✔ attachment receiver parses Linux comm containing spaces and parentheses without birth-field drift (0.174166ms)
+﹣ attachment receiver rejects native writer setup on unsupported host (0.023125ms) # SKIP
+✔ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (2.749667ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 204.560417

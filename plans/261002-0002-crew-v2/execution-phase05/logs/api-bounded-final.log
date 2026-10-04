@@ -1,0 +1,16 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/api-acceptance.test.ts '--test-name-pattern=HTTP bounded docs upload'
+
+{"level":30,"time":1790927574971,"pid":7976,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:64006"}
+HTTP oversized observed container=b20c8bcaa96195e12ad294232fbf6de3922e985aebf0507b9cfd5f1dc8973581 path=/v2/tickets bytes=1048587 status=413
+HTTP oversized observed container=b20c8bcaa96195e12ad294232fbf6de3922e985aebf0507b9cfd5f1dc8973581 path=/v2/docs/imports bytes=25165835 status=413
+✔ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (590.123208ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 767.132125

@@ -1,0 +1,12 @@
+✔ resolver reads fresh desired and current binding; stored ref with null operation survives revision and reconnect (1.5055ms)
+✔ resolver rejects OFF, removal, pending, missing, foreign, revision, endpoint, protocol, and provider ref conflicts (1.311291ms)
+✔ resolver rejects observed ref changes even when both credentials remain stored (0.137375ms)
+✔ current transport refuses changed state before headers and rejects a response when authority changes in flight (9.620833ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88.004958

@@ -1,0 +1,296 @@
+{
+  "time": "2026-10-02T09:16:15.853364+00:00",
+  "containers": [
+    {
+      "containerId": "1472c7b06d62f9216daeb287735f92bdd259080c5ae055936f6d51d0041e0c91",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 1472c7b06d62f9216daeb287735f92bdd259080c5ae055936f6d51d0041e0c91",
+      "absent": true
+    },
+    {
+      "containerId": "1b1e9d548e4aaa2263f3eb4c1d2e6496f63179481329d58934dc7dbec50a2aca",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 1b1e9d548e4aaa2263f3eb4c1d2e6496f63179481329d58934dc7dbec50a2aca",
+      "absent": true
+    },
+    {
+      "containerId": "369a50e5cfab9cf072861290073c5bdd5a7f0f1d64a153740bda852f74211523",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 369a50e5cfab9cf072861290073c5bdd5a7f0f1d64a153740bda852f74211523",
+      "absent": true
+    },
+    {
+      "containerId": "564dcc31bcad966938c9964c41792bcf4314a8d207b9b81bde5c7a8a2e470e78",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 564dcc31bcad966938c9964c41792bcf4314a8d207b9b81bde5c7a8a2e470e78",
+      "absent": true
+    },
+    {
+      "containerId": "689cb8e39495ca435b76f256f5b9f0e9cf391a57e9750e8f4a6134dc34d87a00",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 689cb8e39495ca435b76f256f5b9f0e9cf391a57e9750e8f4a6134dc34d87a00",
+      "absent": true
+    },
+    {
+      "containerId": "6fe6e8c3a8c86ed647ba26ac854b24c9cb8dd47b3795869829670430e5831af8",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 6fe6e8c3a8c86ed647ba26ac854b24c9cb8dd47b3795869829670430e5831af8",
+      "absent": true
+    },
+    {
+      "containerId": "8b35e5432dd8967a3d3ae02fa780ab456fcb672f9708daf7c05d3e07d85d6b80",
+      "inspectExit": 1,
+      "stderr": "error: no such object: 8b35e5432dd8967a3d3ae02fa780ab456fcb672f9708daf7c05d3e07d85d6b80",
+      "absent": true
+    }
+  ],
+  "scratchRoots": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2XuRNU",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-49PlU4",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4OIWmW",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6AfPfN",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-D9bhgf",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ESazV3",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IU547t",
+      "loggedRemoved": false,
+      "manualExactIdentityRemoved": true,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IfrVGt",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ktbega",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-L1wvCC",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-LUS63o",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-R4YAbQ",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-R5eOD6",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WTqQUI",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Wl8Ihu",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZW06hR",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ZXVoiA",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bLOfDX",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-byEz2v",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dDqoZR",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ddvgTP",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eGNVed",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-k9joSO",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lV9DPI",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mm3Nbc",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mspxjQ",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nNP6ve",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vQFUDe",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wXY0YR",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xdUsRQ",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": true,
+      "nativeTmpfs": false
+    },
+    {
+      "root": "/tmp/crew-v2-attachments-XTMyjl",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": null,
+      "nativeTmpfs": true
+    },
+    {
+      "root": "/tmp/crew-v2-attachments-dU02wq",
+      "loggedRemoved": true,
+      "manualExactIdentityRemoved": false,
+      "hostAbsent": null,
+      "nativeTmpfs": true
+    }
+  ],
+  "scratchCount": 32,
+  "snapshot": {
+    "path": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi",
+    "dev": 16777229,
+    "ino": 63709355,
+    "uid": 501,
+    "nonceSha256": "9ce42aeba2d9d8e577110a1633aa68f0aa8829370398064d7d5af3211a221eab",
+    "verifiedFiles": 231,
+    "childrenClosed": true,
+    "removed": true
+  },
+  "launcher": {
+    "path": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/task-1-fix1-docker-bin",
+    "dev": 16777229,
+    "ino": 63710729,
+    "uid": 501,
+    "nonceSha256": "df6c6af08d9f6ebe1f6d5d1c687bdfe34bc3133adef68ecb4bb6372016573c55",
+    "sha256": "5b51b0c1c13ca0b337c6f3a0b33ce18f817afc90f026c531cac824667fdc3737",
+    "removed": true
+  },
+  "imageCacheRetained": true,
+  "runnerContainersWithoutLoggedId": "private runner finally cleanup only; not counted as externally inspected IDs",
+  "interruptedFixtureEvidence": "fix1-interrupted-fixture.json"
+}

@@ -1,0 +1,6 @@
+
+> @crew-v2/gateway@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> tsc --noEmit
+
+test/execution-bridge-db.test.ts(310,11): error TS2322: Type 'null' is not assignable to type 'ProjectionPin | { runtime: "api"; sourceTreeSha256: string; manifestSha256: string; derivation: { tool: string; version: string; options: string[]; layoutSchema: string; policySha256: string; }; treeSha256: string; }'.
+ ELIFECYCLE  Command failed with exit code 1.

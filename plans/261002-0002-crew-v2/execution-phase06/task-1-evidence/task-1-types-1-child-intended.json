@@ -1,0 +1,1 @@
+{"command": ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-types-1-i6o17jx2/v2/server", "typecheck"], "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew", "stage": "before child start"}

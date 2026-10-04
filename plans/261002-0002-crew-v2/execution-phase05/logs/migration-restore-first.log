@@ -1,0 +1,30 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts '--test-name-pattern=migration restores reviewed'
+
+attachment restore created container=31e98ce0b09c5ea9b93f16cb53a9453b8c9b9a0a921f61b3e352ef8dff06dc6a database=crew_v2_test_570a587737984100bdfb20594224f20e prefix=8
+attachment restore removed container=31e98ce0b09c5ea9b93f16cb53a9453b8c9b9a0a921f61b3e352ef8dff06dc6a database=crew_v2_test_570a587737984100bdfb20594224f20e
+✖ attachment migration restores reviewed 008 through 009 and retains attachment checksum against drift (469.628583ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 568.509459
+
+✖ failing tests:
+
+test at test/attachments-staging.test.ts:587:1
+✖ attachment migration restores reviewed 008 through 009 and retains attachment checksum against drift (469.628583ms)
+  TypeError: Cannot read properties of undefined (reading 'id')
+      at verify (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/attachments.ts:263:78)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async restore (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/attachments.ts:257:8)
+      at async verifyAttachmentMigrationRestore (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/attachments.ts:274:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:588:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+ ELIFECYCLE  Test failed. See above for more details.

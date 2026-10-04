@@ -1,0 +1,51 @@
+[
+  {
+    "name": "build",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "v2/gateway",
+      "build"
+    ],
+    "cwd": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-fix1-9c10d7c3-e76e-41a4-8dae-601763f42ef5-v9wx5l_k",
+    "pid": 200,
+    "start": "Sat Oct  3 17:03:54 2026",
+    "exit": 0,
+    "NODE_OPTIONS": "--max-old-space-size=384"
+  },
+  {
+    "name": "strict",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "v2/gateway",
+      "exec",
+      "tsc",
+      "--noEmit",
+      "-p",
+      "test/support/runtime-typecheck.json"
+    ],
+    "cwd": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-fix1-9c10d7c3-e76e-41a4-8dae-601763f42ef5-v9wx5l_k",
+    "pid": 232,
+    "start": "Sat Oct  3 17:03:55 2026",
+    "exit": 0,
+    "NODE_OPTIONS": "--max-old-space-size=384"
+  },
+  {
+    "name": "targeted-cover",
+    "argv": [
+      "node",
+      "--test",
+      "--test-concurrency=1",
+      "test/runtime-workspace.test.ts",
+      "test/runtime-boundary.test.ts",
+      "test/isolation-runtime.test.ts",
+      "test/effect-ledger.test.ts"
+    ],
+    "cwd": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-fix1-9c10d7c3-e76e-41a4-8dae-601763f42ef5-v9wx5l_k/v2/gateway",
+    "pid": 252,
+    "start": "Sat Oct  3 17:03:56 2026",
+    "exit": 0,
+    "NODE_OPTIONS": "--max-old-space-size=384"
+  }
+]

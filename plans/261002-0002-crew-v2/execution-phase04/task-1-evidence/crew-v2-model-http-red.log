@@ -1,0 +1,59 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts
+
+✔ model pool migration creates separate config and immutable report authority (167.460833ms)
+model owned fixture 9f6f688d32388191f0bcefb07daf296ce91f9ef2d521b69e4923541f8627ed1e postgres://postgres@127.0.0.1:59313/crew_v2_test
+✖ model pool owner CAS sync and machine desired config are real authenticated HTTP (396.281791ms)
+✖ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (301.708916ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1024.061958
+
+✖ failing tests:
+
+test at test/model-pool.test.ts:17:1
+✖ model pool owner CAS sync and machine desired config are real authenticated HTTP (396.281791ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route PUT:/v2/machines/afca073a-37c8-47d8-ae68-4221d08ec5d1/model-sources not found","error":"Not Found","statusCode":404}
+  
+  404 !== 200
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts:22:48
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts:18:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-pool.test.ts:33:1
+✖ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (301.708916ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route PUT:/v2/machines/f7849ccd-7330-4be0-9c9b-5e312ac77256/model-sources not found","error":"Not Found","statusCode":404}
+  
+  404 !== 400
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts:37:70
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts:34:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

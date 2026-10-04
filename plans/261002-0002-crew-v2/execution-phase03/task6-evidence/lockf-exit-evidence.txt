@@ -1,0 +1,6 @@
+     EX_TEMPFAIL       The specified lock file was already locked by another
+     EX_UNAVAILABLE    The -n option is specified and the specified lock file
+           lockf: mylock: already locked
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sysexits.h
+SHA256 4d0eaa701de793a14743bf35f77355ef04f5ae84bb4135bf9de5244026dd92f4
+#define EX_TEMPFAIL	75	/* temp failure; user is invited to retry */

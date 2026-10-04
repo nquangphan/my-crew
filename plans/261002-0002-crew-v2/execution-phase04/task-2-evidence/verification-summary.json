@@ -1,0 +1,27 @@
+{
+  "candidateBase": "556cd8d106715b0c3ccc5893e8383b44083230db",
+  "ownedFiles": 16,
+  "sourceDrift": [],
+  "tests": 100,
+  "pass": 100,
+  "fail": 0,
+  "skip": 0,
+  "candidateSourceFiles": 235,
+  "candidateSourceDelta": [],
+  "candidateBuildExit": 0,
+  "candidateTypecheckExit": 0,
+  "biomeExit": 0,
+  "nativeLinkExit": 0,
+  "nativeExecution": "NOT_EXECUTED",
+  "ownedFixtureRootsRemoved": 4,
+  "ownedFakeHelperPidsReaped": [
+    40550,
+    40618,
+    40619,
+    40620
+  ],
+  "signedAcl": "UNVERIFIED",
+  "runtimeCertification": "UNVERIFIED",
+  "liveProviderCalls": 0,
+  "initialRedRetainedCandidates": 2
+}

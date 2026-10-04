@@ -1,0 +1,85 @@
+✔ render artifact inspection measures a supplied schema-1 artifact but returns no authority (1.744708ms)
+✔ render artifact inspection retains captured expectation after nested caller mutation (0.258416ms)
+✔ render artifact inspection keeps the measured result independent of later byte mutation (0.212167ms)
+✔ render artifact inspection rejects raw optional-layer drift even with equal resolved values (0.369916ms)
+✖ render artifact inspection rejects a missing required layer or undeclared layer key (0.357958ms)
+✔ render artifact inspection rejects source, renderer and output byte changes (0.633792ms)
+✖ render artifact inspection rejects false schema, path and generation claims (0.649625ms)
+✔ render artifact inspection bounds layer bytes as well as manifest and output bytes (0.2095ms)
+✔ render artifact inspection bounds metadata key counts before copying byte maps (2.6685ms)
+✔ render artifact inspection matches Python Unicode and control-character generation hashing (0.238291ms)
+✔ render artifact inspection rejects an undeclared source-authored snapshot target (0.139083ms)
+✔ render artifact inspection refuses unsupported numeric resolved values (0.129167ms)
+✔ render artifact inspection remains separate from the denied BMAD adapter (0.150625ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 11
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.356292
+
+✖ failing tests:
+
+test at test/render-artifacts.test.ts:180:1
+✖ render artifact inspection rejects a missing required layer or undeclared layer key (0.357958ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /RENDER_ARTIFACT_MISMATCH/. Input:
+  
+  'Error: RENDER_ARTIFACT_TOO_LARGE'
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/render-artifacts.test.ts:187:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: RENDER_ARTIFACT_TOO_LARGE
+        at tooLarge (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:78:9)
+        at boundedKeys (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:90:66)
+        at hasExactKeys (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:97:18)
+        at snapshotBytes (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:226:3)
+        at inspect (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:266:20)
+        at Object.inspect (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:361:35)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/render-artifacts.test.ts:187:67
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/render-artifacts.test.ts:187:10),
+    expected: /RENDER_ARTIFACT_MISMATCH/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/render-artifacts.test.ts:203:1
+✖ render artifact inspection rejects false schema, path and generation claims (0.649625ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /RENDER_ARTIFACT_MISMATCH/. Input:
+  
+  'Error: RENDER_ARTIFACT_TOO_LARGE'
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/render-artifacts.test.ts:220:12)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: RENDER_ARTIFACT_TOO_LARGE
+        at tooLarge (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:78:9)
+        at boundedKeys (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:90:66)
+        at hasExactKeys (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:97:18)
+        at inspect (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:286:3)
+        at Object.inspect (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/render-artifacts.ts:361:35)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/render-artifacts.test.ts:220:65
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/render-artifacts.test.ts:220:12)
+        at Test.runInAsyncScope (node:async_hooks:228:14),
+    expected: /RENDER_ARTIFACT_MISMATCH/,
+    operator: 'throws',
+    diff: 'simple'
+  }

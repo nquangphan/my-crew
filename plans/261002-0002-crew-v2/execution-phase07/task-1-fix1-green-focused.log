@@ -1,0 +1,12 @@
+{"level":30,"time":1791040186813,"pid":7272,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:51883"}
+active-request-ready={"registryPath":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-uFYGGf/registry.json","apiOrigin":"http://127.0.0.1:51883","resources":[{"kind":"scratch","id":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-uFYGGf","ownershipNonce":"17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8","startIdentity":"16777229:64646391"},{"kind":"container","id":"281c4ea34ab11444a5d70446469a3912241fdce6774764573cbabb7c812d0c85","ownershipNonce":"17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8","startIdentity":"281c4ea34ab11444a5d70446469a3912241fdce6774764573cbabb7c812d0c85:2026-10-03T15:09:45.256928752Z"},{"kind":"database","id":"crew_v2_test_04edb011a36f4bc09211aae88893e642","ownershipNonce":"17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8","startIdentity":"281c4ea34ab11444a5d70446469a3912241fdce6774764573cbabb7c812d0c85:16385"},{"kind":"listener","id":"web:51881","ownershipNonce":"17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8","startIdentity":"7272:Sat Oct  3 22:09:44 2026:web:51881:17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8"},{"kind":"listener","id":"api:51883","ownershipNonce":"17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8","startIdentity":"7272:Sat Oct  3 22:09:44 2026:api:51883:17ae459d-332a-4cdd-a0b7-d1e3ac57a8b8"}]}
+active-request-cleanup=[{"resourceId":"api:51883","state":"stopped","reason":null},{"resourceId":"web:51881","state":"stopped","reason":null},{"resourceId":"crew_v2_test_04edb011a36f4bc09211aae88893e642","state":"removed","reason":null},{"resourceId":"281c4ea34ab11444a5d70446469a3912241fdce6774764573cbabb7c812d0c85","state":"removed","reason":null},{"resourceId":"/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-web-uFYGGf","state":"removed","reason":null}]
+✔ request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ (2017.174791ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2266.599875

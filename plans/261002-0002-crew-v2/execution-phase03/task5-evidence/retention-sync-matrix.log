@@ -1,0 +1,23 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QPlsHM","device":"16777229","inode":"63549928","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QPlsHM","device":"16777229","inode":"63549928","uid":501,"deleted":true}
+✔ terminal pin retirement defaults deny and keeps historical references without actual STOP (1744.193083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-cmVoqt","device":"16777229","inode":"63550169","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-cmVoqt","device":"16777229","inode":"63550169","uid":501,"deleted":true}
+✔ terminal pin retirement fsyncs exact receipt, filters refs and denies resurrection (2446.162375ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-alEwzf","device":"16777229","inode":"63549929","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-alEwzf","device":"16777229","inode":"63549929","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (2376.382ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dZBk79","device":"16777229","inode":"63550286","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dZBk79","device":"16777229","inode":"63550286","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (1976.157625ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-H9ZX55","device":"16777229","inode":"63550606","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-H9ZX55","device":"16777229","inode":"63550606","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (1527.443125ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5992.448125

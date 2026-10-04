@@ -1,7 +1,18 @@
 import { randomUUID } from 'node:crypto';
+import type { OrchestrationProof, ProjectOrchestrationAuthority } from '../assistant/contracts.ts';
 import { appendEvent } from '../journal/events.ts';
 import type { Actor, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
+import type {
+  AssistantTargetTicket,
+  PreparedAssistantTarget,
+  VerifiedAssistantScope,
+} from './assistant-access.ts';
+import {
+  captureAssistantOperation,
+  consumeAssistantScope,
+  createAssistantAccess,
+} from './assistant-access.ts';
 import type {
   AppendAttachmentComment,
   Comment,
@@ -100,19 +111,13 @@ async function sourceExists(
   return !!row;
 }
 
-export async function recordDecision(
+async function prepareDecision(
   tx: Tx,
-  ticketId: Id,
+  ticket: AssistantTargetTicket,
   input: DecisionInput,
   actor: Actor,
   docsSource?: DocsSourceReader,
-): Promise<Id> {
-  if (input.kind === 'owner_answer') {
-    const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
-    if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
-    await tx`select id from tickets where id=${scope.root_id} for update`;
-  }
-  const ticket = await requireTicket(tx, ticketId, actor, input.kind === 'owner_answer');
+): Promise<void> {
   if (
     !['assessment', 'delegated', 'owner_answer', 'approval', 'intervention', 'dispatch'].includes(
       input.kind,
@@ -153,6 +158,35 @@ export async function recordDecision(
     if (!(await sourceExists(tx, ticket.projectId, ticket.rootId, source, docsSource)))
       throw new ApiError('SOURCE_UNVERIFIED', 422, 'Nguồn quyết định chưa được ghi nhận');
   }
+}
+
+type DecisionPayload = { ticketId: Id; input: DecisionInput };
+type DecisionPermission = {
+  prepared: PreparedAssistantTarget<DecisionPayload>;
+  scope: VerifiedAssistantScope<DecisionPayload>;
+};
+
+async function persistDecision(
+  tx: Tx,
+  ticket: AssistantTargetTicket,
+  ticketId: Id,
+  input: DecisionInput,
+  actor: Actor,
+  permission?: DecisionPermission,
+): Promise<Id> {
+  if (permission) {
+    const operation = permission.prepared.operation;
+    if (
+      operation.action !== 'decision' ||
+      operation.actor !== actor ||
+      operation.payload.input !== input ||
+      operation.payload.ticketId !== ticketId ||
+      !permission.prepared.tickets.includes(ticket) ||
+      ticket.id !== ticketId.toLowerCase()
+    )
+      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+    consumeAssistantScope(tx, permission.scope, operation, permission.prepared);
+  }
   const id = randomUUID();
   await tx`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope,created_at)
     values(${id},${ticketId},${actor.kind},${actor.id},${input.kind},${input.content},${input.rationale},
@@ -165,4 +199,44 @@ export async function recordDecision(
     data: { decisionId: id, kind: input.kind },
   });
   return id;
+}
+
+export async function recordDecision(
+  tx: Tx,
+  ticketId: Id,
+  input: DecisionInput,
+  actor: Actor,
+  docsSource?: DocsSourceReader,
+): Promise<Id> {
+  if (input.kind === 'owner_answer') {
+    const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
+    if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+    await tx`select id from tickets where id=${scope.root_id} for update`;
+  }
+  const ticket = await requireTicket(tx, ticketId, actor, input.kind === 'owner_answer');
+  await prepareDecision(tx, ticket, input, actor, docsSource);
+  return persistDecision(tx, ticket, ticketId, input, actor);
+}
+
+export function createAssistantDecisionRecorder(
+  authority?: ProjectOrchestrationAuthority,
+  docsSource?: DocsSourceReader,
+) {
+  const access = createAssistantAccess(authority);
+  const readSource = docsSource;
+  return async (
+    tx: Tx,
+    actor: Actor,
+    proof: OrchestrationProof,
+    ticketId: Id,
+    input: DecisionInput,
+  ): Promise<Id> => {
+    const operation = captureAssistantOperation(actor, proof, 'decision', { ticketId, input });
+    const payload = operation.payload;
+    const prepared = await access.prepare(tx, operation, [payload.ticketId]);
+    const ticket = prepared.tickets[0]!;
+    await prepareDecision(tx, ticket, payload.input, operation.actor, readSource);
+    const scope = await access.authorize(tx, prepared);
+    return persistDecision(tx, ticket, payload.ticketId, payload.input, operation.actor, { prepared, scope });
+  };
 }

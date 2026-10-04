@@ -1,0 +1,32 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-focused-10pk52xi/models.test.ts
+
+✔ model pool migration creates separate config and immutable report authority (174.892667ms)
+model owned fixture 640eb2326e7e882a32b2337b4d1e0d13b96e989ee808195b0ac6090725d1361c postgres://postgres@127.0.0.1:57232/crew_v2_test
+model-fixture-container {"containerId":"640eb2326e7e882a32b2337b4d1e0d13b96e989ee808195b0ac6090725d1361c","url":"postgres://postgres@127.0.0.1:57232/crew_v2_test"}
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (414.170292ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (319.30325ms)
+✔ model report shared order historical immutable replay and production host PASS stays unverified (363.445125ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (329.567542ms)
+✔ sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK (315.542917ms)
+✔ model source events reject secret metadata and wrong audience without leaking inventory (0.373834ms)
+✔ model HTTP cached mutation rechecks actual token after authentication before journal cache (292.839625ms)
+✔ fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate (315.016542ms)
+model-backup-owned {"containerId":"640eb2326e7e882a32b2337b4d1e0d13b96e989ee808195b0ac6090725d1361c","port":"57232","sourceDb":"crew_v2_test_70bf8d4f3f6b4c8fa7b3ea7239bed4e8","restoredName":"crew_v2_test_9c9e30741373419f8de460d6779073dc"}
+model-backup-cleaned {"sourceDb":"crew_v2_test_70bf8d4f3f6b4c8fa7b3ea7239bed4e8","restoredName":"crew_v2_test_9c9e30741373419f8de460d6779073dc"}
+✔ model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift (927.561375ms)
+{"level":30,"time":1790919979255,"pid":4180,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:57313"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (339.820375ms)
+✔ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (507.145042ms)
+✔ model secret key proof encrypted provisioning and lost ACK replay erase ciphertext exactly once (334.720167ms)
+✔ model secret rotation scopes pending envelopes to own machine and rejects stale key/revision ACK (303.460333ms)
+✔ model secret envelope pagination uses a durable decimal cursor so reconnect cannot miss a new random UUID (245.120041ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5395.714875

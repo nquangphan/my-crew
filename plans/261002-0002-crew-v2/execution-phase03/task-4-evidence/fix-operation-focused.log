@@ -1,0 +1,16 @@
+✔ workflow fix cancellation cannot rewind existing A after B activation (980.8475ms)
+✔ workflow fix abort during existing verification preserves B activation (826.819ms)
+✔ workflow fix repeated completed malformed operations reclaim exact stages (793.334667ms)
+✔ workflow durable operation recovers killed reserve/create/rename/quarantine checkpoints (3519.33725ms)
+Retained genuine fork UNKNOWN fixtures: ["/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-hafa5J"]
+✔ workflow operation native timeout yields real stop receipt and fork remains UNKNOWN (2249.608542ms)
+✔ workflow no-follow deletion unlinks symlink itself and rejects hardlink aliases (574.908625ms)
+✔ workflow published GC releases registry reference but preserves recovered unready process reference (1604.19575ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8032.901708

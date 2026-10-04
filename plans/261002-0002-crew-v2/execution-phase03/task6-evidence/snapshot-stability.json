@@ -1,0 +1,8 @@
+{
+  "changed": [],
+  "addedFixtureConfigs": [
+    "v2/gateway/tsconfig.fixture.build.json",
+    "v2/gateway/tsconfig.fixture.json"
+  ],
+  "sourceStable": true
+}

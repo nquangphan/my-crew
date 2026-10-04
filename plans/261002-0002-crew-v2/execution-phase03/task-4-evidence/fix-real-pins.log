@@ -1,0 +1,49 @@
+{
+  runtime: 'claude',
+  sourceTreeSha256: '45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317',
+  manifestSha256: 'cc532075e2a4af3f189b359188b534a71cdb2f38912333135b8530d0fc1d1567',
+  derivation: {
+    tool: 'bmad-official-package-local-installer',
+    version: '6.12.0',
+    options: [
+      'frozen-dependencies',
+      'bmm',
+      'claude-code',
+      'no-shims',
+      'generated-metadata-v1'
+    ],
+    layoutSchema: 'bmad-claude-v1',
+    policySha256: 'a0ac56ece4b964da4e5481cd16f75dfb74d05425ef0b5c33bfb176e82926bd26'
+  },
+  treeSha256: '3d67e8d6fada5cd20e41922c3cf761ce73e63a61691f1e536579badae1aed54a'
+} {
+  runtime: 'api',
+  sourceTreeSha256: '45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317',
+  manifestSha256: '033f75b208c17b60bd84c5c761660267d3a458312052624a4a95fa0536d619f7',
+  derivation: {
+    tool: 'bmad-official-package-local-installer',
+    version: '6.12.0',
+    options: [
+      'frozen-dependencies',
+      'bmm',
+      'claude-code',
+      'no-shims',
+      'generated-metadata-v1'
+    ],
+    layoutSchema: 'bmad-api-v1',
+    policySha256: '98bf91438c455d526fb6fc2cecedb351930ea4325389a433fb4081ca432de623'
+  },
+  treeSha256: 'dda623e8b695d2d3d6cff365a9ffa86137b89246e86d434cf1948da2186dbe30'
+} {
+  runtime: 'api',
+  sourceTreeSha256: '76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46',
+  manifestSha256: 'b910609e4039d3eb7a2db1f28fc213e417197ed7d64dea9263b0223f468fa410',
+  derivation: {
+    tool: 'crew-reviewed-official-api-transport',
+    version: '1',
+    options: [ 'exact-official-skills-and-scripts' ],
+    layoutSchema: 'superpowers-api-v1',
+    policySha256: 'bd709296e14380caac73226880ef3f10b3fa00d9a7c3d358af3cc74106ba10ed'
+  },
+  treeSha256: 'df11ec38960f0c026e7ce8e3fc62ee4ed6169cb3b979bece813f2fe9d2152620'
+}

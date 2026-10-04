@@ -1,0 +1,20 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-inbox-routing-green2-rhjnm7_o/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-inbox-routing-green2-rhjnm7_o/v2/server/test/attachments-messages.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-inbox-routing-green2-rhjnm7_o/v2/server/test/attachments-routing.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-5895de0b-db6e-4a22-b899-e1786552ba5e", "--label", "crew.phase05.task2b=cbfaa226-ef2d-4a00-a209-c1866e644c60", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "1ed878ebda194a91715d9318acec66c02fd1a376c1c19c89dc8f4d784cd014da", "name": "crew-v2-test-5895de0b-db6e-4a22-b899-e1786552ba5e", "mapping": "127.0.0.1:56728"}
+attachment DB container 1ed878ebda194a91715d9318acec66c02fd1a376c1c19c89dc8f4d784cd014da root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GRHTAM
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GRHTAM nonceSha256=c21ca94cce53c2c15040f0f4f2ad14ec5cc4417e681e0325e4350778a5de38e2
+attachment DB scratch identity dev=16777229 ino=63938181 uid=501 pid=7333
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GRHTAM
+✔ attachment inbox canonical retry creates one owner-only message with retained originals and no ticket (474.759917ms)
+attachment DB container 1ed878ebda194a91715d9318acec66c02fd1a376c1c19c89dc8f4d784cd014da root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RNSaHq
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RNSaHq nonceSha256=f526848d829fdcfdf440ca219c900f5c2308c90d4f12f0dafa4f2b8ff6d8088a
+attachment DB scratch identity dev=16777229 ino=63938180 uid=501 pid=7336
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RNSaHq
+✔ attachment routing configured owner decisions replay and correction default denies without retirement (476.2545ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 569.215083

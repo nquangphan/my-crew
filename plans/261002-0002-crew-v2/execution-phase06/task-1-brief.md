@@ -1,0 +1,14 @@
+# Phase06/T1 — schema and durable Assistant work inbox (prepared, NOT DISPATCHED)
+
+PM durable-effect ruling: effectId là SHA256 lowercase hex64, không phải UUID.
+011 assistant_operation_ids.effect_id dùng TEXT với CHECK đúng hex64 và UNIQUE.
+operationId/stepOperationId giữ UUID; effect giữ cùng định danh qua fallback.
+Ordinal cho hành động cố ý lặp phải được persist, không suy từ provider tool-call ID hay argsHash.
+
+Read entire approved phase06-r3, spec and v2/docs/index before code. Actual009 accepted ec02ac0; actual010 accepted f6d3728; migration011 may follow immutable001–010. Actual MessageSubmission/InputSnapshot/DispatchInputPin types exist in reviewed attachments/contracts.ts; do not consume unfinished phase05 submission/access/transport or unreviewed gateway/isolation/runtime boundaries. Fresh PM telemetry and explicit task dispatch required. Primary Superpowers SDD/TDD; no subagents/Git/shared index/manifests/packages. Not alone; preserve all peer edits.
+
+Own ONLY migration011_assistant.sql, server/src/assistant/{contracts,store,inbox}.ts, server/test/assistant-store.test.ts and new support/assistant.ts, new server-assistant.md R3. Implement whole approved011 persistence contract, constraints, queues, durable cursor and conversation linkage. Schema includes approved R1 routing authority/certification, R2 routing actions, R3 derived parent-consent route authority, R4 prelaunch/tombstones/reservations; source011 cannot weaken frozen001–010,005permit/007selection/008model choice. Typed contracts must import actual reviewed exported producer types; missing actual producer services must be reported to PM, not fabricated with any/plan-only fake module. Pure independent contract work allowed; GREEN integration depends on reviewed real producers. No live/runtime/signing certificates from fixture seeds.
+
+Exactly T1 tests from approved plan, actual private PG18.6 prefix11 migrations checksum, duplicate event/restart, conversation/message immutable link and cursor order, unknown turn guard retained, exact route/certification scope, constraints backup/restore rehearsal with hashes before acceptance. Unit-only assistantFixture seed helpers cannot be production authority. No app/host/route wiring from laterT2. No default production model/inference/network calls or owner credentials.
+
+Before fixture create exact root nonce/dev/inode/UID, child/container PID/argv/port; exclude peer sources from frozen manifest. Single meaningful final appropriate cover after last source, type/Biome/R3, actual result logs incl failed REDs; no unionPASS. Close children then identity-check own roots; unknown retain noTTL/prune/fakeSTOP. Report all source SHA/bytes and evidence/cleanup before controller candidate/docsmapping/full independent SPEC/QUALITYreview. This brief does not authorize dispatch or plan changes.

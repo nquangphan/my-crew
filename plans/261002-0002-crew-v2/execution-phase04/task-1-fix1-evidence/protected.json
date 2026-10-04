@@ -1,0 +1,22 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "e94f2e1",
+    "--",
+    "v2/server/migrations/001_platform.sql",
+    "v2/server/migrations/002_journal.sql",
+    "v2/server/migrations/003_identity.sql",
+    "v2/server/migrations/004_tickets.sql",
+    "v2/server/migrations/005_execution.sql",
+    "v2/server/migrations/006_docs.sql",
+    "v2/server/migrations/007_gateway.sql",
+    "v2/server/src/execution",
+    "v2/server/src/gateway",
+    "v2/server/src/platform/contracts.ts",
+    "v2/server/src/app.ts",
+    "v2/server/src/journal/event-contracts.ts"
+  ],
+  "exit": 0,
+  "diffBytes": 0
+}

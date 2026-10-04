@@ -1,0 +1,35 @@
+{
+  "name": "@crew-v2/web",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24.12"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-query": "5.104.1",
+    "@xyflow/react": "12.12.0",
+    "@radix-ui/react-dialog": "1.1.23",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1"
+  },
+  "devDependencies": {
+    "vite": "8.3.2",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "7.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/node": "26.6.3",
+    "@playwright/test": "1.63.0"
+  }
+}

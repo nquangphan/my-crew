@@ -1,0 +1,255 @@
+src/assistant/render-artifacts.ts:96:9 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    94 │     if (key.length > maxPathLength) tooLarge();
+    95 │     const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  > 96 │     if (!descriptor || !descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) mismatch();
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    97 │     result.push(key);
+    98 │   }
+  
+  i Unsafe fix: Change to an optional chain.
+  
+     94  94 │       if (key.length > maxPathLength) tooLarge();
+     95  95 │       const descriptor = Object.getOwnPropertyDescriptor(value, key);
+     96     │ - ····if·(!descriptor·||·!descriptor.enumerable·||·!Object.hasOwn(descriptor,·'value'))·mismatch();
+         96 │ + ····if·(!descriptor?.enumerable·||·!Object.hasOwn(descriptor,·'value'))·mismatch();
+     97  97 │       result.push(key);
+     98  98 │     }
+  
+
+src/assistant/render-artifacts.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     82  82 │   
+     83  83 │   function isPlainRecord(value: unknown): value is Record<string, unknown> {
+     84     │ - ··return·value·!==·null·&&·typeof·value·===·'object'·&&·!types.isProxy(value)·&&·Object.getPrototypeOf(value)·===·Object.prototype;
+         84 │ + ··return·(
+         85 │ + ····value·!==·null·&&
+         86 │ + ····typeof·value·===·'object'·&&
+         87 │ + ····!types.isProxy(value)·&&
+         88 │ + ····Object.getPrototypeOf(value)·===·Object.prototype
+         89 │ + ··);
+     85  90 │   }
+     86  91 │   
+    ······· │ 
+    213 218 │       for (const item of value) {
+    214 219 │         const keys = boundedKeys(item, 4);
+    215     │ - ······if·(keys.length·<·3·||·keys.length·>·4·||
+    216     │ - ··········!['id',·'name',·'instruction'].every((field)·=>·keys.includes(field))·||
+    217     │ - ··········keys.some((field)·=>·!['id',·'name',·'instruction',·'when'].includes(field)))·mismatch();
+        220 │ + ······if·(
+        221 │ + ········keys.length·<·3·||
+        222 │ + ········keys.length·>·4·||
+        223 │ + ········!['id',·'name',·'instruction'].every((field)·=>·keys.includes(field))·||
+        224 │ + ········keys.some((field)·=>·!['id',·'name',·'instruction',·'when'].includes(field))
+        225 │ + ······)
+        226 │ + ········mismatch();
+    218 227 │         const layer = item as Record<string, unknown>;
+    219 228 │         for (const field of keys) {
+    ······· │ 
+    337 346 │         !(value instanceof Uint8Array) ||
+    338 347 │         ![Uint8Array.prototype, Buffer.prototype].includes(Object.getPrototypeOf(value))
+    339     │ - ····)·mismatch();
+        348 │ + ····)
+        349 │ + ······mismatch();
+    340 350 │       let buffer: unknown;
+    341 351 │       let offset: number;
+    ······· │ 
+    348 358 │         mismatch();
+    349 359 │       }
+    350     │ - ····if·(!(buffer·instanceof·ArrayBuffer)·||·!Number.isSafeInteger(offset)·||·!Number.isSafeInteger(length))·mismatch();
+        360 │ + ····if·(!(buffer·instanceof·ArrayBuffer)·||·!Number.isSafeInteger(offset)·||·!Number.isSafeInteger(length))
+        361 │ + ······mismatch();
+    351 362 │       if (length > maximum || totalBytes + length > maxTotalBytes) tooLarge();
+    352 363 │       totalBytes += length;
+    ······· │ 
+    408 419 │     const projectedCustomize = snapshot.projectedFiles[customizePath];
+    409 420 │     const layerCustomize = snapshot.layerFiles[customizePath];
+    410     │ - ··if·(!projectedCustomize·||·!layerCustomize·||
+    411     │ - ······Buffer.compare(projectedCustomize,·layerCustomize)·!==·0)·mismatch();
+        421 │ + ··if·(!projectedCustomize·||·!layerCustomize·||·Buffer.compare(projectedCustomize,·layerCustomize)·!==·0)
+        422 │ + ····mismatch();
+    412 423 │   
+    413 424 │     let manifest: unknown;
+    ······· │ 
+    455 466 │     }
+    456 467 │     if (!Object.hasOwn(sources, 'workflow.md')) mismatch();
+    457     │ - ··checkedResolvedValues(inputs.resolved_values,·sourceResolvedCategories(sourceTexts,·inputs.resolved_values));
+        468 │ + ··checkedResolvedValues(
+        469 │ + ····inputs.resolved_values,
+        470 │ + ····sourceResolvedCategories(sourceTexts,·inputs.resolved_values),
+        471 │ + ··);
+    458 472 │     const sourceNames = Object.keys(sources);
+    459 473 │     const manifestSources = inputs.source_sha256;
+  
+
+test/render-artifacts.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+      8   8 │   } from '../src/assistant/render-artifacts.ts';
+      9   9 │   import { createWorkflowManifest } from '../src/assistant/workflow-manifest.ts';
+     10     │ - import·{·type·ProjectionPin,·projectionTreeHash,·type·SourcePin,·sourceTreeHash·}·from·'../src/workflows/pins.ts';
+         10 │ + import·{
+         11 │ + ··type·ProjectionPin,
+         12 │ + ··projectionTreeHash,
+         13 │ + ··type·SourcePin,
+         14 │ + ··sourceTreeHash,
+         15 │ + }·from·'../src/workflows/pins.ts';
+     11  16 │   
+     12  17 │   const utf8 = (value: string) => Buffer.from(value, 'utf8');
+    ······· │ 
+    136 141 │   function sourceAuthorsConfigName(f: Fixture): void {
+    137 142 │     const sourceHash = 'f3933413a3fc863dbc8d606ca67e9db278bd89cf65b00f350d1a80a3e8ad8e87';
+    138     │ - ··(f.expected.selectedProjectionSha256·as·Record<string,·string>)['.claude/skills/bmad-build/workflow.md']·=·sourceHash;
+        143 │ + ··(f.expected.selectedProjectionSha256·as·Record<string,·string>)['.claude/skills/bmad-build/workflow.md']·=
+        144 │ + ····sourceHash;
+    139 145 │     (f.snapshot.projectedFiles as Record<string, Uint8Array>)['.claude/skills/bmad-build/workflow.md'] = utf8(
+    140 146 │       'Start {{config.project_name}}\n',
+    141 147 │     );
+    142     │ - ··((f.manifest.inputs·as·Record<string,·unknown>).source_sha256·as·Record<string,·string>)['workflow.md']·=·sourceHash;
+        148 │ + ··((f.manifest.inputs·as·Record<string,·unknown>).source_sha256·as·Record<string,·string>)['workflow.md']·=
+        149 │ + ····sourceHash;
+    143 150 │   }
+    144 151 │   
+    145 152 │   function sourceAuthorsWorkflowText(f: Fixture, text: string, sourceHash: string): void {
+    146     │ - ··(f.expected.selectedProjectionSha256·as·Record<string,·string>)['.claude/skills/bmad-build/workflow.md']·=·sourceHash;
+    147     │ - ··(f.snapshot.projectedFiles·as·Record<string,·Uint8Array>)['.claude/skills/bmad-build/workflow.md']·=·utf8(text);
+    148     │ - ··((f.manifest.inputs·as·Record<string,·unknown>).source_sha256·as·Record<string,·string>)['workflow.md']·=·sourceHash;
+        153 │ + ··(f.expected.selectedProjectionSha256·as·Record<string,·string>)['.claude/skills/bmad-build/workflow.md']·=
+        154 │ + ····sourceHash;
+        155 │ + ··(f.snapshot.projectedFiles·as·Record<string,·Uint8Array>)['.claude/skills/bmad-build/workflow.md']·=
+        156 │ + ····utf8(text);
+        157 │ + ··((f.manifest.inputs·as·Record<string,·unknown>).source_sha256·as·Record<string,·string>)['workflow.md']·=
+        158 │ + ····sourceHash;
+    149 159 │   }
+    150 160 │   
+    ······· │ 
+    368 378 │     const f = fixture();
+    369 379 │     const changed = utf8('title = "Other"\n');
+    370     │ - ··(f.expected.layers·as·Record<string,·string·|·null>)['.claude/skills/bmad-build/customize.toml']·=·sha256(changed);
+    371     │ - ··(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['.claude/skills/bmad-build/customize.toml']·=·changed;
+    372     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        380 │ + ··(f.expected.layers·as·Record<string,·string·|·null>)['.claude/skills/bmad-build/customize.toml']·=
+        381 │ + ····sha256(changed);
+        382 │ + ··(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['.claude/skills/bmad-build/customize.toml']·=
+        383 │ + ····changed;
+        384 │ + ··assert.throws(
+        385 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        386 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        387 │ + ··);
+    373 388 │   });
+    374 389 │   
+    375 390 │   test('render artifact inspection rejects accessors before reading manifest or any byte map', () => {
+    376 391 │     const fields = [
+    377     │ - ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[f.snapshot·as·unknown·as·Record<string,·unknown>,·'manifestBytes'],
+    378     │ - ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[f.snapshot.projectedFiles·as·Record<string,·unknown>,·'_bmad/scripts/render_skill.py'],
+    379     │ - ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[f.snapshot.layerFiles·as·Record<string,·unknown>,·'_bmad/config.toml'],
+    380     │ - ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[f.snapshot.outputBytes·as·Record<string,·unknown>,·'workflow.md'],
+        392 │ + ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[
+        393 │ + ······f.snapshot·as·unknown·as·Record<string,·unknown>,
+        394 │ + ······'manifestBytes',
+        395 │ + ····],
+        396 │ + ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[
+        397 │ + ······f.snapshot.projectedFiles·as·Record<string,·unknown>,
+        398 │ + ······'_bmad/scripts/render_skill.py',
+        399 │ + ····],
+        400 │ + ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[
+        401 │ + ······f.snapshot.layerFiles·as·Record<string,·unknown>,
+        402 │ + ······'_bmad/config.toml',
+        403 │ + ····],
+        404 │ + ····(f:·Fixture):·[Record<string,·unknown>,·string]·=>·[
+        405 │ + ······f.snapshot.outputBytes·as·Record<string,·unknown>,
+        406 │ + ······'workflow.md',
+        407 │ + ····],
+    381 408 │     ];
+    382 409 │     for (const select of fields) {
+    ······· │ 
+    393 420 │         },
+    394 421 │       });
+    395     │ - ····assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        422 │ + ····assert.throws(
+        423 │ + ······()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        424 │ + ······/RENDER_ARTIFACT_MISMATCH/,
+        425 │ + ····);
+    396 426 │       assert.equal(reads, 0, `${key} getter ran during inspection`);
+    397 427 │     }
+    ······· │ 
+    412 442 │       },
+    413 443 │     });
+    414     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        444 │ + ··assert.throws(
+        445 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        446 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        447 │ + ··);
+    415 448 │     assert.equal(traps, 0);
+    416 449 │   });
+    ······· │ 
+    428 461 │     (f.manifest.inputs as Record<string, unknown>).resolved_values = [];
+    429 462 │     setGeneration(f, 'f4db476079e532da3c81');
+    430     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        463 │ + ··assert.throws(
+        464 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        465 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        466 │ + ··);
+    431 467 │   });
+    432 468 │   
+    ······· │ 
+    440 476 │       (f.manifest.inputs as Record<string, unknown>).resolved_values = { 'config.project_name': value };
+    441 477 │       setGeneration(f, identityHash);
+    442     │ - ····assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        478 │ + ····assert.throws(
+        479 │ + ······()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        480 │ + ······/RENDER_ARTIFACT_MISMATCH/,
+        481 │ + ····);
+    443 482 │     }
+    444 483 │   });
+    ······· │ 
+    448 487 │     (f.manifest.inputs as Record<string, unknown>).resolved_values = { 'config.project_name': 'Demo' };
+    449 488 │     setGeneration(f, 'db1dc2d02ef47d3c7bc2');
+    450     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        489 │ + ··assert.throws(
+        490 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        491 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        492 │ + ··);
+    451 493 │   });
+    452 494 │   
+    ······· │ 
+    485 527 │     );
+    486 528 │     (f.manifest.inputs as Record<string, unknown>).resolved_values = {
+    487     │ - ····'customization.workflow.review_layers':·[
+    488     │ - ······{·id:·'r1',·name:·'Review',·instruction:·'Check',·extra:·'x'·},
+    489     │ - ····],
+        529 │ + ····'customization.workflow.review_layers':·[{·id:·'r1',·name:·'Review',·instruction:·'Check',·extra:·'x'·}],
+    490 530 │     };
+    491 531 │     setGeneration(f, '591f730d1cff9f8da1f4');
+    492     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        532 │ + ··assert.throws(
+        533 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        534 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        535 │ + ··);
+    493 536 │   });
+    494 537 │   
+    ······· │ 
+    519 562 │     };
+    520 563 │     setGeneration(f, 'e5971577e9ef99275a3d');
+    521     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        564 │ + ··assert.throws(
+        565 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        566 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        567 │ + ··);
+    522 568 │   });
+    523 569 │   
+  
+
+Checked 2 files in 54ms. No fixes applied.
+Found 2 errors.
+Found 1 warning.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

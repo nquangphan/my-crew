@@ -1,0 +1,87 @@
+✖ isolation runtime missing authority and incomplete full-tree evidence deny (1.308ms)
+✖ isolation runtime test admission is exact admitted claim and never synthetic PASS (0.725625ms)
+✖ isolation runtime context, expiry, measured failures and missing surfaces deny certified (0.179959ms)
+✖ runtime boundary tool policy denies before effects and waits without logical authority (0.073625ms)
+✔ isolation runtime context hash uses accepted server fixed field order (0.118208ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 1
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68.223292
+
+✖ failing tests:
+
+test at v2/gateway/test/isolation-runtime.test.ts:6:1
+✖ isolation runtime missing authority and incomplete full-tree evidence deny (1.308ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /ISOLATION_NOT_BOUND/. Input:
+  
+  'Error: NOT_IMPLEMENTED'
+  
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-runtime.test.ts:7:36)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at RuntimeIsolation.assert (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/isolation.ts:5:54)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-runtime.test.ts:7:80)
+        at Test.runInAsyncScope (node:async_hooks:228:14)
+        at Test.run (node:internal/test_runner/test:1118:25)
+        at Test.start (node:internal/test_runner/test:1015:17)
+        at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17),
+    expected: /ISOLATION_NOT_BOUND/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/gateway/test/isolation-runtime.test.ts:11:1
+✖ isolation runtime test admission is exact admitted claim and never synthetic PASS (0.725625ms)
+  Error: NOT_IMPLEMENTED
+      at RuntimeIsolation.assert (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/isolation.ts:5:54)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-runtime.test.ts:14:19)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at v2/gateway/test/isolation-runtime.test.ts:18:1
+✖ isolation runtime context, expiry, measured failures and missing surfaces deny certified (0.179959ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CONTEXT_MISMATCH/. Input:
+  
+  'Error: NOT_IMPLEMENTED'
+  
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-runtime.test.ts:21:54)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at RuntimeIsolation.assert (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/isolation.ts:5:54)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-runtime.test.ts:21:85)
+        at Test.runInAsyncScope (node:async_hooks:228:14)
+        at Test.run (node:internal/test_runner/test:1118:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+        at Test.postRun (node:internal/test_runner/test:1247:19)
+        at Test.run (node:internal/test_runner/test:1175:12)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /CONTEXT_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/gateway/test/isolation-runtime.test.ts:30:1
+✖ runtime boundary tool policy denies before effects and waits without logical authority (0.073625ms)
+  Error: NOT_IMPLEMENTED
+      at ToolPolicy.authorize (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/tool-policy.ts:3:60)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-runtime.test.ts:32:33)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

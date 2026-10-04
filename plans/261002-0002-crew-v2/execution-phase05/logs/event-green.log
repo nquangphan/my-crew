@@ -1,0 +1,11 @@
+✔ attachment metadata event accepts exact owner draft and linked ticket scope (1.017708ms)
+✔ attachment metadata event rejects content paths compose identifiers and undeclared fields (0.299833ms)
+✔ attachment metadata event rejects invalid ids states extraction and partial or targeted scope (0.14675ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61.043917

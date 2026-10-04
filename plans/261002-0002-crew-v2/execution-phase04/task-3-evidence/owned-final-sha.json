@@ -1,0 +1,100 @@
+[
+  {
+    "path": "v2/gateway/src/runtime/contracts.ts",
+    "bytes": 3219,
+    "sha256": "5dee08063b7e8b6e137722169aa5cd12c2d09179d3262446e80ff4e0e59262ac",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/src/runtime/launch.ts",
+    "bytes": 7548,
+    "sha256": "565b4c3d34c5b8b75848fa9e0214466b72e7c632f91030a76cc3640a0f784f77",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/src/runtime/effect-ledger.ts",
+    "bytes": 8100,
+    "sha256": "5a6794c878f4af383c23dd2b7bbfa1a16a6bb9683e1df94c5fa117b829be65c4",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/src/runtime/isolation.ts",
+    "bytes": 6212,
+    "sha256": "9d8a21f062d2cc96b86777abf93d45a225c13eccec0bf06a9b9e975bbd299368",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/src/runtime/tool-policy.ts",
+    "bytes": 2080,
+    "sha256": "1afa829e22e4ea2d122278ef5afb942e90e78eb82fa9436b23eb9f177f20c7c2",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/src/execution/ticket-command-bridge.ts",
+    "bytes": 24777,
+    "sha256": "db960209d1966dc9da18f9cbd2e5f62bdd78502d9acbb8d522a6e83c2129bfd1",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/runtime-boundary.test.ts",
+    "bytes": 10885,
+    "sha256": "b56a0a851a3cdd910bbbf23ce5570249c0641b1c7f91953d87b5c6702d8aad6a",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/runtime-crash.test.ts",
+    "bytes": 5004,
+    "sha256": "a4428c3861a3279ea9c9b9565970c24cf179438247c5f11caf1405a33885b98e",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/effect-ledger.test.ts",
+    "bytes": 5941,
+    "sha256": "fd3e46ef4923bf5f1d8e5532e367d9a95de00b81478f632120772d38faf8e37b",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/isolation-runtime.test.ts",
+    "bytes": 4152,
+    "sha256": "459a1d632585fc59c425227c7007f2a91a69b3d5e98d6a1b19ca086d4196897e",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/support/runtime-fixture.ts",
+    "bytes": 1077,
+    "sha256": "71ea1ed5c05b56653c71af757ae40e0a2298ceb4a20303e301ec6e82bccf859a",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/support/runtime-pins.ts",
+    "bytes": 3929,
+    "sha256": "1b3880e93e98ae626dc9a72bbe3f58ccff5993445b452398d08844dc330c4c1a",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/support/runtime-crash-worker.ts",
+    "bytes": 4815,
+    "sha256": "ccd82633eed5cb7497929feeb75526f60829c12a10662d5685222a9278cb41b0",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/gateway/test/support/runtime-typecheck.json",
+    "bytes": 524,
+    "sha256": "82f12d55cfb657597d902aaf3d0eab5aa3191d2882c9e4000c331c07eaeafe7d",
+    "frozenMatches": true
+  },
+  {
+    "path": "v2/docs/flows/gateway-runtime.md",
+    "bytes": 7765,
+    "sha256": "3f6254500e31496a886fbeee092344d4c1fbd1869889ee0533f743cb4b29dee4",
+    "frozenMatches": null,
+    "note": "R3 documentation finalized after frozen source verification; no source/test changes"
+  },
+  {
+    "path": "v2/docs/flows/gateway-host.md",
+    "bytes": 27435,
+    "sha256": "af8cedb2bb39615c2b1f668c7c5e7cf6918076c667dcaa527811dd51a5edfe6e",
+    "frozenMatches": null,
+    "note": "R3 documentation finalized after frozen source verification; no source/test changes"
+  }
+]

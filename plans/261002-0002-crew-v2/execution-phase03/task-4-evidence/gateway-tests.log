@@ -1,0 +1,72 @@
+
+> @crew-v2/gateway@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> pnpm build && node --test test/*.test.ts
+
+
+> @crew-v2/gateway@ build /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> tsc -p tsconfig.build.json
+
+✔ oversized second frame cannot crash host or replace boot (196.307417ms)
+✔ absolute frame deadline closes a drip client despite continuing bytes (1561.330416ms)
+✔ SIGTERM stops with an unfinished frame and a new host binds (243.042333ms)
+✔ crash residue in recovery and empty init lock does not wedge reboot (471.925ms)
+✔ empty host lock from interrupted initialization is recoverable (202.29625ms)
+✔ live contender cannot take over host or change its socket (90.406208ms)
+✔ unknown symlink recovery residue is not deleted or followed (178.341958ms)
+✔ stop drains a stalled dispatch only until its bounded deadline (336.705166ms)
+✔ macOS guard retains one inode across release and old-fd contender ordering (92.761208ms)
+✔ host lifecycle: UI main exit and reopen preserve independent host boot (468.663167ms)
+✔ host lifecycle: preexisting token symlink cannot overwrite another file (78.984958ms)
+✔ host lifecycle: unauthenticated socket client cannot read status (172.274875ms)
+✔ host lifecycle: crash leaves recoverable lock and a new boot can bind the socket (578.782959ms)
+✔ host lifecycle: transient macOS user agent owns host after client exits (174.214583ms)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (243.362917ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (56.189459ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (408.934709ms)
+✔ journal command reservation survives restart and concurrent journal writer is rejected (530.868625ms)
+✔ journal READY child cannot run side effects until exact projection authorization and durable release (1190.214792ms)
+✔ journal crash windows retain reservation, require READY identity and never release before authorization (5517.904792ms)
+✔ journal PID birth mismatch and capacity/projection failure remain gated and unknown (901.847042ms)
+✔ journal descendant that escapes the dedicated process group leaves tree unknown (2136.300333ms)
+✔ journal concurrent launcher calls reserve one dormant child and never a second process (665.889875ms)
+✔ journal native binary tamper fails closed and cannot become exit proof (776.246833ms)
+✔ journal built entrypoint resolves the gated helper and owned native source without a global install (813.693583ms)
+✔ journal concurrent releases for the same fenced claim execute the workflow side effect once (992.817458ms)
+✔ resources reservations and unverified creation never grant deletion; unknown process retains (519.08575ms)
+✔ resources attested path swapped to symlink or hardlinked bytes is retained unchanged (765.68025ms)
+✔ resources proven stopped run deletes only its owned scratch and retries idempotently (1478.811417ms)
+✔ resources exact stop does not permit parent symlink swap, hardlink alias, dirty or shared cleanup (2334.280833ms)
+✔ resources cancellation retains attested scratch even with exact stopped proof (1473.926125ms)
+✔ resources cleanup recovers a crash after quarantine rename before durable state update (1944.018333ms)
+✔ resources callback cannot attest a symlink to the owner checkout (708.966458ms)
+✔ resources abort after durable quarantine retains owned bytes and retry removes the same inode (1341.278041ms)
+✔ resources runtime output changes directory link count after attest and still cleans up after exact stop (1742.111125ms)
+✔ resources actual partial native deletion retains quarantine and retries after its owned immutable flag clears (1487.1045ms)
+✔ telemetry each dispatch samples again and pressure change blocks second dispatch (2.098ms)
+✔ telemetry stale, disk, RAM, CPU, concurrency and ownership fail closed for all dispatch kinds (0.20075ms)
+✔ telemetry macOS sample obtains live pressure, page memory and disk without a cached result (13.88775ms)
+✔ workflow registry installs verified immutable source (182.907791ms)
+✔ workflow registry separates runtime roots and retains old immutable pairs through restart (656.521041ms)
+✔ workflow registry rejects source and projection tampering on every resolve (154.314083ms)
+✔ workflow registry rejects unknown runtime recipes and expected projection mismatch (96.300542ms)
+✔ workflow registry rejects malicious archives before activating and keeps old current (335.556292ms)
+✔ workflow registry detects truncated extraction and wrong npm integrity (49.21525ms)
+✔ workflow registry rejects unapproved download URL and redirect and bounds response (8.606791ms)
+✔ workflow registry canonical manifest ignores archive order and ownership times (166.137916ms)
+✔ workflow registry audit builder checks pinned payload and materializes official Claude layout (1.292667ms)
+✔ workflow registry API projection contains official fixture skill/script and audited policy (163.071875ms)
+✔ workflow registry derivation version/options/layout/policy independently change projection pin (548.07725ms)
+✔ workflow registry accepts internal symlink (100.045583ms)
+✔ workflow registry source update preserves retained source and old runtime pair (301.052583ms)
+✔ workflow registry expected projection checksum failure never publishes runtime tree (96.794458ms)
+✔ workflow registry recovers ProcessJournal pair after registry release (374.006291ms)
+✔ workflow registry pinned official npm and Git archives verify distinct provenance and Claude bytes (4133.961834ms)
+✔ workflow registry cancellation before publish preserves previous active source (141.485542ms)
+ℹ tests 56
+ℹ suites 0
+ℹ pass 56
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13910.995666

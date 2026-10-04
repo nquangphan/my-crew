@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "root": "/private/tmp/c6-RBzjwb",
+  "nonce": "85b200f8-8ee7-48e5-af51-534d42bf57ef",
+  "identity": {
+    "device": "16777229",
+    "inode": "63861585",
+    "ownerUid": 501,
+    "kind": "directory",
+    "linkCount": 2,
+    "bytes": 0
+  },
+  "messages": [],
+  "id": "e5d8a5b5-8f18-4c72-92f2-5492967fe80c",
+  "stage": "/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c",
+  "socketPath": "/private/tmp/c6-RBzjwb/discovery.sock",
+  "argv": [
+    "/usr/bin/env",
+    "CODEX_HOME=/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c/home/codex",
+    "/usr/bin/sandbox-exec",
+    "-f",
+    "/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c/policy.sb",
+    "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+    "app-server",
+    "--listen",
+    "unix:///private/tmp/c6-RBzjwb/discovery.sock"
+  ],
+  "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read*)(allow file-read-metadata)(allow file-read* (subpath \"/System\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c\"))(deny file-write*)(allow file-write* (subpath \"/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c\") (literal \"/private/tmp/c6-RBzjwb/discovery.sock\"))",
+  "executableSha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+  "receipt": {
+    "formatVersion": 1,
+    "operationId": "e5d8a5b5-8f18-4c72-92f2-5492967fe80c",
+    "device": "16777229",
+    "inode": "63861585",
+    "treeEmpty": true,
+    "forkObserved": false,
+    "exitCode": 134,
+    "timedOut": false
+  },
+  "discoveryError": "Error: SOCKET_NOT_READY",
+  "output": "",
+  "socketCleanup": "absent",
+  "cleanup": "deleted"
+}

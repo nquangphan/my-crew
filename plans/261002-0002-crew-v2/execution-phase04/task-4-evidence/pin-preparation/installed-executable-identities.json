@@ -1,0 +1,67 @@
+{
+  "observedAt": "2026-10-03T10:36:33.868611+00:00",
+  "kind": "exact-public-executable-static-read",
+  "cliInvoked": false,
+  "ownerConfigOrAuthRead": false,
+  "runtimeVersionCommand": "NOT_RUN",
+  "protocolGeneration": "NOT_RUN",
+  "runtimeCertification": "UNVERIFIED",
+  "entries": [
+    {
+      "lookupPath": "/Users/phannhatquang/.local/bin/claude",
+      "firstSymlinkTarget": "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+      "canonicalPath": "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+      "device": 16777229,
+      "inode": 54699312,
+      "uid": 501,
+      "mode": "0o755",
+      "linkCount": 1,
+      "bytes": 226563088,
+      "sha256": "50a14c2f50f56668380fdda490167f1d3630d5cc18fb8aed3073c2c7ea7314fe",
+      "mtimeNs": 1790618729062538574,
+      "ctimeNs": 1790645850015104315,
+      "noFollowFd": true,
+      "fdIdentityStable": true,
+      "pathRechecked": true,
+      "versionFromPathOnly": "2.1.284"
+    },
+    {
+      "lookupPath": "/Users/phannhatquang/.local/bin/codex",
+      "firstSymlinkTarget": "/Users/phannhatquang/.codex/packages/standalone/current/bin/codex",
+      "canonicalPath": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+      "device": 16777229,
+      "inode": 62402722,
+      "uid": 501,
+      "mode": "0o755",
+      "linkCount": 1,
+      "bytes": 240351424,
+      "sha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+      "mtimeNs": 1790807122269317900,
+      "ctimeNs": 1790864501218812659,
+      "noFollowFd": true,
+      "fdIdentityStable": true,
+      "pathRechecked": true,
+      "versionFromPathOnly": "0.159.3-aarch64-apple-darwin"
+    }
+  ],
+  "codexPublicMetadata": {
+    "path": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/codex-package.json",
+    "sha256": "8660ce5bb4e302c2739c7ddcc9974a45fa8d568d123b9066c9135d6dba0ac121",
+    "value": {
+      "layoutVersion": 1,
+      "version": "0.159.3",
+      "target": "aarch64-apple-darwin",
+      "variant": "codex",
+      "entrypoint": "bin/codex",
+      "resourcesDir": "codex-resources",
+      "pathDir": "codex-path"
+    }
+  },
+  "missingAtCheckedExactPublicPaths": [
+    "/Applications/Codex.app/Contents/Resources/codex",
+    "Codex release root/LICENSE or NOTICE",
+    "Claude versions root/LICENSE or NOTICE",
+    "current full generated JSON/TS protocol bundle",
+    "current Claude stream-json public declaration bundle"
+  ]
+}

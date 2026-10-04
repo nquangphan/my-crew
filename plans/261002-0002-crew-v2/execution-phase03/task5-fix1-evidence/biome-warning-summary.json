@@ -1,0 +1,155 @@
+{
+  "count": 33,
+  "byRule": {
+    "lint/style/noNonNullAssertion": 16,
+    "lint/suspicious/noExplicitAny": 17
+  },
+  "production": [
+    {
+      "location": "v2/gateway/src/execution/ticket-command-bridge.ts:239:21",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/src/execution/ticket-command-bridge.ts:437:35",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/src/execution/ticket-command-bridge.ts:461:16",
+      "rule": "lint/style/noNonNullAssertion"
+    }
+  ],
+  "diagnostics": [
+    {
+      "location": "v2/gateway/src/execution/ticket-command-bridge.ts:239:21",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/src/execution/ticket-command-bridge.ts:437:35",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/src/execution/ticket-command-bridge.ts:461:16",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/connection.test.ts:11:15",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:220:27",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:32:17",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:47:36",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:63:31",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:80:22",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:103:36",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:219:28",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:239:29",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:635:11",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:723:11",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge-db.test.ts:879:11",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge.test.ts:15:20",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge.test.ts:63:41",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge.test.ts:48:18",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge.test.ts:49:18",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge.test.ts:51:21",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/execution-bridge.test.ts:52:38",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:24:19",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:25:36",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:32:39",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:42:13",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:44:50",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:66:29",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:68:14",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:117:18",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:123:36",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:132:15",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:147:27",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "location": "v2/gateway/test/sync.test.ts:369:7",
+      "rule": "lint/style/noNonNullAssertion"
+    }
+  ]
+}

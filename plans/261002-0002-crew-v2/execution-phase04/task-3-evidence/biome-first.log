@@ -1,0 +1,176 @@
+v2/gateway/src/execution/ticket-command-bridge.ts:255:21 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    253 │     const record = await this.reserve(command);
+    254 │     await this.store.transaction(async () => {
+  > 255 │       const local = (await this.store.get<BridgeRecord>(this.key(command.id)))!;
+        │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    256 │       if (local.released) {
+    257 │         await this.current(local);
+  
+
+v2/gateway/src/execution/ticket-command-bridge.ts:461:35 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    459 │     }
+    460 │     const operationId =
+  > 461 │       observation === 'running' ? local.runningOp! : `${this.key(local.command.id)}:reconcile:stopped`;
+        │                                   ^^^^^^^^^^^^^^^^
+    462 │     await mutate(
+    463 │       this.options.http,
+  
+
+v2/gateway/src/execution/ticket-command-bridge.ts:485:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    483 │     const local = await this.local(commandId),
+    484 │       attempt = await this.current(local),
+  > 485 │       record = (await this.options.journal.byInstance(local.input.processInstanceId))!;
+        │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    486 │     if (!record || (await this.options.journal.observe(record)) !== 'stopped')
+    487 │       throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+  
+
+v2/gateway/src/runtime/isolation.ts:149:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    147 │     const a = observed.admission;
+    148 │     if (
+  > 149 │       !a ||
+        │       ^^^^^
+  > 150 │       a.state !== 'admitted' ||
+        │       ^^^^^^^^^^^^^^^^^^^^^^
+    151 │       a.id !== pin.admission.challengeId ||
+    152 │       a.nonceSha256 !== hash(pin.admission.nonce) ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    147 147 │       const a = observed.admission;
+    148 148 │       if (
+    149     │ - ······!a·||
+    150     │ - ······a.state·!==·'admitted'·||
+        149 │ + ······a?.state·!==·'admitted'·||
+    151 150 │         a.id !== pin.admission.challengeId ||
+    152 151 │         a.nonceSha256 !== hash(pin.admission.nonce) ||
+  
+
+v2/gateway/test/runtime-boundary.test.ts:45:32 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    43 │       };
+    44 │     if (request.phase === 'projection')
+  > 45 │       companion = { attemptId: attempt!.id, ...body } as AttemptProjectionPin;
+       │                                ^^^^^^^^
+    46 │     return { status: 200, body: request.phase === 'projection' ? companion : attempt };
+    47 │   });
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     43  43 │         };
+     44  44 │       if (request.phase === 'projection')
+     45     │ - ······companion·=·{·attemptId:·attempt!.id,·...body·}·as·AttemptProjectionPin;
+         45 │ + ······companion·=·{·attemptId:·attempt?.id,·...body·}·as·AttemptProjectionPin;
+     46  46 │       return { status: 200, body: request.phase === 'projection' ? companion : attempt };
+     47  47 │     });
+  
+
+v2/gateway/test/runtime-boundary.test.ts:68:54 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    66 │       assert(Object.isFrozen(context.command.payload));
+    67 │       assert(Object.isFrozen(context.record.projection.derivation));
+  > 68 │       assert.equal(context.record.processInstanceId, attempt!.processInstanceId);
+       │                                                      ^^^^^^^^
+    69 │       throw new Error('RUNTIME_DENIED');
+    70 │     },
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     66  66 │         assert(Object.isFrozen(context.command.payload));
+     67  67 │         assert(Object.isFrozen(context.record.projection.derivation));
+     68     │ - ······assert.equal(context.record.processInstanceId,·attempt!.processInstanceId);
+         68 │ + ······assert.equal(context.record.processInstanceId,·attempt?.processInstanceId);
+     69  69 │         throw new Error('RUNTIME_DENIED');
+     70  70 │       },
+  
+
+v2/gateway/test/runtime-boundary.test.ts:107:18 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    105 │   template.modelChoice.model.machineId = command.machineId;
+    106 │   const source = w.sources[1].source,
+  > 107 │     projection = w.projections.find(
+        │                  ^^^^^^^^^^^^^^^^^^^
+  > 108 │       (p) => p.sourceTreeSha256 === source.sourceTreeSha256 && p.runtime === 'codex',
+  > 109 │     )!.expected;
+        │     ^^
+    110 │   template.source = source;
+    111 │   template.projection = projection;
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    107 107 │       projection = w.projections.find(
+    108 108 │         (p) => p.sourceTreeSha256 === source.sourceTreeSha256 && p.runtime === 'codex',
+    109     │ - ····)!.expected;
+        109 │ + ····)?.expected;
+    110 110 │     template.source = source;
+    111 111 │     template.projection = projection;
+  
+
+v2/gateway/test/runtime-boundary.test.ts:149:32 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    147 │       };
+    148 │     if (request.phase === 'projection')
+  > 149 │       companion = { attemptId: attempt!.id, ...body } as AttemptProjectionPin;
+        │                                ^^^^^^^^
+    150 │     return { status: 200, body: request.phase === 'projection' ? companion : attempt };
+    151 │   });
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    147 147 │         };
+    148 148 │       if (request.phase === 'projection')
+    149     │ - ······companion·=·{·attemptId:·attempt!.id,·...body·}·as·AttemptProjectionPin;
+        149 │ + ······companion·=·{·attemptId:·attempt?.id,·...body·}·as·AttemptProjectionPin;
+    150 150 │       return { status: 200, body: request.phase === 'projection' ? companion : attempt };
+    151 151 │     });
+  
+
+v2/gateway/test/support/runtime-crash-worker.ts:19:23 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    17 │ template.modelChoice.model.machineId = command.machineId;
+    18 │ template.source = w.sources[1].source;
+  > 19 │ template.projection = w.projections.find(
+       │                       ^^^^^^^^^^^^^^^^^^^
+  > 20 │   (p) => p.sourceTreeSha256 === template.source.sourceTreeSha256 && p.runtime === 'codex',
+  > 21 │ )!.expected;
+       │ ^^
+    22 │ template.isolationPolicyHash = template.projection.derivation.policySha256;
+    23 │ template.modelChoice.probeContextSha256 = probeContextHash(isolationObservation(template).context);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     19  19 │   template.projection = w.projections.find(
+     20  20 │     (p) => p.sourceTreeSha256 === template.source.sourceTreeSha256 && p.runtime === 'codex',
+     21     │ - )!.expected;
+         21 │ + )?.expected;
+     22  22 │   template.isolationPolicyHash = template.projection.derivation.policySha256;
+     23  23 │   template.modelChoice.probeContextSha256 = probeContextHash(isolationObservation(template).context);
+  
+
+Skipped 16 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 14 files in 34ms. Fixed 13 files.
+Found 9 warnings.

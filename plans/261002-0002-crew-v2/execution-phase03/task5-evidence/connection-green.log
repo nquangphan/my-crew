@@ -1,0 +1,11 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mikvnU","device":"16777229","inode":"63489286","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mikvnU","device":"16777229","inode":"63489286","uid":501,"deleted":true}
+✔ sync boot and heartbeat preserve immutable operations through lost reply/reopen (196.924375ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 278.576625

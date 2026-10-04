@@ -1,0 +1,4 @@
+test/isolation-runtime.test.ts(15,3): error TS18047: 'observation.admission' is possibly 'null'.
+test/isolation-runtime.test.ts(16,3): error TS18047: 'observation.admission' is possibly 'null'.
+test/isolation-runtime.test.ts(25,3): error TS18047: 'observation.admission' is possibly 'null'.
+test/isolation-runtime.test.ts(26,3): error TS18047: 'observation.admission' is possibly 'null'.

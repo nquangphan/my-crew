@@ -1,0 +1,10 @@
+
+> @crew-v2/gateway@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> tsc --noEmit
+
+test/execution-bridge-db.test.ts(52,34): error TS2345: Argument of type '{ authorizeDispatch: AuthorizeDispatch; projectionPolicy: GatewayProjectionPolicy; db: Db; publicOrigin: string; secureCookies: false; sessionEncryptionKey: Buffer<...>; verifyFinalResult: (tx: Tx, input: { ...; }) => Promise<...>; }' is not assignable to parameter of type 'AppOptions'.
+  Property 'now' is missing in type '{ authorizeDispatch: AuthorizeDispatch; projectionPolicy: GatewayProjectionPolicy; db: Db; publicOrigin: string; secureCookies: false; sessionEncryptionKey: Buffer<...>; verifyFinalResult: (tx: Tx, input: { ...; }) => Promise<...>; }' but required in type 'Omit<ServerOptions, "authorizeDispatch" | "verifyFinalResult">'.
+../server/node_modules/.pnpm/thread-stream@4.2.0/node_modules/thread-stream/index.d.ts(96,73): error TS2694: Namespace '"worker_threads"' has no exported member 'TransferListItem'.
+../server/src/docs/manifest.ts(2,23): error TS7016: Could not find a declaration file for module 'picomatch'. '/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/picomatch@4.0.7/node_modules/picomatch/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/picomatch` if it exists or add a new declaration (.d.ts) file containing `declare module 'picomatch';`
+ ELIFECYCLE  Command failed with exit code 1.

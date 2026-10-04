@@ -1,0 +1,11 @@
+{
+  "command": [
+    "pnpm",
+    "--dir",
+    "v2/server",
+    "test",
+    "--test-file",
+    "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/models.test.ts"
+  ],
+  "exit": 1
+}

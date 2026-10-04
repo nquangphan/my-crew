@@ -1,0 +1,14 @@
+{
+  "targetPlatform": "linux/amd64",
+  "libc": "glibc",
+  "baseIndexDigest": "sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8",
+  "basePlatformDigest": "sha256:4bd6219054c8bebcd26a66bfd8ca0bd6e1024b4b97474c59bb7ee3bbcbef4fe8",
+  "nativePackage": "@napi-rs/canvas-linux-x64-gnu@1.0.3",
+  "nativeIntegrity": "sha512-jtfzAHFp+FRaR7zGT4jyCe6wUgAG/dVb5A4Apd8FY9jKarntDfUAlJXscugiH7ZF5kKnu7/lHFk9LaDPcrGEVQ==",
+  "lockSha256": "2b828b05f94774ed27baa1d2883f7ded6d93fcce0824f1d519ca6b72bf5ede77",
+  "sourceTreeSha256": "bc04c6013acce13533f7e6c179aa9eeae53b643f23358c437777a691f31b5b38",
+  "imageDigest": "sha256:8df553bd040016ddf36a547d32d0e7d4986bfc54f60e0355a21e9c28462316a0",
+  "stage": "diagnostic",
+  "boundaryResult": "unverified",
+  "corpusResult": "unverified"
+}

@@ -1,0 +1,22 @@
+{
+  "runs": [
+    {
+      "sequence": 1,
+      "observedStdout": {
+        "roots": 23,
+        "deleted": 15,
+        "retained": 4
+      },
+      "note": "15 exact roots deleted only after script verified all recorded native receipts; first full receipt table was overwritten by second reconciliation. Native command evidence remains in original logs."
+    },
+    {
+      "sequence": 2,
+      "observedStdout": {
+        "roots": 23,
+        "deleted": 0,
+        "retained": 4
+      },
+      "note": "Current inventory reports15 absent,4 unknown,4 missing historical root identity; no additional deletion."
+    }
+  ]
+}

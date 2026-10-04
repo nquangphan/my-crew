@@ -1,0 +1,12 @@
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-h3T5RB","device":"16777229","inode":"63483755","uid":501,"deleted":true}
+✔ terminal pin retirement defaults deny and keeps historical references without actual STOP (1341.661791ms)
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4IXDN7","device":"16777229","inode":"63483912","uid":501,"deleted":true}
+✔ terminal pin retirement fsyncs exact receipt, filters refs and denies resurrection (1942.583541ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3368.473875

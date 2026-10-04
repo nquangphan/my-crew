@@ -1,0 +1,11 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-8n6OzN","device":"16777229","inode":"63580747","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-8n6OzN","device":"16777229","inode":"63580747","uid":501,"deleted":true}
+✔ execution bridge reconnect resets UUID page anchor and sees later lower UUID command (566.551416ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 651.991584

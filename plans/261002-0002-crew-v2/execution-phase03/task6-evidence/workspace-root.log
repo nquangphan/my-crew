@@ -1,0 +1,37 @@
+Task6 owned fixture creation {"nonce":"8de8ab66-50f7-4ba1-871e-14b69632563b","root":"/private/tmp/crew6-w-V2WbMB","device":16777229,"inode":63897298,"ownerUid":501}
+Task6 fixture Git {"operationId":"516cbe78-1b04-4d16-a0aa-6deebdbe08aa","argv":["/usr/bin/env","HOME=/private/tmp/crew6-w-V2WbMB/fixture-home","CLAUDE_CONFIG_DIR=/private/tmp/crew6-w-V2WbMB/fixture-home/claude","CODEX_HOME=/private/tmp/crew6-w-V2WbMB/fixture-home/codex","GIT_CONFIG_NOSYSTEM=1","GIT_CONFIG_GLOBAL=/dev/null","GIT_TEMPLATE_DIR=/private/tmp/crew6-w-V2WbMB/fixture-home/template","/usr/bin/sandbox-exec","-f","/private/tmp/crew6-w-V2WbMB/isolation/operations/stages/516cbe78-1b04-4d16-a0aa-6deebdbe08aa/sandbox.sb","/usr/bin/git","-c","core.hooksPath=/private/tmp/crew6-w-V2WbMB/fixture-home/hooks","-c","core.fsmonitor=false","-c","gc.auto=0","-c","maintenance.auto=false","init","/private/tmp/crew6-w-V2WbMB/owner"],"executable":"/usr/bin/git","executableSha256":"179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818","policySha256":"0a73d1d9012bbc0ead6ef39278e1691fe3120d84ec94632fda3216ac65632645","output":"git: error: couldn't create cache file '/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/xcrun_db-9xiwOHHW' (errno=Operation not permitted)\ngit: error: couldn't spawn '/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild' (errno=No such file or directory)\ngit: error: unable to locate xcodebuild, please make sure the path to the Xcode folder is set correctly!\ngit: error: You can set the path to the Xcode folder using /usr/bin/xcode-select -switch\n","receipt":{"formatVersion":1,"operationId":"516cbe78-1b04-4d16-a0aa-6deebdbe08aa","device":"16777229","inode":"63898611","treeEmpty":true,"forkObserved":false,"exitCode":71,"timedOut":false},"error":null,"numericPidStart":"unavailable-in-reviewed-receipt"}
+Task6 fixture commands []
+Task6 fixture retained root {"nonce":"8de8ab66-50f7-4ba1-871e-14b69632563b","root":"/private/tmp/crew6-w-V2WbMB","device":16777229,"inode":63897298,"ownerUid":501}
+✖ actual exact clone preserves product docs, quarantines discovery and revalidates selected pins (6095.66925ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6179.873625
+
+✖ failing tests:
+
+test at v2/gateway/test/isolation-workspace.test.ts:10:1
+✖ actual exact clone preserves product docs, quarantines discovery and revalidates selected pins (6095.66925ms)
+  AssertionError [ERR_ASSERTION]: git: error: couldn't create cache file '/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/xcrun_db-9xiwOHHW' (errno=Operation not permitted)
+  git: error: couldn't spawn '/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild' (errno=No such file or directory)
+  git: error: unable to locate xcodebuild, please make sure the path to the Xcode folder is set correctly!
+  git: error: You can set the path to the Xcode folder using /usr/bin/xcode-select -switch
+  
+  
+  71 !== 0
+  
+      at git (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-workspace.test.ts:31:14)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-workspace.test.ts:33:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 71,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

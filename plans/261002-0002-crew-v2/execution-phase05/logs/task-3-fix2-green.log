@@ -1,0 +1,32 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-green-c92e5the/v2/server", "exec", "node", "--test", "--test-isolation=none", "--test-concurrency=1", "--test-name-pattern=large approved subset|grouped derivative coverage|indexed snapshot candidates|attachment subset selection", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-green-c92e5the/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-24b49009-096c-42ea-b3f6-c047624d58fe", "--label", "crew.phase05.task3=358215d7-911c-4112-8f88-8094e74afad5", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b", "name": "crew-v2-test-24b49009-096c-42ea-b3f6-c047624d58fe", "mapping": "127.0.0.1:64180"}
+attachment DB container 439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YR5MXF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YR5MXF nonceSha256=bc1503c3e5c8386ea0fc0a68149fc69ddbb9223fb6b19ea39b3fcc5d438736a5
+attachment DB scratch identity dev=16777229 ino=64381843 uid=501 pid=41394
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YR5MXF
+✔ attachment subset selection binds exact original identity when unit IDs repeat across files (1163.257959ms)
+attachment DB container 439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sLU4vF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sLU4vF nonceSha256=950844099007b6377c6914953937e6d33a3a69c141176921603ac70f57bfad3b
+attachment DB scratch identity dev=16777229 ino=64381907 uid=501 pid=41394
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sLU4vF
+✔ grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks (771.258417ms)
+ℹ {"groupedUnits":2048,"queries":1,"rows":1,"validationReads":1,"unitElementReads":2048,"pid":41394,"argv":["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-green-c92e5the/v2/server/test/attachments-snapshots.test.ts"],"nodeOptions":"--max-old-space-size=384"}
+attachment DB container 439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6VbNsx
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6VbNsx nonceSha256=28a567e51913e6bdfb863211becfe992189fbbca7f92e21c5f90052413c946c3
+attachment DB scratch identity dev=16777229 ino=64381961 uid=501 pid=41394
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6VbNsx
+✔ indexed snapshot candidates reject persisted derivative identity and coverage tampering (888.349667ms)
+attachment DB container 439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-TZSPv6
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-TZSPv6 nonceSha256=d2a1b38734bba2f4de30dcbd79353a0fa9e0a677b2fa5272260178f7503dc610
+attachment DB scratch identity dev=16777229 ino=64382024 uid=501 pid=41394
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-TZSPv6
+✔ large approved subset uses bounded native membership and current unit lookup work (870.541875ms)
+ℹ {"totalUnits":2048,"selectedUnits":1024,"extractionQueries":2,"unitElementReads":14336,"projectionKindReads":24576,"membershipCalls":0,"membershipElementReads":0,"setMembershipCalls":2048,"classificationElementReads":1024}
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3854.147458

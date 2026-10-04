@@ -1,0 +1,16 @@
+✔ attachment text preserves UTF8 source byte spans and literal scripts (1.427667ms)
+✔ attachment text UTF16 endian BOM and invalid UTF8 (0.854667ms)
+✔ attachment text cap preserves missing original tail (0.256625ms)
+✔ attachment UTF16 capped tail uses real byte and line boundaries (0.500916ms)
+✔ attachment metadata overflow preserves prefix and declares missing tail (18.219916ms)
+✔ attachment CSV Unicode field byte cap uses codepoints and large row sets group coverage (151.774042ms)
+✔ attachment missing coverage append is bounded before allocation grows (0.474458ms)
+✔ attachment metadata budget retains a verifiable available prefix before progressive output (340.483ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 596.868875

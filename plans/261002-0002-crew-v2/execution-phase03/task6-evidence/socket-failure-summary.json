@@ -1,0 +1,118 @@
+[
+  {
+    "evidenceFile": "socket-result.json",
+    "root": "/private/tmp/c6-RBzjwb",
+    "argv": [
+      "/usr/bin/env",
+      "CODEX_HOME=/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c/home/codex",
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c/policy.sb",
+      "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+      "app-server",
+      "--listen",
+      "unix:///private/tmp/c6-RBzjwb/discovery.sock"
+    ],
+    "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read*)(allow file-read-metadata)(allow file-read* (subpath \"/System\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c\"))(deny file-write*)(allow file-write* (subpath \"/private/tmp/c6-RBzjwb/ops/stages/e5d8a5b5-8f18-4c72-92f2-5492967fe80c\") (literal \"/private/tmp/c6-RBzjwb/discovery.sock\"))",
+    "receipt": {
+      "formatVersion": 1,
+      "operationId": "e5d8a5b5-8f18-4c72-92f2-5492967fe80c",
+      "device": "16777229",
+      "inode": "63861585",
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 134,
+      "timedOut": false
+    },
+    "output": "",
+    "error": null,
+    "cause": "EPERM observed; no syscall-specific denial trace established; historical socket grants are absent from final production policy"
+  },
+  {
+    "evidenceFile": "socket-result2.json",
+    "root": "/private/tmp/c6-1gtwHE",
+    "argv": [
+      "/usr/bin/env",
+      "CODEX_HOME=/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c/home/codex",
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c/policy.sb",
+      "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+      "app-server",
+      "--listen",
+      "unix:///private/tmp/c6-1gtwHE/discovery.sock"
+    ],
+    "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read*)(allow file-read-metadata)(allow file-read* (subpath \"/System\") (subpath \"/usr\") (subpath \"/Library/Apple\") (subpath \"/bin\") (subpath \"/sbin\") (subpath \"/private/etc\") (subpath \"/dev\") (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c\"))(deny file-write*)(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c\") (literal \"/private/tmp/c6-1gtwHE/discovery.sock\"))",
+    "receipt": {
+      "formatVersion": 1,
+      "operationId": "226c133a-1c69-408a-a79d-d58bf5fa441c",
+      "device": "16777229",
+      "inode": "63864052",
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 134,
+      "timedOut": false
+    },
+    "output": "",
+    "error": null,
+    "cause": "EPERM observed; no syscall-specific denial trace established; historical socket grants are absent from final production policy"
+  },
+  {
+    "evidenceFile": "socket-result3.json",
+    "root": "/private/tmp/c6-SRrobO",
+    "argv": [
+      "/usr/bin/env",
+      "CODEX_HOME=/private/tmp/c6-SRrobO/ops/stages/5a70734e-5958-4fd1-a9b3-88deccfad368/home/codex",
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/tmp/c6-SRrobO/ops/stages/5a70734e-5958-4fd1-a9b3-88deccfad368/policy.sb",
+      "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+      "app-server",
+      "--listen",
+      "unix:///private/tmp/c6-SRrobO/discovery.sock"
+    ],
+    "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read* (subpath \"/Users\") (subpath \"/private/var/folders\") (subpath \"/private/tmp\"))(allow file-read-metadata)(allow file-read* (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-SRrobO/ops/stages/5a70734e-5958-4fd1-a9b3-88deccfad368\"))(deny file-write*)(allow file-write* (subpath \"/private/tmp/c6-SRrobO/ops/stages/5a70734e-5958-4fd1-a9b3-88deccfad368\") (literal \"/private/tmp/c6-SRrobO/discovery.sock\"))",
+    "receipt": {
+      "formatVersion": 1,
+      "operationId": "5a70734e-5958-4fd1-a9b3-88deccfad368",
+      "device": "16777229",
+      "inode": "63864243",
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 1,
+      "timedOut": false
+    },
+    "output": "Error: Operation not permitted (os error 1)\n",
+    "error": null,
+    "cause": "EPERM observed; no syscall-specific denial trace established; historical socket grants are absent from final production policy"
+  },
+  {
+    "evidenceFile": "socket-result4.json",
+    "root": "/private/tmp/c6-yndWzG",
+    "argv": [
+      "/usr/bin/env",
+      "CODEX_HOME=/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f/home/codex",
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f/policy.sb",
+      "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+      "app-server",
+      "--listen",
+      "unix:///private/tmp/c6-yndWzG/discovery.sock"
+    ],
+    "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read*)(allow file-read-metadata)(allow file-read* (literal \"/\"))(allow file-read* (subpath \"/System\") (subpath \"/usr\") (subpath \"/Library/Apple\") (subpath \"/bin\") (subpath \"/sbin\") (subpath \"/private/etc\") (subpath \"/dev\") (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f\"))(deny file-write*)(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f\") (literal \"/private/tmp/c6-yndWzG/discovery.sock\"))",
+    "receipt": {
+      "formatVersion": 1,
+      "operationId": "49dd4510-3cb9-4094-8496-65f43ac7618f",
+      "device": "16777229",
+      "inode": "63898854",
+      "treeEmpty": true,
+      "forkObserved": false,
+      "exitCode": 1,
+      "timedOut": false
+    },
+    "output": "Error: Operation not permitted (os error 1)\n",
+    "error": null,
+    "cause": "EPERM observed; no syscall-specific denial trace established; historical socket grants are absent from final production policy"
+  }
+]

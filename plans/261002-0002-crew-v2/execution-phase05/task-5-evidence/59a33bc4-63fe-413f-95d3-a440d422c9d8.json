@@ -1,0 +1,319 @@
+{
+  "runid": "59a33bc4-63fe-413f-95d3-a440d422c9d8",
+  "kind": "unit",
+  "argv": [
+    "/usr/local/bin/docker",
+    "create",
+    "--pull=never",
+    "--name",
+    "crew-v2-parser-test-59a33bc4-63fe-413f-95d3-a440d422c9d8",
+    "--label",
+    "crew.v2.fixture=b953796e-f601-4a6a-9311-38bd9f79c43d",
+    "--label",
+    "crew.v2.challenge=59a33bc4-63fe-413f-95d3-a440d422c9d8",
+    "--network=none",
+    "--read-only",
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges",
+    "--user=65532:65532",
+    "--memory=512m",
+    "--memory-swap=512m",
+    "--cpus=1",
+    "--pids-limit=32",
+    "--log-driver=none",
+    "--tmpfs",
+    "/tmp:rw,noexec,nosuid,size=16777216",
+    "--entrypoint",
+    "node",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/package.json,dst=/fixture/v2/package.json,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/src,dst=/fixture/v2/server/src,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/test,dst=/fixture/v2/server/test,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/src,dst=/fixture/v2/src,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/tsconfig.json,dst=/fixture/v2/server/tsconfig.json,readonly",
+    "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "--test-name-pattern=attachment",
+    "test/attachments-formats.unit.test.ts",
+    "test/attachments-text-csv.unit.test.ts",
+    "test/attachments-pdf-image.unit.test.ts",
+    "test/attachments-ooxml.unit.test.ts"
+  ],
+  "parentPid": 15548,
+  "manifest": {
+    "v2/server/src/attachments/extract/image.ts": {
+      "sha256": "b3daa8cc95b203231c10b78d49371a6d83edaccdae35138b2a69526a0e0ab180",
+      "bytes": 5573
+    },
+    "v2/server/src/attachments/extract/verify.ts": {
+      "sha256": "b1eae77fe7c8588ba812ab649fde02002e2e2e9cc53ec3d6be2cfd3dab2673ed",
+      "bytes": 2453
+    },
+    "v2/server/src/attachments/extract/xlsx.ts": {
+      "sha256": "0cdf88241adcf3b4563bf4fcdf52b7b1f0672491a94903bbec348b7e5b2bd9a3",
+      "bytes": 9420
+    },
+    "v2/server/src/attachments/extract/text.ts": {
+      "sha256": "d8e5f0e908eeac83c89b65dded5733b078e7800f402e718e00f4ea90d1780929",
+      "bytes": 2770
+    },
+    "v2/server/src/attachments/extract/formats.ts": {
+      "sha256": "d88df7565a9eb4e1215575fbee7dfe0ff22cb93c7ff3e97c0a832d499b4e4b27",
+      "bytes": 4357
+    },
+    "v2/server/src/attachments/extract/csv.ts": {
+      "sha256": "e1365431277902ad571d719b7f9123c96988a6069ad1b9238c1bafdfefec96c4",
+      "bytes": 2782
+    },
+    "v2/server/src/attachments/extract/yauzl.d.ts": {
+      "sha256": "c88278585ba1b66e606aa3e56c1dfd54283c26874f5a134e3fe775a59e033738",
+      "bytes": 843
+    },
+    "v2/server/src/attachments/extract/zip.ts": {
+      "sha256": "be9e1bf5269be8e7ded32c162215702cf55fcce343ef3a48323b6ac64c7324f0",
+      "bytes": 7446
+    },
+    "v2/server/src/attachments/extract/pdf.ts": {
+      "sha256": "bd9e75d92aad921352fa6438b5b3a2109b79d2f6a11184ed80575f74b2682ab1",
+      "bytes": 6502
+    },
+    "v2/server/src/attachments/extract/xml.ts": {
+      "sha256": "903f54914903092bddc4862c0e95c9612c3c5c468b0585b895e73db91086da99",
+      "bytes": 3417
+    },
+    "v2/server/src/attachments/extract/index.ts": {
+      "sha256": "b7d4afd53eb90ee49bc8a6ea969449cc039478f6bd0ac6bf988081e9f871da92",
+      "bytes": 6603
+    },
+    "v2/server/src/attachments/extract/docx.ts": {
+      "sha256": "6942be5a675efb5ad407b54d5136393f19cef9229f159ef6db0adc9f3feb2564",
+      "bytes": 8767
+    },
+    "v2/server/test/attachments-events.unit.test.ts": {
+      "sha256": "ae0b69ad82805893b5d6425e0e2ac3324ced6107891ed1735889a156547fbed7",
+      "bytes": 2429
+    },
+    "v2/server/test/attachments-ooxml.unit.test.ts": {
+      "sha256": "96faf5b33e47368f0b829c6cc267eb563484d2c951de8412b16f1bb8c958b9df",
+      "bytes": 9275
+    },
+    "v2/server/test/attachments-pdf-image.unit.test.ts": {
+      "sha256": "b4633c79f819c4ef3fb7c7385b8f70611a0a20b523ae9ec260a6ed447e0681a7",
+      "bytes": 3709
+    },
+    "v2/server/test/attachments-text-csv.unit.test.ts": {
+      "sha256": "12973b55683f4c99bde2ff6fc75c3e2be0eee24084e3a67b4b70c8c628ad26ef",
+      "bytes": 9202
+    },
+    "v2/server/test/attachments-formats.unit.test.ts": {
+      "sha256": "e3f75726a250db4ffa82f5e6f5b3763b493db79eb4f9b4da1489df0e8f901bb6",
+      "bytes": 2175
+    },
+    "v2/server/test/fixtures/attachments/orientation-6.jpg": {
+      "sha256": "34fbeb44f2ccaddb296d78d415af6444427f5a6206efb3941f15af5b79d76249",
+      "bytes": 669
+    },
+    "v2/server/test/fixtures/attachments/javascript.pdf": {
+      "sha256": "92a74737af3c07e239fa1818339834c394cb85402782e29ff241641a8f934571",
+      "bytes": 1091
+    },
+    "v2/server/test/fixtures/attachments/encrypted.pdf": {
+      "sha256": "e39ff9ad175663b2a603104c88cd80ab2f24f51a18ddc129a1a6bfc2c8bd66b8",
+      "bytes": 1929
+    },
+    "v2/server/test/fixtures/attachments/mixed.pdf": {
+      "sha256": "e967451dd350be34adcd78a5a44e3d9112b28b051b3e3b32a79fe5848e277fa3",
+      "bytes": 2029
+    },
+    "v2/server/test/fixtures/attachments/embedded-executable.pdf": {
+      "sha256": "52d23086fa9f1b7a4be2a46e202ef7e030ff7e86ed0f2f94f0c606ba50476239",
+      "bytes": 1216
+    },
+    "v2/server/test/fixtures/attachments/make-fixtures.ts": {
+      "sha256": "fda0ca32a7c0788512cfb9919856b2a0cdfed6f6ea8fee6bee55dcbd174805c9",
+      "bytes": 7689
+    },
+    "v2/server/test/fixtures/attachments/scan.pdf": {
+      "sha256": "e0dd29c35085b59e7305bcc8dad57fc022671d74871cd1710b738322235c8ad9",
+      "bytes": 1645
+    },
+    "v2/server/test/fixtures/attachments/text.pdf": {
+      "sha256": "42e7fee83fca52e8901f2b48c84cc3ff94d1f22941ca644a8fc9da738343befe",
+      "bytes": 1335
+    },
+    "v2/server/src/attachments/contracts.ts": {
+      "sha256": "04c81e230c2cf3ff34eeff6751aaeb4dc508003a66e9ed5b48917b23ded5b305",
+      "bytes": 12065
+    },
+    "v2/server/src/attachments/worker-protocol.ts": {
+      "sha256": "3298d77e53c0dc58c497c2a1dcab89ece090b83a6561d7a98647d145f8c23b00",
+      "bytes": 19089
+    },
+    "v2/server/src/attachments/worker-runner.ts": {
+      "sha256": "ff5ae79dc99f27ca13aa24974c725b6e657f1c7733a7a57c85d00b61f28b8ded",
+      "bytes": 21355
+    },
+    "v2/server/src/attachments/worker-entry.ts": {
+      "sha256": "c19399d7d9de83a0dc467315672251bc3fb3ccb68511d6483a79073abdc74acf",
+      "bytes": 2119
+    }
+  },
+  "nonce": "b953796e-f601-4a6a-9311-38bd9f79c43d",
+  "createExit": 0,
+  "containerId": "a5d398936793eda8cb075f75a5e99d84bb4fc6fdfe93f87914f82c4d54db85e8",
+  "attachPid": 15556,
+  "attachExit": 0,
+  "state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-02T12:26:52.359372587Z",
+    "FinishedAt": "2026-10-02T12:27:00.135913174Z"
+  },
+  "hostConfig": {
+    "Binds": null,
+    "ContainerIDFile": "",
+    "LogConfig": {
+      "Type": "none",
+      "Config": {}
+    },
+    "NetworkMode": "none",
+    "PortBindings": {},
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "AutoRemove": false,
+    "VolumeDriver": "",
+    "VolumesFrom": null,
+    "ConsoleSize": [
+      0,
+      0
+    ],
+    "CapAdd": null,
+    "CapDrop": [
+      "ALL"
+    ],
+    "CgroupnsMode": "private",
+    "Dns": null,
+    "DnsOptions": [],
+    "DnsSearch": [],
+    "ExtraHosts": null,
+    "GroupAdd": null,
+    "IpcMode": "private",
+    "Cgroup": "",
+    "Links": null,
+    "OomScoreAdj": 0,
+    "PidMode": "",
+    "Privileged": false,
+    "PublishAllPorts": false,
+    "ReadonlyRootfs": true,
+    "SecurityOpt": [
+      "no-new-privileges"
+    ],
+    "Tmpfs": {
+      "/tmp": "rw,noexec,nosuid,size=16777216"
+    },
+    "UTSMode": "",
+    "UsernsMode": "",
+    "ShmSize": 67108864,
+    "Runtime": "runc",
+    "Isolation": "",
+    "CpuShares": 0,
+    "Memory": 536870912,
+    "NanoCpus": 1000000000,
+    "CgroupParent": "",
+    "BlkioWeight": 0,
+    "BlkioWeightDevice": [],
+    "BlkioDeviceReadBps": [],
+    "BlkioDeviceWriteBps": [],
+    "BlkioDeviceReadIOps": [],
+    "BlkioDeviceWriteIOps": [],
+    "CpuPeriod": 0,
+    "CpuQuota": 0,
+    "CpuRealtimePeriod": 0,
+    "CpuRealtimeRuntime": 0,
+    "CpusetCpus": "",
+    "CpusetMems": "",
+    "Devices": [],
+    "DeviceCgroupRules": null,
+    "DeviceRequests": null,
+    "MemoryReservation": 0,
+    "MemorySwap": 536870912,
+    "MemorySwappiness": null,
+    "OomKillDisable": null,
+    "PidsLimit": 32,
+    "Ulimits": null,
+    "CpuCount": 0,
+    "CpuPercent": 0,
+    "IOMaximumIOps": 0,
+    "IOMaximumBandwidth": 0,
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/package.json",
+        "Target": "/fixture/v2/package.json",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/src",
+        "Target": "/fixture/v2/server/src",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/test",
+        "Target": "/fixture/v2/server/test",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/src",
+        "Target": "/fixture/v2/src",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/tsconfig.json",
+        "Target": "/fixture/v2/server/tsconfig.json",
+        "ReadOnly": true
+      }
+    ],
+    "MaskedPaths": [
+      "/proc/acpi",
+      "/proc/asound",
+      "/proc/interrupts",
+      "/proc/kcore",
+      "/proc/keys",
+      "/proc/latency_stats",
+      "/proc/sched_debug",
+      "/proc/scsi",
+      "/proc/timer_list",
+      "/proc/timer_stats",
+      "/sys/devices/virtual/powercap",
+      "/sys/firmware"
+    ],
+    "ReadonlyPaths": [
+      "/proc/bus",
+      "/proc/fs",
+      "/proc/irq",
+      "/proc/sys",
+      "/proc/sysrq-trigger"
+    ]
+  },
+  "sourceStable": true,
+  "removeExit": 0
+}

@@ -1,0 +1,34 @@
+{
+  "time": "2026-10-02T09:21:58.151326+00:00",
+  "status": "SOURCE_FROZEN_FOR_SCOPED_INDEPENDENT_REVIEW",
+  "base": "f58f27dc96b964d034697a67c5677fb1d3bbacb2",
+  "reviewRound": 1,
+  "sourceHashVerified": true,
+  "artifacts": [
+    {
+      "path": "task-1-fix1-report.md",
+      "sha256": "f9b162e0d6e4d05ee74f245922ed4832fd9070f9812e41fedc9025ea8f8d7182",
+      "bytes": 8713
+    },
+    {
+      "path": "task-1-fix1-source-inventory.json",
+      "sha256": "03a13266d218a0c30aaf2b28ad9db2fdebfb3133475f7a41820ddba878f5f31c",
+      "bytes": 5759
+    },
+    {
+      "path": "task-1-fix1-evidence.json",
+      "sha256": "3d4649a7816fd070814d49fd26cddf200b5768937ac4f6fcb2b41dabc8486225",
+      "bytes": 8126
+    },
+    {
+      "path": "task-1-fix1-cleanup.json",
+      "sha256": "2893e2b9a8a4d82f3af06541d93e98969e0d2ad7d464473accc2e49e994b095d",
+      "bytes": 10420
+    },
+    {
+      "path": "task-1-fix1-cover-inventory.json",
+      "sha256": "bd4bdf47f88c9df5ccee80426f0f2afd8b556de3d275e949aa5d9cba7d4b8d95",
+      "bytes": 39629
+    }
+  ]
+}

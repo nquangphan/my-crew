@@ -1,0 +1,5 @@
+{"kind":"create","nonce":"e1d53d45-ca9e-41d0-aef0-bc8208e8fce8","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-review-e1d53d45-ca9e-41d0-aef0-bc8208e8fce8-iSFx1J","pid":53482,"dev":16777229,"ino":63860327,"uid":501}
+{"kind":"lock-create","pid":53483}
+{"kind":"confirmed","directReplay":"CREDENTIAL_MISSING","sameCurrentProviderServerStatus":"stored","syncPendingState":"stored","queueRetained":true,"httpCalls":0}
+{"kind":"lock-reaped","pid":53483}
+{"kind":"removed","nonce":"e1d53d45-ca9e-41d0-aef0-bc8208e8fce8","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-review-e1d53d45-ca9e-41d0-aef0-bc8208e8fce8-iSFx1J","dev":16777229,"ino":63860327,"uid":501,"absent":true}

@@ -1,0 +1,1515 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index d35a856..b0ac638 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -25,47 +25,49 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/docs/contracts.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/src/docs/links.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/src/docs/manifest.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/src/docs/validator.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/tickets/completion.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/decisions.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
++| `server/src/tickets/deploy.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/completion.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/dependencies.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
++| `server/test/deploy.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index d201d91..990badc 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -80,33 +80,35 @@ flows:
+       - server/src/docs/validator.ts
+     files:
+       - server/src/docs/checksum.ts
+       - server/src/docs/contracts.ts
+       - server/src/docs/links.ts
+       - server/src/docs/manifest.ts
+     tests:
+       - server/test/docs-validator.unit.test.ts
+       - server/test/support/docs.ts
+       - server/test/fixtures/legacy-docs/crlf-unicode.md
+   server-tickets:
+     title: Cây ticket, phụ thuộc và bằng chứng hoàn tất
+     doc: docs/flows/server-tickets.md
+     entrypoints:
+       - server/src/tickets/routes.ts
+     files:
+       - server/src/tickets/completion.ts
+       - server/src/tickets/contracts.ts
+       - server/src/tickets/decisions.ts
+       - server/src/tickets/dependencies.ts
++      - server/src/tickets/deploy.ts
+       - server/src/tickets/docs-links.ts
+       - server/src/tickets/repair.ts
+       - server/src/tickets/service.ts
+       - server/migrations/004_tickets.sql
+     tests:
+       - server/test/tickets.test.ts
+       - server/test/dependencies.test.ts
+       - server/test/completion.test.ts
+       - server/test/repair.test.ts
+       - server/test/support/tickets.ts
+       - server/test/ticket-events.unit.test.ts
++      - server/test/deploy.test.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index faa3f15..fb446c9 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -1,53 +1,56 @@
+ # Cây ticket, phụ thuộc và bằng chứng hoàn tất
+ 
+ ## Mục đích
+ 
+ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng dự án và cùng gốc, các cạnh phụ thuộc không có chu trình, timeline bình luận/quyết định, và lịch sử vòng sửa. Trạng thái hoàn thành phụ thuộc vào bằng chứng được ghi nhận và xác minh; request của người dùng không thể tự gửi trạng thái `done`.
+ 
+ ## Điểm vào
+ 
+ - `server/src/tickets/routes.ts` → `registerTicketRoutes`: tạo, đọc, nối phụ thuộc, gửi tín hiệu hợp lệ, bình luận, quyết định, repair result và liên kết docs.
+ - `server/src/tickets/service.ts` → `createTicketServices`: gắn các reader/authority bất biến theo ứng dụng; mặc định từ chối cổng chưa được tích hợp.
+ - `server/src/tickets/dependencies.ts` → `addDependency`, `readGraph`: lưu DAG và trả dữ liệu sơ đồ thực tế.
+ 
+ ## Các bước
+ 
+-1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
+-2. `server/src/tickets/dependencies.ts` → `addDependency` khóa hàng root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit; ticket được tăng revision bằng optimistic check.
++1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Sau khi khóa root, service đọc lại root/cha và từ chối tạo con nếu một trong hai đã hoàn tất hoặc hủy. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
++2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
+ 3. `server/src/tickets/decisions.ts` → `appendComment`, `recordDecision` lưu nội dung trong bảng riêng và phát event chỉ chứa ID metadata. Nguồn quyết định phải là ticket/owner decision/artifact đã ghi nhận trong cùng gốc, hoặc trang docs được reader xác minh. Máy không thể ghi owner answer hoặc approval.
+-4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction và vẫn giữ `running`; chỉ `applyExecutionSignal` nội bộ sau xác nhận tiến trình mới chuyển trạng thái. `passed` gọi cổng hoàn tất.
+-5. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; bước/công việc đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge; bản ghi tự báo không đủ điều kiện.
+-6. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 ghi số vòng, lý do `repair_limit`, gọi authority để lưu ý định/command dừng tại execution, và giữ ticket `running` tới khi Task 5 xác minh dừng và finalize nguyên tử. Muốn tiếp tục cần `owner_answer` có scope cho bước đó; bộ đếm vẫn là 5.
+-7. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
++4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction và vẫn giữ `running`; chỉ `applyExecutionSignal` nội bộ sau xác nhận tiến trình mới chuyển trạng thái. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
++5. `server/src/tickets/deploy.ts` → `deployTicketFingerprint`, `readDeployAuthorization` chứng minh provenance của deploy. Máy không tạo request deploy gốc. Máy chỉ tạo hậu duệ deploy khi root là yêu cầu deploy do owner tạo, hoặc khi có quyết định owner duyệt chính xác định nghĩa ticket bằng SHA-256 canonical gồm root, hành động và toàn bộ input có ý nghĩa. Quyết định được gắn vào ticket và chỉ cấp cho một ticket. Gate thực thi Task 5 phải đọc cùng hàm này trước khi chạy deploy.
++6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy ở mọi cấp cần owner-created request hoặc approval đúng ticket. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
++7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng, và giữ ticket `running` tới Task 5 finalize. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
++8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/004_tickets.sql` | Bảng ticket, DAG, timeline, evidence, repair và liên kết docs |
+ | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
+ | `server/src/tickets/service.ts` | Tạo ticket, scope, tín hiệu và factory |
+ | `server/src/tickets/dependencies.ts` | Cạnh phụ thuộc và sơ đồ |
++| `server/src/tickets/deploy.ts` | Chứng minh owner intent và fingerprint deploy |
+ | `server/src/tickets/decisions.ts` | Bình luận, quyết định và kiểm tra nguồn |
+ | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
+ | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
+ | `server/src/tickets/docs-links.ts` | Liên kết ticket với snapshot đã xác minh |
+ | `server/src/tickets/routes.ts` | HTTP validation, scope và idempotency |
+ | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
+ | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
+ | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
++| `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
+ | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
+ | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
+ | `server/test/ticket-events.unit.test.ts` | Payload event metadata hợp lệ |
+ 
+ ## Dữ liệu
+ 
+-`tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
++`tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `created_actor_kind/id`, `deploy_definition_hash` và `deploy_approval_decision_id` là provenance bền vững cho cổng deploy. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `repair_limit_cycle_id`/`repair_limit_at` chỉ cycle mới nhất đang chờ; `repair_limit_consumed_decision_id` ghi quyết định đã dùng. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp DB và transaction; `server-journal` cấp mutation idempotent và event; `server-identity` cấp scope máy/dự án. Task 5 nối execution authority để kiểm chứng attempt/fence và hoàn tất ý định dừng; Task 7 nối reader snapshot docs đã xác minh. Hai dependency này mặc định chặn khi chưa được nối.
+ 
+ ## Tests
+ 
+-`pnpm --dir v2/server test` chạy PostgreSQL container riêng với DB prefix `crew_v2_test_`. Các bài test kiểm tra cây ba cấp, cạnh đối nghịch đồng thời, bằng chứng code/research/docs, owner answer, 5 vòng repair, stale fence, schema event và route từ chối field dư. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng.
++`pnpm --dir v2/server test` chạy PostgreSQL container riêng với DB prefix `crew_v2_test_`. Các bài test kiểm tra cây ba cấp, cạnh đối nghịch đồng thời, completion tranh chấp với tạo con, trạng thái dependency sau khi ready, provenance deploy, bằng chứng code/research/docs, owner answer theo cycle, 5 vòng repair, stale fence, schema event và route từ chối field dư. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng.
+diff --git a/v2/server/migrations/004_tickets.sql b/v2/server/migrations/004_tickets.sql
+index 231cc5a..f7b3ee6 100644
+--- a/v2/server/migrations/004_tickets.sql
++++ b/v2/server/migrations/004_tickets.sql
+@@ -1,88 +1,103 @@
+ create table tickets (
+   id uuid primary key,
+   project_id uuid not null references projects(id) on delete restrict,
+   parent_id uuid null references tickets(id) on delete restrict,
+   root_id uuid not null,
+   level text not null check (level in ('request','step','task')),
+   kind text not null check (kind in ('code','research','docs','deploy')),
+   title text not null check (length(title) between 1 and 200),
+   description text not null,
+   status text not null check (status in ('pending','ready','running','needs_input','paused','done','cancelled')),
+   wait_reason text null,
++  created_actor_kind text not null check (created_actor_kind in ('owner','machine')),
++  created_actor_id text not null,
++  deploy_definition_hash char(64) null check (deploy_definition_hash ~ '^[0-9a-f]{64}$'),
++  deploy_approval_decision_id uuid null unique,
++  repair_limit_cycle_id uuid null,
++  repair_limit_at timestamptz null,
++  repair_limit_consumed_decision_id uuid null,
+   revision integer not null default 1 check (revision > 0),
+   mandatory boolean not null default true,
+   criteria jsonb not null default '{}'::jsonb,
+   inputs jsonb not null default '{}'::jsonb,
+   outputs jsonb not null default '{}'::jsonb,
+   skill text null,
+   workflow_pin jsonb null,
+   repair_cycles integer not null default 0 check (repair_cycles between 0 and 5),
+   merged_commit text null check (merged_commit ~ '^[0-9a-f]{40}([0-9a-f]{24})?$'),
+   evidence_id uuid null,
+   created_at timestamptz not null default now(),
+   unique (id, project_id),
+   constraint tickets_root_fk foreign key (root_id) references tickets(id) on delete restrict deferrable initially deferred,
+-  check ((level='request' and parent_id is null and root_id=id) or (level<>'request' and parent_id is not null and root_id<>id))
++  check ((level='request' and parent_id is null and root_id=id) or (level<>'request' and parent_id is not null and root_id<>id)),
++  check ((repair_limit_cycle_id is null) = (repair_limit_at is null)),
++  check (deploy_approval_decision_id is null or deploy_definition_hash is not null)
+ );
+ create index tickets_project_status_id on tickets(project_id,status,id);
+ create index tickets_root_id on tickets(root_id,id);
+ 
+ create table dependencies (
+   ticket_id uuid not null references tickets(id) on delete restrict,
+   predecessor_id uuid not null references tickets(id) on delete restrict,
+   primary key(ticket_id,predecessor_id),
+   check(ticket_id<>predecessor_id)
+ );
+ create table repair_links (
+   check_step_id uuid not null references tickets(id) on delete restrict,
+   fix_ticket_id uuid not null references tickets(id) on delete restrict,
+   cycle_id uuid not null,
+   primary key(check_step_id,cycle_id),
+   unique(fix_ticket_id)
+ );
+ create table comments (
+   id uuid primary key,
+   ticket_id uuid not null references tickets(id) on delete restrict,
+   actor_kind text not null check(actor_kind in ('owner','machine')),
+   actor_id text not null,
+   text text not null check(length(text) between 1 and 32768),
+   created_at timestamptz not null default now()
+ );
+ create index comments_ticket_id on comments(ticket_id,id);
+ create table decisions (
+   id uuid primary key,
+   ticket_id uuid not null references tickets(id) on delete restrict,
+   actor_kind text not null check(actor_kind in ('owner','machine')),
+   actor_id text not null,
+   kind text not null check(kind in ('assessment','delegated','owner_answer','approval','intervention','dispatch')),
+   content text not null,
+   rationale text not null,
+   sources jsonb not null,
+   scope jsonb not null,
+   created_at timestamptz not null default now()
+ );
+ create index decisions_ticket_id on decisions(ticket_id,id);
++alter table tickets add constraint tickets_deploy_approval_fk foreign key(deploy_approval_decision_id)
++  references decisions(id) on delete restrict;
++alter table tickets add constraint tickets_repair_limit_consumed_fk foreign key(repair_limit_consumed_decision_id)
++  references decisions(id) on delete restrict;
+ create table evidence (
+   id uuid primary key,
+   ticket_id uuid not null references tickets(id) on delete restrict,
+   attempt_id uuid null,
+   kind text not null,
+   data jsonb not null,
+   created_at timestamptz not null default now()
+ );
+ create index evidence_ticket_kind on evidence(ticket_id,kind);
+ alter table tickets add constraint tickets_evidence_fk foreign key(evidence_id) references evidence(id) on delete restrict;
+ create table repair_results (
+   check_step_id uuid not null references tickets(id) on delete restrict,
+   cycle_id uuid not null,
+   classification text not null check(classification in ('initial_review','repair_review','infrastructure','model')),
+   passed boolean not null,
+   evidence_id uuid not null references evidence(id) on delete restrict,
+   primary key(check_step_id,cycle_id)
+ );
++alter table tickets add constraint tickets_repair_limit_cycle_fk
++  foreign key(id,repair_limit_cycle_id) references repair_results(check_step_id,cycle_id) on delete restrict;
+ create table ticket_docs (
+   ticket_id uuid not null references tickets(id) on delete restrict,
+   snapshot_id uuid not null,
+   path text not null,
+   primary key(ticket_id,snapshot_id,path)
+ );
+diff --git a/v2/server/src/tickets/completion.ts b/v2/server/src/tickets/completion.ts
+index 5707dd1..83260b4 100644
+--- a/v2/server/src/tickets/completion.ts
++++ b/v2/server/src/tickets/completion.ts
+@@ -1,23 +1,24 @@
+ import { canComplete, canDeploy } from '../../../src/completion-policy.ts';
+ import type { Tx } from '../platform/contracts.ts';
+ import type { DocsCompletionReader, Ticket } from './contracts.ts';
++import { readDeployAuthorization } from './deploy.ts';
+ 
+ const noDocs: DocsCompletionReader = async () => null;
+ 
+ export async function readCompletionFacts(
+   tx: Tx,
+   ticket: Ticket,
+   docsReader: DocsCompletionReader = noDocs,
+ ): Promise<{
+   ready: boolean;
+   mandatoryStepsPassed: boolean;
+   evidenceReady: boolean;
+   mergedCommit: string | null;
+   docsCommit: string | null;
+ }> {
+   const [incomplete] = await tx`with recursive descendants(id) as (
+     select id from tickets where parent_id=${ticket.id}
+     union all select t.id from tickets t join descendants d on t.parent_id=d.id
+   ) select 1 from tickets t join descendants d on d.id=t.id
+     where t.mandatory and t.status<>'done' limit 1`;
+   const mandatoryStepsPassed = !incomplete;
+@@ -35,34 +36,36 @@ export async function readCompletionFacts(
+   const required = ticket.criteria.requiredEvidenceKinds;
+   const validRequired =
+     required === undefined ||
+     (Array.isArray(required) &&
+       required.length <= 100 &&
+       required.every((kind) => typeof kind === 'string' && kind.length > 0 && kind.length <= 100));
+   const evidenceReady =
+     validRequired &&
+     verified.some((row) => row.kind === neededKind) &&
+     (required === undefined ||
+       (required as string[]).every((kind) => verified.some((row) => row.kind === kind)));
+   const merge = verified.find(
+     (row) =>
+       row.kind === 'merge' &&
+       typeof row.data?.commit === 'string' &&
+       /^[0-9a-f]{40}([0-9a-f]{24})?$/.test(row.data.commit),
+   );
+   const mergedCommit = merge ? (merge.data.commit as string) : null;
+   const docsCommit = ticket.level === 'request' ? await docsReader(tx, ticket.projectId, mergedCommit) : null;
+   let ready = false;
+-  if (ticket.level !== 'request') {
+-    ready = mandatoryStepsPassed && evidenceReady;
+-  } else if (ticket.kind === 'deploy') {
+-    const [approved] = await tx`select id from decisions where ticket_id=${ticket.id} and kind='approval'
+-      and actor_kind='owner' and scope @> ${tx.json({ action: 'deploy' })}::jsonb limit 1`;
++  if (ticket.kind === 'deploy') {
++    const authorization = await readDeployAuthorization(tx, ticket.id);
+     ready =
+       mandatoryStepsPassed &&
+       evidenceReady &&
+-      canDeploy({ hasDeployTicket: ticket.level === 'request', ownerApproved: !!approved });
++      canDeploy({
++        hasDeployTicket: authorization === 'owner_deploy_request',
++        ownerApproved: authorization === 'owner_approval',
++      });
++  } else if (ticket.level !== 'request') {
++    ready = mandatoryStepsPassed && evidenceReady;
+   } else {
+     ready = canComplete({ kind: ticket.kind, mandatoryStepsPassed, evidenceReady, mergedCommit, docsCommit });
+   }
+   return { ready, mandatoryStepsPassed, evidenceReady, mergedCommit, docsCommit };
+ }
+diff --git a/v2/server/src/tickets/contracts.ts b/v2/server/src/tickets/contracts.ts
+index dae5d4c..552af54 100644
+--- a/v2/server/src/tickets/contracts.ts
++++ b/v2/server/src/tickets/contracts.ts
+@@ -1,39 +1,40 @@
+ import type { Signal, Status } from '../../../src/ticket-policy.ts';
+ import type { Pin } from '../../../src/workflow-policy.ts';
+ import type { Actor, Id, Tx } from '../platform/contracts.ts';
+ 
+ export type TicketLevel = 'request' | 'step' | 'task';
+ export type TicketKind = 'code' | 'research' | 'docs' | 'deploy';
+ export type CreateTicket = {
+   projectId: Id;
+   parentId: Id | null;
+   level: TicketLevel;
+   kind: TicketKind;
+   title: string;
+   description: string;
+   mandatory: boolean;
+   criteria: Record<string, unknown>;
+   inputs: Record<string, unknown>;
+   outputs: Record<string, unknown>;
+   skill: string | null;
+   workflowPin: Pin | null;
++  deployApprovalDecisionId?: Id | null;
+ };
+ export type Ticket = CreateTicket & {
+   id: Id;
+   rootId: Id;
+   status: Status;
+   revision: number;
+   waitReason: string | null;
+   repairCycles: number;
+   mergedCommit: string | null;
+ };
+ export type Dependency = { ticketId: Id; predecessorId: Id };
+ export type RepairLink = { checkStepId: Id; fixTicketId: Id; cycleId: Id };
+ export type SourceRef = {
+   kind: 'docs' | 'ticket' | 'artifact' | 'owner_decision';
+   id: Id;
+   path?: string;
+   locator?: string;
+ };
+ export type DecisionInput = {
+   kind: 'assessment' | 'delegated' | 'owner_answer' | 'approval' | 'intervention' | 'dispatch';
+diff --git a/v2/server/src/tickets/decisions.ts b/v2/server/src/tickets/decisions.ts
+index 4117347..ab5d33d 100644
+--- a/v2/server/src/tickets/decisions.ts
++++ b/v2/server/src/tickets/decisions.ts
+@@ -50,63 +50,79 @@ async function sourceExists(
+   }
+   if (source.kind === 'owner_decision') {
+     const [row] = await tx`select d.id from decisions d join tickets t on t.id=d.ticket_id
+       where d.id=${source.id} and t.project_id=${projectId} and t.root_id=${rootId} and d.actor_kind='owner'`;
+     return !!row;
+   }
+   if (!source.locator || source.locator.length > 2048) return false;
+   const [row] = await tx`select e.id from evidence e join tickets t on t.id=e.ticket_id
+     where e.id=${source.id} and t.project_id=${projectId} and t.root_id=${rootId}
+       and e.data->>'locator'=${source.locator}`;
+   return !!row;
+ }
+ 
+ export async function recordDecision(
+   tx: Tx,
+   ticketId: Id,
+   input: DecisionInput,
+   actor: Actor,
+   docsSource?: DocsSourceReader,
+ ): Promise<Id> {
+-  const ticket = await requireTicket(tx, ticketId, actor);
++  if (input.kind === 'owner_answer') {
++    const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
++    if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++    await tx`select id from tickets where id=${scope.root_id} for update`;
++  }
++  const ticket = await requireTicket(tx, ticketId, actor, input.kind === 'owner_answer');
+   if (
+     !['assessment', 'delegated', 'owner_answer', 'approval', 'intervention', 'dispatch'].includes(
+       input.kind,
+     ) ||
+     typeof input.content !== 'string' ||
+     !input.content ||
+     input.content.length > 32768 ||
+     typeof input.rationale !== 'string' ||
+     !input.rationale ||
+     input.rationale.length > 32768 ||
+     !Array.isArray(input.sources) ||
+     input.sources.length > 100 ||
+     !input.scope ||
+     typeof input.scope !== 'object' ||
+     Array.isArray(input.scope) ||
+     !safeTicketJson(input.scope) ||
+     !safeTicketJson(input.sources)
+   )
+     throw new ApiError('VALIDATION', 400, 'Quyết định không hợp lệ');
+   if (input.kind === 'approval' && actor.kind !== 'owner')
+     throw new ApiError('OWNER_APPROVAL_REQUIRED', 403, 'Chỉ chủ dự án được duyệt');
+   if (input.kind === 'owner_answer' && actor.kind !== 'owner')
+     throw new ApiError('OWNER_DECISION_REQUIRED', 403, 'Chỉ chủ dự án được trả lời');
+-  if (input.kind === 'approval' && input.scope.action === 'deploy' && ticket.kind !== 'deploy')
+-    throw new ApiError('VALIDATION', 400, 'Duyệt deploy cần ticket deploy');
++  if (input.kind === 'approval' && input.scope.action === 'deploy') {
++    const hash = input.scope.ticketDefinitionHash;
++    if (typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash))
++      throw new ApiError('VALIDATION', 400, 'Thiếu định danh hành động deploy');
++    const preapproval = ticket.level === 'request' && input.scope.rootTicketId === ticket.id;
++    const direct = ticket.kind === 'deploy' && input.scope.targetTicketId === ticket.id;
++    if (!preapproval && !direct) throw new ApiError('VALIDATION', 400, 'Duyệt deploy không đúng ticket');
++    if (direct) {
++      const [target] = await tx`select deploy_definition_hash from tickets where id=${ticket.id}`;
++      if (target?.deploy_definition_hash !== hash)
++        throw new ApiError('VALIDATION', 400, 'Duyệt deploy không khớp ticket');
++    }
++  }
+   for (const source of input.sources) {
+     if (!(await sourceExists(tx, ticket.projectId, ticket.rootId, source, docsSource)))
+       throw new ApiError('SOURCE_UNVERIFIED', 422, 'Nguồn quyết định chưa được ghi nhận');
+   }
+   const id = randomUUID();
+-  await tx`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope)
++  await tx`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope,created_at)
+     values(${id},${ticketId},${actor.kind},${actor.id},${input.kind},${input.content},${input.rationale},
+-      ${tx.json(input.sources)},${tx.json(input.scope as never)})`;
++      ${tx.json(input.sources)},${tx.json(input.scope as never)},clock_timestamp())`;
+   await appendEvent(tx, {
+     type: 'decision.created',
+     projectId: ticket.projectId,
+     ticketId,
+     audienceMachineId: null,
+     data: { decisionId: id, kind: input.kind },
+   });
+   return id;
+ }
+diff --git a/v2/server/src/tickets/dependencies.ts b/v2/server/src/tickets/dependencies.ts
+index 3fc3085..ac10e5e 100644
+--- a/v2/server/src/tickets/dependencies.ts
++++ b/v2/server/src/tickets/dependencies.ts
+@@ -3,46 +3,48 @@ import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import type { Dependency, RepairLink, Ticket } from './contracts.ts';
+ import { mapTicket, requireTicket } from './service.ts';
+ 
+ export async function addDependency(
+   tx: Tx,
+   ticketId: Id,
+   predecessorId: Id,
+   expectedRevision: number,
+ ): Promise<Dependency> {
+   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+     throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
+   if (ticketId === predecessorId)
+     throw new ApiError('DEPENDENCY_CYCLE', 409, 'Ticket không thể phụ thuộc chính nó');
+   const [a] = await tx`select project_id,root_id from tickets where id=${ticketId}`;
+   const [b] = await tx`select project_id,root_id from tickets where id=${predecessorId}`;
+   if (!a || !b) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+   if (a.root_id !== b.root_id || a.project_id !== b.project_id)
+     throw new ApiError('DEPENDENCY_SCOPE', 409, 'Phụ thuộc phải cùng yêu cầu');
+   // Every graph mutation acquires its root row first, serializing opposite edges on independent transactions.
+-  await tx`select id from tickets where id=${a.root_id} for update`;
++  const [root] = await tx`select id,status from tickets where id=${a.root_id} for update`;
++  if (!root || root.status === 'done' || root.status === 'cancelled')
++    throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+   const [ticket] = await tx`select id,revision,status from tickets where id=${ticketId} for update`;
+   if (Number(ticket?.revision) !== expectedRevision)
+     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
+-  if (ticket?.status === 'done' || ticket?.status === 'cancelled')
+-    throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Ticket đã kết thúc');
++  if (!['pending', 'needs_input', 'paused'].includes(ticket?.status as string))
++    throw new ApiError('DEPENDENCY_EDIT_NOT_ALLOWED', 409, 'Ticket đã sẵn sàng hoặc đang chạy');
+   const [cycle] = await tx`with recursive predecessors(id) as (
+     select ${predecessorId}::uuid
+     union
+     select d.predecessor_id from dependencies d join predecessors p on p.id=d.ticket_id
+   ) select 1 from predecessors where id=${ticketId} limit 1`;
+   if (cycle) throw new ApiError('DEPENDENCY_CYCLE', 409, 'Phụ thuộc tạo vòng lặp');
+   try {
+     await tx`insert into dependencies(ticket_id,predecessor_id) values (${ticketId},${predecessorId})`;
+   } catch (error) {
+     if (error && typeof error === 'object' && 'code' in error && error.code === '23505')
+       throw new ApiError('DEPENDENCY_EXISTS', 409, 'Phụ thuộc đã tồn tại');
+     throw error;
+   }
+   const [updated] = await tx`update tickets set revision=revision+1 where id=${ticketId} returning revision`;
+   await appendEvent(tx, {
+     type: 'dependency.added',
+     projectId: a.project_id as Id,
+     ticketId,
+     audienceMachineId: null,
+     data: { predecessorId, revision: Number(updated?.revision) },
+diff --git a/v2/server/src/tickets/deploy.ts b/v2/server/src/tickets/deploy.ts
+new file mode 100644
+index 0000000..4cfb236
+--- /dev/null
++++ b/v2/server/src/tickets/deploy.ts
+@@ -0,0 +1,60 @@
++import { createHash } from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++import type { CreateTicket } from './contracts.ts';
++
++export type DeployAuthorization = 'owner_deploy_request' | 'owner_approval';
++
++export function deployTicketFingerprint(input: CreateTicket, rootId: Id): string {
++  const { deployApprovalDecisionId: _approvalId, ...definition } = input;
++  return createHash('sha256')
++    .update(
++      canonicalJson({
++        action: 'deploy',
++        rootId,
++        definition,
++      }),
++    )
++    .digest('hex');
++}
++
++export async function verifyDeployApprovalForCandidate(
++  tx: Tx,
++  rootId: Id,
++  decisionId: Id,
++  fingerprint: string,
++): Promise<boolean> {
++  const [approval] = await tx`select id from decisions where id=${decisionId} and ticket_id=${rootId}
++    and actor_kind='owner' and kind='approval' and scope @>
++      ${tx.json({ action: 'deploy', rootTicketId: rootId, ticketDefinitionHash: fingerprint })}::jsonb`;
++  if (!approval) return false;
++  const [used] = await tx`select id from tickets where deploy_approval_decision_id=${decisionId} limit 1`;
++  return !used;
++}
++
++export async function readDeployAuthorization(tx: Tx, ticketId: Id): Promise<DeployAuthorization | null> {
++  const [row] = await tx`select t.id,t.kind,t.root_id,t.deploy_definition_hash,t.deploy_approval_decision_id,
++      r.kind as root_kind,r.level as root_level,r.created_actor_kind as root_actor_kind
++    from tickets t join tickets r on r.id=t.root_id where t.id=${ticketId}`;
++  if (row?.kind !== 'deploy') return null;
++  if (row.root_level === 'request' && row.root_kind === 'deploy' && row.root_actor_kind === 'owner')
++    return 'owner_deploy_request';
++  if (row.deploy_approval_decision_id) {
++    const [approval] = await tx`select id from decisions where id=${row.deploy_approval_decision_id}
++      and ticket_id=${row.root_id} and actor_kind='owner' and kind='approval' and scope @>
++        ${tx.json({
++          action: 'deploy',
++          rootTicketId: row.root_id,
++          ticketDefinitionHash: row.deploy_definition_hash,
++        })}::jsonb`;
++    if (approval) return 'owner_approval';
++  }
++  const [direct] = await tx`select id from decisions where ticket_id=${ticketId}
++    and actor_kind='owner' and kind='approval' and scope @>
++      ${tx.json({
++        action: 'deploy',
++        targetTicketId: ticketId,
++        ticketDefinitionHash: row.deploy_definition_hash,
++      })}::jsonb limit 1`;
++  return direct ? 'owner_approval' : null;
++}
+diff --git a/v2/server/src/tickets/repair.ts b/v2/server/src/tickets/repair.ts
+index 1578f7a..cf923fe 100644
+--- a/v2/server/src/tickets/repair.ts
++++ b/v2/server/src/tickets/repair.ts
+@@ -1,24 +1,24 @@
+ import { randomUUID } from 'node:crypto';
+ import { recordRepairFailure } from '../../../src/ticket-policy.ts';
+ import { appendEvent } from '../journal/events.ts';
+-import type { Actor, Tx } from '../platform/contracts.ts';
++import type { Actor, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import type { ExecutionAuthority, RepairResultInput, Ticket } from './contracts.ts';
+ import { createTicket, mapTicket, requireTicket, safeTicketJson } from './service.ts';
+ 
+ export async function recordRepairResult(
+   tx: Tx,
+   input: RepairResultInput,
+   actor: Actor,
+   execution?: ExecutionAuthority,
+ ): Promise<Ticket> {
+   if (actor.kind !== 'machine') throw new ApiError('MACHINE_REQUIRED', 403, 'Cần máy thực thi');
+   if (!execution) throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận attempt và fence');
+   if (
+     !['initial_review', 'repair_review', 'infrastructure', 'model'].includes(input.classification) ||
+     typeof input.passed !== 'boolean' ||
+     typeof input.fence !== 'string' ||
+     !/^[1-9][0-9]*$/.test(input.fence) ||
+     !input.evidence ||
+     typeof input.evidence !== 'object' ||
+     Array.isArray(input.evidence) ||
+@@ -30,45 +30,47 @@ export async function recordRepairResult(
+   await tx`select id from tickets where id=${scope.root_id} for update`;
+   const ticket = await requireTicket(tx, input.ticketId, actor, true);
+   if (ticket.level !== 'step') throw new ApiError('REPAIR_STEP_REQUIRED', 409, 'Vòng sửa thuộc ticket bước');
+   if (ticket.status !== 'running') throw new ApiError('REPAIR_NOT_RUNNING', 409, 'Bước kiểm tra chưa chạy');
+   await execution.verifyRepairResult(tx, input);
+   const [existing] = await tx`select r.classification,r.passed,e.attempt_id from repair_results r
+     join evidence e on e.id=r.evidence_id
+     where r.check_step_id=${ticket.id} and r.cycle_id=${input.cycleId}`;
+   if (existing) {
+     if (
+       existing.classification !== input.classification ||
+       existing.passed !== input.passed ||
+       existing.attempt_id !== input.attemptId
+     )
+       throw new ApiError('REPAIR_CYCLE_CONFLICT', 409, 'Cycle đã có kết quả khác');
+     return ticket;
+   }
+   let repairCycles = ticket.repairCycles;
+   const nextStatus = ticket.status;
+   let waitReason = ticket.waitReason;
++  let limitCycleId: Id | null = null;
+   if (!input.passed && input.classification === 'repair_review') {
+     const failure = recordRepairFailure(repairCycles);
+     repairCycles = failure.cycles;
+     if (failure.action === 'ask_owner') {
+       waitReason = 'repair_limit';
++      limitCycleId = input.cycleId;
+       await execution.requestTerminalIntent(tx, ticket.id, 'needs_input', 'repair_limit');
+     }
+   }
+   const evidenceId = randomUUID();
+   await tx`insert into evidence(id,ticket_id,attempt_id,kind,data)
+     values(${evidenceId},${ticket.id},${input.attemptId},'review_result',
+       ${tx.json({
+         ...input.evidence,
+         verification: 'reported',
+         classification: input.classification,
+         passed: input.passed,
+         cycleId: input.cycleId,
+       })})`;
+   await tx`insert into repair_results(check_step_id,cycle_id,classification,passed,evidence_id)
+     values(${ticket.id},${input.cycleId},${input.classification},${input.passed},${evidenceId})`;
+   if (
+     !input.passed &&
+     repairCycles < 5 &&
+     (input.classification === 'initial_review' || input.classification === 'repair_review')
+   ) {
+@@ -77,35 +79,40 @@ export async function recordRepairResult(
+       {
+         projectId: ticket.projectId,
+         parentId: ticket.id,
+         level: 'task',
+         kind: ticket.kind,
+         title: `Sửa kết quả kiểm tra ${input.cycleId.slice(0, 8)}`,
+         description: 'Công việc sửa theo kết quả kiểm tra đã ghi nhận',
+         mandatory: true,
+         criteria: { repairCycleId: input.cycleId },
+         inputs: { reviewEvidenceId: evidenceId },
+         outputs: {},
+         skill: ticket.skill,
+         workflowPin: ticket.workflowPin,
+       },
+       actor,
+     );
+     await tx`insert into repair_links(check_step_id,fix_ticket_id,cycle_id)
+       values(${ticket.id},${fix.id},${input.cycleId})`;
+   }
+   const [updated] = await tx`update tickets set repair_cycles=${repairCycles},status=${nextStatus},
+-    wait_reason=${waitReason},revision=revision+1 where id=${ticket.id} returning *`;
++    wait_reason=${waitReason},revision=revision+1,
++    repair_limit_cycle_id=coalesce(${limitCycleId}::uuid,repair_limit_cycle_id),
++    repair_limit_at=case when ${limitCycleId}::uuid is not null then clock_timestamp() else repair_limit_at end,
++    repair_limit_consumed_decision_id=case when ${limitCycleId}::uuid is not null then null
++      else repair_limit_consumed_decision_id end
++    where id=${ticket.id} returning *`;
+   await appendEvent(tx, {
+     type: 'repair.recorded',
+     projectId: ticket.projectId,
+     ticketId: ticket.id,
+     audienceMachineId: null,
+     data: {
+       cycleId: input.cycleId,
+       classification: input.classification,
+       passed: input.passed,
+       repairCycles,
+     },
+   });
+   return mapTicket(updated as Record<string, unknown>);
+ }
+diff --git a/v2/server/src/tickets/routes.ts b/v2/server/src/tickets/routes.ts
+index a226fbe..2c10e8f 100644
+--- a/v2/server/src/tickets/routes.ts
++++ b/v2/server/src/tickets/routes.ts
+@@ -46,40 +46,41 @@ const createBody = {
+     criteria: obj,
+     inputs: obj,
+     outputs: obj,
+     skill: { anyOf: [{ type: 'string', minLength: 1, maxLength: 200 }, { type: 'null' }] },
+     workflowPin: {
+       anyOf: [
+         { type: 'null' },
+         {
+           type: 'object',
+           additionalProperties: false,
+           required: ['workflow', 'version', 'revision', 'checksum'],
+           properties: {
+             workflow: { type: 'string', enum: ['superpowers', 'bmad'] },
+             version: { type: 'string', minLength: 1 },
+             revision: { type: 'string', minLength: 1 },
+             checksum: { type: 'string', pattern: '^[0-9a-fA-F]{64}$' },
+           },
+         },
+       ],
+     },
++    deployApprovalDecisionId: { anyOf: [uuid, { type: 'null' }] },
+   },
+ } as const;
+ const dependencyBody = {
+   type: 'object',
+   additionalProperties: false,
+   required: ['predecessorId', 'expectedRevision'],
+   properties: { predecessorId: uuid, expectedRevision: revision },
+ } as const;
+ const signalBody = {
+   type: 'object',
+   additionalProperties: false,
+   required: ['signal', 'expectedRevision'],
+   properties: {
+     signal: { type: 'string', enum: ['dependencies_ready', 'wait_owner', 'resume'] },
+     expectedRevision: revision,
+     evidenceId: uuid,
+   },
+ } as const;
+ const commentBody = {
+   type: 'object',
+diff --git a/v2/server/src/tickets/service.ts b/v2/server/src/tickets/service.ts
+index 66c1f10..2046c2f 100644
+--- a/v2/server/src/tickets/service.ts
++++ b/v2/server/src/tickets/service.ts
+@@ -1,31 +1,32 @@
+ import { randomUUID } from 'node:crypto';
+ import type { Signal } from '../../../src/ticket-policy.ts';
+ import { transition } from '../../../src/ticket-policy.ts';
+ import { samePin } from '../../../src/workflow-policy.ts';
+ import { appendEvent } from '../journal/events.ts';
+ import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import { readCompletionFacts } from './completion.ts';
+ import type { CreateTicket, Ticket, TicketServiceDependencies } from './contracts.ts';
+ import { appendComment, recordDecision } from './decisions.ts';
+ import { addDependency, readGraph } from './dependencies.ts';
++import { deployTicketFingerprint, verifyDeployApprovalForCandidate } from './deploy.ts';
+ import { linkDocs } from './docs-links.ts';
+ import { recordRepairResult } from './repair.ts';
+ 
+ export function mapTicket(row: Record<string, unknown>): Ticket {
+   return {
+     id: row.id as Id,
+     projectId: row.project_id as Id,
+     parentId: row.parent_id as Id | null,
+     rootId: row.root_id as Id,
+     level: row.level as Ticket['level'],
+     kind: row.kind as Ticket['kind'],
+     title: row.title as string,
+     description: row.description as string,
+     mandatory: row.mandatory as boolean,
+     criteria: row.criteria as Record<string, unknown>,
+     inputs: row.inputs as Record<string, unknown>,
+     outputs: row.outputs as Record<string, unknown>,
+     skill: row.skill as string | null,
+     workflowPin: row.workflow_pin as Ticket['workflowPin'],
+     status: row.status as Ticket['status'],
+@@ -81,173 +82,237 @@ export function safeTicketJson(value: unknown, seen = new Set<object>(), depth =
+     });
+   } finally {
+     seen.delete(value);
+   }
+ }
+ 
+ function validPin(pin: CreateTicket['workflowPin']): boolean {
+   return (
+     pin === null ||
+     (validObject(pin) &&
+       (pin.workflow === 'superpowers' || pin.workflow === 'bmad') &&
+       typeof pin.version === 'string' &&
+       !!pin.version &&
+       typeof pin.revision === 'string' &&
+       !!pin.revision &&
+       typeof pin.checksum === 'string' &&
+       /^[0-9a-f]{64}$/i.test(pin.checksum))
+   );
+ }
+ 
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++
+ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): Promise<Ticket> {
+   if (
+     !['request', 'step', 'task'].includes(input.level) ||
+     !['code', 'research', 'docs', 'deploy'].includes(input.kind) ||
+     typeof input.title !== 'string' ||
+     input.title.length < 1 ||
+     input.title.length > 200 ||
+     typeof input.description !== 'string' ||
+     typeof input.mandatory !== 'boolean' ||
+     !validObject(input.criteria) ||
+     !validObject(input.inputs) ||
+     !validObject(input.outputs) ||
+     !safeTicketJson(input.criteria) ||
+     !safeTicketJson(input.inputs) ||
+     !safeTicketJson(input.outputs) ||
+     (input.skill !== null && (typeof input.skill !== 'string' || input.skill.length > 200)) ||
+-    !validPin(input.workflowPin)
++    !validPin(input.workflowPin) ||
++    (input.deployApprovalDecisionId !== undefined &&
++      input.deployApprovalDecisionId !== null &&
++      (typeof input.deployApprovalDecisionId !== 'string' || !uuid.test(input.deployApprovalDecisionId))) ||
++    (input.kind !== 'deploy' && input.deployApprovalDecisionId != null)
+   )
+     throw new ApiError('VALIDATION', 400, 'Ticket không hợp lệ');
+   await requireProjectScope(tx, input.projectId, actor);
+   const id = randomUUID();
+   let rootId: Id = id;
+   let workflowPin = input.workflowPin;
+   let criteria = input.criteria;
++  let rootOwnerDeploy = false;
+   if (input.level === 'request') {
+     if (input.parentId !== null) throw new ApiError('TICKET_HIERARCHY', 400, 'Yêu cầu không có ticket cha');
++    if (input.kind === 'deploy' && actor.kind !== 'owner')
++      throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần yêu cầu deploy của chủ dự án');
+     criteria = { workflowChoice: 'superpowers', ...criteria };
+   } else {
+     if (!input.parentId) throw new ApiError('TICKET_HIERARCHY', 400, 'Thiếu ticket cha');
+-    const [parentRow] = await tx`select * from tickets where id=${input.parentId}`;
+-    if (!parentRow) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket cha');
+-    if (parentRow.project_id !== input.projectId)
+-      throw new ApiError('TICKET_HIERARCHY', 409, 'Ticket cha thuộc dự án khác');
+-    rootId = parentRow.root_id as Id;
+-    await tx`select id from tickets where id=${rootId} for update`;
++    const [initialParent] = await tx`select root_id from tickets where id=${input.parentId}`;
++    if (!initialParent) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket cha');
++    rootId = initialParent.root_id as Id;
++    const [rootRow] = await tx`select * from tickets where id=${rootId} for update`;
++    const [parentRow] = await tx`select * from tickets where id=${input.parentId} for update`;
++    if (!rootRow || !parentRow || parentRow.root_id !== rootId || parentRow.project_id !== input.projectId)
++      throw new ApiError('TICKET_HIERARCHY', 409, 'Ticket cha thuộc cây khác');
++    if (
++      rootRow.status === 'done' ||
++      rootRow.status === 'cancelled' ||
++      parentRow.status === 'done' ||
++      parentRow.status === 'cancelled'
++    )
++      throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
++    rootOwnerDeploy =
++      rootRow.level === 'request' && rootRow.kind === 'deploy' && rootRow.created_actor_kind === 'owner';
+     const requiredLevel = input.level === 'step' ? 'request' : 'step';
+     if (parentRow.level !== requiredLevel)
+       throw new ApiError('TICKET_HIERARCHY', 400, 'Chỉ hỗ trợ yêu cầu → bước → công việc');
+     const parentPin = parentRow.workflow_pin as CreateTicket['workflowPin'];
+     if (parentPin && workflowPin && !samePin(parentPin, workflowPin))
+       throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Workflow khác ticket cha');
+     if (!parentPin && workflowPin)
+       throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Ticket cha chưa ghim workflow');
+     workflowPin = parentPin;
+   }
++  let deployDefinitionHash: string | null = null;
++  let deployApprovalDecisionId: Id | null = null;
++  if (input.kind === 'deploy') {
++    deployDefinitionHash = deployTicketFingerprint({ ...input, workflowPin }, rootId);
++    if (input.deployApprovalDecisionId) {
++      if (
++        !(await verifyDeployApprovalForCandidate(
++          tx,
++          rootId,
++          input.deployApprovalDecisionId,
++          deployDefinitionHash,
++        ))
++      )
++        throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Duyệt deploy không khớp hành động');
++      deployApprovalDecisionId = input.deployApprovalDecisionId;
++    } else if (actor.kind === 'machine' && !rootOwnerDeploy) {
++      throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần chủ dự án duyệt deploy');
++    }
++  }
+   const [row] = await tx`insert into tickets
+-    (id,project_id,parent_id,root_id,level,kind,title,description,status,mandatory,criteria,inputs,outputs,skill,workflow_pin)
++    (id,project_id,parent_id,root_id,level,kind,title,description,status,mandatory,criteria,inputs,outputs,skill,workflow_pin,
++      created_actor_kind,created_actor_id,deploy_definition_hash,deploy_approval_decision_id)
+     values (${id},${input.projectId},${input.parentId},${rootId},${input.level},${input.kind},${input.title},
+       ${input.description},'pending',${input.mandatory},${tx.json(criteria as never)},${tx.json(input.inputs as never)},
+-      ${tx.json(input.outputs as never)},${input.skill},${workflowPin ? tx.json(workflowPin) : null}) returning *`;
++      ${tx.json(input.outputs as never)},${input.skill},${workflowPin ? tx.json(workflowPin) : null},
++      ${actor.kind},${actor.id},${deployDefinitionHash},${deployApprovalDecisionId}) returning *`;
+   if (!row) throw new Error('TICKET_INSERT_FAILED');
+   await appendEvent(tx, {
+     type: 'ticket.created',
+     projectId: input.projectId,
+     ticketId: id,
+     audienceMachineId: null,
+     data: { revision: 1, status: 'pending' },
+   });
+   return mapTicket(row);
+ }
+ 
+ async function signalTicketWithDependencies(
+   tx: Tx,
+   ticketId: Id,
+   signal: Signal,
+   expectedRevision: number,
+   evidenceId: Id | null,
+   actor: Actor,
+   deps: TicketServiceDependencies,
+   internal: boolean,
+ ): Promise<Ticket> {
+   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+     throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
++  const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
++  if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++  await tx`select id from tickets where id=${scope.root_id} for update`;
+   const ticket = await requireTicket(tx, ticketId, actor, true);
+   if (ticket.revision !== expectedRevision)
+     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
+   const executionSignals = new Set<Signal>([
+     'start',
+     'pause_confirmed',
+     'cancel_confirmed',
+     'reconciled_stopped',
+     'passed',
+   ]);
+   if (executionSignals.has(signal)) {
+     if (!internal || !deps.execution)
+       throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
+     await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
+   }
+   if (signal === 'dependencies_ready') {
+     const [pending] = await tx`select 1 from dependencies d join tickets p on p.id=d.predecessor_id
+       where d.ticket_id=${ticketId} and p.status<>'done' limit 1`;
+     if (pending) throw new ApiError('DEPENDENCIES_NOT_READY', 409, 'Phụ thuộc chưa hoàn thành');
+   }
++  let continuationDecisionId: Id | null = null;
+   if (signal === 'resume' && ticket.repairCycles === 5) {
+-    const [approval] = await tx`select id from decisions where ticket_id=${ticketId} and kind='owner_answer'
+-      and scope @> ${tx.json({ repairStepId: ticketId, continueAfterFive: true })}::jsonb limit 1`;
+-    if (!approval) throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Cần quyết định của chủ dự án');
++    const [limit] = await tx`select repair_limit_cycle_id,repair_limit_at,repair_limit_consumed_decision_id
++      from tickets where id=${ticketId}`;
++    if (limit?.repair_limit_cycle_id) {
++      if (limit.repair_limit_consumed_decision_id)
++        throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Quyết định đã được sử dụng');
++      const [approval] = await tx`select id from decisions where ticket_id=${ticketId}
++        and kind='owner_answer' and actor_kind='owner' and created_at>${limit.repair_limit_at}
++        and scope @> ${tx.json({
++          repairStepId: ticketId,
++          cycleId: limit.repair_limit_cycle_id,
++          continueAfterFive: true,
++        })}::jsonb
++        order by created_at,id limit 1`;
++      if (!approval)
++        throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Cần quyết định của chủ dự án');
++      continuationDecisionId = approval.id as Id;
++    }
+   }
+   if (signal === 'wait_owner' && ticket.status === 'running') {
+     if (!deps.execution)
+       throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu quyền điều khiển tiến trình');
+     if (internal) {
+       await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
+     } else {
+-      await deps.execution.requestTerminalIntent(tx, ticketId, 'needs_input', 'owner_input');
+-      const [row] = await tx`update tickets set wait_reason='owner_input',revision=revision+1
++      const reason = ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input';
++      await deps.execution.requestTerminalIntent(tx, ticketId, 'needs_input', reason);
++      const [row] = await tx`update tickets set wait_reason=${reason},revision=revision+1
+       where id=${ticketId} returning *`;
+       await appendEvent(tx, {
+         type: 'ticket.changed',
+         projectId: ticket.projectId,
+         ticketId,
+         audienceMachineId: null,
+         data: { revision: Number(row?.revision), status: 'running' },
+       });
+       return mapTicket(row as Record<string, unknown>);
+     }
+   }
+   let next: Ticket['status'];
+   try {
+     next = transition(ticket.status, signal);
+   } catch {
+     throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Không thể chuyển trạng thái ticket');
+   }
+   let mergedCommit = ticket.mergedCommit;
+   if (signal === 'passed') {
+     const facts = await readCompletionFacts(tx, ticket, deps.docsCompletion);
+     if (!facts.ready) throw new ApiError('COMPLETION_GATE', 409, 'Thiếu bằng chứng hoàn tất');
+     mergedCommit = facts.mergedCommit;
+   }
+   if (signal === 'cancel_confirmed' && !internal)
+     throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận dừng tiến trình');
++  const nextWaitReason =
++    next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
+   const [row] = await tx`update tickets set status=${next}, revision=revision+1,merged_commit=${mergedCommit},
+-    wait_reason=${next === 'needs_input' ? 'owner_input' : null}
++    wait_reason=${nextWaitReason},
++    repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
++    repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
++    repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
+     where id=${ticketId} returning *`;
+   await appendEvent(tx, {
+     type: 'ticket.changed',
+     projectId: ticket.projectId,
+     ticketId,
+     audienceMachineId: null,
+     data: { revision: Number(row?.revision), status: next },
+   });
+   return mapTicket(row as Record<string, unknown>);
+ }
+ 
+ export function createTicketServices(deps: TicketServiceDependencies = {}) {
+   const immutable: Readonly<TicketServiceDependencies> = Object.freeze({
+     docsCompletion: deps.docsCompletion,
+     docsSource: deps.docsSource,
+     execution: deps.execution ? Object.freeze({ ...deps.execution }) : undefined,
+   });
+   return {
+     mapTicket,
+     createTicket,
+diff --git a/v2/server/test/dependencies.test.ts b/v2/server/test/dependencies.test.ts
+index b0aa251..b3324e3 100644
+--- a/v2/server/test/dependencies.test.ts
++++ b/v2/server/test/dependencies.test.ts
+@@ -1,23 +1,25 @@
+ import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
+ import test from 'node:test';
+ import { createProject } from '../src/projects/service.ts';
++import { createTicketServices } from '../src/tickets/service.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
+ 
+ const withDatabase = databaseFixture(4);
+ 
+ test('hierarchy rejects a task directly under a request and cross-project parent', async () =>
+   withDatabase(async (db) => {
+     const f = await ticketFixture(db);
+     await assert.rejects(
+       () =>
+         f.mutation('bad-level', (tx) =>
+           f.services.createTicket(tx, inputTicket(f.project.id, 'task', f.request.id), owner),
+         ),
+       { code: 'TICKET_HIERARCHY' },
+     );
+     const other = await f.mutation('other', (tx) =>
+       f.services.createTicket(tx, inputTicket(f.project.id, 'request'), owner),
+     );
+     assert.notEqual(other.rootId, f.request.id);
+     const secondProject = await f.mutation('second-project', (tx) =>
+@@ -43,20 +45,86 @@ test('concurrent opposite edges cannot create a dependency cycle', async () =>
+       f.mutation(key, (tx) => f.services.addDependency(tx, id, predecessor, 1));
+     const results = await Promise.allSettled([add(f.a.id, f.b.id, 'a-b'), add(f.b.id, f.a.id, 'b-a')]);
+     assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
+     const failed = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+     assert.equal(failed.reason.code, 'DEPENDENCY_CYCLE');
+     assert.equal((await db`select * from dependencies`).length, 1);
+   }));
+ 
+ test('dependencies_ready refuses a step whose predecessor is unfinished', async () =>
+   withDatabase(async (db) => {
+     const f = await ticketFixture(db);
+     await f.mutation('edge', (tx) => f.services.addDependency(tx, f.a.id, f.b.id, 1));
+     await assert.rejects(
+       () =>
+         f.mutation('ready', (tx) =>
+           f.services.signalTicket(tx, f.a.id, 'dependencies_ready', 2, null, owner),
+         ),
+       { code: 'DEPENDENCIES_NOT_READY' },
+     );
+   }));
++
++test('closed request and completed step reject new descendants', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    await db`update tickets set status='done' where id=${f.request.id}`;
++    await assert.rejects(
++      () =>
++        f.mutation('after-root-done', (tx) =>
++          f.services.createTicket(tx, inputTicket(f.project.id, 'step', f.request.id), owner),
++        ),
++      { code: 'TICKET_CLOSED' },
++    );
++    await db`update tickets set status='running' where id=${f.request.id}`;
++    await db`update tickets set status='done' where id=${f.a.id}`;
++    await assert.rejects(
++      () =>
++        f.mutation('after-step-done', (tx) =>
++          f.services.createTicket(tx, inputTicket(f.project.id, 'task', f.a.id), owner),
++        ),
++      { code: 'TICKET_CLOSED' },
++    );
++  }));
++
++test('concurrent request completion and child creation cannot leave done root with pending child', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    await db`update tickets set status='running' where id=${f.request.id}`;
++    await db`update tickets set status='done' where id in (${f.a.id},${f.b.id})`;
++    await db`insert into evidence(id,ticket_id,kind,data) values
++      (${randomUUID()},${f.request.id},'research_result',${db.json({ verification: 'verified' })})`;
++    const services = createTicketServices({
++      execution: {
++        verifySignal: async () => {},
++        verifyRepairResult: async () => {},
++        requestTerminalIntent: async () => {},
++      },
++    });
++    const results = await Promise.allSettled([
++      db.begin((tx) => services.applyExecutionSignal(tx, f.request.id, 'passed', 1, null, owner)),
++      db.begin((tx) => services.createTicket(tx, inputTicket(f.project.id, 'step', f.request.id), owner)),
++    ]);
++    assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
++    const [root] = await db`select status from tickets where id=${f.request.id}`;
++    const [pending] =
++      await db`select count(*)::integer as n from tickets where parent_id=${f.request.id} and status<>'done'`;
++    assert.equal(root?.status === 'done' && Number(pending?.n) > 0, false);
++  }));
++
++test('dependency graph rejects adding edge once target is ready or running', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const ready = await f.mutation('make-ready', (tx) =>
++      f.services.signalTicket(tx, f.a.id, 'dependencies_ready', 1, null, owner),
++    );
++    assert.equal(ready.status, 'ready');
++    await assert.rejects(
++      () => f.mutation('edge-ready', (tx) => f.services.addDependency(tx, f.a.id, f.b.id, 2)),
++      { code: 'DEPENDENCY_EDIT_NOT_ALLOWED' },
++    );
++    await db`update tickets set status='running' where id=${f.a.id}`;
++    await assert.rejects(
++      () => f.mutation('edge-running', (tx) => f.services.addDependency(tx, f.a.id, f.b.id, 2)),
++      { code: 'DEPENDENCY_EDIT_NOT_ALLOWED' },
++    );
++    assert.equal((await db`select count(*)::integer as n from dependencies`)[0]?.n, 0);
++  }));
+diff --git a/v2/server/test/deploy.test.ts b/v2/server/test/deploy.test.ts
+new file mode 100644
+index 0000000..3373b2a
+--- /dev/null
++++ b/v2/server/test/deploy.test.ts
+@@ -0,0 +1,166 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { deployTicketFingerprint, readDeployAuthorization } from '../src/tickets/deploy.ts';
++import { createTicketServices } from '../src/tickets/service.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
++
++const withDatabase = databaseFixture(4);
++
++test('machine cannot create deploy request or unapproved deploy descendant', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const machineId = randomUUID();
++    await db`insert into machines(id,name,token_hash) values(${machineId},'Mac',${'c'.repeat(64)})`;
++    await db`update projects set machine_id=${machineId},checkout_path='/tmp/crew' where id=${f.project.id}`;
++    const machine = { kind: 'machine' as const, id: machineId };
++    await assert.rejects(
++      () =>
++        f.mutation('machine-deploy-root', (tx) =>
++          f.services.createTicket(
++            tx,
++            inputTicket(f.project.id, 'request', null, { kind: 'deploy' }),
++            machine,
++          ),
++        ),
++      { code: 'DEPLOY_OWNER_INTENT_REQUIRED' },
++    );
++    await assert.rejects(
++      () =>
++        f.mutation('machine-deploy-child', (tx) =>
++          f.services.createTicket(
++            tx,
++            inputTicket(f.project.id, 'step', f.request.id, { kind: 'deploy' }),
++            machine,
++          ),
++        ),
++      { code: 'DEPLOY_OWNER_INTENT_REQUIRED' },
++    );
++  }));
++
++test('owner-created deploy request authorizes only its own deploy lineage', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const machineId = randomUUID();
++    await db`insert into machines(id,name,token_hash) values(${machineId},'Mac',${'d'.repeat(64)})`;
++    await db`update projects set machine_id=${machineId},checkout_path='/tmp/crew' where id=${f.project.id}`;
++    const root = await f.mutation('owner-deploy-root', (tx) =>
++      f.services.createTicket(tx, inputTicket(f.project.id, 'request', null, { kind: 'deploy' }), owner),
++    );
++    const child = await f.mutation('machine-deploy-step', (tx) =>
++      f.services.createTicket(tx, inputTicket(f.project.id, 'step', root.id, { kind: 'deploy' }), {
++        kind: 'machine',
++        id: machineId,
++      }),
++    );
++    const permit = await db.begin((tx) => readDeployAuthorization(tx, child.id));
++    assert.equal(permit, 'owner_deploy_request');
++    assert.equal(await db.begin((tx) => readDeployAuthorization(tx, f.request.id)), null);
++  }));
++
++test('machine deploy child under ordinary root needs exact persisted owner approval', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const machineId = randomUUID();
++    await db`insert into machines(id,name,token_hash) values(${machineId},'Mac',${'e'.repeat(64)})`;
++    await db`update projects set machine_id=${machineId},checkout_path='/tmp/crew' where id=${f.project.id}`;
++    const candidate = inputTicket(f.project.id, 'step', f.request.id, {
++      kind: 'deploy',
++      title: 'Triển khai staging',
++    });
++    const fingerprint = deployTicketFingerprint(candidate, f.request.id);
++    const decisionId = await f.mutation('exact-deploy-approval', (tx) =>
++      f.services.recordDecision(
++        tx,
++        f.request.id,
++        {
++          kind: 'approval',
++          content: 'Duyệt triển khai staging',
++          rationale: 'Đã xem tác động',
++          sources: [],
++          scope: { action: 'deploy', rootTicketId: f.request.id, ticketDefinitionHash: fingerprint },
++        },
++        owner,
++      ),
++    );
++    await assert.rejects(
++      () =>
++        f.mutation('changed-deploy-title', (tx) =>
++          f.services.createTicket(
++            tx,
++            { ...candidate, title: 'Triển khai production', deployApprovalDecisionId: decisionId },
++            { kind: 'machine', id: machineId },
++          ),
++        ),
++      { code: 'DEPLOY_OWNER_INTENT_REQUIRED' },
++    );
++    const child = await f.mutation('approved-deploy-child', (tx) =>
++      f.services.createTicket(
++        tx,
++        { ...candidate, deployApprovalDecisionId: decisionId },
++        { kind: 'machine', id: machineId },
++      ),
++    );
++    assert.equal(await db.begin((tx) => readDeployAuthorization(tx, child.id)), 'owner_approval');
++  }));
++
++test('deploy completion accepts owner-created request but requires approval for a child elsewhere', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const authority = createTicketServices({
++      execution: {
++        verifySignal: async () => {},
++        verifyRepairResult: async () => {},
++        requestTerminalIntent: async () => {},
++      },
++    });
++    const rootInput = inputTicket(f.project.id, 'request', null, { kind: 'deploy' });
++    const deployRoot = await f.mutation('explicit-deploy-root', (tx) =>
++      authority.createTicket(tx, rootInput, owner),
++    );
++    await db`update tickets set status='running' where id=${deployRoot.id}`;
++    await db`insert into evidence(id,ticket_id,kind,data) values
++      (${randomUUID()},${deployRoot.id},'deploy_result',${db.json({ verification: 'verified' })})`;
++    const rootDone = await f.mutation('explicit-deploy-done', (tx) =>
++      authority.applyExecutionSignal(tx, deployRoot.id, 'passed', 1, null, owner),
++    );
++    assert.equal(rootDone.status, 'done');
++
++    const childInput = inputTicket(f.project.id, 'step', f.request.id, { kind: 'deploy' });
++    const child = await f.mutation('owner-deploy-child', (tx) =>
++      authority.createTicket(tx, childInput, owner),
++    );
++    await db`update tickets set status='running' where id=${child.id}`;
++    await db`insert into evidence(id,ticket_id,kind,data) values
++      (${randomUUID()},${child.id},'deploy_result',${db.json({ verification: 'verified' })})`;
++    await assert.rejects(
++      () =>
++        f.mutation('unapproved-deploy-done', (tx) =>
++          authority.applyExecutionSignal(tx, child.id, 'passed', 1, null, owner),
++        ),
++      { code: 'COMPLETION_GATE' },
++    );
++    await f.mutation('approve-existing-deploy', (tx) =>
++      authority.recordDecision(
++        tx,
++        child.id,
++        {
++          kind: 'approval',
++          content: 'Duyệt ticket deploy',
++          rationale: 'Đã kiểm tra',
++          sources: [],
++          scope: {
++            action: 'deploy',
++            targetTicketId: child.id,
++            ticketDefinitionHash: deployTicketFingerprint(childInput, f.request.id),
++          },
++        },
++        owner,
++      ),
++    );
++    const done = await f.mutation('approved-deploy-done', (tx) =>
++      authority.applyExecutionSignal(tx, child.id, 'passed', 1, null, owner),
++    );
++    assert.equal(done.status, 'done');
++  }));
+diff --git a/v2/server/test/repair.test.ts b/v2/server/test/repair.test.ts
+index ec43f67..02f4ab1 100644
+--- a/v2/server/test/repair.test.ts
++++ b/v2/server/test/repair.test.ts
+@@ -1,87 +1,163 @@
+ import assert from 'node:assert/strict';
+ import { randomUUID } from 'node:crypto';
+ import test from 'node:test';
+ import { createTicketServices } from '../src/tickets/service.ts';
+ import { databaseFixture } from './support/db.ts';
+-import { ticketFixture } from './support/tickets.ts';
++import { owner, ticketFixture } from './support/tickets.ts';
+ 
+ const withDatabase = databaseFixture(4);
+ 
+ test('repair review counts only completed repair failures and fifth requests terminal intent', async () =>
+   withDatabase(async (db) => {
+     const f = await ticketFixture(db);
+     const machineId = randomUUID();
+     await db`insert into machines(id,name,token_hash) values(${machineId},'Mac',${'b'.repeat(64)})`;
+     await db`update projects set machine_id=${machineId},checkout_path='/tmp/crew' where id=${f.project.id}`;
+     await db`update tickets set status='running' where id=${f.a.id}`;
+     const actor = { kind: 'machine' as const, id: machineId };
++    const fifthCycle = randomUUID();
++    await f.mutation('premature-owner-answer', (tx) =>
++      f.services.recordDecision(
++        tx,
++        f.a.id,
++        {
++          kind: 'owner_answer',
++          content: 'Tiếp tục sớm',
++          rationale: 'Chưa có vòng 5',
++          sources: [],
++          scope: { repairStepId: f.a.id, cycleId: fifthCycle, continueAfterFive: true },
++        },
++        owner,
++      ),
++    );
+     const intents: string[] = [];
+     const services = createTicketServices({
+       execution: {
+         verifySignal: async () => {},
+         verifyRepairResult: async (_tx, input) => {
+           if (input.fence !== '7' || input.ticketId !== f.a.id) throw new Error('BAD_FENCE');
+         },
+         requestTerminalIntent: async (_tx, id, intent) => {
+           intents.push(`${id}:${intent}`);
+         },
+       },
+     });
+     const review = (classification: 'initial_review' | 'repair_review' | 'model', cycleId: string) =>
+       f.mutation(cycleId, (tx) =>
+         services.recordRepairResult(
+           tx,
+           {
+             ticketId: f.a.id,
+             attemptId: randomUUID(),
+             fence: '7',
+             cycleId,
+             classification,
+             passed: false,
+             evidence: { observation: 'Không đạt' },
+           },
+           actor,
+         ),
+       );
+     await review('initial_review', randomUUID());
+     await review('model', randomUUID());
+     assert.equal((await f.read(f.a.id)).repairCycles, 0);
+     let lastCycle = '';
+     for (let i = 1; i <= 5; i++) {
+-      lastCycle = randomUUID();
++      lastCycle = i === 5 ? fifthCycle : randomUUID();
+       const result = await review('repair_review', lastCycle);
+       assert.equal(result.repairCycles, i);
+     }
+     const ticket = await f.read(f.a.id);
+     assert.equal(ticket.status, 'running');
+     assert.equal(ticket.waitReason, 'repair_limit');
+     assert.deepEqual(intents, [`${f.a.id}:needs_input`]);
+     assert.equal(
+       (await db`select count(*)::integer as n from repair_links where check_step_id=${f.a.id}`)[0]?.n,
+       5,
+     );
+     assert.equal(
+       (await db`select count(*)::integer as n from repair_results where check_step_id=${f.a.id}`)[0]?.n,
+       7,
+     );
+     assert.ok(lastCycle);
+     await assert.rejects(
+       () =>
+         f.mutation('stale-duplicate', (tx) =>
+           services.recordRepairResult(
+             tx,
+             {
+               ticketId: f.a.id,
+               attemptId: randomUUID(),
+               fence: '6',
+               cycleId: lastCycle,
+               classification: 'repair_review',
+               passed: false,
+               evidence: { observation: 'Không đạt' },
+             },
+             actor,
+           ),
+         ),
+       { message: 'BAD_FENCE' },
+     );
++    const waiting = await f.mutation('finalize-repair-limit', (tx) =>
++      services.applyExecutionSignal(tx, f.a.id, 'wait_owner', ticket.revision, null, actor),
++    );
++    assert.equal(waiting.status, 'needs_input');
++    assert.equal(waiting.waitReason, 'repair_limit');
++    await assert.rejects(
++      () =>
++        f.mutation('premature-resume', (tx) =>
++          services.signalTicket(tx, f.a.id, 'resume', waiting.revision, null, actor),
++        ),
++      { code: 'REPAIR_OWNER_DECISION_REQUIRED' },
++    );
++    const approvedDecisionId = await f.mutation('actual-owner-answer', (tx) =>
++      services.recordDecision(
++        tx,
++        f.a.id,
++        {
++          kind: 'owner_answer',
++          content: 'Tiếp tục sau vòng 5',
++          rationale: 'Đã xem kết quả',
++          sources: [],
++          scope: { repairStepId: f.a.id, cycleId: fifthCycle, continueAfterFive: true },
++        },
++        owner,
++      ),
++    );
++    const concurrentResume = await Promise.allSettled([
++      f.mutation('approved-resume-a', (tx) =>
++        services.signalTicket(tx, f.a.id, 'resume', waiting.revision, null, actor),
++      ),
++      f.mutation('approved-resume-b', (tx) =>
++        services.signalTicket(tx, f.a.id, 'resume', waiting.revision, null, actor),
++      ),
++    ]);
++    assert.equal(concurrentResume.filter((result) => result.status === 'fulfilled').length, 1);
++    const resumed = (
++      concurrentResume.find((result) => result.status === 'fulfilled') as PromiseFulfilledResult<
++        Awaited<ReturnType<typeof services.signalTicket>>
++      >
++    ).value;
++    assert.equal(resumed.status, 'pending');
++    assert.equal(resumed.repairCycles, 5);
++    const [consumed] =
++      await db`select repair_limit_cycle_id,repair_limit_consumed_decision_id from tickets where id=${f.a.id}`;
++    assert.equal(consumed?.repair_limit_cycle_id, null);
++    assert.equal(consumed?.repair_limit_consumed_decision_id, approvedDecisionId);
++    await db`update tickets set status='running' where id=${f.a.id}`;
++    const sixthCycle = randomUUID();
++    await review('repair_review', sixthCycle);
++    const afterSixth = await f.read(f.a.id);
++    const againWaiting = await f.mutation('finalize-second-limit', (tx) =>
++      services.applyExecutionSignal(tx, f.a.id, 'wait_owner', afterSixth.revision, null, actor),
++    );
++    assert.equal(againWaiting.waitReason, 'repair_limit');
++    await assert.rejects(
++      () =>
++        f.mutation('replay-old-answer', (tx) =>
++          services.signalTicket(tx, f.a.id, 'resume', againWaiting.revision, null, actor),
++        ),
++      { code: 'REPAIR_OWNER_DECISION_REQUIRED' },
++    );
+   }));

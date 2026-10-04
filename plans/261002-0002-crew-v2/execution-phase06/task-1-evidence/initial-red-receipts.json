@@ -1,0 +1,166 @@
+[
+  {
+    "kind": "resource-before-container",
+    "timeUnix": 1791021599.39144,
+    "data": {
+      "pressure": "1",
+      "estimatedAvailableBytes": 6603358208,
+      "method": "free+inactive+speculative",
+      "idlePercent": 83.6,
+      "diskBytes": 35276234752
+    }
+  },
+  {
+    "kind": "container-intended",
+    "timeUnix": 1791021599.391532,
+    "data": [
+      "docker",
+      "create",
+      "--name",
+      "crew-v2-test-0fa614be-c98e-4cd1-9007-43df33940da6",
+      "--label",
+      "crew.phase06.task1=34cd2e6f-d460-41b6-af51-2c122abf80b2",
+      "--memory",
+      "256m",
+      "--cpus",
+      "1",
+      "--pids-limit",
+      "64",
+      "-e",
+      "POSTGRES_HOST_AUTH_METHOD=trust",
+      "-e",
+      "POSTGRES_DB=crew_v2_test",
+      "-p",
+      "127.0.0.1::5432",
+      "postgres:18.6"
+    ]
+  },
+  {
+    "kind": "container-created",
+    "timeUnix": 1791021599.807478,
+    "data": {
+      "id": "a237bbd1f2b2a7c99decc7f1ed4b157b676076a78f70bb6b0254435b2acac112",
+      "name": "crew-v2-test-0fa614be-c98e-4cd1-9007-43df33940da6",
+      "memory": 268435456,
+      "nanoCpus": 1000000000,
+      "pidsLimit": 64,
+      "image": "sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722"
+    }
+  },
+  {
+    "kind": "container-running",
+    "timeUnix": 1791021601.069094,
+    "data": {
+      "mapping": "127.0.0.1:53462",
+      "pid": 89364,
+      "path": "docker-entrypoint.sh",
+      "args": [
+        "postgres"
+      ],
+      "serverVersion": "18.6 (Debian 18.6-1.pgdg13+2)"
+    }
+  },
+  {
+    "kind": "resource-before-node",
+    "timeUnix": 1791021601.693904,
+    "data": {
+      "pressure": "1",
+      "estimatedAvailableBytes": 5788696576,
+      "method": "free+inactive+speculative",
+      "idlePercent": 70.94,
+      "diskBytes": 35227009024
+    }
+  },
+  {
+    "kind": "child-intended",
+    "timeUnix": 1791021601.694077,
+    "data": {
+      "command": [
+        "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+        "--max-old-space-size=384",
+        "--test",
+        "--test-isolation=none",
+        "--test-name-pattern=assistant store schema",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f/v2/server/test/assistant-store.test.ts"
+      ],
+      "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f/v2/server"
+    }
+  },
+  {
+    "kind": "child-created",
+    "timeUnix": 1791021601.698858,
+    "data": {
+      "pid": 91934,
+      "psIdentity": "91934 Sat Oct  3 17:00:01 2026     /Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node --max-old-space-size=384 --test --test-isolation=none --test-name-pattern=assistant store schema /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f/v2/server/test/assistant-store.test.ts"
+    }
+  },
+  {
+    "kind": "child-closed",
+    "timeUnix": 1791021602.023922,
+    "data": {
+      "pid": 91934,
+      "exit": 1,
+      "waitObserved": true
+    }
+  },
+  {
+    "kind": "red-log",
+    "timeUnix": 1791021602.0242612,
+    "data": {
+      "sha256": "c23e305f6fcf2a7314f4541da3c73ff4f570c31b239d9214deab359af7349de2",
+      "bytes": 2144,
+      "content": "✖ assistant store schema has a durable empty inbox in the actual PostgreSQL migration prefix (217.832208ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 300.2505\n\n✖ failing tests:\n\ntest at test/assistant-store.test.ts:13:1\n✖ assistant store schema has a durable empty inbox in the actual PostgreSQL migration prefix (217.832208ms)\n  PostgresError: relation \"assistant_work_inbox\" does not exist\n      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)\n      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)\n      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)\n      at Socket.emit (node:events:508:28)\n      at addChunk (node:internal/streams/readable:563:12)\n      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n      at Readable.push (node:internal/streams/readable:394:5)\n      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)\n      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)\n      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)\n      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)\n      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f/v2/server/test/assistant-store.test.ts:18:29 {\n    severity_local: 'ERROR',\n    severity: 'ERROR',\n    code: '42P01',\n    position: '40',\n    file: 'parse_relation.c',\n    line: '1498',\n    routine: 'parserOpenTable'\n  }\n"
+    }
+  },
+  {
+    "kind": "database-after-test",
+    "timeUnix": 1791021602.078094,
+    "data": "crew_v2_test"
+  },
+  {
+    "kind": "manifest-recheck",
+    "timeUnix": 1791021602.084007,
+    "data": {
+      "files": 155,
+      "sha256": "b0687326097c68261a1923ea38952b98c7df4268151daafbed519cdaf8b9641e",
+      "unchanged": true
+    }
+  },
+  {
+    "kind": "container-closed",
+    "timeUnix": 1791021602.251673,
+    "data": {
+      "id": "a237bbd1f2b2a7c99decc7f1ed4b157b676076a78f70bb6b0254435b2acac112",
+      "status": "exited",
+      "pid": 0,
+      "exitCode": 0
+    }
+  },
+  {
+    "kind": "container-removed",
+    "timeUnix": 1791021602.312784,
+    "data": {
+      "id": "a237bbd1f2b2a7c99decc7f1ed4b157b676076a78f70bb6b0254435b2acac112",
+      "absent": true
+    }
+  },
+  {
+    "kind": "scratch-removed",
+    "timeUnix": 1791021602.333326,
+    "data": {
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f",
+      "identity": {
+        "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-schema-red-34cd2e6f",
+        "nonce": "34cd2e6f-d460-41b6-af51-2c122abf80b2",
+        "dev": 16777229,
+        "ino": 64397675,
+        "uid": 501,
+        "creatorPid": 83970,
+        "baseline": "0c838d2",
+        "purpose": "phase06 T1 actual schema RED only",
+        "dependencyResolution": "Normal ancestor package resolution; same accepted fixture convention as task-3-fix2-test-snapshot.py"
+      },
+      "absent": true
+    }
+  }
+]

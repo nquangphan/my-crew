@@ -1,0 +1,20 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-lifecycle-uqzoqeaz/v2/server", "exec", "node", "--test", "--test-name-pattern=actual cancellation|terminal assistant", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-lifecycle-uqzoqeaz/v2/server/test/attachments-access.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-lifecycle-uqzoqeaz/v2/server/test/attachments-grants.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-19aa706f-8393-4bdc-acc5-ff974ecc4c8d", "--label", "crew.phase05.task3=519fff7b-a182-4da4-9ba2-c4ac394d8cc2", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "2091a4e67976f734ed3ae8e22072b45f888107d283ea703d1bddb200ed240bde", "name": "crew-v2-test-19aa706f-8393-4bdc-acc5-ff974ecc4c8d", "mapping": "127.0.0.1:50463"}
+attachment DB container 2091a4e67976f734ed3ae8e22072b45f888107d283ea703d1bddb200ed240bde root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-javlQz
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-javlQz nonceSha256=147ea65b12a524f682fa35163f3068c01c85f9823e4a9364f4bcf700694c772d
+attachment DB scratch identity dev=16777229 ino=64116643 uid=501 pid=58923
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-javlQz
+✔ actual cancellation/reconcile and owner rebind invalidate old attachment fence; uncertain lease fails closed (1178.774541ms)
+attachment DB container 2091a4e67976f734ed3ae8e22072b45f888107d283ea703d1bddb200ed240bde root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-acQqQG
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-acQqQG nonceSha256=3adda32a0366f9f6b48e90c0980c53d7bba9a8352f25adcd7d5438650eeb69f3
+attachment DB scratch identity dev=16777229 ino=64116645 uid=501 pid=58924
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-acQqQG
+✔ terminal assistant session denies identical idempotency cache replay before callback (1199.163125ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1412.832584

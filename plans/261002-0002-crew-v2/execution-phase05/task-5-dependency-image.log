@@ -1,0 +1,94 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 626B done
+#1 WARN: FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 1)
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
+#2 DONE 1.8s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/7] FROM docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
+#4 resolve docker.io/library/node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 26.48kB done
+#5 DONE 0.0s
+
+#6 [2/7] WORKDIR /fixture/v2/server
+#6 DONE 0.0s
+
+#7 [3/7] COPY package.json pnpm-lock.yaml ./
+#7 DONE 0.0s
+
+#8 [4/7] RUN npm install --global --prefix /opt/pnpm --ignore-scripts --no-audit --no-fund pnpm@10.32.1
+#8 2.751 
+#8 2.751 added 1 package in 2s
+#8 2.753 npm notice
+#8 2.753 npm notice New minor version of npm available! 11.9.0 -> 11.21.0
+#8 2.753 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.0
+#8 2.753 npm notice To update run: npm install -g npm@11.21.0
+#8 2.753 npm notice
+#8 DONE 2.8s
+
+#9 [5/7] RUN /opt/pnpm/bin/pnpm install --frozen-lockfile --ignore-scripts
+#9 1.199 Lockfile is up to date, resolution step is skipped
+#9 1.235 Progress: resolved 1, reused 0, downloaded 0, added 0
+#9 1.281 Packages: +63
+#9 1.281 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#9 1.737 
+#9 1.737    ╭─────────────────────────────────────────╮
+#9 1.737    │                                         │
+#9 1.737    │   Update available! 10.32.1 → 12.8.1.   │
+#9 1.737    │   Changelog: https://pnpm.io/v/12.8.1   │
+#9 1.737    │    To update, run: pnpm add -g pnpm     │
+#9 1.737    │                                         │
+#9 1.737    ╰─────────────────────────────────────────╯
+#9 1.737 
+#9 2.237 Progress: resolved 63, reused 0, downloaded 51, added 51
+#9 3.167 Progress: resolved 63, reused 0, downloaded 63, added 63, done
+#9 3.366 
+#9 3.366 dependencies:
+#9 3.366 + @napi-rs/canvas 1.0.3
+#9 3.366 + fastify 5.12.5
+#9 3.366 + pdfjs-dist 6.3.289
+#9 3.366 + picomatch 4.0.7
+#9 3.366 + postgres 3.4.9
+#9 3.366 + saxes 6.0.0
+#9 3.366 + yaml 2.9.1
+#9 3.366 + yauzl 3.4.0
+#9 3.366 
+#9 3.366 devDependencies:
+#9 3.366 + @types/node 26.6.3
+#9 3.366 + typescript 7.0.2
+#9 3.366 
+#9 3.454 Done in 3s using pnpm v10.32.1
+#9 DONE 3.7s
+
+#10 [6/7] RUN /opt/pnpm/bin/pnpm exec tsc --version
+#10 1.073 Version 7.0.2
+#10 DONE 1.1s
+
+#11 [7/7] RUN node -e "const c=require('@napi-rs/canvas');if(c.createCanvas(1,1).toBuffer('image/png').length===0)process.exit(1)"
+#11 DONE 0.5s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 2.5s done
+#12 exporting manifest sha256:a51c67e27375132b4d3cf3a2b1e6041b57f8a705fb124fac5af6f7dfbabfd10c done
+#12 exporting config sha256:44139598fcf48f2887410cc27e0e56eb9bd992b37ee7ff3dd2deff9b6ae40a6f done
+#12 exporting attestation manifest sha256:63d7c43a0eeb701002e38a8890e4f69e5c7a3120c793179cfcf1cfcc2b8717da done
+#12 exporting manifest list sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e done
+#12 naming to docker.io/library/crew-v2-parser-deps:13b13820d0a74255b55daccdc63b3b95 done
+#12 DONE 2.5s
+
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 1)

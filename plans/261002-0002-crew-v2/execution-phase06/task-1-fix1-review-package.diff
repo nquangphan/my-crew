@@ -1,0 +1,520 @@
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+index 2a6a839..0b8de7a 100644
+--- a/v2/docs/flows/server-assistant.md
++++ b/v2/docs/flows/server-assistant.md
+@@ -13,10 +13,10 @@ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối tr
+ 1. Ingestion khóa `event_cursor` rồi monitor, đọc event đã commit theo trang 200, chèn work và tiến cursor trong cùng transaction. Rollback giữ cả work và cursor ở trạng thái trước đó. Event duplicate vẫn cho cursor tiến; work đã claim/ACK không bị ghi đè.
+ 2. `assistant.message.created` và message `attachment.input.changed` đọc revision từ message009. Ticket `attachment.input.changed`, `attachment.changed` đọc counter009 của đích. `comment.created` đọc cây con hiện tại và revision của từng descendant; không tăng counter thêm lần nữa. Ticket lifecycle `ticket.created/changed`, `dependency.added`, `decision.created`, `repair.recorded`, command và attempt events tạo work cursor riêng với `input_revision=null`. Event khác chỉ tiến cursor.
+ 3. Input wake khử trùng trên `(target_kind,target_id,input_revision)` khi revision khác null. `reconcileWork` quét revision message/ticket thực để bù wake mất, dùng cùng khóa dedup và giữ logical key/source cursor ban đầu. Các hàm này không tạo turn hay quyền inference.
+-4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
++4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Trước cả replay, message work phải cùng message/conversation của turn; ticket work cần scope của chính turn còn hạn, đúng root/project, kể cả descendant. Message turn chỉ nhận root scope khi có route chưa revoke tới cùng root/project; monitor turn không message cần explicit root scope. Discovery toàn hệ thống không cấp turn quyền toàn hệ thống. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
+ 5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
+ 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
+-7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. UUID artifact không chứng minh đã dừng.
++7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
+ 
+ ## Files
+ 
+@@ -33,6 +33,8 @@ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối tr
+ 
+ Migrations001–010 giữ nguyên. SQL011 lưu config/designation/monitor/guard, routing certification, turns/selections/scopes, inbox, workflows/gates/questions/answers, assessments/dispatches, capacity/reservations, interventions/operation IDs, text/budget/route/retirement/launch/tool/doc receipts. Khóa ngoại dùng bảng thực và ON DELETE RESTRICT; các vòng phụ thuộc được kiểm deferred trong transaction.
+ 
++Constraint identity deferred gắn selection với exact key của policy/capability receipts và machine designation của turn; không yêu cầu fixture UNVERIFIED trở thành PASS. Assessment snapshot phải thuộc chính ticket; dispatch command/step/assessment/decision cùng ticket và workflow run cùng root. Capacity receipt giữ exact ticket/kind/boot/ownership của request; reservation giữ machine/ticket của command và ownership của receipt. Ownership so sánh nguyên JSON array có thứ tự như DTO, không tự diễn giải thành set/sort. Những check này bảo vệ liên kết các hàng, không thay producer telemetry, canonical hash, approval hoặc admission.
++
+ `request_sha256` và `receipt_sha256` là SHA256 lowercase hex64 của toàn bộ DTO CapacityRequest/CapacityReceipt qua `canonicalJson`, không bao gồm hash tự thân hoặc linkage `receipt_id` ngoài DTO. Trusted producer T4 tính tại insert; T5 tiêu thụ. Hash không chứng nhận telemetry hay cấp admission. Consent producer phải kiểm identity/hash/current scope trước tạo linkage; artifact UUID chưa có registry generic trong001–010 nên trusted producer T2/native phải xác minh artifact và stop proof thực. Thiếu producer thì mặc định từ chối; fixture UNVERIFIED không phải production certificate.
+ 
+ Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số revision không an toàn và decimal bigint vượt 9223372036854775807. SourcePin/ProjectionPin dùng schema exported của producer hiện có. CreateTicket/SourceRef phản ánh shape type/route accepted; serialized CreateTicket bắt buộc workflowPin nullable, còn ticket HTTP route cũ có thể bỏ field và producer chuẩn hóa. Chỉ criteria/inputs/outputs/payload/result là JSON record theo đúng DTO producer; schema kiểm JSON đệ quy và cấm prototype keys, producer vẫn kiểm safeTicketJson/depth và business authority. Consumer phải cấu hình validator không xóa field dư, không ép kiểu hoặc chèn default.
+@@ -44,3 +46,5 @@ Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số re
+ ## Tests
+ 
+ `assistant-store.test.ts` chạy với private PostgreSQL18.6 và accepted baseline `0c838d2` cộng đúng source T1. Kiểm duplicate/restart, rollback cursor, concurrent ingestion, descendant revision, event/reconcile dedup, fence stale/unknown, generation rollback/overflow, bất biến linkage/receipt, effect ordinal, budget uncertain, R3 consent và R4 prelaunch/retirement. Pure validation dùng public compiler thực của Fastify, kiểm mọi DTO/variant cùng các negative nested, không mở HTTP/socket/model. Backup prefix010 được restore trước upgrade; prefix011 có dữ liệu cũng được dump/restore rồi đối chiếu SHA256 toàn bộ bảng và từng migration. Report Phase06/T1 ghi lần chạy cuối, các RED và identity/cleanup; các fixture SQL không chứng minh HTTP/admission/certification production. Typecheck frozen baseline, Biome các file sở hữu và kiểm đúng bảy H2 đi cùng source freeze.
++
++FIX1 bổ sung regression S1–S5: cross-message trước replay, root scope đúng route/monitor và hết hạn, selection mượn model/machine, assessment/dispatch ghép khác ticket, receipt/reservation sai request/ownership, released INSERT thiếu proof; positive terminal-proof row được backup/restore và đối chiếu toàn bộ dữ liệu. Không sửa guard005 hoặc migrations đã chốt.
+diff --git a/v2/server/migrations/011_assistant.sql b/v2/server/migrations/011_assistant.sql
+index 30d93aa..3d38d29 100644
+--- a/v2/server/migrations/011_assistant.sql
++++ b/v2/server/migrations/011_assistant.sql
+@@ -374,16 +374,27 @@ end $$;
+ create trigger assistant_capability_context before insert on routing_capability_receipts for each row execute function assistant_check_capability_context();
+ 
+ create function assistant_check_scope_target() returns trigger language plpgsql as $$
+-declare snapshot attachment_input_snapshots%rowtype;
++declare snapshot attachment_input_snapshots%rowtype; turn assistant_turns%rowtype;
+ begin
++ select * into turn from assistant_turns where id=NEW.turn_id;
++ if not found then raise exception 'ASSISTANT_SCOPE_TURN_MISMATCH'; end if;
+  select * into snapshot from attachment_input_snapshots where id=NEW.input_snapshot_id;
+  if not found then raise exception 'ASSISTANT_SCOPE_SNAPSHOT_MISSING'; end if;
+  if NEW.root_ticket_id is not null then
++  if turn.message_id is not null and not exists(select 1 from attachment_message_routes r
++    join tickets t on t.id=r.ticket_id where r.message_id=turn.message_id and r.revoked_at is null
++    and r.project_id=NEW.project_id and t.root_id=NEW.root_ticket_id) then
++   raise exception 'ASSISTANT_SCOPE_TURN_MISMATCH';
++  end if;
+   if snapshot.target_kind<>'ticket' or snapshot.target_id<>NEW.root_ticket_id or
+     not exists(select 1 from tickets where id=NEW.root_ticket_id and root_id=NEW.root_ticket_id and project_id=NEW.project_id) then
+    raise exception 'ASSISTANT_SCOPE_TARGET_MISMATCH';
+   end if;
+  else
++  if turn.message_id is distinct from NEW.message_id or not exists(select 1 from attachment_messages
++      where id=NEW.message_id and conversation_id=turn.conversation_id) then
++   raise exception 'ASSISTANT_SCOPE_TURN_MISMATCH';
++  end if;
+   if snapshot.target_kind<>'message' or snapshot.target_id<>NEW.message_id then raise exception 'ASSISTANT_SCOPE_TARGET_MISMATCH'; end if;
+   if NEW.project_id is not null and not exists(select 1 from attachment_message_routes where message_id=NEW.message_id and project_id=NEW.project_id and revoked_at is null) then
+    raise exception 'ASSISTANT_SCOPE_PROJECT_MISMATCH';
+@@ -435,8 +446,8 @@ create trigger assistant_budget_guard before insert or update on assistant_budge
+ create function assistant_check_reservation_release() returns trigger language plpgsql as $$
+ declare attempt attempts%rowtype; retirement assistant_dispatch_retirements%rowtype; launch assistant_launch_authorizations%rowtype;
+ begin
+- if OLD.state='released' and NEW.state<>'released' then raise exception 'ASSISTANT_RESERVATION_RELEASED'; end if;
+- if NEW.state<>'released' or OLD.state='released' then return NEW; end if;
++ if TG_OP='UPDATE' and OLD.state='released' and NEW.state<>'released' then raise exception 'ASSISTANT_RESERVATION_RELEASED'; end if;
++ if NEW.state<>'released' or (TG_OP='UPDATE' and OLD.state='released') then return NEW; end if;
+  select * into attempt from attempts where command_id=NEW.command_id;
+  if found then
+   if attempt.state<>'stopped' or attempt.stopped_at is null or attempt.finalized_at is null then raise exception 'ASSISTANT_FINALIZATION_REQUIRED'; end if;
+@@ -462,7 +473,8 @@ begin
+  end if;
+  return NEW;
+ end $$;
+-create trigger assistant_reservation_release before update on assistant_reservations for each row execute function assistant_check_reservation_release();
++create constraint trigger assistant_reservation_release after insert or update on assistant_reservations
++ deferrable initially deferred for each row execute function assistant_check_reservation_release();
+ 
+ create function assistant_check_route_consent() returns trigger language plpgsql as $$
+ declare parent attachment_submission_authorizations%rowtype; derived attachment_submission_authorizations%rowtype; route attachment_message_routes%rowtype;
+@@ -487,3 +499,73 @@ begin
+  return NEW;
+ end $$;
+ create trigger assistant_route_consent before insert on assistant_route_authorizations for each row execute function assistant_check_route_consent();
++
++-- Relational identity checks run at commit so circular turn/selection inserts and
++-- restoring valid terminal rows with their durable proofs remain possible.
++create function assistant_check_selection_identity() returns trigger language plpgsql as $$
++begin
++ if not exists(select 1 from assistant_turns t
++   join assistant_designations d on d.id=t.designation_id
++   join assistant_policy_receipts p on p.id=NEW.policy_receipt_id
++   join routing_capability_receipts c on c.id=NEW.probe_receipt_id and c.certification_receipt_id=p.id
++   where t.id=NEW.turn_id and t.model_selection_id=NEW.id
++   and NEW.model_key=p.model_key and NEW.model_key=c.model_key
++   and NEW.model_key->>'machineId'=d.machine_id::text and p.machine_id=d.machine_id) then
++  raise exception 'ASSISTANT_SELECTION_CONTEXT_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create constraint trigger assistant_selection_context after insert on assistant_model_selections
++ deferrable initially deferred for each row execute function assistant_check_selection_identity();
++
++create function assistant_check_assessment_identity() returns trigger language plpgsql as $$
++begin
++ if not exists(select 1 from attachment_input_snapshots where id=NEW.input_snapshot_id
++   and target_kind='ticket' and target_id=NEW.ticket_id) then
++  raise exception 'ASSISTANT_ASSESSMENT_TARGET_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create constraint trigger assistant_assessment_target after insert on assistant_assessments
++ deferrable initially deferred for each row execute function assistant_check_assessment_identity();
++
++create function assistant_check_dispatch_identity() returns trigger language plpgsql as $$
++begin
++ if not exists(select 1 from commands c
++   join tickets t on t.id=c.ticket_id
++   join workflow_steps s on s.id=NEW.step_id and s.run_id=NEW.run_id and s.ticket_id=t.id
++   join workflow_runs r on r.id=s.run_id and r.root_ticket_id=t.root_id
++   join assistant_assessments a on a.id=NEW.assessment_id and a.ticket_id=t.id
++   join attachment_input_snapshots i on i.id=a.input_snapshot_id and i.target_kind='ticket' and i.target_id=t.id
++   join decisions d on d.id=NEW.decision_id and d.ticket_id=t.id
++   where c.id=NEW.command_id) then
++  raise exception 'ASSISTANT_DISPATCH_TARGET_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create constraint trigger assistant_dispatch_target after insert on assistant_dispatches
++ deferrable initially deferred for each row execute function assistant_check_dispatch_identity();
++
++create function assistant_check_capacity_identity() returns trigger language plpgsql as $$
++begin
++ if not exists(select 1 from assistant_capacity_requests q where q.id=NEW.request_id
++   and q.machine_id=NEW.machine_id and q.ticket_id=NEW.ticket_id and q.kind=NEW.kind
++   and q.boot_generation=NEW.boot_generation and q.ownership_keys=NEW.ownership_keys) then
++  raise exception 'ASSISTANT_CAPACITY_CONTEXT_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create constraint trigger assistant_capacity_context after insert on assistant_capacity_receipts
++ deferrable initially deferred for each row execute function assistant_check_capacity_identity();
++
++create function assistant_check_reservation_identity() returns trigger language plpgsql as $$
++begin
++ if not exists(select 1 from commands c join assistant_capacity_receipts r on r.id=NEW.receipt_id
++   where c.id=NEW.command_id and c.machine_id=NEW.machine_id and r.machine_id=NEW.machine_id
++   and c.ticket_id=r.ticket_id and NEW.ownership_keys=r.ownership_keys) then
++  raise exception 'ASSISTANT_RESERVATION_CONTEXT_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create constraint trigger assistant_reservation_context after insert on assistant_reservations
++ deferrable initially deferred for each row execute function assistant_check_reservation_identity();
+diff --git a/v2/server/src/assistant/inbox.ts b/v2/server/src/assistant/inbox.ts
+index 65e31a9..f80d27a 100644
+--- a/v2/server/src/assistant/inbox.ts
++++ b/v2/server/src/assistant/inbox.ts
+@@ -141,9 +141,29 @@ async function lockWorkRoot(tx: Tx, workId: Id): Promise<void> {
+   }
+ }
+ 
++async function assertWorkScope(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
++  // Caller has locked the ticket root (when applicable), then current authority.
++  // These immutable identity reads never add a root lock on the message path.
++  const [allowed] = await tx`select w.id from assistant_work_inbox w
++    join assistant_turns t on t.id=${fence.turnId}
++    where w.id=${workId} and (
++      (w.target_kind='message' and w.target_id=t.message_id and exists(
++        select 1 from attachment_messages m where m.id=w.target_id and m.conversation_id=t.conversation_id))
++      or (w.target_kind='ticket' and exists(
++        select 1 from tickets ticket join assistant_scopes s on s.root_ticket_id=ticket.root_id
++        and s.project_id=ticket.project_id and s.turn_id=t.id
++        where ticket.id=w.target_id and s.expires_at>now() and
++          (t.message_id is null or exists(select 1 from attachment_message_routes r
++            join tickets routed on routed.id=r.ticket_id where r.message_id=t.message_id
++            and r.revoked_at is null and r.project_id=s.project_id and routed.root_id=s.root_ticket_id)))))`;
++  if (!allowed)
++    throw new ApiError('ASSISTANT_WORK_SCOPE_MISMATCH', 409, 'Công việc không thuộc phạm vi của lượt Trợ lý');
++}
++
+ export async function claimWork(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
+   await lockWorkRoot(tx, workId);
+   await assertCurrentTurnFence(tx, fence, 'claim');
++  await assertWorkScope(tx, workId, fence);
+   const [work] =
+     await tx`select state,turn_id,claim_generation,next_due_at from assistant_work_inbox where id=${workId} for update`;
+   if (
+@@ -162,6 +182,7 @@ export async function claimWork(tx: Tx, workId: Id, fence: TurnFence): Promise<v
+ export async function ackWork(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
+   await lockWorkRoot(tx, workId);
+   await assertCurrentTurnFence(tx, fence, 'ack');
++  await assertWorkScope(tx, workId, fence);
+   const [work] =
+     await tx`select state,turn_id,claim_generation from assistant_work_inbox where id=${workId} for update`;
+   if (
+diff --git a/v2/server/test/assistant-store.test.ts b/v2/server/test/assistant-store.test.ts
+index f2df566..59ed72c 100644
+--- a/v2/server/test/assistant-store.test.ts
++++ b/v2/server/test/assistant-store.test.ts
+@@ -975,3 +975,231 @@ test('assistant store restores prefix010 before upgrade and prefix011 with ident
+     const [eleventh] = await db`select checksum from schema_migrations where version=11`;
+     assert.equal(eleventh?.checksum, prefix11.files[10]?.sha256);
+   }));
++
++test('assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents, claimWork, ackWork, reconcileWork } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const a = await f.submitMessage('A'),
++        b = await f.submitMessage('B');
++      const fence = await f.seedTurn(a.conversation.id, a.message.id);
++      await db.begin((tx) => ingestEvents(tx, b.cursor));
++      const [work] =
++        await db`select id,state from assistant_work_inbox where target_kind='message' and target_id=${b.message.id}`;
++      assert.ok(work);
++      await assert.rejects(
++        db.begin((tx) => claimWork(tx, String(work.id), fence)),
++        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
++      );
++      assert.equal(
++        (await db`select state from assistant_work_inbox where id=${work.id}`)[0]?.state,
++        'pending',
++      );
++      for (const operation of [claimWork, ackWork])
++        await assert.rejects(
++          db.begin(async (tx) => {
++            await tx`update assistant_work_inbox set state='claimed',turn_id=${fence.turnId},claim_generation=${fence.generation} where id=${work.id}`;
++            await operation(tx, String(work.id), fence);
++          }),
++          { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
++        );
++      const scope = async (targetId: string, kind: 'message' | 'ticket', projectId: string | null) =>
++        db.begin(async (tx) => {
++          const snapshotId = randomUUID();
++          await tx`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++        values(${snapshotId},${kind},${targetId},1,0,'{}',${'a'.repeat(64)})`;
++          return tx`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
++        values(${randomUUID()},${fence.turnId},${kind === 'ticket' ? targetId : null},${kind === 'message' ? targetId : null},${projectId},'[]','[]',${snapshotId},${'a'.repeat(64)},${randomUUID()},now()+interval '1 hour')`;
++        });
++      await assert.rejects(scope(b.message.id, 'message', null), /ASSISTANT_SCOPE_TURN_MISMATCH/);
++      await scope(a.message.id, 'message', null);
++      await db.begin((tx) => reconcileWork(tx));
++      const [ticketWork] =
++        await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null`;
++      assert.ok(ticketWork);
++      await assert.rejects(
++        db.begin((tx) => claimWork(tx, String(ticketWork.id), fence)),
++        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
++      );
++      await assert.rejects(scope(f.request.id, 'ticket', f.project.id), /ASSISTANT_SCOPE_TURN_MISMATCH/);
++      const decisionId = randomUUID();
++      await db`insert into attachment_message_decisions(id,message_id,input_revision,actor_kind,actor_id,kind,body,sha256)
++      values(${decisionId},${a.message.id},1,'owner','owner','routing','{}',${'a'.repeat(64)})`;
++      await db`insert into attachment_message_routes(id,message_id,revision,project_id,ticket_id,decision_id)
++      values(${randomUUID()},${a.message.id},1,${f.project.id},${f.request.id},${decisionId})`;
++      await scope(f.request.id, 'ticket', f.project.id);
++      await db.begin((tx) => claimWork(tx, String(ticketWork.id), fence));
++      await db.begin((tx) => ackWork(tx, String(ticketWork.id), fence));
++      const outsider = await f.mutation(randomUUID(), (tx) =>
++        f.services.createTicket(tx, inputTicket(f.project.id, 'request'), owner),
++      );
++      await db.begin((tx) => reconcileWork(tx));
++      const [outsideWork] =
++        await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${outsider.id} and input_revision is not null`;
++      await assert.rejects(
++        db.begin((tx) => claimWork(tx, String(outsideWork?.id), fence)),
++        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant FIX1 S2 binds selection to exact receipt model and designation machine', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      await assert.rejects(
++        f.seedTurn(m.conversation.id, m.message.id, { selectionModelId: 'borrowed-model' }),
++        /ASSISTANT_SELECTION_CONTEXT_MISMATCH/,
++      );
++      const machineId = randomUUID();
++      await db`insert into machines(id,name,token_hash) values(${machineId},'receipt-only',${'e'.repeat(64)})`;
++      await assert.rejects(
++        f.seedTurn(m.conversation.id, m.message.id, { receiptMachineId: machineId }),
++        /ASSISTANT_SELECTION_CONTEXT_MISMATCH/,
++      );
++      const fence = await f.seedTurn(m.conversation.id, m.message.id);
++      assert.ok(fence.turnId);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant FIX1 S1 monitor turn needs an unexpired explicit root scope for ticket work', async () =>
++  databaseFixture(11)(async (db) => {
++    const { reconcileWork, claimWork, ackWork } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      const fence = await f.seedTurn(m.conversation.id, null);
++      await db.begin((tx) => reconcileWork(tx));
++      const [work] =
++        await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null`;
++      assert.ok(work);
++      const snapshot = randomUUID();
++      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++      values(${snapshot},'ticket',${f.request.id},1,0,'{}',${'a'.repeat(64)})`;
++      const scope = (
++        seconds: number,
++      ) => db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
++      values(${randomUUID()},${fence.turnId},${f.request.id},null,${f.project.id},'[]','[]',${snapshot},${'a'.repeat(64)},${randomUUID()},now()+${seconds}*interval '1 second')`;
++      await scope(-60);
++      await assert.rejects(
++        db.begin((tx) => claimWork(tx, String(work.id), fence)),
++        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
++      );
++      await scope(3600);
++      await db.begin((tx) => claimWork(tx, String(work.id), fence));
++      await db.begin((tx) => ackWork(tx, String(work.id), fence));
++      await db.begin((tx) => ackWork(tx, String(work.id), fence));
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant FIX1 S3 binds assessment snapshot and dispatch command step decision to one ticket', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const d = await f.seedDispatchRows();
++      const snapshotB = randomUUID(),
++        assessmentB = randomUUID(),
++        stepB = randomUUID();
++      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++      values(${snapshotB},'ticket',${f.b.id},1,0,'{}',${'a'.repeat(64)})`;
++      await assert.rejects(
++        db`insert into assistant_assessments(id,ticket_id,input_snapshot_id,body,hash)
++      values(${randomUUID()},${f.a.id},${snapshotB},'{}',${'a'.repeat(64)})`,
++        /ASSISTANT_ASSESSMENT_TARGET_MISMATCH/,
++      );
++      await db`insert into assistant_assessments(id,ticket_id,input_snapshot_id,body,hash)
++      values(${assessmentB},${f.b.id},${snapshotB},'{}',${'a'.repeat(64)})`;
++      await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,output_kinds,gate_ids,ownership_keys,role)
++      values(${stepB},${d.runId},${f.b.id},'fixture','SKILL.md',${'a'.repeat(64)},'[]','[]','[]','[]','[]','implement')`;
++      const decisionB = await f.mutation(randomUUID(), (tx) =>
++        f.services.recordDecision(
++          tx,
++          f.b.id,
++          { kind: 'dispatch', content: 'Fixture', rationale: 'Fixture', sources: [], scope: {} },
++          owner,
++        ),
++      );
++      for (const values of [
++        { step: d.stepId, assessment: assessmentB, decision: d.decisionId },
++        { step: stepB, assessment: d.assessmentId, decision: d.decisionId },
++        { step: d.stepId, assessment: d.assessmentId, decision: decisionB },
++      ]) {
++        const command = randomUUID();
++        await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state) select ${command},machine_id,ticket_id,binding_revision,type,payload,'queued' from commands where id=${d.command.id}`;
++        await assert.rejects(
++          db`insert into assistant_dispatches(command_id,decision_id,run_id,step_id,assessment_id,permit)
++        values(${command},${values.decision},${d.runId},${values.step},${values.assessment},'{}')`,
++          /ASSISTANT_DISPATCH_TARGET_MISMATCH/,
++        );
++      }
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant FIX1 S4 binds receipt and reservation to exact request command and ownership array', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const d = await f.seedDispatchRows({ reservation: false });
++      for (const changed of [
++        { ticketId: f.b.id, kind: 'implement', boot: '1', keys: ['fixture.txt'] },
++        { ticketId: f.a.id, kind: 'review', boot: '1', keys: ['fixture.txt'] },
++        { ticketId: f.a.id, kind: 'implement', boot: '2', keys: ['fixture.txt'] },
++        { ticketId: f.a.id, kind: 'implement', boot: '1', keys: ['other.txt'] },
++      ]) {
++        const request = randomUUID();
++        await db`insert into assistant_capacity_requests(id,machine_id,ticket_id,kind,ownership_keys,boot_generation,requested_at,expires_at,request_sha256)
++        values(${request},${d.machineId},${f.a.id},'implement','["fixture.txt"]','1',now(),now()+interval '15 seconds',${'a'.repeat(64)})`;
++        await assert.rejects(
++          db`insert into assistant_capacity_receipts(id,request_id,machine_id,boot_generation,ticket_id,kind,ownership_keys,telemetry,received_at,expires_at,allowed,reason,receipt_sha256)
++        values(${randomUUID()},${request},${d.machineId},${changed.boot},${changed.ticketId},${changed.kind},${db.json(changed.keys)},'{}',now(),now()+interval '10 seconds',true,'Fixture',${'b'.repeat(64)})`,
++          /ASSISTANT_CAPACITY_CONTEXT_MISMATCH/,
++        );
++      }
++      await assert.rejects(
++        db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
++      values(${randomUUID()},${d.command.id},${d.receipt.id},${d.machineId},'["other.txt"]','reserved')`,
++        /ASSISTANT_RESERVATION_CONTEXT_MISMATCH/,
++      );
++      const commandB = randomUUID();
++      await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state) select ${commandB},machine_id,${f.b.id},binding_revision,type,payload,'queued' from commands where id=${d.command.id}`;
++      await assert.rejects(
++        db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
++      values(${randomUUID()},${commandB},${d.receipt.id},${d.machineId},'["fixture.txt"]','reserved')`,
++        /ASSISTANT_RESERVATION_CONTEXT_MISMATCH/,
++      );
++      await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
++      values(${randomUUID()},${d.command.id},${d.receipt.id},${d.machineId},'["fixture.txt"]','reserved')`;
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant FIX1 S5 checks inserted released reservations and restores valid terminal proof rows', async () =>
++  databaseFixture(11)(async (db) => {
++    const { verifyBackupRestore } = await import('./support/assistant.ts');
++    const f = await assistantFixture(db);
++    try {
++      const d = await f.seedDispatchRows({ reservation: false });
++      const insert =
++        () => db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
++      values(${randomUUID()},${d.command.id},${d.receipt.id},${d.machineId},'["fixture.txt"]','released')`;
++      await assert.rejects(insert(), /ASSISTANT_RETIREMENT_PROOF_REQUIRED/);
++      const retirementId = randomUUID();
++      await db`insert into assistant_dispatch_retirements(command_id,retirement_id,reason,retired_at,proof,released_at)
++      values(${d.command.id},${retirementId},'expired',now(),${db.json({ kind: 'never-authorized', commandId: d.command.id, retirementId })},now())`;
++      await insert();
++      await verifyBackupRestore(db, 11);
++    } finally {
++      await f.close();
++    }
++  }));
+diff --git a/v2/server/test/support/assistant.ts b/v2/server/test/support/assistant.ts
+index 451c651..23c074d 100644
+--- a/v2/server/test/support/assistant.ts
++++ b/v2/server/test/support/assistant.ts
+@@ -503,7 +503,7 @@ export async function assistantFixture(db: Db) {
+     ...attachments,
+     messages,
+     seedWorkflowRows,
+-    async seedDispatchRows() {
++    async seedDispatchRows(options: { reservation?: boolean } = {}) {
+       // This seeds relational hook preconditions, not a permitted production run.
+       const { runId, stepId } = await seedWorkflowRows();
+       const machineId = randomUUID(),
+@@ -599,7 +599,8 @@ export async function assistantFixture(db: Db) {
+       await db`insert into assistant_capacity_receipts(id,request_id,machine_id,boot_generation,ticket_id,kind,ownership_keys,telemetry,received_at,expires_at,allowed,reason,receipt_sha256)
+         values(${receipt.id},${requestId},${machineId},${receipt.bootGeneration},${receipt.ticketId},${receipt.kind},${db.json(receipt.ownershipKeys)},${db.json(receipt.telemetry)},${receipt.receivedAt},${receipt.expiresAt},${receipt.allowed},${receipt.reason},${receiptHash})`;
+       await db`update assistant_capacity_requests set receipt_id=${receiptId} where id=${requestId}`;
+-      await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
++      if (options.reservation !== false)
++        await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
+         values(${reservationId},${command.id},${receiptId},${machineId},'["fixture.txt"]','reserved')`;
+       return {
+         runId,
+@@ -607,6 +608,9 @@ export async function assistantFixture(db: Db) {
+         command,
+         machineId,
+         reservationId,
++        snapshotId,
++        assessmentId,
++        decisionId,
+         request,
+         receipt,
+         async launch() {
+@@ -624,7 +628,11 @@ export async function assistantFixture(db: Db) {
+         },
+       };
+     },
+-    async seedTurn(conversationId: Id, messageId: Id): Promise<TurnFence> {
++    async seedTurn(
++      conversationId: Id,
++      messageId: Id | null,
++      options: { selectionModelId?: string; receiptMachineId?: Id } = {},
++    ): Promise<TurnFence> {
+       // Explicit test-only persisted rows. UNVERIFIED routing receipts never
+       // demonstrate admission or a production certification implementation.
+       const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
+@@ -638,10 +646,15 @@ export async function assistantFixture(db: Db) {
+           probeId = randomUUID();
+         const processInstanceId = randomUUID();
+         const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
+-        const key = { machineId, runtime: 'api', providerId: 'fixture', modelId: 'no-inference' };
++        const key = {
++          machineId: options.receiptMachineId ?? machineId,
++          runtime: 'api',
++          providerId: 'fixture',
++          modelId: 'no-inference',
++        };
+         const context = {
+           deploymentId: String(config?.deployment_id),
+-          machineId,
++          machineId: key.machineId,
+           key,
+           binarySha256: 'a'.repeat(64),
+           policySha256: 'b'.repeat(64),
+@@ -657,7 +670,7 @@ export async function assistantFixture(db: Db) {
+           ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},'failed')`;
+         await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
+           binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
+-          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${machineId},${tx.json(key)},'fixture-only',
++          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
+           ${context.binarySha256},${context.policySha256},${contextHash},'UNVERIFIED','[]',now()+interval '5 minutes')`;
+         await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
+           values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',now(),now()+interval '4 minutes')`;
+@@ -665,7 +678,7 @@ export async function assistantFixture(db: Db) {
+         await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,model_selection_id,state)
+           values(${turnId},${conversationId},${messageId},${designationId},1,${generation},${processInstanceId},${selectionId},'running')`;
+         await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
+-          values(${selectionId},${turnId},${tx.json(key)},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
++          values(${selectionId},${turnId},${tx.json({ ...key, modelId: options.selectionModelId ?? key.modelId })},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
+         return { turnId, designationId, designationRevision: 1, generation, processInstanceId };
+       });
+     },

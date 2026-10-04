@@ -1,0 +1,11 @@
+[
+  {
+    "kind": "gateway",
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-c60b6593-fa06-4cea-92d8-cdaccd2fb174",
+    "action": "removed",
+    "dev": 16777229,
+    "ino": 63815284,
+    "uid": 501,
+    "absent": true
+  }
+]

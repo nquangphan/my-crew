@@ -1,0 +1,28 @@
+✖ attachment metadata budget retains a verifiable available prefix before progressive output (159.067959ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 239.171625
+
+✖ failing tests:
+
+test at v2/server/test/attachments-text-csv.unit.test.ts:283:1
+✖ attachment metadata budget retains a verifiable available prefix before progressive output (159.067959ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(result.files.length>0)
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-text-csv.unit.test.ts:285:248)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

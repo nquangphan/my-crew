@@ -1,0 +1,149 @@
+{
+  "capturedUnix": 1791020854.0696461,
+  "runs": [
+    {
+      "run": "red",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-dtpe3ztk",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64377454,
+        "uid": 501
+      },
+      "nonceSha256": "9bfe26d64e9dc145acda3dec2c9c6c99b25a7082a92672db0ec70e6df1d4c148",
+      "rootAbsentNow": true,
+      "childClosed": true,
+      "childPid": 32073,
+      "childPidAbsentNow": true,
+      "childExit": 1,
+      "receiptSha256": "0bce88c97c8bd73d16b47a3a1a42aade5c120b322914ad0d40cffae4a459095a",
+      "container": "0ba5b3f2c8519f2cdfdea94ae9229a1603b26a527aa22df6ee9ac974f64f6072",
+      "containerAbsentNow": true,
+      "absence": "error: no such object: 0ba5b3f2c8519f2cdfdea94ae9229a1603b26a527aa22df6ee9ac974f64f6072",
+      "createdReceiptSha256": "c22b7b179454b3eb70b33f11ebf5d6c150d023b5346af717f332ba028fd41d17",
+      "closedReceiptSha256": "714153601ee4e142be2eaadf430fb3838be3c8adc7ef015c32da3eabe0c6aacc"
+    },
+    {
+      "run": "red-final",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-red-final-pe02dcsj",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64380657,
+        "uid": 501
+      },
+      "nonceSha256": "808a3dc06ce3f6f3bf1778a5bc3ee0f7325264d385537163de4c52eea547a153",
+      "rootAbsentNow": true,
+      "childClosed": true,
+      "childPid": 38579,
+      "childPidAbsentNow": true,
+      "childExit": 1,
+      "receiptSha256": "a67aea374217eae1ea092c20adf0a3f7dbb0fda71a9cf2652135310af9ca5624",
+      "container": "9699bf76dd48cf4bf7ff28267b6f678cd731c632130840b8dd6f15b2e3cfd9da",
+      "containerAbsentNow": true,
+      "absence": "error: no such object: 9699bf76dd48cf4bf7ff28267b6f678cd731c632130840b8dd6f15b2e3cfd9da",
+      "createdReceiptSha256": "13d9d3ea5b51f2959c65f814c4d58b4c3b7b4b68f3b40c10d245d34f0772ca41",
+      "closedReceiptSha256": "7a2b94b4ad3e091ed90ffd2aae789e587f54772eb4edaa9d06501e37ee5aae0e"
+    },
+    {
+      "run": "green",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-green-c92e5the",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64381474,
+        "uid": 501
+      },
+      "nonceSha256": "5787ebcde69e0c094cd21bff4ff644e4c1724734b512ef40d3ad307fa9f4a1f6",
+      "rootAbsentNow": true,
+      "childClosed": true,
+      "childPid": 41360,
+      "childPidAbsentNow": true,
+      "childExit": 0,
+      "receiptSha256": "2ef711d1891b9479535c8ae2936c19ad9e3d253daa5352d73d0c7ceca75e4116",
+      "container": "439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b",
+      "containerAbsentNow": true,
+      "absence": "error: no such object: 439be735fb42261adbb95aeaf56b150592a1dcc96fa707c21fa04bb46d3a7f7b",
+      "createdReceiptSha256": "469a539e13033b81ab19c2b34edc1b4fa0fccdcffc02e8ce76dd72f273251df3",
+      "closedReceiptSha256": "cda05fff9f1f452e456e299d0f3173a3f739f39debca3ab5aa8269910a2fc4af"
+    },
+    {
+      "run": "types",
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-fix2-fix2-types-esxbkk_q",
+      "identity": {
+        "dev": 16777229,
+        "ino": 64382130,
+        "uid": 501
+      },
+      "nonceSha256": "c0a2d4ebaa07d7d9c1353a389ba67b1bcb8733a06daca3066515c08b24e8d943",
+      "rootAbsentNow": true,
+      "childClosed": true,
+      "childPid": 42121,
+      "childPidAbsentNow": true,
+      "childExit": 0,
+      "receiptSha256": "ff194ff7986b351baffa4cdffcfb1ca84702a04ff445d99d31c17d36e25cb812"
+    }
+  ],
+  "scratchRoots": [
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HLbydF",
+      "nonceSha256": "8c9fbf673efd65610079c2ab550479ab3cf26a6a3803074f5ab27b14ab44b270",
+      "dev": 16777229,
+      "ino": 64377822,
+      "uid": 501,
+      "nodePid": 32108,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-txP0px",
+      "nonceSha256": "38ac4929511496ff391cd909cd5421133e6c161310d8af635aa03fd10cca9269",
+      "dev": 16777229,
+      "ino": 64381025,
+      "uid": 501,
+      "nodePid": 38613,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YR5MXF",
+      "nonceSha256": "bc1503c3e5c8386ea0fc0a68149fc69ddbb9223fb6b19ea39b3fcc5d438736a5",
+      "dev": 16777229,
+      "ino": 64381843,
+      "uid": 501,
+      "nodePid": 41394,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sLU4vF",
+      "nonceSha256": "950844099007b6377c6914953937e6d33a3a69c141176921603ac70f57bfad3b",
+      "dev": 16777229,
+      "ino": 64381907,
+      "uid": 501,
+      "nodePid": 41394,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6VbNsx",
+      "nonceSha256": "28a567e51913e6bdfb863211becfe992189fbbca7f92e21c5f90052413c946c3",
+      "dev": 16777229,
+      "ino": 64381961,
+      "uid": 501,
+      "nodePid": 41394,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    },
+    {
+      "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-TZSPv6",
+      "nonceSha256": "d2a1b38734bba2f4de30dcbd79353a0fa9e0a677b2fa5272260178f7503dc610",
+      "dev": 16777229,
+      "ino": 64382024,
+      "uid": 501,
+      "nodePid": 41394,
+      "removedReceiptInLog": true,
+      "absentNow": true
+    }
+  ],
+  "unknownResourcesDeleted": false,
+  "liveOwnHeavySequence": false,
+  "nativeOrProviderCanaryLaunched": false
+}

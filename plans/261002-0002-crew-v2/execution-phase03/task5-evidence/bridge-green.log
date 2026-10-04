@@ -1,0 +1,14 @@
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QHxDIA","device":"16777229","inode":"63482158","uid":501,"deleted":true}
+✔ execution bridge lost claim replay keeps one READY identity before release (2423.80225ms)
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5zAwas","device":"16777229","inode":"63482345","uid":501,"deleted":true}
+✔ execution bridge lost projection replay keeps one READY identity before release (2006.435417ms)
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dadR32","device":"16777229","inode":"63482536","uid":501,"deleted":true}
+✔ execution bridge production permit default denies before reserving a launch (303.731334ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4817.411834

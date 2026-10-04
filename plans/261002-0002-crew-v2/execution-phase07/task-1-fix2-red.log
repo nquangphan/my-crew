@@ -1,0 +1,28 @@
+✖ unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry (255.99ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 534.91075
+
+✖ failing tests:
+
+test at test/fixture-lifecycle.test.ts:153:1
+✖ unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry (255.99ms)
+  AssertionError [ERR_ASSERTION]: Callback đã abort không được khởi chạy rm sau stat
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/web/test/fixture-lifecycle.test.ts:214:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,24 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-87e27235-752d-4e76-a47e-4a09af51a85a-tx8Xtn","nonce":"87e27235-752d-4e76-a47e-4a09af51a85a","dev":16777229,"ino":64101835,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-87e27235-752d-4e76-a47e-4a09af51a85a-tx8Xtn","nonce":"87e27235-752d-4e76-a47e-4a09af51a85a","dev":16777229,"ino":64101835,"uid":501}
+✔ runtime boundary captured bridge hook denies before RELEASE after actual accepted companion (2209.947583ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-21de8100-befe-459d-be67-c90f6ca18039-MjIC5o","nonce":"21de8100-befe-459d-be67-c90f6ca18039","dev":16777229,"ino":64102011,"uid":501}
+✖ runtime boundary RuntimePin durable before RELEASE and replay immutable across store reopen (1337.475834ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54245.988125
+
+✖ failing tests:
+
+test at v2/gateway/test/runtime-boundary.test.ts:48:1
+✖ runtime boundary RuntimePin durable before RELEASE and replay immutable across store reopen (1337.475834ms)
+  Error: NOT_IMPLEMENTED
+      at RuntimeLaunch.open (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/launch.ts:2:77)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/runtime-boundary.test.ts:67:37)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

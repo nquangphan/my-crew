@@ -1,0 +1,18 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/docs-read.test.ts '--test-name-pattern=search SQL deadline|search cursor tuple'
+
+{"level":30,"time":1790913495843,"pid":1051,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54075"}
+✔ search SQL deadline cancels blocked query and returns reusable single-connection pool (2400.28975ms)
+ℹ {"containerId":"dd860d9d275e118c06940ede5d632fc4deabc2d8834b73b9b65c786de20afd48","db":"crew_v2_test_887fc75c110e4676a371ea4b725f622b","port":"54067"}
+ℹ {"containerId":"dd860d9d275e118c06940ede5d632fc4deabc2d8834b73b9b65c786de20afd48","db":"crew_v2_test_887fc75c110e4676a371ea4b725f622b","port":"54067","backendPid":95,"sameConnectionReused":true}
+{"level":30,"time":1790913498161,"pid":1051,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:54092"}
+✔ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (262.805125ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2826.88425

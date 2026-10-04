@@ -1,0 +1,13 @@
+✔ workflow manifest binds Superpowers skills to official source and selected projection bytes (1439.108875ms)
+✔ workflow manifest rejects a projected skill hash that differs from its pinned source (1456.277333ms)
+✔ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (1478.079ms)
+✔ workflow manifest rejects a projection bound to another source tree (1521.840667ms)
+✔ workflow manifest denies BMAD when no trusted renderer artifact reader is bound (0.83875ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5974.6685

@@ -1,0 +1,16 @@
+node_modules/.pnpm/saxes@6.0.0/node_modules/saxes/saxes.d.ts(46,71): error TS2344: Type 'O' does not satisfy the constraint 'SaxesOptions'.
+  Type 'O' is not assignable to type 'CommonOptions'.
+node_modules/.pnpm/saxes@6.0.0/node_modules/saxes/saxes.d.ts(55,80): error TS2344: Type 'O' does not satisfy the constraint 'SaxesOptions'.
+  Type 'O' is not assignable to type 'CommonOptions'.
+node_modules/.pnpm/saxes@6.0.0/node_modules/saxes/saxes.d.ts(62,61): error TS2344: Type 'O' does not satisfy the constraint 'SaxesOptions'.
+  Type 'O' is not assignable to type 'CommonOptions'.
+node_modules/.pnpm/saxes@6.0.0/node_modules/saxes/saxes.d.ts(69,62): error TS2344: Type 'O' does not satisfy the constraint 'SaxesOptions'.
+  Type 'O' is not assignable to type 'CommonOptions'.
+node_modules/.pnpm/thread-stream@4.2.0/node_modules/thread-stream/index.d.ts(96,73): error TS2694: Namespace '"worker_threads"' has no exported member 'TransferListItem'.
+src/attachments/extract/pdf.ts(9,119): error TS2353: Object literal may only specify known properties, and 'isEvalSupported' does not exist in type 'DocumentInitParameters'.
+src/attachments/extract/pdf.ts(60,73): error TS2339: Property 'destroy' does not exist on type 'PDFDocumentProxy'.
+../src/ticket-policy.ts(12,1): error TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module when 'verbatimModuleSyntax' is enabled.
+../src/ticket-policy.ts(42,1): error TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module when 'verbatimModuleSyntax' is enabled.
+../src/workflow-policy.ts(3,1): error TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module when 'verbatimModuleSyntax' is enabled.
+../src/workflow-policy.ts(11,1): error TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module when 'verbatimModuleSyntax' is enabled.
+../src/workflow-policy.ts(18,1): error TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module when 'verbatimModuleSyntax' is enabled.

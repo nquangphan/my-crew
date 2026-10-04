@@ -1,0 +1,151 @@
+{
+  "frozenTime": "2026-10-02T07:55:34.043863+00:00",
+  "head": "556cd8d106715b0c3ccc5893e8383b44083230db",
+  "artifacts": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/event-red.log",
+      "sha256": "e84d06493b9414c73b9bb9039ba7260c57c36cb38dc7ab86d1ffa5579553c60a",
+      "bytes": 2080
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/event-enum-red.log",
+      "sha256": "6efb037cab1d1083fd4a4b63586d8e4ff80bc8918ce8f08da5682b7b4fba0019",
+      "bytes": 1381
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/event-green.log",
+      "sha256": "a45e2e4bc88173d3d7e76635417bd2bee26ace33fbf47a3e8345a365cb58f1ea",
+      "bytes": 424
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/db-staging-first.log",
+      "sha256": "260b9a00a778451aff3c06c3526af738dd4cf37b8cabdc9e07609f5115d0d2cd",
+      "bytes": 9791
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/native-db-red.log",
+      "sha256": "5a3e3749b846809e6a346c7d1d4b574ce0d0efc2f740bab6c549cecc8a0f0847",
+      "bytes": 4283
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/native-db-green.log",
+      "sha256": "bd737812cb86d1aa6035115d0c64b1acfce6b59da28f3654beb5505a818eed02",
+      "bytes": 1263
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/published-terminal-red.log",
+      "sha256": "c1e2125a549e64aafef179459aa02a170e1c48ec785b21d4a17133cd3d247896",
+      "bytes": 2016
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/db-staging-green.log",
+      "sha256": "88bd7a0958ef05ce62e7a109229c7f10794ac07ebcfaa07af9bdcf16b92b2ce0",
+      "bytes": 9812
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/migration-restore-first.log",
+      "sha256": "8f9d442b1ed053860479ea75b2e1a6343b180c7dfb61e08227eece7f9d775fd6",
+      "bytes": 2074
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/migration-restore-green.log",
+      "sha256": "67a25c485f4ff7205475fe638679b7ee0ed86f221207c9815234cde7a9b2b7ba",
+      "bytes": 1648
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/biome-final.log",
+      "sha256": "c95deff5bdfd74fec7dfea38a65fa2ecd511f83dc58eab136066b358e80af6d7",
+      "bytes": 40
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/typecheck-final.log",
+      "sha256": "2d5989420e1eea96a9db0e1477eb9e29a282819496d7c9e2beacf9dbed5c73db",
+      "bytes": 114
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/server-cover-final.log",
+      "sha256": "1993054cba9d719d061a32ad56a93f223620106a7ed6c942998a77aec00343e2",
+      "bytes": 45328
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/api-baseline-focused.log",
+      "sha256": "31332d282792054703e167a9569796b427fdba95770060438417d8f14fc51115",
+      "bytes": 1070
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/http-readonly-proof.log",
+      "sha256": "fb5a1f2085e90b633e6b6bad33528d7f36b0534a362ea846f5bec248f07b7ba2",
+      "bytes": 1000
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/api-bounded-green.log",
+      "sha256": "800a98fcbca76374b24cd7fe3917d60ad854a94677b6e4993598d353bfc3a5bc",
+      "bytes": 1534
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/api-bounded-prefix-green.log",
+      "sha256": "f39a16709bba434faa2176000a2e3f95f4135414512b5d719801d7af4db805df",
+      "bytes": 758
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/api-bounded-final.log",
+      "sha256": "a6473df729b8f96e2c7f70c5589d0e97619b47024950a25b5c8e35007ef60e20",
+      "bytes": 909
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/biome-http-final.log",
+      "sha256": "1f5dd0cdb030856c0f686e1d97c604c66ec2ac5a7bd5e9205d6d0b8986702d9e",
+      "bytes": 43
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/typecheck-http-final.log",
+      "sha256": "2d5989420e1eea96a9db0e1477eb9e29a282819496d7c9e2beacf9dbed5c73db",
+      "bytes": 114
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/storage-pending-final.log",
+      "sha256": "90cb6324cf2dcc1a25f8665f7798a676558fff27fc45c48ff7130a459f2163ca",
+      "bytes": 5451
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/logs/native-pending-final.log",
+      "sha256": "0437f89a3a4663c4c3772f7f50045a509d49391acb4ddc9b171bcd9b89fa01c1",
+      "bytes": 4193
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-report.md",
+      "sha256": "a1b0d8196f66323addc4f7fd0725c6f42401aa08b5074ae1e63123ae99f36441",
+      "bytes": 17338
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-inventory-final.json",
+      "sha256": "94b7b85b060dadfaa17d2d8e69503a204a9d039ebec7e5b30ee4ea009e52cbb7",
+      "bytes": 2948
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-inventory-production-freeze.json",
+      "sha256": "94c62977ac2a19a6e659ea1e1d01921b23778db8e8f1dc199842d648aaffe736",
+      "bytes": 2379
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-cleanup-final.json",
+      "sha256": "0f55641a08e0b32045d8a8a9ebaee939223b250127adeb6ba052d724326d9c42",
+      "bytes": 15904
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-cover-inventory.json",
+      "sha256": "26a38e3ba4acf693c4e21a4001114561c552b16a5c078fbc66a7048e103fb664",
+      "bytes": 4413
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-cover.test.mjs",
+      "sha256": "367cb9687e64cd7a1cabe6867483818ba09cf378af476225e47e520acf5ac44d",
+      "bytes": 3077
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-1-http-probe.test.mjs",
+      "sha256": "810ab780e9a35c5340165276838c34ffe6cb2a73d399aa740f54dd3afc80fa00",
+      "bytes": 1615
+    }
+  ]
+}

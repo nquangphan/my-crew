@@ -1,0 +1,88 @@
+[
+  {
+    "name": "@napi-rs/canvas-linux-x64-gnu",
+    "version": "1.0.3",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 10"
+    },
+    "cpu": [
+      "x64"
+    ],
+    "os": [
+      "linux"
+    ],
+    "libc": [
+      "glibc"
+    ],
+    "dist": {
+      "shasum": "385c1be0236d6ce4d95c3bd6f8d372ed9f8182b6",
+      "tarball": "https://registry.npmjs.org/@napi-rs/canvas-linux-x64-gnu/-/canvas-linux-x64-gnu-1.0.3.tgz",
+      "fileCount": 3,
+      "integrity": "sha512-jtfzAHFp+FRaR7zGT4jyCe6wUgAG/dVb5A4Apd8FY9jKarntDfUAlJXscugiH7ZF5kKnu7/lHFk9LaDPcrGEVQ==",
+      "signatures": [
+        {
+          "sig": "MEUCIQDh7ayWZ6uQ4jJx8LMpdJTV6c/iXyU1dLP+hP1otalZvQIgHx/LUzvn4aWeDHwxlF6I5e76QQlxHB9i6GWFFuEGVxs=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "sig": "MEQCIEKYh1IvVuGFutOaQrWCFLTT3kbMnFIzh4Xj74G60KWrAiBqijEAwxl5vlVAHD86dmZ6KooPATRKyqwmAaiHpNWqzg==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@napi-rs%2fcanvas-linux-x64-gnu@1.0.3",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 33877339
+    },
+    "dependencies": null,
+    "optionalDependencies": null,
+    "url": "https://registry.npmjs.org/@napi-rs%2Fcanvas-linux-x64-gnu/1.0.3"
+  },
+  {
+    "name": "@napi-rs/canvas-linux-arm64-gnu",
+    "version": "1.0.3",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 10"
+    },
+    "cpu": [
+      "arm64"
+    ],
+    "os": [
+      "linux"
+    ],
+    "libc": [
+      "glibc"
+    ],
+    "dist": {
+      "shasum": "a0aca29af1a154cb00c509d9f2f5276bb28794f3",
+      "tarball": "https://registry.npmjs.org/@napi-rs/canvas-linux-arm64-gnu/-/canvas-linux-arm64-gnu-1.0.3.tgz",
+      "fileCount": 3,
+      "integrity": "sha512-GVSjntxKeA+/y/ZKf1F+cmUw1WeIkE5aMRPqnZUlBTBvBcrvgWccJAWuYCKPX4QJQwZILIIwhgdAbl51yj6fpA==",
+      "signatures": [
+        {
+          "sig": "MEQCICXc24kt9m+CScm3orNcW2dk0DsCGsrgkSvZo14fUO/+AiARb9zl6NBcnQhtVNzNUxCJiwRa76K2jn398OM5KScpxw==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "sig": "MEUCIQDRy9sbwEu1tXDynFZ+DiFyIg+24lO2JIvIPbLfPJzrBQIgJeKwqIQr15xiU2jgeKP5zuljXB1L5zpZFRq9ERsb8+I=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@napi-rs%2fcanvas-linux-arm64-gnu@1.0.3",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 28212102
+    },
+    "dependencies": null,
+    "optionalDependencies": null,
+    "url": "https://registry.npmjs.org/@napi-rs%2Fcanvas-linux-arm64-gnu/1.0.3"
+  }
+]

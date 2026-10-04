@@ -1,0 +1,12 @@
+{
+  "identity": {
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task6-fix1-acede42e-dff5-4415-a395-710cae0ecc5b",
+    "nonce": ".task6-fix1-acede42e-dff5-4415-a395-710cae0ecc5b",
+    "device": 16777229,
+    "inode": 64051624,
+    "uid": 501
+  },
+  "deleted": true,
+  "bytesBefore": 7834955,
+  "reason": "Exact RED/GREEN/compiler runners completed; frozen own source stability checked. Retained UNKNOWN fixture root outside snapshot unchanged."
+}

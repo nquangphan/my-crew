@@ -1,0 +1,502 @@
+{
+  "v2/gateway/pnpm-lock.yaml": {
+    "sha256": "41ee252f743305e0a35a989617a322ec0d9664bfa2102510bdaecccc74b98169",
+    "bytes": 10382
+  },
+  "v2/gateway/package.json": {
+    "sha256": "674b9290acd5a1eb7074f8caa3654a948d95c3a1390a4d068ffc421b06dca50c",
+    "bytes": 589
+  },
+  "v2/gateway/tsconfig.build.json": {
+    "sha256": "a26c036e8a9ae1031762678f479407ca79e7eeceb644e2f5fbd1897290953c78",
+    "bytes": 223
+  },
+  "v2/gateway/tsconfig.json": {
+    "sha256": "af8e1568896d1d562b37d6d3dfacafcccf223a46ae634210157b0d8e89c12479",
+    "bytes": 401
+  },
+  "v2/gateway/test/model-reporter.test.ts": {
+    "sha256": "74e9c107e556869f00e072c44c8be7a5d4abc52711ddabba05ccd3c5f510b7fa",
+    "bytes": 7573
+  },
+  "v2/gateway/test/host-lifecycle.test.ts": {
+    "sha256": "04ba3aed09d7b8602c82c4c11acd02cf58e1a0df22cd79123ff4e0d1d6f964ac",
+    "bytes": 6796
+  },
+  "v2/gateway/test/telemetry.test.ts": {
+    "sha256": "49cbd218d1e1b02a0bc171cd36bae05e346468d8c69f8916977fb394891d3d72",
+    "bytes": 2720
+  },
+  "v2/gateway/test/execution-bridge.test.ts": {
+    "sha256": "6d549e470652572b07df1054b723c190d97482bc69e5d194201d2fed7afeaed4",
+    "bytes": 10698
+  },
+  "v2/gateway/test/journal.test.ts": {
+    "sha256": "adbe8fa8ceaa723415727942bcf6cc13997f62f9cea4b0b36e55714dbf369fcb",
+    "bytes": 15092
+  },
+  "v2/gateway/test/workflow-build.test.ts": {
+    "sha256": "5be4779aee7c12c0e7ef26a22e8701e1128d42480026b36ec94d76e0d633346c",
+    "bytes": 6497
+  },
+  "v2/gateway/test/retirement-crash.test.ts": {
+    "sha256": "ae77425625f10eff5f2a3584bb0fb1c5b1b1f8656a34ee0ed6bad76f98edf523",
+    "bytes": 4100
+  },
+  "v2/gateway/test/model-probe.test.ts": {
+    "sha256": "d74bd13bfdc6249937c68cb52e0a54b7601060ae25bd8723bd74550828eec453",
+    "bytes": 26281
+  },
+  "v2/gateway/test/pin-retirement.test.ts": {
+    "sha256": "b06cb249bca730af880266027ee0a4d826c26a922005f8264eca707aa8fce9fe",
+    "bytes": 4536
+  },
+  "v2/gateway/test/http-operations.test.ts": {
+    "sha256": "af0a970ed1676337e0953988dd5c8d6bb802fded445fc9ec3b64b6de02c947f8",
+    "bytes": 8771
+  },
+  "v2/gateway/test/sync.test.ts": {
+    "sha256": "2ff4aed6729c6ff5c291a66da92ba0a68ebbd3f6909bd273d0d323ff780bb49a",
+    "bytes": 14192
+  },
+  "v2/gateway/test/stop-control.test.ts": {
+    "sha256": "cb367e4f03e8ad400b82da6f3055194d6235930424ffcfd053376f159b3086ba",
+    "bytes": 4101
+  },
+  "v2/gateway/test/isolation.test.ts": {
+    "sha256": "7a01da1bff201ee4eee132eaedd9080a17f83d2fd7eb066fac5f7010a50d9a3f",
+    "bytes": 4021
+  },
+  "v2/gateway/test/host-failures.test.ts": {
+    "sha256": "40461bc066c913e2fddb1accfeebf9a5e681e4224e8eb1ac48a100f21ff5b307",
+    "bytes": 10052
+  },
+  "v2/gateway/test/credential-broker.test.ts": {
+    "sha256": "40c58a33c83a4369917f9bb55b77f1088f4e949202a9212dbca3690003fbeb32",
+    "bytes": 6945
+  },
+  "v2/gateway/test/event-pump.test.ts": {
+    "sha256": "8e9957ebde423349ebed4ae2498190305e2444d6f6d0508b9bb55ff5e090f02f",
+    "bytes": 1302
+  },
+  "v2/gateway/test/connection.test.ts": {
+    "sha256": "51d9daf0abaff861d36f5e7f84cf9f21f5c8362acfc6aa0943a0fde305472406",
+    "bytes": 5937
+  },
+  "v2/gateway/test/isolation-runtime.test.ts": {
+    "sha256": "098ff1d6c6aaecb6b83f9f050cb2496f27de269d97e8b1dd5a1f6dc0795c332a",
+    "bytes": 4191
+  },
+  "v2/gateway/test/workflow-native-projection.test.ts": {
+    "sha256": "838f61290422ec0d9021f4312ab4a98a3a2a11e2494bef5a29cba5097293c946",
+    "bytes": 4852
+  },
+  "v2/gateway/test/resources.test.ts": {
+    "sha256": "6400c5ab5d03be3483d3a49e684987e02b3249c32df9005340b098a2a6959cae",
+    "bytes": 19343
+  },
+  "v2/gateway/test/workflow-operations.test.ts": {
+    "sha256": "5b5079b1a6a1b87f1298976a617fa5f710a971556ec762f511f9a04f714d1679",
+    "bytes": 8479
+  },
+  "v2/gateway/test/runtime-crash.test.ts": {
+    "sha256": "a4428c3861a3279ea9c9b9565970c24cf179438247c5f11caf1405a33885b98e",
+    "bytes": 5004
+  },
+  "v2/gateway/test/execution-crash.test.ts": {
+    "sha256": "447169c7d1a69431e9d6a035dc156911d764a1dbf1549d64562053c73be07f6e",
+    "bytes": 4277
+  },
+  "v2/gateway/test/effect-ledger.test.ts": {
+    "sha256": "a6adfc9c8b0eca65718adc178e1776f1a789e2dbefa2fbca283afbb711feb2ca",
+    "bytes": 5944
+  },
+  "v2/gateway/test/credential-provisioning.test.ts": {
+    "sha256": "e5b2c3aee2a3f5ea8f14c025d6f92c1d72e57f8850858878ac2789ffa08bd406",
+    "bytes": 23149
+  },
+  "v2/gateway/test/workflow-admission.test.ts": {
+    "sha256": "07e4b62d3e0449c1b50d24240aeb6d4d0d0dba160e9bb70e2dceb1ed9fe89ccb",
+    "bytes": 14886
+  },
+  "v2/gateway/test/current-credential-resolver.test.ts": {
+    "sha256": "d8d0e8d614adfced260b0d712cdfdc959bcf8f081ad07f54281c4be2806e59a5",
+    "bytes": 7005
+  },
+  "v2/gateway/test/isolation-workspace.test.ts": {
+    "sha256": "af29bea1742254957a414d650511afd5414b319f3fa2988e3d63bda78681800b",
+    "bytes": 15510
+  },
+  "v2/gateway/test/runtime-workspace.test.ts": {
+    "sha256": "0c1cafcba802d8c095da4743412a2ebbb4ee7c66e62104d7e8d205ef73e6cf69",
+    "bytes": 10083
+  },
+  "v2/gateway/test/execution-bridge-db.test.ts": {
+    "sha256": "50794d59b9c9fa360460191f1d4bdb55b87a27324ba14bd59689bd1f7131941e",
+    "bytes": 40870
+  },
+  "v2/gateway/test/workflow-registry.test.ts": {
+    "sha256": "0427d3ad0000be409b0eea65d82964fd41d14519e029138533b3c20da7d2d0a4",
+    "bytes": 20988
+  },
+  "v2/gateway/test/runtime-boundary.test.ts": {
+    "sha256": "f9a9763e111e5fd9d7e06983979cc98f924e3484d44cec5471447044395022c0",
+    "bytes": 11831
+  },
+  "v2/gateway/test/workflow-fix.test.ts": {
+    "sha256": "b062e78b229f2b9b553acd8f2d2ba7460d51b24f1689b0d6be332511bb0ba227",
+    "bytes": 3586
+  },
+  "v2/gateway/test/support/pin-retirement-crash-worker.ts": {
+    "sha256": "fbfb5bf1158b07574f07d1d443d9fd6ceabd87bc9c2220efc0e5dc2f6b1d2f16",
+    "bytes": 2140
+  },
+  "v2/gateway/test/support/runtime-workspace.ts": {
+    "sha256": "4db8b1d64b7a6a4d02d8cf5201804e59a0599868130cb8c79098c49805afae8e",
+    "bytes": 3601
+  },
+  "v2/gateway/test/support/probe-bmad-build.ts": {
+    "sha256": "a92c25f142451618adfee226be1c3fbd747eab389671ccc45974e733cd94fb0c",
+    "bytes": 2269
+  },
+  "v2/gateway/test/support/audit-dependency-provenance.ts": {
+    "sha256": "25a2fdc480e125505fa111c9cd0ae8a452a04ad45e7e14a954a8cb383426257b",
+    "bytes": 2688
+  },
+  "v2/gateway/test/support/runtime-typecheck.json": {
+    "sha256": "7cc888de7208b20c49daa8a30d25660435edff0f7a2a29f1a7919513e6dccd21",
+    "bytes": 590
+  },
+  "v2/gateway/test/support/workflow-admission-crash-worker.ts": {
+    "sha256": "bb91bf1e39129f40aa50b1d687be9ed12be07176404a39cbe317a977743b5278",
+    "bytes": 2037
+  },
+  "v2/gateway/test/support/reclaim-proven-build-probes.ts": {
+    "sha256": "241cbdf019a0cb49a5315c5cb74df689655a27dc021ebb7491237494cdc2ae91",
+    "bytes": 3618
+  },
+  "v2/gateway/test/support/runtime-fixture.ts": {
+    "sha256": "71ea1ed5c05b56653c71af757ae40e0a2298ceb4a20303e301ec6e82bccf859a",
+    "bytes": 1077
+  },
+  "v2/gateway/test/support/isolation-typecheck.json": {
+    "sha256": "6507a2c3e7539ec74836b2cd04b9ce1d0636e0d466639249b7a0a09bcea1575c",
+    "bytes": 184
+  },
+  "v2/gateway/test/support/journal-fixture.ts": {
+    "sha256": "a17e93419e7f0c66d267e2627233ec1baafc62c3f76d02baaf52d936cfec45a9",
+    "bytes": 2019
+  },
+  "v2/gateway/test/support/audit-dependency-content.ts": {
+    "sha256": "7106fd6719104a5d3b01244ec2d923e046a7aafee220cfbbac3dee29be7c8a5e",
+    "bytes": 3242
+  },
+  "v2/gateway/test/support/owned-run.ts": {
+    "sha256": "5c8ed0e329acc1e75329ed30d7d534e04caebaffafaa9ef78cb08b4ac0c31042",
+    "bytes": 2073
+  },
+  "v2/gateway/test/support/isolation-probe.ts": {
+    "sha256": "4a46735c77b06291620590eea5d47ef416ffecdd61ccd0b20422c9787aefe8b5",
+    "bytes": 394
+  },
+  "v2/gateway/test/support/model-fixture.ts": {
+    "sha256": "083ebf9f19c1e280f6c2e63d0c95321df381d5f363b1d61fe99a04404e3ef064",
+    "bytes": 1355
+  },
+  "v2/gateway/test/support/workflow-archives.ts": {
+    "sha256": "dfd3235cc0f5d4b923cc2dd9d9c61e9eb7daa996f4ae3561f60b20ecd761d09a",
+    "bytes": 5922
+  },
+  "v2/gateway/test/support/ui-client.ts": {
+    "sha256": "cd3745dab4b58c6643e096cad8780526ac97bacf7f1785a34b305d59f5153ee0",
+    "bytes": 24
+  },
+  "v2/gateway/test/support/runtime-pins.ts": {
+    "sha256": "1b3880e93e98ae626dc9a72bbe3f58ccff5993445b452398d08844dc330c4c1a",
+    "bytes": 3929
+  },
+  "v2/gateway/test/support/freeze-real-projections.ts": {
+    "sha256": "c4fa65af1d83162dd9c0824876cdf33a435b1c5f9e71031920bf23ee2616b242",
+    "bytes": 3493
+  },
+  "v2/gateway/test/support/bridge-crash-worker.ts": {
+    "sha256": "6c562091dda0e5c88435ecd0ea0b0734dea54611ff0e2d7beaa77b5ad9a2709e",
+    "bytes": 2384
+  },
+  "v2/gateway/test/support/host.ts": {
+    "sha256": "0cadb94ea3305739de8db6441fd6166d09b3a9d36cb443f6e4f782e2dc487c48",
+    "bytes": 4563
+  },
+  "v2/gateway/test/support/freeze-dependencies.py": {
+    "sha256": "dc502e9e40841a0f97a75249e90436b6e852db29f5440093acbef5f189a59fd9",
+    "bytes": 1677
+  },
+  "v2/gateway/test/support/workflow-crash-worker.ts": {
+    "sha256": "518e2ff30117bf07009ea09f44008fff0e1ed5aca24255b4c5874721456b9047",
+    "bytes": 2255
+  },
+  "v2/gateway/test/support/compare-real-builds.py": {
+    "sha256": "1e0cf5ad86292de507c4d8ac1444bd8bd21ea4037791d4bb473447af2f38ad62",
+    "bytes": 457
+  },
+  "v2/gateway/test/support/runtime-crash-worker.ts": {
+    "sha256": "0a3b6f02d969b1966de80827c35964c70984a871bc5b154772a6e123cd15085f",
+    "bytes": 5325
+  },
+  "v2/gateway/test/support/bridge-fixture.ts": {
+    "sha256": "112aa322e30f6a0852e46af0939d6bcde5509e844f3d9e3d41d4398e3f9e75c6",
+    "bytes": 4856
+  },
+  "v2/gateway/test/fixtures/workflow-builder/pnpm-lock.yaml": {
+    "sha256": "ccc762cfa971fff173b6c877ef4fd78e9e30bf9088b381b6f4b33c8ea7ef2ab0",
+    "bytes": 27302
+  },
+  "v2/gateway/test/fixtures/workflow-builder/dependencies.json": {
+    "sha256": "f1f7cf9c48ba5a3b956305e049909295423bc20855103c9f287c4e46d78b100e",
+    "bytes": 1750
+  },
+  "v2/gateway/test/fixtures/workflow-builder/provenance.json": {
+    "sha256": "9f3e99b73e73963254e02e3e90f7ca20ceb547ad00510d063a21ef85cf3ee082",
+    "bytes": 56352
+  },
+  "v2/gateway/test/fixtures/workflow-builder/independent-builds.json": {
+    "sha256": "5bb523a51922d062aad60150dd5d61ebb83aba71bc09aa1a4924393692febaac",
+    "bytes": 73048
+  },
+  "v2/gateway/test/fixtures/workflow-builder/package.json": {
+    "sha256": "5c80b23975e50279019cd6adba298e53e10934556c1f733583d2f83879e871e3",
+    "bytes": 495
+  },
+  "v2/gateway/test/fixtures/workflow-builder/real-projections.json": {
+    "sha256": "65094741706ba11196f7a48e179cf316e64b95f6ebbd0bf31563d9b7b1838dcd",
+    "bytes": 77831
+  },
+  "v2/gateway/test/fixtures/workflow-builder/dependencies.tgz": {
+    "sha256": "ff6e59d25dd89eeaaffe323fbb377cb8546fd70e8b30ceadbdfea3b8cab92e8d",
+    "bytes": 3901143
+  },
+  "v2/gateway/test/fixtures/workflow-builder/verified-content.json": {
+    "sha256": "a35824cd1a01fc66a55a38c0a60f087febff89c9cacf74d5a6473fc24b65bf66",
+    "bytes": 30810
+  },
+  "v2/gateway/test/fixtures/workflows/superpowers-6.4.2.tgz": {
+    "sha256": "29714b2c4c727ecc6600f9e5982a0dcbb829860ba79626f1941a0f233e85331a",
+    "bytes": 641346
+  },
+  "v2/gateway/test/fixtures/workflows/official-audits.json": {
+    "sha256": "2244fc9fca685e7d60bcba02c341532ac408a55387a2f5cae303aacaecf7d535",
+    "bytes": 6194
+  },
+  "v2/gateway/test/fixtures/workflows/bmad-6.12.0.tgz": {
+    "sha256": "ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2",
+    "bytes": 842394
+  },
+  "v2/gateway/test/fixtures/models/security-channel.c": {
+    "sha256": "2e19ba0ffb9fa276a1f9de3b4ab78905be1c913919bb6ad941f32496ffe33610",
+    "bytes": 1077
+  },
+  "v2/gateway/src/journal/gated-helper.ts": {
+    "sha256": "cc3e7abd716ded39afef000472a35675d1bc79898ba0561f412c5e3c81f0f7ea",
+    "bytes": 4725
+  },
+  "v2/gateway/src/journal/atomic-records.ts": {
+    "sha256": "489994e253237f19a017f8cb89542fb537c1aa1c9ec34ee951cbb873ac1e91e1",
+    "bytes": 4965
+  },
+  "v2/gateway/src/journal/native-identity.c": {
+    "sha256": "2cae556ab83f5184db1b290aedc426d4c58cba89f2696f46a662a0d03d02b03a",
+    "bytes": 4422
+  },
+  "v2/gateway/src/journal/process-journal.ts": {
+    "sha256": "d0213eda13bd5d93848aa3a10b537c91d6b4f2303ba19a8fec8b7badd5230655",
+    "bytes": 24691
+  },
+  "v2/gateway/src/journal/native.ts": {
+    "sha256": "102daf17327111c19ac855f7fecacb1741f78af4e09663427acc55c65b152ac2",
+    "bytes": 5188
+  },
+  "v2/gateway/src/journal/http-operations.ts": {
+    "sha256": "c4242b7483019397ac5677705883aa05b32cec8d55b749c41870067b268d363e",
+    "bytes": 7038
+  },
+  "v2/gateway/src/host/status.ts": {
+    "sha256": "faa740a7a2c7294d903ae5371c5ddc42515b99bb27f9d0c70ac6f4f36704fbe2",
+    "bytes": 2292
+  },
+  "v2/gateway/src/host/gateway-host.ts": {
+    "sha256": "22a01070113b92a98b5ef09a44c5c0c87a6a8ef50182005d5efe49d0245025ca",
+    "bytes": 4794
+  },
+  "v2/gateway/src/host/main.ts": {
+    "sha256": "6146eaac2057c382e4200f971f55844da27495c3a3473cb81b97296ba726a224",
+    "bytes": 464
+  },
+  "v2/gateway/src/host/process-lock.ts": {
+    "sha256": "9f8db5109be65dd4b65473eaf2cd81188286b7f715699a93e0dbb78567e49b78",
+    "bytes": 3636
+  },
+  "v2/gateway/src/resources/native-resources.c": {
+    "sha256": "1aa1870f3f1dd6d9ed0725b7a73f3dab14b47f50b764e167cda4283aee34fc17",
+    "bytes": 6190
+  },
+  "v2/gateway/src/resources/registry.ts": {
+    "sha256": "dd9bfbe8c5c79fe89c3f770003347ca404631cfc72e6e19b045bb9517c5a1c27",
+    "bytes": 11529
+  },
+  "v2/gateway/src/runtime/tool-policy.ts": {
+    "sha256": "1afa829e22e4ea2d122278ef5afb942e90e78eb82fa9436b23eb9f177f20c7c2",
+    "bytes": 2080
+  },
+  "v2/gateway/src/runtime/contracts.ts": {
+    "sha256": "5dee08063b7e8b6e137722169aa5cd12c2d09179d3262446e80ff4e0e59262ac",
+    "bytes": 3219
+  },
+  "v2/gateway/src/runtime/launch.ts": {
+    "sha256": "05120c5968e1ded10174785ada5d802b60d8ad8b8d683b386f08992045c8548f",
+    "bytes": 8266
+  },
+  "v2/gateway/src/runtime/effect-ledger.ts": {
+    "sha256": "5a6794c878f4af383c23dd2b7bbfa1a16a6bb9683e1df94c5fa117b829be65c4",
+    "bytes": 8100
+  },
+  "v2/gateway/src/runtime/isolation.ts": {
+    "sha256": "baa2dc21eca119cabfb2e3e303d31da249e806a75157b0bb0a074d01f3a6aefb",
+    "bytes": 9149
+  },
+  "v2/gateway/src/workflows/api-policy.ts": {
+    "sha256": "bbdfad86f24bfd7e0319a673c0b0f4818edf82eae27d256c730d5fedf426b669",
+    "bytes": 1718
+  },
+  "v2/gateway/src/workflows/stage.ts": {
+    "sha256": "9564dcf315b2bb46d108708e8ca10ee625b48606d34b83df466d045ebb12b4b9",
+    "bytes": 9913
+  },
+  "v2/gateway/src/workflows/retention.ts": {
+    "sha256": "6e25e9f728c668aa4f49638124c4b876ddfdda6fcafd237ca8d1f67d6f5a4d65",
+    "bytes": 1174
+  },
+  "v2/gateway/src/workflows/native-projection.ts": {
+    "sha256": "0568b7cd9b2e7b694422b774bc39d4c20b5697391067403438698d81f8a5ecf9",
+    "bytes": 5362
+  },
+  "v2/gateway/src/workflows/operation-native.c": {
+    "sha256": "544e7a90749c69ccb27fc3b2725c5f1337a6a6e99b7f0b430d78c5e4587eef53",
+    "bytes": 11312
+  },
+  "v2/gateway/src/workflows/operations.ts": {
+    "sha256": "9f00752c0ded9616c7efd94372fcd06237c8616c9e62e797b5209f3b845b648c",
+    "bytes": 6298
+  },
+  "v2/gateway/src/workflows/builder.ts": {
+    "sha256": "91e8341282591e6ebf743b59213e16c847a48796289b2838a95e4aad093cef1d",
+    "bytes": 5292
+  },
+  "v2/gateway/src/workflows/pins.ts": {
+    "sha256": "f2b0a362488d3c7d4e697beebac6279722471bdc27be4781e07896b30eb1f6f3",
+    "bytes": 5261
+  },
+  "v2/gateway/src/workflows/registry.ts": {
+    "sha256": "ecb4f9ce997e285b653bd754a7d5f60cef192efe51385604ddfcbb47ff0cbedf",
+    "bytes": 36765
+  },
+  "v2/gateway/src/workflows/audit.ts": {
+    "sha256": "28c43133d06b58850fb731468cf744086ee6caee60182285ac31c63514d1f403",
+    "bytes": 7862
+  },
+  "v2/gateway/src/workflows/fetch.ts": {
+    "sha256": "1375840936a4304d87f823238b14fff513ec86bdf1fad3675eaa7b92ae3c80b6",
+    "bytes": 2889
+  },
+  "v2/gateway/src/models/inventory.ts": {
+    "sha256": "8ca558722a903f993e342f0fbb4fbe96d1feb67e35cb8581860be9d0497e10c3",
+    "bytes": 2237
+  },
+  "v2/gateway/src/models/credential-provisioning.ts": {
+    "sha256": "b082fe0c1a318a66cb4f85c507d6bebd10283b780f7cd230ca5c26f402d75e27",
+    "bytes": 15698
+  },
+  "v2/gateway/src/models/credential-broker.ts": {
+    "sha256": "b11ba5b8ff73eb6fba786ae4bb3289fea747d2b799b9c9957981937c4254552f",
+    "bytes": 4110
+  },
+  "v2/gateway/src/models/contracts.ts": {
+    "sha256": "ca9f57c7fef2bc7c8936e60a244d39dbb58e08c268e451438a9225c1709ccc05",
+    "bytes": 2460
+  },
+  "v2/gateway/src/models/security-bridge.ts": {
+    "sha256": "297dbc7b3bcd1867f7727b3cac4c3976be4581ac849c30ba519e3f0783d67a40",
+    "bytes": 5016
+  },
+  "v2/gateway/src/models/probe.ts": {
+    "sha256": "8b1e06d987a2d8235babd65497081d0e84e71f34a561878dc003fde190c6e8eb",
+    "bytes": 25382
+  },
+  "v2/gateway/src/models/security-keychain.m": {
+    "sha256": "4e83beb032f045553b130f9e643f4d4f4781b451a9cece6ccf971e721addb0e6",
+    "bytes": 3646
+  },
+  "v2/gateway/src/models/provider-transport.ts": {
+    "sha256": "0d16c7d0cff2d3b86a18cff1f314c66cf338f9dd1a8d1fcd62a059774695dad5",
+    "bytes": 9861
+  },
+  "v2/gateway/src/models/model-reporter.ts": {
+    "sha256": "4e408cd6fa7cff531ef021d1c3a9703c8a48aea976dc63a8163779898b1bcf98",
+    "bytes": 5976
+  },
+  "v2/gateway/src/models/current-credential-resolver.ts": {
+    "sha256": "bacdcf8ba2b3570b8a9ae0698fb6cddbdad80453121abc2bf7302678aed363ef",
+    "bytes": 3790
+  },
+  "v2/gateway/src/execution/ticket-command-bridge.ts": {
+    "sha256": "db960209d1966dc9da18f9cbd2e5f62bdd78502d9acbb8d522a6e83c2129bfd1",
+    "bytes": 24777
+  },
+  "v2/gateway/src/isolation/preflight.ts": {
+    "sha256": "03e748d2599f1402df3f0f91f74d79adda35cd5e20346d60ca3d4f10bb8f80e4",
+    "bytes": 18260
+  },
+  "v2/gateway/src/isolation/inventory.ts": {
+    "sha256": "d03b854e52e1e925fb0b7e4ceb28d351a1069b57937e6a1e9d8423f758a337b0",
+    "bytes": 6953
+  },
+  "v2/gateway/src/isolation/workspace.ts": {
+    "sha256": "12cea09dcb51978015e77bacf2e878d5d8355d73908e7baea633a5ae4bd78b87",
+    "bytes": 24581
+  },
+  "v2/gateway/src/isolation/policy.ts": {
+    "sha256": "7cd8365ac5727c0832311a7f4fb19c0ed4334650ce576ccd3e48e989b77f3925",
+    "bytes": 2248
+  },
+  "v2/gateway/src/ipc/server.ts": {
+    "sha256": "4bceb72332b68c89ffc4e1c8bc6fdf708a42cd281f7effdf109975fbccb162f9",
+    "bytes": 6166
+  },
+  "v2/gateway/src/commands/contracts.ts": {
+    "sha256": "a5663fda5e3ce46da32f8ca74cba3ce17f8b64a4be74d3c9c644773eb1e2b13a",
+    "bytes": 2202
+  },
+  "v2/gateway/src/commands/http-client.ts": {
+    "sha256": "4b4ae729aaa649f0f99ae99760b9286cf0ad892a1e14bec521596ec35e4a8fe8",
+    "bytes": 3380
+  },
+  "v2/gateway/src/telemetry/capacity.ts": {
+    "sha256": "505951919b2ebbd5c1d039a8dae37dfd67f18cb70f416f320799dc4949ad5aad",
+    "bytes": 3446
+  },
+  "v2/gateway/src/telemetry/macos-provider.ts": {
+    "sha256": "964132b1c21dddfaa45383305a7175f84f8c50399a963ea3e8efae68db2021fd",
+    "bytes": 2261
+  },
+  "v2/gateway/src/sync/gateway-sync.ts": {
+    "sha256": "45758ee265a3cc87b66d2ae1e1d860d694d91a2eb0d422abe19246b0398a0091",
+    "bytes": 10282
+  },
+  "v2/gateway/src/sync/connection.ts": {
+    "sha256": "5966885191de9d980dd129e9a006c7ad5de6a156dcdf0bf1e73b6d1aa248a634",
+    "bytes": 5711
+  },
+  "v2/gateway/src/sync/event-pump.ts": {
+    "sha256": "7fcaad8bef09628d5cf6af177e201c96ab8823bdac2d5f98cba6a7b1eb64ffb9",
+    "bytes": 1866
+  }
+}

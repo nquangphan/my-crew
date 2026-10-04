@@ -1,0 +1,598 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server
+> node scripts/test-db.ts
+
+{"level":30,"time":1790939562248,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:65430"}
+{"level":30,"time":1790939562833,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:65440"}
+✔ HTTP persistence graph commands events docs reconnect restart and backup restore (2137.28975ms)
+ℹ {"realHttp":true,"port0":true,"prefix":6,"restartPool":true,"firstUrl":"http://127.0.0.1:65430","reopenedUrl":"http://127.0.0.1:65440","containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","restoredName":"crew_v2_restore_e40ef659d5d14b8196e612bfcd7c959e","dumpBytes":74994}
+{"level":30,"time":1790939564158,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:65501"}
+✔ HTTP ticket cached replay cannot race current binding or machine revocation across pools (795.350875ms)
+{"level":30,"time":1790939564971,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:65534"}
+{"level":30,"time":1790939566143,"pid":80016,"hostname":"Phans-MacBook-Pro.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+{"level":30,"time":1790939567158,"pid":80016,"hostname":"Phans-MacBook-Pro.local","reqId":"req-c","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✔ real SSE current credential revocation and owner expiry close streams without future data (2955.533708ms)
+{"level":30,"time":1790939567899,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49274"}
+{"level":30,"time":1790939568144,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49283"}
+✔ HTTP default dispatch denies; reported evidence stays finalizing until trusted research test attestation (768.894375ms)
+{"level":30,"time":1790939568653,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49312"}
+✔ HTTP all machine ticket mutation families reject cached replay after rebind (795.759333ms)
+{"level":30,"time":1790939569440,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49352"}
+✔ HTTP fifth repair result remains fenced until confirmed physical stop (862.555125ms)
+{"level":30,"time":1790939570324,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49399"}
+✔ current credential and event scope share one snapshot across rebind and revocation (816.462667ms)
+{"level":50,"time":1790939571019,"pid":80016,"hostname":"Phans-MacBook-Pro.local","reqId":"req-1","code":"INTERNAL_ERROR","msg":"Lỗi API"}
+✔ buildApp composes without migrations or listener; unknown DB errors are generic503 (634.968875ms)
+{"level":30,"time":1790939571787,"pid":80016,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49477"}
+HTTP oversized observed container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 path=/v2/tickets bytes=1048587 status=413
+HTTP oversized observed container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 path=/v2/docs/imports bytes=25165835 status=413
+✔ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (733.268208ms)
+✔ attachment metadata event accepts exact owner draft and linked ticket scope (4.084833ms)
+✔ attachment metadata event rejects content paths compose identifiers and undeclared fields (0.416166ms)
+✔ attachment metadata event rejects invalid ids states extraction and partial or targeted scope (0.1825ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_b5b52819cf124fd2b926e15efb8dc134 pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GTAcRD
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GTAcRD nonceSha256=51970ce1d959fe0496671b63cf3fc4bed9192bcb26bb0846c0f45fbd0a0c4f66
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GTAcRD dev=16777229 ino=64004297 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GTAcRD
+✔ attachment comment producer default denies before INSERT and freezes absence at factory creation (1660.849708ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_31b0e757fbe04df2a1b30735e9a84ced pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v8Cpjm
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v8Cpjm nonceSha256=3d63116dbf24cab4254e97a9253626210c860fcfdd11eeb41e839aff81eb682c
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v8Cpjm dev=16777229 ino=64004492 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v8Cpjm
+✔ attachment comment producer preserves legacy appendComment whitespace and empty rejection exactly (657.73525ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_02df805faa274216aa9adbeccdbdef7e pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GVdr73
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GVdr73 nonceSha256=b29d9d7a4ffd8b5d5c642bf0492034bc958cf810ae66d404a52f1a8e33536e29
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GVdr73 dev=16777229 ino=64004604 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-GVdr73
+✔ attachment comment producer attachment-only actual ready originals emits one event and sole009 subtree fanout (830.051792ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_a461ab4ee13b43da8c6faf1f0e1266ae pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xNtvfj
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xNtvfj nonceSha256=aaeebf6884f295cabc9d088002bb394139a801324e13d166570904b29bacb93d
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xNtvfj dev=16777229 ino=64004669 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xNtvfj
+✔ attachment comment producer mixed input and whitespace with actual originals preserve supplied text (1060.991875ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_8c639c3e5416429aa35747e30d642003 pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fuwWae
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fuwWae nonceSha256=a1c26b1158e3ce24a8c6773e8a6f9daa81a96801192e1d8f4c83afda650e4fe3
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fuwWae dev=16777229 ino=64004752 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fuwWae
+✔ attachment comment producer rejects empty whitespace invalid type and over max without client allowEmpty authority (617.454625ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_addea0a90fa940f98d1adbec40cf16e6 pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5HzIfP
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5HzIfP nonceSha256=7c398351530da451063d721342b227cbbe9a08785c621e8205a9018c6c46f3a3
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5HzIfP dev=16777229 ino=64004805 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5HzIfP
+✔ attachment comment producer accepts exact max text with trusted empty selection (557.769875ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_afc7f593b4e44440868970d7854eb052 pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-w0BwHV
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-w0BwHV nonceSha256=ddf7c6f8c5a10b1a7441e5e91032045796327b216f8e84030b97c15227e42c40
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-w0BwHV dev=16777229 ino=64004824 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-w0BwHV
+✔ attachment comment producer fake IDs unavailable and reserved originals cannot authorize attachment-only text (736.416667ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_81ef9025c99a49eb98c841ff83a49c3e pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1F69MT
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1F69MT nonceSha256=77c8d403b0986400ddb6fcb06a9365c37dbad0b2b210fded6118b91eee4b8ecc
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1F69MT dev=16777229 ino=64004851 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-1F69MT
+✔ attachment comment producer callback failure rolls back inserted comment links event and existing009 fanout (745.388583ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_edc680b088564566a39727156e8306d4 pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6kijUn
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6kijUn nonceSha256=dd4beb9e30ee13b65eba2eb3cc587b6417e2f332312352c16605211c03b29b73
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6kijUn dev=16777229 ino=64004881 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-6kijUn
+✔ attachment comment producer captured linker cannot be replaced through caller dependency mutation (801.531083ms)
+comment producer resource container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 port=65398 database=crew_v2_test_82a098ee28c24f88adde8d00b3e6629c pid=80018 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hauGMY
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hauGMY nonceSha256=16eba547909e7b6987498e2d117ae35c3ab6bb71f8172cef341402282eeca7c3
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hauGMY dev=16777229 ino=64004911 uid=501
+comment producer restore created container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_2ebae28a6ee2491db95043004b8f0975 prefix=9
+comment producer restore removed container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_2ebae28a6ee2491db95043004b8f0975
+comment producer restore created container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_c8b1827d277c45cb89937d1ac6296347 prefix=10
+comment producer restore removed container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_c8b1827d277c45cb89937d1ac6296347
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-hauGMY
+✔ attachment comment migration010 forward upgrade and private backup restore preserve comments prefix hashes and009 triggers (1823.188334ms)
+✔ attachment inbox events accept metadata and enforce owner-only creation (4.722458ms)
+✔ attachment input wake events require exact target and specific machine audience (0.174833ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kagT6T
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kagT6T nonceSha256=f55e670d8ac992fa9477f4b03fb657696ea3b73575e6372e715651ff28b3fde2
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kagT6T
+✔ attachment staging reserves under owner quota and keeps bytes through ready commit (1628.539458ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2DE4nP
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2DE4nP nonceSha256=b213e8bac6cce568a7254dd25dd7869fd17d1053e0ac834a991008e16d084989
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2DE4nP
+✔ attachment staging refuses machine and stale compose revision (668.355291ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tLBtvV
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tLBtvV nonceSha256=13cb63943cd06414d674a8e084309c0c94c649cfb9b4cef9b1e870009ce1a531
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tLBtvV
+✔ attachment staging validates name MIME size limits and permits exact limit and empty text (829.223708ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8qP7LV
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8qP7LV nonceSha256=fc843a2e3ac3eea7a982d1487d96b21106ca0ec39a8a311eba62e10a335733f0
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8qP7LV
+✔ attachment staging rejects wrong bytes malformed UTF binary text and magic before original publication (1059.842833ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dntsg2
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dntsg2 nonceSha256=acbcdc1eb88447f9db56399909173f0328d07b0cfc0eded64148fafb3e66e6b7
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-dntsg2
+✔ attachment staging accepts split UTF16 BOM as text without browser inline interpretation (622.485375ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KU9IaN
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KU9IaN nonceSha256=a3d344d1620289ec59e1017dfaf5ef135821fee2b36c01be9c1f677ca28d9f3d
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KU9IaN
+✔ attachment staging reserve replay checks canonical request and same digest keeps distinct originals (555.93375ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-olNxEE
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-olNxEE nonceSha256=b914e6309d45b5f5e15cd899fca5b54a8551a2cac6ef5d0fe8d3a0dd4cc668d2
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-olNxEE
+✔ attachment staging serializes owner quota reservations and holds rejected and abandoned quota (725.403292ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTj0bq
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTj0bq nonceSha256=f123cec169c6ec6b16cfaf25e6ff5f846ddec3c23ef073fde652be3145240d4d
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eTj0bq
+✔ attachment staging validates ready PUT replay bytes and emits only owner-scoped exact metadata (764.334208ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VlAJi2
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VlAJi2 nonceSha256=bd6d751ded4cebc0677d1bc580f9e1188a99923e9e72f2a2740b4485f8a0a1f2
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VlAJi2
+✔ attachment staging refuses ready publication after generation CAS is superseded and retains durable blob intent (793.630292ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lGhxzB
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lGhxzB nonceSha256=ef79c13fd38031b977238507b32ca07903e8663ee580828ac9917b81d185a6b4
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lGhxzB
+✔ attachment staging abort waits in-flight producer then terminal close and never releases quota or publishes (887.609042ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9YHThJ
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9YHThJ nonceSha256=6ebc21a41189b72bf88d42b3a2d5bc80b039b21c1335038c03b6204b5f697792
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9YHThJ
+✔ attachment legacy revision actual appendComment bumps descendant subtree exactly once and rollback restores counters (794.538458ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RwnSKL
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RwnSKL nonceSha256=c4c40b74309b04a92a10b07d734a1af50a8e0bfe062502ef3d7394c70e579403
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-RwnSKL
+✔ attachment staging schema preserves accepted policy and immutable original identity without absolute DB paths (621.0425ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3C9q1
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3C9q1 nonceSha256=21aa89deeee09c018745eb6c6d95bdd1ee2d24d2a882db9786b43f8af2064a10
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-V3C9q1
+✔ attachment staging heartbeat holds lease for a live writer and late generation loses publication (746.463875ms)
+﹣ attachment staging Linux registry refuses premature close then persists exact native receiver proof (0.1355ms) # SKIP
+attachment native container created 836562760e5ff161c253a2ab99a2f277d7cdf4958ec8cfa9a9799954ac3890af pg=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_4d5d750bd6e247cab0ef70b2add60e9d
+node:internal/modules/package_json_reader:316
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'postgres' imported from /workspace/v2/server/test/support/attachments.ts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:858:18)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:718:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:735:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:764:52)
+    at #resolve (node:internal/modules/esm/loader:700:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:143:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.12.0
+
+attachment native container removed 836562760e5ff161c253a2ab99a2f277d7cdf4958ec8cfa9a9799954ac3890af
+✖ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (1352.697958ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FYnryI
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FYnryI nonceSha256=63a5d4ee81ac343d1ea1d2557a6c2990c0658e1fb361fa4431def91de43474b6
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FYnryI
+✔ attachment staging publication failure preserves original intent and terminal receiver proof (664.296417ms)
+attachment restore created container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_8e72944dccae48f4b1382ea1e6bf0ac9 prefix=8
+attachment restore removed container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_8e72944dccae48f4b1382ea1e6bf0ac9
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XkIJqA
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XkIJqA nonceSha256=662d4fe2ac26722a7cedf5eb45878812df3ba9920bb741450ea8d3a33b72b414
+attachment restore created container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_9e3e61e8169e4535ad360ad373838a47 prefix=9
+attachment restore removed container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 database=crew_v2_test_9e3e61e8169e4535ad360ad373838a47
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-XkIJqA
+✔ attachment migration restores reviewed 008 through 009 and retains attachment checksum against drift (1994.006167ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sNKPl0
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sNKPl0 nonceSha256=c0be9114bb49f2a1ef9f9e79364126a5974da2c563685052c725b25c3f86fa1f
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-sNKPl0
+✔ attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator (695.995959ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7LrFSK
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7LrFSK nonceSha256=85e3a3cd3f53ea9d2430eef7c8aae4e5cbc27c6868503e19492d99adf70c50f3
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7LrFSK
+✔ attachment staging review F2 rejects every invalid one-byte text control before original publication (2737.361458ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-j1pGc4
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-j1pGc4 nonceSha256=0a66a6429a7e95ea5cf540839e0e1a56f46ef9b5738dfb3a968812fab8aba8f5
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-j1pGc4
+✔ attachment staging review F1 noncooperative replay times out but stays BUSY until actual teardown (519.079ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zj3qsu
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zj3qsu nonceSha256=a56e0d70a8543f3b4d232545cc560470e65c88948a95591755a6e87baa14cd23
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zj3qsu
+✔ attachment staging review F1 caller abort closes replay input and tracks rejected pending next (276.392375ms)
+attachment DB container e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wXsko0
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wXsko0 nonceSha256=0416780addead8a8fd09eb60ea71f8bed3edd54a05cbe3a25b12a59eccfaca48
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-wXsko0
+✔ attachment staging review F1 deadline before verified replay success retains tracked verification (349.282208ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lO7Imu nonceSha256=c6a351023c850626289a242524c41480a50c4730b0579a7e75a0df14b69042b6
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lO7Imu
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (262.309209ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Oa4CsI nonceSha256=0a0aaf87c2a1a48991f47664a3dfe59ca7f41b3c65fd76613828b71756c3e1a0
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Oa4CsI
+✔ attachment storage rejects truncated and oversized streams without publishing original (91.058ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.756791ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jKMjHS nonceSha256=8cde5c664fcb81f25afd7d0d980e3d657c779718b529fb70fa2f2aec9a49b9ac
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jKMjHS
+✔ attachment storage derivative publication is separate from original (165.138333ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2Xjwwu nonceSha256=1c01d342aa06a7f9e6c199b881504ac7c8f9d63f69bbd326b801b6bb1e71ae40
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2Xjwwu
+✔ attachment storage leaves a published blob inspectable after injected failure (86.291458ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (0.621167ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mVYI8p nonceSha256=fb9c2481b79a60d9fd9d03b63c2c1dc9a23997f09f207aacc00ba543755eaa02
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mVYI8p
+✔ attachment storage rejects a symlink owner marker before opening stage (58.98625ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-aYBp8O nonceSha256=d8eab0c413bfdd38b84a60ef35628931db24c275adfbd37bf45a0afb17464193
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-aYBp8O
+✔ attachment storage binds publication to exact attachment and generation (138.408042ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BysX6F nonceSha256=e61be2f635fd7f9192fa753c3f512b91180d2fc21d4260e5cdfc7a7cfcab79be
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BysX6F
+✔ attachment storage never accepts a foreign existing destination even with equal digest (85.898167ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8aN1EL nonceSha256=65d567c458c69120d1f18955173a2f240c92169dd3a90b28578fe4ca45dec1cf
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-8aN1EL
+✔ attachment storage prevents publication after abort at stage flush (106.452875ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AI2IyT nonceSha256=71bb53da83d72343bf87144f8bf58da32d1d6366d603ebc80485f6250a05cbdd
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AI2IyT
+✔ attachment storage can reopen durable root and verify originals (149.660375ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-TITfNx nonceSha256=fd80f05a9aace8e29dc2d52e71110a44bf961ba301bb9fef87be1d30caaac9e2
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-TITfNx
+✔ attachment storage requires durable journal integration before derivative bytes (36.832333ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fA7urG nonceSha256=3cfb11a86790a2c5f9015470940c13aa9c5e058b1b809c48099dbcaeae589937
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fA7urG
+✔ attachment storage publishes multiple derivatives in one extraction generation without collision (130.744166ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rnhxnz nonceSha256=3003df44b91670aa3212a4b34ba2ae28475155747c2a3bba34e47f8530133bb6
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rnhxnz
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (131.354291ms)
+✔ attachment receiver parses Linux comm containing spaces and parentheses without birth-field drift (0.228041ms)
+✔ attachment receiver rejects native writer setup on unsupported host (0.080333ms)
+﹣ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (0.017084ms) # SKIP
+✔ attachment staging private lease journal serializes SQL timestamps before receiver work (1.813417ms)
+﹣ attachment diagnostic image has no Task5 import dependency (0.288292ms) # SKIP
+✔ attachment worker duplicate locator cannot bypass coverage by JSON key order (6.130167ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-bc690a6f-ced8-41c9-b904-87e91f36e5ad nonce=bc690a6f-ced8-41c9-b904-87e91f36e5ad pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-bc690a6f-ced8-41c9-b904-87e91f36e5ad dev=16777229 ino=64004035 uid=501
+✔ attachment worker Docker inspect rejects foreign identity and pending created start (792.811042ms)
+✔ attachment worker rejects stale results before persisting derivatives (0.38575ms)
+✔ attachment worker accepts exact result and rejects identity changes (0.509291ms)
+✔ attachment worker rejects paths sizes hashes and false coverage (0.481209ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-eb65a680-420f-46f8-aaad-b432512282e3 nonce=eb65a680-420f-46f8-aaad-b432512282e3 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-eb65a680-420f-46f8-aaad-b432512282e3 dev=16777229 ino=64004323 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-cca8b591-1519-4bf5-bb1e-25c29a248199 nonce=cca8b591-1519-4bf5-bb1e-25c29a248199 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-cca8b591-1519-4bf5-bb1e-25c29a248199 dev=16777229 ino=64004330 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0fff8da8-a713-41e3-ad3e-c7344581a2c6 nonce=0fff8da8-a713-41e3-ad3e-c7344581a2c6 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0fff8da8-a713-41e3-ad3e-c7344581a2c6 dev=16777229 ino=64004333 uid=501
+✔ attachment worker bounded frames verify actual bytes and refuse forged terminal (43.25075ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-77a37537-315b-4f27-a91d-e561a22c90dc nonce=77a37537-315b-4f27-a91d-e561a22c90dc pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-77a37537-315b-4f27-a91d-e561a22c90dc dev=16777229 ino=64004336 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7d8a79fb-d7a5-483d-9826-54f92e99fa65 nonce=7d8a79fb-d7a5-483d-9826-54f92e99fa65 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7d8a79fb-d7a5-483d-9826-54f92e99fa65 dev=16777229 ino=64004338 uid=501
+✔ attachment worker frames cannot follow output symlink or reuse a filename (16.648167ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-41917ae7-3c06-46dd-843e-962241ce0c19 nonce=41917ae7-3c06-46dd-843e-962241ce0c19 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-41917ae7-3c06-46dd-843e-962241ce0c19 dev=16777229 ino=64004342 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-16b7a137-00ff-4170-89bf-eff63392922d nonce=16b7a137-00ff-4170-89bf-eff63392922d pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-16b7a137-00ff-4170-89bf-eff63392922d dev=16777229 ino=64004345 uid=501
+✔ attachment worker detects truncated streams and bounds decoded chunk before write (131.203667ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-14b9b79a-9f61-4d06-9435-62b97f30cc98 nonce=14b9b79a-9f61-4d06-9435-62b97f30cc98 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-14b9b79a-9f61-4d06-9435-62b97f30cc98 dev=16777229 ino=64004363 uid=501
+✔ attachment worker creates exclusive owned job intent and preserves it on unknown (68.914167ms)
+✔ attachment worker extraction defaults denied before Task5 corpus receipt (0.372125ms)
+✔ attachment worker legacy entry refuses ambient root and configuration (0.09825ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-4bb95c7a-1fac-469c-8e73-ac315acf25f9 nonce=4bb95c7a-1fac-469c-8e73-ac315acf25f9 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-4bb95c7a-1fac-469c-8e73-ac315acf25f9 dev=16777229 ino=64004381 uid=501
+✔ attachment worker stops unterminated nonterminal line before more stream reads (3.985167ms)
+✔ attachment worker problem codes are allowlisted and messages cannot expose content (0.502208ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-e4728596-f634-4020-a681-7e7845bf6b4c nonce=e4728596-f634-4020-a681-7e7845bf6b4c pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-e4728596-f634-4020-a681-7e7845bf6b4c dev=16777229 ino=64004416 uid=501
+✔ attachment worker DB generation CAS commits verified bytes once (826.835375ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-449c6a9c-2694-4241-8173-330cc64aac29 nonce=449c6a9c-2694-4241-8173-330cc64aac29 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-449c6a9c-2694-4241-8173-330cc64aac29 dev=16777229 ino=64004506 uid=501
+✔ attachment worker DB refuses unavailable accepted configuration and stale result (408.569083ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-c60c2f2b-ae0c-461f-8a2b-99e7a35d90b5 nonce=c60c2f2b-ae0c-461f-8a2b-99e7a35d90b5 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-c60c2f2b-ae0c-461f-8a2b-99e7a35d90b5 dev=16777229 ino=64004567 uid=501
+✔ attachment worker DB expired lease with unknown prior worker blocks replacement (832.548583ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7dc5c8a1-998a-48d3-b24f-a2b445e10513 nonce=7dc5c8a1-998a-48d3-b24f-a2b445e10513 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7dc5c8a1-998a-48d3-b24f-a2b445e10513 dev=16777229 ino=64004663 uid=501
+✔ attachment worker DB stopped container without publisher closure cannot retry expired generation (1066.72675ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-722512d1-9995-4a08-b391-c322f70d4398 nonce=722512d1-9995-4a08-b391-c322f70d4398 pid=80023
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-722512d1-9995-4a08-b391-c322f70d4398 dev=16777229 ino=64004742 uid=501
+✔ attachment worker DB concurrent call starts once and fencing forbids publication (612.712667ms)
+✔ concurrent claim fences one durable launch and lost reply replays it (1548.758708ms)
+✔ independent pools racing claim keep one durable attempt and one fence (653.740792ms)
+✔ stopped observation reserves guard until result and verifier allow finalization (843.307125ms)
+✔ result before stop does not close; stopped result stays pending without verifier (1060.378292ms)
+✔ current state read rejects stale project binding (608.192709ms)
+✔ registered artifact has canonical locator and checkpoint accepts same-attempt evidence (559.52025ms)
+✔ artifact route is authenticated idempotent and keeps late finalizing report (719.422208ms)
+✔ expired active lease rejects new artifact until running reconciliation, but finalizing accepts late report (768.659ms)
+✔ pause after replacement targets the new attempt and repeat pause reuses only its command (794.869084ms)
+✔ wait_owner event matches ticket response both before and after stop proof (1683.8825ms)
+✔ concurrent stop and retry result finalize once with one guard release (633.450958ms)
+✔ owner pause and cancel intents dominate a previously reported passed result (1479.760083ms)
+✔ stopped attestation survives pool restart and recheck finalizes without rewriting proof (614.179125ms)
+✔ append-only verifier attestation linked to original reported evidence advances persisted passed result after pool restart (652.512583ms)
+✔ claim rejects unapproved deploy, unfinished predecessor, and expired permit before authority callback (1814.741167ms)
+✔ missing dispatch authority leaves no attempt or running ticket (317.173792ms)
+✔ expired lease marks uncertain without accepting checkpoint progress (562.680125ms)
+✔ verified research result finalizes atomically only after physical stop (650.2125ms)
+✔ host needs_input result records scoped question decision (340.388666ms)
+✔ reconcile persists host provenance and refuses conflicting stop reason (317.307958ms)
+✔ fence exhaustion fails closed before attempt or ticket mutation (377.005917ms)
+✔ another queued launch stays blocked while stopped result is pending (234.923375ms)
+✔ internal needs_input intent finalizes stopped attempt and preserves repair limit (322.18475ms)
+✔ identical checkpoint and result replay are stable across JSONB key ordering (312.757916ms)
+✔ fifth repair failure after confirmed stop keeps needs_input and repair_limit (181.7605ms)
+✔ binding guard blocks uncertain attempt and releases only after terminal finalization (362.768125ms)
+✔ repair proof rejects same machine after binding revision changes (177.337375ms)
+✔ auth login, cookie và CSRF chặn request thiếu quyền (1546.589875ms)
+✔ machine provision replay cùng owner và không leak cho machine (659.003875ms)
+✔ auth backup không chứa credential gốc (837.647083ms)
+✔ auth login khóa sau năm lần sai trong năm phút (1062.531833ms)
+✔ auth login đồng thời chỉ cho tối đa năm lượt sai đi tới xác minh mật khẩu (612.64675ms)
+✔ machine list phân trang ID ổn định, chặn query lạ và không lộ token (550.476333ms)
+✔ auth login hết cửa sổ năm phút thì cho phép thử lại (738.317375ms)
+✔ auth login đúng xóa số lần sai đã hoàn tất trong cửa sổ (1415.931584ms)
+✔ auth forbidden input bị từ chối thay vì xóa thầm (223.440458ms)
+✔ auth session sống qua app restart rồi hết hạn và logout thu hồi (774.779959ms)
+✔ auth machine và owner không hoán đổi quyền (817.188541ms)
+✔ auth không tạo owner ngầm khi DB chưa bootstrap (605.6945ms)
+✔ provision replay cùng key khác payload báo conflict không tạo thêm máy (758.528375ms)
+✔ completed page anchor works and polling from null sees new commands (1531.369291ms)
+✔ queued microsecond anchor advances without repeating a command (669.08525ms)
+✔ ACK response survives closing its writer pool and replays from a new pool (842.375959ms)
+✔ same machine after new binding cannot read or ack old command (1051.546042ms)
+✔ ack completion is immutable and duplicate result replays canonically (622.966ms)
+✔ cached mutation reply is not returned after same machine rebinding (560.110667ms)
+✔ journal authorizes cached replay inside its transaction before returning response (727.860083ms)
+✔ replay authorization holds project lock until cached response transaction commits (756.241875ms)
+✔ create-command cached reply is scoped to immutable binding revision (796.583125ms)
+✔ docs cũ cannot close a code request from a reported commit (1463.978ms)
+✔ code step completes from its verified result without requiring request merge (676.957917ms)
+✔ code request requires verified merge and docs at the same commit (836.973ms)
+✔ request cannot finish while a mandatory descendant remains incomplete (1046.622375ms)
+✔ completion requires every evidence kind listed in ticket criteria (613.187625ms)
+✔ ticket services keep the authority callbacks captured at construction (513.107542ms)
+✔ hierarchy rejects a task directly under a request and cross-project parent (1501.521542ms)
+✔ concurrent opposite edges cannot create a dependency cycle (651.648708ms)
+✔ dependencies_ready refuses a step whose predecessor is unfinished (838.968125ms)
+✔ closed request and completed step reject new descendants (1069.876875ms)
+✔ concurrent request completion and child creation cannot leave done root with pending child (605.080958ms)
+✔ dependency graph rejects adding edge once target is ready or running (553.005333ms)
+✔ machine cannot create deploy request or unapproved deploy descendant (1339.232625ms)
+✔ owner-created deploy request authorizes only itself; machine child needs exact action approval (804.9235ms)
+✔ machine deploy child under ordinary root needs exact persisted owner approval (841.78125ms)
+✔ deploy completion accepts owner-created request but requires approval for a child elsewhere (1063.227542ms)
+✔ docs events accept bounded metadata and reject content or false audit claims (4.261625ms)
+✔ CLI dry-run verifies backup and preserved files twice without writes or secret output (258.755584ms)
+✔ CLI rejects backup/doc corruption, class disagreement and symlink without leaking credentials (406.519334ms)
+✔ CLI transport takes credentials only from env/stdin and rejects credentials in arguments (149.397083ms)
+✔ CLI uploads only to explicit owner origin with stable retry key and never logs server secrets (367.921917ms)
+✔ CLI never forwards owner credentials through a redirect or logs failed response content (128.561708ms)
+✔ CLI dry-run reports NUL projection and bounded FTS while keeping complete export bytes (383.481958ms)
+✔ import giữ CRLF/Unicode, null commit và chạy lại không trùng (811.779209ms)
+ℹ owned-test-container=e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1
+ℹ owned-test-url=postgres://postgres@127.0.0.1:65398/crew_v2_test
+✔ structural valid legacy remains unverified and mixed classes retain bytes and link occurrences (616.092958ms)
+✔ bad checksum, unknown fields, class and unsafe paths reject atomically even in later project (558.773625ms)
+✔ corrupt base64, UTF8, bundle/snapshot hash and oversized file reject before writes (624.494709ms)
+✔ provenance collision never adopts unrelated project and later collision rolls back first project (839.902333ms)
+✔ new backup reuses snapshot, new commit keeps history, import cannot change verified pointer (819.602083ms)
+✔ independent pools race duplicate bundle and provenance with one snapshot per identity (865.875958ms)
+✔ sync structural snapshot is unverified by default and exact receipt replays without new event (820.453167ms)
+✔ sync rejects wrong project/commit/fence/guard/binding and stale authority even on idempotency replay (634.905041ms)
+✔ invalid sync and source-list checksum rollback while reserved finalizing can sync (742.353042ms)
+✔ sync reused immutable snapshot across another attempt has its own stable receipt (726.011416ms)
+✔ sync concurrent receipt serializes independent pools and conflicts on changed file bytes (611.618958ms)
+✔ immutable snapshots/files/links/imports cannot be changed and cross-project pointers reject (667.546583ms)
+✔ backup restore rehearsal covers prefix5 before 006 and preserved prefix6 after import (1512.439125ms)
+✔ import limits, duplicate identities and security links fail closed without keys or snapshots (404.52875ms)
+✔ distinct case-sensitive paths survive DB, source provenance mapping refuses reassignment (672.954917ms)
+✔ transaction failure after import rolls back bytes/events/key and same key retries once (395.76475ms)
+✔ same checkout bytes at a new merged commit retain separate immutable provenance (570.675708ms)
+✔ machine revocation racing cached sync waits for identity lock and denies replay (442.445791ms)
+✔ legacy NUL body/heading/link/fragment/audit metadata preserve raw bytes in mixed batch and replay (375.72975ms)
+✔ high-lexeme 672011-byte artifact imports within 1MiB with prefix FTS and full literal fallback (235.297542ms)
+✔ checkout NUL representation does not upgrade structural validity or verification and keeps raw identity (332.541041ms)
+{"level":30,"time":1790939566235,"pid":81236,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49186"}
+✔ docs tìm kiếm Unicode original bytes audit labels and actor permissions (1005.177375ms)
+{"level":30,"time":1790939567230,"pid":81236,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49239"}
+✔ search full literal fallback beyond GIN prefix, escaped wildcard and scoped tie-safe cursor (719.879ms)
+{"level":30,"time":1790939567893,"pid":81236,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49272"}
+✔ docs tree links composite ticket references and verified mixed standard-page completion reader (764.050542ms)
+{"level":30,"time":1790939568646,"pid":81236,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49310"}
+✔ search SQL deadline cancels blocked query and returns reusable single-connection pool (2512.358208ms)
+ℹ {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","db":"crew_v2_test_2d7ce1d021f34c3ea43b092fdcb7c370","port":"65398"}
+ℹ {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","db":"crew_v2_test_2d7ce1d021f34c3ea43b092fdcb7c370","port":"65398","backendPid":320,"sameConnectionReused":true}
+{"level":30,"time":1790939571219,"pid":81236,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49447"}
+✔ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (588.704625ms)
+✔ hash bytes keeps CRLF and Unicode, snapshot hash is order independent and class sensitive (1.55775ms)
+✔ snapshot hash rejects noncanonical base64 and duplicate exact paths (0.422041ms)
+✔ source tree hash is stable for path order and changes when a tracked path changes (0.087708ms)
+✔ bundle hash excludes its own digest field and covers backup provenance (0.113ms)
+✔ valid standard snapshot is structurally valid but legacy source tree is unverified (5.454209ms)
+✔ CLAUDE redirect rejects extra blank lines (1.500458ms)
+✔ checkout source coverage finds unmapped source and dotfiles (1.972334ms)
+✔ duplicate YAML keys, wrong heading order and stale generated block are errors (0.992375ms)
+✔ manifest rejects dangerous keys, missing mapped sources and unexpected fields (1.385083ms)
+✔ case-sensitive filenames, traversal and invalid UTF8 are detected without changing bytes (0.57575ms)
+✔ workflow artifacts retain their class and standard pages cannot be artifacts (0.834416ms)
+✔ repeated links and fragments keep distinct occurrence and missing status (1.15875ms)
+✔ reference links and images resolve, code links are ignored and escapes fail (1.328083ms)
+✔ relative parent link inside docs and duplicate heading suffixes resolve (0.453125ms)
+✔ missing workflow artifact warns, unsupported heading slug stays unverified (0.388834ms)
+✔ nested Markdown link is flagged as unverified syntax (0.336ms)
+✔ inline-code label and shortcut reference retain broken link occurrences and original hrefs (0.399542ms)
+✔ unsupported link-like syntax warns instead of silently claiming full audit (0.293708ms)
+✔ artifact-only snapshot passes integrity audit without STANDARD pages; mixed subset still requires them (0.580875ms)
+✔ every numbered step in actual Các bước section needs file and symbol (0.5455ms)
+✔ fenced heading examples do not change the required flow heading sequence (0.2735ms)
+✔ empty numbered marker in Các bước is audited as an invalid step (0.312292ms)
+✔ task-list checkboxes do not consume link occurrences or create link warnings (0.76725ms)
+✔ task-list marker variants preserve real link and shortcut occurrences (3.216459ms)
+✔ execution event whitelist accepts identifiers and rejects sensitive result data (1.588166ms)
+✔ gateway migration 007 có prefix riêng và checksum replay (452.765334ms)
+{"level":30,"time":1790939567449,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49243"}
+✔ gateway boot và heartbeat dùng auth thật, giữ execution namespace bất biến (1178.214625ms)
+{"level":30,"time":1790939568751,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49320"}
+✔ gateway config CAS, URL allowlist, CSRF và schema đóng (794.507166ms)
+{"level":30,"time":1790939569470,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49354"}
+✔ gateway boot CAS giữ lịch sử, receipt bất biến và trạng thái hiện tại (865.750833ms)
+{"level":30,"time":1790939570352,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49401"}
+✔ gateway install report xác nhận exact source/projection và giữ applied qua partial, retired replay (817.055083ms)
+{"level":30,"time":1790939571158,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49442"}
+✔ gateway management command cursor, ACK mất phản hồi/gửi lại không hạ trạng thái completed (618.111542ms)
+{"level":30,"time":1790939571814,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49479"}
+✔ gateway projection production fail-closed trước khi tạo companion (752.246708ms)
+{"level":30,"time":1790939572501,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49522"}
+✔ gateway projection server selection bắt buộc, row bất biến, replay cùng pin sau update (735.458333ms)
+{"level":30,"time":1790939573259,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49556"}
+✔ gateway fresh claim từ chối report cũ, config tắt, thiếu decision, payload đổi trước RELEASE (618.665166ms)
+{"level":30,"time":1790939573884,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49587"}
+{"level":30,"time":1790939574019,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49597"}
+✔ gateway receipt tồn tại qua close/reopen pool, auth revoked/rotated không đọc cached response (653.016459ms)
+{"level":30,"time":1790939574493,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49625"}
+✔ gateway machine scope không làm lỏng project ACL, status offline không nhả execution guard (671.639208ms)
+{"level":30,"time":1790939575122,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49661"}
+✔ gateway install report exact derivation/source payload, partial runtime, stale config và sanitization (608.624583ms)
+gateway-owned-fixture {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","port":"65398","source":"crew_v2_test_3ca27379f28d420192576ac8e1770ab7"}
+{"level":30,"time":1790939576062,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49702"}
+{"level":30,"time":1790939576805,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49727"}
+✔ gateway migration007 FK/CHECK/UNIQUE và backup6→restore→migrate7→restore receipts (2068.587417ms)
+✔ gateway event metadata từ chối secrets, trường dư và audience sai (0.321083ms)
+{"level":30,"time":1790939577732,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49752"}
+✔ gateway inventory từ chối URL có credential trước khi lưu (607.687917ms)
+{"level":30,"time":1790939578352,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49778"}
+✔ gateway cùng transaction recheck actual token trước cached boots/heartbeat/report/ack/projection (650.405417ms)
+{"level":30,"time":1790939578990,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49806"}
+✔ gateway owner session expire giữa prehandler và cached config vẫn từ chối (342.545042ms)
+{"level":30,"time":1790939579314,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49817"}
+✔ gateway authorization tại claim giữ pair khi update xảy ra trước insert companion (481.117584ms)
+{"level":30,"time":1790939579808,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49829"}
+✔ gateway heartbeat ngoài thứ tự và replay đồng thời (368.871625ms)
+{"level":30,"time":1790939580162,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49843"}
+✔ gateway fresh claim từ chối projection null và report partial mới nhất dù có applied cũ (427.235417ms)
+{"level":30,"time":1790939580573,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49851"}
+✔ gateway ACK nhận nested/string details, từ chối secret/path (331.779709ms)
+{"level":30,"time":1790939580901,"pid":81698,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49856"}
+✔ gateway mọi desired runtime khác null đều bắt buộc trước advance applied (263.081333ms)
+✔ máy cũ không nhận event commit sau khi scope đã đọc nhưng binding đổi (563.306875ms)
+✔ canonical JSON ổn định theo thứ tự key và từ chối dữ liệu không phải JSON (0.650083ms)
+✔ retry concurrent chỉ ghi một event và trả cùng body (492.336625ms)
+✔ rollback không để lại response hoặc cursor đã tiêu thụ (238.666541ms)
+✔ cursor được phát theo thứ tự commit của hai kết nối (622.774709ms)
+✔ scope máy chỉ nhận audience riêng, không nhận global hay project lạ (799.024333ms)
+✔ journal từ chối token/password lồng trong dữ liệu và event type lạ (756.127667ms)
+✔ response codec quyết định dữ liệu được lưu và giải mã khi replay (150.585667ms)
+✔ SSE xác thực trước stream và nối lại sau restart từ Last-Event-ID (674.761875ms)
+✔ event read từ chối query lạ và cursor không hợp lệ (123.977042ms)
+✔ event read trả items và cursor cuối cùng của trang (609.5175ms)
+model-fixture-container {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","url":"postgres://postgres@127.0.0.1:65398/crew_v2_test"}
+{"level":30,"time":1790939568217,"pid":82100,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:49287"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (676.283084ms)
+✔ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (1663.274583ms)
+✔ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (1435.03725ms)
+model-fixture-container {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","url":"postgres://postgres@127.0.0.1:65398/crew_v2_test"}
+✔ current credential machine-own read exposes metadata only and never selects by UUID or late historical ACK (754.102583ms)
+✔ current credential retained stored ref legitimately has null operation after same endpoint revision; pending/loss/OFF/removal stay exact (774.65875ms)
+✔ current credential endpoint/protocol change detaches credential and read cannot cross machine or owner session (639.364334ms)
+✔ current credential read reauthenticates actual credential after preflight in existing repeatable-read snapshot (730.657167ms)
+✔ model pool migration creates separate config and immutable report authority (301.2155ms)
+model owned fixture e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1 postgres://postgres@127.0.0.1:65398/crew_v2_test
+model-fixture-container {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","url":"postgres://postgres@127.0.0.1:65398/crew_v2_test"}
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (750.474792ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (744.126ms)
+✔ model report shared order historical immutable replay and production host PASS stays unverified (608.201083ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (663.477667ms)
+✔ sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK (665.352458ms)
+✔ model source events reject secret metadata and wrong audience without leaking inventory (0.430458ms)
+✔ model HTTP cached mutation rechecks actual token after authentication before journal cache (612.51175ms)
+✔ fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate (640.487584ms)
+model-backup-owned {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","port":"65398","sourceDb":"crew_v2_test_d223e651b1a849e9a7bd9c809ad575f0","restoredName":"crew_v2_test_6faa7c0820834acdbe86c58eeec15a11"}
+model-backup-cleaned {"sourceDb":"crew_v2_test_d223e651b1a849e9a7bd9c809ad575f0","restoredName":"crew_v2_test_6faa7c0820834acdbe86c58eeec15a11"}
+✔ model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift (2173.187416ms)
+model-fixture-container {"containerId":"e5bd93a6790bf3adbb2652f5ee7f5032ffe6bffe6ee681e68ba4f94bef0296d1","url":"postgres://postgres@127.0.0.1:65398/crew_v2_test"}
+✔ model secret key proof encrypted provisioning and lost ACK replay erase ciphertext exactly once (713.25775ms)
+✔ model secret rotation scopes pending envelopes to own machine and rejects stale key/revision ACK (667.880542ms)
+✔ model secret envelope pagination uses a durable decimal cursor so reconnect cannot miss a new random UUID (577.391666ms)
+✔ production app real HTTP secret rejection and structured logger redact plaintext (1238.608209ms)
+✔ FIX1 R2 older pending ack cannot rewind newer stored credential (703.36125ms)
+✔ FIX1 R2 older pending loss cannot rewind newer stored credential (715.245958ms)
+✔ FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history (697.410375ms)
+✔ FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key (866.703958ms)
+✔ FIX1 revision invalidation detaches current operation and old receipts preserve new credential (792.698708ms)
+✔ không dùng DB v1 hoặc port DB dùng chung (0.595542ms)
+✔ migration chạy lại và giữ dữ liệu (642.478958ms)
+✔ hai lượt migration đồng thời giữ một bản ghi mỗi version (730.096416ms)
+✔ captureMigrations từ chối prefix chưa có file SQL (1.730167ms)
+✔ fixture tạo logical DB đã migrate trước callback (630.719208ms)
+✔ cấu hình hợp lệ giữ khóa 32 byte và DB v2 riêng (0.34025ms)
+✔ DB client từ chối endpoint dùng chung trước khi tạo pool (0.099833ms)
+✔ migration từ chối database có bảng lạ trước khi ghi schema (581.594542ms)
+✔ fixture từ chối URL không khớp container do runner tạo (20.027583ms)
+✔ migration lỗi SQL rollback toàn bộ schema (124.707083ms)
+✔ migration checksum drift bị chặn và không sửa dữ liệu (515.3835ms)
+✔ migration set đã chụp không đổi khi file SQL đổi sau đó (239.7865ms)
+✔ backup và restore trong container test giữ marker và dữ liệu (1000.979416ms)
+✔ binding concurrent cùng revision chỉ một request thành công (617.470833ms)
+✔ binding từ chối đổi máy khi đã bound và từ chối máy revoked (731.54ms)
+✔ project từ chối URL có userinfo và giới hạn phân trang vượt 100 (617.37575ms)
+✔ project key trùng báo conflict rõ ràng và không tạo thêm project (665.795208ms)
+✔ project list phân trang ổn định và chỉ machine bound đọc event dự án (661.112667ms)
+✔ binding guard cho phép đổi máy sau đối chiếu và xóa commit checkout cũ (613.440875ms)
+✔ repair review counts only completed repair failures and fifth requests terminal intent (655.288167ms)
+✔ ticket metadata events accept exact fields and reject content (1.486791ms)
+✔ hierarchy schema stores a request root and rejects self dependency (600.916375ms)
+✔ machine cannot record an owner answer to unlock a repair limit (625.8575ms)
+✔ docs links fail closed until a verified snapshot reader is supplied (652.643959ms)
+✔ ticket criteria rejects inherited-key payloads before persistence (670.551875ms)
+✔ comment during running is durable timeline data without changing execution status (530.401167ms)
+✔ ticket route rejects unknown JSON fields before mutation (617.799541ms)
+ℹ tests 293
+ℹ suites 0
+ℹ pass 289
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 3
+ℹ todo 0
+ℹ duration_ms 19737.915667
+
+✖ failing tests:
+
+test at test/attachments-staging.test.ts:579:1
+✖ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (1352.697958ms)
+  Error: Command failed: docker start -a 836562760e5ff161c253a2ab99a2f277d7cdf4958ec8cfa9a9799954ac3890af
+  node:internal/modules/package_json_reader:316
+    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+          ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'postgres' imported from /workspace/v2/server/test/support/attachments.ts
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)
+      at packageResolve (node:internal/modules/esm/resolve:768:81)
+      at moduleResolve (node:internal/modules/esm/resolve:858:18)
+      at defaultResolve (node:internal/modules/esm/resolve:990:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:718:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:735:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:764:52)
+      at #resolve (node:internal/modules/esm/loader:700:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:143:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+  
+  Node.js v24.12.0
+  
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at ChildProcess.exithandler (node:child_process:417:12)
+      at ChildProcess.emit (node:events:508:28)
+      at maybeClose (node:internal/child_process:1100:16)
+      at Socket.<anonymous> (node:internal/child_process:457:11)
+      at Socket.emit (node:events:508:28)
+      at Pipe.<anonymous> (node:net:346:12) {
+    code: 1,
+    killed: false,
+    signal: null,
+    cmd: 'docker start -a 836562760e5ff161c253a2ab99a2f277d7cdf4958ec8cfa9a9799954ac3890af',
+    stdout: '',
+    stderr: "node:internal/modules/package_json_reader:316\n  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n        ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'postgres' imported from /workspace/v2/server/test/support/attachments.ts\n    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:316:9)\n    at packageResolve (node:internal/modules/esm/resolve:768:81)\n    at moduleResolve (node:internal/modules/esm/resolve:858:18)\n    at defaultResolve (node:internal/modules/esm/resolve:990:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:718:20)\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:735:38)\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:764:52)\n    at #resolve (node:internal/modules/esm/loader:700:17)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:35)\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:143:33) {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\nNode.js v24.12.0\n"
+  }
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

@@ -1,0 +1,30 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-typecheck-pre-freeze-ub0t48p7/v2/server", "typecheck"]
+privatePG {"command": [], "id": "", "name": "", "mapping": ""}
+
+> @crew-v2/server@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-typecheck-pre-freeze-ub0t48p7/v2/server
+> tsc --noEmit
+
+src/attachments/messages.ts(238,317): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'JSONValue'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'Date': toDateString, toTimeString, toLocaleDateString, toLocaleTimeString, and 39 more.
+src/attachments/submissions.ts(76,40): error TS2345: Argument of type '{ projectId: string; ticketId: string | null; parentId: string | null; purpose: "comment" | "ticket"; }' is not assignable to parameter of type '{ projectId?: string | undefined; ticketId?: string | undefined; parentId?: string | null | undefined; conversationId?: string | undefined; }'.
+  Types of property 'ticketId' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+src/attachments/submissions.ts(300,71): error TS2345: Argument of type '{ purpose: "comment" | "ticket"; projectId: string; ticketId: string | null; }' is not assignable to parameter of type 'ComposeTarget'.
+  Type '{ purpose: "comment" | "ticket"; projectId: string; ticketId: string | null; }' is not assignable to type '{ purpose: "ticket"; projectId: string; ticketId: null; } | { purpose: "comment"; projectId: string; ticketId: string; }'.
+    Type '{ purpose: "comment" | "ticket"; projectId: string; ticketId: string | null; }' is not assignable to type '{ purpose: "comment"; projectId: string; ticketId: string; }'.
+      Types of property 'purpose' are incompatible.
+        Type '"comment" | "ticket"' is not assignable to type '"comment"'.
+          Type '"ticket"' is not assignable to type '"comment"'.
+test/attachments-submissions.test.ts(49,7): error TS2345: Argument of type '{ purpose: "comment" | "ticket"; projectId: string; ticketId: string | null; }' is not assignable to parameter of type 'ComposeTarget'.
+  Type '{ purpose: "comment" | "ticket"; projectId: string; ticketId: string | null; }' is not assignable to type '{ purpose: "ticket"; projectId: string; ticketId: null; } | { purpose: "comment"; projectId: string; ticketId: string; }'.
+    Type '{ purpose: "comment" | "ticket"; projectId: string; ticketId: string | null; }' is not assignable to type '{ purpose: "comment"; projectId: string; ticketId: string; }'.
+      Types of property 'purpose' are incompatible.
+        Type '"comment" | "ticket"' is not assignable to type '"comment"'.
+          Type '"ticket"' is not assignable to type '"comment"'.
+test/attachments-submissions.test.ts(102,82): error TS2322: Type '{ readonly composeSessionId: string; readonly selectionRevision: number; readonly attachmentIds: readonly [string, string]; } | { readonly composeSessionId: string; readonly selectionRevision: number; readonly attachmentIds: readonly [...]; } | { ...; } | { ...; }' is not assignable to type 'Selection'.
+  Type '{ readonly composeSessionId: Id; readonly selectionRevision: number; readonly attachmentIds: readonly [string, string]; }' is not assignable to type 'Selection'.
+    Types of property 'attachmentIds' are incompatible.
+      The type 'readonly [string, string]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+ ELIFECYCLE  Command failed with exit code 1.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

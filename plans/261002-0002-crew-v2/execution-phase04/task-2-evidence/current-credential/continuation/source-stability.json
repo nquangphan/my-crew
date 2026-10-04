@@ -1,0 +1,15 @@
+{
+  "snapshots": [
+    {
+      "kind": "gateway",
+      "changed": [],
+      "files": 238
+    },
+    {
+      "kind": "server",
+      "changed": [],
+      "files": 238
+    }
+  ],
+  "workingOwnedChanges": []
+}

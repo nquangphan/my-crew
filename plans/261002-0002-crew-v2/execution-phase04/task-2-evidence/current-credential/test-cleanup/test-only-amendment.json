@@ -1,0 +1,9 @@
+{
+  "files": [
+    "v2/gateway/test/current-credential-resolver.test.ts"
+  ],
+  "reason": "Replace compile-only non-null assertions with explicit fixture presence assertion; production unchanged",
+  "focusedLog": "../test-assertion-focused.log",
+  "focusedExit": 0,
+  "focusedPass": 4
+}

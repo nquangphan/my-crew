@@ -1,0 +1,112 @@
+{
+  "status": "SOURCE_FROZEN_FOR_INDEPENDENT_CONSUMER_REVIEW",
+  "owned": [
+    {
+      "path": "v2/server/src/attachments/submissions.ts",
+      "bytes": 19740,
+      "sha256": "434538208fc28dcb580d449c8004210009483adc9b0b2c1bd960087e736c494b",
+      "base": null
+    },
+    {
+      "path": "v2/server/src/attachments/messages.ts",
+      "bytes": 11288,
+      "sha256": "36a16913ef253f4a386ad100a7ae3cfcd575779320db65653ce1e31f4b291631",
+      "base": null
+    },
+    {
+      "path": "v2/server/src/attachments/routing.ts",
+      "bytes": 9833,
+      "sha256": "8fcf1602580fe1e2dbca07c91b96af8dad0076d200cf5c0f56cb2068fabb5be6",
+      "base": null
+    },
+    {
+      "path": "v2/server/test/attachments-submissions.test.ts",
+      "bytes": 16959,
+      "sha256": "1126284ea9a3bedf7252fff63d938abba6558341e0906b56e55dfdc76963a30a",
+      "base": null
+    },
+    {
+      "path": "v2/server/test/attachments-messages.test.ts",
+      "bytes": 8144,
+      "sha256": "64cea548dbddf20102bb3909e606ea8d6c25fffc4e0415e7937ec3efdc0331c1",
+      "base": null
+    },
+    {
+      "path": "v2/server/test/attachments-routing.test.ts",
+      "bytes": 15912,
+      "sha256": "800a171c2bcc631a5801306f2da0eb6aa4bfafc3c43bcb45d6d0563674196c7d",
+      "base": null
+    },
+    {
+      "path": "v2/server/test/support/attachments.ts",
+      "bytes": 26365,
+      "sha256": "62e6bac7f87210d107e441565a7f7f50ab94c8128582f15f945bd42e688613b4",
+      "base": "f58f27dc96b964d034697a67c5677fb1d3bbacb2"
+    },
+    {
+      "path": "v2/docs/flows/server-attachments.md",
+      "bytes": 15680,
+      "sha256": "8eb0e5c89c35f6c4e053c8e651a98819e0e34d7bc5fe619f273266166adbb4e0",
+      "base": "ec02ac0"
+    }
+  ],
+  "immutableMigrations": [
+    {
+      "path": "v2/server/migrations/001_platform.sql",
+      "bytes": 286,
+      "sha256": "dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"
+    },
+    {
+      "path": "v2/server/migrations/002_journal.sql",
+      "bytes": 837,
+      "sha256": "11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"
+    },
+    {
+      "path": "v2/server/migrations/003_identity.sql",
+      "bytes": 1294,
+      "sha256": "0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"
+    },
+    {
+      "path": "v2/server/migrations/004_tickets.sql",
+      "bytes": 4975,
+      "sha256": "1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"
+    },
+    {
+      "path": "v2/server/migrations/005_execution.sql",
+      "bytes": 3270,
+      "sha256": "b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"
+    },
+    {
+      "path": "v2/server/migrations/006_docs.sql",
+      "bytes": 4364,
+      "sha256": "8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"
+    },
+    {
+      "path": "v2/server/migrations/007_gateway.sql",
+      "bytes": 6548,
+      "sha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"
+    },
+    {
+      "path": "v2/server/migrations/008_model_pool.sql",
+      "bytes": 15261,
+      "sha256": "d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"
+    },
+    {
+      "path": "v2/server/migrations/009_attachments.sql",
+      "bytes": 20136,
+      "sha256": "fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"
+    },
+    {
+      "path": "v2/server/migrations/010_attachment_comment_text.sql",
+      "bytes": 253,
+      "sha256": "aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"
+    }
+  ],
+  "acceptedOverlays": {
+    "base": "f58f27dc96b964d034697a67c5677fb1d3bbacb2",
+    "fix1": "ec02ac0",
+    "producer010": "f6d3728",
+    "events": "228f9e4"
+  },
+  "producerByteIdentical": true
+}

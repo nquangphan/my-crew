@@ -1,0 +1,31 @@
+{
+  "candidate": "e94f2e1",
+  "files": [
+    "v2/server/test/api-acceptance.test.ts",
+    "v2/server/test/attempts.test.ts",
+    "v2/server/test/auth.test.ts",
+    "v2/server/test/commands.test.ts",
+    "v2/server/test/completion.test.ts",
+    "v2/server/test/dependencies.test.ts",
+    "v2/server/test/deploy.test.ts",
+    "v2/server/test/docs-events.unit.test.ts",
+    "v2/server/test/docs-import-cli.unit.test.ts",
+    "v2/server/test/docs-import.test.ts",
+    "v2/server/test/docs-read.test.ts",
+    "v2/server/test/docs-validator.unit.test.ts",
+    "v2/server/test/execution-events.unit.test.ts",
+    "v2/server/test/gateway.test.ts",
+    "v2/server/test/journal-scope.test.ts",
+    "v2/server/test/journal.test.ts",
+    "v2/server/test/model-certification.test.ts",
+    "v2/server/test/model-pool.test.ts",
+    "v2/server/test/model-secret.test.ts",
+    "v2/server/test/platform.test.ts",
+    "v2/server/test/projects.test.ts",
+    "v2/server/test/repair.test.ts",
+    "v2/server/test/ticket-events.unit.test.ts",
+    "v2/server/test/tickets.test.ts"
+  ],
+  "matches": true,
+  "maximumMigration": 8
+}

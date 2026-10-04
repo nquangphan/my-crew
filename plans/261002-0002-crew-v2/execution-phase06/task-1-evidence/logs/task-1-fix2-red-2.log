@@ -1,0 +1,100 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=assistant FIX2", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-ae7bb8ef-0d95-4fe9-92b5-72134dbfc9ba", "--label", "crew.phase06.task1=66c0c9e3-6302-480b-a16f-53e39aa81365", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd", "name": "crew-v2-test-ae7bb8ef-0d95-4fe9-92b5-72134dbfc9ba", "mapping": "127.0.0.1:59978"}
+attachment DB container 2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-DPsSWl
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-DPsSWl nonceSha256=bb3b14c1944f683096fcff729da686d696cd0a3507bfbbc1ecb1ebc9536bdca9
+attachment DB scratch identity dev=16777229 ino=64474719 uid=501 pid=24152
+assistant FIX2 DB expiry witness {"state":"pending","operation":"claim","transaction_started_at":"2026-10-03T11:51:21.179Z","expires_at":"2026-10-03T11:51:21.280Z","checked_at":"2026-10-03T11:51:21.286Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-DPsSWl
+✖ assistant FIX2 expired scope rejects claim from pending after DB wall-clock deadline (515.212417ms)
+attachment DB container 2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qJwAQF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qJwAQF nonceSha256=f443182b27702f79f862125fab4b897d725fffb813f253360637cf3987768306
+attachment DB scratch identity dev=16777229 ino=64474726 uid=501 pid=24152
+assistant FIX2 DB expiry witness {"state":"claimed","operation":"claim","transaction_started_at":"2026-10-03T11:51:21.567Z","expires_at":"2026-10-03T11:51:21.667Z","checked_at":"2026-10-03T11:51:21.670Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qJwAQF
+✖ assistant FIX2 expired scope rejects claim from claimed after DB wall-clock deadline (376.8675ms)
+attachment DB container 2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QgURVd
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QgURVd nonceSha256=aedba2cd2b7efae115d720c9ea1e2857801a3dfa4ff1b59c947e3683673275ae
+attachment DB scratch identity dev=16777229 ino=64474733 uid=501 pid=24152
+assistant FIX2 DB expiry witness {"state":"claimed","operation":"ack","transaction_started_at":"2026-10-03T11:51:21.943Z","expires_at":"2026-10-03T11:51:22.043Z","checked_at":"2026-10-03T11:51:22.051Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-QgURVd
+✖ assistant FIX2 expired scope rejects ack from claimed after DB wall-clock deadline (382.447792ms)
+attachment DB container 2584482ceb854e02a610267713357dc3a35122b2e22ca15cebd726122a3a8cdd root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xOwzps
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xOwzps nonceSha256=fe9350079ebcdc5bf4779b141c6c3da6d9fdbc1e8bc735ee0caf256fad1d05d7
+attachment DB scratch identity dev=16777229 ino=64474740 uid=501 pid=24152
+assistant FIX2 DB expiry witness {"state":"acked","operation":"ack","transaction_started_at":"2026-10-03T11:51:22.324Z","expires_at":"2026-10-03T11:51:22.424Z","checked_at":"2026-10-03T11:51:22.427Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xOwzps
+✖ assistant FIX2 expired scope rejects ack from acked after DB wall-clock deadline (369.479417ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1734.806041
+
+✖ failing tests:
+
+test at v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1213:3
+✖ assistant FIX2 expired scope rejects claim from pending after DB wall-clock deadline (515.212417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1232:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [Object],
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1213:3
+✖ assistant FIX2 expired scope rejects claim from claimed after DB wall-clock deadline (376.8675ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1232:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [Object],
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1213:3
+✖ assistant FIX2 expired scope rejects ack from claimed after DB wall-clock deadline (382.447792ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1232:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [Object],
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1213:3
+✖ assistant FIX2 expired scope rejects ack from acked after DB wall-clock deadline (369.479417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/assistant-store.test.ts:1232:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-red-2-_u6ch2nk/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [Object],
+    operator: 'rejects',
+    diff: 'simple'
+  }

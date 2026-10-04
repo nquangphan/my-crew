@@ -1,0 +1,16 @@
+[
+  {
+    "action": "created",
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-candidate-a3705df0-f88c-4e0d-90f1-7fcafc1fda72",
+    "dev": 16777229,
+    "ino": 63519719,
+    "uid": 501
+  },
+  {
+    "action": "removed",
+    "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-candidate-a3705df0-f88c-4e0d-90f1-7fcafc1fda72",
+    "dev": 16777229,
+    "ino": 63519719,
+    "uid": 501
+  }
+]

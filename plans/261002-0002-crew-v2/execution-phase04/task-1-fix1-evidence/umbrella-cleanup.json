@@ -1,0 +1,12 @@
+{
+  "root": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j",
+  "removedFiles": [
+    "models.test.ts",
+    "server.test.ts"
+  ],
+  "remains": false,
+  "sourceCopies": [
+    "umbrella-models.test.ts.txt",
+    "umbrella-server.test.ts.txt"
+  ]
+}

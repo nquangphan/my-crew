@@ -1,0 +1,102 @@
+
+> @crew-v2/gateway@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> pnpm build && node --test test/*.test.ts
+
+
+> @crew-v2/gateway@ build /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway
+> tsc -p tsconfig.build.json
+
+✔ oversized second frame cannot crash host or replace boot (234.355ms)
+✔ absolute frame deadline closes a drip client despite continuing bytes (1627.283375ms)
+✔ SIGTERM stops with an unfinished frame and a new host binds (276.202333ms)
+✔ crash residue in recovery and empty init lock does not wedge reboot (555.026084ms)
+✔ empty host lock from interrupted initialization is recoverable (198.446167ms)
+✔ live contender cannot take over host or change its socket (122.260834ms)
+✔ unknown symlink recovery residue is not deleted or followed (177.65875ms)
+✔ stop drains a stalled dispatch only until its bounded deadline (356.072958ms)
+✔ macOS guard retains one inode across release and old-fd contender ordering (88.287583ms)
+✔ host lifecycle: UI main exit and reopen preserve independent host boot (556.862292ms)
+✔ host lifecycle: preexisting token symlink cannot overwrite another file (102.331208ms)
+✔ host lifecycle: unauthenticated socket client cannot read status (164.466667ms)
+✔ host lifecycle: crash leaves recoverable lock and a new boot can bind the socket (573.886208ms)
+✔ host lifecycle: transient macOS user agent owns host after client exits (182.744042ms)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (397.465375ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (43.0335ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (357.130208ms)
+✔ journal command reservation survives restart and concurrent journal writer is rejected (678.269084ms)
+✔ journal READY child cannot run side effects until exact projection authorization and durable release (3304.171125ms)
+✔ journal crash windows retain reservation, require READY identity and never release before authorization (10034.716667ms)
+✔ journal PID birth mismatch and capacity/projection failure remain gated and unknown (1496.413667ms)
+✔ journal descendant that escapes the dedicated process group leaves tree unknown (3244.902125ms)
+✔ journal concurrent launcher calls reserve one dormant child and never a second process (1372.299292ms)
+✔ journal native binary tamper fails closed and cannot become exit proof (1986.495666ms)
+✔ journal built entrypoint resolves the gated helper and owned native source without a global install (1127.000959ms)
+✔ journal concurrent releases for the same fenced claim execute the workflow side effect once (1255.083125ms)
+✔ resources reservations and unverified creation never grant deletion; unknown process retains (719.699833ms)
+✔ resources attested path swapped to symlink or hardlinked bytes is retained unchanged (2870.976959ms)
+✔ resources proven stopped run deletes only its owned scratch and retries idempotently (4497.482875ms)
+✔ resources exact stop does not permit parent symlink swap, hardlink alias, dirty or shared cleanup (4618.942167ms)
+✔ resources cancellation retains attested scratch even with exact stopped proof (3535.681167ms)
+✔ resources cleanup recovers a crash after quarantine rename before durable state update (3608.487833ms)
+✔ resources callback cannot attest a symlink to the owner checkout (994.045375ms)
+✔ resources abort after durable quarantine retains owned bytes and retry removes the same inode (3182.259083ms)
+✔ resources runtime output changes directory link count after attest and still cleans up after exact stop (2135.146375ms)
+✔ resources actual partial native deletion retains quarantine and retries after its owned immutable flag clears (1732.168166ms)
+✔ telemetry each dispatch samples again and pressure change blocks second dispatch (9.888334ms)
+✔ telemetry stale, disk, RAM, CPU, concurrency and ownership fail closed for all dispatch kinds (0.212667ms)
+✔ telemetry macOS sample obtains live pressure, page memory and disk without a cached result (32.683125ms)
+Admission boundary: snapshot CHECKSUM_MISMATCH
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (3435.476583ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (2556.553042ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (2651.554459ms)
+✔ workflow admission reserve-first holds GC until real journal commit and survives cached replay (2447.607541ms)
+✔ workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape (1837.314583ms)
+✔ workflow admission bind waits for an in-flight standalone v1 reservation before GC (1896.438291ms)
+Recovered admission checkpoint: admission source pair protected or reservation denied; no process launched
+✔ workflow admission crash at admission retains unknown intent or denies a deleted pair after restart (2159.43825ms)
+Recovered admission checkpoint: committed source pair protected or reservation denied; no process launched
+✔ workflow admission crash at committed retains unknown intent or denies a deleted pair after restart (2437.30025ms)
+Recovered admission checkpoint: quarantine source pair protected or reservation denied; no process launched
+✔ workflow admission crash at quarantine retains unknown intent or denies a deleted pair after restart (2649.848333ms)
+BMAD independent supervised builds: [{"id":"f956b21c-4be9-4be0-add5-79abf7fc1737","identity":{"bytes":0,"device":"16777229","inode":"63450566","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"f956b21c-4be9-4be0-add5-79abf7fc1737","device":"16777229","inode":"63450566","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"87e2bcd8-cdf4-4680-aae4-32a95f7f23b9","identity":{"bytes":0,"device":"16777229","inode":"63455899","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"87e2bcd8-cdf4-4680-aae4-32a95f7f23b9","device":"16777229","inode":"63455899","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"5fb1184e-cf29-4be3-989f-5e133e61552d","identity":{"bytes":0,"device":"16777229","inode":"63459826","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"5fb1184e-cf29-4be3-989f-5e133e61552d","device":"16777229","inode":"63459826","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"5a1b5790-e21a-4707-a6f7-7f2efb9c803a","identity":{"bytes":0,"device":"16777229","inode":"63444413","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"5a1b5790-e21a-4707-a6f7-7f2efb9c803a","device":"16777229","inode":"63444413","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}}]
+✔ workflow real official BMAD installer builds deterministic Claude and API artifacts (66467.652917ms)
+✔ workflow real Superpowers API preserves exact official scripts and pins tool policy (2646.675792ms)
+✔ workflow frozen builder rejects dependency and uv tampering before execution (7684.473583ms)
+✔ workflow fix cancellation cannot rewind existing A after B activation (2847.659666ms)
+✔ workflow fix abort during existing verification preserves B activation (2555.784208ms)
+✔ workflow fix repeated completed malformed operations reclaim exact stages (2630.430834ms)
+✔ workflow audited native Superpowers candidate has its independent artifact pin (16.7735ms)
+Native independent build identities: [{"id":"b0b698b6-9491-4508-ad78-4a3f81cd9e0f","identity":{"bytes":0,"device":"16777229","inode":"63443470","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}},{"id":"8a8bce9f-cdef-4dc2-a482-017ef1f7cf8d","identity":{"bytes":0,"device":"16777229","inode":"63444336","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}}]
+✔ workflow native full-tree artifact preserves bytes and modes with two real build roots and fixed discovery geometry (12073.412083ms)
+✔ workflow durable operation recovers killed reserve/create/rename/quarantine checkpoints (12312.995791ms)
+Retained genuine fork UNKNOWN fixtures: ["/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-Iy5SIj"]
+✔ workflow operation native timeout yields real stop receipt and fork remains UNKNOWN (3501.302083ms)
+✔ workflow no-follow deletion unlinks symlink itself and rejects hardlink aliases (1879.313167ms)
+✔ workflow published GC releases registry reference but preserves recovered unready process reference (3857.110292ms)
+✔ workflow registry installs verified immutable source (1960.443708ms)
+✔ workflow registry separates runtime roots and retains old immutable pairs through restart (3300.768167ms)
+✔ workflow registry rejects source and projection tampering on every resolve (2083.890083ms)
+✔ workflow registry rejects unknown runtime recipes and expected projection mismatch (2092.492875ms)
+✔ workflow registry rejects malicious archives before activating and keeps old current (2744.927292ms)
+✔ workflow registry detects truncated extraction and wrong npm integrity (1101.706708ms)
+✔ workflow registry rejects unapproved download URL and redirect and bounds response (13.16125ms)
+✔ workflow registry canonical manifest ignores archive order and ownership times (1835.272083ms)
+✔ workflow registry audit builder checks pinned payload and materializes official Claude layout (1.490875ms)
+✔ workflow registry API projection contains official fixture skill/script and audited policy (1914.692917ms)
+✔ workflow registry derivation version/options/layout/policy independently change projection pin (2564.76425ms)
+✔ workflow registry accepts internal symlink (791.4925ms)
+✔ workflow registry source update preserves retained source and old runtime pair (2343.739875ms)
+✔ workflow registry expected projection checksum failure never publishes runtime tree (709.594625ms)
+✔ workflow registry recovers ProcessJournal pair after registry release (1528.738125ms)
+✔ workflow registry pinned official npm and Git archives verify distinct provenance and Claude bytes (8905.110833ms)
+✔ workflow registry cancellation before publish preserves previous active source (782.493666ms)
+ℹ tests 77
+ℹ suites 0
+ℹ pass 77
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 76956.366959

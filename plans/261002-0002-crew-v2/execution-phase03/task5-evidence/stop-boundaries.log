@@ -1,0 +1,11 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-i0Fl51","device":"16777229","inode":"63549235","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-i0Fl51","device":"16777229","inode":"63549235","uid":501,"stage":"release-race"}
+✔ native stop control preserves gated proof, pending startup, repeated TERM and completed observer (2907.470125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2990.541417

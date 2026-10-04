@@ -1,0 +1,44 @@
+v2/server/test/attachments-comment-factory.test.ts:10:23 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+     8 │ import { captureMigrations, migrate } from '../src/db/migrate.ts';
+     9 │ import { appendEvent } from '../src/journal/events.ts';
+  > 10 │ import type { Db, Id, Tx } from '../src/platform/contracts.ts';
+       │                       ^^
+    11 │ import { ApiError } from '../src/platform/errors.ts';
+    12 │ import type { CommentAttachmentInput, CommentAttachmentLinker } from '../src/tickets/contracts.ts';
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    10 │ import·type·{·Db,·Id,·Tx·}·from·'../src/platform/contracts.ts';
+       │                       ---                                      
+
+v2/server/test/attachments-comment-factory.test.ts:113:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    111 │       await tx`select * from attachment_compose_sessions where id=${attachments.composeSessionId} for update`;
+    112 │     if (
+  > 113 │       !compose ||
+        │       ^^^^^^^^^^^
+  > 114 │       compose.purpose !== 'comment' ||
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    115 │       compose.ticket_id !== ticketId ||
+    116 │       compose.project_id !== f.project.id ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    111 111 │         await tx`select * from attachment_compose_sessions where id=${attachments.composeSessionId} for update`;
+    112 112 │       if (
+    113     │ - ······!compose·||
+    114     │ - ······compose.purpose·!==·'comment'·||
+        113 │ + ······compose?.purpose·!==·'comment'·||
+    115 114 │         compose.ticket_id !== ticketId ||
+    116 115 │         compose.project_id !== f.project.id ||
+  
+
+Checked 4 files in 31ms. No fixes applied.
+Found 2 warnings.

@@ -1,0 +1,302 @@
+diff --git a/v2/docs/flows/gateway-workflows.md b/v2/docs/flows/gateway-workflows.md
+index 0c10cee..b3a1ff5 100644
+--- a/v2/docs/flows/gateway-workflows.md
++++ b/v2/docs/flows/gateway-workflows.md
+@@ -81,10 +81,12 @@ flow gateway-host giữ chứng cứ no-fork, không nới quyền đối với
+ `WorkflowRegistry.verifySource(pin)` chỉ gọi verifier hiện có trên payload, metadata và source tree; không fetch, không đổi current pointer hoặc recipe/hash. Consumer GatewaySync dùng nó để cache bị sửa không thể báo source current khi desired projections đều null; regression có cache lành offline không tải lại.
+ 
+ Task5 FIX1 giữ history sau rebind: bridge dùng `pinRetirement` kiểm receipt bất biến trước scoped005 read;
+ receipt chưa có hoặc identity xung đột vẫn giữ reference và lỗi riêng record. Boot mới chỉ ghi nhận
+ UNKNOWN có exact scoped attempt/companion thành `retained-unknown`, không bỏ pin/guard. Existing
+ admission barrier kiểm snapshot và orphan intent trước lifecycle receipt; observe chạy trước barrier
+ vì nó ghi journal, callback dưới barrier không gọi registry queue. Snapshot desired cũ không được
+ hoàn tất nhầm command mới; cache nguồn/projection và pending report giữ nguyên qua deferred pass.
+ 
+ Task6: `isolation:probe -- --runtime claude|codex --no-model` chỉ nhận exact arguments và chạy owned fixture cho runtime đã chọn cùng API audit. Frozen covering set dùng21 gateway test files đã review cộng2 isolation tests; không lấy peer model/attachment candidate. Evidence `execution-phase03/task6-evidence` giữ RED→GREEN policy/Git attempts, stdin hashes, exact argv/policy/exit/receipt, sanitized matrix và resource identities. Durable reserved-intent negative fixture được giữ vì thiếu closure proof; không xóa history hoặc chế STOP để cleanup. BMAD runtime discovery/invoke, common/system skill inventory và linked owner source chưa được chứng nhận; Phase04 phải đo selected/unselected load+invoke trước enable.
++
++Task6 FIX1 đóng exemption `.git` bị dùng chung cho HOME: `auditWorkspace` mặc định từ chối metadata `.git` ở mọi root/nested path; chỉ ba execution-workspace callers truyền exact Git root được inventory độc lập. HOME và Git metadata audit không có exemption. Actual regression tạo hardlink foreign canary trong `HOME/.git/foreign-skill`, symlink `HOME/.git`, nested `HOME/cache/.git` và nested metadata trong workspace Git; preflight phải FAIL trước command đầu tiên. Legitimate workspace Git vẫn được kiểm riêng; pack tamper bị chặn và khôi phục bytes cho phép canary objectdb denial chạy lại. Repair validation dùng frozen candidate cộng own fix, `CREW_ISOLATION_SKIP_DISCOVERY=1` chỉ trong test để không lặp init/probe; overall UNVERIFIED và native receipt authority giữ nguyên.
+diff --git a/v2/gateway/src/isolation/inventory.ts b/v2/gateway/src/isolation/inventory.ts
+index d998954..6b6f3ed 100644
+--- a/v2/gateway/src/isolation/inventory.ts
++++ b/v2/gateway/src/isolation/inventory.ts
+@@ -138,31 +138,35 @@ export async function fileDigest(path: string): Promise<string> {
+     if (!s.isFile() || s.nlink !== 1 || s.size > 32 * 1024 * 1024) throw new Error('UNSAFE_INVENTORY_FILE');
+     return hash(await fd.readFile());
+   } finally {
+     await fd.close();
+   }
+ }
+ export async function auditWorkspace(
+   root: string,
+   selectedMount?: { path: string; target: string },
+   executableTargets: readonly string[] = [],
++  separatelyAuditedGitRoot?: string,
+ ): Promise<{ entries: InventoryEntry[]; blockers: string[] }> {
+   if ((await realpath(root)) !== root) throw new Error('WORKSPACE_ALIAS');
++  if (separatelyAuditedGitRoot !== undefined && separatelyAuditedGitRoot !== join(root, '.git'))
++    throw new Error('INVALID_GIT_AUDIT_BOUNDARY');
+   const entries: InventoryEntry[] = [],
+     blockers: string[] = [];
+   let total = 0;
+   async function visit(dir: string, depth: number): Promise<void> {
+     if (depth > 100 || entries.length > 30000) throw new Error('INVENTORY_LIMIT');
+     for (const name of (await readdir(dir)).sort()) {
+       const full = join(dir, name),
+         rel = relative(root, full).split(sep).join('/');
+-      if (rel === '.git') continue; // independently verified by Git's common-dir/config commands
++      // Only the exact execution workspace has a separate immutable Git inventory.
++      if (full === separatelyAuditedGitRoot) continue;
+       if (name === '.git') {
+         blockers.push(`GIT_DISCOVERY:${rel}`);
+         continue;
+       }
+       const s = await lstat(full),
+         reason = discoveryReason(rel);
+       const entry: InventoryEntry = {
+         path: rel,
+         type: s.isSymbolicLink() ? 'symlink' : s.isDirectory() ? 'directory' : 'file',
+         mode: s.mode & 0o777,
+diff --git a/v2/gateway/src/isolation/workspace.ts b/v2/gateway/src/isolation/workspace.ts
+index b98b562..edf8355 100644
+--- a/v2/gateway/src/isolation/workspace.ts
++++ b/v2/gateway/src/isolation/workspace.ts
+@@ -483,21 +483,21 @@ export class IsolationWorkspace {
+         )
+           throw new Error('CLONE_IDENTITY_MISMATCH');
+         const ownerTree = await git(
+           ['-C', ownerCheckout, 'rev-parse', `${record.ownerCommit}^{tree}`],
+           reads,
+         );
+         if ((await git(['-C', workspace, 'rev-parse', 'HEAD^{tree}'], [])) !== ownerTree)
+           throw new Error('CLONE_TREE_MISMATCH');
+         if (await git(['-C', workspace, 'status', '--porcelain', '--untracked-files=all'], []))
+           throw new Error('CLONE_NOT_CLEAN');
+-        const before = await auditWorkspace(workspace);
++        const before = await auditWorkspace(workspace, undefined, [], join(workspace, '.git'));
+         if (before.blockers.length) throw new Error(before.blockers.join(';'));
+         record.exclusions = before.entries.filter((e) => e.classification === 'discovery');
+         const excludedRoots: string[] = [];
+         for (const entry of record.exclusions) {
+           if (excludedRoots.some((p) => entry.path.startsWith(`${p}/`))) continue;
+           const target = join(base, 'excluded', entry.path);
+           await mkdir(dirname(target), { recursive: true, mode: 0o700 });
+           await rename(join(workspace, entry.path), target);
+           excludedRoots.push(entry.path);
+         }
+@@ -505,20 +505,22 @@ export class IsolationWorkspace {
+           if (projection.derivation.layoutSchema !== 'superpowers-codex-native-skills-v1')
+             throw new Error('NATIVE_DISCOVERY_GEOMETRY_UNVERIFIED');
+           await mkdir(join(workspace, '.agents'), { mode: 0o700 });
+           await symlink(join(selected.projectionRoot, '.agents/skills'), join(workspace, '.agents/skills'));
+         }
+         const after = await auditWorkspace(
+           workspace,
+           projection.runtime === 'codex'
+             ? { path: '.agents/skills', target: join(selected.projectionRoot, '.agents/skills') }
+             : undefined,
++          [],
++          join(workspace, '.git'),
+         );
+         if (after.blockers.length) throw new Error(after.blockers.join(';'));
+         record.entries = after.entries;
+         record.state = 'prepared';
+         const gitInventory = await auditWorkspace(join(workspace, '.git'));
+         if (
+           gitInventory.blockers.length ||
+           gitInventory.entries.some((e) => ['objects/info/alternates', 'commondir'].includes(e.path))
+         )
+           throw new Error('CLONE_METADATA_ALIAS');
+@@ -566,20 +568,22 @@ export class IsolationWorkspace {
+     if (
+       gitInventory.blockers.length ||
+       hash(canonicalJson(gitInventory.entries)) !== record.gitInventorySha256
+     )
+       throw new Error('GIT_METADATA_CHANGED');
+     const audit = await auditWorkspace(
+       workspace,
+       projection.runtime === 'codex'
+         ? { path: '.agents/skills', target: join(selected.projectionRoot, '.agents/skills') }
+         : undefined,
++      [],
++      join(workspace, '.git'),
+     );
+     if (audit.blockers.length) throw new Error('CROSS_WORKFLOW_SOURCE');
+     if (canonicalJson(audit.entries) !== canonicalJson(record.entries))
+       throw new Error('WORKSPACE_BYTES_CHANGED');
+     return {
+       record,
+       projectionRoot: selected.projectionRoot,
+       projectionEntries: selected.manifest.projection,
+     };
+   }
+diff --git a/v2/gateway/test/isolation-workspace.test.ts b/v2/gateway/test/isolation-workspace.test.ts
+index b96b45a..6e44783 100644
+--- a/v2/gateway/test/isolation-workspace.test.ts
++++ b/v2/gateway/test/isolation-workspace.test.ts
+@@ -1,19 +1,21 @@
+ import assert from 'node:assert/strict';
+ import { randomUUID } from 'node:crypto';
+ import {
+   link,
+   lstat,
+   mkdir,
+   mkdtemp,
++  readdir,
+   readFile,
+   realpath,
++  rmdir,
+   symlink,
+   unlink,
+   writeFile,
+ } from 'node:fs/promises';
+ import { join } from 'node:path';
+ import { Readable } from 'node:stream';
+ import test from 'node:test';
+ import { createIsolationPreflight } from '../src/isolation/preflight.ts';
+ import { IsolationWorkspace } from '../src/isolation/workspace.ts';
+ import { AtomicRecords } from '../src/journal/atomic-records.ts';
+@@ -130,20 +132,62 @@ test('actual exact clone preserves product docs, quarantines discovery and reval
+     console.log('Task6 missing runtime evidence', JSON.stringify(missing));
+     assert.equal(missing.status, 'UNVERIFIED');
+     assert.equal(missing.evidence.productionEnabled, false);
+     assert(
+       missing.evidence.surfaces
+         .filter((s) => s.surface.startsWith('shell-'))
+         .every((s) => s.status === 'PASS'),
+     );
+     const foreign = join(root, 'foreign-canary');
+     await writeFile(foreign, 'foreign workflow');
++    const removeOwned = async (path: string, identity: Awaited<ReturnType<typeof lstat>>) => {
++      const current = await lstat(path);
++      assert.equal(current.dev, identity.dev);
++      assert.equal(current.ino, identity.ino);
++      assert.equal(current.uid, identity.uid);
++      if (identity.isDirectory()) await rmdir(path);
++      else await unlink(path);
++    };
++    const denyHomeMetadata = async (label: string) => {
++      const denied = await missingRuntime.preflightSourceIsolation(input);
++      console.log('Task6 FIX1 HOME metadata gate', JSON.stringify({ label, result: denied }));
++      assert.equal(denied.status, 'FAIL');
++      assert(denied.blockers.includes('CROSS_WORKFLOW_SOURCE'));
++      assert.equal(denied.evidence.commands.length, 0);
++    };
++    const homeGit = join(workspace.attemptHome, '.git');
++    await mkdir(homeGit, { mode: 0o700 });
++    const homeGitIdentity = await lstat(homeGit);
++    const homeHardlink = join(homeGit, 'foreign-skill');
++    await link(foreign, homeHardlink);
++    const homeHardlinkIdentity = await lstat(homeHardlink);
++    try {
++      await denyHomeMetadata('HOME/.git/foreign-skill hardlink');
++    } finally {
++      await removeOwned(homeHardlink, homeHardlinkIdentity);
++      await removeOwned(homeGit, homeGitIdentity);
++    }
++    await symlink(foreign, homeGit);
++    const homeSymlinkIdentity = await lstat(homeGit);
++    try {
++      await denyHomeMetadata('HOME/.git symlink');
++    } finally {
++      await removeOwned(homeGit, homeSymlinkIdentity);
++    }
++    const nestedGit = join(workspace.attemptHome, 'cache/.git');
++    await symlink(foreign, nestedGit);
++    const nestedGitIdentity = await lstat(nestedGit);
++    try {
++      await denyHomeMetadata('HOME/cache/.git nested symlink');
++    } finally {
++      await removeOwned(nestedGit, nestedGitIdentity);
++    }
+     for (const [name, create] of [
+       ['hardlink', link],
+       ['symlink', symlink],
+     ] as const) {
+       const target = join(workspace.workspace, name);
+       await create(foreign, target);
+       const denied = await missingRuntime.preflightSourceIsolation(input);
+       assert.equal(denied.status, 'FAIL');
+       assert(denied.blockers.includes('CROSS_WORKFLOW_SOURCE'));
+       assert(denied.blockers.includes('NATIVE_READ_UNVERIFIED'));
+@@ -159,20 +203,49 @@ test('actual exact clone preserves product docs, quarantines discovery and reval
+     await writeFile(privateConfig, '[mcp_servers.foreign]\ncommand="foreign"\n');
+     assert(
+       (await missingRuntime.preflightSourceIsolation(input)).blockers.includes('PRIVATE_CONFIG_CHANGED'),
+     );
+     await writeFile(privateConfig, configBytes);
+     const gitConfig = join(workspace.workspace, '.git/config'),
+       gitBytes = await readFile(gitConfig);
+     await writeFile(gitConfig, '[core]\nworktree = /foreign\n');
+     assert((await missingRuntime.preflightSourceIsolation(input)).blockers.includes('GIT_METADATA_CHANGED'));
+     await writeFile(gitConfig, gitBytes);
++    const metadataGit = join(workspace.workspace, '.git/.git');
++    await symlink(foreign, metadataGit);
++    const metadataIdentity = await lstat(metadataGit);
++    try {
++      const denied = await missingRuntime.preflightSourceIsolation(input);
++      assert(denied.blockers.includes('GIT_METADATA_CHANGED'));
++      assert.equal(denied.evidence.commands.length, 0);
++    } finally {
++      await removeOwned(metadataGit, metadataIdentity);
++    }
++    const packDirectory = join(workspace.workspace, '.git/objects/pack');
++    const packName = (await readdir(packDirectory)).find((name) => name.endsWith('.pack'));
++    assert(packName);
++    const packPath = join(packDirectory, packName),
++      packBytes = await readFile(packPath);
++    await writeFile(packPath, 'tampered object database');
++    try {
++      const denied = await missingRuntime.preflightSourceIsolation(input);
++      assert(denied.blockers.includes('GIT_METADATA_CHANGED'));
++      assert.equal(denied.evidence.commands.length, 0);
++    } finally {
++      await writeFile(packPath, packBytes);
++    }
++    const restored = await missingRuntime.preflightSourceIsolation(input);
++    assert.equal(restored.status, 'UNVERIFIED');
++    assert.equal(
++      restored.evidence.surfaces.find((surface) => surface.surface === 'shell-git-objectdb-denial')?.status,
++      'PASS',
++    );
+     assert.equal(
+       (
+         await missingRuntime.preflightSourceIsolation({
+           ...input,
+           projection: { ...projection, treeSha256: '0'.repeat(64) },
+         })
+       ).status,
+       'FAIL',
+     );
+     const selected = await registry.resolve(sourceAudit.pin, projection),
+@@ -184,26 +257,30 @@ test('actual exact clone preserves product docs, quarantines discovery and reval
+     await missingRuntime.close();
+     const live = await createIsolationPreflight({
+       root: join(root, 'isolation'),
+       registry,
+       executables: {
+         codex: '/Users/phannhatquang/.local/bin/codex',
+         claude: '/Users/phannhatquang/.local/bin/claude',
+       },
+     });
+     bound = live;
+-    if (process.env.CREW_ISOLATION_PROBE_RUNTIME !== 'claude') {
++    if (
++      process.env.CREW_ISOLATION_SKIP_DISCOVERY !== '1' &&
++      process.env.CREW_ISOLATION_PROBE_RUNTIME !== 'claude'
++    ) {
+       const codex = await live.preflightSourceIsolation(input);
+       console.log('Task6 Codex no-model evidence', JSON.stringify(codex));
+       assert.equal(codex.status, 'UNVERIFIED');
+     }
+     for (const runtime of ['claude', 'api'] as const) {
++      if (process.env.CREW_ISOLATION_SKIP_DISCOVERY === '1') continue;
+       if (runtime === 'claude' && process.env.CREW_ISOLATION_PROBE_RUNTIME === 'codex') continue;
+       const a = runtime === 'api' ? real.api : original.projections.claude;
+       const pin = await registry.deriveProjection(sourceAudit.pin, runtime, a.recipe);
+       const w = await live.prepareWorkspace(owner, `${runtime}-probe`, sourceAudit.pin, pin);
+       const result = await live.preflightSourceIsolation({
+         runtime,
+         source: sourceAudit.pin,
+         projection: pin,
+         workspace: w.workspace,
+         attemptHome: w.attemptHome,

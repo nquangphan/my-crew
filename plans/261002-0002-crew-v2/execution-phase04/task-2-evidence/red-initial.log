@@ -1,0 +1,58 @@
+✖ credential broker scopes updates by machine/provider/operation and removes idempotently (0.482208ms)
+✖ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (0.099708ms)
+✖ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.284208ms)
+✖ model probe mirrors server canonical endpoint/local HTTP policy (0.053375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63.0415
+
+✖ failing tests:
+
+test at test/credential-broker.test.ts:13:1
+✖ credential broker scopes updates by machine/provider/operation and removes idempotently (0.482208ms)
+  Error: NOT_IMPLEMENTED
+      at CredentialBroker.put (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/credential-broker.ts:6:98)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/credential-broker.test.ts:16:26)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17)
+
+test at test/credential-broker.test.ts:27:1
+✖ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (0.099708ms)
+  Error: NOT_IMPLEMENTED
+      at CredentialBroker.put (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/credential-broker.ts:6:98)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/credential-broker.test.ts:32:28)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at test/model-probe.test.ts:6:1
+✖ model probe separates Responses and Chat Completions and rejects model/tool mismatches (0.284208ms)
+  Error: NOT_IMPLEMENTED
+      at parseProtocol (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/probe.ts:2:130)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:7:20)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17)
+
+test at test/model-probe.test.ts:13:1
+✖ model probe mirrors server canonical endpoint/local HTTP policy (0.053375ms)
+  Error: NOT_IMPLEMENTED
+      at validateEndpoint (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/probe.ts:3:101)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/model-probe.test.ts:14:16)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)

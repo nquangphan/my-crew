@@ -1,0 +1,103 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts
+
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Q7neQQ nonceSha256=24804d287e338b6c0fa8d42a043653545955da8a90779d5ffaca68057a4475d7
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Q7neQQ
+✔ attachment staging reserves under owner quota and keeps bytes through ready commit (361.375625ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Z0jt17 nonceSha256=10f399b57e85eb3ce764c44684a969772af9c2be8ce4860a7718e59fd87c631f
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Z0jt17
+✔ attachment staging refuses machine and stale compose revision (207.058125ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oPK7xQ nonceSha256=d68c07ac4eb0f7cc244dda40b99a11948c2834ccf97d1e48c0e2cdd93fa26293
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oPK7xQ
+✔ attachment staging validates name MIME size limits and permits exact limit and empty text (322.911041ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-pWm07O nonceSha256=99f18faf9ddf67801fd471ed137afb3bd003625f28ae3d33c3901acaf6aec8cd
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-pWm07O
+✔ attachment staging rejects wrong bytes malformed UTF binary text and magic before original publication (444.731625ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xq0neF nonceSha256=42841faf81ed30663c03883a0ea2a440575bd7d22e1beaf28f9f6c3c7aef075f
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xq0neF
+✔ attachment staging accepts split UTF16 BOM as text without browser inline interpretation (250.204ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4JCIvJ nonceSha256=90eebfe10e2f40234a71bba2acacf37ef49265429336ad9cc10dacf33bcc8afe
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4JCIvJ
+✔ attachment staging reserve replay checks canonical request and same digest keeps distinct originals (182.290416ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vWYH8c nonceSha256=78cf528dff07dad6f9cc96fc1d818fc0678c8c8159dbaf344cbae286b4409900
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vWYH8c
+✔ attachment staging serializes owner quota reservations and holds rejected and abandoned quota (257.847041ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nw8ZDt nonceSha256=d9d15e0faf4aee97fa8e4f18a469d9c002a2624939d592106910cee1f2a0bd88
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-nw8ZDt
+✔ attachment staging validates ready PUT replay bytes and emits only owner-scoped exact metadata (256.8515ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-S7j8aA nonceSha256=f9ba15cebc289f26763e24783b474b3803c41d7b57f4f275fe7e25ff4b3381ab
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-S7j8aA
+✖ attachment staging refuses ready publication after generation CAS is superseded and retains durable blob intent (238.781458ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-iNbn6s nonceSha256=585124436933e3cb14552af7e3a7a65822a506a4738756553960186d7e992d5b
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-iNbn6s
+✔ attachment staging abort waits in-flight producer then terminal close and never releases quota or publishes (228.547209ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cpVY5u nonceSha256=03500d5103dc79cf52945c03cc0fb98d5c9d3a8b701f8d341552eca5922ba2d7
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cpVY5u
+✖ attachment legacy revision actual appendComment bumps descendant subtree exactly once and rollback restores counters (212.532625ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lBg8uN nonceSha256=a023d6bc75397fc54c715189963896b75aef429206d0146591c95ff40ee36377
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lBg8uN
+✔ attachment staging schema preserves accepted policy and immutable original identity without absolute DB paths (188.265708ms)
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xYXO6o nonceSha256=7ebab02b01c6317d85fd1a14902962d4a6466a028fef64238ee03b5b493b6c46
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xYXO6o
+✔ attachment staging heartbeat holds lease for a live writer and late generation loses publication (241.00775ms)
+﹣ attachment staging Linux registry refuses premature close then persists exact native receiver proof (0.173917ms) # SKIP
+ℹ tests 14
+ℹ suites 0
+ℹ pass 11
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 3506.88575
+
+✖ failing tests:
+
+test at test/attachments-staging.test.ts:308:1
+✖ attachment staging refuses ready publication after generation CAS is superseded and retains durable blob intent (238.781458ms)
+  Error [PostgresError]: column "id" does not exist
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:335:29 {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42703',
+    position: '8',
+    file: 'parse_relation.c',
+    line: '3854',
+    routine: 'errorMissingColumn'
+  }
+
+test at test/attachments-staging.test.ts:386:1
+✖ attachment legacy revision actual appendComment bumps descendant subtree exactly once and rollback restores counters (212.532625ms)
+  Error [PostgresError]: column "id" does not exist
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts:417:29 {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42703',
+    position: '8',
+    file: 'parse_relation.c',
+    line: '3854',
+    routine: 'errorMissingColumn'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

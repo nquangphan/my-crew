@@ -1,0 +1,328 @@
+v2/server/test/api-acceptance.test.ts:131:23 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    129 │ }
+    130 │ async function backupRestore(db: Db) {
+  > 131 │   const containerId = process.env.CREW_V2_TEST_CONTAINER_ID!;
+        │                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    132 │   assert.match(containerId, /^[0-9a-f]{64}$/);
+    133 │   const base = process.env.CREW_V2_TEST_DATABASE_URL!;
+  
+
+v2/server/test/api-acceptance.test.ts:133:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    131 │   const containerId = process.env.CREW_V2_TEST_CONTAINER_ID!;
+    132 │   assert.match(containerId, /^[0-9a-f]{64}$/);
+  > 133 │   const base = process.env.CREW_V2_TEST_DATABASE_URL!;
+        │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    134 │   const [name] = await db`select current_database() name`;
+    135 │   const dump = spawnSync(
+  
+
+v2/server/test/api-acceptance.test.ts:137:69 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    135 │   const dump = spawnSync(
+    136 │     'docker',
+  > 137 │     ['exec', containerId, 'pg_dump', '-U', 'postgres', '-Fc', '-d', name!.name as string],
+        │                                                                     ^^^^^
+    138 │     { maxBuffer: 24 * 1024 * 1024 },
+    139 │   );
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    135 135 │     const dump = spawnSync(
+    136 136 │       'docker',
+    137     │ - ····['exec',·containerId,·'pg_dump',·'-U',·'postgres',·'-Fc',·'-d',·name!.name·as·string],
+        137 │ + ····['exec',·containerId,·'pg_dump',·'-U',·'postgres',·'-Fc',·'-d',·name?.name·as·string],
+    138 138 │       { maxBuffer: 24 * 1024 * 1024 },
+    139 139 │     );
+  
+
+v2/server/test/api-acceptance.test.ts:202:43 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    200 │       assert.deepEqual(replay, first);
+    201 │       assert.equal(
+  > 202 │         (await f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}`)).json().docsState,
+        │                                           ^^^^^^^^^^^^^^^^^^
+    203 │         'unverified',
+    204 │       );
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    200 200 │         assert.deepEqual(replay, first);
+    201 201 │         assert.equal(
+    202     │ - ········(await·f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}`)).json().docsState,
+        202 │ + ········(await·f.ownerGet(`/v2/projects/${first.projects[0]?.projectId}`)).json().docsState,
+    203 203 │           'unverified',
+    204 204 │         );
+  
+
+v2/server/test/api-acceptance.test.ts:207:23 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    205 │       const priorCursor = checked<{ cursor: string }>(await f.ownerGet('/v2/events?limit=100'), 200).cursor;
+    206 │       const launch = await start(f, x);
+  > 207 │       const attempt = launch.attempt!;
+        │                       ^^^^^^^^^^^^^^^
+    208 │       assert.equal((await f.machineGet(`/v2/machine/attempts/${attempt.id}`, x.b.token)).statusCode, 404);
+    209 │       const checkpoint = {
+  
+
+v2/server/test/api-acceptance.test.ts:278:42 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    276 │       assert.equal(events.filter((event) => event.type === 'comment.created').length, 1);
+    277 │       const page = checked<{ sourceCommit: string | null }>(
+  > 278 │         await f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}/docs/page?path=docs/index.md`),
+        │                                          ^^^^^^^^^^^^^^^^^^
+    279 │         200,
+    280 │       );
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    276 276 │         assert.equal(events.filter((event) => event.type === 'comment.created').length, 1);
+    277 277 │         const page = checked<{ sourceCommit: string | null }>(
+    278     │ - ········await·f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}/docs/page?path=docs/index.md`),
+        278 │ + ········await·f.ownerGet(`/v2/projects/${first.projects[0]?.projectId}/docs/page?path=docs/index.md`),
+    279 279 │           200,
+    280 280 │         );
+  
+
+v2/server/test/api-acceptance.test.ts:378:18 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    376 │   const response = await fetch(`${f.url}/v2/events/stream`, { headers, signal: AbortSignal.timeout(6000) });
+    377 │   assert.equal(response.status, 200);
+  > 378 │   const reader = response.body!.getReader();
+        │                  ^^^^^^^^^^^^^^
+    379 │   let content = '';
+    380 │   const finished = (async () => {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    376 376 │     const response = await fetch(`${f.url}/v2/events/stream`, { headers, signal: AbortSignal.timeout(6000) });
+    377 377 │     assert.equal(response.status, 200);
+    378     │ - ··const·reader·=·response.body!.getReader();
+        378 │ + ··const·reader·=·response.body?.getReader();
+    379 379 │     let content = '';
+    380 380 │     const finished = (async () => {
+  
+
+v2/server/test/api-acceptance.test.ts:536:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    534 │     try {
+    535 │       const { a, b } = await machines(f);
+  > 536 │       const p = (await f.import(legacyBundle(validDocs()))).projects[0]!;
+        │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    537 │       checked(
+    538 │         await f.ownerPut(`/v2/projects/${p.projectId}/binding`, {
+  
+
+v2/server/test/docs-read.test.ts:23:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    21 │         }),
+    22 │       );
+  > 23 │       const p = imported.projects[0]!;
+       │                 ^^^^^^^^^^^^^^^^^^^^^
+    24 │       const search = await f.ownerGet(
+    25 │         `/v2/docs/search?q=${encodeURIComponent('Kết nối')}&projectId=${p.projectId}`,
+  
+
+v2/server/test/docs-read.test.ts:77:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    75 │       };
+    76 │       const bundle = legacyBundle(files);
+  > 77 │       const p = (await f.import(bundle)).projects[0]!;
+       │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    78 │       assert.equal(
+    79 │         (await f.ownerGet('/v2/docs/search?q=TailNeedle')).json<{ items: unknown[] }>().items.length,
+  
+
+v2/server/test/docs-read.test.ts:96:23 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    94 │       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    95 │       assert.equal(second.items.length, 1);
+  > 96 │       assert.notEqual(first.items[0]!.path, second.items[0]!.path);
+       │                       ^^^^^^^^^^^^^^^
+    97 │       assert(second.nextCursor);
+    98 │       const third = (
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     94  94 │         ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+     95  95 │         assert.equal(second.items.length, 1);
+     96     │ - ······assert.notEqual(first.items[0]!.path,·second.items[0]!.path);
+         96 │ + ······assert.notEqual(first.items[0]?.path,·second.items[0]!.path);
+     97  97 │         assert(second.nextCursor);
+     98  98 │         const third = (
+  
+
+v2/server/test/docs-read.test.ts:96:45 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    94 │       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    95 │       assert.equal(second.items.length, 1);
+  > 96 │       assert.notEqual(first.items[0]!.path, second.items[0]!.path);
+       │                                             ^^^^^^^^^^^^^^^^
+    97 │       assert(second.nextCursor);
+    98 │       const third = (
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     94  94 │         ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+     95  95 │         assert.equal(second.items.length, 1);
+     96     │ - ······assert.notEqual(first.items[0]!.path,·second.items[0]!.path);
+         96 │ + ······assert.notEqual(first.items[0]!.path,·second.items[0]?.path);
+     97  97 │         assert(second.nextCursor);
+     98  98 │         const third = (
+  
+
+v2/server/test/docs-read.test.ts:102:29 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    100 │       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    101 │       assert.equal(third.items.length, 1);
+  > 102 │       assert.equal(new Set([first.items[0]!.path, second.items[0]!.path, third.items[0]!.path]).size, 3);
+        │                             ^^^^^^^^^^^^^^^
+    103 │       assert.equal(third.nextCursor, null);
+    104 │       assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    100 100 │         ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    101 101 │         assert.equal(third.items.length, 1);
+    102     │ - ······assert.equal(new·Set([first.items[0]!.path,·second.items[0]!.path,·third.items[0]!.path]).size,·3);
+        102 │ + ······assert.equal(new·Set([first.items[0]?.path,·second.items[0]!.path,·third.items[0]!.path]).size,·3);
+    103 103 │         assert.equal(third.nextCursor, null);
+    104 104 │         assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+  
+
+v2/server/test/docs-read.test.ts:102:51 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    100 │       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    101 │       assert.equal(third.items.length, 1);
+  > 102 │       assert.equal(new Set([first.items[0]!.path, second.items[0]!.path, third.items[0]!.path]).size, 3);
+        │                                                   ^^^^^^^^^^^^^^^^
+    103 │       assert.equal(third.nextCursor, null);
+    104 │       assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    100 100 │         ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    101 101 │         assert.equal(third.items.length, 1);
+    102     │ - ······assert.equal(new·Set([first.items[0]!.path,·second.items[0]!.path,·third.items[0]!.path]).size,·3);
+        102 │ + ······assert.equal(new·Set([first.items[0]!.path,·second.items[0]?.path,·third.items[0]!.path]).size,·3);
+    103 103 │         assert.equal(third.nextCursor, null);
+    104 104 │         assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+  
+
+v2/server/test/docs-read.test.ts:102:74 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    100 │       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    101 │       assert.equal(third.items.length, 1);
+  > 102 │       assert.equal(new Set([first.items[0]!.path, second.items[0]!.path, third.items[0]!.path]).size, 3);
+        │                                                                          ^^^^^^^^^^^^^^^
+    103 │       assert.equal(third.nextCursor, null);
+    104 │       assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    100 100 │         ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+    101 101 │         assert.equal(third.items.length, 1);
+    102     │ - ······assert.equal(new·Set([first.items[0]!.path,·second.items[0]!.path,·third.items[0]!.path]).size,·3);
+        102 │ + ······assert.equal(new·Set([first.items[0]!.path,·second.items[0]!.path,·third.items[0]?.path]).size,·3);
+    103 103 │         assert.equal(third.nextCursor, null);
+    104 104 │         assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+  
+
+v2/server/test/docs-read.test.ts:111:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    109 │       );
+    110 │       const next = legacyBundle({ 'docs/index.md': Buffer.from('# New snapshot') });
+  > 111 │       next.inventory[0]!.legacyProjectId = 'legacy-1';
+        │       ^^^^^^^^^^^^^^^^^^
+    112 │       await f.import(rehashBundle(next));
+    113 │       assert.equal(
+  
+
+v2/server/test/docs-read.test.ts:140:17 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    138 │         }),
+    139 │       );
+  > 140 │       const p = imported.projects[0]!;
+        │                 ^^^^^^^^^^^^^^^^^^^^^
+    141 │       const response = await f.ownerPost('/v2/tickets', {
+    142 │         projectId: p.projectId,
+  
+
+v2/server/test/docs-read.test.ts:183:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    181 │       assert.equal(tree.links.length > 0, true);
+    182 │       const second = legacyBundle(validDocs());
+  > 183 │       second.inventory[0]!.legacyProjectId = 'legacy-2';
+        │       ^^^^^^^^^^^^^^^^^^^^
+    184 │       second.inventory[0]!.key = 'OTHER';
+    185 │       const foreign = (await f.import(rehashBundle(second))).projects[0]!;
+  
+
+v2/server/test/docs-read.test.ts:184:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    182 │       const second = legacyBundle(validDocs());
+    183 │       second.inventory[0]!.legacyProjectId = 'legacy-2';
+  > 184 │       second.inventory[0]!.key = 'OTHER';
+        │       ^^^^^^^^^^^^^^^^^^^^
+    185 │       const foreign = (await f.import(rehashBundle(second))).projects[0]!;
+    186 │       assert.equal(
+  
+
+v2/server/test/docs-read.test.ts:185:23 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    183 │       second.inventory[0]!.legacyProjectId = 'legacy-2';
+    184 │       second.inventory[0]!.key = 'OTHER';
+  > 185 │       const foreign = (await f.import(rehashBundle(second))).projects[0]!;
+        │                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    186 │       assert.equal(
+    187 │         (await f.ownerGet(`/v2/projects/${p.projectId}/docs/tree?snapshotId=${foreign.snapshotId}`))
+  
+
+Skipped 11 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 3.
+Checked 14 files in 47ms. Fixed 2 files.
+Found 23 warnings.

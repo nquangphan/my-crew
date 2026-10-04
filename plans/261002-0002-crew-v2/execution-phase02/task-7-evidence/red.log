@@ -1,0 +1,58 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts '--test-name-pattern=docs tìm kiếm|HTTP persistence|search'
+
+✔ verified research result finalizes atomically only after physical stop (228.599875ms)
+✔ test/auth.test.ts (280.65975ms)
+✔ test/commands.test.ts (286.554542ms)
+✔ test/completion.test.ts (228.453584ms)
+✔ test/dependencies.test.ts (205.178542ms)
+✔ test/deploy.test.ts (224.330167ms)
+✔ test/docs-events.unit.test.ts (197.125666ms)
+✔ test/docs-import-cli.unit.test.ts (238.115291ms)
+✔ test/docs-import.test.ts (245.298125ms)
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/app.ts' imported from /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/http.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:991:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+    at #resolve (node:internal/modules/esm/loader:701:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/app.ts'
+}
+
+Node.js v24.14.0
+✖ test/docs-read.test.ts (238.603375ms)
+✔ test/docs-validator.unit.test.ts (245.337292ms)
+✔ test/execution-events.unit.test.ts (128.689208ms)
+✔ test/journal-scope.test.ts (133.897125ms)
+✔ test/journal.test.ts (135.55325ms)
+✔ test/platform.test.ts (121.357709ms)
+✔ test/projects.test.ts (131.898542ms)
+✔ test/repair.test.ts (111.364292ms)
+✔ test/ticket-events.unit.test.ts (101.202791ms)
+✔ test/tickets.test.ts (132.493125ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 18
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 514.702375
+
+✖ failing tests:
+
+test at test/docs-read.test.ts:1:1
+✖ test/docs-read.test.ts (238.603375ms)
+  'test failed'
+ ELIFECYCLE  Test failed. See above for more details.

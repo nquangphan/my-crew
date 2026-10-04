@@ -1,0 +1,26 @@
+
+> @crew-v2/domain@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2
+> node --test test/*.test.ts
+
+✔ merge xong nhưng docs chưa sync không đóng yêu cầu (0.3215ms)
+✔ research không bắt buộc merge nhưng phải có artifact và đủ bước (0.052958ms)
+✔ docs cần snapshot và mọi loại việc đều cần đủ bước, bằng chứng (0.064125ms)
+✔ deploy phải có approval hoặc ticket riêng, không kế thừa từ hoàn thành feature (0.047792ms)
+✔ không lấy model cùng tên từ máy khác (0.543667ms)
+✔ nguồn tắt và config chưa áp dụng không dispatch (0.058125ms)
+✔ fallback giữ tools và vision, không chọn model thiếu khả năng (0.095958ms)
+✔ mất mạng không đủ để running được start hoặc resume lần nữa (0.465875ms)
+✔ pause chỉ xác nhận sau dừng, resume phải đánh giá điều kiện lại (0.068125ms)
+✔ thất bại vòng năm hỏi owner, không vượt hoặc reset bộ đếm (0.328416ms)
+✔ từ chối tên status hoặc signal kế thừa từ prototype (0.084083ms)
+✔ cần đủ hai bộ đúng version revision checksum (0.348375ms)
+✔ skill bộ khác hoặc revision khác bị chặn, kể cả khi tên skill giống (0.210167ms)
+✔ workspace v2 không có dependency ứng dụng v1 (0.482ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.679667

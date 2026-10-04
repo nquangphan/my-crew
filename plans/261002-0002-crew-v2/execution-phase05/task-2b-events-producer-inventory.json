@@ -1,0 +1,48 @@
+{
+  "source": [
+    {
+      "path": "v2/server/src/journal/event-contracts.ts",
+      "sha256": "c9ced53a9c760cac95ab738eabb2634cd0f271b25693b15cc458b2fcace6343f",
+      "bytes": 13153
+    },
+    {
+      "path": "v2/server/test/attachments-events.unit.test.ts",
+      "sha256": "ae0b69ad82805893b5d6425e0e2ac3324ced6107891ed1735889a156547fbed7",
+      "bytes": 2429
+    },
+    {
+      "path": "v2/docs/flows/server-journal.md",
+      "sha256": "b0e34fa89ca97466da71f4b1e93eba1a917b12a80172cbb7483b1e19ab522e46",
+      "bytes": 10114
+    }
+  ],
+  "evidence": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-events-final.log",
+      "sha256": "9837b9334820f9f740ff44be319754b2f0b7cd675b6036855f30173a8a03b19c",
+      "bytes": 784
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-events-green.log",
+      "sha256": "382d25c49c5a82a8cc1586d3739ab384aca800ac621d893ba3e978cd01e9c595",
+      "bytes": 785
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-events-red.log",
+      "sha256": "f7ecb15d4dfebc03ea75862d673717e9edb97d8b3b8d17f46a86f6e1c394c287",
+      "bytes": 3837
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase05/task-2b-events-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "results": {
+    "unit": "7/7 PASS, zero skipped; four explicit files",
+    "types": "strict targeted PASS using existing thread-stream/picomatch ambient declarations",
+    "biome": "PASS no errors/no fixes",
+    "initialTypeFailure": "TS2694 thread-stream TransferListItem when ambient declarations omitted; existing declarations included, no skipLibCheck/typeany"
+  },
+  "acceptance": "Consumer Task2b full independent review pending; registration is metadata only"
+}

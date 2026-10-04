@@ -27,7 +27,22 @@ async function main(): Promise<void> {
   } finally {
     await original.close();
   }
-  if (mode[1] === 'extract') throw workerError('PRODUCTION_CORPUS_REQUIRED');
+  if (mode[1] === 'extract') {
+    const fd = await open('/input/original', constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const bytes = await fd.readFile();
+      if (
+        bytes.length > 25 * 1024 * 1024 ||
+        createHash('sha256').update(bytes).digest('hex') !== input.original.sha256
+      )
+        throw workerError('WORKER_ORIGINAL_INVALID');
+      const { extractToFrames } = await import('./extract/index.ts');
+      await extractToFrames(input, bytes, process.stdout);
+    } finally {
+      await fd.close();
+    }
+    return;
+  }
   process.stdout.write(`${JSON.stringify(await diagnosticMain())}\n`);
 }
 main().catch(() => {

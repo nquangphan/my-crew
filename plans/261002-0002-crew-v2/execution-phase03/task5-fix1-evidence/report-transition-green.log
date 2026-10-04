@@ -1,0 +1,26 @@
+(node:59402) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server
+> node scripts/test-db.ts '--test-name-pattern=pending old-boot report' --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts
+
+(node:59418) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:59501) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 private database container 42fe5c3bd10f0c18e40ac93f3eb045b35b7b72d4a8ee9063b28c067902a202da
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-072wbT","device":"16777229","inode":"63780153","uid":501}
+{"level":30,"time":1790933558829,"pid":59501,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62367"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-072wbT","device":"16777229","inode":"63780153","uid":501,"deleted":true}
+✔ actual prefix8 pending old-boot report resolves old key then resamples under controlled new boot (2778.744916ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3012.104583

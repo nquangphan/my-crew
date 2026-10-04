@@ -1,0 +1,1605 @@
+d249a82 fix(v2): enforce current model selection and secret lifecycle
+c6040be docs(v2): track workflow re-review and model fixes
+b1172c8 fix(v2): build audited workflow artifacts and reclaim owned stages
+07ccdc4 docs(v2): record model pool review and execution recovery
+ v2/docs/flows/server-models.md             |  13 +-
+ v2/server/migrations/008_model_pool.sql    |  14 +-
+ v2/server/src/models/catalog.ts            |   2 +
+ v2/server/src/models/config.ts             |   3 +
+ v2/server/src/models/secret-envelopes.ts   |  28 +-
+ v2/server/test/model-certification.test.ts | 852 ++++++++++++++++-------------
+ v2/server/test/model-secret.test.ts        | 280 ++++++++++
+ 7 files changed, 809 insertions(+), 383 deletions(-)
+diff --git a/v2/docs/flows/server-models.md b/v2/docs/flows/server-models.md
+index d9c3853..a3bcfd2 100644
+--- a/v2/docs/flows/server-models.md
++++ b/v2/docs/flows/server-models.md
+@@ -8,26 +8,26 @@ Server quản lý ba công tắc Claude/Codex/API theo máy, danh sách API do o
+ 
+ - `server/src/models/routes.ts` → `registerModelRoutes(app,options,deps,ports)`, được `app.ts` đăng ký trước ready.
+ - `server/src/models/config.ts` → `setSourceConfig`, `readSourceConfig`, `readModelApplied`, `validateApiEndpoint`.
+ - `server/src/models/catalog.ts` → `reportModelInventory`, `reportModelApplied`, `getPool`, `assertModelDispatch`.
+ - `server/src/models/certification.ts` → `issueCertificationChallenge`, `verifyCertification`; issuer không có route production.
+ - `server/src/models/secret-envelopes.ts` → key registration/confirmation, envelope provisioning/read/ACK/key-lost.
+ 
+ ## Các bước
+ 
+ 1. Owner GET/PUT `/v2/machines/:id/model-sources` đọc desired/applied hoặc CAS expectedRevision. PUT cần session, Origin/CSRF và idempotency. Máy GET `/v2/machine/model-sources` nhận desired DTO redacted cho chính mình. Mutation dùng authorization 007 trong cùng transaction trước journal cache: cursor 002 → scope 005 nếu certificate có attempt → máy → state 008; recheck actual credential/session. Certificate replay vẫn cần current binding/fence. Máy chưa bind có thể quản lý own config/report; secret cần một project bound và dispatch vẫn theo scope 005.
+-2. API endpoint canonical HTTPS, không credential/query/hash/literal IP/localhost; HTTP chỉ origin `127.0.0.1` hoặc `[::1]` với port canonical và localHttp explicit khớp tuyệt đối. Danh sách model nonempty/unique trong provider, cùng ID ở provider/runtime khác vẫn riêng. Server không fetch provider hay suy model từ `/models`; host phải resolve/pin IP mỗi request, không redirect, chặn DNS rebinding/private destination. Provider bỏ khỏi desired vẫn giữ row lịch sử FK nhưng không xuất hiện catalogue; endpoint/protocol đổi làm credential cũ missing và pending envelope expired.
++2. API endpoint canonical HTTPS, không credential/query/hash/literal IP/localhost; HTTP chỉ origin `127.0.0.1` hoặc `[::1]` với port canonical và localHttp explicit khớp tuyệt đối. Danh sách model nonempty/unique trong provider, cùng ID ở provider/runtime khác vẫn riêng. Server không fetch provider hay suy model từ `/models`; host phải resolve/pin IP mỗi request, không redirect, chặn DNS rebinding/private destination. Provider bỏ khỏi desired vẫn giữ row lịch sử FK nhưng không xuất hiện catalogue; mọi revision mới gỡ current provisioning operation và expire pending envelope cũ; credential đã ACK giữ nguyên nếu endpoint/protocol không đổi. Endpoint/protocol đổi làm credential cũ missing.
+ 3. Config thực sự đổi tăng revision riêng, supersede command model cũ một lần bằng `{ok:false,code:'SUPERSEDED'}`, phát metadata và queue `sync_models {configRevision}` trên cursor 007. Adapter typed `ModelCommand` tại GET `/v2/machine/model-commands?after=&limit=` nhận cả bốn loại; POST `/v2/machine/model-commands/:id/ack` nhận riêng sync_models. Received giữ pending; completed cần accepted applied đúng command revision/current boot. Trigger 008 cũng bảo vệ đường generic 007; generic ACK sớm trả 503 theo errorhandler cũ, adapter trả 409. Ba loại 007 cũ giữ semantics. Replay completed giữ result; đổi result 409. SUPERSEDED exception chỉ exact result trên và desired revision cao hơn.
+ 4. POST `/v2/machine/models/inventory` và `/applied` dùng ModelReportEnvelope: một sequence tăng chung mỗi boot 007, không protocol boot mới. Receipt ID/hash đã commit replay response gốc trước current boot/sequence checks, không đổi TTL/state. New report phải current boot/current model revision, sequence mới. Inventory lấy server receivedAt/expiry 5 phút; observedAt/version string chỉ chẩn đoán. Trusted probe port trả **capabilities đã đo**; host PASS hay capability tự khai không cấp quyền. Full model key + source context giữ hai workflow riêng. Applied phải trỏ latest inventory cùng current boot/config và digest canonical body; đủ ba observation advance config kể cả AUTH/error, thiếu giữ pending. Config applied và model ready là hai thông tin riêng.
+-5. GET owner `/v2/machines/:id/models?workflow=` hoặc machine `/v2/machine/models?workflow=` trả PoolEntry redacted và reason. Pool đối chiếu full SourcePin, desired projection/derivation, applied gateway revision và accepted `gateway_applied.latest_report_id` của current boot; null/old slot unavailable. Probe phải latest inventory/current model revision, fresh theo clock server; certificate phải exact runtime/source/projection/derivation/binary/policy/OS. AUTH mới loại PASS cũ dù TTL còn. `assertModelDispatch` giữ khóa máy sau scope 005 của caller, đối chiếu command/decision selection và modelChoice, domain Pin, required capability và exact pinned receipt IDs; OFF chặn ngay. Hàm này không cấp permit hay thay authorizer mặc định.
+-6. Scratch issuer là explicit trusted port; production không đăng ký `/v2/test/*`, không có env/test flag. Test fixture owner route kiểm current session/CSRF, test scope/budget, trả nonce một lần, DB challenge chỉ giữ hash. Private authorizer khóa challenge và đặt marker transaction; trigger INSERT attempt 008 kiểm current desired/applied/report/probe context, matching command/decision/modelChoice/nonce rồi bind issued→admitted đúng attempt/process/fence. Lost claim replay A đi qua 005; challenge không cấp B. Companion policy đọc admitted A, không tiêu nonce lần nữa. Certificate so attempt/guard/binding/context/companion, đủ positive selected và negative unselected init/invocation/native Read/Bash/MCP/child/absolute/symlink/hardlink/network; verifier phải đối chiếu observer độc lập. Missing proof giữ UNVERIFIED không mint authority receipt; full accepted PASS/FAIL bất biến theo challenge/body hash. Protocol fake trong test DB không chứng nhận runtime thật.
+-7. Máy POST `/v2/machine/credential-keys`, giải encrypted challenge rồi POST `/:keyId/confirm`. Active key duy nhất; rotate retire key cũ nhưng host giữ private key tới pending ACK. Owner POST `/v2/machines/:id/api-providers/:providerId/secret` cần current revision/active key/binding; plaintext chỉ ở request memory, log redact `req.body.secret`. Ephemeral X25519 ECDH + HKDF-SHA256 + AES-256-GCM, info `crew-v2-secret-envelope-v1`, salt nonce 12 bytes, AAD canonical `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. Public key là base64 DER SPKI; tag 16 bytes, digest SHA256 ciphertext bytes. GET `/v2/machine/api-secret-envelopes?after=<decimal>` dùng cursor 008 riêng, không UUID ordering. POST `/:id/ack` so operation/key/digest/ref/current revision/expiry rồi xoá ciphertext/tag một lần, giữ metadata/hash cho replay. `/:id/key-lost` xoá bytes, giữ pending presentation/missing credential để owner cấp lại; không fake Keychain success. Key challenge có AAD `{machineId,keyId,challengeId,expiresAt}` với cùng crypto. Host kiểm AAD/key/revision/expiry, fsync operation, Keychain write/read-back và ACK intent trước HTTP; phần host/Keychain/signing thuộc task sau.
++5. GET owner `/v2/machines/:id/models?workflow=` hoặc machine `/v2/machine/models?workflow=` trả PoolEntry redacted và reason. Pool đối chiếu full SourcePin, desired projection/derivation, applied gateway revision và accepted `gateway_applied.latest_report_id` của current boot; null/old slot unavailable. Probe phải latest inventory/current model revision, fresh theo clock server; certificate phải exact runtime/source/projection/derivation/binary/policy/OS. AUTH mới loại PASS cũ dù TTL còn. `assertModelDispatch` giữ khóa máy sau scope 005 của caller, đối chiếu command/decision selection và modelChoice, domain Pin, sourceTreeSha256 của cả selection/current source/probe context, required capability và exact pinned receipt IDs; OFF chặn ngay. Hàm này không cấp permit hay thay authorizer mặc định.
++6. Scratch issuer là explicit trusted port; production không đăng ký `/v2/test/*`, không có env/test flag. Test fixture owner route kiểm current session/CSRF, test scope/budget, trả nonce một lần, DB challenge chỉ giữ hash. Private authorizer khóa challenge và đặt marker transaction; trigger INSERT attempt 008 kiểm current desired/applied/report/probe context, buộc accepted latest install report thuộc cùng current boot007, matching command/decision/modelChoice/nonce rồi bind issued→admitted đúng attempt/process/fence. Lost claim replay A đi qua 005; challenge không cấp B. Companion policy đọc admitted A, không tiêu nonce lần nữa. Certificate so attempt/guard/binding/context/companion, đủ positive selected và negative unselected init/invocation/native Read/Bash/MCP/child/absolute/symlink/hardlink/network; verifier phải đối chiếu observer độc lập. Missing proof giữ UNVERIFIED không mint authority receipt; full accepted PASS/FAIL bất biến theo challenge/body hash. Protocol fake trong test DB không chứng nhận runtime thật.
++7. Máy POST `/v2/machine/credential-keys`, giải encrypted challenge rồi POST `/:keyId/confirm`. Active key duy nhất; rotate retire key cũ nhưng host giữ private key tới pending ACK. Owner POST `/v2/machines/:id/api-providers/:providerId/secret` cần current revision/active key/binding; plaintext chỉ ở request memory, log redact `req.body.secret`. Ephemeral X25519 ECDH + HKDF-SHA256 + AES-256-GCM, info `crew-v2-secret-envelope-v1`, salt nonce 12 bytes, AAD canonical `{machineId,providerId,keyId,configRevision,operationId,expiresAt}`. Public key là base64 DER SPKI; tag 16 bytes, digest SHA256 ciphertext bytes. GET `/v2/machine/api-secret-envelopes?after=<decimal>` dùng cursor 008 riêng, không UUID ordering. POST `/:id/ack` so operation/key/digest/ref/current revision/expiry rồi xoá ciphertext/tag một lần, giữ metadata/hash cho replay. `/:id/key-lost` retire đúng key và ghi lost_at, xoá ciphertext/tag của mọi pending envelope dùng key đó (key_lost hoặc expired theo TTL), giữ metadata/history và không tạo ACK giả. Chỉ current pending operation bị ảnh hưởng mới thành missing; credentialRef đã ACK bởi operation mới hơn vẫn giữ nguyên, cả khi dùng cùng lost key. Active key khác không bị đổi. Owner resend cần key mới đăng ký và confirm; replay confirmation cũ chỉ trả receipt lịch sử, không kích hoạt lại key lost. Rotation retired với lost_at=null vẫn cho pending ACK bằng private key được giữ. Key challenge có AAD `{machineId,keyId,challengeId,expiresAt}` với cùng crypto. Mỗi provider giữ current_operation_id bền vững với SAME-machine/provider FK tới operation envelope; provision mới gán ID này theo server-accepted order dưới machine/provider lock, không suy UUID hoặc timestamp. ACK lịch sử được ghi/replay theo envelope nhưng chỉ operation hiện hành được đổi provider status/credentialRef. Owner retry operation cũ không lấy lại authority; config revision mới gỡ pointer và chặn late ACK cũ. New operation có presentation pending và credentialRef=null theo policy; không tự khôi phục generic secret cũ khi new operation/key loss. Host kiểm AAD/key/revision/expiry, fsync operation, Keychain write/read-back và ACK intent trước HTTP; phần host/Keychain/signing thuộc task sau.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/008_model_pool.sql` | Model state, receipts, encrypted envelopes, additive command/claim hooks |
+ | `server/src/models/contracts.ts` | DTO, trusted proof ports và closed schemas |
+ | `server/src/models/helpers.ts` | Hash/context canonical, errors/time/events |
+ | `server/src/models/config.ts` | Desired CAS, provider policy và sync queue |
+ | `server/src/models/catalog.ts` | Inventory/applied receipt, pool và claim gate |
+@@ -37,21 +37,24 @@ Server quản lý ba công tắc Claude/Codex/API theo máy, danh sách API do o
+ | `server/src/models/routes.ts` | Owner/machine auth và route composition |
+ | `server/test/model-pool.test.ts` | CAS/order/auth/ACK/capability/provider/backup HTTP/DB proofs |
+ | `server/test/model-certification.test.ts` | Default deny, actual claim hook/replay/receipt/context/OFF |
+ | `server/test/model-secret.test.ts` | Crypto client, rotation/scope/redaction/ACK/cursor |
+ | `server/test/support/model-http.ts` | Private real HTTP fixture, separate authorities |
+ | `server/test/support/model-observer.ts` | Fake loopback provider observer, protocol only |
+ | `server/test/support/model-certification.ts` | Test-only scoped issuer route, nonce not journaled |
+ 
+ ## Dữ liệu
+ 
+-Migration 008 tạo 11 bảng riêng; SQL 001–007, 005 execution và frozen public contracts không đổi. FK giữ boot/report/machine lineage, immutable report/probe/cert receipts và CHECK/UNIQUE kiểm key/state/sequence. Binary hash là bytes, không runtimeVersion. Secret responses/journal/events/catalogue không chứa plaintext hoặc encrypted secret payload; ciphertext chỉ ở riêng envelope pending, GET bearer đúng máy. PostgreSQL 18.6 test chạy cổng loopback random khác 5432/55432, backup prefix7→restore7→migrate8→restore8 với DB/container IDs riêng.
++Migration 008 tạo 11 bảng riêng; SQL 001–007, 005 execution và frozen public contracts không đổi. FK giữ boot/report/machine lineage, immutable report/probe/cert receipts và CHECK/UNIQUE kiểm key/state/sequence, credentialRef tương ứng stored, pending cần current operation, và lost key không thể active. FK current operation giữ đúng machine/provider lineage. Binary hash là bytes, không runtimeVersion. Secret responses/journal/events/catalogue không chứa plaintext hoặc encrypted secret payload; ciphertext chỉ ở riêng envelope pending, GET bearer đúng máy. PostgreSQL 18.6 test chạy cổng loopback random khác 5432/55432, backup prefix7→restore7→migrate8→restore8 với DB/container IDs riêng.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` composition/migration; `server-identity` credential/binding; `server-journal` atomic mutation/event; `server-gateway` current boot/workflow/command/companion; `server-execution` authoritative claim/guard. Phase06 supply trusted current selection/modelChoice and permit; phase04 host/runtime tasks supply independent measured observer and secret broker. Không kết luận toàn phase03/04 hoặc native isolation đã đạt từ protocol này.
+ 
+ ## Tests
+ 
+ Focused ba model test files chạy bằng một absolute runner fixture hoặc riêng từng file; một covering server sau final source. Assertions dùng DB thật/HTTP listener riêng, fake provider loopback và private observer tables; capability/protocol PASS trong fixture không là live certification. Backup/restore, drift/immutable constraints, revoked/rotated actual token, historical replay, superseded inventory, exact command completion, crypto tag/AAD tampering và source OFF đều có bằng chứng. Native sandbox, paid credential/call, signed Keychain ACL và gated runtime RELEASE live chưa chạy, giữ UNVERIFIED đến gate Task7/phase09.
+ 
+ Kiểm cuối dùng app production thật trong child process và HTTP secret route: request lỗi thiếu active key trả 409, structured logger của app redact secret, không có plaintext trong response/journal/events/envelope DB. Test này bổ sung sau covering 208; scoped secret run 4/4, không đổi nguồn production và không lặp covering.
++
++
++FIX1 đóng R1–R4 bằng regression PostgreSQL/HTTP thật: đồng thời command/decision cùng sai source bị chặn trước fresh005claim; counts attempt/guard/event và ticket state giữ nguyên. Bootstrap boot1 report với boot2 inventory/applied rollback actual005INSERT; boot2 report accepted/matching selection mới201. Envelope A pending→B stored→late A ACK/loss/replay không rewind B; UUID đảo thứ tự và timestamp bằng nhau vẫn chọn theo current operation được gán dưới lock. Key loss vô hiệu mọi pending cùng key, giữ history/new active key, resend cần confirmed key mới; normal rotation vẫn hoàn tất pending cũ. Prefix007/008 backup/restore và prior ba command types được chạy trong covering cuối. Runtime/native/Keychain remain UNVERIFIED; review độc lập của FIX1 vẫn là gate trước Task2/009.
+diff --git a/v2/server/migrations/008_model_pool.sql b/v2/server/migrations/008_model_pool.sql
+index 4c494d6..89a6b70 100644
+--- a/v2/server/migrations/008_model_pool.sql
++++ b/v2/server/migrations/008_model_pool.sql
+@@ -2,22 +2,23 @@
+ alter table gateway_commands drop constraint gateway_commands_type_check;
+ alter table gateway_commands add constraint gateway_commands_type_check check(type in ('sync_workflows','probe','reconcile_host','sync_models'));
+ create table model_source_configs (
+  machine_id uuid primary key references machines(id) on delete restrict,
+  revision integer not null check(revision>0), enabled jsonb not null check(jsonb_typeof(enabled)='object' and enabled=jsonb_build_object('claude',enabled->'claude','codex',enabled->'codex','api',enabled->'api') and jsonb_typeof(enabled->'claude')='boolean' and jsonb_typeof(enabled->'codex')='boolean' and jsonb_typeof(enabled->'api')='boolean'), updated_at timestamptz not null
+ );
+ create table api_providers (
+  id uuid not null, machine_id uuid not null references machines(id) on delete restrict,
+  endpoint text not null, protocol text not null check(protocol in ('responses','chat-completions')),
+  model_ids jsonb not null check(jsonb_typeof(model_ids)='array' and jsonb_array_length(model_ids)>0), local_http jsonb null,
+- declared boolean not null default true, credential_ref text null, status text not null check(status in ('missing','pending','stored')),
+- primary key(machine_id,id)
++ declared boolean not null default true, current_operation_id uuid null, credential_ref text null, status text not null check(status in ('missing','pending','stored')),
++ primary key(machine_id,id), check((status='stored')=(credential_ref is not null)),
++ check(status<>'pending' or current_operation_id is not null)
+ );
+ create table model_report_receipts (
+  id uuid primary key, machine_id uuid not null references machines(id) on delete restrict,
+  boot_id uuid not null, boot_generation bigint not null, sequence bigint not null check(sequence>0),
+  kind text not null check(kind in ('inventory','applied')), config_revision integer not null check(config_revision>0),
+  body_hash char(64) not null check(body_hash ~ '^[0-9a-f]{64}$'), body jsonb not null, response jsonb not null, received_at timestamptz not null,
+  unique(machine_id,boot_generation,sequence), unique(id,machine_id),
+  foreign key(machine_id,boot_id,boot_generation) references gateway_boots(machine_id,boot_id,boot_generation) on delete restrict
+ );
+ create table model_source_applied (
+@@ -56,42 +57,47 @@ create table runtime_certification_receipts (
+  id uuid primary key, challenge_id uuid not null unique references model_certification_challenges(id), attempt_id uuid not null references attempts(id),
+  machine_id uuid not null references machines(id), runtime text not null check(runtime in ('claude','codex','api')),
+  source_tree_sha256 char(64) not null, projection_manifest_sha256 char(64) not null, projection_tree_sha256 char(64) not null,
+  derivation_hash char(64) not null, binary_hash char(64) not null, policy_hash char(64) not null, os_version text not null,
+  evidence_digest char(64) not null, body_hash char(64) not null, status text not null check(status in ('PASS','UNVERIFIED','FAIL')),
+  received_at timestamptz not null, expires_at timestamptz not null check(expires_at>received_at and expires_at<=received_at+interval '15 minutes')
+ );
+ create index model_cert_pair on runtime_certification_receipts(machine_id,runtime,source_tree_sha256,projection_tree_sha256,binary_hash,received_at desc);
+ create table credential_keys (
+  machine_id uuid not null references machines(id), key_id uuid not null, public_key_x25519 text not null,
+- state text not null check(state in ('pending','active','retired')), created_at timestamptz not null, confirmed_at timestamptz null,
++ state text not null check(state in ('pending','active','retired')), created_at timestamptz not null, confirmed_at timestamptz null, lost_at timestamptz null,
++ check(lost_at is null or state='retired'),
+  primary key(machine_id,key_id), check((state='pending')=(confirmed_at is null))
+ );
+ create unique index credential_keys_one_active on credential_keys(machine_id) where state='active';
+ create table credential_key_challenges (
+  id uuid primary key, machine_id uuid not null, key_id uuid not null, challenge_hash char(64) not null,
+  encrypted_challenge jsonb not null, expires_at timestamptz not null, consumed_at timestamptz null,
+  foreign key(machine_id,key_id) references credential_keys(machine_id,key_id)
+ );
+ create table api_secret_cursor(singleton boolean primary key check(singleton),value bigint not null check(value>=0));
+ insert into api_secret_cursor values(true,0);
+ create table api_secret_envelopes (
+  id uuid primary key, cursor bigint not null unique check(cursor>0), machine_id uuid not null, provider_id uuid not null, key_id uuid not null,
+  config_revision integer not null check(config_revision>0), operation_id uuid not null unique,
+  expires_at timestamptz not null, ephemeral_public_key text not null, nonce text not null,
+  ciphertext text null, tag text null, ciphertext_sha256 char(64) not null,
+  state text not null check(state in ('pending','acked','expired','key_lost')), created_at timestamptz not null, acked_at timestamptz null,
+  request_hash char(64) not null, ack_hash char(64) null,
++ unique(machine_id,provider_id,operation_id),
+  foreign key(machine_id,provider_id) references api_providers(machine_id,id),
+  foreign key(machine_id,key_id) references credential_keys(machine_id,key_id),
+  check((state='acked')=(acked_at is not null)), check(state<>'acked' or (ciphertext is null and tag is null))
+ );
++-- Durable current operation identity is assigned under machine/provider locks, never UUID/time sorting.
++alter table api_providers add constraint api_provider_current_operation_fk
++ foreign key(machine_id,id,current_operation_id) references api_secret_envelopes(machine_id,provider_id,operation_id);
+ create trigger model_report_immutable before update or delete on model_report_receipts for each row execute function gateway_immutable_record();
+ create trigger model_probe_immutable before update or delete on model_probe_receipts for each row execute function gateway_immutable_record();
+ create trigger model_cert_immutable before update or delete on runtime_certification_receipts for each row execute function gateway_immutable_record();
+ create function model_canonical_json(j jsonb) returns text language plpgsql immutable strict as $$
+ declare result text;
+ begin
+  if jsonb_typeof(j)='object' then
+   select '{'||coalesce(string_agg(to_json(key)::text||':'||model_canonical_json(value),',' order by key collate "C"),'')||'}' into result from jsonb_each(j);
+  elsif jsonb_typeof(j)='array' then
+   select '['||coalesce(string_agg(model_canonical_json(value),',' order by ordinal),'')||']' into result from jsonb_array_elements(j) with ordinality a(value,ordinal);
+@@ -117,21 +123,21 @@ begin
+  or dec.scope->>'certificationChallengeId' is distinct from cid::text
+  or encode(sha256(convert_to(admission->>'nonce','UTF8')),'hex') is distinct from ch.nonce_hash
+  then raise exception 'MODEL_ADMISSION_DENIED' using errcode='23514'; end if;
+  if not exists(
+  select 1 from model_probe_receipts pr join model_source_configs mc on mc.machine_id=pr.machine_id
+  join model_report_receipts mr on mr.id=pr.inventory_report_id
+  join model_source_applied ma on ma.machine_id=pr.machine_id and ma.inventory_report_id=mr.id and ma.revision=mc.revision and ma.boot_generation=mr.boot_generation
+  join gateway_boots gb on gb.machine_id=mr.machine_id and gb.boot_generation=mr.boot_generation and gb.retired_at is null
+  join gateway_configs gc on gc.machine_id=pr.machine_id
+  join gateway_applied ga on ga.machine_id=gc.machine_id and ga.revision=gc.revision
+- join gateway_install_reports ir on ir.id=ga.latest_report_id and ir.machine_id=gc.machine_id
++ join gateway_install_reports ir on ir.id=ga.latest_report_id and ir.machine_id=gc.machine_id and ir.boot_generation=gb.boot_generation
+  where pr.id=(cmd.payload->'modelChoice'->>'probeReceiptId')::uuid and pr.machine_id=new.machine_id
+  and pr.context=ch.context and pr.context_sha256=cmd.payload->'modelChoice'->>'probeContextSha256'
+  and pr.config_revision=mc.revision and mc.revision=(cmd.payload->'modelChoice'->>'modelConfigRevision')::integer
+  and mc.enabled->>pr.runtime='true' and ma.source_status->pr.runtime->>'state'='ready' and pr.status<>'fail' and pr.expires_at>now()
+  and cmd.payload->'modelChoice'->'certificationReceiptId'='null'::jsonb
+  and cmd.payload->'modelChoice'->'model'->>'machineId'=new.machine_id::text
+  and cmd.payload->'modelChoice'->'model'->>'runtime'=pr.runtime
+  and cmd.payload->'modelChoice'->'model'->>'providerId'=pr.provider_id
+  and cmd.payload->'modelChoice'->'model'->>'modelId'=pr.model_id
+  and mr.sequence=(select max(sequence) from model_report_receipts where machine_id=new.machine_id and boot_generation=gb.boot_generation and config_revision=mc.revision and kind='inventory')
+diff --git a/v2/server/src/models/catalog.ts b/v2/server/src/models/catalog.ts
+index 477cb45..f647020 100644
+--- a/v2/server/src/models/catalog.ts
++++ b/v2/server/src/models/catalog.ts
+@@ -313,20 +313,22 @@ export async function assertModelDispatch(
+       choice.model,
+     ),
+   );
+   if (
+     !entry?.available ||
+     entry.probeReceiptId !== choice.probeReceiptId ||
+     entry.probeContextSha256 !== choice.probeContextSha256 ||
+     !entry.probe ||
+     !choice.required.every((c) => entry.probe?.capabilities.includes(c)) ||
+     entry.installReportId !== payload.selection.installReportId ||
++    payload.selection.sourceTreeSha256 !== source.sourceTreeSha256 ||
++    payload.selection.sourceTreeSha256 !== entry.probe.context.sourceTreeSha256 ||
+     workflow?.revision !== payload.selection.configRevision ||
+     entry.projection?.manifestSha256 !== payload.selection.projectionManifestSha256 ||
+     entry.projection?.treeSha256 !== payload.selection.projectionTreeSha256
+   )
+     fail('MODEL_UNAVAILABLE');
+   const [cert] =
+     await tx`select * from runtime_certification_receipts where id=${choice.certificationReceiptId}`;
+   const c = entry.probe.context;
+   if (
+     !cert ||
+diff --git a/v2/server/src/models/config.ts b/v2/server/src/models/config.ts
+index 5bec70a..7dae5a4 100644
+--- a/v2/server/src/models/config.ts
++++ b/v2/server/src/models/config.ts
+@@ -70,20 +70,23 @@ export async function setSourceConfig(
+   if (
+     prev &&
+     same(clean(prev), {
+       enabled: input.enabled,
+       apiProviders: [...input.apiProviders].sort((a, b) => a.id.localeCompare(b.id)),
+     })
+   )
+     return prev;
+   const revision = (prev?.revision ?? 0) + 1;
+   await tx`insert into model_source_configs(machine_id,revision,enabled,updated_at) values(${machineId},${revision},${tx.json(json(input.enabled))},${now}) on conflict(machine_id) do update set revision=excluded.revision,enabled=excluded.enabled,updated_at=excluded.updated_at`;
++  // A new revision removes old operation write authority without erasing stored secret history.
++  await tx`update api_secret_envelopes set state='expired',ciphertext=null,tag=null where machine_id=${machineId} and state='pending'`;
++  await tx`update api_providers set current_operation_id=null,status=case when status='pending' then 'missing' else status end,credential_ref=case when status='pending' then null else credential_ref end where machine_id=${machineId}`;
+   // Desired removal is reversible while FK-backed historical envelope receipts remain intact.
+   await tx`update api_providers set declared=false where machine_id=${machineId}`;
+   for (const p of input.apiProviders) {
+     const [old] =
+       await tx`select endpoint,protocol from api_providers where machine_id=${machineId} and id=${p.id}`;
+     if (old && (old.endpoint !== p.endpoint || old.protocol !== p.protocol)) {
+       await tx`update api_secret_envelopes set state='expired',ciphertext=null,tag=null where machine_id=${machineId} and provider_id=${p.id} and state='pending'`;
+       await tx`update api_providers set status='missing',credential_ref=null where machine_id=${machineId} and id=${p.id}`;
+     }
+     await tx`insert into api_providers(id,machine_id,endpoint,protocol,model_ids,local_http,status) values(${p.id},${machineId},${p.endpoint},${p.protocol},${tx.json(json(p.models))},${p.localHttp ? tx.json(p.localHttp) : null},'missing') on conflict(machine_id,id) do update set endpoint=excluded.endpoint,protocol=excluded.protocol,model_ids=excluded.model_ids,local_http=excluded.local_http,declared=true`;
+diff --git a/v2/server/src/models/secret-envelopes.ts b/v2/server/src/models/secret-envelopes.ts
+index 774317b..5bd52fd 100644
+--- a/v2/server/src/models/secret-envelopes.ts
++++ b/v2/server/src/models/secret-envelopes.ts
+@@ -14,20 +14,26 @@ import type { Id, Tx } from '../platform/contracts.ts';
+ import { readSourceConfig } from './config.ts';
+ import type {
+   CredentialKeyConfirmation,
+   CredentialKeyRegistration,
+   SecretAck,
+   SecretEnvelope,
+   SecretInput,
+ } from './contracts.ts';
+ import { fail, hash, receiptExpiry } from './helpers.ts';
+ 
++// Routes already hold this authority lock; direct service callers must share the same ordering.
++async function lockCredentialMachine(tx: Tx, machineId: Id) {
++  const [machine] = await tx`select revoked_at from machines where id=${machineId} for update`;
++  if (!machine || machine.revoked_at) fail('NOT_FOUND', 404);
++}
++
+ function publicKey(encoded: string) {
+   try {
+     const bytes = Buffer.from(encoded, 'base64'),
+       key = createPublicKey({ key: bytes, format: 'der', type: 'spki' });
+     if (
+       key.asymmetricKeyType !== 'x25519' ||
+       key.export({ format: 'der', type: 'spki' }).toString('base64') !== encoded
+     )
+       fail('KEY_INVALID', 400);
+     return key;
+@@ -57,20 +63,21 @@ export function sealSecret(publicKeyX25519: string, plaintext: string, aad: unkn
+     shared.fill(0);
+     aes.fill(0);
+   }
+ }
+ export async function registerCredentialKey(
+   tx: Tx,
+   machineId: Id,
+   input: CredentialKeyRegistration,
+   now = new Date(),
+ ) {
++  await lockCredentialMachine(tx, machineId);
+   publicKey(input.publicKeyX25519);
+   const [old] =
+     await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId}`;
+   if (old) {
+     if (old.public_key_x25519 !== input.publicKeyX25519) fail('KEY_ID_CONFLICT');
+     const [ch] =
+       await tx`select * from credential_key_challenges where machine_id=${machineId} and key_id=${input.keyId}`;
+     if (!ch) fail('KEY_ID_CONFLICT');
+     return {
+       challengeId: ch.id,
+@@ -91,73 +98,75 @@ export async function registerCredentialKey(
+   await tx`insert into credential_key_challenges(id,machine_id,key_id,challenge_hash,encrypted_challenge,expires_at) values(${challengeId},${machineId},${input.keyId},${createHash('sha256').update(nonce).digest('hex')},${tx.json(box)},${expiresAt})`;
+   return { challengeId, encryptedChallenge: box, expiresAt };
+ }
+ export async function confirmCredentialKey(
+   tx: Tx,
+   machineId: Id,
+   keyId: Id,
+   input: CredentialKeyConfirmation,
+   now = new Date(),
+ ) {
++  await lockCredentialMachine(tx, machineId);
+   const [ch] =
+     await tx`select * from credential_key_challenges where id=${input.challengeId} and machine_id=${machineId} and key_id=${keyId} for update`;
+   if (
+     !ch ||
+     !timingSafeEqual(Buffer.from(String(ch.challenge_hash), 'hex'), Buffer.from(input.challengeSha256, 'hex'))
+   )
+     fail('KEY_PROOF_INVALID');
+   if (ch.consumed_at) return { keyId, status: 'active' };
+   if ((ch.expires_at as Date).getTime() <= now.getTime()) fail('KEY_CHALLENGE_EXPIRED');
+-  await tx`update credential_keys set state='retired' where machine_id=${machineId} and state='active'`;
++  await tx`update credential_keys set state='retired' where machine_id=${machineId} and state='active' and lost_at is null`;
+   await tx`update credential_keys set state='active',confirmed_at=${now} where machine_id=${machineId} and key_id=${keyId}`;
+   await tx`update credential_key_challenges set consumed_at=${now} where id=${input.challengeId}`;
+   return { keyId, status: 'active' };
+ }
+ export async function provisionSecret(
+   tx: Tx,
+   machineId: Id,
+   providerId: Id,
+   input: SecretInput,
+   now = new Date(),
+ ) {
++  await lockCredentialMachine(tx, machineId);
+   const requestHash = hash({ machineId, providerId, ...input });
+   const [old] = await tx`select * from api_secret_envelopes where operation_id=${input.operationId}`;
+   if (old) {
+     if (old.machine_id !== machineId || old.provider_id !== providerId || old.request_hash !== requestHash)
+       fail('SECRET_OPERATION_CONFLICT');
+     return { operationId: input.operationId, status: old.state };
+   }
+   const config = await readSourceConfig(tx, machineId);
+   if (!config || config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
+   const [provider] =
+-    await tx`select * from api_providers where machine_id=${machineId} and id=${providerId} and declared`;
++    await tx`select * from api_providers where machine_id=${machineId} and id=${providerId} and declared for update`;
+   const [binding] = await tx`select 1 from projects where machine_id=${machineId} limit 1`;
+   if (!provider) fail('NOT_FOUND', 404);
+   // Secret provisioning is machine scoped; binding is required before secret leaves server.
+   if (!binding) fail('PROJECT_BINDING_REQUIRED');
+   const [key] =
+-    await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId} and state='active'`;
++    await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId} and state='active' and lost_at is null`;
+   if (!key) fail('KEY_NOT_CONFIRMED');
+   const expiresAt = receiptExpiry(now).toISOString(),
+     aad = {
+       machineId,
+       providerId,
+       keyId: input.keyId,
+       configRevision: config.revision,
+       operationId: input.operationId,
+       expiresAt,
+     };
+   const box = sealSecret(String(key.public_key_x25519), input.secret, aad),
+     id = randomUUID();
+   const [cursor] = await tx`update api_secret_cursor set value=value+1 where singleton returning value`;
+   await tx`insert into api_secret_envelopes(id,cursor,machine_id,provider_id,key_id,config_revision,operation_id,expires_at,ephemeral_public_key,nonce,ciphertext,tag,ciphertext_sha256,state,created_at,request_hash) values(${id},${cursor?.value},${machineId},${providerId},${input.keyId},${config.revision},${input.operationId},${expiresAt},${box.ephemeralPublicKey},${box.nonce},${box.ciphertext},${box.tag},${box.ciphertextSha256},'pending',${now},${requestHash})`;
+-  await tx`update api_providers set status='pending',credential_ref=null where machine_id=${machineId} and id=${providerId} and declared`;
++  await tx`update api_providers set current_operation_id=${input.operationId},status='pending',credential_ref=null where machine_id=${machineId} and id=${providerId} and declared`;
+   return { operationId: input.operationId, status: 'pending' };
+ }
+ export async function readSecretEnvelopes(tx: Tx, machineId: Id, after: string, now = new Date()) {
+   const rows =
+     await tx`select * from api_secret_envelopes where machine_id=${machineId} and state='pending' and expires_at>${now} and cursor>${after} order by cursor limit 100`;
+   const items: SecretEnvelope[] = rows.map((r) => ({
+     id: String(r.id),
+     machineId,
+     providerId: String(r.provider_id),
+     keyId: String(r.key_id),
+@@ -170,40 +179,45 @@ export async function readSecretEnvelopes(tx: Tx, machineId: Id, after: string,
+     tag: String(r.tag),
+     ciphertextSha256: String(r.ciphertext_sha256),
+   }));
+   return {
+     items,
+     nextCursor: rows.length ? String(rows.at(-1)?.cursor) : after,
+     serverTime: now.toISOString(),
+   };
+ }
+ export async function ackSecret(tx: Tx, machineId: Id, id: Id, input: SecretAck, now = new Date()) {
++  await lockCredentialMachine(tx, machineId);
+   const [r] =
+     await tx`select * from api_secret_envelopes where id=${id} and machine_id=${machineId} for update`;
+   if (!r) fail('NOT_FOUND', 404);
+   const ackHash = hash(input);
+   if (
+     r.operation_id !== input.operationId ||
+     r.key_id !== input.keyId ||
+     r.ciphertext_sha256 !== input.ciphertextSha256
+   )
+     fail('SECRET_ACK_MISMATCH');
+   if (r.state === 'acked') {
+     if (r.ack_hash !== ackHash) fail('SECRET_ACK_CONFLICT');
+     return { operationId: input.operationId, status: 'acked' };
+   }
+   if (r.state !== 'pending' || (r.expires_at as Date).getTime() <= now.getTime()) fail('SECRET_EXPIRED');
+   const config = await readSourceConfig(tx, machineId);
+   if (config?.revision !== Number(r.config_revision)) fail('CONFIG_REVISION_CONFLICT');
+   await tx`update api_secret_envelopes set state='acked',ciphertext=null,tag=null,acked_at=${now},ack_hash=${ackHash} where id=${id}`;
+-  await tx`update api_providers set status='stored',credential_ref=${input.credentialRef} where machine_id=${machineId} and id=${r.provider_id}`;
++  await tx`update api_providers set status='stored',credential_ref=${input.credentialRef} where machine_id=${machineId} and id=${r.provider_id} and current_operation_id=${r.operation_id}`;
+   return { operationId: input.operationId, status: 'acked' };
+ }
+ export async function markSecretKeyLost(tx: Tx, machineId: Id, id: Id, now = new Date()) {
++  await lockCredentialMachine(tx, machineId);
+   const [r] =
+     await tx`select * from api_secret_envelopes where id=${id} and machine_id=${machineId} for update`;
+   if (!r) fail('NOT_FOUND', 404);
+   if (r.state === 'acked') fail('SECRET_ACK_CONFLICT');
+-  await tx`update api_secret_envelopes set state=${(r.expires_at as Date).getTime() <= now.getTime() ? 'expired' : 'key_lost'},ciphertext=null,tag=null where id=${id}`;
+-  await tx`update api_providers set status='missing',credential_ref=null where machine_id=${machineId} and id=${r.provider_id}`;
++  // Lost transport key is distinct from normal rotation and from already stored generic secrets.
++  await tx`update credential_keys set state='retired',lost_at=coalesce(lost_at,${now}) where machine_id=${machineId} and key_id=${r.key_id}`;
++  await tx`update api_secret_envelopes set state=case when expires_at<=${now} then 'expired' else 'key_lost' end,ciphertext=null,tag=null where machine_id=${machineId} and key_id=${r.key_id} and state='pending'`;
++  // Only a current pending operation using this lost key may change provider presentation.
++  await tx`update api_providers p set status='missing',credential_ref=null where p.machine_id=${machineId} and p.status='pending' and exists(select 1 from api_secret_envelopes e where e.machine_id=p.machine_id and e.provider_id=p.id and e.operation_id=p.current_operation_id and e.key_id=${r.key_id})`;
+   return { operationId: r.operation_id, status: 'pending' };
+ }
+diff --git a/v2/server/test/model-certification.test.ts b/v2/server/test/model-certification.test.ts
+index d32f9e2..a007115 100644
+--- a/v2/server/test/model-certification.test.ts
++++ b/v2/server/test/model-certification.test.ts
+@@ -96,385 +96,503 @@ const surfaces = [
+   'invocation',
+   'native-read',
+   'bash-script',
+   'mcp',
+   'child',
+   'absolute',
+   'symlink',
+   'hardlink',
+   'network',
+ ];
+-test('model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB', async () => {
+-  await databaseFixture(8)(async (db) => {
+-    let authority: AuthorizeDispatch = async () => {
+-      throw new Error('private authority not ready');
+-    };
+-    const policy: GatewayProjectionPolicy = {
+-      authorize: async (tx, { attemptId, actor }) => {
+-        const [ch] =
+-          await tx`select * from model_certification_challenges where attempt_id=${attemptId} and machine_id=${actor.id}`;
+-        if (!ch || !['admitted', 'verified'].includes(String(ch.state)))
+-          throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
+-        const [c] = await tx`select payload from commands where id=${ch.admitted_command_id}`;
+-        if (!c) throw new Error('missing command');
+-        return (c.payload as { selection: DispatchSelection }).selection;
+-      },
+-    };
+-    const verifier: CertificationVerifier = {
+-      verify: async (tx, { evidence }) => {
+-        const [proof] = await tx`select 1 from model_test_observations where digest=${hash(evidence)}`;
+-        return proof ? 'PASS' : 'UNVERIFIED';
+-      },
+-    };
+-    await db`create table model_test_observations(digest text primary key)`;
+-    await db`create table model_test_scope(machine_id uuid,project_id uuid,primary key(machine_id,project_id))`;
+-    const f = await modelFixture(db, {
+-      authorizeDispatch: (...a) => authority(...a),
+-      projectionPolicy: policy,
+-      configure: async (app, options, deps) => registerModelTestIssuer(app, options, deps),
+-      modelPorts: {
+-        certificationVerifier: verifier,
+-        probeVerifier: {
+-          verify: async (tx, probe) => {
+-            const [proof] = await tx`select 1 from model_test_observations where digest=${hash(probe)}`;
+-            return proof
+-              ? { status: 'pass', capabilities: ['text', 'tools'] }
+-              : { status: 'unverified', capabilities: [] };
++for (const retiredInstall of [false, true])
++  test(
++    retiredInstall
++      ? 'FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report'
++      : 'model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB',
++    async () => {
++      await databaseFixture(8)(async (db) => {
++        let authority: AuthorizeDispatch = async () => {
++          throw new Error('private authority not ready');
++        };
++        const policy: GatewayProjectionPolicy = {
++          authorize: async (tx, { attemptId, actor }) => {
++            const [ch] =
++              await tx`select * from model_certification_challenges where attempt_id=${attemptId} and machine_id=${actor.id}`;
++            if (!ch || !['admitted', 'verified'].includes(String(ch.state)))
++              throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
++            const [c] = await tx`select payload from commands where id=${ch.admitted_command_id}`;
++            if (!c) throw new Error('missing command');
++            return (c.payload as { selection: DispatchSelection }).selection;
+           },
+-        },
+-      },
+-    });
+-    try {
+-      const boot = randomUUID();
+-      assert.equal(
+-        (
+-          await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
+-            expectedRevision: 0,
+-            enabled: { claude: false, codex: true, api: false },
+-            apiProviders: [],
+-          })
+-        ).statusCode,
+-        200,
+-      );
+-      assert.equal(
+-        (await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig)).statusCode,
+-        200,
+-      );
+-      await f.machine.post('/v2/gateway/boots', { bootId: boot, previousGeneration: '0' });
+-      await f.machine.post('/v2/gateway/install-reports', report(boot, '1'));
+-      const inv = {
+-        reportId: randomUUID(),
+-        bootId: boot,
+-        bootGeneration: '1',
+-        sequence: '1',
+-        configRevision: 1,
+-        body: {
+-          entries: [
+-            {
+-              key: { machineId: f.machineId, runtime: 'codex', providerId: 'codex', modelId: 'x' },
+-              context: ctx,
+-              observedAt: new Date().toISOString(),
+-              status: 'unverified',
+-              capabilities: [],
+-              evidenceDigest: 'a'.repeat(64),
+-              errorCode: null,
+-              runtimeVersion: 'test',
++        };
++        const verifier: CertificationVerifier = {
++          verify: async (tx, { evidence }) => {
++            const [proof] = await tx`select 1 from model_test_observations where digest=${hash(evidence)}`;
++            return proof ? 'PASS' : 'UNVERIFIED';
++          },
++        };
++        await db`create table model_test_observations(digest text primary key)`;
++        await db`create table model_test_scope(machine_id uuid,project_id uuid,primary key(machine_id,project_id))`;
++        const f = await modelFixture(db, {
++          authorizeDispatch: (...a) => authority(...a),
++          projectionPolicy: policy,
++          configure: async (app, options, deps) => registerModelTestIssuer(app, options, deps),
++          modelPorts: {
++            certificationVerifier: verifier,
++            probeVerifier: {
++              verify: async (tx, probe) => {
++                const [proof] = await tx`select 1 from model_test_observations where digest=${hash(probe)}`;
++                return proof
++                  ? { status: 'pass', capabilities: ['text', 'tools'] }
++                  : { status: 'unverified', capabilities: [] };
++              },
+             },
+-          ],
+-        },
+-      };
+-      assert.equal((await f.machine.post('/v2/machine/models/inventory', inv)).statusCode, 200);
+-      const initialApplied = {
+-        reportId: randomUUID(),
+-        bootId: boot,
+-        bootGeneration: '1',
+-        sequence: '2',
+-        configRevision: 1,
+-        body: {
+-          inventoryReportId: inv.reportId,
+-          sourceStatus: {
+-            claude: { state: 'disabled', errorCode: null },
+-            codex: { state: 'ready', errorCode: null },
+-            api: { state: 'disabled', errorCode: null },
+           },
+-          observationDigest: hash(inv.body),
+-        },
+-      };
+-      assert.equal((await f.machine.post('/v2/machine/models/applied', initialApplied)).statusCode, 200);
+-      const s = await prepareSelection(f, db);
+-      await db`insert into model_test_scope values(${f.machineId},${s.tickets.project.id})`;
+-      const [probe] = await db`select id from model_probe_receipts`;
+-      const choice: ModelDispatchChoice = {
+-        model: { machineId: f.machineId, runtime: 'codex', providerId: 'codex', modelId: 'x' },
+-        modelConfigRevision: 1,
+-        probeReceiptId: String(probe?.id),
+-        probeContextSha256: contextHash(ctx),
+-        certificationReceiptId: null,
+-        required: ['text'],
+-      };
+-      // Before implementation the issue service is absent; HTTP route RED above already proves missing producer.
+-      const challengeResponse = await f.owner.post('/v2/test/model-certifications/challenges', {
+-        machineId: f.machineId,
+-        projectId: s.tickets.project.id,
+-        context: ctx,
+-        maxTurns: 2,
+-        maxTools: 3,
+-        maxCostUsd: 0,
+-      });
+-      assert.equal(challengeResponse.statusCode, 201, challengeResponse.text);
+-      const challenge = challengeResponse.json<import('../src/models/contracts.ts').CertificationChallenge>();
+-      await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: choice, certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce } })} where id=${s.commandId}`;
+-      await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: choice, certificationChallengeId: challenge.id })} where id=${s.decisionId}`;
+-      authority = async (tx, _actor, permit) => {
+-        const [ch] =
+-          await tx`select * from model_certification_challenges where id=${challenge.id} for update`;
+-        const [c] = await tx`select payload from commands where id=${permit.commandId}`;
+-        if (
+-          ch?.state !== 'issued' ||
+-          hash(
+-            (c?.payload as { certificationAdmission?: { challengeId: string; nonce: string } } | undefined)
+-              ?.certificationAdmission,
+-          ) !== hash({ challengeId: challenge.id, nonce: challenge.nonce })
+-        )
+-          throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
+-        await tx`select set_config('crew.model_admission',${challenge.id},true)`;
+-      };
+-      const first = await s.claim();
+-      assert.equal(first.statusCode, 201, first.text);
+-      const a = first.json<{ id: string; fence: string }>();
+-      assert.equal((await s.claim()).json<{ id: string }>().id, a.id);
+-      const [ch] = await db`select * from model_certification_challenges where id=${challenge.id}`;
+-      assert.equal(ch?.state, 'admitted');
+-      assert.equal(ch?.attempt_id, a.id);
+-      assert.equal(ch?.process_instance_id, s.processInstanceId);
+-      assert.equal(String(ch?.admitted_fence), a.fence);
+-      const companion = {
+-        fence: a.fence,
+-        processInstanceId: s.processInstanceId,
+-        sourceTreeSha256: s.selected.sourceTreeSha256,
+-        runtime: 'codex',
+-        projectionManifestSha256: s.selected.projectionManifestSha256,
+-        projectionTreeSha256: s.selected.projectionTreeSha256,
+-        installReportId: s.selected.installReportId,
+-      };
+-      const pair = await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, companion);
+-      assert.equal(pair.statusCode, 200, pair.text);
+-      assert.deepEqual(
+-        (await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, companion)).json(),
+-        pair.json(),
+-      );
+-      assert.equal(
+-        (await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, { ...companion, fence: '99' }))
+-          .statusCode,
+-        409,
+-      );
+-      const evidence: CertificationEvidence = {
+-        challengeId: challenge.id,
+-        attemptId: a.id,
+-        fence: a.fence,
+-        processInstanceId: s.processInstanceId,
+-        context: ctx,
+-        surfaceResults: surfaces.map((surface) => ({
+-          surface,
+-          selectedWorked: true,
+-          unselectedDenied: true,
+-          traceSha256: '6'.repeat(64),
+-        })),
+-        artifactIds: [],
+-        traceSha256: '7'.repeat(64),
+-      };
+-      // Incomplete host surface reports cannot become PASS even with a test observer marker.
+-      const incomplete = {
+-        ...evidence,
+-        surfaceResults: evidence.surfaceResults.filter((s) => s.surface !== 'child'),
+-      };
+-      await db`insert into model_test_observations(digest) values(${hash(incomplete)})`;
+-      const unverified = await f.machine.post('/v2/machine/models/certifications', incomplete);
+-      assert.equal(unverified.statusCode, 200, unverified.text);
+-      assert.equal(unverified.json().status, 'UNVERIFIED');
+-      // Only the independent test observer port can authorize a protocol receipt in this test DB.
+-      await db`insert into model_test_observations(digest) values(${hash(evidence)})`;
+-      const pass = await f.machine.post('/v2/machine/models/certifications', evidence);
+-      assert.equal(pass.statusCode, 200, pass.text);
+-      assert.equal(pass.json().status, 'PASS');
+-      assert.deepEqual(
+-        (await f.machine.post('/v2/machine/models/certifications', evidence)).json(),
+-        pass.json(),
+-      );
+-      assert.equal(
+-        (
+-          await f.machine.post('/v2/machine/models/certifications', {
++        });
++        try {
++          let boot = randomUUID();
++          let generation = '1';
++          assert.equal(
++            (
++              await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++                expectedRevision: 0,
++                enabled: { claude: false, codex: true, api: false },
++                apiProviders: [],
++              })
++            ).statusCode,
++            200,
++          );
++          assert.equal(
++            (await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig)).statusCode,
++            200,
++          );
++          await f.machine.post('/v2/gateway/boots', { bootId: boot, previousGeneration: '0' });
++          await f.machine.post('/v2/gateway/install-reports', report(boot, '1'));
++          const inv = {
++            reportId: randomUUID(),
++            bootId: boot,
++            bootGeneration: '1',
++            sequence: '1',
++            configRevision: 1,
++            body: {
++              entries: [
++                {
++                  key: { machineId: f.machineId, runtime: 'codex', providerId: 'codex', modelId: 'x' },
++                  context: ctx,
++                  observedAt: new Date().toISOString(),
++                  status: 'unverified',
++                  capabilities: [],
++                  evidenceDigest: 'a'.repeat(64),
++                  errorCode: null,
++                  runtimeVersion: 'test',
++                },
++              ],
++            },
++          };
++          assert.equal((await f.machine.post('/v2/machine/models/inventory', inv)).statusCode, 200);
++          const initialApplied = {
++            reportId: randomUUID(),
++            bootId: boot,
++            bootGeneration: '1',
++            sequence: '2',
++            configRevision: 1,
++            body: {
++              inventoryReportId: inv.reportId,
++              sourceStatus: {
++                claude: { state: 'disabled', errorCode: null },
++                codex: { state: 'ready', errorCode: null },
++                api: { state: 'disabled', errorCode: null },
++              },
++              observationDigest: hash(inv.body),
++            },
++          };
++          assert.equal((await f.machine.post('/v2/machine/models/applied', initialApplied)).statusCode, 200);
++          const s = await prepareSelection(f, db);
++          await db`insert into model_test_scope values(${f.machineId},${s.tickets.project.id})`;
++          const [probe] = await db`select id from model_probe_receipts`;
++          const choice: ModelDispatchChoice = {
++            model: { machineId: f.machineId, runtime: 'codex', providerId: 'codex', modelId: 'x' },
++            modelConfigRevision: 1,
++            probeReceiptId: String(probe?.id),
++            probeContextSha256: contextHash(ctx),
++            certificationReceiptId: null,
++            required: ['text'],
++          };
++          // Before implementation the issue service is absent; HTTP route RED above already proves missing producer.
++          const challengeResponse = await f.owner.post('/v2/test/model-certifications/challenges', {
++            machineId: f.machineId,
++            projectId: s.tickets.project.id,
++            context: ctx,
++            maxTurns: 2,
++            maxTools: 3,
++            maxCostUsd: 0,
++          });
++          assert.equal(challengeResponse.statusCode, 201, challengeResponse.text);
++          const challenge =
++            challengeResponse.json<import('../src/models/contracts.ts').CertificationChallenge>();
++          await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: choice, certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce } })} where id=${s.commandId}`;
++          await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: choice, certificationChallengeId: challenge.id })} where id=${s.decisionId}`;
++          authority = async (tx, _actor, permit) => {
++            const [ch] =
++              await tx`select * from model_certification_challenges where id=${challenge.id} for update`;
++            const [c] = await tx`select payload from commands where id=${permit.commandId}`;
++            if (
++              ch?.state !== 'issued' ||
++              hash(
++                (
++                  c?.payload as
++                    | { certificationAdmission?: { challengeId: string; nonce: string } }
++                    | undefined
++                )?.certificationAdmission,
++              ) !== hash({ challengeId: challenge.id, nonce: challenge.nonce })
++            )
++              throw new ApiError('TEST_ADMISSION_DENIED', 409, 'Fixture deny');
++            await tx`select set_config('crew.model_admission',${challenge.id},true)`;
++          };
++          if (retiredInstall) {
++            boot = randomUUID();
++            generation = '2';
++            assert.equal(
++              (await f.machine.post('/v2/gateway/boots', { bootId: boot, previousGeneration: '1' }))
++                .statusCode,
++              200,
++            );
++            const currentInventory = {
++              ...inv,
++              reportId: randomUUID(),
++              bootId: boot,
++              bootGeneration: generation,
++            };
++            assert.equal(
++              (await f.machine.post('/v2/machine/models/inventory', currentInventory)).statusCode,
++              200,
++            );
++            assert.equal(
++              (
++                await f.machine.post('/v2/machine/models/applied', {
++                  ...initialApplied,
++                  reportId: randomUUID(),
++                  bootId: boot,
++                  bootGeneration: generation,
++                  body: { ...initialApplied.body, inventoryReportId: currentInventory.reportId },
++                })
++              ).statusCode,
++              200,
++            );
++            const [freshProbe] =
++              await db`select id from model_probe_receipts where inventory_report_id=${currentInventory.reportId}`;
++            choice.probeReceiptId = String(freshProbe?.id);
++            await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: choice, certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce } })} where id=${s.commandId}`;
++            await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: choice, certificationChallengeId: challenge.id })} where id=${s.decisionId}`;
++            const counts = async () =>
++              (
++                await db`select (select count(*)::int from attempts) as attempts,(select count(*)::int from execution_guards) as guards,(select count(*)::int from events) as events`
++              )[0];
++            const before = await counts();
++            const rejected = await s.claim();
++            assert.equal(rejected.statusCode, 503, rejected.text);
++            assert.deepEqual(await counts(), before);
++            assert.equal(
++              (await db`select status from tickets where id=${s.tickets.a.id}`)[0]?.status,
++              'ready',
++            );
++            assert.equal(
++              (await db`select state from model_certification_challenges where id=${challenge.id}`)[0]?.state,
++              'issued',
++            );
++            const currentInstall = report(boot, generation);
++            assert.equal(
++              (await f.machine.post('/v2/gateway/install-reports', currentInstall)).statusCode,
++              200,
++            );
++            s.selected.installReportId = currentInstall.reportId;
++            await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: choice, certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce } })} where id=${s.commandId}`;
++            await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: choice, certificationChallengeId: challenge.id })} where id=${s.decisionId}`;
++            // Historical exact report replay cannot replace the current pointer.
++            assert.equal((await f.machine.post('/v2/machine/models/inventory', inv)).statusCode, 200);
++            assert.equal(
++              (await db`select latest_report_id from gateway_applied where machine_id=${f.machineId}`)[0]
++                ?.latest_report_id,
++              currentInstall.reportId,
++            );
++          }
++          const first = await s.claim();
++          assert.equal(first.statusCode, 201, first.text);
++          const a = first.json<{ id: string; fence: string }>();
++          assert.equal((await s.claim()).json<{ id: string }>().id, a.id);
++          const [ch] = await db`select * from model_certification_challenges where id=${challenge.id}`;
++          assert.equal(ch?.state, 'admitted');
++          assert.equal(ch?.attempt_id, a.id);
++          assert.equal(ch?.process_instance_id, s.processInstanceId);
++          assert.equal(String(ch?.admitted_fence), a.fence);
++          const companion = {
++            fence: a.fence,
++            processInstanceId: s.processInstanceId,
++            sourceTreeSha256: s.selected.sourceTreeSha256,
++            runtime: 'codex',
++            projectionManifestSha256: s.selected.projectionManifestSha256,
++            projectionTreeSha256: s.selected.projectionTreeSha256,
++            installReportId: s.selected.installReportId,
++          };
++          const pair = await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, companion);
++          assert.equal(pair.statusCode, 200, pair.text);
++          assert.deepEqual(
++            (await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, companion)).json(),
++            pair.json(),
++          );
++          assert.equal(
++            (await f.machine.post(`/v2/gateway/attempts/${a.id}/projection`, { ...companion, fence: '99' }))
++              .statusCode,
++            409,
++          );
++          const evidence: CertificationEvidence = {
++            challengeId: challenge.id,
++            attemptId: a.id,
++            fence: a.fence,
++            processInstanceId: s.processInstanceId,
++            context: ctx,
++            surfaceResults: surfaces.map((surface) => ({
++              surface,
++              selectedWorked: true,
++              unselectedDenied: true,
++              traceSha256: '6'.repeat(64),
++            })),
++            artifactIds: [],
++            traceSha256: '7'.repeat(64),
++          };
++          // Incomplete host surface reports cannot become PASS even with a test observer marker.
++          const incomplete = {
+             ...evidence,
+-            traceSha256: '8'.repeat(64),
+-          })
+-        ).statusCode,
+-        409,
+-      );
+-      await db`update tickets set status='ready',workflow_pin=${db.json({ workflow: 'superpowers', version: '6.4.2', revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d', checksum: 'e'.repeat(64) })} where id=${s.tickets.b.id}`;
+-      const b = await f.owner.post('/v2/commands', {
+-        machineId: f.machineId,
+-        ticketId: s.tickets.b.id,
+-        type: 'start',
+-        payload: {
+-          selection: s.selected,
+-          modelChoice: choice,
+-          certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce },
+-        },
+-      });
+-      assert.equal(b.statusCode, 202, b.text);
+-      const now = Date.now();
+-      const denied = await f.machine.post(`/v2/machine/commands/${b.json<{ id: string }>().id}/claim`, {
+-        processInstanceId: randomUUID(),
+-        permit: {
+-          commandId: b.json<{ id: string }>().id,
+-          ticketId: s.tickets.b.id,
+-          machineId: f.machineId,
+-          bindingRevision: 2,
+-          ticketRevision: 1,
+-          workflow: {
+-            workflow: 'superpowers',
+-            version: '6.4.2',
+-            revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
+-            checksum: 'e'.repeat(64),
+-          },
+-          checkedAt: new Date(now).toISOString(),
+-          expiresAt: new Date(now + 20000).toISOString(),
+-          telemetryId: randomUUID(),
+-          decisionId: s.decisionId,
+-        },
+-      });
+-      assert.equal(denied.statusCode, 409, denied.text);
++            surfaceResults: evidence.surfaceResults.filter((s) => s.surface !== 'child'),
++          };
++          await db`insert into model_test_observations(digest) values(${hash(incomplete)})`;
++          const unverified = await f.machine.post('/v2/machine/models/certifications', incomplete);
++          assert.equal(unverified.statusCode, 200, unverified.text);
++          assert.equal(unverified.json().status, 'UNVERIFIED');
++          // Only the independent test observer port can authorize a protocol receipt in this test DB.
++          await db`insert into model_test_observations(digest) values(${hash(evidence)})`;
++          const pass = await f.machine.post('/v2/machine/models/certifications', evidence);
++          assert.equal(pass.statusCode, 200, pass.text);
++          assert.equal(pass.json().status, 'PASS');
++          assert.deepEqual(
++            (await f.machine.post('/v2/machine/models/certifications', evidence)).json(),
++            pass.json(),
++          );
++          assert.equal(
++            (
++              await f.machine.post('/v2/machine/models/certifications', {
++                ...evidence,
++                traceSha256: '8'.repeat(64),
++              })
++            ).statusCode,
++            409,
++          );
++          await db`update tickets set status='ready',workflow_pin=${db.json({ workflow: 'superpowers', version: '6.4.2', revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d', checksum: 'e'.repeat(64) })} where id=${s.tickets.b.id}`;
++          const b = await f.owner.post('/v2/commands', {
++            machineId: f.machineId,
++            ticketId: s.tickets.b.id,
++            type: 'start',
++            payload: {
++              selection: s.selected,
++              modelChoice: choice,
++              certificationAdmission: { challengeId: challenge.id, nonce: challenge.nonce },
++            },
++          });
++          assert.equal(b.statusCode, 202, b.text);
++          const now = Date.now();
++          const denied = await f.machine.post(`/v2/machine/commands/${b.json<{ id: string }>().id}/claim`, {
++            processInstanceId: randomUUID(),
++            permit: {
++              commandId: b.json<{ id: string }>().id,
++              ticketId: s.tickets.b.id,
++              machineId: f.machineId,
++              bindingRevision: 2,
++              ticketRevision: 1,
++              workflow: {
++                workflow: 'superpowers',
++                version: '6.4.2',
++                revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
++                checksum: 'e'.repeat(64),
++              },
++              checkedAt: new Date(now).toISOString(),
++              expiresAt: new Date(now + 20000).toISOString(),
++              telemetryId: randomUUID(),
++              decisionId: s.decisionId,
++            },
++          });
++          assert.equal(denied.statusCode, 409, denied.text);
+ 
+-      const measured = {
+-        ...inv,
+-        reportId: randomUUID(),
+-        sequence: '3',
+-        body: { entries: [{ ...inv.body.entries[0], status: 'pass', capabilities: ['text', 'tools'] }] },
+-      };
+-      await db`insert into model_test_observations(digest) values(${hash(measured.body.entries[0])})`;
+-      assert.equal((await f.machine.post('/v2/machine/models/inventory', measured)).statusCode, 200);
+-      const applied = {
+-        reportId: randomUUID(),
+-        bootId: boot,
+-        bootGeneration: '1',
+-        sequence: '4',
+-        configRevision: 1,
+-        body: {
+-          inventoryReportId: measured.reportId,
+-          sourceStatus: {
+-            claude: { state: 'disabled', errorCode: null },
+-            codex: { state: 'ready', errorCode: null },
+-            api: { state: 'disabled', errorCode: null },
+-          },
+-          observationDigest: hash(measured.body),
+-        },
+-      };
+-      assert.equal((await f.machine.post('/v2/machine/models/applied', applied)).statusCode, 200);
+-      const { getPool, assertModelDispatch } = await import('../src/models/catalog.ts');
+-      const pool = await getPool(db, f.machineId, source('superpowers'));
+-      assert.equal(pool[0]?.available, true);
+-      const [cert] = await db`select id from runtime_certification_receipts`;
+-      const normalChoice = {
+-        ...choice,
+-        probeReceiptId: String(pool[0].probeReceiptId),
+-        certificationReceiptId: String(cert?.id),
+-      };
+-      await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: normalChoice })} where id=${s.commandId}`;
+-      await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: normalChoice })} where id=${s.decisionId}`;
+-      const permit = {
+-        commandId: s.commandId,
+-        ticketId: s.tickets.a.id,
+-        machineId: f.machineId,
+-        bindingRevision: 2,
+-        ticketRevision: 1,
+-        workflow: {
+-          workflow: 'superpowers' as const,
+-          version: '6.4.2',
+-          revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
+-          checksum: 'e'.repeat(64),
+-        },
+-        checkedAt: new Date().toISOString(),
+-        expiresAt: new Date(Date.now() + 20000).toISOString(),
+-        telemetryId: randomUUID(),
+-        decisionId: s.decisionId,
+-      };
+-      await db.begin((tx) => assertModelDispatch(tx, permit, normalChoice));
+-      await assert.rejects(
+-        db.begin((tx) => assertModelDispatch(tx, permit, { ...normalChoice, required: ['vision'] })),
+-      );
+-      const changed = {
+-        ...measured,
+-        reportId: randomUUID(),
+-        sequence: '5',
+-        body: {
+-          entries: [{ ...measured.body.entries[0], context: { ...ctx, binarySha256: '9'.repeat(64) } }],
+-        },
+-      };
+-      await db`insert into model_test_observations(digest) values(${hash(changed.body.entries[0])})`;
+-      assert.equal((await f.machine.post('/v2/machine/models/inventory', changed)).statusCode, 200);
+-      assert.equal(
+-        (
+-          await f.machine.post('/v2/machine/models/applied', {
+-            ...applied,
++          const measured = {
++            ...inv,
++            bootId: boot,
++            bootGeneration: generation,
++            reportId: randomUUID(),
++            sequence: '3',
++            body: { entries: [{ ...inv.body.entries[0], status: 'pass', capabilities: ['text', 'tools'] }] },
++          };
++          await db`insert into model_test_observations(digest) values(${hash(measured.body.entries[0])})`;
++          assert.equal((await f.machine.post('/v2/machine/models/inventory', measured)).statusCode, 200);
++          const applied = {
+             reportId: randomUUID(),
+-            sequence: '6',
++            bootId: boot,
++            bootGeneration: generation,
++            sequence: '4',
++            configRevision: 1,
+             body: {
+-              ...applied.body,
+-              inventoryReportId: changed.reportId,
+-              observationDigest: hash(changed.body),
++              inventoryReportId: measured.reportId,
++              sourceStatus: {
++                claude: { state: 'disabled', errorCode: null },
++                codex: { state: 'ready', errorCode: null },
++                api: { state: 'disabled', errorCode: null },
++              },
++              observationDigest: hash(measured.body),
+             },
+-          })
+-        ).statusCode,
+-        200,
+-      );
+-      assert.equal(
+-        (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
+-        'CERTIFICATION_UNVERIFIED',
+-      );
+-      await assert.rejects(db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)));
+-      const next = structuredClone(nextConfig);
+-      next.expectedRevision = 1;
+-      next.desired.superpowers.projections.codex = {
+-        ...projection('superpowers'),
+-        treeSha256: '9'.repeat(64),
+-      };
+-      assert.equal((await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, next)).statusCode, 200);
+-      assert.equal(
+-        (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
+-        'WORKFLOW_UNAVAILABLE',
+-      );
+-      const installed = report(boot, '1', 2);
+-      installed.results.superpowers.projections.codex.installed = next.desired.superpowers.projections.codex;
+-      assert.equal((await f.machine.post('/v2/gateway/install-reports', installed)).statusCode, 200);
+-      assert.equal(
+-        (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
+-        'PROBE_CONTEXT_CHANGED',
+-      );
+-      const failed = {
+-        ...measured,
+-        reportId: randomUUID(),
+-        sequence: '7',
+-        body: { entries: [{ ...measured.body.entries[0], status: 'fail', errorCode: 'AUTH' }] },
+-      };
+-      assert.equal((await f.machine.post('/v2/machine/models/inventory', failed)).statusCode, 200);
+-      await assert.rejects(db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)));
+-      assert.equal(
+-        (
+-          await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
+-            expectedRevision: 1,
+-            enabled: { claude: false, codex: false, api: false },
+-            apiProviders: [],
+-          })
+-        ).statusCode,
+-        200,
+-      );
+-      await assert.rejects(
+-        db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)),
+-        (err) => err instanceof ApiError && err.code === 'SOURCE_DISABLED',
+-      );
+-      const [attemptCount] = await db`select count(*)::int as value from attempts`;
+-      assert.equal(attemptCount?.value, 1);
+-    } finally {
+-      await f.close();
+-    }
+-  });
+-});
++          };
++          assert.equal((await f.machine.post('/v2/machine/models/applied', applied)).statusCode, 200);
++          const { getPool, assertModelDispatch } = await import('../src/models/catalog.ts');
++          const pool = await getPool(db, f.machineId, source('superpowers'));
++          assert.equal(pool[0]?.available, true);
++          const [cert] = await db`select id from runtime_certification_receipts`;
++          const normalChoice = {
++            ...choice,
++            probeReceiptId: String(pool[0].probeReceiptId),
++            certificationReceiptId: String(cert?.id),
++          };
++          await db`update commands set payload=${db.json({ selection: s.selected, modelChoice: normalChoice })} where id=${s.commandId}`;
++          await db`update decisions set scope=${db.json({ selection: s.selected, modelChoice: normalChoice })} where id=${s.decisionId}`;
++          const permit = {
++            commandId: s.commandId,
++            ticketId: s.tickets.a.id,
++            machineId: f.machineId,
++            bindingRevision: 2,
++            ticketRevision: 1,
++            workflow: {
++              workflow: 'superpowers' as const,
++              version: '6.4.2',
++              revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
++              checksum: 'e'.repeat(64),
++            },
++            checkedAt: new Date().toISOString(),
++            expiresAt: new Date(Date.now() + 20000).toISOString(),
++            telemetryId: randomUUID(),
++            decisionId: s.decisionId,
++          };
++          await db.begin((tx) => assertModelDispatch(tx, permit, normalChoice));
++          // FIX1 R1: both stored copies agree on a wrong source; actual fresh claim must rollback.
++          const decisionB = randomUUID();
++          const wrongSelection = { ...s.selected, decisionId: decisionB, sourceTreeSha256: 'a'.repeat(64) };
++          await db`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope) values(${decisionB},${s.tickets.b.id},'owner','owner','dispatch','Test authority','Test authority','[]',${db.json({ selection: wrongSelection, modelChoice: normalChoice })})`;
++          const commandB = await f.owner.post('/v2/commands', {
++            machineId: f.machineId,
++            ticketId: s.tickets.b.id,
++            type: 'start',
++            payload: { selection: wrongSelection, modelChoice: normalChoice },
++          });
++          assert.equal(commandB.statusCode, 202, commandB.text);
++          const permitB = {
++            ...permit,
++            commandId: commandB.json<{ id: string }>().id,
++            ticketId: s.tickets.b.id,
++            decisionId: decisionB,
++          };
++          await assert.rejects(
++            db.begin((tx) => assertModelDispatch(tx, permitB, normalChoice)),
++            (err) => err instanceof ApiError && err.code === 'MODEL_UNAVAILABLE',
++          );
++          authority = (tx, _actor, currentPermit) => assertModelDispatch(tx, currentPermit, normalChoice);
++          const countsB = async () =>
++            (
++              await db`select (select count(*)::int from attempts) as attempts,(select count(*)::int from execution_guards) as guards,(select count(*)::int from events) as events`
++            )[0];
++          const beforeB = await countsB();
++          const rejectedB = await f.machine.post(`/v2/machine/commands/${permitB.commandId}/claim`, {
++            processInstanceId: randomUUID(),
++            permit: permitB,
++          });
++          assert.equal(rejectedB.statusCode, 409, rejectedB.text);
++          assert.deepEqual(await countsB(), beforeB);
++          assert.equal((await db`select status from tickets where id=${s.tickets.b.id}`)[0]?.status, 'ready');
++          await assert.rejects(
++            db.begin((tx) => assertModelDispatch(tx, permit, { ...normalChoice, required: ['vision'] })),
++          );
++          const changed = {
++            ...measured,
++            reportId: randomUUID(),
++            sequence: '5',
++            body: {
++              entries: [{ ...measured.body.entries[0], context: { ...ctx, binarySha256: '9'.repeat(64) } }],
++            },
++          };
++          await db`insert into model_test_observations(digest) values(${hash(changed.body.entries[0])})`;
++          assert.equal((await f.machine.post('/v2/machine/models/inventory', changed)).statusCode, 200);
++          assert.equal(
++            (
++              await f.machine.post('/v2/machine/models/applied', {
++                ...applied,
++                reportId: randomUUID(),
++                sequence: '6',
++                body: {
++                  ...applied.body,
++                  inventoryReportId: changed.reportId,
++                  observationDigest: hash(changed.body),
++                },
++              })
++            ).statusCode,
++            200,
++          );
++          assert.equal(
++            (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
++            'CERTIFICATION_UNVERIFIED',
++          );
++          await assert.rejects(db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)));
++          const next = structuredClone(nextConfig);
++          next.expectedRevision = 1;
++          next.desired.superpowers.projections.codex = {
++            ...projection('superpowers'),
++            treeSha256: '9'.repeat(64),
++          };
++          assert.equal(
++            (await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, next)).statusCode,
++            200,
++          );
++          assert.equal(
++            (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
++            'WORKFLOW_UNAVAILABLE',
++          );
++          const installed = report(boot, generation, 2);
++          installed.results.superpowers.projections.codex.installed =
++            next.desired.superpowers.projections.codex;
++          assert.equal((await f.machine.post('/v2/gateway/install-reports', installed)).statusCode, 200);
++          assert.equal(
++            (await getPool(db, f.machineId, source('superpowers')))[0]?.reason,
++            'PROBE_CONTEXT_CHANGED',
++          );
++          const failed = {
++            ...measured,
++            reportId: randomUUID(),
++            sequence: '7',
++            body: { entries: [{ ...measured.body.entries[0], status: 'fail', errorCode: 'AUTH' }] },
++          };
++          assert.equal((await f.machine.post('/v2/machine/models/inventory', failed)).statusCode, 200);
++          await assert.rejects(db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)));
++          assert.equal(
++            (
++              await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++                expectedRevision: 1,
++                enabled: { claude: false, codex: false, api: false },
++                apiProviders: [],
++              })
++            ).statusCode,
++            200,
++          );
++          await assert.rejects(
++            db.begin((tx) => assertModelDispatch(tx, permit, normalChoice)),
++            (err) => err instanceof ApiError && err.code === 'SOURCE_DISABLED',
++          );
++          const [attemptCount] = await db`select count(*)::int as value from attempts`;
++          assert.equal(attemptCount?.value, 1);
++        } finally {
++          await f.close();
++        }
++      });
++    },
++  );
+diff --git a/v2/server/test/model-secret.test.ts b/v2/server/test/model-secret.test.ts
+index 03209a1..28862fa 100644
+--- a/v2/server/test/model-secret.test.ts
++++ b/v2/server/test/model-secret.test.ts
+@@ -7,20 +7,21 @@ import {
+   diffieHellman,
+   generateKeyPairSync,
+   hkdfSync,
+   type KeyObject,
+   randomUUID,
+ } from 'node:crypto';
+ import { test } from 'node:test';
+ import { promisify } from 'node:util';
+ import { canonicalJson } from '../src/journal/canonical.ts';
+ import type { SecretEnvelope } from '../src/models/contracts.ts';
++import type { Db } from '../src/platform/contracts.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { modelFixture } from './support/model-http.ts';
+ 
+ const hash = (s: string) => createHash('sha256').update(s).digest('hex');
+ type CryptoBox = Pick<SecretEnvelope, 'ephemeralPublicKey' | 'nonce' | 'ciphertext' | 'tag'>;
+ function decode(box: CryptoBox, key: KeyObject, aad: unknown) {
+   const shared = diffieHellman({
+     privateKey: key,
+     publicKey: createPublicKey({
+       key: Buffer.from(box.ephemeralPublicKey, 'base64'),
+@@ -333,10 +334,289 @@ test('production app real HTTP secret rejection and structured logger redact pla
+       assert.match(output.stdout, /\[Redacted\]/);
+       const [publicRows] =
+         await db`select (select coalesce(string_agg(response::text,''),'') from idempotency) || (select coalesce(string_agg(data::text,''),'') from events) as value`;
+       assert.equal(String(publicRows?.value).includes('fixture-redaction-canary'), false);
+       assert.equal((await db`select count(*)::int as n from api_secret_envelopes`)[0]?.n, 0);
+     } finally {
+       await f.close();
+     }
+   });
+ });
++
++async function provisioningFixture(db: Db) {
++  const acceptedTime = new Date();
++  const f = await modelFixture(db, { now: () => acceptedTime });
++  await db`insert into projects(id,name,key,machine_id,checkout_path) values(${randomUUID()},'fixture','FIX1SECRET',${f.machineId},'/tmp/fix1-secret-fixture')`;
++  const providerId = randomUUID();
++  const configuration = {
++    expectedRevision: 0,
++    enabled: { claude: false, codex: false, api: true },
++    apiProviders: [
++      {
++        id: providerId,
++        endpoint: 'https://example.com/v1',
++        protocol: 'responses',
++        models: [{ id: 'x', declared: ['text'] }],
++        localHttp: null,
++      },
++    ],
++  };
++  assert.equal(
++    (await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, configuration)).statusCode,
++    200,
++  );
++  const activate = async () => {
++    const keys = generateKeyPairSync('x25519'),
++      keyId = randomUUID();
++    const r = await f.machine.post('/v2/machine/credential-keys', {
++      keyId,
++      publicKeyX25519: keys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64'),
++    });
++    assert.equal(r.statusCode, 200, r.text);
++    const ch = r.json<{ challengeId: string; encryptedChallenge: CryptoBox; expiresAt: string }>();
++    const proof = {
++      challengeId: ch.challengeId,
++      challengeSha256: hash(
++        decode(ch.encryptedChallenge, keys.privateKey, {
++          machineId: f.machineId,
++          keyId,
++          challengeId: ch.challengeId,
++          expiresAt: ch.expiresAt,
++        }),
++      ),
++    };
++    assert.equal(
++      (await f.machine.post(`/v2/machine/credential-keys/${keyId}/confirm`, proof)).statusCode,
++      200,
++    );
++    return { keyId, proof };
++  };
++  const provision = async (keyId: string, operationId = randomUUID()) => {
++    const body = { expectedRevision: 1, keyId, operationId, secret: 'fixture-only' };
++    const sent = await f.owner.post(`/v2/machines/${f.machineId}/api-providers/${providerId}/secret`, body);
++    assert.equal(sent.statusCode, 200, sent.text);
++    const envelope = (await f.machine.get('/v2/machine/api-secret-envelopes'))
++      .json<{ items: SecretEnvelope[] }>()
++      .items.find((e) => e.operationId === operationId);
++    assert.ok(envelope);
++    return { envelope, body };
++  };
++  const ack = (e: SecretEnvelope, credentialRef: string) =>
++    f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, {
++      operationId: e.operationId,
++      keyId: e.keyId,
++      ciphertextSha256: e.ciphertextSha256,
++      credentialRef,
++    });
++  const loss = (e: SecretEnvelope) => f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/key-lost`, {});
++  const provider = async () =>
++    (
++      await db`select status,credential_ref from api_providers where machine_id=${f.machineId} and id=${providerId}`
++    )[0];
++  return { f, providerId, configuration, activate, provision, ack, loss, provider };
++}
++for (const late of ['ack', 'loss'] as const)
++  test(`FIX1 R2 older pending ${late} cannot rewind newer stored credential`, async () => {
++    await databaseFixture(8)(async (db) => {
++      const s = await provisioningFixture(db);
++      try {
++        const k = await s.activate();
++        const a = await s.provision(k.keyId, 'ffffffff-ffff-4fff-8fff-ffffffffffff'),
++          b = await s.provision(k.keyId, '00000000-0000-4000-8000-000000000001');
++        assert.equal((await s.ack(b.envelope, 'newer-ref')).statusCode, 200);
++        const before = await s.provider();
++        assert.equal(before?.credential_ref, 'newer-ref');
++        assert.equal(
++          (await db`select current_operation_id from api_providers where id=${s.providerId}`)[0]
++            ?.current_operation_id,
++          b.envelope.operationId,
++        );
++        const created = await db`select created_at from api_secret_envelopes order by cursor`;
++        assert.equal(created.length, 2);
++        assert.equal((created[0].created_at as Date).getTime(), (created[1].created_at as Date).getTime());
++        const response = late === 'ack' ? await s.ack(a.envelope, 'older-ref') : await s.loss(a.envelope);
++        assert.equal(response.statusCode, 200, response.text);
++        assert.deepEqual(await s.provider(), before);
++        const replay = late === 'ack' ? await s.ack(a.envelope, 'older-ref') : await s.loss(a.envelope);
++        assert.deepEqual(replay.json(), response.json());
++        assert.deepEqual(await s.provider(), before);
++        assert.equal((await s.ack(b.envelope, 'newer-ref')).statusCode, 200);
++        assert.deepEqual(await s.provider(), before);
++        const retried = await s.f.owner.post(
++          `/v2/machines/${s.f.machineId}/api-providers/${s.providerId}/secret`,
++          a.body,
++        );
++        assert.equal(retried.statusCode, 200);
++        assert.deepEqual(await s.provider(), before);
++        const reopened = await modelFixture(db, { prior: s.f.prior });
++        try {
++          assert.equal(
++            (
++              await reopened.machine.post(`/v2/machine/api-secret-envelopes/${b.envelope.id}/ack`, {
++                operationId: b.envelope.operationId,
++                keyId: b.envelope.keyId,
++                ciphertextSha256: b.envelope.ciphertextSha256,
++                credentialRef: 'newer-ref',
++              })
++            ).statusCode,
++            200,
++          );
++          assert.equal(
++            (await db`select current_operation_id from api_providers where id=${s.providerId}`)[0]
++              ?.current_operation_id,
++            b.envelope.operationId,
++          );
++          assert.deepEqual(await s.provider(), before);
++        } finally {
++          await reopened.close();
++        }
++        await assert.rejects(
++          db.begin(
++            (tx) =>
++              tx`update api_providers set current_operation_id=${randomUUID()} where machine_id=${s.f.machineId} and id=${s.providerId}`,
++          ),
++          (err) => typeof err === 'object' && err !== null && 'code' in err && err.code === '23503',
++        );
++      } finally {
++        await s.f.close();
++      }
++    });
++  });
++test('FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history', async () => {
++  await databaseFixture(8)(async (db) => {
++    const s = await provisioningFixture(db);
++    try {
++      const k = await s.activate();
++      const a = await s.provision(k.keyId),
++        b = await s.provision(k.keyId);
++      assert.equal((await s.loss(a.envelope)).statusCode, 200);
++      const path = `/v2/machines/${s.f.machineId}/api-providers/${s.providerId}/secret`;
++      const denied = await s.f.owner.post(path, { ...b.body, operationId: randomUUID() });
++      assert.equal(denied.statusCode, 409, denied.text);
++      assert.equal(
++        (await s.f.machine.get('/v2/machine/api-secret-envelopes')).json<{ items: SecretEnvelope[] }>().items
++          .length,
++        0,
++      );
++      assert.equal((await s.ack(b.envelope, 'lost-key-ref')).statusCode, 409);
++      assert.equal((await s.provider())?.status, 'missing');
++      const lost = await db`select state,ciphertext,tag,ack_hash from api_secret_envelopes`;
++      assert.equal(lost.length, 2);
++      for (const envelope of lost) {
++        assert.equal(envelope.state, 'key_lost');
++        assert.equal(envelope.ciphertext, null);
++        assert.equal(envelope.tag, null);
++        assert.equal(envelope.ack_hash, null);
++      }
++      assert.equal(
++        (await s.f.machine.post(`/v2/machine/credential-keys/${k.keyId}/confirm`, k.proof)).statusCode,
++        200,
++      );
++      assert.equal((await s.f.owner.post(path, { ...b.body, operationId: randomUUID() })).statusCode, 409);
++      const key = await db`select state from credential_keys where key_id=${k.keyId}`;
++      assert.equal(key[0]?.state, 'retired');
++      const current = await s.activate(),
++        c = await s.provision(current.keyId);
++      assert.equal((await s.ack(c.envelope, 'reentered-ref')).statusCode, 200);
++      assert.equal((await s.loss(a.envelope)).statusCode, 200);
++      assert.equal((await s.provider())?.credential_ref, 'reentered-ref');
++      assert.equal(
++        (await db`select state from credential_keys where key_id=${current.keyId}`)[0]?.state,
++        'active',
++      );
++      const reopened = await modelFixture(db, { prior: s.f.prior });
++      try {
++        assert.equal(
++          (await reopened.machine.post(`/v2/machine/api-secret-envelopes/${a.envelope.id}/key-lost`, {}))
++            .statusCode,
++          200,
++        );
++        assert.equal((await s.provider())?.credential_ref, 'reentered-ref');
++      } finally {
++        await reopened.close();
++      }
++    } finally {
++      await s.f.close();
++    }
++  });
++});
++test('FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key', async () => {
++  await databaseFixture(8)(async (db) => {
++    const s = await provisioningFixture(db);
++    try {
++      const first = await s.activate(),
++        a = await s.provision(first.keyId),
++        pending = await s.provision(first.keyId);
++      const second = await s.activate();
++      assert.equal((await s.ack(a.envelope, 'retained-old-key-ref')).statusCode, 200);
++      const b = await s.provision(second.keyId);
++      assert.equal((await s.loss(pending.envelope)).statusCode, 200);
++      assert.equal((await s.provider())?.status, 'pending');
++      assert.equal(
++        (await db`select state from credential_keys where key_id=${second.keyId}`)[0]?.state,
++        'active',
++      );
++      assert.equal((await s.ack(b.envelope, 'current-new-key-ref')).statusCode, 200);
++      assert.equal((await s.ack(a.envelope, 'retained-old-key-ref')).statusCode, 200);
++      assert.equal((await s.provider())?.credential_ref, 'current-new-key-ref');
++      assert.equal((await s.ack(a.envelope, 'changed-history-ref')).statusCode, 409);
++    } finally {
++      await s.f.close();
++    }
++  });
++});
++
++test('FIX1 revision invalidation detaches current operation and old receipts preserve new credential', async () => {
++  await databaseFixture(8)(async (db) => {
++    const s = await provisioningFixture(db);
++    try {
++      const first = await s.activate(),
++        a = await s.provision(first.keyId),
++        history = await s.provision(first.keyId);
++      assert.equal((await s.ack(history.envelope, 'history-ref')).statusCode, 200);
++      assert.equal(
++        (
++          await s.f.owner.put(`/v2/machines/${s.f.machineId}/model-sources`, {
++            ...s.configuration,
++            expectedRevision: 1,
++            enabled: { claude: true, codex: false, api: true },
++          })
++        ).statusCode,
++        200,
++      );
++      assert.equal(
++        (await db`select current_operation_id from api_providers where id=${s.providerId}`)[0]
++          ?.current_operation_id,
++        null,
++      );
++      assert.equal((await s.provider())?.credential_ref, 'history-ref');
++      assert.equal((await s.ack(a.envelope, 'late-revision-ref')).statusCode, 409);
++      const second = await s.activate();
++      const operationId = randomUUID();
++      assert.equal(
++        (
++          await s.f.owner.post(`/v2/machines/${s.f.machineId}/api-providers/${s.providerId}/secret`, {
++            expectedRevision: 2,
++            keyId: second.keyId,
++            operationId,
++            secret: 'fixture-only-new',
++          })
++        ).statusCode,
++        200,
++      );
++      const b = (await s.f.machine.get('/v2/machine/api-secret-envelopes'))
++        .json<{ items: SecretEnvelope[] }>()
++        .items.find((e) => e.operationId === operationId);
++      assert.ok(b);
++      assert.equal((await s.ack(b, 'current-revision-ref')).statusCode, 200);
++      assert.equal((await s.loss(a.envelope)).statusCode, 200);
++      assert.equal((await s.ack(history.envelope, 'history-ref')).statusCode, 200);
++      assert.equal((await s.provider())?.credential_ref, 'current-revision-ref');
++      assert.equal(
++        (await db`select state from credential_keys where key_id=${second.keyId}`)[0]?.state,
++        'active',
++      );
++    } finally {
++      await s.f.close();
++    }
++  });
++});
+Phase04Task1 scoped FIX1 re-review e94f2e1..d249a82. Only R1-R4 and new7filefixdiff. Unrelatedworkflow/PMcommits historycontextonly.
+

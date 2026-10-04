@@ -1,0 +1,1 @@
+node_modules/.pnpm/thread-stream@4.2.0/node_modules/thread-stream/index.d.ts(96,73): error TS2694: Namespace '"worker_threads"' has no exported member 'TransferListItem'.

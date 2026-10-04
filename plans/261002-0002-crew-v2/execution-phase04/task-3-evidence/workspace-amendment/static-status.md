@@ -1,0 +1,9 @@
+# Pre-review workspace amendment — static stage
+
+Superseded by executed verification 2026-10-03: meaningful historical-consumer RED exit1, current build0/strict0, exact six-file affected cover22/22 PASS, Biome15files clean. See commands.json, source-sha.json, owned-final-sha.json, process-closure.json and resource-audit.json. Earlier static-stage details below are retained as history.
+
+PM architecture approved20:12; heavy fixtures wait for root slot. Concrete captured IsolationWorkspace service get/withPrepared (not expected-echo callback) validates actual prepared ownerCommit/attempt/source/projection/observed workspace+home. Its transaction spans runtime companion fsync. Observer runs BEFORE isolation queue to avoid reentrant deadlock. Recorded workspace summary binds exact operation/identity/root/commit/pins.
+
+New actual API-workspace fixture creates owned Git repository through accepted native measured executor, prepares via actual IsolationWorkspace.prepareWorkspace. Model admission/confinement observation remains test-only protocol (not native certification). New negatives: same-shaped wrong commit, absent/wrong attempt, source/projection, observed root/home, durable state corruption(preparing/retained/deleted) restored before cleanup; real producer verify and cleanup race held through callback. Runtime bridge success and crash fixtures switch synthetic Codex to API projection to support actual prepared workspace without invented native geometry.
+
+Static strict first failed TS2339 at test/runtime-boundary.test.ts:265 (`attempt` narrowed to never because mutated in async transport callback); assertion now reads actual producer record. `strict-static.log` is next strict pass0. `biome-static.log` one optional-chain suggestion subsequently applied. No native/model/PG fixtures run at this stage. Historical105cover does not verify amended sources.

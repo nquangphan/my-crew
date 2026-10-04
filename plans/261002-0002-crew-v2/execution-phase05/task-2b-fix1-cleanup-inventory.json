@@ -1,0 +1,288 @@
+[
+  {
+    "label": "red",
+    "snapshot": {
+      "container": "7eae323386ff0cb88b3ccf64488c351f62098953f33140ecdaa108d2d488da8d",
+      "containerAbsent": true,
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y",
+      "rootAbsent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64049357,
+        "uid": 501
+      },
+      "childClosed": true
+    },
+    "fixtureRoots": [
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eQ2ATW",
+        "nonceSha256": "b46ccef7b13534f9d4c162e198e3f55ebb3886a315424d703a53086149068610",
+        "dev": 16777229,
+        "ino": 64049692,
+        "uid": 501,
+        "pid": 88403,
+        "removedLogged": true,
+        "absent": true
+      }
+    ],
+    "containerAbsentRechecked": true,
+    "actualChildExit": 1
+  },
+  {
+    "label": "final",
+    "snapshot": {
+      "container": "6d82f06f3a11e51ab6b3748e4d2c3563d979a7eac5c4ae513542201050074ca1",
+      "containerAbsent": true,
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-final-8ikfyxum",
+      "rootAbsent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64050008,
+        "uid": 501
+      },
+      "childClosed": true
+    },
+    "fixtureRoots": [
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HiCHfV",
+        "nonceSha256": "8f74dbd511bc316f15e9f1bbb3150bc977d055a2d8baf24f9bc674e5b4664464",
+        "dev": 16777229,
+        "ino": 64050675,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-2jiTky",
+        "nonceSha256": "ebe97a9e2531b2d5d1e42386a2444df3964698c47717f0ba061d27810ebff657",
+        "dev": 16777229,
+        "ino": 64050708,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-fVGlXX",
+        "nonceSha256": "ec0df5c3e486af77fb1f43844fce4d129893e148bcf1ee2ef4f476a086817595",
+        "dev": 16777229,
+        "ino": 64050737,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YYASGw",
+        "nonceSha256": "fbdc6a24d55a25215556d2ecf9af382890415a954ac3f1ee2dd77cd1c6033ea0",
+        "dev": 16777229,
+        "ino": 64050785,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oyL1Wf",
+        "nonceSha256": "53cd123bd02fdbdfec3fbb97fdb8304c563779f20a53f3751b7c813458f1e835",
+        "dev": 16777229,
+        "ino": 64050823,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-c3DKs2",
+        "nonceSha256": "e20fb3a60dc5f668d2d43df2950729a80aafab8cc794326bf6fd9e5e1204f918",
+        "dev": 16777229,
+        "ino": 64050870,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AFkdQt",
+        "nonceSha256": "41dee29287316b647bb9ad705e4df439f9312d9d351ce0dca0568e2e0fa06cc2",
+        "dev": 16777229,
+        "ino": 64050885,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-cOsfud",
+        "nonceSha256": "1a47a258d8336cc2409f664b49759091170cd7225dac0e13978c811ffcfb5fec",
+        "dev": 16777229,
+        "ino": 64050917,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CLOQbq",
+        "nonceSha256": "b0468febd189b2253dd015abcd8107a97385cb60cc405749d2908fb39496e474",
+        "dev": 16777229,
+        "ino": 64050949,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EM4r44",
+        "nonceSha256": "a9f3833a9bb1f10ca46d41352446372b382ca2924942aea1b79e64888248ef9e",
+        "dev": 16777229,
+        "ino": 64050977,
+        "uid": 501,
+        "pid": 92895,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yLIjio",
+        "nonceSha256": "68839a8c2e00ee1fae4b9eaffd4911e1b6dc4c3d8f184720d9fca5d44ff9abe2",
+        "dev": 16777229,
+        "ino": 64050676,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YplVuk",
+        "nonceSha256": "49b0ad7d6a81ffd5d5151cf5051c2a63c97a163f377fe28c4fc848d05df106ba",
+        "dev": 16777229,
+        "ino": 64050706,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SFlMSX",
+        "nonceSha256": "a33d348f856cebc21f9658fea3290310971f99f9d39503fa85b0d1fefa8c81b7",
+        "dev": 16777229,
+        "ino": 64050740,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MelHSo",
+        "nonceSha256": "c0d8c5e2563849e0c196a9671cd0611af8baef2b3d88e257a74b71ff2c8e9993",
+        "dev": 16777229,
+        "ino": 64050784,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4Vwmec",
+        "nonceSha256": "77491fc7206baea472fee0f640b74bd6f737e837561635088248388b2532e54c",
+        "dev": 16777229,
+        "ino": 64050822,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FjMaN2",
+        "nonceSha256": "bbc6dcdecce1e6c25be49625d7956135590eaffd0309f72406a35b33c36a4ede",
+        "dev": 16777229,
+        "ino": 64050895,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WojJPG",
+        "nonceSha256": "4ba11dd1a195492fc7e4414a990c8252399ded0e6068ada317cc0a8b92b559f6",
+        "dev": 16777229,
+        "ino": 64050915,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9mgfFI",
+        "nonceSha256": "ca59318c586f23197eaf07ba17cb52f2572ce3217c5514f544ab163d916cdc96",
+        "dev": 16777229,
+        "ino": 64050947,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-DjYAa6",
+        "nonceSha256": "8fccf7c612812b0005777d6c9b5b285835f6fc14d14f5c3515cddccacd133bc9",
+        "dev": 16777229,
+        "ino": 64050979,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qU6MyI",
+        "nonceSha256": "aaffe344d2c515efa0d904b4bd347c024885e3eb4facbc90c842722fbbf3827c",
+        "dev": 16777229,
+        "ino": 64051001,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ATW3QL",
+        "nonceSha256": "53596fe73e9e18a5d347dc0d1593fb1f4ea97c58d8ab4a378c2bc1fdb3fdc5f3",
+        "dev": 16777229,
+        "ino": 64051024,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      },
+      {
+        "path": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OdyqF9",
+        "nonceSha256": "19d90e0d545adaf4b8e43f90de9c5b21d4a173f0d3fc61db25abd6f0a6f06cfb",
+        "dev": 16777229,
+        "ino": 64051031,
+        "uid": 501,
+        "pid": 92896,
+        "removedLogged": true,
+        "absent": true
+      }
+    ],
+    "containerAbsentRechecked": true,
+    "actualChildExit": 0
+  },
+  {
+    "label": "types",
+    "snapshot": {
+      "container": "",
+      "containerAbsent": true,
+      "root": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-types-1cznqz0j",
+      "rootAbsent": true,
+      "identity": {
+        "dev": 16777229,
+        "ino": 64050343,
+        "uid": 501
+      },
+      "childClosed": true
+    },
+    "fixtureRoots": [],
+    "containerAbsentRechecked": true,
+    "actualChildExit": 0
+  }
+]

@@ -1,0 +1,85 @@
+{
+  "kind": "bounded-cli-public-metadata-only",
+  "startedAt": "2026-10-03T11:59:46.584337+00:00",
+  "finishedAt": "2026-10-03T11:59:46.722213+00:00",
+  "gate": {
+    "observedAt": "2026-10-03T11:59:46.581790+00:00",
+    "pressureLevel": "2",
+    "availableBytes": 5660360704,
+    "diskAvailableBytes": 31267930112,
+    "cpuSample": "             disk14              disk16              disk18       cpu    load average\n    KB/t  tps  MB/s     KB/t  tps  MB/s     KB/t  tps  MB/s  us sy id   1m   5m   15m\n  244.21    0  0.00     4.03    0  0.00    14.19    1  0.01   8  5 87  5.12 6.65 5.99\n    0.00    0  0.00     0.00    0  0.00     0.00    0  0.00  21  5 74  5.12 6.65 5.99\n",
+    "quota": {
+      "ordinaryUsageAllowed": true,
+      "usedPercent": 29,
+      "remainingPercent": 71,
+      "sampledAtEpoch": 1791028785.23
+    },
+    "cpuIdlePercent": 74.0
+  },
+  "argv": [
+    "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+    "app-server",
+    "generate-json-schema",
+    "--help"
+  ],
+  "cwd": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo/cwd",
+  "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo/home",
+    "TMPDIR": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo/tmp",
+    "CLAUDE_CONFIG_DIR": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo/claude-config",
+    "CODEX_HOME": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo/codex-config",
+    "LANG": "en_US.UTF-8"
+  },
+  "pid": 40222,
+  "exitCode": 0,
+  "failure": null,
+  "timeoutSeconds": 15,
+  "perStreamCapBytes": 65536,
+  "binaryBefore": {
+    "path": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+    "sha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+    "bytes": 240351424,
+    "device": 16777229,
+    "inode": 62402722,
+    "uid": 501,
+    "mode": "0o755",
+    "linkCount": 1,
+    "mtimeNs": 1790807122269317900,
+    "ctimeNs": 1790864501218812659
+  },
+  "binaryAfter": {
+    "path": "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+    "sha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+    "bytes": 240351424,
+    "device": 16777229,
+    "inode": 62402722,
+    "uid": 501,
+    "mode": "0o755",
+    "linkCount": 1,
+    "mtimeNs": 1790807122269317900,
+    "ctimeNs": 1790864501218812659
+  },
+  "binaryIdentityUnchanged": true,
+  "output": {
+    "stdout": {
+      "bytes": 1075,
+      "sha256": "c119fb866c02811bd66e23b7792f76fc16df91452caf8b47b34788c6ac97da1b"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "scratchIdentity": {
+    "root": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo",
+    "device": 16777229,
+    "inode": 64477810,
+    "uid": 501,
+    "mode": "0o700"
+  },
+  "scratchRetained": true,
+  "nativeWholeTreeStopProof": "UNVERIFIED",
+  "runtimeInitializationRequested": false,
+  "modelRequested": false
+}

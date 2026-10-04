@@ -1,0 +1,124 @@
+{
+  "previousCandidate": "dd2a0e1",
+  "frozenCore": "556cd8d",
+  "changedFiles": [
+    {
+      "path": "v2/docs/flows/gateway-models.md",
+      "beforeSha256": "9f99e6c84d1df50e99b26b0619e886d67112a0e9d759c46890c60c2da2900b31",
+      "sha256": "c768b8ca6b041bd76c0023ac8c58270c5807c7e440aa083dc34a213b2e732028"
+    },
+    {
+      "path": "v2/gateway/src/models/credential-provisioning.ts",
+      "beforeSha256": "cc26275d021a8d6f046dc50f1c6f1ad9249f6ec76d9e0db3e9fafdec6663b547",
+      "sha256": "b082fe0c1a318a66cb4f85c507d6bebd10283b780f7cd230ca5c26f402d75e27"
+    },
+    {
+      "path": "v2/gateway/test/credential-provisioning.test.ts",
+      "beforeSha256": "3be9a27c220af7f13924f5e64f6cbddb4ddb60cd6c1f103841ad091be01e8a5e",
+      "sha256": "e5b2c3aee2a3f5ea8f14c025d6f92c1d72e57f8850858878ac2789ffa08bd406"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "v2/docs/flows/gateway-models.md",
+      "sha256": "c768b8ca6b041bd76c0023ac8c58270c5807c7e440aa083dc34a213b2e732028"
+    },
+    {
+      "path": "v2/gateway/src/models/contracts.ts",
+      "sha256": "ca9f57c7fef2bc7c8936e60a244d39dbb58e08c268e451438a9225c1709ccc05"
+    },
+    {
+      "path": "v2/gateway/src/models/credential-broker.ts",
+      "sha256": "b11ba5b8ff73eb6fba786ae4bb3289fea747d2b799b9c9957981937c4254552f"
+    },
+    {
+      "path": "v2/gateway/src/models/credential-provisioning.ts",
+      "sha256": "b082fe0c1a318a66cb4f85c507d6bebd10283b780f7cd230ca5c26f402d75e27"
+    },
+    {
+      "path": "v2/gateway/src/models/inventory.ts",
+      "sha256": "8ca558722a903f993e342f0fbb4fbe96d1feb67e35cb8581860be9d0497e10c3"
+    },
+    {
+      "path": "v2/gateway/src/models/model-reporter.ts",
+      "sha256": "4e408cd6fa7cff531ef021d1c3a9703c8a48aea976dc63a8163779898b1bcf98"
+    },
+    {
+      "path": "v2/gateway/src/models/probe.ts",
+      "sha256": "8b1e06d987a2d8235babd65497081d0e84e71f34a561878dc003fde190c6e8eb"
+    },
+    {
+      "path": "v2/gateway/src/models/provider-transport.ts",
+      "sha256": "0d16c7d0cff2d3b86a18cff1f314c66cf338f9dd1a8d1fcd62a059774695dad5"
+    },
+    {
+      "path": "v2/gateway/src/models/security-bridge.ts",
+      "sha256": "297dbc7b3bcd1867f7727b3cac4c3976be4581ac849c30ba519e3f0783d67a40"
+    },
+    {
+      "path": "v2/gateway/src/models/security-keychain.m",
+      "sha256": "4e83beb032f045553b130f9e643f4d4f4781b451a9cece6ccf971e721addb0e6"
+    },
+    {
+      "path": "v2/gateway/test/credential-broker.test.ts",
+      "sha256": "40c58a33c83a4369917f9bb55b77f1088f4e949202a9212dbca3690003fbeb32"
+    },
+    {
+      "path": "v2/gateway/test/credential-provisioning.test.ts",
+      "sha256": "e5b2c3aee2a3f5ea8f14c025d6f92c1d72e57f8850858878ac2789ffa08bd406"
+    },
+    {
+      "path": "v2/gateway/test/fixtures/models/security-channel.c",
+      "sha256": "2e19ba0ffb9fa276a1f9de3b4ab78905be1c913919bb6ad941f32496ffe33610"
+    },
+    {
+      "path": "v2/gateway/test/model-probe.test.ts",
+      "sha256": "d74bd13bfdc6249937c68cb52e0a54b7601060ae25bd8723bd74550828eec453"
+    },
+    {
+      "path": "v2/gateway/test/model-reporter.test.ts",
+      "sha256": "74e9c107e556869f00e072c44c8be7a5d4abc52711ddabba05ccd3c5f510b7fa"
+    },
+    {
+      "path": "v2/gateway/test/support/model-fixture.ts",
+      "sha256": "083ebf9f19c1e280f6c2e63d0c95321df381d5f363b1d61fe99a04404e3ef064"
+    },
+    {
+      "path": "v2/server/src/models/contracts.ts",
+      "sha256": "f991a57bb4013ec5d33254bab88d7377e66cb31d9fec383f8cd378b86b197cde"
+    },
+    {
+      "path": "v2/server/src/models/routes.ts",
+      "sha256": "76d1433ef88ef10e48deaffd2de940fbaebbdb831f3d01f36763eed6f06315c3"
+    },
+    {
+      "path": "v2/server/src/models/secret-envelopes.ts",
+      "sha256": "b118ec7deff4fcbe3797a71e7eee8746d2cc144a5edef49699e0fffed2b584ad"
+    },
+    {
+      "path": "v2/server/test/model-current-credentials.test.ts",
+      "sha256": "42bb2269aa57f604ffe1747d481043d6b22fb576f4a4c526bdd02cfabfcb858b"
+    },
+    {
+      "path": "v2/docs/flows/server-models.md",
+      "sha256": "361c451aebbdf3d6dc8382c611faf3a91b2ad54a01cc6330311d8a8697f40029"
+    },
+    {
+      "path": "v2/gateway/src/models/current-credential-resolver.ts",
+      "sha256": "bacdcf8ba2b3570b8a9ae0698fb6cddbdad80453121abc2bf7302678aed363ef"
+    },
+    {
+      "path": "v2/gateway/test/current-credential-resolver.test.ts",
+      "sha256": "d8d0e8d614adfced260b0d712cdfdc959bcf8f081ad07f54281c4be2806e59a5"
+    }
+  ],
+  "excludedPeers": [
+    "HTTP retry",
+    "isolation",
+    "attachments",
+    "tickets",
+    "010"
+  ],
+  "unchangedServerProduction": true,
+  "unchangedResolverAndBroker": true
+}

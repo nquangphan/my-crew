@@ -1,0 +1,20 @@
+(node:10452) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task6-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Q6FuFY","device":"16777229","inode":"64016199","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Q6FuFY","device":"16777229","inode":"64016199","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL before-write preserves durable proof and reference authority (2552.689208ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JTuty2","device":"16777229","inode":"64016556","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JTuty2","device":"16777229","inode":"64016556","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-write preserves durable proof and reference authority (2455.094416ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-n0CoKX","device":"16777229","inode":"64016730","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-n0CoKX","device":"16777229","inode":"64016730","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-filter preserves durable proof and reference authority (2656.369834ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7766.782375

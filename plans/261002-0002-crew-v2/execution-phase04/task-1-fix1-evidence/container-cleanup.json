@@ -1,0 +1,77 @@
+[
+  {
+    "id": "0e576a6b9ca528c7ca7d41f1c12c5ccce23d9bea3d2b2e8b8301edb4807a5e95",
+    "command": [
+      "docker",
+      "ps",
+      "-a",
+      "--quiet",
+      "--no-trunc",
+      "--filter",
+      "id=0e576a6b9ca528c7ca7d41f1c12c5ccce23d9bea3d2b2e8b8301edb4807a5e95"
+    ],
+    "exit": 0,
+    "remains": "",
+    "stderr": ""
+  },
+  {
+    "id": "6728fae21f0d86981854b2ac140cf288aeaea8be5d096707d5e87c4bff0c6998",
+    "command": [
+      "docker",
+      "ps",
+      "-a",
+      "--quiet",
+      "--no-trunc",
+      "--filter",
+      "id=6728fae21f0d86981854b2ac140cf288aeaea8be5d096707d5e87c4bff0c6998"
+    ],
+    "exit": 0,
+    "remains": "",
+    "stderr": ""
+  },
+  {
+    "id": "73df5af87cae2ae00852bc7ecc408e3b9d23ca0f12d4a12fd9c105f5f19c6ee8",
+    "command": [
+      "docker",
+      "ps",
+      "-a",
+      "--quiet",
+      "--no-trunc",
+      "--filter",
+      "id=73df5af87cae2ae00852bc7ecc408e3b9d23ca0f12d4a12fd9c105f5f19c6ee8"
+    ],
+    "exit": 0,
+    "remains": "",
+    "stderr": ""
+  },
+  {
+    "id": "dabd3b09ec5e79c3b27920222ee4d351903a47d8ae5e6658d1a801b94054af7e",
+    "command": [
+      "docker",
+      "ps",
+      "-a",
+      "--quiet",
+      "--no-trunc",
+      "--filter",
+      "id=dabd3b09ec5e79c3b27920222ee4d351903a47d8ae5e6658d1a801b94054af7e"
+    ],
+    "exit": 0,
+    "remains": "",
+    "stderr": ""
+  },
+  {
+    "id": "ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09",
+    "command": [
+      "docker",
+      "ps",
+      "-a",
+      "--quiet",
+      "--no-trunc",
+      "--filter",
+      "id=ece55363e170d44b23a9fa640bb7b8d9318cd89c6cc0c2addd512bbac0a37f09"
+    ],
+    "exit": 0,
+    "remains": "",
+    "stderr": ""
+  }
+]

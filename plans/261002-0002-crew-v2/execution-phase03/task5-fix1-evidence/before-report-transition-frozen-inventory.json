@@ -1,0 +1,83 @@
+{
+  "base": "9182e89",
+  "files": [
+    {
+      "path": "v2/gateway/src/commands/http-client.ts",
+      "bytes": 3380,
+      "mode": "0o644",
+      "sha256": "4b4ae729aaa649f0f99ae99760b9286cf0ad892a1e14bec521596ec35e4a8fe8"
+    },
+    {
+      "path": "v2/gateway/src/execution/ticket-command-bridge.ts",
+      "bytes": 23769,
+      "mode": "0o644",
+      "sha256": "3bebb6c2b5f9c88ce913b1bf9c6752f9cd9e27a2eeb7a4cde1416b97f230e129"
+    },
+    {
+      "path": "v2/gateway/src/sync/connection.ts",
+      "bytes": 5711,
+      "mode": "0o644",
+      "sha256": "5966885191de9d980dd129e9a006c7ad5de6a156dcdf0bf1e73b6d1aa248a634"
+    },
+    {
+      "path": "v2/gateway/src/sync/gateway-sync.ts",
+      "bytes": 9762,
+      "mode": "0o644",
+      "sha256": "e61169e3d29235ce0e9d215221b91b7b1b434227c6c989729d82890300906a08"
+    },
+    {
+      "path": "v2/gateway/src/journal/http-operations.ts",
+      "bytes": 7038,
+      "mode": "0o644",
+      "sha256": "c4242b7483019397ac5677705883aa05b32cec8d55b749c41870067b268d363e"
+    },
+    {
+      "path": "v2/gateway/test/connection.test.ts",
+      "bytes": 5937,
+      "mode": "0o644",
+      "sha256": "51d9daf0abaff861d36f5e7f84cf9f21f5c8362acfc6aa0943a0fde305472406"
+    },
+    {
+      "path": "v2/gateway/test/http-operations.test.ts",
+      "bytes": 8771,
+      "mode": "0o644",
+      "sha256": "af0a970ed1676337e0953988dd5c8d6bb802fded445fc9ec3b64b6de02c947f8"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "bytes": 14192,
+      "mode": "0o644",
+      "sha256": "2ff4aed6729c6ff5c291a66da92ba0a68ebbd3f6909bd273d0d323ff780bb49a"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "bytes": 10698,
+      "mode": "0o644",
+      "sha256": "6d549e470652572b07df1054b723c190d97482bc69e5d194201d2fed7afeaed4"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "bytes": 37796,
+      "mode": "0o644",
+      "sha256": "8722d5566b2e906dc5487cce70ba61889e84d92ba68d4407e19f706f3321cff3"
+    },
+    {
+      "path": "v2/docs/flows/gateway-host.md",
+      "bytes": 25285,
+      "mode": "0o644",
+      "sha256": "d709d849dcd6cf7fb65dec34d2851b518b7931ad5430f5d99e0a2e88cf68de46"
+    },
+    {
+      "path": "v2/docs/flows/gateway-workflows.md",
+      "bytes": 13933,
+      "mode": "0o644",
+      "sha256": "4840dd7312e64ed29bb7ef5a913bfb839daf80434613cb81e91b1f9443d4cc41"
+    },
+    {
+      "path": "v2/docs/flows/server-gateway.md",
+      "bytes": 10914,
+      "mode": "0o644",
+      "sha256": "4ba339cfe990329db25f3d0ecbda8dbf661fb8a3e9ea50ada10d88ad4275bc92"
+    }
+  ]
+}

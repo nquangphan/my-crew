@@ -1,0 +1,9 @@
+[
+  "v2/server/migrations/008_model_pool.sql",
+  "v2/server/src/models/catalog.ts",
+  "v2/server/src/models/config.ts",
+  "v2/server/src/models/secret-envelopes.ts",
+  "v2/server/test/model-certification.test.ts",
+  "v2/server/test/model-secret.test.ts",
+  "v2/docs/flows/server-models.md"
+]

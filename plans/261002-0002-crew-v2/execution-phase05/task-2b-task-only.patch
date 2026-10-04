@@ -1,0 +1,2059 @@
+--- /dev/null
++++ b/v2/server/src/attachments/submissions.ts
+@@ -0,0 +1,431 @@
++import { createHash, randomUUID } from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Actor, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { authorizeTicketMutation } from '../tickets/authorization.ts';
++import type { Comment, CreateTicket, Ticket } from '../tickets/contracts.ts';
++import { type createTicketServices, safeTicketJson } from '../tickets/service.ts';
++import type { AttachmentRef, BlobStore, ComposeTarget, Selection, StageServices } from './contracts.ts';
++
++export const digest = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++export function validId(value: unknown): value is Id {
++  return typeof value === 'string' && uuid.test(value);
++}
++export function record(value: unknown): value is Record<string, unknown> {
++  return !!value && typeof value === 'object' && !Array.isArray(value) && safeTicketJson(value);
++}
++export function ownerOnly(actor: Actor): void {
++  if (actor.kind !== 'owner' || actor.id !== 'owner')
++    throw new ApiError('FORBIDDEN', 403, 'Chỉ chủ sở hữu được gửi tệp');
++}
++export function normalizeSelection(input: Selection): Selection {
++  if (
++    !input ||
++    !validId(input.composeSessionId) ||
++    !Number.isSafeInteger(input.selectionRevision) ||
++    input.selectionRevision < 1 ||
++    !Array.isArray(input.attachmentIds) ||
++    !input.attachmentIds.every(validId)
++  )
++    throw new ApiError('VALIDATION', 400, 'Lượt chọn không hợp lệ');
++  const ids = input.attachmentIds.map((id) => id.toLowerCase()).sort();
++  if (new Set(ids).size !== ids.length) throw new ApiError('VALIDATION', 400, 'Tệp được chọn trùng');
++  return {
++    composeSessionId: input.composeSessionId.toLowerCase(),
++    selectionRevision: input.selectionRevision,
++    attachmentIds: ids,
++  };
++}
++export function permission(value: unknown): 'none' | 'selected-inputs' {
++  if (value === undefined || value === 'none') return 'none';
++  if (value === 'selected-inputs') return value;
++  throw new ApiError('VALIDATION', 400, 'Phạm vi đọc không hợp lệ');
++}
++// Wire this guard into Mutator.context.authorize, which runs before its cache.
++// Historical receipts require current actor/scope, not an open fresh selection.
++export async function authorizeSubmission(
++  tx: Tx,
++  actor: Actor,
++  target?: { projectId?: Id; ticketId?: Id | null; parentId?: Id | null; conversationId?: Id },
++): Promise<void> {
++  ownerOnly(actor);
++  for (const key of ['projectId', 'ticketId', 'parentId', 'conversationId'] as const) {
++    const id = target?.[key];
++    if ((key === 'parentId' || key === 'ticketId') && id === null) continue;
++    if (id !== undefined && !validId(id)) throw new ApiError('VALIDATION', 400, 'Target không hợp lệ');
++  }
++  if (target?.conversationId) {
++    const [row] =
++      await tx`select id from attachment_conversations where id=${target.conversationId} and owner_id='owner'`;
++    if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy hội thoại');
++  }
++  if (target?.projectId || target?.ticketId || target?.parentId)
++    await authorizeTicketMutation(tx, actor, { ...target, ticketId: target.ticketId ?? undefined });
++  if (target?.projectId) {
++    const [project] = await tx`select id from projects where id=${target.projectId}`;
++    if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++  }
++  const id = target?.ticketId ?? target?.parentId;
++  if (id) {
++    const [ticket] = await tx`select project_id from tickets where id=${id}`;
++    if (!ticket || (target?.projectId && ticket.project_id !== target.projectId))
++      throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++  }
++}
++export async function lockSubmissionScope(
++  tx: Tx,
++  target: { projectId: Id; ticketId: Id | null; parentId: Id | null; purpose: 'ticket' | 'comment' },
++  actor: Actor,
++): Promise<void> {
++  await authorizeSubmission(tx, actor, target);
++  const id = target.ticketId ?? target.parentId;
++  if (id) {
++    const [scope] = await tx`select root_id,project_id from tickets where id=${id}`;
++    if (!scope || scope.project_id !== target.projectId)
++      throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++    await tx`select id from tickets where id=${scope.root_id} for update`;
++    if (target.purpose === 'comment') {
++      const affected =
++        await tx`with recursive affected(id) as (select id from tickets where id=${id} union all select t.id from tickets t join affected a on t.parent_id=a.id) select t.id from tickets t join affected a on a.id=t.id order by t.id for update of t`;
++      const ids = affected.map((row) => String(row.id));
++      await tx`select id from projects where id=${target.projectId} for update`;
++      await tx`select target_id from attachment_input_revisions where target_kind='ticket' and target_id in ${tx(ids)} order by target_id for update`;
++    } else await tx`select id from tickets where id=${id} for update`;
++  }
++  const [project] = await tx`select id from projects where id=${target.projectId} for update`;
++  if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++}
++export type SelectedOriginal = AttachmentRef & { storageKey: string; byteLength: number };
++export type SelectionDependencies = {
++  store: Pick<BlobStore, 'verify'>;
++  queuePolicy?: { extractorVersion: string; configSha256: string };
++  now?: () => Date;
++};
++export function createSelectionServices(deps: SelectionDependencies) {
++  const verify = deps.store.verify.bind(deps.store);
++  const now = deps.now ?? (() => new Date());
++  const policy = deps.queuePolicy ? Object.freeze({ ...deps.queuePolicy }) : undefined;
++  if (policy && (!policy.extractorVersion || !/^[0-9a-f]{64}$/.test(policy.configSha256)))
++    throw new Error('EXTRACTION_POLICY_INVALID');
++  return Object.freeze({
++    now,
++    async lock(
++      tx: Tx,
++      selection: Selection,
++      actor: Actor,
++      target: ComposeTarget,
++    ): Promise<SelectedOriginal[]> {
++      ownerOnly(actor);
++      const [compose] =
++        await tx`select * from attachment_compose_sessions where id=${selection.composeSessionId} and owner_id='owner' for update`;
++      if (
++        !compose ||
++        compose.purpose !== target.purpose ||
++        compose.project_id !== target.projectId ||
++        compose.ticket_id !== target.ticketId ||
++        compose.conversation_id !== ('conversationId' in target ? target.conversationId : null)
++      )
++        throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy lượt gửi');
++      if (
++        compose.state !== 'open' ||
++        Number(compose.revision) !== selection.selectionRevision ||
++        new Date(String(compose.expires_at)).getTime() <= now().getTime()
++      )
++        throw new ApiError('SELECTION_CHANGED', 409, 'Lượt chọn đã thay đổi');
++      const uploads =
++        await tx`select * from attachment_uploads where compose_id=${compose.id} order by id for update`;
++      for (const id of selection.attachmentIds)
++        if (!uploads.some((row) => row.id === id && row.owner_id === 'owner'))
++          throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy tệp');
++      const active = uploads.filter((row) => row.state !== 'abandoned');
++      if (
++        active.length !== selection.attachmentIds.length ||
++        active.some((row) => !selection.attachmentIds.includes(String(row.id)))
++      )
++        throw new ApiError('SELECTION_CHANGED', 409, 'Tập tệp đã thay đổi');
++      if (active.length && !policy)
++        throw new ApiError('EXTRACTION_NOT_CONFIGURED', 503, 'Chưa cấu hình xử lý tệp');
++      const selected: SelectedOriginal[] = [];
++      for (const upload of active) {
++        if (
++          upload.state !== 'ready' ||
++          !upload.durable_at ||
++          upload.linked_at ||
++          upload.quota_released_at ||
++          new Date(String(upload.expires_at)).getTime() <= now().getTime()
++        )
++          throw new ApiError('ATTACHMENT_NOT_READY', 422, 'Tệp chưa sẵn sàng');
++        const [receiver] =
++          await tx`select state,attachment_id,generation,instance_id,closed_at,closed_ack_sha256,stop_proof from attachment_receivers where id=${upload.receiver_id} for share`;
++        const proof = receiver?.stop_proof;
++        if (
++          receiver?.state !== 'closed' ||
++          !receiver.closed_at ||
++          receiver.attachment_id !== upload.id ||
++          String(receiver.generation) !== String(upload.generation) ||
++          !record(proof) ||
++          proof.receiverId !== upload.receiver_id ||
++          String(proof.generation) !== String(upload.generation) ||
++          !record(proof.identity) ||
++          proof.identity.instanceId !== receiver.instance_id ||
++          !['closed-ack', 'process-gone'].includes(String(proof.kind)) ||
++          (proof.kind === 'closed-ack' && proof.proofSha256 !== receiver.closed_ack_sha256)
++        )
++          throw new ApiError('ATTACHMENT_NOT_READY', 422, 'Writer chưa có proof dừng');
++        const original = {
++          attachmentId: String(upload.id),
++          ownerId: 'owner' as const,
++          sha256: String(upload.expected_sha256),
++          storageKey: String(upload.storage_key),
++          byteLength: Number(upload.expected_bytes),
++        };
++        if (
++          (await verify({
++            key: original.storageKey,
++            sha256: original.sha256,
++            byteLength: original.byteLength,
++          })) !== 'present'
++        )
++          throw new ApiError('ATTACHMENT_NOT_READY', 422, 'Original không sẵn sàng');
++        selected.push(original);
++      }
++      return selected;
++    },
++    async retain(tx: Tx, originals: SelectedOriginal[]): Promise<void> {
++      for (const original of originals) {
++        await tx`update attachment_uploads set linked_at=${now()},quota_released_at=${now()} where id=${original.attachmentId} and linked_at is null and quota_released_at is null`;
++        if (!policy) throw new ApiError('EXTRACTION_NOT_CONFIGURED', 503, 'Chưa cấu hình xử lý tệp');
++        await tx`insert into attachment_extractions(id,attachment_id,original_sha256,extractor_version,config_sha256,status) values(${randomUUID()},${original.attachmentId},${original.sha256},${policy.extractorVersion},${policy.configSha256},'pending') on conflict(attachment_id,extractor_version,config_sha256) do nothing`;
++      }
++    },
++    async authorize(
++      tx: Tx,
++      kind: 'ticket' | 'message',
++      id: Id,
++      originals: SelectedOriginal[],
++      read: 'none' | 'selected-inputs',
++    ): Promise<void> {
++      if (read === 'none') return;
++      const refs = originals.map(({ attachmentId, sha256, ownerId }) => ({ attachmentId, sha256, ownerId }));
++      const expires = new Date(now().getTime() + 24 * 60 * 60 * 1000);
++      const body = {
++        ownerId: 'owner',
++        targetKind: kind,
++        targetId: id,
++        originals: refs,
++        allowOriginal: false,
++        scope: 'submitted-inputs',
++        expiresAt: expires.toISOString(),
++      };
++      await tx`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,allow_original,expires_at) values(${randomUUID()},${kind},${id},${tx.json(refs)},${digest(body)},false,${expires})`;
++    },
++  });
++}
++export async function readSubmission(
++  tx: Tx,
++  selection: Selection,
++  hash: string,
++  actor: Actor,
++  kind: 'ticket' | 'comment' | 'message',
++): Promise<unknown | null> {
++  ownerOnly(actor);
++  const [compose] =
++    await tx`select owner_id from attachment_compose_sessions where id=${selection.composeSessionId}`;
++  if (compose?.owner_id !== 'owner') throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy lượt gửi');
++  const [prior] =
++    await tx`select * from attachment_submissions where compose_id=${selection.composeSessionId}`;
++  if (!prior) return null;
++  if (prior.payload_sha256 !== hash || prior.target_kind !== kind)
++    throw new ApiError('COMPOSE_ALREADY_SUBMITTED', 409, 'Lượt gửi đã được sử dụng');
++  return prior.response;
++}
++export async function finishSubmission(
++  tx: Tx,
++  selection: Selection,
++  hash: string,
++  kind: 'ticket' | 'comment' | 'message',
++  id: Id,
++  response: unknown,
++): Promise<void> {
++  await tx`insert into attachment_submissions(compose_id,payload_sha256,target_kind,target_id,response) values(${selection.composeSessionId},${hash},${kind},${id},${tx.json(JSON.parse(canonicalJson(response)))})`;
++  await tx`update attachment_compose_sessions set state='submitted',revision=revision+1 where id=${selection.composeSessionId}`;
++}
++function isTicket(value: unknown): value is Ticket {
++  if (!record(value)) return false;
++  return (
++    validId(value.id) &&
++    validId(value.projectId) &&
++    validId(value.rootId) &&
++    (value.parentId === null || validId(value.parentId)) &&
++    ['request', 'step', 'task'].includes(String(value.level)) &&
++    ['code', 'research', 'docs', 'deploy'].includes(String(value.kind)) &&
++    typeof value.title === 'string' &&
++    typeof value.description === 'string' &&
++    typeof value.mandatory === 'boolean' &&
++    record(value.criteria) &&
++    record(value.inputs) &&
++    record(value.outputs) &&
++    (value.skill === null || typeof value.skill === 'string') &&
++    (value.workflowPin === null ||
++      (record(value.workflowPin) &&
++        ['superpowers', 'bmad'].includes(String(value.workflowPin.workflow)) &&
++        typeof value.workflowPin.version === 'string' &&
++        typeof value.workflowPin.revision === 'string' &&
++        typeof value.workflowPin.checksum === 'string' &&
++        /^[0-9a-f]{64}$/i.test(value.workflowPin.checksum))) &&
++    ['pending', 'ready', 'running', 'needs_input', 'paused', 'done', 'cancelled'].includes(
++      String(value.status),
++    ) &&
++    Number.isSafeInteger(value.revision) &&
++    Number.isSafeInteger(value.repairCycles) &&
++    (value.waitReason === null || typeof value.waitReason === 'string') &&
++    (value.mergedCommit === null || typeof value.mergedCommit === 'string')
++  );
++}
++function isComment(value: unknown): value is Comment {
++  return (
++    record(value) &&
++    validId(value.id) &&
++    validId(value.ticketId) &&
++    typeof value.text === 'string' &&
++    typeof value.createdAt === 'string' &&
++    record(value.actor) &&
++    ((value.actor.kind === 'owner' && value.actor.id === 'owner') ||
++      (value.actor.kind === 'machine' && validId(value.actor.id)))
++  );
++}
++function replayTicket(value: unknown): { ticket: Ticket; attachmentIds: Id[] } {
++  if (
++    !record(value) ||
++    !isTicket(value.ticket) ||
++    !Array.isArray(value.attachmentIds) ||
++    !value.attachmentIds.every(validId)
++  )
++    throw new Error('SUBMISSION_RECEIPT_INVALID');
++  return { ticket: value.ticket, attachmentIds: value.attachmentIds };
++}
++function replayComment(value: unknown): { comment: Comment; attachmentIds: Id[] } {
++  if (
++    !record(value) ||
++    !isComment(value.comment) ||
++    !Array.isArray(value.attachmentIds) ||
++    !value.attachmentIds.every(validId)
++  )
++    throw new Error('SUBMISSION_RECEIPT_INVALID');
++  return { comment: value.comment, attachmentIds: value.attachmentIds };
++}
++export function createAttachmentSubmissions(
++  deps: SelectionDependencies & { tickets: typeof createTicketServices; stage: StageServices },
++) {
++  const selected = createSelectionServices(deps);
++  const factory = deps.tickets;
++  async function linkSelection(
++    tx: Tx,
++    input: { selection: Selection; ticketId: Id; commentId: Id | null },
++    actor: Actor,
++  ): Promise<Id[]> {
++    const [ticket] = await tx`select project_id from tickets where id=${input.ticketId}`;
++    if (!ticket) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++    const target: ComposeTarget = input.commentId
++      ? { purpose: 'comment', projectId: String(ticket.project_id), ticketId: input.ticketId }
++      : { purpose: 'ticket', projectId: String(ticket.project_id), ticketId: null };
++    const originals = await selected.lock(tx, input.selection, actor, target);
++    for (const original of originals)
++      await tx`insert into attachment_links(id,attachment_id,project_id,ticket_id,comment_id) values(${randomUUID()},${original.attachmentId},${ticket.project_id},${input.ticketId},${input.commentId})`;
++    await selected.retain(tx, originals);
++    return originals.map((o) => o.attachmentId);
++  }
++  const tickets = factory({
++    commentAttachments: async (tx, input, actor) => {
++      await linkSelection(
++        tx,
++        {
++          selection: normalizeSelection(input.attachments),
++          ticketId: input.ticketId,
++          commentId: input.commentId,
++        },
++        actor,
++      );
++    },
++  });
++  return Object.freeze({
++    linkSelection,
++    async ticket(
++      tx: Tx,
++      input: { ticket: CreateTicket; selection: Selection; assistantRead?: 'none' | 'selected-inputs' },
++      actor: Actor,
++    ) {
++      if (!record(input.ticket)) throw new ApiError('VALIDATION', 400, 'Ticket không hợp lệ');
++      await authorizeSubmission(tx, actor, input.ticket);
++      const selection = normalizeSelection(input.selection),
++        read = permission(input.assistantRead);
++      const hash = digest({ kind: 'ticket', ticket: input.ticket, selection, assistantRead: read });
++      const prior = await readSubmission(tx, selection, hash, actor, 'ticket');
++      if (prior !== null) return replayTicket(prior);
++      await tx`select pg_advisory_xact_lock(hashtextextended('attachment-owner-quota:owner',0))`;
++      await lockSubmissionScope(
++        tx,
++        {
++          projectId: input.ticket.projectId,
++          ticketId: null,
++          parentId: input.ticket.parentId,
++          purpose: 'ticket',
++        },
++        actor,
++      );
++      const originals = await selected.lock(tx, selection, actor, {
++        purpose: 'ticket',
++        projectId: input.ticket.projectId,
++        ticketId: null,
++      });
++      const ticket = await tickets.createTicket(tx, input.ticket, actor);
++      const attachmentIds = await linkSelection(
++        tx,
++        { selection, ticketId: ticket.id, commentId: null },
++        actor,
++      );
++      await tx`insert into attachment_input_revisions(target_kind,target_id) values('ticket',${ticket.id}) on conflict do nothing`;
++      await selected.authorize(tx, 'ticket', ticket.id, originals, read);
++      const response = { ticket, attachmentIds };
++      await finishSubmission(tx, selection, hash, 'ticket', ticket.id, response);
++      return response;
++    },
++    async comment(
++      tx: Tx,
++      ticketId: Id,
++      input: { text: string; selection: Selection; assistantRead?: 'none' | 'selected-inputs' },
++      actor: Actor,
++    ) {
++      await authorizeSubmission(tx, actor, { ticketId });
++      const selection = normalizeSelection(input.selection),
++        read = permission(input.assistantRead);
++      const hash = digest({ kind: 'comment', ticketId, text: input.text, selection, assistantRead: read });
++      const prior = await readSubmission(tx, selection, hash, actor, 'comment');
++      if (prior !== null) return replayComment(prior);
++      const [scope] = await tx`select project_id from tickets where id=${ticketId}`;
++      if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++      await tx`select pg_advisory_xact_lock(hashtextextended('attachment-owner-quota:owner',0))`;
++      await lockSubmissionScope(
++        tx,
++        { projectId: String(scope.project_id), ticketId, parentId: null, purpose: 'comment' },
++        actor,
++      );
++      const originals = await selected.lock(tx, selection, actor, {
++        purpose: 'comment',
++        projectId: String(scope.project_id),
++        ticketId,
++      });
++      const comment = await tickets.appendAttachmentComment(
++        tx,
++        ticketId,
++        { text: input.text, attachments: selection },
++        actor,
++      );
++      await selected.authorize(tx, 'ticket', ticketId, originals, read);
++      const response = { comment, attachmentIds: originals.map((o) => o.attachmentId) };
++      await finishSubmission(tx, selection, hash, 'comment', comment.id, response);
++      return response;
++    },
++  });
++}
+--- /dev/null
++++ b/v2/server/src/attachments/messages.ts
+@@ -0,0 +1,243 @@
++import { randomUUID } from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import { appendEvent } from '../journal/events.ts';
++import type { Actor, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import type { AssistantMessage, MessageSubmission } from './contracts.ts';
++import {
++  authorizeSubmission,
++  createSelectionServices,
++  digest,
++  finishSubmission,
++  normalizeSelection,
++  ownerOnly,
++  permission,
++  readSubmission,
++  record,
++  type SelectionDependencies,
++  validId,
++} from './submissions.ts';
++
++export type MessageDecisionInput = {
++  messageId: Id;
++  inputRevision: string;
++  snapshotId: Id | null;
++  grantId: Id | null;
++  receiptId: Id | null;
++  kind: 'routing' | 'scope' | 'reply';
++  body: Record<string, unknown>;
++};
++export type MessageDecisionAuthority = (tx: Tx, input: MessageDecisionInput, actor: Actor) => Promise<void>;
++function decodeMessage(value: unknown): AssistantMessage {
++  if (
++    !record(value) ||
++    !validId(value.id) ||
++    !validId(value.conversationId) ||
++    value.ownerId !== 'owner' ||
++    typeof value.text !== 'string' ||
++    !Array.isArray(value.attachmentIds) ||
++    !value.attachmentIds.every(validId) ||
++    typeof value.inputRevision !== 'string' ||
++    !/^\d+$/.test(value.inputRevision) ||
++    typeof value.routeRevision !== 'number' ||
++    !Number.isSafeInteger(value.routeRevision) ||
++    typeof value.createdAt !== 'string'
++  )
++    throw new Error('MESSAGE_RECEIPT_INVALID');
++  return {
++    id: value.id,
++    conversationId: value.conversationId,
++    ownerId: 'owner',
++    text: value.text,
++    attachmentIds: value.attachmentIds,
++    inputRevision: value.inputRevision,
++    routeRevision: value.routeRevision,
++    createdAt: value.createdAt,
++  };
++}
++export function createMessageServices(
++  deps: SelectionDependencies & { decisionAuthority?: MessageDecisionAuthority },
++) {
++  const selected = createSelectionServices(deps),
++    decisionAuthority = deps.decisionAuthority;
++  return Object.freeze({
++    async createConversation(tx: Tx, actor: Actor): Promise<{ id: Id; ownerId: 'owner'; createdAt: string }> {
++      ownerOnly(actor);
++      const [row] =
++        await tx`insert into attachment_conversations(id) values(${randomUUID()}) returning id,created_at`;
++      return {
++        id: String(row.id),
++        ownerId: 'owner',
++        createdAt: new Date(String(row.created_at)).toISOString(),
++      };
++    },
++    async submitAssistantMessage(tx: Tx, input: MessageSubmission, actor: Actor): Promise<AssistantMessage> {
++      if (
++        !validId(input.conversationId) ||
++        !validId(input.clientMessageId) ||
++        typeof input.text !== 'string' ||
++        input.text.length > 32768
++      )
++        throw new ApiError('VALIDATION', 400, 'Nội dung gửi không hợp lệ');
++      await authorizeSubmission(tx, actor, { conversationId: input.conversationId });
++      const selection = normalizeSelection(input.selection),
++        read = permission(input.assistantRead);
++      if (!input.text.trim() && !selection.attachmentIds.length)
++        throw new ApiError('VALIDATION', 400, 'Cần nội dung hoặc tệp');
++      const body = {
++        conversationId: input.conversationId,
++        clientMessageId: input.clientMessageId.toLowerCase(),
++        text: input.text,
++        selection,
++        assistantRead: read,
++      };
++      const sessionHash = digest(body);
++      const prior = await readSubmission(tx, selection, sessionHash, actor, 'message');
++      if (prior !== null) return decodeMessage(prior);
++      await tx`select pg_advisory_xact_lock(hashtextextended('attachment-owner-quota:owner',0))`;
++      await tx`select id from attachment_conversations where id=${input.conversationId} for update`;
++      const [client] =
++        await tx`select id,canonical_payload_sha256 from attachment_messages where owner_id='owner' and client_message_id=${input.clientMessageId} for update`;
++      // UUID reconnect identity precedes fresh compose admission. Verify the
++      // immutable original identities, not open state of a historical session.
++      if (client) {
++        const rows = selection.attachmentIds.length
++          ? await tx`select id,expected_sha256 from attachment_uploads where owner_id='owner' and id in ${tx(selection.attachmentIds)} order by id`
++          : [];
++        if (rows.length !== selection.attachmentIds.length)
++          throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy original');
++        const refs = rows.map((row) => ({
++          attachmentId: String(row.id),
++          sha256: String(row.expected_sha256),
++          ownerId: 'owner',
++        }));
++        if (
++          client.canonical_payload_sha256 !==
++          digest({
++            conversationId: input.conversationId,
++            text: input.text,
++            originals: refs,
++            assistantRead: read,
++          })
++        )
++          throw new ApiError('MESSAGE_ALREADY_SUBMITTED', 409, 'Mã tin nhắn đã được sử dụng');
++        const [receipt] =
++          await tx`select response from attachment_submissions where target_kind='message' and target_id=${client.id}`;
++        if (!receipt) throw new Error('MESSAGE_RECEIPT_MISSING');
++        return decodeMessage(receipt.response);
++      }
++      const originals = await selected.lock(tx, selection, actor, {
++        purpose: 'assistant_message',
++        projectId: null,
++        ticketId: null,
++        conversationId: input.conversationId,
++      });
++      const refs = originals.map(({ attachmentId, sha256, ownerId }) => ({ attachmentId, sha256, ownerId }));
++      const canonicalHash = digest({
++        conversationId: input.conversationId,
++        text: input.text,
++        originals: refs,
++        assistantRead: read,
++      });
++      const id = randomUUID();
++      const [message] =
++        await tx`insert into attachment_messages(id,conversation_id,client_message_id,text,canonical_payload_sha256) values(${id},${input.conversationId},${input.clientMessageId},${input.text},${canonicalHash}) returning created_at`;
++      for (const original of originals)
++        await tx`insert into attachment_message_links(message_id,attachment_id,sha256) values(${id},${original.attachmentId},${original.sha256})`;
++      await selected.retain(tx, originals);
++      await tx`insert into attachment_input_revisions(target_kind,target_id) values('message',${id})`;
++      await selected.authorize(tx, 'message', id, originals, read);
++      const response: AssistantMessage = {
++        id,
++        conversationId: input.conversationId,
++        ownerId: 'owner',
++        text: input.text,
++        attachmentIds: originals.map((o) => o.attachmentId),
++        inputRevision: '1',
++        routeRevision: 0,
++        createdAt: new Date(String(message.created_at)).toISOString(),
++      };
++      await finishSubmission(tx, selection, sessionHash, 'message', id, response);
++      await appendEvent(tx, {
++        type: 'assistant.message.created',
++        projectId: null,
++        ticketId: null,
++        audienceMachineId: null,
++        data: { messageId: id, inputRevision: '1' },
++      });
++      return response;
++    },
++    async persistMessageInputDecision(tx: Tx, input: MessageDecisionInput, actor: Actor): Promise<Id> {
++      if (
++        !validId(input.messageId) ||
++        !/^[1-9]\d*$/.test(input.inputRevision) ||
++        !['routing', 'scope', 'reply'].includes(input.kind) ||
++        !record(input.body)
++      )
++        throw new ApiError('VALIDATION', 400, 'Quyết định không hợp lệ');
++      if (actor.kind === 'owner') ownerOnly(actor);
++      else if (!decisionAuthority)
++        throw new ApiError('INPUT_DECISION_NOT_CONFIGURED', 503, 'Chưa cấu hình quyền quyết định');
++      const [revision] =
++        await tx`select revision from attachment_input_revisions where target_kind='message' and target_id=${input.messageId} for update`;
++      const [message] =
++        await tx`select input_revision,route_revision from attachment_messages where id=${input.messageId} for update`;
++      if (!message) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy tin nhắn');
++      if (
++        String(message.input_revision) !== input.inputRevision ||
++        String(revision?.revision) !== input.inputRevision
++      )
++        throw new ApiError('INPUT_SNAPSHOT_STALE', 409, 'Input đã thay đổi');
++      if (
++        actor.kind === 'owner' &&
++        input.kind === 'routing' &&
++        input.snapshotId === null &&
++        input.grantId === null &&
++        input.receiptId === null
++      ) {
++        if (
++          !record(input.body.ticket) ||
++          !Number.isSafeInteger(input.body.expectedRouteRevision) ||
++          input.body.expectedRouteRevision !== Number(message.route_revision)
++        )
++          throw new ApiError('VALIDATION', 400, 'Quyết định định tuyến không hợp lệ');
++      } else {
++        if (!decisionAuthority)
++          throw new ApiError('INPUT_DECISION_NOT_CONFIGURED', 503, 'Chưa cấu hình quyền quyết định');
++        if (actor.kind === 'machine') {
++          if (!validId(input.snapshotId) || !validId(input.grantId) || !validId(input.receiptId))
++            throw new ApiError('FORBIDDEN', 403, 'Thiếu proof đọc input');
++          const [proof] =
++            await tx`select g.machine_id,g.input_revision,g.route_revision,g.revoked_at,g.expires_at,g.snapshot_id,r.coverage,s.target_kind,s.target_id,s.input_revision as snapshot_revision from attachment_assistant_grants g join attachment_input_snapshots s on s.id=g.snapshot_id join attachment_assistant_receipts r on r.grant_id=g.id and r.snapshot_id=s.id where g.id=${input.grantId} and r.id=${input.receiptId}`;
++          if (
++            !proof ||
++            proof.machine_id !== actor.id ||
++            proof.revoked_at ||
++            new Date(String(proof.expires_at)).getTime() <= selected.now().getTime() ||
++            proof.snapshot_id !== input.snapshotId ||
++            proof.target_kind !== 'message' ||
++            proof.target_id !== input.messageId ||
++            String(proof.input_revision) !== input.inputRevision ||
++            String(proof.snapshot_revision) !== input.inputRevision ||
++            Number(proof.route_revision) !== Number(message.route_revision) ||
++            proof.coverage !== 'all_selected'
++          )
++            throw new ApiError('FORBIDDEN', 403, 'Proof đọc input không còn hợp lệ');
++        }
++        if (
++          input.kind === 'scope' &&
++          (!Array.isArray(input.body.unitIds) ||
++            !input.body.unitIds.every((id) => typeof id === 'string') ||
++            typeof input.body.rationale !== 'string' ||
++            !input.body.rationale.trim())
++        )
++          throw new ApiError('VALIDATION', 400, 'Phạm vi cần tập unit và lý do');
++        await decisionAuthority(tx, input, actor);
++      }
++      const id = randomUUID();
++      const sha = digest({ ...input, actor });
++      await tx`insert into attachment_message_decisions(id,message_id,input_revision,snapshot_id,grant_id,receipt_id,actor_kind,actor_id,kind,body,sha256) values(${id},${input.messageId},${input.inputRevision},${input.snapshotId},${input.grantId},${input.receiptId},${actor.kind},${actor.id},${input.kind},${tx.json(JSON.parse(canonicalJson(input.body)))},${sha})`;
++      return id;
++    },
++  });
++}
+--- /dev/null
++++ b/v2/server/src/attachments/routing.ts
+@@ -0,0 +1,169 @@
++import { randomUUID } from 'node:crypto';
++import type { Actor, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { authorizeTicketMutation } from '../tickets/authorization.ts';
++import { createTicketServices } from '../tickets/service.ts';
++import type {
++  InputRoutingAuthority,
++  MessageRoute,
++  RouteMessageInput,
++  RouteRetirementAuthority,
++} from './contracts.ts';
++import { digest, ownerOnly, record, validId } from './submissions.ts';
++
++function routeResponse(row: Record<string, unknown>): MessageRoute {
++  return {
++    id: String(row.id),
++    messageId: String(row.message_id),
++    revision: Number(row.revision),
++    projectId: String(row.project_id),
++    ticketId: String(row.ticket_id),
++    decisionId: String(row.decision_id),
++    supersedesRouteId: row.supersedes_route_id === null ? null : String(row.supersedes_route_id),
++    revokedAt: null,
++  };
++}
++export async function authorizeMessageRouting(
++  tx: Tx,
++  input: RouteMessageInput,
++  actor: Actor,
++  authority?: InputRoutingAuthority,
++): Promise<void> {
++  if (!authority) throw new ApiError('INPUT_ROUTING_NOT_CONFIGURED', 503, 'Chưa cấu hình quyền định tuyến');
++  if (
++    !validId(input.messageId) ||
++    !validId(input.decisionId) ||
++    !/^[1-9]\d*$/.test(input.expectedInputRevision) ||
++    !Number.isSafeInteger(input.expectedRouteRevision) ||
++    input.expectedRouteRevision < 0 ||
++    !record(input.ticket) ||
++    !validId(input.ticket.projectId) ||
++    (input.ticket.parentId !== null && !validId(input.ticket.parentId))
++  )
++    throw new ApiError('VALIDATION', 400, 'Định tuyến không hợp lệ');
++  if (actor.kind === 'owner') ownerOnly(actor);
++  else {
++    const [machine] = await tx`select revoked_at from machines where id=${actor.id}`;
++    if (!machine || machine.revoked_at)
++      throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy quyền định tuyến');
++  }
++  const [project] = await tx`select machine_id from projects where id=${input.ticket.projectId}`;
++  if (!project || (actor.kind === 'machine' && project.machine_id !== actor.id))
++    throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++  const [decision] = await tx`select * from attachment_message_decisions where id=${input.decisionId}`;
++  if (
++    !decision ||
++    decision.message_id !== input.messageId ||
++    decision.kind !== 'routing' ||
++    String(decision.input_revision) !== input.expectedInputRevision ||
++    decision.actor_kind !== actor.kind ||
++    decision.actor_id !== actor.id ||
++    !record(decision.body) ||
++    digest(decision.body) !==
++      digest({ ticket: input.ticket, expectedRouteRevision: input.expectedRouteRevision })
++  )
++    throw new ApiError('ROUTING_DECISION_INVALID', 409, 'Quyết định không khớp định tuyến');
++  const stored = {
++    messageId: String(decision.message_id),
++    inputRevision: String(decision.input_revision),
++    snapshotId: decision.snapshot_id === null ? null : String(decision.snapshot_id),
++    grantId: decision.grant_id === null ? null : String(decision.grant_id),
++    receiptId: decision.receipt_id === null ? null : String(decision.receipt_id),
++    kind: 'routing',
++    body: decision.body,
++    actor,
++  };
++  if (digest(stored) !== decision.sha256)
++    throw new ApiError('ROUTING_DECISION_INVALID', 409, 'Quyết định đã thay đổi');
++  await authority(tx, actor, input);
++}
++export function createRoutingServices(
++  deps: { authority?: InputRoutingAuthority; retire?: RouteRetirementAuthority; now?: () => Date } = {},
++) {
++  const authority = deps.authority,
++    retire = deps.retire,
++    now = deps.now ?? (() => new Date());
++  const tickets = createTicketServices();
++  return Object.freeze({
++    authorize: (tx: Tx, input: RouteMessageInput, actor: Actor) =>
++      authorizeMessageRouting(tx, input, actor, authority),
++    async routeAssistantMessage(tx: Tx, input: RouteMessageInput, actor: Actor): Promise<MessageRoute> {
++      await authorizeMessageRouting(tx, input, actor, authority);
++      const [prior] =
++        await tx`select * from attachment_message_routes where message_id=${input.messageId} and decision_id=${input.decisionId}`;
++      if (prior) return routeResponse(prior);
++      const [old] =
++        await tx`select * from attachment_message_routes where message_id=${input.messageId} and revoked_at is null`;
++      const scopeIds = [old ? String(old.ticket_id) : null, input.ticket.parentId].filter(
++        (id): id is Id => id !== null,
++      );
++      const scopes = scopeIds.length
++        ? await tx`select id,root_id,project_id from tickets where id in ${tx(scopeIds)} order by id`
++        : [];
++      const roots = [...new Set(scopes.map((row) => String(row.root_id)))].sort();
++      if (roots.length) await tx`select id from tickets where id in ${tx(roots)} order by id for update`;
++      const affected = old
++        ? await tx`with recursive affected(id) as (select id from tickets where id=${old.ticket_id} union all select t.id from tickets t join affected a on t.parent_id=a.id) select id from affected order by id`
++        : [];
++      const affectedIds = affected.map((row) => String(row.id));
++      const ticketLocks = [
++        ...new Set([...affectedIds, ...(input.ticket.parentId ? [input.ticket.parentId] : [])]),
++      ].sort();
++      if (ticketLocks.length)
++        await tx`select id from tickets where id in ${tx(ticketLocks)} order by id for update`;
++      const projects = [
++        ...new Set([input.ticket.projectId, ...scopes.map((row) => String(row.project_id))]),
++      ].sort();
++      await tx`select id from projects where id in ${tx(projects)} order by id for update`;
++      if (affectedIds.length)
++        await tx`select target_id from attachment_input_revisions where target_kind='ticket' and target_id in ${tx(affectedIds)} order by target_id for update`;
++      await authorizeTicketMutation(tx, actor, input.ticket);
++      const [revision] =
++        await tx`select revision,route_revision from attachment_input_revisions where target_kind='message' and target_id=${input.messageId} for update`;
++      const [message] = await tx`select * from attachment_messages where id=${input.messageId} for update`;
++      if (!message || !revision) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy tin nhắn');
++      if (
++        String(revision.revision) !== input.expectedInputRevision ||
++        String(message.input_revision) !== input.expectedInputRevision ||
++        Number(revision.route_revision) !== input.expectedRouteRevision ||
++        Number(message.route_revision) !== input.expectedRouteRevision ||
++        (old ? Number(old.revision) : 0) !== input.expectedRouteRevision
++      )
++        throw new ApiError('INPUT_SNAPSHOT_STALE', 409, 'Định tuyến đã thay đổi');
++      if (old) {
++        if (!retire)
++          throw new ApiError('ROUTE_CORRECTION_NOT_CONFIGURED', 503, 'Chưa cấu hình dừng định tuyến cũ');
++        const attempts =
++          await tx`select id from attempts where ticket_id in ${tx(affectedIds)} and (state<>'stopped' or stopped_at is null or finalized_at is null) for update`;
++        const sessions =
++          await tx`select s.id from attachment_assistant_sessions s join attachment_assistant_grants g on g.id=s.grant_id where ((g.target_kind='message' and g.target_id=${input.messageId}) or (g.target_kind='ticket' and g.target_id in ${tx(affectedIds)})) and s.state in ('running','unknown') for update of s`;
++        if (attempts.length || sessions.length)
++          throw new ApiError('ROUTE_IN_USE', 409, 'Định tuyến cũ vẫn đang chạy');
++        await retire(tx, routeResponse(old), actor);
++      }
++      const ticket = await tickets.createTicket(tx, input.ticket, actor);
++      const id = randomUUID(),
++        revisionNumber = input.expectedRouteRevision + 1;
++      if (old) {
++        await tx`update attachment_message_routes set revoked_at=${now()} where id=${old.id}`;
++        await tx`update attachment_links set revoked_at=${now()} where message_route_id=${old.id} and revoked_at is null`;
++        await tx`update attachment_assistant_grants set revoked_at=${now()} where revoked_at is null and ((target_kind='message' and target_id=${input.messageId}) or (target_kind='ticket' and target_id in ${tx(affectedIds)}))`;
++        for (const target of affectedIds)
++          await tx`insert into attachment_input_revisions(target_kind,target_id,revision) values('ticket',${target},2) on conflict(target_kind,target_id) do update set revision=attachment_input_revisions.revision+1`;
++      }
++      const [route] =
++        await tx`insert into attachment_message_routes(id,message_id,revision,project_id,ticket_id,decision_id,supersedes_route_id) values(${id},${input.messageId},${revisionNumber},${ticket.projectId},${ticket.id},${input.decisionId},${old ? old.id : null}) returning *`;
++      const originals =
++        await tx`select attachment_id from attachment_message_links where message_id=${input.messageId} order by attachment_id`;
++      for (const original of originals)
++        await tx`insert into attachment_links(id,attachment_id,project_id,ticket_id,message_route_id) values(${randomUUID()},${original.attachment_id},${ticket.projectId},${ticket.id},${id})`;
++      await tx`insert into attachment_input_revisions(target_kind,target_id) values('ticket',${ticket.id}) on conflict do nothing`;
++      await tx`update attachment_input_revisions set revision=revision+1,route_revision=${revisionNumber} where target_kind='message' and target_id=${input.messageId}`;
++      await tx`update attachment_messages set input_revision=input_revision+1,route_revision=${revisionNumber} where id=${input.messageId}`;
++      // No designated, authorized Assistant exists in this consumer composition.
++      // Existing ticket.created carries the real project/ticket audience; a future
++      // issuer emits attachment.input.changed only after verifying its audience.
++      return routeResponse(route);
++    },
++  });
++}
+--- /dev/null
++++ b/v2/server/test/attachments-submissions.test.ts
+@@ -0,0 +1,432 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import type { Selection } from '../src/attachments/contracts.ts';
++import { appendEvent } from '../src/journal/events.ts';
++import { createTicketServices } from '../src/tickets/service.ts';
++import { attachmentFixture, bufferBody, sha } from './support/attachments.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner } from './support/tickets.ts';
++
++async function fixture(
++  work: (
++    db: Parameters<Parameters<ReturnType<typeof databaseFixture>>[0]>[0],
++    f: Awaited<ReturnType<typeof attachmentFixture>>,
++    s: Awaited<ReturnType<typeof consumer>>,
++  ) => Promise<void>,
++  options: Parameters<typeof attachmentFixture>[1] = {},
++) {
++  await databaseFixture(10)(async (db) => {
++    const f = await attachmentFixture(db, options);
++    try {
++      await work(db, f, await consumer(f));
++    } finally {
++      await f.close();
++    }
++  });
++}
++async function consumer(f: Awaited<ReturnType<typeof attachmentFixture>>) {
++  const { createAttachmentSubmissions } = await import('../src/attachments/submissions.ts');
++  return createAttachmentSubmissions({
++    tickets: createTicketServices,
++    stage: f.stage,
++    store: f.store,
++    queuePolicy: {
++      extractorVersion: 'fixture-pending-only',
++      configSha256: sha(Buffer.from('fixture protocol')),
++    },
++    now: f.clock.now,
++  });
++}
++async function selection(
++  f: Awaited<ReturnType<typeof attachmentFixture>>,
++  purpose: 'ticket' | 'comment',
++  files = [Buffer.from('A'), Buffer.from('B')],
++): Promise<Selection> {
++  const compose = await f.mutation(randomUUID(), (tx) =>
++    f.stage.createCompose(
++      tx,
++      purpose === 'comment'
++        ? { purpose: 'comment', projectId: f.project.id, ticketId: f.request.id }
++        : { purpose: 'ticket', projectId: f.project.id, ticketId: null },
++      owner,
++    ),
++  );
++
++  let revision = compose.revision;
++  const ids: string[] = [];
++  for (const [i, bytes] of files.entries()) {
++    const r = await f.mutation(randomUUID(), (tx) =>
++      f.stage.reserve(
++        tx,
++        {
++          composeSessionId: compose.id,
++          expectedRevision: revision,
++          fileName: `${i}.txt`,
++          declaredMime: 'text/plain',
++          byteLength: bytes.length,
++          sha256: sha(bytes),
++        },
++        owner,
++      ),
++    );
++    revision = r.selectionRevision;
++    await f.stage.receive(r.attachment.attachmentId, owner, bufferBody(bytes), new AbortController().signal);
++    ids.push(r.attachment.attachmentId);
++  }
++  return { composeSessionId: compose.id, selectionRevision: revision, attachmentIds: ids };
++}
++test('attachment submission unavailable original rolls back comment links receipt quota and009 fanout', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'comment');
++    await db`update attachment_uploads set state='missing' where id=${selected.attachmentIds[1]}`;
++    const before = await db`select * from attachment_input_revisions order by target_id`;
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, { text: '', selection: selected }, owner)),
++      { code: 'ATTACHMENT_NOT_READY' },
++    );
++    assert.equal((await db`select * from comments`).length, 0);
++    assert.equal((await db`select * from attachment_links`).length, 0);
++    assert.equal((await db`select * from attachment_submissions`).length, 0);
++    assert.equal((await db`select * from attachment_uploads where quota_released_at is not null`).length, 0);
++    assert.deepEqual(await db`select * from attachment_input_revisions order by target_id`, before);
++  }));
++test('attachment submission exact set duplicates foreign IDs stale revision and permission replay reject atomically', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'comment');
++    for (const [value, code] of [
++      [{ ...selected, attachmentIds: [selected.attachmentIds[0], selected.attachmentIds[0]] }, 'VALIDATION'],
++      [{ ...selected, attachmentIds: [randomUUID(), selected.attachmentIds[1]] }, 'NOT_FOUND'],
++      [{ ...selected, attachmentIds: selected.attachmentIds.slice(0, 1) }, 'SELECTION_CHANGED'],
++      [{ ...selected, selectionRevision: selected.selectionRevision - 1 }, 'SELECTION_CHANGED'],
++    ] as const)
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.comment(
++            tx,
++            f.request.id,
++            { text: '', selection: { ...value, attachmentIds: [...value.attachmentIds] } },
++            owner,
++          ),
++        ),
++        { code },
++      );
++    const body = { text: '', selection: selected };
++    const result = await f.mutationWith(randomUUID(), body, (tx) => s.comment(tx, f.request.id, body, owner));
++    assert.deepEqual(
++      await f.mutationWith(randomUUID(), body, (tx) =>
++        s.comment(
++          tx,
++          f.request.id,
++          {
++            ...body,
++            selection: { ...selected, attachmentIds: [...selected.attachmentIds].reverse() },
++            assistantRead: 'none',
++          },
++          owner,
++        ),
++      ),
++      result,
++    );
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, { ...body, assistantRead: 'selected-inputs' }, owner),
++      ),
++      { code: 'COMPOSE_ALREADY_SUBMITTED' },
++    );
++    assert.equal((await db`select * from comments`).length, 1);
++    assert.equal((await db`select * from attachment_links`).length, 2);
++    assert.equal((await db`select * from events where type='comment.created'`).length, 1);
++    assert.equal((await db`select * from attachment_submission_authorizations`).length, 0);
++    assert.equal(
++      (
++        await db`select * from attachment_uploads where linked_at is not null and quota_released_at is not null`
++      ).length,
++      2,
++    );
++    assert.equal((await db`select * from attachment_extractions where status='pending'`).length, 2);
++    for (const id of [f.request.id, f.a.id, f.b.id]) {
++      const [r] = await db`select revision from attachment_input_revisions where target_id=${id}`;
++      assert.equal(Number(r.revision), 2);
++    }
++  }));
++test('attachment ticket concurrent new-key canonical retry returns one ticket and selected authorization', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'ticket');
++    const body = {
++      ticket: inputTicket(f.project.id, 'request'),
++      selection: selected,
++      assistantRead: 'selected-inputs' as const,
++    };
++    const before = (await db`select id from tickets`).length;
++    const responses = await Promise.all(
++      [0, 1].map(() => f.mutationWith(randomUUID(), body, (tx) => s.ticket(tx, body, owner))),
++    );
++    assert.deepEqual(responses[0], responses[1]);
++    assert.equal((await db`select id from tickets`).length, before + 1);
++    assert.equal((await db`select * from attachment_submission_authorizations`).length, 1);
++    const [auth] = await db`select * from attachment_submission_authorizations`;
++    assert.equal(auth.allow_original, false);
++    assert.equal(auth.scope, 'submitted-inputs');
++    assert.equal(auth.originals.length, 2);
++    assert.equal((await db`select * from attachment_assistant_grants`).length, 0);
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.ticket(tx, { ...body, ticket: { ...body.ticket, title: 'Changed' } }, owner),
++      ),
++      { code: 'COMPOSE_ALREADY_SUBMITTED' },
++    );
++  }));
++
++test('attachment submission actual missing original fails despite ready row without filesystem mutation in transaction', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'comment', [Buffer.from('real')]);
++    const [upload] =
++      await db`select storage_key,ownership_nonce from attachment_uploads where id=${selected.attachmentIds[0]}`;
++    assert.equal(
++      await f.store.removeOwned({
++        key: String(upload.storage_key),
++        ownershipNonce: String(upload.ownership_nonce),
++      }),
++      'removed',
++    );
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, { text: '', selection: selected }, owner)),
++      { code: 'ATTACHMENT_NOT_READY' },
++    );
++    assert.equal((await db`select * from comments`).length, 0);
++    assert.equal((await db`select * from attachment_uploads where linked_at is not null`).length, 0);
++  }));
++test('attachment submission reserved receiving rejected deleting deleted slots remain selected and cannot be omitted', async () =>
++  fixture(async (db, f, s) => {
++    for (const state of ['reserved', 'receiving', 'rejected', 'deleting', 'deleted'] as const) {
++      const selected = await selection(f, 'comment', [Buffer.from('real')]);
++      await db`update attachment_uploads set state=${state} where id=${selected.attachmentIds[0]}`;
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.comment(tx, f.request.id, { text: 'Input', selection: selected }, owner),
++        ),
++        { code: 'ATTACHMENT_NOT_READY' },
++      );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.comment(
++            tx,
++            f.request.id,
++            { text: 'Input', selection: { ...selected, attachmentIds: [] } },
++            owner,
++          ),
++        ),
++        { code: 'SELECTION_CHANGED' },
++      );
++    }
++    assert.equal((await db`select * from comments`).length, 0);
++  }));
++test('attachment submission abandoned slot stale expiry target mismatch empty whitespace and text-only semantics', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'comment', [Buffer.from('A')]);
++    const abandoned = await f.mutation(randomUUID(), (tx) =>
++      f.stage.abandonUpload(
++        tx,
++        {
++          composeSessionId: selected.composeSessionId,
++          attachmentId: selected.attachmentIds[0],
++          expectedRevision: selected.selectionRevision,
++        },
++        owner,
++      ),
++    );
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, { text: 'Input', selection: selected }, owner),
++      ),
++      { code: 'SELECTION_CHANGED' },
++    );
++    const current = await f.stage.readCompose(db, selected.composeSessionId, owner);
++    const empty = { ...selected, selectionRevision: current.session.revision, attachmentIds: [] };
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, { text: ' \t\n', selection: empty }, owner),
++      ),
++      { code: 'VALIDATION' },
++    );
++    const result = await f.mutation(randomUUID(), (tx) =>
++      s.comment(tx, f.request.id, { text: 'Nội dung', selection: empty }, owner),
++    );
++    assert.equal(result.comment.text, 'Nội dung');
++    assert.equal(abandoned, current.session.revision);
++    const foreign = await selection(f, 'ticket', []);
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, { text: 'Input', selection: foreign }, owner),
++      ),
++      { code: 'NOT_FOUND' },
++    );
++    const expires = await selection(f, 'comment', []);
++    f.clock.advance(f.config.stagingTtlMs + 1);
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, { text: 'Input', selection: expires }, owner),
++      ),
++      { code: 'SELECTION_CHANGED' },
++    );
++  }));
++test('attachment submission retained quota permits new reserve once and immutable replay keeps latches', async () =>
++  fixture(
++    async (db, f, s) => {
++      const selected = await selection(f, 'comment', [Buffer.from('AB')]);
++      const next = await selection(f, 'comment', []);
++      const reserve = () =>
++        f.mutation(randomUUID(), (tx) =>
++          f.stage.reserve(
++            tx,
++            {
++              composeSessionId: next.composeSessionId,
++              expectedRevision: next.selectionRevision,
++              fileName: 'next.txt',
++              declaredMime: 'text/plain',
++              byteLength: 1,
++              sha256: sha(Buffer.from('C')),
++            },
++            owner,
++          ),
++        );
++      await assert.rejects(reserve(), { code: 'ATTACHMENT_OWNER_QUOTA' });
++      const input = { text: '', selection: selected };
++      const result = await f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, input, owner));
++      const latches =
++        await db`select id,linked_at,quota_released_at from attachment_uploads where id=${selected.attachmentIds[0]}`;
++      assert.deepEqual(
++        await f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, input, owner)),
++        result,
++      );
++      assert.deepEqual(
++        await db`select id,linked_at,quota_released_at from attachment_uploads where id=${selected.attachmentIds[0]}`,
++        latches,
++      );
++      assert.equal((await reserve()).attachment.state, 'reserved');
++    },
++    {
++      env: {
++        CREW_V2_ATTACHMENT_MAX_FILE_BYTES: '2',
++        CREW_V2_ATTACHMENT_MAX_COMPOSE_BYTES: '2',
++        CREW_V2_ATTACHMENT_MAX_OWNER_STAGING_BYTES: '2',
++      },
++    },
++  ));
++test('attachment submission real invalid event after link rolls back receipt and quota; current guard precedes cache', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'comment', [Buffer.from('A')]);
++    const body = { text: '', selection: selected };
++    await assert.rejects(
++      f.mutation(randomUUID(), async (tx) => {
++        await s.comment(tx, f.request.id, body, owner);
++        await appendEvent(tx, {
++          type: 'UNREGISTERED_ATTACHMENT_FAILURE',
++          projectId: null,
++          ticketId: null,
++          audienceMachineId: null,
++          data: {},
++        });
++      }),
++      { code: 'EVENT_INVALID' },
++    );
++    assert.equal((await db`select * from comments`).length, 0);
++    assert.equal((await db`select * from attachment_submissions`).length, 0);
++    assert.equal((await db`select * from attachment_uploads where linked_at is not null`).length, 0);
++    const key = randomUUID();
++    const value = await f.mutationAs(key, body, owner, { ticketId: f.request.id }, (tx) =>
++      s.comment(tx, f.request.id, body, owner),
++    );
++    assert.deepEqual(
++      await f.mutationAs(key, body, owner, { ticketId: f.request.id }, async () => {
++        throw new Error('CACHE_MUST_SKIP_WORK');
++      }),
++      value,
++    );
++    await assert.rejects(
++      f.mutationAs(key, body, owner, { ticketId: randomUUID() }, async () => value),
++      { code: 'NOT_FOUND' },
++    );
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, body, { kind: 'machine', id: randomUUID() }),
++      ),
++      { code: 'FORBIDDEN' },
++    );
++  }));
++test('attachment submission constructor captures verify and pending policy; selected files default deny without worker identity', async () =>
++  fixture(async (db, f) => {
++    const { createAttachmentSubmissions } = await import('../src/attachments/submissions.ts');
++    const selected = await selection(f, 'comment', [Buffer.from('A')]);
++    const denied = createAttachmentSubmissions({
++      tickets: createTicketServices,
++      stage: f.stage,
++      store: f.store,
++    });
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        denied.comment(tx, f.request.id, { text: '', selection: selected }, owner),
++      ),
++      { code: 'EXTRACTION_NOT_CONFIGURED' },
++    );
++    const deps = {
++      tickets: createTicketServices,
++      stage: f.stage,
++      store: { verify: f.store.verify.bind(f.store) },
++      queuePolicy: { extractorVersion: 'fixture-pending-only', configSha256: sha(Buffer.from('frozen')) },
++    };
++    const s = createAttachmentSubmissions(deps);
++    deps.store.verify = async () => {
++      throw new Error('REPLACED_VERIFY');
++    };
++    deps.queuePolicy.extractorVersion = 'replacement';
++    await f.mutation(randomUUID(), (tx) =>
++      s.comment(tx, f.request.id, { text: '', selection: selected }, owner),
++    );
++    const [job] = await db`select extractor_version,status from attachment_extractions`;
++    assert.equal(job.extractor_version, 'fixture-pending-only');
++    assert.equal(job.status, 'pending');
++  }));
++
++test('attachment submission ready row with nonterminal receiver cannot release quota or retain original', async () =>
++  fixture(async (db, f, s) => {
++    const selectionValue = await selection(f, 'comment', [Buffer.from('A')]);
++    const [upload] =
++      await db`select receiver_id from attachment_uploads where id=${selectionValue.attachmentIds[0]}`;
++    await db`update attachment_receivers set state='writing' where id=${upload.receiver_id}`;
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, f.request.id, { text: '', selection: selectionValue }, owner),
++      ),
++      { code: 'ATTACHMENT_NOT_READY' },
++    );
++    assert.equal((await db`select * from comments`).length, 0);
++    assert.equal((await db`select * from attachment_uploads where quota_released_at is not null`).length, 0);
++  }));
++test('attachment submission malformed target returns400 before scope SQL or cached replay', async () =>
++  fixture(async (db, f, s) => {
++    const selected = await selection(f, 'ticket', []);
++    const body = { ticket: inputTicket(f.project.id, 'request'), selection: selected };
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.ticket(tx, { ...body, ticket: { ...body.ticket, projectId: 'invalid-uuid' } }, owner),
++      ),
++      { code: 'VALIDATION' },
++    );
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        s.comment(tx, 'invalid-uuid', { text: 'Input', selection: selected }, owner),
++      ),
++      { code: 'VALIDATION' },
++    );
++    const key = randomUUID();
++    const result = await f.mutationAs(key, body, owner, { projectId: f.project.id }, (tx) =>
++      s.ticket(tx, body, owner),
++    );
++    await assert.rejects(
++      f.mutationAs(key, body, owner, { projectId: 'invalid-uuid' }, async () => result),
++      { code: 'VALIDATION' },
++    );
++    assert.equal((await db`select * from attachment_submissions`).length, 1);
++  }));
+--- /dev/null
++++ b/v2/server/test/attachments-messages.test.ts
+@@ -0,0 +1,205 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { attachmentFixture, sha } from './support/attachments.ts';
++import { databaseFixture } from './support/db.ts';
++import { owner } from './support/tickets.ts';
++
++test('attachment inbox concurrent client UUID across two text-only composes returns one immutable receipt', async () =>
++  databaseFixture(10)(async (db) => {
++    const f = await attachmentFixture(db);
++    try {
++      const { createMessageServices } = await import('../src/attachments/messages.ts');
++      const s = createMessageServices({ store: f.store, now: f.clock.now });
++      const c = await f.mutation(randomUUID(), (tx) => s.createConversation(tx, owner));
++      const target = {
++        purpose: 'assistant_message' as const,
++        projectId: null,
++        ticketId: null,
++        conversationId: c.id,
++      };
++      const selections = await Promise.all([0, 1].map(() => f.readyCompose(target, [])));
++      const clientMessageId = randomUUID();
++      const results = await Promise.all(
++        selections.map((selection) =>
++          f.mutation(randomUUID(), (tx) =>
++            s.submitAssistantMessage(
++              tx,
++              { conversationId: c.id, clientMessageId, text: 'Nội dung', selection, assistantRead: 'none' },
++              owner,
++            ),
++          ),
++        ),
++      );
++      assert.deepEqual(results[0], results[1]);
++      assert.equal((await db`select * from attachment_messages`).length, 1);
++      assert.equal((await db`select * from events where type='assistant.message.created'`).length, 1);
++      assert.equal((await db`select * from attachment_submissions`).length, 1);
++      assert.equal((await db`select * from attachment_compose_sessions where state='open'`).length, 1);
++      await assert.rejects(
++        db`update attachment_messages set text='Changed bytes' where id=${results[0].id}`,
++        /ATTACHMENT_RECORD_IMMUTABLE/,
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++test('attachment message decisions default deny future scope reply and machine proof; stale owner route decision rejects', async () =>
++  databaseFixture(10)(async (db) => {
++    const f = await attachmentFixture(db);
++    try {
++      const { createMessageServices } = await import('../src/attachments/messages.ts');
++      const s = createMessageServices({ store: f.store });
++      const c = await f.mutation(randomUUID(), (tx) => s.createConversation(tx, owner));
++      const selection = await f.readyCompose(
++        { purpose: 'assistant_message', projectId: null, ticketId: null, conversationId: c.id },
++        [],
++      );
++      const message = await f.mutation(randomUUID(), (tx) =>
++        s.submitAssistantMessage(
++          tx,
++          {
++            conversationId: c.id,
++            clientMessageId: randomUUID(),
++            text: 'Text',
++            selection,
++            assistantRead: 'none',
++          },
++          owner,
++        ),
++      );
++      const base = {
++        messageId: message.id,
++        inputRevision: '1',
++        snapshotId: null,
++        grantId: null,
++        receiptId: null,
++        body: { rationale: 'fixture' },
++      };
++      for (const kind of ['scope', 'reply'] as const)
++        await assert.rejects(
++          f.mutation(randomUUID(), (tx) => s.persistMessageInputDecision(tx, { ...base, kind }, owner)),
++          { code: 'INPUT_DECISION_NOT_CONFIGURED' },
++        );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.persistMessageInputDecision(
++            tx,
++            { ...base, kind: 'routing' },
++            { kind: 'machine', id: randomUUID() },
++          ),
++        ),
++        { code: 'INPUT_DECISION_NOT_CONFIGURED' },
++      );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.persistMessageInputDecision(tx, { ...base, inputRevision: '2', kind: 'routing' }, owner),
++        ),
++        { code: 'INPUT_SNAPSHOT_STALE' },
++      );
++      assert.equal((await db`select * from attachment_message_decisions`).length, 0);
++      assert.equal((await db`select * from attachment_assistant_sessions`).length, 0);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('attachment inbox canonical retry creates one owner-only message with retained originals and no ticket', async () =>
++  databaseFixture(10)(async (db) => {
++    const f = await attachmentFixture(db);
++    try {
++      const { createMessageServices } = await import('../src/attachments/messages.ts');
++      const s = createMessageServices({
++        store: f.store,
++        now: f.clock.now,
++        queuePolicy: {
++          extractorVersion: 'fixture-pending-only',
++          configSha256: sha(Buffer.from('fixture protocol')),
++        },
++      });
++      const key = randomUUID();
++      const conversation = await f.mutationWith(key, {}, (tx) => s.createConversation(tx, owner));
++      assert.deepEqual(await f.mutationWith(key, {}, (tx) => s.createConversation(tx, owner)), conversation);
++      const selection = await f.readyCompose(
++        { purpose: 'assistant_message', projectId: null, ticketId: null, conversationId: conversation.id },
++        [Buffer.from('A')],
++      );
++      const input = {
++        conversationId: conversation.id,
++        clientMessageId: randomUUID(),
++        text: '',
++        selection,
++        assistantRead: 'selected-inputs' as const,
++      };
++      const before = (await db`select id from tickets`).length;
++      const response = await f.mutationAs(
++        randomUUID(),
++        input,
++        owner,
++        { conversationId: conversation.id },
++        (tx) => s.submitAssistantMessage(tx, input, owner),
++      );
++      assert.deepEqual(
++        await f.mutationAs(randomUUID(), input, owner, { conversationId: conversation.id }, (tx) =>
++          s.submitAssistantMessage(tx, input, owner),
++        ),
++        response,
++      );
++      const other = await f.readyCompose(
++        { purpose: 'assistant_message', projectId: null, ticketId: null, conversationId: conversation.id },
++        [],
++      );
++      assert.deepEqual(
++        await f.mutation(randomUUID(), (tx) =>
++          s.submitAssistantMessage(
++            tx,
++            { ...input, selection: { ...other, attachmentIds: selection.attachmentIds } },
++            owner,
++          ),
++        ),
++        response,
++      );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) => s.submitAssistantMessage(tx, { ...input, text: 'changed' }, owner)),
++        { code: 'COMPOSE_ALREADY_SUBMITTED' },
++      );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.submitAssistantMessage(
++            tx,
++            { ...input, text: 'changed', selection: { ...other, attachmentIds: selection.attachmentIds } },
++            owner,
++          ),
++        ),
++        { code: 'MESSAGE_ALREADY_SUBMITTED' },
++      );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          s.submitAssistantMessage(tx, { ...input, assistantRead: 'none' }, owner),
++        ),
++        { code: 'COMPOSE_ALREADY_SUBMITTED' },
++      );
++      assert.equal((await db`select id from tickets`).length, before);
++      assert.equal((await db`select * from attachment_messages`).length, 1);
++      assert.equal((await db`select * from attachment_message_links`).length, 1);
++      assert.equal((await db`select * from attachment_submission_authorizations`).length, 1);
++      const [event] = await db`select * from events where type='assistant.message.created'`;
++      assert.deepEqual(event.data, { messageId: response.id, inputRevision: '1' });
++      assert.equal(event.project_id, null);
++      assert.equal(event.ticket_id, null);
++      assert.equal(event.audience_machine_id, null);
++      assert.equal((await db`select * from attachment_assistant_grants`).length, 0);
++      await assert.rejects(
++        f.mutationAs(
++          randomUUID(),
++          input,
++          { kind: 'machine', id: randomUUID() },
++          { conversationId: conversation.id },
++          (tx) => s.submitAssistantMessage(tx, input, owner),
++        ),
++        { code: 'FORBIDDEN' },
++      );
++    } finally {
++      await f.close();
++    }
++  }));
+--- /dev/null
++++ b/v2/server/test/attachments-routing.test.ts
+@@ -0,0 +1,407 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import type { RouteMessageInput } from '../src/attachments/contracts.ts';
++import { claimAttempt } from '../src/execution/attempts.ts';
++import { createCommand } from '../src/execution/commands.ts';
++import { mutate } from '../src/journal/mutation.ts';
++import type { Db, DispatchPermit } from '../src/platform/contracts.ts';
++import { attachmentFixture, sha } from './support/attachments.ts';
++import { databaseFixture } from './support/db.ts';
++import { pin } from './support/execution.ts';
++import { inputTicket, owner } from './support/tickets.ts';
++
++async function routed(
++  work: (
++    db: Db,
++    f: Awaited<ReturnType<typeof attachmentFixture>>,
++    s: ReturnType<typeof import('../src/attachments/messages.ts').createMessageServices>,
++    r: ReturnType<typeof import('../src/attachments/routing.ts').createRoutingServices>,
++    first: import('../src/attachments/contracts.ts').MessageRoute,
++    next: RouteMessageInput,
++  ) => Promise<void>,
++) {
++  await databaseFixture(10)(async (db) => {
++    const f = await attachmentFixture(db);
++    try {
++      const { createMessageServices } = await import('../src/attachments/messages.ts');
++      const { createRoutingServices } = await import('../src/attachments/routing.ts');
++      const s = createMessageServices({
++        store: f.store,
++        now: f.clock.now,
++        queuePolicy: {
++          extractorVersion: 'fixture-pending-only',
++          configSha256: sha(Buffer.from('fixture protocol')),
++        },
++      });
++      const c = await f.mutation(randomUUID(), (tx) => s.createConversation(tx, owner));
++      const selection = await f.readyCompose(
++        { purpose: 'assistant_message', projectId: null, ticketId: null, conversationId: c.id },
++        [Buffer.from('original')],
++      );
++      const m = await f.mutation(randomUUID(), (tx) =>
++        s.submitAssistantMessage(
++          tx,
++          { conversationId: c.id, clientMessageId: randomUUID(), text: '', selection, assistantRead: 'none' },
++          owner,
++        ),
++      );
++      const ticket = inputTicket(f.project.id, 'request', null, { workflowPin: pin });
++      const decision = await f.mutation(randomUUID(), (tx) =>
++        s.persistMessageInputDecision(
++          tx,
++          {
++            messageId: m.id,
++            inputRevision: '1',
++            snapshotId: null,
++            grantId: null,
++            receiptId: null,
++            kind: 'routing',
++            body: { ticket, expectedRouteRevision: 0 },
++          },
++          owner,
++        ),
++      );
++      const r = createRoutingServices({
++        now: f.clock.now,
++        authority: async (_tx, actor) => assert.deepEqual(actor, owner),
++        retire: async (tx, route, actor) => {
++          const [row] = await tx`select revision from tickets where id=${route.ticketId}`;
++          await f.services.signalTicket(tx, route.ticketId, 'wait_owner', Number(row.revision), null, actor);
++        },
++      });
++      const first = await f.mutation(randomUUID(), (tx) =>
++        r.routeAssistantMessage(
++          tx,
++          {
++            messageId: m.id,
++            expectedInputRevision: '1',
++            expectedRouteRevision: 0,
++            decisionId: decision,
++            ticket,
++          },
++          owner,
++        ),
++      );
++      const nextTicket = { ...ticket, title: 'Correction' };
++      const nextDecision = await f.mutation(randomUUID(), (tx) =>
++        s.persistMessageInputDecision(
++          tx,
++          {
++            messageId: m.id,
++            inputRevision: '2',
++            snapshotId: null,
++            grantId: null,
++            receiptId: null,
++            kind: 'routing',
++            body: { ticket: nextTicket, expectedRouteRevision: 1 },
++          },
++          owner,
++        ),
++      );
++      await work(db, f, s, r, first, {
++        messageId: m.id,
++        expectedInputRevision: '2',
++        expectedRouteRevision: 1,
++        decisionId: nextDecision,
++        ticket: nextTicket,
++      });
++    } finally {
++      await f.close();
++    }
++  });
++}
++
++test('attachment reroute actual ticket retirement retains original identity audit and invalidates old inputs once', async () =>
++  routed(async (db, f, _s, r, old, next) => {
++    const originals =
++      await db`select id,expected_sha256,storage_key,linked_at,quota_released_at from attachment_uploads order by id`;
++    const result = await f.mutation(randomUUID(), (tx) => r.routeAssistantMessage(tx, next, owner));
++    assert.equal(result.supersedesRouteId, old.id);
++    assert.equal(result.revision, 2);
++    const [retired] = await db`select status from tickets where id=${old.ticketId}`;
++    assert.equal(retired.status, 'needs_input');
++    const [oldRoute] = await db`select revoked_at from attachment_message_routes where id=${old.id}`;
++    assert.ok(oldRoute.revoked_at);
++    assert.equal(
++      (await db`select * from attachment_links where message_route_id=${old.id} and revoked_at is null`)
++        .length,
++      0,
++    );
++    assert.equal(
++      (await db`select * from attachment_links where message_route_id=${result.id} and revoked_at is null`)
++        .length,
++      1,
++    );
++    const [message] =
++      await db`select input_revision,route_revision from attachment_messages where id=${next.messageId}`;
++    assert.equal(Number(message.input_revision), 3);
++    assert.equal(Number(message.route_revision), 2);
++    const [revision] =
++      await db`select revision from attachment_input_revisions where target_id=${old.ticketId}`;
++    assert.equal(Number(revision.revision), 2);
++    assert.deepEqual(
++      await db`select id,expected_sha256,storage_key,linked_at,quota_released_at from attachment_uploads order by id`,
++      originals,
++    );
++    assert.deepEqual(
++      await f.mutation(randomUUID(), (tx) => r.routeAssistantMessage(tx, next, owner)),
++      result,
++    );
++    assert.equal((await db`select * from attachment_extractions`).length, 1);
++  }));
++test('attachment reroute concurrent decisions CAS exactly one new route and one retirement', async () =>
++  routed(async (db, f, s, r, old, next) => {
++    const ticket = { ...next.ticket, title: 'Different correction' };
++    const decisionId = await f.mutation(randomUUID(), (tx) =>
++      s.persistMessageInputDecision(
++        tx,
++        {
++          messageId: next.messageId,
++          inputRevision: '2',
++          snapshotId: null,
++          grantId: null,
++          receiptId: null,
++          kind: 'routing',
++          body: { ticket, expectedRouteRevision: 1 },
++        },
++        owner,
++      ),
++    );
++    const results = await Promise.allSettled(
++      [next, { ...next, ticket, decisionId }].map((input) =>
++        f.mutation(randomUUID(), (tx) => r.routeAssistantMessage(tx, input, owner)),
++      ),
++    );
++    assert.equal(results.filter((v) => v.status === 'fulfilled').length, 1);
++    const failed = results.find((v) => v.status === 'rejected');
++    assert.ok(failed && failed.status === 'rejected');
++    assert.equal(failed.reason.code, 'INPUT_SNAPSHOT_STALE');
++    assert.equal((await db`select * from attachment_message_routes`).length, 2);
++    assert.equal(
++      (await db`select * from events where type='ticket.changed' and ticket_id=${old.ticketId}`).length,
++      1,
++    );
++  }));
++test('attachment reroute retirement failure rolls back actual workflow event route revision and original links', async () =>
++  routed(async (db, f, _s, _r, old, next) => {
++    const { createRoutingServices } = await import('../src/attachments/routing.ts');
++    const r = createRoutingServices({
++      authority: async () => {},
++      retire: async (tx, route, actor) => {
++        await f.services.signalTicket(tx, route.ticketId, 'wait_owner', 1, null, actor);
++        throw new Error('RETIREMENT_AFTER_SERVICE_FAILURE');
++      },
++    });
++    const before = await db`select cursor,type,data from events order by cursor`;
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) => r.routeAssistantMessage(tx, next, owner)),
++      /RETIREMENT_AFTER_SERVICE_FAILURE/,
++    );
++    assert.deepEqual(await db`select cursor,type,data from events order by cursor`, before);
++    const [ticket] = await db`select status,revision from tickets where id=${old.ticketId}`;
++    assert.equal(ticket.status, 'pending');
++    assert.equal(Number(ticket.revision), 1);
++    assert.equal((await db`select * from attachment_message_routes where revoked_at is null`).length, 1);
++    assert.equal(
++      (await db`select * from attachment_links where message_route_id=${old.id} and revoked_at is null`)
++        .length,
++      1,
++    );
++  }));
++test('attachment reroute actual claimed active attempt blocks despite expired lease and never fabricates stopped proof', async () =>
++  routed(async (db, f, _s, r, old, next) => {
++    const machineId = randomUUID();
++    await db`insert into machines(id,name,token_hash) values(${machineId},'fixture-claim-only',${sha(Buffer.from(machineId))})`;
++    await db`update projects set machine_id=${machineId},binding_revision=2,checkout_path='/tmp/fixture-only-no-launch' where id=${f.project.id}`;
++    const ready = await f.mutation(randomUUID(), (tx) =>
++      f.services.signalTicket(tx, old.ticketId, 'dependencies_ready', 1, null, owner),
++    );
++    const command = await f.mutation(randomUUID(), (tx) =>
++      createCommand(tx, { machineId, ticketId: old.ticketId, type: 'start', payload: {} }, owner),
++    );
++    const actor = { kind: 'machine' as const, id: machineId };
++    const permit: DispatchPermit = {
++      commandId: command.id,
++      ticketId: old.ticketId,
++      machineId,
++      bindingRevision: 2,
++      ticketRevision: ready.revision,
++      workflow: pin,
++      checkedAt: new Date().toISOString(),
++      expiresAt: new Date(Date.now() + 20000).toISOString(),
++      telemetryId: randomUUID(),
++      decisionId: randomUUID(),
++    };
++    // Actual claim API + private fixture authorization; no process/provider launch.
++    const attempt = await f.mutation(randomUUID(), (tx) =>
++      claimAttempt(tx, command.id, { processInstanceId: randomUUID(), permit }, actor, async () => {}),
++    );
++    await db`update attempts set lease_expires_at=now()-interval '1 hour' where id=${attempt.id}`;
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) => r.routeAssistantMessage(tx, next, owner)),
++      { code: 'ROUTE_IN_USE' },
++    );
++    const [observed] = await db`select state,stopped_at from attempts where id=${attempt.id}`;
++    assert.equal(observed.state, 'active');
++    assert.equal(observed.stopped_at, null);
++    assert.equal((await db`select * from attachment_message_routes`).length, 1);
++  }));
++test('attachment routing digest target and current authority checked before per-route and mutator cache replay', async () =>
++  routed(async (db, f, _s, r, _old, next) => {
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        r.routeAssistantMessage(
++          tx,
++          { ...next, ticket: { ...next.ticket, projectId: 'invalid-uuid' } },
++          owner,
++        ),
++      ),
++      { code: 'VALIDATION' },
++    );
++    await assert.rejects(
++      f.mutation(randomUUID(), (tx) =>
++        r.routeAssistantMessage(
++          tx,
++          { ...next, ticket: { ...next.ticket, title: 'Unauthorized payload' } },
++          owner,
++        ),
++      ),
++      { code: 'ROUTING_DECISION_INVALID' },
++    );
++    const key = randomUUID();
++    const context = {
++      actor: owner,
++      route: 'fixture:route',
++      key,
++      body: next,
++      authorize: (tx: Parameters<typeof r.authorize>[0]) => r.authorize(tx, next, owner),
++    };
++    const value = await mutate(db, context, async (tx) => ({
++      status: 200,
++      body: await r.routeAssistantMessage(tx, next, owner),
++    }));
++    assert.deepEqual(
++      await mutate(db, context, async () => {
++        throw new Error('CACHED_WORK_EXECUTED');
++      }),
++      value,
++    );
++    await db`update attachment_message_decisions set sha256=${'0'.repeat(64)} where id=${next.decisionId}`;
++    await assert.rejects(
++      mutate(db, context, async () => value),
++      { code: 'ROUTING_DECISION_INVALID' },
++    );
++  }));
++
++test('attachment routing configured owner decisions replay and correction default denies without retirement', async () =>
++  databaseFixture(10)(async (db) => {
++    const f = await attachmentFixture(db);
++    try {
++      const { createMessageServices } = await import('../src/attachments/messages.ts');
++      const { createRoutingServices } = await import('../src/attachments/routing.ts');
++      const s = createMessageServices({
++        store: f.store,
++        now: f.clock.now,
++        queuePolicy: {
++          extractorVersion: 'fixture-pending-only',
++          configSha256: sha(Buffer.from('fixture protocol')),
++        },
++      });
++      const c = await f.mutation(randomUUID(), (tx) => s.createConversation(tx, owner));
++      const selection = await f.readyCompose(
++        { purpose: 'assistant_message', projectId: null, ticketId: null, conversationId: c.id },
++        [Buffer.from('input')],
++      );
++      const message = await f.mutation(randomUUID(), (tx) =>
++        s.submitAssistantMessage(
++          tx,
++          { conversationId: c.id, clientMessageId: randomUUID(), text: '', selection, assistantRead: 'none' },
++          owner,
++        ),
++      );
++      const ticket = inputTicket(f.project.id, 'request');
++      const decisionId = await f.mutation(randomUUID(), (tx) =>
++        s.persistMessageInputDecision(
++          tx,
++          {
++            messageId: message.id,
++            inputRevision: '1',
++            snapshotId: null,
++            grantId: null,
++            receiptId: null,
++            kind: 'routing',
++            body: { ticket, expectedRouteRevision: 0 },
++          },
++          owner,
++        ),
++      );
++      const request = {
++        messageId: message.id,
++        expectedInputRevision: '1',
++        expectedRouteRevision: 0,
++        decisionId,
++        ticket,
++      };
++      const denied = createRoutingServices();
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) => denied.routeAssistantMessage(tx, request, owner)),
++        { code: 'INPUT_ROUTING_NOT_CONFIGURED' },
++      );
++      const routes = createRoutingServices({
++        authority: async (_tx, actor) => assert.deepEqual(actor, owner),
++      });
++      const response = await f.mutation(randomUUID(), (tx) =>
++        routes.routeAssistantMessage(tx, request, owner),
++      );
++      assert.deepEqual(
++        await f.mutation(randomUUID(), (tx) => routes.routeAssistantMessage(tx, request, owner)),
++        response,
++      );
++      assert.equal((await db`select * from attachment_message_routes`).length, 1);
++      assert.equal(
++        (await db`select * from attachment_links where message_route_id=${response.id}`).length,
++        1,
++      );
++      const [current] =
++        await db`select input_revision,route_revision from attachment_messages where id=${message.id}`;
++      assert.equal(Number(current.input_revision), 2);
++      assert.equal(Number(current.route_revision), 1);
++      const nextTicket = { ...ticket, title: 'Correction' };
++      const nextDecision = await f.mutation(randomUUID(), (tx) =>
++        s.persistMessageInputDecision(
++          tx,
++          {
++            messageId: message.id,
++            inputRevision: '2',
++            snapshotId: null,
++            grantId: null,
++            receiptId: null,
++            kind: 'routing',
++            body: { ticket: nextTicket, expectedRouteRevision: 1 },
++          },
++          owner,
++        ),
++      );
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) =>
++          routes.routeAssistantMessage(
++            tx,
++            {
++              messageId: message.id,
++              expectedInputRevision: '2',
++              expectedRouteRevision: 1,
++              decisionId: nextDecision,
++              ticket: nextTicket,
++            },
++            owner,
++          ),
++        ),
++        { code: 'ROUTE_CORRECTION_NOT_CONFIGURED' },
++      );
++      assert.equal((await db`select * from attachment_message_routes where revoked_at is null`).length, 1);
++      assert.equal((await db`select * from attachment_assistant_grants`).length, 0);
++    } finally {
++      await f.close();
++    }
++  }));
+--- a/v2/server/test/support/attachments.ts
++++ b/v2/server/test/support/attachments.ts
+@@ -10,7 +10,9 @@
+ import postgres from 'postgres';
+ import { loadAttachmentConfig } from '../../src/attachments/config.ts';
+ import type {
++  ComposeTarget,
+   ReceiverRegistration,
++  Selection,
+   ServerWriterIdentity,
+   WriterStopProof,
+ } from '../../src/attachments/contracts.ts';
+@@ -27,11 +29,12 @@
+   type StorageFault,
+   writePrivateJson,
+ } from '../../src/attachments/storage.ts';
++import { authorizeSubmission } from '../../src/attachments/submissions.ts';
+ import { connectDb } from '../../src/db/client.ts';
+ import { captureMigrations, migrate } from '../../src/db/migrate.ts';
+ import { canonicalJson } from '../../src/journal/canonical.ts';
+ import { mutate } from '../../src/journal/mutation.ts';
+-import type { Db, Tx } from '../../src/platform/contracts.ts';
++import type { Actor, Db, Tx } from '../../src/platform/contracts.ts';
+ import { owner, ticketFixture } from './tickets.ts';
+ export const sha = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+ export async function* bufferBody(bytes: Uint8Array): AsyncIterable<Uint8Array> {
+@@ -151,6 +154,9 @@
+     `attachment DB container ${process.env.CREW_V2_TEST_CONTAINER_ID ?? 'native-worker'} root ${root}`,
+   );
+   console.info(`attachment DB scratch created ${root} nonceSha256=${sha(Buffer.from(nonce))}`);
++  console.info(
++    `attachment DB scratch identity dev=${rootIdentity.dev} ino=${rootIdentity.ino} uid=${rootIdentity.uid} pid=${process.pid}`,
++  );
+   let current = Date.now();
+   const clock = {
+     now: () => new Date(current),
+@@ -192,6 +198,55 @@
+     store,
+     stage,
+     receivers,
++    async readyCompose(target: ComposeTarget, files: Uint8Array[]): Promise<Selection> {
++      const compose = await ticket.mutation(randomUUID(), (tx) => stage.createCompose(tx, target, owner));
++      let revision = compose.revision;
++      const ids: string[] = [];
++      for (const [index, bytes] of files.entries()) {
++        const reserved = await ticket.mutation(randomUUID(), (tx) =>
++          stage.reserve(
++            tx,
++            {
++              composeSessionId: compose.id,
++              expectedRevision: revision,
++              fileName: `input-${index}.txt`,
++              declaredMime: 'text/plain',
++              byteLength: bytes.length,
++              sha256: sha(bytes),
++            },
++            owner,
++          ),
++        );
++        revision = reserved.selectionRevision;
++        const ready = await stage.receive(
++          reserved.attachment.attachmentId,
++          owner,
++          bufferBody(bytes),
++          new AbortController().signal,
++        );
++        assert.equal(ready.state, 'ready');
++        ids.push(ready.attachmentId);
++      }
++      return { composeSessionId: compose.id, selectionRevision: revision, attachmentIds: ids };
++    },
++    mutationAs: <T>(
++      key: string,
++      body: unknown,
++      actor: Actor,
++      target: Parameters<typeof authorizeSubmission>[2],
++      work: (tx: Tx) => Promise<T>,
++    ) =>
++      mutate(
++        db,
++        {
++          actor,
++          route: 'fixture:submission',
++          key,
++          body,
++          authorize: (tx) => authorizeSubmission(tx, actor, target),
++        },
++        async (tx) => ({ status: 200, body: await work(tx) }),
++      ).then((result) => result.body),
+     mutationWith: <T>(key: string, body: unknown, work: (tx: Tx) => Promise<T>) =>
+       mutate(db, { actor: owner, route: 'fixture:attachment', key, body }, async (tx) => ({
+         status: 200,
+@@ -205,7 +260,8 @@
+         found.nonce !== nonce ||
+         actual.isSymbolicLink() ||
+         actual.dev !== rootIdentity.dev ||
+-        actual.ino !== rootIdentity.ino
++        actual.ino !== rootIdentity.ino ||
++        actual.uid !== rootIdentity.uid
+       )
+         throw new Error('FIXTURE_OWNERSHIP_MISMATCH');
+       await rm(root, { recursive: true, force: true });
+--- a/v2/docs/flows/server-attachments.md
++++ b/v2/docs/flows/server-attachments.md
+@@ -2,7 +2,7 @@
+ 
+ ## Mục đích
+ 
+-Owner giữ original trước khi tạo ticket, comment hoặc gửi inbox. Mỗi upload UUID có bytes và key riêng kể cả checksum giống nhau. Task 1 cung cấp reserve, private stage, exclusive publication và trạng thái ready; các service submit/access/extraction/reconcile được tích hợp trong task sau.
++Owner giữ original trước khi tạo ticket, comment hoặc gửi inbox. Mỗi upload UUID có bytes và key riêng kể cả checksum giống nhau. Task 1 cung cấp reserve, private stage, exclusive publication và trạng thái ready; Task2b consumer bổ sung atomic submit, inbox và routing qua authority được inject. Public routes, grant/access, extractor/runtime và reconcile vẫn được tích hợp trong task sau.
+ 
+ ## Điểm vào
+ 
+@@ -10,6 +10,9 @@
+ - `server/src/attachments/storage.ts` → `createFileBlobStore`: file/directory fsync, kiểm no-symlink, durable intent và publication không ghi đè.
+ - `server/src/attachments/receivers.ts` → `readLocalWriterIdentity`, `createReceiverRegistry`: writer Linux có boot/PID namespace/PID/start ticks, private abort socket và stop proof.
+ - `server/src/attachments/staging.ts` → `createStageServices`: owner-only compose/reserve/receive/replay/abandon.
++- `server/src/attachments/submissions.ts` → `createAttachmentSubmissions`, `authorizeSubmission`: factory ticket thật với bound linker, exact selection, retained quota và immutable receipt. `createSelectionServices` chia sẻ readonly original verification/pending policy cho inbox.
++- `server/src/attachments/messages.ts` → `createMessageServices`: createConversation, submitAssistantMessage và persistMessageInputDecision trong caller Tx.
++- `server/src/attachments/routing.ts` → `createRoutingServices`, `authorizeMessageRouting`: persisted decision digest, current authority, route CAS và retirement bridge.
+ 
+ ## Các bước
+ 
+@@ -20,6 +23,10 @@
+ 5. Managed receiver chờ mọi work/FD/control connection settle, đóng private socket rồi mới ghi/fsync closed ACK. Ready mutation kiểm lại compose, upload generation, receiver, abort flag và exact closed proof. `attachment.changed` chỉ có `{attachmentId,state,extraction}`; draft chưa có live link có project/ticket/audience null. Event contract chưa đăng ký khiến ready transaction rollback; original/intent vẫn được giữ.
+ 6. PUT ready replay băm toàn bộ body và kiểm original hiện hữu; bytes khác trả conflict. Replay dùng accepted uploadMaxWallMs và kiểm caller abort/deadline trước success, cả khi iterator hoặc verify đang chờ. Deadline trả ATTACHMENT_UPLOAD_TIMEOUT409, không STOP/ACK/quota release. Registry replay theo DB/upload giữ pending next/return/verify cùng cleanup identity; request có thể timeout nhưng lượt tiếp theo BUSY tới actual teardown. Closure thiếu/thất bại giữ unknown/BUSY. Timer/listener được clear, late bytes không được nhận thành success. Validator chạy cho mọi decoded text, gồm EOF prefix và decoder flush; one-byte control bị415 trước publication, vẫn giữ empty/ASCII/tabLFCR/splitUTF16. Abandon giữ quota và bytes, gửi abort cho receiver; cleanup tương lai chỉ được release quota khi terminal deleted + stop/ownership proof. Original từng có `linked_at` không được automatic GC trong phase05.
+ 7. SQL009 thêm inbox/messages/routes, immutable snapshots/manifests/receipts, scoped authorizations/grants/sessions, extraction/derivatives/GC và dispatch input pins cho task sau. Trigger009 trên actual legacy `comments` lấy root → affected descendants → input revisions; một INSERT bump mỗi descendant đúng một lần, lazy base1→2. Rollback comment cũng rollback counters; event consumer không bump lại.
++8. Submit chạy trong caller journal mutator Tx; integration phải đặt `authorizeSubmission`/routing factory `authorize` vào `Mutator.context.authorize` trước cached replay. Owner actor/scope hiện hành được kiểm lại cả trong service trước per-compose/per-route receipt; UUID target sai trả400 trước scope SQL và cached response. Normalized body giữ complete ticket hoặc text/target, revision, sorted unique UUID và assistantRead mặc định none. Same body/new key trả exact immutable response; changed body/permission trả409, không cấp thêm authorization, tạo target/event hoặc đổi quota. Receipt của lượt đã submit được kiểm trước fresh open-selection admission. Bound linker chỉ dùng trong wrapper đã khóa owner quota, root/affected tickets theo UUID, project/input rồi compose/uploads; caller không inject request callback hoặc dummy count.
++9. Fresh selection phải khớp purpose/project/ticket/conversation, open revision/expiry và toàn bộ active upload set. Chỉ abandoned bị loại; reserved/receiving/rejected/missing/deleting/deleted không thể lén bỏ khỏi tập. Tất cả selected phải ready+durable và có matching closed receiver/stop proof theo receiver ID, generation, writer instance; readonly BlobStore.verify xác minh original thật trước INSERT. Không mutation filesystem trong Tx. Link/comment/event/receipt cùng commit; trigger009 là writer duy nhất tăng inherited comment input, linker không bump lần hai. `linked_at` và `quota_released_at` được latch cùng Tx và giữ nguyên khi replay. Selected files mặc định503 nếu thiếu trusted queuePolicy; policy/version/hash và verify callback được capture lúc tạo factory. Job chỉ pending dưới unique original/version/config, chưa chứng minh extraction hoàn tất.
++10. Inbox conversation tạo qua owner idempotent mutation. Message giữ client UUID riêng và canonical conversation/text/sorted original IDs+hashes/permission, nên reconnect compose/key khác trả immutable response cũ; compose khác chưa dùng giữ open, không tạo thêm quyền hoặc giữ thêm bytes. Message commit không tạo ticket. Một `assistant.message.created` chỉ `{messageId,inputRevision}` với project/ticket/audience null; text/path/bytes không vào event. Selected-inputs tạo owner authorization exact originals, target ticket/message, submitted-inputs, allowOriginal=false, expiry24h; không tạo grant/read session/delivery proof. Message text/client/hash bất biến; bổ sung nội dung cần message mới.
++11. Message routing/scope/reply decision có bảng riêng. Owner explicit routing có thể dùng null snapshot/grant/receipt nhưng body phải pin ticket đầy đủ và expectedRouteRevision. Machine hoặc scope/reply thiếu trusted decision authority mặc định503; machine còn cần matching current grant/snapshot/all-selected receipt, authority phải xác minh lifecycle thật. Routing mặc định INPUT_ROUTING_NOT_CONFIGURED; configured authority xác minh persisted decision target/input revision/actor/body digest và current project binding trước replay. Initial route tạo ticket thật và links cùng original UUID. Correction khóa sorted old/new roots/targets/projects rồi input/message, CAS revision, từ chối active/uncertain/finalizing attempts kể cả lease hết hạn và running/unknown read sessions. Thiếu retirement bridge trả ROUTE_CORRECTION_NOT_CONFIGURED; bridge phải dùng actual ticket service authority, không direct workflow update. Old route/links/grants revoke cùng Tx, counter message và affected old tickets tăng; immutable snapshots cũ stale qua revision, không update/delete snapshot. Audit/originals giữ lại. Replay route trả receipt tại lúc chấp nhận (revokedAt=null), không biến historical receipt thành quyền đọc hiện hành. Consumer chưa có authorized Assistant designation nên không tự phát attachment.input.changed với audience giả; ticket.created dùng scope ticket thật.
+ 
+ ## Files
+ 
+@@ -35,6 +42,13 @@
+ | `server/test/attachments-storage.test.ts` | Pure config/storage và native process birth/proof tests |
+ | `server/test/attachments-staging.test.ts` | DB reserve/stream/replay/quota/CAS/abort/event/R1/backup-restore regressions |
+ | `server/test/attachment-event.test.ts` | Exact metadata và scope attachment.changed, không bytes/path/content |
++| `server/src/attachments/submissions.ts` | Atomic ticket/comment consumer, exact selection, receipt và quota latch |
++| `server/src/attachments/messages.ts` | Conversation/client UUID, immutable message receipt và decision authority |
++| `server/src/attachments/routing.ts` | Current routing authorization, decision pin, CAS và retirement/revoke |
++| `server/test/attachments-submissions.test.ts` | Real originals, selection/replay/accounting/rollback/receiver closure và pre-cache guard |
++| `server/test/attachments-messages.test.ts` | Inbox UUID concurrency, all-null event, consent và future bridge default deny |
++| `server/test/attachments-routing.test.ts` | Actual ticket retirement, CAS, claim-in-use, rollback và pre-cache decision digest |
++| `server/test/attachments-events.unit.test.ts` | Exact message/input metadata event producer schemas do PM serialize |
+ 
+ ## Dữ liệu
+ 
+@@ -51,3 +65,5 @@
+ Actual008 đã độc lập SPEC+QUALITY READY tại candidate d249a82, checksum `d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f`. Test Task1 dùng actual PostgreSQL private runner, migration009 pinned `fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a`. Native driver chạy immutable Linux Node24.12.0 trong namespace network của đúng private PG container, chỉ proxy loopback random để kiểm actual receiver lifecycle. Đây là connectivity của test có kiểm soát; không phải extraction sandbox hoặc certification. Driver kiểm birth identity DB, heartbeat, socket abort khi producer đang chờ, ACK chỉ sau terminal, replay ACK sau local map release và quota còn giữ. Backup `pg_dump -Fc`/restore prefix008→009 và prefix009 giữ marker, legacy ticket, reserved identity và checksum; deliberate test-owned drift bị từ chối. Fault sau publication giữ blob/intent nhưng vẫn ghi terminal close ACK.
+ 
+ FIX1/5 đáp ứng hai P2 của review f58f27d: actual PostgreSQL regressions kiểm saved wall policy khác currentconfig, stalled/caller-abort/verification/noncooperative cleanup;29 control một byte và EOF UTF8/UTF16 dở dang bị từ chối, receiver terminal/quota giữ/original chưa có. Probe Linux privatePG có exact birth/ACK và cùng EOF/replay cases, dùng immutable Nodeimage/resource bounds; các artifact nằm execution-phase05/task-1-fix1-*. Original report/evidence giữ nguyên; báo cáo FIX1 riêng, không suy timeout thành process STOP hoặc chứng nhận recovery Task7.
++
++Task2a producer f6d3728 và additive010 đã independent READY:010 chỉ đổi comments_text_check length0..32768, legacy appendComment vẫn reject empty và giữ whitespace. Consumer Task2b verification dùng readonly f58:v2 + exact ec3/f6 six/228f9e4 three overlays + own consumer paths, actual private PG18.6 prefix10 và pinned001–010. Evidence launcher kiểm TCP SQL sẵn sàng trước feature vì reviewed baseline runner có socket startup race57P03; không sửa baseline runner/fixture. Test claim-in-use chỉ tạo durable attempt qua actual claim API với test-owned authorization, không launch process/provider hoặc chứng nhận runtime. Final explicit ticket/dependency/completion/repair/producer/consumer/event cover, strict types và scoped Biome nằm task-2b report; không import unfinished peer tests. R2 manifest/Git/full independent consumer review do PM serialize.

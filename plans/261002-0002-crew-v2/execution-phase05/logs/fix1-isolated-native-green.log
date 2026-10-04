@@ -1,0 +1,20 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-fix1-cover-5itswlqi/v2/server/test/attachments-staging.test.ts '--test-name-pattern=Linux native receiver uses'
+
+attachment native container created 1b1e9d548e4aaa2263f3eb4c1d2e6496f63179481329d58934dc7dbec50a2aca pg=689cb8e39495ca435b76f256f5b9f0e9cf391a57e9750e8f4a6134dc34d87a00 database=crew_v2_test_08cfa190c81849fa9798edf7bbcba986
+attachment DB container native-worker root /tmp/crew-v2-attachments-XTMyjl
+attachment DB scratch created /tmp/crew-v2-attachments-XTMyjl nonceSha256=ff47368e9f3c228c81a83a2da405c1fadc104fa94721975e81fe096131d2fa40
+attachment native exact ACK verified receiver=d7b2a9fa-b773-400b-82d4-41b93cff5c07 generation=1 instance=87f89a17-af69-4b15-918c-3878b41a6520
+attachment native abort terminal verified receiver=a33bd23c-008c-4728-9cf2-8f756c276f8b generation=1 quota=held
+attachment DB scratch removed /tmp/crew-v2-attachments-XTMyjl
+attachment native container removed 1b1e9d548e4aaa2263f3eb4c1d2e6496f63179481329d58934dc7dbec50a2aca
+✔ attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK (819.47675ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 917.712833

@@ -1,0 +1,24 @@
+
+> @crew-v2/server@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> tsc --noEmit
+
+src/assistant/authority.ts(98,57): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'ParameterOrFragment<never>'.
+      Type 'undefined' is not assignable to type 'ParameterOrFragment<never>'.
+src/attachments/extract/image.ts(31,54): error TS2307: Cannot find module '@napi-rs/canvas' or its corresponding type declarations.
+src/attachments/extract/pdf.ts(13,23): error TS2307: Cannot find module 'pdfjs-dist' or its corresponding type declarations.
+src/attachments/extract/pdf.ts(15,43): error TS2307: Cannot find module '@napi-rs/canvas' or its corresponding type declarations.
+src/attachments/extract/pdf.ts(16,42): error TS2307: Cannot find module 'pdfjs-dist/legacy/build/pdf.mjs' or its corresponding type declarations.
+src/attachments/extract/pdf.ts(82,33): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/attachments/extract/pdf.ts(184,20): error TS2307: Cannot find module 'pdf-lib' or its corresponding type declarations.
+src/attachments/extract/pdf.ts(214,22): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(215,67): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(217,22): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(244,22): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(246,13): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(248,27): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(248,53): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(250,34): error TS18046: 'object' is of type 'unknown'.
+test/attachments-pdf-image.unit.test.ts(138,49): error TS2307: Cannot find module 'pdf-lib' or its corresponding type declarations.
+ ELIFECYCLE  Command failed with exit code 1.

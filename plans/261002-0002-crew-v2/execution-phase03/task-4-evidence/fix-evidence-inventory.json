@@ -1,0 +1,208 @@
+{
+  "files": [
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/biome.log",
+      "mode": "0o644",
+      "bytes": 43,
+      "sha256": "c6b0a56007c053096b02e72bf6c817c64f90a9db1afabd2261712f16fecdda8a"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/bmad-headers.json",
+      "mode": "0o644",
+      "bytes": 46464,
+      "sha256": "50357d1efc6e3cd0038d5c1a7e1512ddaaa1c0efd5e179eb96711ee402dbd737"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/bmad-installer-behavior.json",
+      "mode": "0o644",
+      "bytes": 220372,
+      "sha256": "b2a8592b255a115d23d60ee0937795a932c27bc4f9d3bfa346a9e0fcc45625ff"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/bmad-recipe-source.json",
+      "mode": "0o644",
+      "bytes": 24331,
+      "sha256": "73b75ce9adeeefd9fa61243ff6cff9167a41d74b8f13216b6ea6f290e3b9f926"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/candidate-inventory.json",
+      "mode": "0o644",
+      "bytes": 1830,
+      "sha256": "7d51e2e0b8441ddc3ccb0117759a5cc5725b7de5c0729573b79ff51f10643671"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/dependency-build-root.json",
+      "mode": "0o644",
+      "bytes": 159,
+      "sha256": "54426b095dfb492c592aab07aaffc641466d0ee336409c50e5767c85e47b6a09"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix-build-focused.log",
+      "mode": "0o644",
+      "bytes": 743,
+      "sha256": "356ace5d360904ab9f73749a42520ebc16ba5b7e5a9020f5dadf175f2e95812e"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix-candidate-inventory.json",
+      "mode": "0o644",
+      "bytes": 7821,
+      "sha256": "433ef8ae903ec9b1749b07f73efdc893b8f20f5eacc1860594f00f7f8c4e690a"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix-operation-focused.log",
+      "mode": "0o644",
+      "bytes": 940,
+      "sha256": "7da178423f9dfb4893adca6a52ea7aae808e64ca0943c8eb863d3ad2df9c7827"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/fix-real-pins.log",
+      "mode": "0o644",
+      "bytes": 1797,
+      "sha256": "1e3035c1bec4b9a6f3f75c6e014932bf51f6ee84a20322723b3a1a70e623f4c9"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/gateway-tests.log",
+      "mode": "0o644",
+      "bytes": 5975,
+      "sha256": "d57ed543b3101988f9f3904fbd689a6f4d8fc9a1804dbb8761a14068c688287f"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/independent-hashes.json",
+      "mode": "0o644",
+      "bytes": 425,
+      "sha256": "dd1b602117b9cc22b4b1c29a3ad104a02f11bd4177ea05412f036243ce2dd186"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/native-artifact-green.log",
+      "mode": "0o644",
+      "bytes": 1790,
+      "sha256": "8fbff975e5e80aff25d2765ac8eee6adb4ef8fd1b3492aefa234290ec7359fe1"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/native-artifact-red.log",
+      "mode": "0o644",
+      "bytes": 905,
+      "sha256": "345c8c9bad3e58947c28e6b960611af91ab901b643bb76b788ca6a5c27fb4e3b"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/official-audits.json",
+      "mode": "0o644",
+      "bytes": 6194,
+      "sha256": "2244fc9fca685e7d60bcba02c341532ac408a55387a2f5cae303aacaecf7d535"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/probe-cleanup.json",
+      "mode": "0o644",
+      "bytes": 2130,
+      "sha256": "077192ceae3d2c70359769545b7e5ca5eb21f075582a3724effef7656c8b69e5"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/provenance.json",
+      "mode": "0o644",
+      "bytes": 5301,
+      "sha256": "8baed9d6c9c9ea678f79f87107d679abb7b409f6f6b935a09875330a27bfef56"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-api-focused.log",
+      "mode": "0o644",
+      "bytes": 220,
+      "sha256": "afa1b0ab1111d3cb3dee0a0449c1cdaebb91ac3693153b5db25d0ea143d78534"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-api-script-green.log",
+      "mode": "0o644",
+      "bytes": 220,
+      "sha256": "1c047163585a340626bd782319d860ee1468c9a7b592332bf3e9079314dd9f41"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-api-script-red.log",
+      "mode": "0o644",
+      "bytes": 983,
+      "sha256": "7f1be5a3cc83e7a75209fd6fc1e7dfac090d8ea935287c14b1972f68ef5748dc"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-biome.log",
+      "mode": "0o644",
+      "bytes": 44,
+      "sha256": "630f3744ccf690dba3e845b4de6e34b50d903a8a3d630ff1a85c66b5d2fe3f6c"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-gateway-final.log",
+      "mode": "0o644",
+      "bytes": 10231,
+      "sha256": "9705ce3cc5a3df9ee8b57d235c22818aeb0da76fc732361dac74e9b7188e4b2d"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-gateway-policy-final.log",
+      "mode": "0o644",
+      "bytes": 10230,
+      "sha256": "92f8773a50cd6987c374f87d72d02e82e5100831e6bb6d5a9fcfb6c93d805e44"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-native-werror.log",
+      "mode": "0o644",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-owned-scratch-inventory.json",
+      "mode": "0o644",
+      "bytes": 4212,
+      "sha256": "ef6be26376bec62df47f3b1ce7307a6d8a12950a4efc8861ccb7f11359d09e03"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-python-syntax.log",
+      "mode": "0o644",
+      "bytes": 91,
+      "sha256": "ca44112b98597aab6178db54bcf9b675085c8b0fff8dda691bb0c016eb2d2fb0"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-typecheck.log",
+      "mode": "0o644",
+      "bytes": 116,
+      "sha256": "ce6acf1b4669c95abbac83d329898760060370d5d5513736a130aeeb16422b1e"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-verified-builds.json",
+      "mode": "0o644",
+      "bytes": 4157,
+      "sha256": "2a8142d9c62fba1017f707335b2988312bb93a9fc95542e33719bd7f1e50e6f2"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/second-real-build.log",
+      "mode": "0o644",
+      "bytes": 12384,
+      "sha256": "8507d5796a2f1e458062bb5b470f5fcc7c6e44d546285faf46eabc284c3206c2"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/superpowers-headers.json",
+      "mode": "0o644",
+      "bytes": 35007,
+      "sha256": "782ae75ec522511e93335f7880e7cd7a8d10858ac4ab56b7dab29de817cf9b65"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/typecheck.log",
+      "mode": "0o644",
+      "bytes": 116,
+      "sha256": "ce6acf1b4669c95abbac83d329898760060370d5d5513736a130aeeb16422b1e"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/superpowers-codex-native-skills-evidence.json",
+      "mode": "0o644",
+      "bytes": 16902,
+      "sha256": "d363985bc10bbdf25c86417ce52454af6b7927ece9428f1f50b950ba560cc169"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/superpowers-codex-native-recipe-review.md",
+      "mode": "0o644",
+      "bytes": 8895,
+      "sha256": "59ab987f5799d09556546adb2772e06d75b3ed354f07060fd9d83c84afcaa290"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/execution-phase03/superpowers-codex-native-recipe-proposal.md",
+      "mode": "0o644",
+      "bytes": 3961,
+      "sha256": "849db1ef98e54519500694b80e43c051675596d8edb6d7094d1185712f14a14b"
+    }
+  ]
+}

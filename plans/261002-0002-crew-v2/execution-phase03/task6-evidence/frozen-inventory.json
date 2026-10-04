@@ -1,0 +1,74 @@
+[
+  {
+    "path": "v2/gateway/src/isolation/workspace.ts",
+    "mode": "0o644",
+    "bytes": 24451,
+    "sha256": "81afd0cb1528e671b6e8c89254b46eb1f62d33ed12bcd80b2daefeece06afaf6"
+  },
+  {
+    "path": "v2/gateway/src/isolation/policy.ts",
+    "mode": "0o644",
+    "bytes": 2248,
+    "sha256": "7cd8365ac5727c0832311a7f4fb19c0ed4334650ce576ccd3e48e989b77f3925"
+  },
+  {
+    "path": "v2/gateway/src/isolation/inventory.ts",
+    "mode": "0o644",
+    "bytes": 6727,
+    "sha256": "9be0b3107d60a7fb9771380c9a2b7504278794dab188f42bca14b001143c6ff5"
+  },
+  {
+    "path": "v2/gateway/src/isolation/preflight.ts",
+    "mode": "0o644",
+    "bytes": 18260,
+    "sha256": "03e748d2599f1402df3f0f91f74d79adda35cd5e20346d60ca3d4f10bb8f80e4"
+  },
+  {
+    "path": "v2/gateway/test/isolation.test.ts",
+    "mode": "0o644",
+    "bytes": 4021,
+    "sha256": "7a01da1bff201ee4eee132eaedd9080a17f83d2fd7eb066fac5f7010a50d9a3f"
+  },
+  {
+    "path": "v2/gateway/test/isolation-workspace.test.ts",
+    "mode": "0o644",
+    "bytes": 12200,
+    "sha256": "6e0a91002e84af2682b7905587049cbb3005744f221eba0386f8cb88ba2f0689"
+  },
+  {
+    "path": "v2/gateway/test/support/isolation-probe.ts",
+    "mode": "0o644",
+    "bytes": 394,
+    "sha256": "4a46735c77b06291620590eea5d47ef416ffecdd61ccd0b20422c9787aefe8b5"
+  },
+  {
+    "path": "v2/gateway/test/support/isolation-typecheck.json",
+    "mode": "0o644",
+    "bytes": 184,
+    "sha256": "6507a2c3e7539ec74836b2cd04b9ce1d0636e0d466639249b7a0a09bcea1575c"
+  },
+  {
+    "path": "v2/docs/flows/gateway-workflows.md",
+    "mode": "0o644",
+    "bytes": 17490,
+    "sha256": "4c8ec22f85763e7b6057422c90f336a75eeb79d742836d9c6d7ba5f6f2f9a034"
+  },
+  {
+    "path": "v2/gateway/package.json",
+    "mode": "0o644",
+    "bytes": 589,
+    "sha256": "674b9290acd5a1eb7074f8caa3654a948d95c3a1390a4d068ffc421b06dca50c"
+  },
+  {
+    "path": "v2/docs/flows/gateway-host.md",
+    "mode": "0o644",
+    "bytes": 26538,
+    "sha256": "3e2f000cd056e87a5798e5d7b9d1cc65ca6376d8416eaad489f896ee51776f66"
+  },
+  {
+    "path": "v2/gateway/test/retirement-crash.test.ts",
+    "mode": "0o644",
+    "bytes": 4100,
+    "sha256": "ae77425625f10eff5f2a3584bb0fb1c5b1b1f8656a34ee0ed6bad76f98edf523"
+  }
+]

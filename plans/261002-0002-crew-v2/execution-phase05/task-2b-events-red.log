@@ -1,0 +1,67 @@
+✖ attachment inbox events accept metadata and enforce owner-only creation (2.17225ms)
+✖ attachment input wake events require exact target and specific machine audience (0.246917ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.170625
+
+✖ failing tests:
+
+test at test/attachments-events.unit.test.ts:7:1
+✖ attachment inbox events accept metadata and enforce owner-only creation (2.17225ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "Dữ liệu sự kiện không hợp lệ"
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-events.unit.test.ts:12:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Dữ liệu sự kiện không hợp lệ
+        at validateEventInput (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/event-contracts.ts:320:21)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-events.unit.test.ts:12:29
+        at getActual (node:assert:611:5)
+        at strict.doesNotThrow (node:assert:779:32)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-events.unit.test.ts:12:10)
+        at Test.runInAsyncScope (node:async_hooks:228:14)
+        at Test.run (node:internal/test_runner/test:1118:25)
+        at Test.start (node:internal/test_runner/test:1015:17)
+        at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17),
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }
+
+test at test/attachments-events.unit.test.ts:27:1
+✖ attachment input wake events require exact target and specific machine audience (0.246917ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "Dữ liệu sự kiện không hợp lệ"
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-events.unit.test.ts:34:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Dữ liệu sự kiện không hợp lệ
+        at validateEventInput (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/event-contracts.ts:320:21)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-events.unit.test.ts:34:29
+        at getActual (node:assert:611:5)
+        at strict.doesNotThrow (node:assert:779:32)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-events.unit.test.ts:34:10)
+        at Test.runInAsyncScope (node:async_hooks:228:14)
+        at Test.run (node:internal/test_runner/test:1118:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+        at Test.postRun (node:internal/test_runner/test:1247:19)
+        at Test.run (node:internal/test_runner/test:1175:12),
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }

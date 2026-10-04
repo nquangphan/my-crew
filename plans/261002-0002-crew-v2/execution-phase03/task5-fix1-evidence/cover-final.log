@@ -1,0 +1,326 @@
+(node:61342) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server
+> node scripts/test-db.ts --test-concurrency=1 --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/host-failures.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/host-lifecycle.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/http-operations.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/journal.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/resources.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/telemetry.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-admission.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-build.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-fix.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-native-projection.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-operations.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/workflow-registry.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/connection.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/event-pump.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/sync.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-crash.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/stop-control.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/pin-retirement.test.ts /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/retirement-crash.test.ts
+
+(node:61359) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:61443) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5tXQF3","device":"16777229","inode":"63780754","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5tXQF3","device":"16777229","inode":"63780754","uid":501,"deleted":true}
+✔ sync boot and heartbeat preserve immutable operations through lost reply/reopen (308.989584ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-urSqrS","device":"16777229","inode":"63780776","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-urSqrS","device":"16777229","inode":"63780776","uid":501,"deleted":true}
+✔ controlled boot transition requires actual bound reconciliation and retains prior history through lost reply (792.676125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Eydjkh","device":"16777229","inode":"63780835","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Eydjkh","device":"16777229","inode":"63780835","uid":501,"deleted":true}
+✔ boot transition rejects an unaccounted admitted launch and current-set races without clearing pins (1490.694166ms)
+(node:61632) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xaGK4e","device":"16777229","inode":"63781006","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xaGK4e","device":"16777229","inode":"63781006","uid":501,"deleted":true}
+✔ sync event pump persists only reconciled SSE cursor and polls after stream failure across reopen (139.254708ms)
+(node:61639) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 private database container 9887afa99cae0a66b35702afa30e0e7e6b815a0724be3e6986a676f3f2b54198
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZadCXH","device":"16777229","inode":"63781015","uid":501}
+{"level":30,"time":1790933600253,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62590"}
+{"level":30,"time":1790933603322,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62614"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZadCXH","device":"16777229","inode":"63781015","uid":501,"deleted":true}
+✔ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (4215.909667ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-U1oPkA","device":"16777229","inode":"63781266","uid":501}
+{"level":30,"time":1790933604369,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62623"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-U1oPkA","device":"16777229","inode":"63781266","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: old-report (2641.247792ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4ihp1Y","device":"16777229","inode":"63781450","uid":501}
+{"level":30,"time":1790933606983,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62642"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-4ihp1Y","device":"16777229","inode":"63781450","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: disabled-runtime (1983.707125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WtEVwS","device":"16777229","inode":"63781624","uid":501}
+{"level":30,"time":1790933608980,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62658"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WtEVwS","device":"16777229","inode":"63781624","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: missing-decision (2716.211083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Vbfsl3","device":"16777229","inode":"63781884","uid":501}
+{"level":30,"time":1790933611684,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62675"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Vbfsl3","device":"16777229","inode":"63781884","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: mismatched-decision (2637.13375ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZCi3HG","device":"16777229","inode":"63782079","uid":501}
+{"level":30,"time":1790933614327,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62704"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ZCi3HG","device":"16777229","inode":"63782079","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: client-only-selection (2123.109042ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Y8ErJr","device":"16777229","inode":"63782250","uid":501}
+{"level":30,"time":1790933616441,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62719"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Y8ErJr","device":"16777229","inode":"63782250","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: default-deny (2796.905208ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-W3KSsH","device":"16777229","inode":"63782435","uid":501}
+{"level":30,"time":1790933619240,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62740"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-W3KSsH","device":"16777229","inode":"63782435","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: pause (3415.470375ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xJPgDK","device":"16777229","inode":"63782657","uid":501}
+{"level":30,"time":1790933622646,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62763"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xJPgDK","device":"16777229","inode":"63782657","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: cancel (3229.509834ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-RFsPEt","device":"16777229","inode":"63782887","uid":501}
+{"level":30,"time":1790933626026,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62805"}
+Task5 owned escaped child {"pid":63804,"uid":501,"processGroupId":63804,"birth":"1790933628:491187"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-RFsPEt","device":"16777229","inode":"63782887","uid":501,"stage":"fork-cancel"}
+✔ execution bridge actual server selection and stop: fork-cancel (4359.472542ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wIPiFj","device":"16777229","inode":"63783112","uid":501}
+{"level":30,"time":1790933630253,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62829"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wIPiFj","device":"16777229","inode":"63783112","uid":501,"deleted":true}
+✔ actual prefix8 desired read barrier cannot supersede a newly committed workflow command (2177.260209ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FZgS80","device":"16777229","inode":"63783319","uid":501}
+{"level":30,"time":1790933632406,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62854"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FZgS80","device":"16777229","inode":"63783319","uid":501,"deleted":true}
+✔ actual prefix8 503 after committed boot heartbeat ACK and report recovers same server receipts across reopen (2527.502084ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-7bN7uY","device":"16777229","inode":"63783554","uid":501}
+{"level":30,"time":1790933634933,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62875"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-7bN7uY","device":"16777229","inode":"63783554","uid":501,"deleted":true}
+✔ actual prefix8 controlled boot rejects server-cas and preserves history (818.051292ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-J5mId0","device":"16777229","inode":"63783608","uid":501}
+{"level":30,"time":1790933635748,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62882"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-J5mId0","device":"16777229","inode":"63783608","uid":501,"stage":"orphan-admission"}
+✔ actual prefix8 controlled boot rejects orphan-admission and preserves history (1899.741875ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-fY8Vjh","device":"16777229","inode":"63783774","uid":501}
+{"level":30,"time":1790933637671,"pid":61639,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62897"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-fY8Vjh","device":"16777229","inode":"63783774","uid":501,"deleted":true}
+✔ actual prefix8 pending old-boot report resolves old key then resamples under controlled new boot (2299.416041ms)
+(node:64448) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hEl3w1","device":"16777229","inode":"63784041","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hEl3w1","device":"16777229","inode":"63784041","uid":501,"deleted":true}
+✔ execution bridge lost claim replay keeps one READY identity before release (2187.611875ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5YYFq5","device":"16777229","inode":"63784226","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5YYFq5","device":"16777229","inode":"63784226","uid":501,"deleted":true}
+✔ execution bridge lost projection replay keeps one READY identity before release (2095.14425ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ypIstu","device":"16777229","inode":"63784413","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ypIstu","device":"16777229","inode":"63784413","uid":501,"deleted":true}
+✔ execution bridge production permit default denies before reserving a launch (402.523583ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-iLSTHU","device":"16777229","inode":"63784455","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-iLSTHU","device":"16777229","inode":"63784455","uid":501,"deleted":true}
+✔ execution bridge authenticates reconcile command and durably acknowledges same command once (422.056834ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-22pSuv","device":"16777229","inode":"63784501","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-22pSuv","device":"16777229","inode":"63784501","uid":501,"deleted":true}
+✔ execution bridge reconnect resets UUID page anchor and sees later lower UUID command (454.912625ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-lbR5u6","device":"16777229","inode":"63784551","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-lbR5u6","device":"16777229","inode":"63784551","uid":501,"deleted":true}
+✔ reconnect isolates denied dispatch across pages and reopen so reconcile controls progress (484.268042ms)
+(node:65085) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3Qe2XP","device":"16777229","inode":"63784599","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3Qe2XP","device":"16777229","inode":"63784599","uid":501,"deleted":true}
+✔ execution bridge SIGKILL at reserved keeps exact launch and retains unproven pins (2660.787667ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-f0Vvxt","device":"16777229","inode":"63784763","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-f0Vvxt","device":"16777229","inode":"63784763","uid":501,"stage":"spawned"}
+✔ execution bridge SIGKILL at spawned keeps exact launch and retains unproven pins (2678.588167ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5DgOKY","device":"16777229","inode":"63784933","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-5DgOKY","device":"16777229","inode":"63784933","uid":501,"stage":"ready"}
+✔ execution bridge SIGKILL at ready keeps exact launch and retains unproven pins (3185.741375ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-oK31BN","device":"16777229","inode":"63785116","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-oK31BN","device":"16777229","inode":"63785116","uid":501,"stage":"claim"}
+✔ execution bridge SIGKILL at claim keeps exact launch and retains unproven pins (3203.765ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Gwxhxs","device":"16777229","inode":"63785287","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Gwxhxs","device":"16777229","inode":"63785287","uid":501,"stage":"companion"}
+✔ execution bridge SIGKILL at companion keeps exact launch and retains unproven pins (3160.042375ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Flkk0O","device":"16777229","inode":"63785541","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Flkk0O","device":"16777229","inode":"63785541","uid":501,"stage":"authorized"}
+✔ execution bridge SIGKILL at authorized keeps exact launch and retains unproven pins (3287.238959ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sV0mOP","device":"16777229","inode":"63785718","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sV0mOP","device":"16777229","inode":"63785718","uid":501,"stage":"released"}
+✔ execution bridge SIGKILL at released keeps exact launch and retains unproven pins (3254.443292ms)
+(node:66478) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ oversized second frame cannot crash host or replace boot (192.367708ms)
+✔ absolute frame deadline closes a drip client despite continuing bytes (1614.423625ms)
+✔ SIGTERM stops with an unfinished frame and a new host binds (349.202917ms)
+✔ crash residue in recovery and empty init lock does not wedge reboot (685.065583ms)
+✔ empty host lock from interrupted initialization is recoverable (218.095542ms)
+✔ live contender cannot take over host or change its socket (130.814375ms)
+✔ unknown symlink recovery residue is not deleted or followed (192.965042ms)
+✔ stop drains a stalled dispatch only until its bounded deadline (338.507375ms)
+✔ macOS guard retains one inode across release and old-fd contender ordering (133.345ms)
+(node:66871) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ host lifecycle: UI main exit and reopen preserve independent host boot (487.128959ms)
+✔ host lifecycle: preexisting token symlink cannot overwrite another file (84.772208ms)
+✔ host lifecycle: unauthenticated socket client cannot read status (189.373125ms)
+✔ host lifecycle: crash leaves recoverable lock and a new boot can bind the socket (440.485083ms)
+✔ host lifecycle: transient macOS user agent owns host after client exits (175.825375ms)
+(node:66989) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (322.7255ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (91.850917ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (320.25575ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-NcFcgB","device":"16777229","inode":"63786047","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-NcFcgB","device":"16777229","inode":"63786047","uid":501,"deleted":true}
+✔ transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen (292.92625ms)
+(node:67033) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ journal command reservation survives restart and concurrent journal writer is rejected (201.953708ms)
+✔ journal READY child cannot run side effects until exact projection authorization and durable release (718.116917ms)
+✔ journal crash windows retain reservation, require READY identity and never release before authorization (5322.086ms)
+✔ journal PID birth mismatch and capacity/projection failure remain gated and unknown (725.024958ms)
+✔ journal descendant that escapes the dedicated process group leaves tree unknown (2098.68275ms)
+✔ journal concurrent launcher calls reserve one dormant child and never a second process (682.622416ms)
+✔ journal native binary tamper fails closed and cannot become exit proof (691.39175ms)
+✔ journal built entrypoint resolves the gated helper and owned native source without a global install (700.938584ms)
+✔ journal concurrent releases for the same fenced claim execute the workflow side effect once (902.638083ms)
+(node:68118) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-tibpqr","device":"16777229","inode":"63786450","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-tibpqr","device":"16777229","inode":"63786450","uid":501,"deleted":true}
+✔ terminal pin retirement defaults deny and keeps historical references without actual STOP (1428.872542ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pN2S6H","device":"16777229","inode":"63786601","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-pN2S6H","device":"16777229","inode":"63786601","uid":501,"deleted":true}
+✔ terminal pin retirement fsyncs exact receipt, filters refs and denies resurrection (2189.562458ms)
+(node:68206) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ resources reservations and unverified creation never grant deletion; unknown process retains (186.018167ms)
+✔ resources attested path swapped to symlink or hardlinked bytes is retained unchanged (609.651541ms)
+✔ resources proven stopped run deletes only its owned scratch and retries idempotently (1366.490459ms)
+✔ resources exact stop does not permit parent symlink swap, hardlink alias, dirty or shared cleanup (1759.691417ms)
+✔ resources cancellation retains attested scratch even with exact stopped proof (1334.197083ms)
+✔ resources cleanup recovers a crash after quarantine rename before durable state update (1342.902ms)
+✔ resources callback cannot attest a symlink to the owner checkout (628.460584ms)
+✔ resources abort after durable quarantine retains owned bytes and retry removes the same inode (1444.127917ms)
+✔ resources runtime output changes directory link count after attest and still cleans up after exact stop (1546.106791ms)
+✔ resources actual partial native deletion retains quarantine and retries after its owned immutable flag clears (1501.916208ms)
+(node:68981) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l2UZMC","device":"16777229","inode":"63787229","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l2UZMC","device":"16777229","inode":"63787229","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL before-write preserves durable proof and reference authority (2379.383625ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QJMzd5","device":"16777229","inode":"63787404","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-QJMzd5","device":"16777229","inode":"63787404","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-write preserves durable proof and reference authority (2380.974ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-upLm6L","device":"16777229","inode":"63787577","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-upLm6L","device":"16777229","inode":"63787577","uid":501,"deleted":true}
+✔ terminal retirement SIGKILL after-filter preserves durable proof and reference authority (2321.541959ms)
+(node:69328) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dy0mOA","device":"16777229","inode":"63787749","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dy0mOA","device":"16777229","inode":"63787749","uid":501,"stage":"release-race"}
+✔ native stop control preserves gated proof, pending startup, repeated TERM and completed observer (2792.004666ms)
+(node:69434) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3uafXP","device":"16777229","inode":"63787935","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3uafXP","device":"16777229","inode":"63787935","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (1752.91125ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-YMlEbR","device":"16777229","inode":"63788111","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-YMlEbR","device":"16777229","inode":"63788111","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (1706.241875ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ywyVSG","device":"16777229","inode":"63788367","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ywyVSG","device":"16777229","inode":"63788367","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (1662.237333ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qpzgfJ","device":"16777229","inode":"63788545","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qpzgfJ","device":"16777229","inode":"63788545","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (1594.372791ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Oqhduk","device":"16777229","inode":"63788710","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Oqhduk","device":"16777229","inode":"63788710","uid":501,"deleted":true}
+✔ sync defers command ahead of desired snapshot, then applies after reopen without false supersession (1649.271125ms)
+(node:69957) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ telemetry each dispatch samples again and pressure change blocks second dispatch (1.249333ms)
+✔ telemetry stale, disk, RAM, CPU, concurrency and ownership fail closed for all dispatch kinds (0.171125ms)
+✔ telemetry macOS sample obtains live pressure, page memory and disk without a cached result (8.001541ms)
+(node:69962) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Admission boundary: snapshot CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-gYDvgM","device":"16777229","inode":"63788882","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (976.924583ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-oSxEw7","device":"16777229","inode":"63788950","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (981.41375ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-spOsSf","device":"16777229","inode":"63789015","ownerUid":501,"deleted":true}
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (955.037459ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-SgbnVd","device":"16777229","inode":"63789080","ownerUid":501,"deleted":true}
+✔ workflow admission reserve-first holds GC until real journal commit and survives cached replay (977.983708ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-GKll2Q","device":"16777229","inode":"63789145","ownerUid":501,"deleted":true}
+✔ workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape (1496.347917ms)
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-dyZ2qb","device":"16777229","inode":"63789232","ownerUid":501,"deleted":true}
+✔ workflow admission bind waits for an in-flight standalone v1 reservation before GC (866.281542ms)
+Recovered admission checkpoint: admission source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-CpuIvU","device":"16777229","inode":"63789304","ownerUid":501,"deleted":true}
+✔ workflow admission crash at admission retains unknown intent or denies a deleted pair after restart (1196.273209ms)
+Recovered admission checkpoint: committed source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-BTV91U","device":"16777229","inode":"63789370","ownerUid":501,"deleted":true}
+✔ workflow admission crash at committed retains unknown intent or denies a deleted pair after restart (1141.060333ms)
+Recovered admission checkpoint: quarantine source pair protected or reservation denied; no process launched
+Admission owned cleanup: {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-C8l3S9","device":"16777229","inode":"63789436","ownerUid":501,"deleted":true}
+✔ workflow admission crash at quarantine retains unknown intent or denies a deleted pair after restart (1156.739208ms)
+(node:70225) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+BMAD independent supervised builds: [{"id":"6a7d7a58-d5a0-48ab-a48c-666f2574e1b5","identity":{"bytes":0,"device":"16777229","inode":"63798283","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"6a7d7a58-d5a0-48ab-a48c-666f2574e1b5","device":"16777229","inode":"63798283","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"5dfe5bed-12c3-4887-b7ca-645bda017493","identity":{"bytes":0,"device":"16777229","inode":"63802144","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"5dfe5bed-12c3-4887-b7ca-645bda017493","device":"16777229","inode":"63802144","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"0fb29493-2bb0-4a47-8e2f-75e3c2e9de75","identity":{"bytes":0,"device":"16777229","inode":"63790034","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"0fb29493-2bb0-4a47-8e2f-75e3c2e9de75","device":"16777229","inode":"63790034","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}},{"id":"0c975b21-bee7-4718-acc5-a767657a374a","identity":{"bytes":0,"device":"16777229","inode":"63793898","kind":"directory","linkCount":2,"ownerUid":501},"receipt":{"formatVersion":1,"operationId":"0c975b21-bee7-4718-acc5-a767657a374a","device":"16777229","inode":"63793898","treeEmpty":true,"forkObserved":false,"exitCode":0,"timedOut":false}}]
+✔ workflow real official BMAD installer builds deterministic Claude and API artifacts (51860.818792ms)
+✔ workflow real Superpowers API preserves exact official scripts and pins tool policy (2728.161083ms)
+✔ workflow frozen builder rejects dependency and uv tampering before execution (7757.727292ms)
+(node:71856) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ workflow fix cancellation cannot rewind existing A after B activation (849.492041ms)
+✔ workflow fix abort during existing verification preserves B activation (773.593542ms)
+✔ workflow fix repeated completed malformed operations reclaim exact stages (786.623667ms)
+(node:71928) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ workflow audited native Superpowers candidate has its independent artifact pin (1.561ms)
+Native independent build identities: [{"id":"8be8ff9a-c51e-4481-99a2-181c473d047a","identity":{"bytes":0,"device":"16777229","inode":"63808953","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}},{"id":"3a1a850c-188c-465b-86b9-4774ccffda2b","identity":{"bytes":0,"device":"16777229","inode":"63809273","kind":"directory","linkCount":2,"ownerUid":501},"pin":{"runtime":"codex","sourceTreeSha256":"76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46","manifestSha256":"f01a3cbde8fd3998e616dad4eba8b0fce6836229ddc905cfb6ed6908908e9a51","derivation":{"tool":"crew-audited-official-native-skills","version":"1","options":["full-upstream-tree","15-internal-relative-links"],"layoutSchema":"superpowers-codex-native-skills-v1","policySha256":"2fcc58b1687cc9b8b7c47ad6215249138cd70734fb063089ea8683f531b20558"},"treeSha256":"a07b17957970b190b7071f7585c1454f5cfc110ed004dcd6503a94c40e69a639"}}]
+✔ workflow native full-tree artifact preserves bytes and modes with two real build roots and fixed discovery geometry (5615.920583ms)
+(node:72191) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ workflow durable operation recovers killed reserve/create/rename/quarantine checkpoints (5908.673666ms)
+Retained genuine fork UNKNOWN fixtures: ["/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-TvKTQR"]
+✔ workflow operation native timeout yields real stop receipt and fork remains UNKNOWN (2396.995458ms)
+✔ workflow no-follow deletion unlinks symlink itself and rejects hardlink aliases (589.772416ms)
+✔ workflow published GC releases registry reference but preserves recovered unready process reference (1777.163541ms)
+(node:72581) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ workflow registry installs verified immutable source (665.632292ms)
+✔ workflow registry separates runtime roots and retains old immutable pairs through restart (1115.974ms)
+✔ workflow registry rejects source and projection tampering on every resolve (736.603125ms)
+✔ workflow registry rejects unknown runtime recipes and expected projection mismatch (667.867333ms)
+✔ workflow registry rejects malicious archives before activating and keeps old current (1168.378708ms)
+✔ workflow registry detects truncated extraction and wrong npm integrity (595.722ms)
+✔ workflow registry rejects unapproved download URL and redirect and bounds response (14.691125ms)
+✔ workflow registry canonical manifest ignores archive order and ownership times (741.412292ms)
+✔ workflow registry audit builder checks pinned payload and materializes official Claude layout (1.435083ms)
+✔ workflow registry API projection contains official fixture skill/script and audited policy (770.639667ms)
+✔ workflow registry derivation version/options/layout/policy independently change projection pin (1135.302625ms)
+✔ workflow registry accepts internal symlink (633.319459ms)
+✔ workflow registry source update preserves retained source and old runtime pair (837.582792ms)
+✔ workflow registry expected projection checksum failure never publishes runtime tree (648.822333ms)
+✔ workflow registry recovers ProcessJournal pair after registry release (1029.059ms)
+✔ workflow registry pinned official npm and Git archives verify distinct provenance and Claude bytes (4252.446834ms)
+✔ workflow registry cancellation before publish preserves previous active source (661.450166ms)
+ℹ tests 121
+ℹ suites 0
+ℹ pass 121
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230559.336625

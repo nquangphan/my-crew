@@ -1,0 +1,104 @@
+{
+  "kind": "own-metadata-scratch-cleanup-intent",
+  "at": "2026-10-03T12:04:04.246976+00:00",
+  "scope": "five exact current offline acquisition roots only",
+  "productionStopCertificate": false,
+  "records": [
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-e3pijnwg",
+        "device": 16777229,
+        "inode": 64475797,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 29673,
+      "startedAt": "2026-10-03T11:54:06.471138+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "--help"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo",
+        "device": 16777229,
+        "inode": 64477810,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 40222,
+      "startedAt": "2026-10-03T11:59:46.584337+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-json-schema",
+        "--help"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-52xhk4e2",
+        "device": 16777229,
+        "inode": 64477896,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 40974,
+      "startedAt": "2026-10-03T12:00:01.585971+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-ts",
+        "--help"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-8qdyn6gx",
+        "device": 16777229,
+        "inode": 64477935,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 41417,
+      "startedAt": "2026-10-03T12:00:16.415828+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-json-schema",
+        "--out",
+        "/private/tmp/crew-v2-task4-codex-help-8qdyn6gx/json"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-tj0dvhjf",
+        "device": 16777229,
+        "inode": 64478646,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 42232,
+      "startedAt": "2026-10-03T12:00:29.443713+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-ts",
+        "--out",
+        "/private/tmp/crew-v2-task4-codex-help-tj0dvhjf/ts"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    }
+  ]
+}

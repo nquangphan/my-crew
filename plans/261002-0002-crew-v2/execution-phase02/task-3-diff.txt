@@ -1,0 +1,1505 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 779c9ba..629c17e 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -1,40 +1,51 @@
+ # Tra cứu file
+ 
+ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng lệnh.
+ 
+ <!-- crew-docs:files:start -->
+ > Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.
+ 
+ | File | Flows |
+ |------|-------|
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
++| `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
++| `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
++| `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
++| `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
++| `server/src/auth/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
++| `server/src/auth/session.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
+ | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
++| `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
++| `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
++| `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
++| `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
++| `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 22908e7..4ed5534 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -38,22 +38,39 @@ flows:
+       - server/scripts/test-db.ts
+       - server/migrations/001_platform.sql
+       - server/package.json
+       - server/tsconfig.json
+     tests:
+       - server/test/platform.test.ts
+       - server/test/support/db.ts
+   server-journal:
+     title: Mutation và event journal bền vững Crew v2
+     doc: docs/flows/server-journal.md
+     entrypoints:
+       - server/src/journal/routes.ts
+     files:
+       - server/src/journal/canonical.ts
+       - server/src/journal/event-contracts.ts
+       - server/src/journal/events.ts
+       - server/src/journal/mutation.ts
+       - server/migrations/002_journal.sql
+     tests:
+       - server/test/journal.test.ts
++  server-identity:
++    title: Xác thực owner và gắn dự án với máy Crew v2
++    doc: docs/flows/server-identity.md
++    entrypoints:
++      - server/src/auth/routes.ts
++      - server/src/projects/routes.ts
++    files:
++      - server/src/auth/bootstrap.ts
++      - server/src/auth/machine.ts
++      - server/src/auth/password.ts
++      - server/src/auth/session.ts
++      - server/src/projects/service.ts
++      - server/migrations/003_identity.sql
++    tests:
++      - server/test/auth.test.ts
++      - server/test/projects.test.ts
++      - server/test/support/identity-app.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-identity.md b/v2/docs/flows/server-identity.md
+new file mode 100644
+index 0000000..09e448b
+--- /dev/null
++++ b/v2/docs/flows/server-identity.md
+@@ -0,0 +1,49 @@
++# Đăng nhập owner, cấp máy và gắn project
++
++## Mục đích
++
++Flow này xác thực một owner đã bootstrap, cấp token mới cho máy macOS và gắn mỗi project với đúng một máy. Máy v1 và credential v1 không được nhập lại. Mọi project mới ở trạng thái chưa gắn máy; việc gắn lại bị chặn theo mặc định cho đến khi có guard đối chiếu tác vụ đang chạy ở phần sau.
++
++## Điểm vào
++
++- `server/src/auth/bootstrap.ts` → `bootstrapOwner`: tạo duy nhất owner từ mật khẩu stdin.
++- `server/src/auth/routes.ts` → `registerAuthRoutes`, `createAuthenticator`: route phiên, cấp máy và xác thực request.
++- `server/src/projects/routes.ts` → `registerProjectRoutes`: route tạo, đọc và gắn project.
++- `server/src/projects/service.ts` → `createProject`, `bindProject`, `projectEventScope`: nghiệp vụ và phạm vi event.
++
++## Các bước
++
++1. `server/src/auth/bootstrap.ts` → `bootstrapOwner`: băm mật khẩu bằng `scrypt` với salt ngẫu nhiên rồi ghi trong transaction có advisory lock. CLI chỉ nhận mật khẩu từ stdin và từ chối lần bootstrap thứ hai.
++2. `server/src/auth/routes.ts` → `registerAuthRoutes`: `POST /v2/auth/session` kiểm tra Origin và mật khẩu, giới hạn năm lần sai mỗi năm phút theo IP đã băm; tạo session 12 giờ với cookie `HttpOnly`, `SameSite=Strict`, `Secure` ở môi trường HTTPS. `GET` trả owner và CSRF; `DELETE` cần Origin cùng CSRF rồi thu hồi session.
++3. `server/src/auth/session.ts` → `createSession`, `credentialResponseCodec`: chỉ lưu SHA-256 của session và CSRF; CSRF dùng AES-256-GCM để đọc lại cho phiên hợp lệ. Response cấp máy được mã hóa AES-256-GCM theo phạm vi actor, route và idempotency key trước khi journal lưu để owner cùng phiên có thể replay token mà DB không chứa token gốc.
++4. `server/src/auth/machine.ts` → `provisionMachine`: tạo UUID và token 32 byte ngẫu nhiên, lưu hash, phát `machine.provisioned` chỉ có machineId. Route máy chỉ trả metadata khi đọc danh sách; máy đã bị thu hồi không xác thực được.
++5. `server/src/projects/service.ts` → `createProject`: kiểm tra key, tên, URL HTTPS/SSH không có userinfo; tạo project chưa gắn máy và phát `project.created` chỉ có revision.
++6. `server/src/projects/service.ts` → `bindProject`: khóa dòng project, kiểm tra revision và máy còn hiệu lực, gọi guard trong cùng transaction nếu project đã gắn máy, cập nhật một machineId/checkoutPath, xóa commit checkout cũ và tăng bindingRevision; phát `project.bound` chỉ có machineId và bindingRevision. Chữ ký ba tham số mặc định từ chối gắn lại; tham số guard thứ tư tùy chọn cho Task5 kiểm tra attempt `active`, `uncertain`, `finalizing` sau khi các bảng đó có mặt.
++7. `server/src/projects/service.ts` → `projectEventScope`: máy chỉ đọc sự kiện của project hiện gắn với máy đó; owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
++
++## Files
++
++| Đường dẫn từ `v2/` | Vai trò |
++|---|---|
++| `server/migrations/003_identity.sql` | Owner, session, machine, project và liên kết legacy ID |
++| `server/src/auth/password.ts` | `scrypt` và so sánh hash có thời gian cố định |
++| `server/src/auth/session.ts` | Cookie, CSRF, mã hóa kết quả replay |
++| `server/src/auth/machine.ts` | Cấp máy và event metadata |
++| `server/src/auth/bootstrap.ts` | Bootstrap owner bằng stdin |
++| `server/src/auth/routes.ts` | Route auth/machine và kiểm tra quyền |
++| `server/src/projects/service.ts` | Project, binding và phạm vi event |
++| `server/src/projects/routes.ts` | Route project với schema cấm trường dư |
++| `server/test/support/identity-app.ts` | Fastify fixture với DB riêng, cookie và CSRF thật |
++| `server/test/auth.test.ts`, `server/test/projects.test.ts` | Kiểm thử hành vi auth và binding |
++
++## Dữ liệu
++
++DB lưu password salt/hash, hash của session/token/CSRF và ciphertext của CSRF/idempotent machine response. Token gốc chỉ có ở phản hồi cấp máy cho owner đã xác thực; không có trong event hoặc backup DB. `projects.machine_id` và `checkout_path` cùng null hoặc cùng có giá trị; bản nhập docs cũ có thể giữ project ở trạng thái chưa gắn. `docsState` hiện là `missing` cho project mới; flow docs nhập liệu cập nhật trạng thái khi có snapshot.
++
++## Flow liên quan
++
++`server-platform` cấp PostgreSQL và fixture test riêng. `server-journal` giữ mutation, event và replay. Flow execution phần tiếp theo sẽ cung cấp guard đối chiếu attempt trước khi cho phép đổi binding.
++
++## Tests
++
++`pnpm --dir v2/server test --test-name-pattern='auth|provision|binding|project'` kiểm tra quyền owner/machine, CSRF/Origin, throttle, session qua app restart, hết hạn và logout, credential không có trong `pg_dump`, replay idempotent mã hóa, giới hạn input, phân trang và binding đồng thời. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng cho source, test của flow.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 2413bed..65efadb 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -10,29 +10,30 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g
+ - Node.js ≥ 24.12 chạy TypeScript bằng type stripping.
+ - TypeScript 7 kiểm tra kiểu ở chế độ strict; `node:test` chạy kiểm thử.
+ - pnpm 10.32.1 quản lý package độc lập trong `v2/` và `v2/server/`.
+ - Nền tảng server dùng Fastify 5 và postgres.js; DB v2 riêng PostgreSQL 18.6, không dùng DB v1.
+ 
+ ## Bản đồ module
+ 
+ | Thư mục | Vai trò |
+ |---------|---------|
+ | `src/` | Bốn policy thuần cho chọn model, workflow, chuyển trạng thái ticket và hoàn tất |
+ | `test/` | Kiểm thử hành vi và tính độc lập của workspace |
+ | `server/` | Nền tảng DB server độc lập, migration có checksum và fixture PostgreSQL riêng |
+ | `docs/` | Kiến trúc, manifest flow và bảng tra file |
+ 
+ ## Danh sách flow
+ 
+ <!-- crew-docs:flows:start -->
+ | Flow | Id | Điểm vào |
+ |------|----|----------|
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
++| [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ <!-- crew-docs:flows:end -->
+ 
+ ## Cách dùng docs
+ 
+ - [Kiến trúc](architecture.md) mô tả ranh giới của thư viện miền.
+ - [Bảng tra file](files.md) cho biết file thuộc flow nào.
+ - Mỗi trang trong `flows/` mô tả điểm vào, bước xử lý, dữ liệu và test của một flow.
+diff --git a/v2/server/migrations/003_identity.sql b/v2/server/migrations/003_identity.sql
+new file mode 100644
+index 0000000..c2e1d87
+--- /dev/null
++++ b/v2/server/migrations/003_identity.sql
+@@ -0,0 +1,44 @@
++create table owners (
++  id text primary key check (id = 'owner'),
++  password_salt text not null,
++  password_hash text not null
++);
++
++create table sessions (
++  id_hash char(64) primary key,
++  owner_id text not null references owners(id),
++  csrf_hash char(64) not null,
++  csrf_ciphertext text not null,
++  expires_at timestamptz not null,
++  revoked_at timestamptz null
++);
++create index sessions_owner_expires on sessions (owner_id, expires_at);
++
++create table machines (
++  id uuid primary key,
++  name text not null,
++  token_hash char(64) not null unique,
++  created_at timestamptz not null default now(),
++  revoked_at timestamptz null
++);
++
++create table projects (
++  id uuid primary key,
++  key text not null unique,
++  name text not null,
++  repository_url text null,
++  machine_id uuid null references machines(id),
++  checkout_path text null,
++  binding_revision integer not null default 1 check (binding_revision > 0),
++  expected_commit text null,
++  created_at timestamptz not null default now(),
++  check ((machine_id is null) = (checkout_path is null))
++);
++create index projects_machine on projects (machine_id);
++
++create table legacy_projects (
++  source_system text not null,
++  legacy_id text not null,
++  project_id uuid not null unique references projects(id),
++  primary key (source_system, legacy_id)
++);
+diff --git a/v2/server/src/auth/bootstrap.ts b/v2/server/src/auth/bootstrap.ts
+new file mode 100644
+index 0000000..187735a
+--- /dev/null
++++ b/v2/server/src/auth/bootstrap.ts
+@@ -0,0 +1,36 @@
++import { pathToFileURL } from 'node:url';
++import { connectDb } from '../db/client.ts';
++import { loadConfig } from '../platform/config.ts';
++import type { Db } from '../platform/contracts.ts';
++import { hashPassword } from './password.ts';
++
++export async function bootstrapOwner(db: Db, password: string): Promise<void> {
++  const { salt, hash } = await hashPassword(password);
++  await db.begin(async (tx) => {
++    await tx`select pg_advisory_xact_lock(hashtextextended('crew-v2-owner-bootstrap', 0))`;
++    const exists = await tx`select id from owners limit 1`;
++    if (exists.length) throw new Error('OWNER_ALREADY_EXISTS');
++    await tx`insert into owners (id, password_salt, password_hash) values ('owner', ${salt}, ${hash})`;
++  });
++}
++
++async function readPasswordFromStdin(): Promise<string> {
++  if (process.argv.length > 2) throw new Error('PASSWORD_ARGUMENT_FORBIDDEN');
++  let value = '';
++  for await (const chunk of process.stdin) {
++    value += chunk.toString();
++    if (value.length > 4096) throw new Error('PASSWORD_TOO_LONG');
++  }
++  return value.replace(/\r?\n$/, '');
++}
++
++if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
++  const config = loadConfig(process.env);
++  const password = await readPasswordFromStdin();
++  const db = connectDb(config.databaseUrl);
++  try {
++    await bootstrapOwner(db, password);
++  } finally {
++    await db.end();
++  }
++}
+diff --git a/v2/server/src/auth/machine.ts b/v2/server/src/auth/machine.ts
+new file mode 100644
+index 0000000..163f64b
+--- /dev/null
++++ b/v2/server/src/auth/machine.ts
+@@ -0,0 +1,24 @@
++import { randomUUID } from 'node:crypto';
++import { appendEvent } from '../journal/events.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { randomSecret, sha256 } from './session.ts';
++
++export type Machine = { id: Id; name: string; revokedAt: string | null };
++
++export async function provisionMachine(tx: Tx, name: string): Promise<{ machine: Machine; token: string }> {
++  if (typeof name !== 'string' || name.length < 1 || name.length > 200) {
++    throw new ApiError('VALIDATION', 400, 'Tên máy không hợp lệ');
++  }
++  const id = randomUUID();
++  const token = randomSecret();
++  await tx`insert into machines (id, name, token_hash) values (${id}, ${name}, ${sha256(token)})`;
++  await appendEvent(tx, {
++    type: 'machine.provisioned',
++    projectId: null,
++    ticketId: null,
++    audienceMachineId: null,
++    data: { machineId: id },
++  });
++  return { machine: { id, name, revokedAt: null }, token };
++}
+diff --git a/v2/server/src/auth/password.ts b/v2/server/src/auth/password.ts
+new file mode 100644
+index 0000000..e497b5f
+--- /dev/null
++++ b/v2/server/src/auth/password.ts
+@@ -0,0 +1,23 @@
++import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
++
++const params = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
++
++function derive(password: string, salt: Buffer, length: number): Promise<Buffer> {
++  return new Promise((resolve, reject) => {
++    scrypt(password, salt, length, params, (error, key) => (error ? reject(error) : resolve(key)));
++  });
++}
++
++export async function hashPassword(password: string): Promise<{ salt: string; hash: string }> {
++  if (typeof password !== 'string' || password.length < 12) throw new Error('PASSWORD_TOO_SHORT');
++  const salt = randomBytes(16);
++  const hash = await derive(password, salt, 32);
++  return { salt: salt.toString('hex'), hash: hash.toString('hex') };
++}
++
++export async function verifyPassword(password: string, saltHex: string, hashHex: string): Promise<boolean> {
++  if (!/^[0-9a-f]{32}$/.test(saltHex) || !/^[0-9a-f]{64}$/.test(hashHex)) return false;
++  const expected = Buffer.from(hashHex, 'hex');
++  const actual = await derive(password, Buffer.from(saltHex, 'hex'), expected.length);
++  return actual.length === expected.length && timingSafeEqual(actual, expected);
++}
+diff --git a/v2/server/src/auth/routes.ts b/v2/server/src/auth/routes.ts
+new file mode 100644
+index 0000000..be98c32
+--- /dev/null
++++ b/v2/server/src/auth/routes.ts
+@@ -0,0 +1,198 @@
++import { createHash, timingSafeEqual } from 'node:crypto';
++import type { FastifyInstance, FastifyRequest } from 'fastify';
++import type { Actor, Db, RouteDependencies, ServerOptions } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { provisionMachine } from './machine.ts';
++import { verifyPassword } from './password.ts';
++import {
++  clearSessionCookie,
++  createSession,
++  getSession,
++  makeSessionCookie,
++  readSessionCookie,
++  revealCsrf,
++  revokeSession,
++  sha256,
++} from './session.ts';
++
++const ownerActor: Actor = { kind: 'owner', id: 'owner' };
++const sessionRegex = /^Bearer ([0-9a-f]{64})$/;
++const machineIdSchema = { type: 'string', format: 'uuid' } as const;
++const nameSchema = { type: 'string', minLength: 1, maxLength: 200 } as const;
++
++function sameSecret(a: string, b: string): boolean {
++  if (!/^[0-9a-f]{64}$/.test(a) || !/^[0-9a-f]{64}$/.test(b)) return false;
++  return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
++}
++
++export function createAuthenticator(
++  db: Db,
++  options: { now: () => Date; publicOrigin: string },
++): {
++  authenticate: (request: FastifyRequest) => Promise<Actor>;
++  requireOwner: (request: FastifyRequest, input: { csrf: boolean }) => Promise<Actor>;
++} {
++  const requireBootstrap = async (): Promise<void> => {
++    const rows = await db`select 1 from owners where id='owner'`;
++    if (!rows.length) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
++  };
++  const requireOwner = async (request: FastifyRequest, input: { csrf: boolean }): Promise<Actor> => {
++    await requireBootstrap();
++    if (request.headers.authorization) throw new ApiError('OWNER_REQUIRED', 403, 'Cần quyền chủ dự án');
++    const session = await getSession(db, request, options.now());
++    if (input.csrf) {
++      if (request.headers.origin !== options.publicOrigin)
++        throw new ApiError('ORIGIN_INVALID', 403, 'Nguồn yêu cầu không hợp lệ');
++      const token = request.headers['x-csrf-token'];
++      if (typeof token !== 'string' || !sameSecret(sha256(token), session.csrfHash)) {
++        throw new ApiError('CSRF_INVALID', 403, 'Mã bảo vệ không hợp lệ');
++      }
++    }
++    return ownerActor;
++  };
++  const authenticate = async (request: FastifyRequest): Promise<Actor> => {
++    await requireBootstrap();
++    if (request.headers.authorization) {
++      const token = sessionRegex.exec(request.headers.authorization)?.[1];
++      if (!token) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
++      const [machine] =
++        await db`select id from machines where token_hash=${sha256(token)} and revoked_at is null`;
++      if (!machine) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
++      return { kind: 'machine', id: machine.id as string };
++    }
++    await getSession(db, request, options.now());
++    return ownerActor;
++  };
++  return { authenticate, requireOwner };
++}
++
++export function registerAuthRoutes(
++  app: FastifyInstance,
++  options: ServerOptions,
++  deps: RouteDependencies,
++): void {
++  if (!options.secureCookies && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(options.publicOrigin)) {
++    throw new Error('INSECURE_COOKIES_NONLOCAL');
++  }
++  const failed = new Map<string, number[]>();
++  const checkOrigin = (request: FastifyRequest): void => {
++    if (request.headers.origin !== options.publicOrigin)
++      throw new ApiError('ORIGIN_INVALID', 403, 'Nguồn yêu cầu không hợp lệ');
++  };
++  app.post<{ Body: { password: string } }>(
++    '/v2/auth/session',
++    {
++      schema: {
++        body: {
++          type: 'object',
++          additionalProperties: false,
++          required: ['password'],
++          properties: { password: { type: 'string', minLength: 1, maxLength: 4096 } },
++        },
++      },
++    },
++    async (request, reply) => {
++      checkOrigin(request);
++      const ipHash = createHash('sha256').update(request.ip).digest('hex');
++      const now = options.now();
++      const recent = (failed.get(ipHash) ?? []).filter((time) => time > now.getTime() - 5 * 60_000);
++      if (recent.length >= 5) throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
++      const [owner] = await options.db`select password_salt, password_hash from owners where id='owner'`;
++      if (!owner) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
++      if (
++        !(await verifyPassword(
++          request.body.password,
++          owner.password_salt as string,
++          owner.password_hash as string,
++        ))
++      ) {
++        recent.push(now.getTime());
++        failed.set(ipHash, recent);
++        throw new ApiError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không hợp lệ');
++      }
++      failed.delete(ipHash);
++      const session = await createSession(options.db, options.sessionEncryptionKey, now);
++      reply.header('set-cookie', makeSessionCookie(session.secret, options.secureCookies));
++      return { owner: { id: 'owner' }, csrfToken: session.csrfToken };
++    },
++  );
++  app.get('/v2/auth/session', async (request) => {
++    await deps.auth.requireOwner(request, { csrf: false });
++    const session = await getSession(options.db, request, options.now());
++    return { owner: { id: 'owner' }, csrfToken: revealCsrf(options.sessionEncryptionKey, session) };
++  });
++  app.delete('/v2/auth/session', async (request, reply) => {
++    await deps.auth.requireOwner(request, { csrf: true });
++    await revokeSession(options.db, request, options.now());
++    reply.header('set-cookie', clearSessionCookie(options.secureCookies));
++    reply.status(204).send();
++  });
++  app.post<{ Body: { name: string } }>(
++    '/v2/machines',
++    {
++      schema: {
++        body: {
++          type: 'object',
++          additionalProperties: false,
++          required: ['name'],
++          properties: { name: nameSchema },
++        },
++      },
++    },
++    async (request, reply) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: true });
++      const result = await deps.mutator(
++        {
++          actor,
++          route: 'POST:/v2/machines',
++          key: String(request.headers['idempotency-key'] ?? ''),
++          body: request.body,
++        },
++        async (tx) => ({ status: 201, body: await provisionMachine(tx, request.body.name) }),
++      );
++      reply.status(result.status);
++      return result.body;
++    },
++  );
++  app.get('/v2/machines', async (request) => {
++    await deps.auth.requireOwner(request, { csrf: false });
++    const rows = await options.db`select id, name, revoked_at from machines order by created_at, id`;
++    return {
++      items: rows.map((row) => ({
++        id: row.id,
++        name: row.name,
++        revokedAt: row.revoked_at ? (row.revoked_at as Date).toISOString() : null,
++      })),
++    };
++  });
++  app.get('/v2/machines/self', async (request) => {
++    if (readSessionCookie(request) && !request.headers.authorization)
++      throw new ApiError('MACHINE_REQUIRED', 401, 'Cần xác thực máy');
++    const actor = await deps.auth.authenticate(request);
++    if (actor.kind !== 'machine') throw new ApiError('MACHINE_REQUIRED', 401, 'Cần xác thực máy');
++    return { machineId: actor.id };
++  });
++  app.get<{ Params: { id: string } }>(
++    '/v2/machines/:id',
++    {
++      schema: {
++        params: {
++          type: 'object',
++          additionalProperties: false,
++          required: ['id'],
++          properties: { id: machineIdSchema },
++        },
++      },
++    },
++    async (request) => {
++      await deps.auth.requireOwner(request, { csrf: false });
++      const [row] = await options.db`select id, name, revoked_at from machines where id=${request.params.id}`;
++      if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy máy');
++      return {
++        id: row.id,
++        name: row.name,
++        revokedAt: row.revoked_at ? (row.revoked_at as Date).toISOString() : null,
++      };
++    },
++  );
++}
+diff --git a/v2/server/src/auth/session.ts b/v2/server/src/auth/session.ts
+new file mode 100644
+index 0000000..86018df
+--- /dev/null
++++ b/v2/server/src/auth/session.ts
+@@ -0,0 +1,124 @@
++import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
++import type { FastifyRequest } from 'fastify';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Db, Mutation, MutationContext, ResponseCodec } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++
++const cookieName = 'crew_v2_session';
++const sessionAge = 12 * 60 * 60 * 1000;
++
++export function sha256(value: string): string {
++  return createHash('sha256').update(value).digest('hex');
++}
++
++export function randomSecret(): string {
++  return randomBytes(32).toString('hex');
++}
++
++function encrypt(key: Buffer, plaintext: string, aad: string): string {
++  if (key.length !== 32) throw new Error('SESSION_ENCRYPTION_KEY_INVALID');
++  const iv = randomBytes(12);
++  const cipher = createCipheriv('aes-256-gcm', key, iv);
++  cipher.setAAD(Buffer.from(aad));
++  const body = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
++  return Buffer.concat([iv, cipher.getAuthTag(), body]).toString('base64');
++}
++
++function decrypt(key: Buffer, ciphertext: string, aad: string): string {
++  if (key.length !== 32) throw new Error('SESSION_ENCRYPTION_KEY_INVALID');
++  const source = Buffer.from(ciphertext, 'base64');
++  if (source.length < 28) throw new Error('CIPHERTEXT_INVALID');
++  const decipher = createDecipheriv('aes-256-gcm', key, source.subarray(0, 12));
++  decipher.setAAD(Buffer.from(aad));
++  decipher.setAuthTag(source.subarray(12, 28));
++  return Buffer.concat([decipher.update(source.subarray(28)), decipher.final()]).toString('utf8');
++}
++
++export function credentialResponseCodec(key: Buffer): ResponseCodec {
++  return {
++    encode<T>(context: MutationContext, result: Mutation<T>): unknown {
++      if (context.route !== 'POST:/v2/machines') return result.body;
++      const aad = canonicalJson([context.actor.kind, context.actor.id, context.route, context.key]);
++      return { ciphertext: encrypt(key, JSON.stringify(result.body), aad) };
++    },
++    decode<T>(context: MutationContext, status: number, response: unknown): Mutation<T> {
++      if (context.route !== 'POST:/v2/machines') return { status, body: response as T };
++      if (
++        !response ||
++        typeof response !== 'object' ||
++        !('ciphertext' in response) ||
++        typeof response.ciphertext !== 'string'
++      ) {
++        throw new ApiError('REPLAY_INVALID', 503, 'Không đọc được kết quả yêu cầu');
++      }
++      const aad = canonicalJson([context.actor.kind, context.actor.id, context.route, context.key]);
++      try {
++        return { status, body: JSON.parse(decrypt(key, response.ciphertext, aad)) as T };
++      } catch {
++        throw new ApiError('REPLAY_INVALID', 503, 'Không đọc được kết quả yêu cầu');
++      }
++    },
++  };
++}
++
++export function readSessionCookie(request: FastifyRequest): string | null {
++  const cookie = request.headers.cookie;
++  if (!cookie) return null;
++  const candidate = cookie
++    .split(';')
++    .map((part) => part.trim())
++    .find((part) => part.startsWith(`${cookieName}=`));
++  const value = candidate?.slice(cookieName.length + 1);
++  return value && /^[0-9a-f]{64}$/.test(value) ? value : null;
++}
++
++export function makeSessionCookie(secret: string, secure: boolean): string {
++  return `${cookieName}=${secret}; Path=/v2; HttpOnly; SameSite=Strict; Max-Age=43200${secure ? '; Secure' : ''}`;
++}
++
++export function clearSessionCookie(secure: boolean): string {
++  return `${cookieName}=; Path=/v2; HttpOnly; SameSite=Strict; Max-Age=0${secure ? '; Secure' : ''}`;
++}
++
++export async function createSession(
++  db: Db,
++  key: Buffer,
++  now: Date,
++): Promise<{ secret: string; csrfToken: string }> {
++  const secret = randomSecret();
++  const csrfToken = randomSecret();
++  await db`insert into sessions (id_hash, owner_id, csrf_hash, csrf_ciphertext, expires_at)
++    values (${sha256(secret)}, 'owner', ${sha256(csrfToken)}, ${encrypt(key, csrfToken, sha256(secret))}, ${new Date(now.getTime() + sessionAge)})`;
++  return { secret, csrfToken };
++}
++
++export async function getSession(
++  db: Db,
++  request: FastifyRequest,
++  now: Date,
++): Promise<{ idHash: string; csrfHash: string; csrfCiphertext: string }> {
++  const secret = readSessionCookie(request);
++  if (!secret) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
++  const [row] = await db`select id_hash, csrf_hash, csrf_ciphertext from sessions
++    where id_hash=${sha256(secret)} and owner_id='owner' and revoked_at is null and expires_at>${now}`;
++  if (!row) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
++  return {
++    idHash: row.id_hash as string,
++    csrfHash: row.csrf_hash as string,
++    csrfCiphertext: row.csrf_ciphertext as string,
++  };
++}
++
++export function revealCsrf(key: Buffer, session: { idHash: string; csrfCiphertext: string }): string {
++  try {
++    return decrypt(key, session.csrfCiphertext, session.idHash);
++  } catch {
++    throw new ApiError('SESSION_INVALID', 401, 'Phiên đăng nhập không hợp lệ');
++  }
++}
++
++export async function revokeSession(db: Db, request: FastifyRequest, now: Date): Promise<void> {
++  const secret = readSessionCookie(request);
++  if (secret)
++    await db`update sessions set revoked_at=${now} where id_hash=${sha256(secret)} and revoked_at is null`;
++}
+diff --git a/v2/server/src/projects/routes.ts b/v2/server/src/projects/routes.ts
+new file mode 100644
+index 0000000..cf615e9
+--- /dev/null
++++ b/v2/server/src/projects/routes.ts
+@@ -0,0 +1,120 @@
++import type { FastifyInstance } from 'fastify';
++import type { RouteDependencies, ServerOptions } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import {
++  type Binding,
++  type BindingGuard,
++  bindProject,
++  type CreateProject,
++  createProject,
++  getProject,
++  listProjects,
++} from './service.ts';
++
++export type { BindingGuard } from './service.ts';
++
++const uuid = { type: 'string', format: 'uuid' } as const;
++const bodyCreate = {
++  type: 'object',
++  additionalProperties: false,
++  required: ['key', 'name', 'repositoryUrl'],
++  properties: {
++    key: { type: 'string', pattern: '^[A-Z][A-Z0-9_-]{1,31}$' },
++    name: { type: 'string', minLength: 1, maxLength: 200 },
++    repositoryUrl: { anyOf: [{ type: 'string', minLength: 1, maxLength: 2048 }, { type: 'null' }] },
++  },
++} as const;
++const bodyBinding = {
++  type: 'object',
++  additionalProperties: false,
++  required: ['machineId', 'checkoutPath', 'expectedRevision'],
++  properties: {
++    machineId: uuid,
++    checkoutPath: { type: 'string', minLength: 1, maxLength: 4096 },
++    expectedRevision: { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER },
++  },
++} as const;
++
++export function registerProjectRoutes(
++  app: FastifyInstance,
++  options: ServerOptions,
++  deps: RouteDependencies,
++  bindingGuard: BindingGuard,
++): void {
++  app.get<{ Querystring: { limit?: string; cursor?: string } }>(
++    '/v2/projects',
++    {
++      schema: {
++        querystring: {
++          type: 'object',
++          additionalProperties: false,
++          properties: { limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' }, cursor: uuid },
++        },
++      },
++    },
++    async (request) => {
++      await deps.auth.requireOwner(request, { csrf: false });
++      const limit = request.query.limit === undefined ? 50 : Number(request.query.limit);
++      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
++        throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn không hợp lệ');
++      return listProjects(options.db, limit, request.query.cursor ?? null);
++    },
++  );
++  app.get<{ Params: { id: string } }>(
++    '/v2/projects/:id',
++    {
++      schema: {
++        params: { type: 'object', additionalProperties: false, required: ['id'], properties: { id: uuid } },
++      },
++    },
++    async (request) => {
++      await deps.auth.requireOwner(request, { csrf: false });
++      return getProject(options.db, request.params.id);
++    },
++  );
++  app.post<{ Body: CreateProject }>(
++    '/v2/projects',
++    { schema: { body: bodyCreate } },
++    async (request, reply) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: true });
++      const result = await deps.mutator(
++        {
++          actor,
++          route: 'POST:/v2/projects',
++          key: String(request.headers['idempotency-key'] ?? ''),
++          body: request.body,
++        },
++        async (tx) => ({ status: 201, body: await createProject(tx, request.body) }),
++      );
++      reply.status(result.status);
++      return result.body;
++    },
++  );
++  app.put<{ Params: { id: string }; Body: Binding }>(
++    '/v2/projects/:id/binding',
++    {
++      schema: {
++        params: { type: 'object', additionalProperties: false, required: ['id'], properties: { id: uuid } },
++        body: bodyBinding,
++      },
++    },
++    async (request, reply) => {
++      const actor = await deps.auth.requireOwner(request, { csrf: true });
++      const id = request.params.id;
++      const result = await deps.mutator(
++        {
++          actor,
++          route: `PUT:/v2/projects/${id}/binding`,
++          key: String(request.headers['idempotency-key'] ?? ''),
++          body: request.body,
++        },
++        async (tx) => ({
++          status: 200,
++          body: await bindProject(tx, id, request.body, bindingGuard),
++        }),
++      );
++      reply.status(result.status);
++      return result.body;
++    },
++  );
++}
+diff --git a/v2/server/src/projects/service.ts b/v2/server/src/projects/service.ts
+new file mode 100644
+index 0000000..e135297
+--- /dev/null
++++ b/v2/server/src/projects/service.ts
+@@ -0,0 +1,146 @@
++import { randomUUID } from 'node:crypto';
++import { isAbsolute } from 'node:path';
++import { appendEvent } from '../journal/events.ts';
++import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++
++export type CreateProject = { key: string; name: string; repositoryUrl: string | null };
++export type Binding = { machineId: Id; checkoutPath: string; expectedRevision: number };
++export type BindingGuard = (tx: Tx, projectId: Id) => Promise<void>;
++export const denyRebinding: BindingGuard = async () => {
++  throw new ApiError('ACTIVE_EXECUTION', 409, 'Đối chiếu tác vụ đang chạy trước khi đổi máy');
++};
++export type Project = {
++  id: Id;
++  key: string;
++  name: string;
++  repositoryUrl: string | null;
++  machineId: Id | null;
++  checkoutPath: string | null;
++  bindingRevision: number;
++  docsState: 'missing' | 'unverified' | 'invalid' | 'current' | 'stale';
++};
++
++function mapProject(row: Record<string, unknown>): Project {
++  return {
++    id: row.id as Id,
++    key: row.key as string,
++    name: row.name as string,
++    repositoryUrl: row.repository_url as string | null,
++    machineId: row.machine_id as Id | null,
++    checkoutPath: row.checkout_path as string | null,
++    bindingRevision: Number(row.binding_revision),
++    docsState: 'missing',
++  };
++}
++
++function validRepo(value: string | null): boolean {
++  if (value === null) return true;
++  try {
++    const url = new URL(value);
++    return ['https:', 'ssh:'].includes(url.protocol) && !url.username && !url.password && !!url.hostname;
++  } catch {
++    return false;
++  }
++}
++
++export async function createProject(tx: Tx, input: CreateProject): Promise<Project> {
++  if (
++    !/^[A-Z][A-Z0-9_-]{1,31}$/.test(input.key) ||
++    input.name.length < 1 ||
++    input.name.length > 200 ||
++    !validRepo(input.repositoryUrl)
++  ) {
++    throw new ApiError('VALIDATION', 400, 'Thông tin dự án không hợp lệ');
++  }
++  const id = randomUUID();
++  let row: Record<string, unknown> | undefined;
++  try {
++    [row] =
++      await tx`insert into projects (id, key, name, repository_url) values (${id}, ${input.key}, ${input.name}, ${input.repositoryUrl}) returning *`;
++  } catch (error) {
++    if (
++      error &&
++      typeof error === 'object' &&
++      'code' in error &&
++      error.code === '23505' &&
++      'constraint_name' in error &&
++      error.constraint_name === 'projects_key_key'
++    ) {
++      throw new ApiError('PROJECT_KEY_CONFLICT', 409, 'Mã dự án đã tồn tại');
++    }
++    throw error;
++  }
++  if (!row) throw new Error('PROJECT_INSERT_FAILED');
++  await appendEvent(tx, {
++    type: 'project.created',
++    projectId: id,
++    ticketId: null,
++    audienceMachineId: null,
++    data: { revision: 1 },
++  });
++  return mapProject(row);
++}
++
++export async function bindProject(
++  tx: Tx,
++  projectId: Id,
++  input: Binding,
++  bindingGuard: BindingGuard = denyRebinding,
++): Promise<Project> {
++  if (
++    !Number.isSafeInteger(input.expectedRevision) ||
++    input.expectedRevision < 1 ||
++    !isAbsolute(input.checkoutPath) ||
++    input.checkoutPath.length > 4096 ||
++    input.checkoutPath.length < 1 ||
++    input.checkoutPath.includes('\0')
++  ) {
++    throw new ApiError('VALIDATION', 400, 'Thông tin gắn máy không hợp lệ');
++  }
++  const [row] = await tx`select * from projects where id=${projectId} for update`;
++  if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++  if (Number(row.binding_revision) !== input.expectedRevision)
++    throw new ApiError('REVISION_CONFLICT', 409, 'Dự án đã thay đổi');
++  const [machine] = await tx`select id from machines where id=${input.machineId} and revoked_at is null`;
++  if (!machine) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy máy');
++  if (row.machine_id) await bindingGuard(tx, projectId);
++  const [bound] =
++    await tx`update projects set machine_id=${input.machineId}, checkout_path=${input.checkoutPath}, expected_commit=null, binding_revision=binding_revision+1 where id=${projectId} returning *`;
++  if (!bound) throw new Error('PROJECT_BIND_FAILED');
++  await appendEvent(tx, {
++    type: 'project.bound',
++    projectId,
++    ticketId: null,
++    audienceMachineId: null,
++    data: { machineId: input.machineId, bindingRevision: Number(bound.binding_revision) },
++  });
++  return mapProject(bound);
++}
++
++export async function getProject(db: Db, id: Id): Promise<Project> {
++  const [row] = await db`select * from projects where id=${id}`;
++  if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++  return mapProject(row);
++}
++
++export async function listProjects(
++  db: Db,
++  limit: number,
++  cursor: Id | null,
++): Promise<{ items: Project[]; nextCursor: Id | null }> {
++  const rows = cursor
++    ? await db`select * from projects where id > ${cursor} order by id limit ${limit + 1}`
++    : await db`select * from projects order by id limit ${limit + 1}`;
++  const items = rows.slice(0, limit).map(mapProject);
++  return { items, nextCursor: rows.length > limit ? (items[items.length - 1]?.id ?? null) : null };
++}
++
++export async function projectEventScope(
++  db: Db,
++  actor: Actor,
++): Promise<{ projectIds: Id[]; allowGlobal: boolean }> {
++  if (actor.kind === 'owner') return { projectIds: [], allowGlobal: true };
++  const rows = await db`select id from projects where machine_id=${actor.id} order by id`;
++  return { projectIds: rows.map((row) => row.id as Id), allowGlobal: false };
++}
+diff --git a/v2/server/test/auth.test.ts b/v2/server/test/auth.test.ts
+new file mode 100644
+index 0000000..70356be
+--- /dev/null
++++ b/v2/server/test/auth.test.ts
+@@ -0,0 +1,219 @@
++import assert from 'node:assert/strict';
++import { execFileSync } from 'node:child_process';
++import test from 'node:test';
++import { databaseFixture } from './support/db.ts';
++import { buildIdentityTestApp } from './support/identity-app.ts';
++
++const withDatabase = databaseFixture(3);
++
++test('auth login, cookie và CSRF chặn request thiếu quyền', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const missing = await fixture.app.inject({ method: 'GET', url: '/v2/projects' });
++      assert.equal(missing.statusCode, 401);
++      const wrong = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: 'wrong' },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      assert.equal(wrong.statusCode, 401);
++      const me = await fixture.ownerGet('/v2/auth/session');
++      assert.equal(me.statusCode, 200);
++      assert.equal(me.json().owner.id, 'owner');
++      const missingCsrf = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/projects',
++        payload: { key: 'AB', name: 'Test', repositoryUrl: null },
++        headers: { cookie: fixture.cookie, origin: 'http://localhost:5182' },
++      });
++      assert.equal(missingCsrf.statusCode, 403);
++      const bearerOnly = await fixture.app.inject({
++        method: 'GET',
++        url: '/v2/auth/session',
++        headers: { authorization: 'Bearer bogus' },
++      });
++      assert.equal(bearerOnly.statusCode, 403);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('machine provision replay cùng owner và không leak cho machine', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const a = await fixture.ownerPost('/v2/machines', { name: 'Mac test' }, 'provision-one');
++      const b = await fixture.ownerPost('/v2/machines', { name: 'Mac test' }, 'provision-one');
++      assert.equal(a.statusCode, 201);
++      assert.deepEqual(a.json(), b.json());
++      const stored = JSON.stringify(await db`select response from idempotency`);
++      assert.equal(stored.includes(a.json().token), false);
++      assert.equal(stored.includes('ciphertext'), true);
++      assert.equal((await fixture.machineGet('/v2/projects', a.json().token)).statusCode, 403);
++      const hashes = JSON.stringify(await db`select token_hash from machines`);
++      assert.equal(hashes.includes(a.json().token), false);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth backup không chứa credential gốc', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const provision = await fixture.ownerPost('/v2/machines', { name: 'Mac test' }, 'backup-token');
++      const token = provision.json().token as string;
++      const [database] = await db`select current_database() as name`;
++      const containerId = process.env.CREW_V2_TEST_CONTAINER_ID;
++      if (!containerId || !database) throw new Error('TEST_DB_MISSING');
++      const dump = execFileSync(
++        'docker',
++        ['exec', containerId, 'pg_dump', '-U', 'postgres', '-d', database.name as string, '--data-only'],
++        { encoding: 'utf8' },
++      );
++      for (const secret of [fixture.password, fixture.cookie.split('=')[1], fixture.csrf, token]) {
++        assert.equal(dump.includes(secret ?? ''), false);
++      }
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth login khóa sau năm lần sai trong năm phút', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      for (let i = 0; i < 5; i++) {
++        const wrong = await fixture.app.inject({
++          method: 'POST',
++          url: '/v2/auth/session',
++          payload: { password: `wrong-${i}` },
++          headers: { origin: 'http://localhost:5182' },
++        });
++        assert.equal(wrong.statusCode, 401);
++      }
++      const throttled = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: fixture.password },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      assert.equal(throttled.statusCode, 429);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth forbidden input bị từ chối thay vì xóa thầm', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const result = await fixture.ownerPost(
++        '/v2/machines',
++        { name: 'Mac test', admin: true },
++        'forbidden-field',
++      );
++      assert.equal(result.statusCode, 400);
++      assert.equal((await db`select count(*)::integer as n from machines`)[0]?.n, 0);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth session sống qua app restart rồi hết hạn và logout thu hồi', async () =>
++  withDatabase(async (db) => {
++    const first = await buildIdentityTestApp(db);
++    await first.close();
++    const fixture = await buildIdentityTestApp(db, first);
++    try {
++      const session = await fixture.ownerGet('/v2/auth/session');
++      assert.equal(session.statusCode, 200);
++      assert.equal(session.json().csrfToken, fixture.csrf);
++      const logout = await fixture.app.inject({
++        method: 'DELETE',
++        url: '/v2/auth/session',
++        headers: { cookie: fixture.cookie, origin: 'http://localhost:5182', 'x-csrf-token': fixture.csrf },
++      });
++      assert.equal(logout.statusCode, 204);
++      assert.equal((await fixture.ownerGet('/v2/auth/session')).statusCode, 401);
++      const login = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: fixture.password },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      const cookie = login.headers['set-cookie']?.toString().split(';')[0] ?? '';
++      await db`update sessions set expires_at=now() - interval '1 second' where id_hash in (select id_hash from sessions where revoked_at is null)`;
++      assert.equal(
++        (await fixture.app.inject({ method: 'GET', url: '/v2/auth/session', headers: { cookie } }))
++          .statusCode,
++        401,
++      );
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth machine và owner không hoán đổi quyền', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const provision = await fixture.ownerPost('/v2/machines', { name: 'Mac test' }, 'machine-auth');
++      const token = provision.json().token as string;
++      assert.equal((await fixture.machineGet('/v2/machines/self', token)).statusCode, 200);
++      assert.equal((await fixture.ownerGet('/v2/machines/self')).statusCode, 401);
++      assert.equal((await fixture.machineGet('/v2/auth/session', token)).statusCode, 403);
++      const badOrigin = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/projects',
++        payload: { key: 'AB', name: 'Demo', repositoryUrl: null },
++        headers: {
++          cookie: fixture.cookie,
++          origin: 'http://evil.test',
++          'x-csrf-token': fixture.csrf,
++          'idempotency-key': 'bad-origin',
++        },
++      });
++      assert.equal(badOrigin.statusCode, 403);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth không tạo owner ngầm khi DB chưa bootstrap', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db, undefined, false);
++    try {
++      assert.equal((await fixture.app.inject({ method: 'GET', url: '/v2/projects' })).statusCode, 503);
++      assert.equal(
++        (
++          await fixture.app.inject({
++            method: 'POST',
++            url: '/v2/auth/session',
++            payload: { password: 'anything' },
++            headers: { origin: 'http://localhost:5182' },
++          })
++        ).statusCode,
++        503,
++      );
++      assert.equal((await db`select count(*)::integer as n from owners`)[0]?.n, 0);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('provision replay cùng key khác payload báo conflict không tạo thêm máy', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      assert.equal((await fixture.ownerPost('/v2/machines', { name: 'Mac 1' }, 'same-key')).statusCode, 201);
++      const conflict = await fixture.ownerPost('/v2/machines', { name: 'Mac 2' }, 'same-key');
++      assert.equal(conflict.statusCode, 409);
++      assert.equal(conflict.json().error.code, 'IDEMPOTENCY_CONFLICT');
++      assert.equal((await db`select count(*)::integer as n from machines`)[0]?.n, 1);
++    } finally {
++      await fixture.close();
++    }
++  }));
+diff --git a/v2/server/test/projects.test.ts b/v2/server/test/projects.test.ts
+new file mode 100644
+index 0000000..e1feb65
+--- /dev/null
++++ b/v2/server/test/projects.test.ts
+@@ -0,0 +1,202 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import { bindProject } from '../src/projects/service.ts';
++import { databaseFixture } from './support/db.ts';
++import { buildIdentityTestApp } from './support/identity-app.ts';
++
++const withDatabase = databaseFixture(3);
++
++test('binding concurrent cùng revision chỉ một request thành công', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const machine = (await fixture.ownerPost('/v2/machines', { name: 'Mac 1' }, 'machine-1')).json();
++      const project = (
++        await fixture.ownerPost(
++          '/v2/projects',
++          { key: 'DEMO', name: 'Demo', repositoryUrl: null },
++          'project-1',
++        )
++      ).json();
++      const path = `/v2/projects/${project.id}/binding`;
++      const body = { machineId: machine.machine.id, checkoutPath: '/Users/test/demo', expectedRevision: 1 };
++      const results = await Promise.all([
++        fixture.ownerPut(path, body, 'bind-1'),
++        fixture.ownerPut(path, body, 'bind-2'),
++      ]);
++      assert.deepEqual(results.map((r) => r.statusCode).sort(), [200, 409]);
++      const stored = await db`select machine_id, binding_revision from projects where id=${project.id}`;
++      assert.equal(stored[0]?.machine_id, machine.machine.id);
++      assert.equal(stored[0]?.binding_revision, 2);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('binding từ chối đổi máy khi đã bound và từ chối máy revoked', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const machine = (await fixture.ownerPost('/v2/machines', { name: 'Mac 1' }, 'machine-1')).json();
++      const project = (
++        await fixture.ownerPost(
++          '/v2/projects',
++          { key: 'DEMO', name: 'Demo', repositoryUrl: null },
++          'project-1',
++        )
++      ).json();
++      const path = `/v2/projects/${project.id}/binding`;
++      const first = await fixture.ownerPut(
++        path,
++        { machineId: machine.machine.id, checkoutPath: '/Users/test/demo', expectedRevision: 1 },
++        'bind-1',
++      );
++      assert.equal(first.statusCode, 200);
++      const again = await fixture.ownerPut(
++        path,
++        { machineId: machine.machine.id, checkoutPath: '/Users/test/demo2', expectedRevision: 2 },
++        'bind-2',
++      );
++      assert.equal(again.statusCode, 409);
++      assert.equal(again.json().error.code, 'ACTIVE_EXECUTION');
++      const unbound = (
++        await fixture.ownerPost(
++          '/v2/projects',
++          { key: 'SECOND', name: 'Second', repositoryUrl: null },
++          'project-2',
++        )
++      ).json();
++      await db`update machines set revoked_at=now() where id=${machine.machine.id}`;
++      const revoked = await fixture.ownerPut(
++        `/v2/projects/${unbound.id}/binding`,
++        { machineId: machine.machine.id, checkoutPath: '/Users/test/second', expectedRevision: 1 },
++        'bind-revoked',
++      );
++      assert.equal(revoked.statusCode, 404);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('project từ chối URL có userinfo và giới hạn phân trang vượt 100', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const invalid = await fixture.ownerPost(
++        '/v2/projects',
++        { key: 'DEMO', name: 'Demo', repositoryUrl: 'https://user:pass@example.test/repo' },
++        'bad-repo',
++      );
++      assert.equal(invalid.statusCode, 400);
++      assert.equal((await fixture.ownerGet('/v2/projects?limit=101')).statusCode, 400);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('project key trùng báo conflict rõ ràng và không tạo thêm project', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const body = { key: 'DUP', name: 'Demo', repositoryUrl: null };
++      assert.equal((await fixture.ownerPost('/v2/projects', body, 'duplicate-a')).statusCode, 201);
++      const conflict = await fixture.ownerPost('/v2/projects', body, 'duplicate-b');
++      assert.equal(conflict.statusCode, 409);
++      assert.equal(conflict.json().error.code, 'PROJECT_KEY_CONFLICT');
++      assert.equal((await db`select count(*)::integer as n from projects`)[0]?.n, 1);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('project list phân trang ổn định và chỉ machine bound đọc event dự án', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const firstMachine = (await fixture.ownerPost('/v2/machines', { name: 'Mac 1' }, 'm1')).json();
++      const secondMachine = (await fixture.ownerPost('/v2/machines', { name: 'Mac 2' }, 'm2')).json();
++      const one = (
++        await fixture.ownerPost('/v2/projects', { key: 'AA', name: 'A', repositoryUrl: null }, 'p1')
++      ).json();
++      const two = (
++        await fixture.ownerPost('/v2/projects', { key: 'BB', name: 'B', repositoryUrl: null }, 'p2')
++      ).json();
++      await fixture.ownerPut(
++        `/v2/projects/${one.id}/binding`,
++        { machineId: firstMachine.machine.id, checkoutPath: '/Users/test/a', expectedRevision: 1 },
++        'b1',
++      );
++      await fixture.ownerPut(
++        `/v2/projects/${two.id}/binding`,
++        { machineId: secondMachine.machine.id, checkoutPath: '/Users/test/b', expectedRevision: 1 },
++        'b2',
++      );
++      const page = (await fixture.ownerGet('/v2/projects?limit=1')).json();
++      assert.equal(page.items.length, 1);
++      assert.equal(typeof page.nextCursor, 'string');
++      const next = (await fixture.ownerGet(`/v2/projects?limit=1&cursor=${page.nextCursor}`)).json();
++      assert.equal(next.items.length, 1);
++      assert.notEqual(next.items[0].id, page.items[0].id);
++      const events = (await fixture.machineGet('/v2/events?after=0', firstMachine.token)).json().items;
++      assert.equal(
++        events.some((event: { projectId: string | null }) => event.projectId === one.id),
++        true,
++      );
++      assert.equal(
++        events.some((event: { projectId: string | null }) => event.projectId === two.id),
++        false,
++      );
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('binding guard cho phép đổi máy sau đối chiếu và xóa commit checkout cũ', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const firstMachine = (await fixture.ownerPost('/v2/machines', { name: 'Mac 1' }, 'guard-m1')).json();
++      const nextMachine = (await fixture.ownerPost('/v2/machines', { name: 'Mac 2' }, 'guard-m2')).json();
++      const project = (
++        await fixture.ownerPost(
++          '/v2/projects',
++          { key: 'GUARD', name: 'Guard', repositoryUrl: null },
++          'guard-p',
++        )
++      ).json();
++      await fixture.ownerPut(
++        `/v2/projects/${project.id}/binding`,
++        {
++          machineId: firstMachine.machine.id,
++          checkoutPath: '/Users/test/old',
++          expectedRevision: 1,
++        },
++        'guard-b1',
++      );
++      await db`update projects set expected_commit=${'a'.repeat(40)} where id=${project.id}`;
++      let guardCalled = false;
++      const rebound = await db.begin(async (tx) =>
++        bindProject(
++          tx,
++          project.id,
++          {
++            machineId: nextMachine.machine.id,
++            checkoutPath: '/Users/test/new',
++            expectedRevision: 2,
++          },
++          async (scope, id) => {
++            const [locked] = await scope`select machine_id from projects where id=${id}`;
++            assert.equal(locked?.machine_id, firstMachine.machine.id);
++            guardCalled = true;
++          },
++        ),
++      );
++      assert.equal(guardCalled, true);
++      assert.equal(rebound.machineId, nextMachine.machine.id);
++      assert.equal(rebound.bindingRevision, 3);
++      const [stored] = await db`select expected_commit from projects where id=${project.id}`;
++      assert.equal(stored?.expected_commit, null);
++    } finally {
++      await fixture.close();
++    }
++  }));
+diff --git a/v2/server/test/support/identity-app.ts b/v2/server/test/support/identity-app.ts
+new file mode 100644
+index 0000000..51ba55c
+--- /dev/null
++++ b/v2/server/test/support/identity-app.ts
+@@ -0,0 +1,113 @@
++import { randomBytes } from 'node:crypto';
++import Fastify, { type FastifyInstance, type LightMyRequestResponse } from 'fastify';
++import { bootstrapOwner } from '../../src/auth/bootstrap.ts';
++import { createAuthenticator, registerAuthRoutes } from '../../src/auth/routes.ts';
++import { credentialResponseCodec } from '../../src/auth/session.ts';
++import { createMutator } from '../../src/journal/mutation.ts';
++import { registerEventRoutes } from '../../src/journal/routes.ts';
++import type { Db, ServerOptions } from '../../src/platform/contracts.ts';
++import { ApiError } from '../../src/platform/errors.ts';
++import { registerProjectRoutes } from '../../src/projects/routes.ts';
++import { denyRebinding, projectEventScope } from '../../src/projects/service.ts';
++
++export type IdentityTestFixture = {
++  app: FastifyInstance;
++  password: string;
++  cookie: string;
++  csrf: string;
++  sessionEncryptionKey: Buffer;
++  ownerPost: (path: string, body: unknown, key: string) => Promise<LightMyRequestResponse>;
++  ownerPut: (path: string, body: unknown, key: string) => Promise<LightMyRequestResponse>;
++  ownerGet: (path: string) => Promise<LightMyRequestResponse>;
++  machineGet: (path: string, token: string) => Promise<LightMyRequestResponse>;
++  close: () => Promise<void>;
++};
++
++export async function buildIdentityTestApp(
++  db: Db,
++  prior?: IdentityTestFixture,
++  bootstrap = true,
++): Promise<IdentityTestFixture> {
++  const password = prior?.password ?? randomBytes(24).toString('hex');
++  if (!prior && bootstrap) await bootstrapOwner(db, password);
++  const options: ServerOptions = {
++    db,
++    publicOrigin: 'http://localhost:5182',
++    secureCookies: false,
++    sessionEncryptionKey: prior?.sessionEncryptionKey ?? randomBytes(32),
++    now: () => new Date(),
++    authorizeDispatch: async () => {
++      throw new Error('DISPATCH_NOT_CONFIGURED');
++    },
++    verifyFinalResult: async () => {
++      throw new Error('FINAL_NOT_CONFIGURED');
++    },
++  };
++  const app = Fastify({ logger: false, ajv: { customOptions: { removeAdditional: false } } });
++  app.setErrorHandler((error, _request, reply) => {
++    if (error instanceof ApiError) {
++      reply.status(error.status).send({ error: { code: error.code, message: error.message } });
++      return;
++    }
++    const validation = error instanceof Error && 'validation' in error;
++    reply
++      .status(validation ? 400 : 500)
++      .send({ error: { code: validation ? 'VALIDATION' : 'INTERNAL', message: 'Yêu cầu không hợp lệ' } });
++  });
++  const auth = createAuthenticator(db, { now: options.now, publicOrigin: options.publicOrigin });
++  const deps = { auth, mutator: createMutator(db, credentialResponseCodec(options.sessionEncryptionKey)) };
++  registerAuthRoutes(app, options, deps);
++  registerProjectRoutes(app, options, deps, denyRebinding);
++  registerEventRoutes(app, options, deps, projectEventScope);
++  await app.ready();
++  let cookie = prior?.cookie ?? '';
++  let csrf = prior?.csrf ?? '';
++  if (!prior && bootstrap) {
++    const login = await app.inject({
++      method: 'POST',
++      url: '/v2/auth/session',
++      payload: { password },
++      headers: { origin: options.publicOrigin },
++    });
++    if (login.statusCode !== 200) throw new Error(`IDENTITY_TEST_LOGIN_FAILED_${login.statusCode}`);
++    cookie = login.headers['set-cookie']?.toString().split(';')[0] ?? '';
++    csrf = (login.json() as { csrfToken: string }).csrfToken;
++  }
++  return {
++    app,
++    password,
++    cookie,
++    csrf,
++    sessionEncryptionKey: options.sessionEncryptionKey,
++    ownerPost: (path, body, key) =>
++      app.inject({
++        method: 'POST',
++        url: path,
++        payload: JSON.stringify(body),
++        headers: {
++          cookie,
++          origin: options.publicOrigin,
++          'x-csrf-token': csrf,
++          'idempotency-key': key,
++          'content-type': 'application/json',
++        },
++      }),
++    ownerPut: (path, body, key) =>
++      app.inject({
++        method: 'PUT',
++        url: path,
++        payload: JSON.stringify(body),
++        headers: {
++          cookie,
++          origin: options.publicOrigin,
++          'x-csrf-token': csrf,
++          'idempotency-key': key,
++          'content-type': 'application/json',
++        },
++      }),
++    ownerGet: (path) => app.inject({ method: 'GET', url: path, headers: { cookie } }),
++    machineGet: (path, token) =>
++      app.inject({ method: 'GET', url: path, headers: { authorization: `Bearer ${token}` } }),
++    close: () => app.close(),
++  };
++}

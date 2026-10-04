@@ -1,0 +1,11 @@
+{
+  "tests": [
+    "runtime-boundary",
+    "runtime-crash",
+    "runtime-workspace",
+    "effect-ledger",
+    "isolation-runtime",
+    "isolation-workspace"
+  ],
+  "excluded": "No unrelated, peer, full-suite or PostgreSQL tests. Historical105 is separate."
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-report.md",
+    "bytes": 11148,
+    "sha256": "267588b52fe6c0145b3ece11bd598d2636b02dfede0848b9fcfe073a4d9f9afb"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-container.json",
+    "bytes": 212,
+    "sha256": "baa4626c8034b088bc452122baf6c4cdce9279f4ead6ef9172390358ba7f743f"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/base-archive-sha.json",
+    "bytes": 115,
+    "sha256": "489e8b5a8b5d297ff4467e53da3a417b31a1c137edd20218c4714b241910b3ac"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-preparation-failure-root.json",
+    "bytes": 265,
+    "sha256": "a675f8ee3428f65c84b5573ab5a5d99a63a5672209a882334db9e2ab831ed1c5"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-container-closure.json",
+    "bytes": 149,
+    "sha256": "d37f7de5b0c56cf9f1d4897dc0b991aaa22eeb6ed033ad9dbcf03ff4540c3829"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-commands.json",
+    "bytes": 1742,
+    "sha256": "cad750b162bb93d00bef6237188bcc98b0ce7a1c486a908652ed812bc8e4b0b2"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/owned-final-sha.json",
+    "bytes": 3252,
+    "sha256": "f21a797803305659a45f84d9ae302d3e987f2adad6027f9b5d387de75e171a8f"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-source.json",
+    "bytes": 49186,
+    "sha256": "bdb2abf43af290087a85b65c42c4780925b0ac1b1f5af4518f6c4f26951aca9f"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/resource-audit.json",
+    "bytes": 21605,
+    "sha256": "df4b19bd646370b0d13346a200b5b87671d7eba35efa4e5b3cb320657fe3f8c7"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-source-stability.json",
+    "bytes": 44,
+    "sha256": "dbf3301dc4beb5e1fa1a3a8d7d9ea716f12e168328387ffddcd6d53bd9837c3b"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-fixture-resource-audit.json",
+    "bytes": 30130,
+    "sha256": "601373484d33bfb0f6709df594e93459529e94ff7944131889d245e5be97c9c4"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/red-cleanup.json",
+    "bytes": 1371,
+    "sha256": "99ca58eeeecdc03af71fa51f16bd7b2af8eabc18951b54ce834d9dcf04ed57b1"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/covering-manifest.json",
+    "bytes": 577,
+    "sha256": "e75af6951edfd99a985b10f11ee0b878bfed603e1dbe6a98ffc54e28bb364d9e"
+  },
+  {
+    "path": "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/frozen-root.json",
+    "bytes": 242,
+    "sha256": "bca3ac07f543f7ee7148433f4b648312c2c60dd4c0463c5ddf9eb7388984103d"
+  }
+]

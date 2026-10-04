@@ -1,0 +1,4 @@
+
+> @crew-v2/gateway@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-7e406127-89ce-48e3-a301-dfddc79f2f1e/v2/gateway
+> tsc --noEmit
+

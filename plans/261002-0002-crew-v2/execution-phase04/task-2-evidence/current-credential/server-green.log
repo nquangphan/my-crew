@@ -1,0 +1,17 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts
+
+model-fixture-container {"containerId":"b0d36d27664f5bb3eff923693cebbb6a9e61aed0cf40fe90957421c3c05a9c11","url":"postgres://postgres@127.0.0.1:62577/crew_v2_test"}
+✔ current credential machine-own read exposes metadata only and never selects by UUID or late historical ACK (628.572959ms)
+✔ current credential retained stored ref legitimately has null operation after same endpoint revision; pending/loss/OFF/removal stay exact (411.767333ms)
+✔ current credential endpoint/protocol change detaches credential and read cannot cross machine or owner session (325.810584ms)
+✔ current credential read reauthenticates actual credential after preflight in existing repeatable-read snapshot (260.233833ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1789.229791

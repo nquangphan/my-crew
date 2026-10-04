@@ -1,0 +1,475 @@
+{
+  "time": "2026-10-03T16:37:18.328595+07:00",
+  "total": 16,
+  "absent": 9,
+  "present": 7,
+  "roots": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK",
+      "observations": [
+        {
+          "log": "red-historical-consumer.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK",
+          "nonce": "411c5111-1713-459e-88ca-f2fcadca8c20",
+          "dev": 16777229,
+          "ino": 64369606,
+          "uid": 501
+        },
+        {
+          "log": "red-historical-consumer.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-411c5111-1713-459e-88ca-f2fcadca8c20-dqAviK",
+          "nonce": "411c5111-1713-459e-88ca-f2fcadca8c20",
+          "dev": 16777229,
+          "ino": 64369606,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-cae714c3-664a-4085-8f28-f085e1b0f4ec-CoClL8",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-cae714c3-664a-4085-8f28-f085e1b0f4ec-CoClL8",
+          "nonce": "cae714c3-664a-4085-8f28-f085e1b0f4ec",
+          "dev": 16777229,
+          "ino": 64370079,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-cae714c3-664a-4085-8f28-f085e1b0f4ec-CoClL8",
+          "nonce": "cae714c3-664a-4085-8f28-f085e1b0f4ec",
+          "dev": 16777229,
+          "ino": 64370079,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9c32ad6e-c7f5-4d2e-aced-e186c688505b-CEWY2V",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9c32ad6e-c7f5-4d2e-aced-e186c688505b-CEWY2V",
+          "nonce": "9c32ad6e-c7f5-4d2e-aced-e186c688505b",
+          "dev": 16777229,
+          "ino": 64370083,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9c32ad6e-c7f5-4d2e-aced-e186c688505b-CEWY2V",
+          "nonce": "9c32ad6e-c7f5-4d2e-aced-e186c688505b",
+          "dev": 16777229,
+          "ino": 64370083,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b4e815e0-55ed-4f56-8f99-da1ee56598f7-FhpMYz",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b4e815e0-55ed-4f56-8f99-da1ee56598f7-FhpMYz",
+          "nonce": "b4e815e0-55ed-4f56-8f99-da1ee56598f7",
+          "dev": 16777229,
+          "ino": 64370093,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b4e815e0-55ed-4f56-8f99-da1ee56598f7-FhpMYz",
+          "nonce": "b4e815e0-55ed-4f56-8f99-da1ee56598f7",
+          "dev": 16777229,
+          "ino": 64370093,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-337d27a8-d677-488c-a9ef-1f2864f88e01-auNYDI",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-337d27a8-d677-488c-a9ef-1f2864f88e01-auNYDI",
+          "nonce": "337d27a8-d677-488c-a9ef-1f2864f88e01",
+          "dev": 16777229,
+          "ino": 64370101,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-337d27a8-d677-488c-a9ef-1f2864f88e01-auNYDI",
+          "nonce": "337d27a8-d677-488c-a9ef-1f2864f88e01",
+          "dev": 16777229,
+          "ino": 64370101,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f030f55f-064e-4168-b2fa-f7f7ef80412b-EAXEli",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f030f55f-064e-4168-b2fa-f7f7ef80412b-EAXEli",
+          "nonce": "f030f55f-064e-4168-b2fa-f7f7ef80412b",
+          "dev": 16777229,
+          "ino": 64370110,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f030f55f-064e-4168-b2fa-f7f7ef80412b-EAXEli",
+          "nonce": "f030f55f-064e-4168-b2fa-f7f7ef80412b",
+          "dev": 16777229,
+          "ino": 64370110,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/tmp/crew6-w-WwP3wI",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task6 owned fixture creation ",
+          "nonce": "6a8cce4f-9fc1-425e-b26e-8432d9595f14",
+          "root": "/private/tmp/crew6-w-WwP3wI",
+          "device": 16777229,
+          "inode": 64370119,
+          "ownerUid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task6 fixture retained root ",
+          "nonce": "6a8cce4f-9fc1-425e-b26e-8432d9595f14",
+          "root": "/private/tmp/crew6-w-WwP3wI",
+          "device": 16777229,
+          "inode": 64370119,
+          "ownerUid": 501
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64370119,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-23297633-88a8-438f-987b-5972e543e50d-iA0XPa",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-23297633-88a8-438f-987b-5972e543e50d-iA0XPa",
+          "nonce": "23297633-88a8-438f-987b-5972e543e50d",
+          "dev": 16777229,
+          "ino": 64372298,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-23297633-88a8-438f-987b-5972e543e50d-iA0XPa",
+          "nonce": "23297633-88a8-438f-987b-5972e543e50d",
+          "dev": 16777229,
+          "ino": 64372298,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-42909b35-ed03-44fb-b102-3f6819b8c324-9GlsRj",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-42909b35-ed03-44fb-b102-3f6819b8c324-9GlsRj",
+          "nonce": "42909b35-ed03-44fb-b102-3f6819b8c324",
+          "dev": 16777229,
+          "ino": 64372487,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-42909b35-ed03-44fb-b102-3f6819b8c324-9GlsRj",
+          "nonce": "42909b35-ed03-44fb-b102-3f6819b8c324",
+          "dev": 16777229,
+          "ino": 64372487,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f326d511-f03a-4ef8-ba10-11b8235ac999-BbgL3L",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f326d511-f03a-4ef8-ba10-11b8235ac999-BbgL3L",
+          "nonce": "f326d511-f03a-4ef8-ba10-11b8235ac999",
+          "dev": 16777229,
+          "ino": 64373017,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task3 retained UNKNOWN root ",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f326d511-f03a-4ef8-ba10-11b8235ac999-BbgL3L",
+          "device": "16777229",
+          "inode": "64373017",
+          "uid": 501,
+          "stage": "ready"
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64373017,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-dbda40ec-a59c-4fa8-b8a7-5e35f8c55228-jagpcT",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-dbda40ec-a59c-4fa8-b8a7-5e35f8c55228-jagpcT",
+          "nonce": "dbda40ec-a59c-4fa8-b8a7-5e35f8c55228",
+          "dev": 16777229,
+          "ino": 64373324,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task3 retained UNKNOWN root ",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-dbda40ec-a59c-4fa8-b8a7-5e35f8c55228-jagpcT",
+          "device": "16777229",
+          "inode": "64373324",
+          "uid": 501,
+          "stage": "claim"
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64373324,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6407c2cc-1024-442b-becf-de49baf12a01-kHC3U0",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6407c2cc-1024-442b-becf-de49baf12a01-kHC3U0",
+          "nonce": "6407c2cc-1024-442b-becf-de49baf12a01",
+          "dev": 16777229,
+          "ino": 64373612,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task3 retained UNKNOWN root ",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6407c2cc-1024-442b-becf-de49baf12a01-kHC3U0",
+          "device": "16777229",
+          "inode": "64373612",
+          "uid": 501,
+          "stage": "companion"
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64373612,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1442dcd4-b4fd-45db-8426-b3712090b1e0-wHvmZX",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1442dcd4-b4fd-45db-8426-b3712090b1e0-wHvmZX",
+          "nonce": "1442dcd4-b4fd-45db-8426-b3712090b1e0",
+          "dev": 16777229,
+          "ino": 64374123,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task3 retained UNKNOWN root ",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1442dcd4-b4fd-45db-8426-b3712090b1e0-wHvmZX",
+          "device": "16777229",
+          "inode": "64374123",
+          "uid": 501,
+          "stage": "runtime-pin"
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64374123,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f1d7d3b7-776e-47bc-9362-77a6458adb3f-IJ0WQv",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f1d7d3b7-776e-47bc-9362-77a6458adb3f-IJ0WQv",
+          "nonce": "f1d7d3b7-776e-47bc-9362-77a6458adb3f",
+          "dev": 16777229,
+          "ino": 64374627,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task3 retained UNKNOWN root ",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f1d7d3b7-776e-47bc-9362-77a6458adb3f-IJ0WQv",
+          "device": "16777229",
+          "inode": "64374627",
+          "uid": 501,
+          "stage": "authorized"
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64374627,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-53d44fb1-e96e-48e6-97c8-24b66bbcdcab-Cv40V7",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-53d44fb1-e96e-48e6-97c8-24b66bbcdcab-Cv40V7",
+          "nonce": "53d44fb1-e96e-48e6-97c8-24b66bbcdcab",
+          "dev": 16777229,
+          "ino": 64375172,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "Task3 retained UNKNOWN root ",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-53d44fb1-e96e-48e6-97c8-24b66bbcdcab-Cv40V7",
+          "device": "16777229",
+          "inode": "64375172",
+          "uid": 501,
+          "stage": "released"
+        }
+      ],
+      "exists": true,
+      "processReferences": [],
+      "currentIdentity": {
+        "dev": 16777229,
+        "ino": 64375172,
+        "uid": 501
+      },
+      "identityMatchesLogged": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-bd4dd2ac-8bd3-41be-bf7c-9ef979da515b-4tnFYp",
+      "observations": [
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "created",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-bd4dd2ac-8bd3-41be-bf7c-9ef979da515b-4tnFYp",
+          "nonce": "bd4dd2ac-8bd3-41be-bf7c-9ef979da515b",
+          "dev": 16777229,
+          "ino": 64375670,
+          "uid": 501
+        },
+        {
+          "log": "affected-cover.log",
+          "prefix": "",
+          "action": "removed-after-writer-close",
+          "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-bd4dd2ac-8bd3-41be-bf7c-9ef979da515b-4tnFYp",
+          "nonce": "bd4dd2ac-8bd3-41be-bf7c-9ef979da515b",
+          "dev": 16777229,
+          "ino": 64375670,
+          "uid": 501
+        }
+      ],
+      "exists": false,
+      "processReferences": []
+    }
+  ],
+  "policy": "No cleanup of UNKNOWN retained roots. Test cleanup logged only after accepted closure. No containers created."
+}

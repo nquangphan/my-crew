@@ -1,0 +1,42 @@
+[
+  {
+    "action": "removed-empty-red-stub-root",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-29ecb663-632b-4dc5-98f6-890f1b4b2310-1v6pfB",
+    "nonce": "29ecb663-632b-4dc5-98f6-890f1b4b2310",
+    "dev": 16777229,
+    "ino": 64091700,
+    "uid": 501,
+    "absent": true,
+    "processCreated": false
+  },
+  {
+    "action": "removed-empty-red-stub-root",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b2fc8536-cdb2-4f6b-a14e-f227de713142-zRoqbM",
+    "nonce": "b2fc8536-cdb2-4f6b-a14e-f227de713142",
+    "dev": 16777229,
+    "ino": 64091701,
+    "uid": 501,
+    "absent": true,
+    "processCreated": false
+  },
+  {
+    "action": "removed-empty-red-stub-root",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-023da9d6-816d-49d4-8f7d-8c77b6902217-l9Ucbm",
+    "nonce": "023da9d6-816d-49d4-8f7d-8c77b6902217",
+    "dev": 16777229,
+    "ino": 64091702,
+    "uid": 501,
+    "absent": true,
+    "processCreated": false
+  },
+  {
+    "action": "removed-empty-red-stub-root",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-12a594ba-b9c7-4c10-ae64-0e1dcaa2ead7-vEe7y3",
+    "nonce": "12a594ba-b9c7-4c10-ae64-0e1dcaa2ead7",
+    "dev": 16777229,
+    "ino": 64091703,
+    "uid": 501,
+    "absent": true,
+    "processCreated": false
+  }
+]

@@ -1,0 +1,15 @@
+[
+  "v2/gateway/src/commands/http-client.ts",
+  "v2/gateway/src/execution/ticket-command-bridge.ts",
+  "v2/gateway/src/sync/connection.ts",
+  "v2/gateway/src/sync/gateway-sync.ts",
+  "v2/gateway/src/journal/http-operations.ts",
+  "v2/gateway/test/connection.test.ts",
+  "v2/gateway/test/http-operations.test.ts",
+  "v2/gateway/test/sync.test.ts",
+  "v2/gateway/test/execution-bridge.test.ts",
+  "v2/gateway/test/execution-bridge-db.test.ts",
+  "v2/docs/flows/gateway-host.md",
+  "v2/docs/flows/gateway-workflows.md",
+  "v2/docs/flows/server-gateway.md"
+]

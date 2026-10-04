@@ -1,0 +1,187 @@
+[
+  {
+    "containerId": "00a8c9f3af94c65857c6635cb2003d0bf636fdecf5b1de596739b08e952b77b4",
+    "observedIn": [
+      "crew-v2-model-capabilities-red.log",
+      "crew-v2-model-capabilities-red.log",
+      "crew-v2-model-capabilities-red.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "0b05823b823756e1d035455b16228887ea70230858e60e2ff354034a7fbd19a7",
+    "observedIn": [
+      "crew-v2-model-observer.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "1917458390a58e7db66e75a8c665ba6bd59765075fd661989ca8e5b31bda8344",
+    "observedIn": [
+      "crew-v2-model-cert-source-applied.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "1da067080c979c1d916d05ec0ea470e258dad2fc62fd5d1b7cf95e61034f81a8",
+    "observedIn": [
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log",
+      "crew-v2-model-covering.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "384560a4ffacc61263f8e1df029640a5b9be3dbac98d63d9dd9f13fde6e729f2",
+    "observedIn": [
+      "crew-v2-model-inventory-red.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "399db713662e3b7e7f17dd8fc1f922290b680e20f8f043f88ad8312729729e02",
+    "observedIn": [
+      "crew-v2-model-test-issuer-green.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "45eab6522f537b8de9b86edf65fa57530d6844ab393f71794c0d39a02b24eef4",
+    "observedIn": [
+      "crew-v2-model-applied-status-red.log",
+      "crew-v2-model-applied-status-red.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "4bc0ed0292321dae6c1e880b8794e1c91976cda09679b9ed21cad8492d14a36e",
+    "observedIn": [
+      "crew-v2-model-pool-green.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "640eb2326e7e882a32b2337b4d1e0d13b96e989ee808195b0ac6090725d1361c",
+    "observedIn": [
+      "crew-v2-model-final-focused.log",
+      "crew-v2-model-final-focused.log",
+      "crew-v2-model-final-focused.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "6e713cca9a8b1ce221be3aeb809f8330557e1a50168e83eed497961d096239a4",
+    "observedIn": [
+      "crew-v2-model-context.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "723124651b26796c4a66d1ef62dff28a1948ea437ad02381a15df1309a459e7f",
+    "observedIn": [
+      "crew-v2-model-backup.log",
+      "crew-v2-model-backup.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "7374e41694fa046cf574713bbf1ff59fd73b2c306b44178c96452ffe0b74af45",
+    "observedIn": [
+      "crew-v2-model-status-latest.log",
+      "crew-v2-model-status-latest.log",
+      "crew-v2-model-status-latest.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "741326f9fef48df43aff975546c53732110c9d438cf1b6fc3056091d9f2af30d",
+    "observedIn": [
+      "crew-v2-model-test-issuer-red.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "9f6f688d32388191f0bcefb07daf296ce91f9ef2d521b69e4923541f8627ed1e",
+    "observedIn": [
+      "crew-v2-model-http-red.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "a55032be32265a943faa33acfc593aa069a0677631fb8b608cb517049677e1c9",
+    "observedIn": [
+      "crew-v2-model-secret-latest.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "e024fe303705dffaa3faa172d54221fb3eedef7bc1fa9dea767221b99bf4456c",
+    "observedIn": [
+      "crew-v2-model-ack-red.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "e3553ba3d4c06a033ddfd51930cebf53d5500707b17d71c36f1d8914f3ca3b05",
+    "observedIn": [
+      "crew-v2-model-inventory-green.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "e381e48367970516cf7000078d49e5ead3dd4089da6af444e10a9be0a03bb7f8",
+    "observedIn": [
+      "crew-v2-model-ack-green.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "containerId": "ec79a54a1366eb679034ff1350b8589d32d1469a9684b54edc913d2296ba92ac",
+    "observedIn": [
+      "crew-v2-model-config-green.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  },
+  {
+    "umbrella": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-focused-10pk52xi/models.test.ts",
+    "existedBeforeCleanup": true,
+    "remaining": false
+  },
+  {
+    "umbrella": "/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-cover-qpfyz31a/server.test.ts",
+    "existedBeforeCleanup": true,
+    "remaining": false
+  },
+  {
+    "containerId": "63c11c368d1f564e0cc04d59f43f4b12906bfaa1817744d6cca46e0fab699eef",
+    "observedIn": [
+      "crew-v2-model-secret-redaction-final.log"
+    ],
+    "checkExit": 0,
+    "remaining": ""
+  }
+]

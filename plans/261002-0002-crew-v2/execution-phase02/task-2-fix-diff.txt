@@ -1,0 +1,371 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 629c17e..e4d0cc2 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -16,36 +16,37 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/auth/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/auth/session.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
+ | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
+ | `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
++| `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 4ed5534..f492d1b 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -37,40 +37,41 @@ flows:
+       - server/scripts/test-db-signals.mjs
+       - server/scripts/test-db.ts
+       - server/migrations/001_platform.sql
+       - server/package.json
+       - server/tsconfig.json
+     tests:
+       - server/test/platform.test.ts
+       - server/test/support/db.ts
+   server-journal:
+     title: Mutation và event journal bền vững Crew v2
+     doc: docs/flows/server-journal.md
+     entrypoints:
+       - server/src/journal/routes.ts
+     files:
+       - server/src/journal/canonical.ts
+       - server/src/journal/event-contracts.ts
+       - server/src/journal/events.ts
+       - server/src/journal/mutation.ts
+       - server/migrations/002_journal.sql
+     tests:
++      - server/test/journal-scope.test.ts
+       - server/test/journal.test.ts
+   server-identity:
+     title: Xác thực owner và gắn dự án với máy Crew v2
+     doc: docs/flows/server-identity.md
+     entrypoints:
+       - server/src/auth/routes.ts
+       - server/src/projects/routes.ts
+     files:
+       - server/src/auth/bootstrap.ts
+       - server/src/auth/machine.ts
+       - server/src/auth/password.ts
+       - server/src/auth/session.ts
+       - server/src/projects/service.ts
+       - server/migrations/003_identity.sql
+     tests:
+       - server/test/auth.test.ts
+       - server/test/projects.test.ts
+       - server/test/support/identity-app.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-identity.md b/v2/docs/flows/server-identity.md
+index 09e448b..e6ca579 100644
+--- a/v2/docs/flows/server-identity.md
++++ b/v2/docs/flows/server-identity.md
+@@ -2,41 +2,41 @@
+ 
+ ## Mục đích
+ 
+ Flow này xác thực một owner đã bootstrap, cấp token mới cho máy macOS và gắn mỗi project với đúng một máy. Máy v1 và credential v1 không được nhập lại. Mọi project mới ở trạng thái chưa gắn máy; việc gắn lại bị chặn theo mặc định cho đến khi có guard đối chiếu tác vụ đang chạy ở phần sau.
+ 
+ ## Điểm vào
+ 
+ - `server/src/auth/bootstrap.ts` → `bootstrapOwner`: tạo duy nhất owner từ mật khẩu stdin.
+ - `server/src/auth/routes.ts` → `registerAuthRoutes`, `createAuthenticator`: route phiên, cấp máy và xác thực request.
+ - `server/src/projects/routes.ts` → `registerProjectRoutes`: route tạo, đọc và gắn project.
+ - `server/src/projects/service.ts` → `createProject`, `bindProject`, `projectEventScope`: nghiệp vụ và phạm vi event.
+ 
+ ## Các bước
+ 
+ 1. `server/src/auth/bootstrap.ts` → `bootstrapOwner`: băm mật khẩu bằng `scrypt` với salt ngẫu nhiên rồi ghi trong transaction có advisory lock. CLI chỉ nhận mật khẩu từ stdin và từ chối lần bootstrap thứ hai.
+ 2. `server/src/auth/routes.ts` → `registerAuthRoutes`: `POST /v2/auth/session` kiểm tra Origin và mật khẩu, giới hạn năm lần sai mỗi năm phút theo IP đã băm; tạo session 12 giờ với cookie `HttpOnly`, `SameSite=Strict`, `Secure` ở môi trường HTTPS. `GET` trả owner và CSRF; `DELETE` cần Origin cùng CSRF rồi thu hồi session.
+ 3. `server/src/auth/session.ts` → `createSession`, `credentialResponseCodec`: chỉ lưu SHA-256 của session và CSRF; CSRF dùng AES-256-GCM để đọc lại cho phiên hợp lệ. Response cấp máy được mã hóa AES-256-GCM theo phạm vi actor, route và idempotency key trước khi journal lưu để owner cùng phiên có thể replay token mà DB không chứa token gốc.
+ 4. `server/src/auth/machine.ts` → `provisionMachine`: tạo UUID và token 32 byte ngẫu nhiên, lưu hash, phát `machine.provisioned` chỉ có machineId. Route máy chỉ trả metadata khi đọc danh sách; máy đã bị thu hồi không xác thực được.
+ 5. `server/src/projects/service.ts` → `createProject`: kiểm tra key, tên, URL HTTPS/SSH không có userinfo; tạo project chưa gắn máy và phát `project.created` chỉ có revision.
+ 6. `server/src/projects/service.ts` → `bindProject`: khóa dòng project, kiểm tra revision và máy còn hiệu lực, gọi guard trong cùng transaction nếu project đã gắn máy, cập nhật một machineId/checkoutPath, xóa commit checkout cũ và tăng bindingRevision; phát `project.bound` chỉ có machineId và bindingRevision. Chữ ký ba tham số mặc định từ chối gắn lại; tham số guard thứ tư tùy chọn cho Task5 kiểm tra attempt `active`, `uncertain`, `finalizing` sau khi các bảng đó có mặt.
+-7. `server/src/projects/service.ts` → `projectEventScope`: máy chỉ đọc sự kiện của project hiện gắn với máy đó; owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
++7. `server/src/projects/service.ts` → `projectEventScope`: nhận `Db | Tx` để journal đọc binding và event trong cùng transaction snapshot; máy chỉ đọc sự kiện của project gắn với máy tại snapshot đó, owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/003_identity.sql` | Owner, session, machine, project và liên kết legacy ID |
+ | `server/src/auth/password.ts` | `scrypt` và so sánh hash có thời gian cố định |
+ | `server/src/auth/session.ts` | Cookie, CSRF, mã hóa kết quả replay |
+ | `server/src/auth/machine.ts` | Cấp máy và event metadata |
+ | `server/src/auth/bootstrap.ts` | Bootstrap owner bằng stdin |
+ | `server/src/auth/routes.ts` | Route auth/machine và kiểm tra quyền |
+ | `server/src/projects/service.ts` | Project, binding và phạm vi event |
+ | `server/src/projects/routes.ts` | Route project với schema cấm trường dư |
+ | `server/test/support/identity-app.ts` | Fastify fixture với DB riêng, cookie và CSRF thật |
+ | `server/test/auth.test.ts`, `server/test/projects.test.ts` | Kiểm thử hành vi auth và binding |
+ 
+ ## Dữ liệu
+ 
+ DB lưu password salt/hash, hash của session/token/CSRF và ciphertext của CSRF/idempotent machine response. Token gốc chỉ có ở phản hồi cấp máy cho owner đã xác thực; không có trong event hoặc backup DB. `projects.machine_id` và `checkout_path` cùng null hoặc cùng có giá trị; bản nhập docs cũ có thể giữ project ở trạng thái chưa gắn. `docsState` hiện là `missing` cho project mới; flow docs nhập liệu cập nhật trạng thái khi có snapshot.
+ 
+diff --git a/v2/docs/flows/server-journal.md b/v2/docs/flows/server-journal.md
+index 02304fa..260f441 100644
+--- a/v2/docs/flows/server-journal.md
++++ b/v2/docs/flows/server-journal.md
+@@ -1,43 +1,44 @@
+ # Nhật ký sự kiện và mutation bền vững
+ 
+ ## Mục đích
+ 
+ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL. Khóa gửi lại giúp một request thành công chỉ chạy một lần; cursor sự kiện theo thứ tự commit để client đọc tiếp sau khi mất kết nối. Dữ liệu event chỉ chứa metadata đã khai báo, không chứa credential.
+ 
+ ## Điểm vào
+ 
+ - `server/src/journal/mutation.ts` → `createMutator`, `mutate`: ghi idempotency và chạy công việc trong transaction.
+ - `server/src/journal/events.ts` → `appendEvent`, `readEvents`, `ownerOnlyEventScope`: phát cursor và đọc theo quyền.
+ - `server/src/journal/routes.ts` → `registerEventRoutes`: HTTP đọc event và SSE.
+ 
+ ## Các bước
+ 
+ 1. `server/src/journal/canonical.ts` → `canonicalJson` sắp xếp key JSON, từ chối giá trị không thể biểu diễn an toàn. `server/src/journal/mutation.ts` → `createMutator` băm body SHA-256, kiểm tra khóa ASCII in được, rồi khóa phạm vi `(actor, route, key)` bằng advisory lock trong transaction.
+ 2. `server/src/journal/mutation.ts` → `createMutator` đọc bản ghi idempotency: cùng hash trả response đã lưu qua `ResponseCodec`; khác hash trả 409. Request mới khóa hàng `event_cursor` trước business rows, chạy `work`, ghi response, rồi commit. Lỗi rollback cả công việc, event và response.
+ 3. `server/src/journal/event-contracts.ts` → `validateEventInput` từ chối key nhạy cảm lồng sâu, type và payload chưa khai báo. Các hợp đồng đầu tiên là `machine.provisioned`, `project.created`, `project.bound`; `probe` chỉ phục vụ test nội bộ. `server/src/journal/events.ts` → `appendEvent` tăng `event_cursor` và chèn event trong transaction của caller.
+-4. `server/src/journal/events.ts` → `readEvents` trả event sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
++4. `server/src/journal/events.ts` → `readEvents` đọc scope và event trong cùng transaction `REPEATABLE READ READ ONLY`, tránh lấy binding cũ rồi thấy event mới sau một rebind. Event được trả sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
+ 5. `server/src/journal/routes.ts` → `registerEventRoutes` xác thực trước khi đọc hoặc mở stream. `GET /v2/events` trả `{items,cursor}`; cursor là event cuối trang hoặc cursor đầu vào khi trang rỗng. SSE lấy `Last-Event-ID` khi nối lại, đọc hết backlog theo trang rồi poll mỗi giây; heartbeat 15 giây. Socket chậm vượt 64 KiB bị đóng để client phát lại từ cursor cuối; socket đóng hoặc app shutdown dừng vòng poll.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/002_journal.sql` | Bảng cursor, event và idempotency; index cho project và máy |
+ | `server/src/journal/canonical.ts` | JSON canonical cho hash và kiểm tra payload |
+ | `server/src/journal/mutation.ts` | Transaction, khóa gửi lại và response codec |
+ | `server/src/journal/event-contracts.ts` | Whitelist event metadata |
+ | `server/src/journal/events.ts` | Ghi và đọc event theo actor/scope |
+ | `server/src/journal/routes.ts` | Endpoint đọc event và SSE |
+ | `server/test/journal.test.ts` | Kiểm thử cạnh tranh, rollback, scope và reconnect |
++| `server/test/journal-scope.test.ts` | Kiểm thử rebind commit giữa hai bước đọc scope/event |
+ 
+ ## Dữ liệu
+ 
+ `event_cursor` có một hàng `singleton=true`, bắt đầu ở 0. `events.cursor` là bigint tăng trong transaction, không dùng sequence cấp trước commit. `idempotency` có khóa chính `(actor_kind, actor_id, route, key)` và giữ response thành công vô hạn trong giai đoạn này. Response credential do `ResponseCodec` của module auth mã hóa trước khi lưu; journal không giải mã hoặc ghi token vào event. Cursor API là chuỗi thập phân không âm.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp migration, fixture, hợp đồng `Actor`, `Tx`, `ResponseCodec`. Flow identity cung cấp authenticator, codec mã hóa credential và project scope; các flow ticket, execution và docs sau đó dùng mutation/event journal.
+ 
+ ## Tests
+ 
+-`pnpm --dir v2/server test --test-file <đường dẫn tuyệt đối đến server/test/journal.test.ts>` dùng PostgreSQL container riêng. Test kiểm tra replay đồng thời, payload khác trả 409, rollback không tiêu cursor, hai kết nối commit theo cursor, máy không thấy global/project lạ, event nhạy cảm bị chặn và SSE xác thực/nối lại sau restart. `pnpm --dir v2/server typecheck` cùng Biome kiểm tra kiểu và định dạng.
++`pnpm --dir v2/server test` dùng PostgreSQL container riêng. `journal.test.ts` kiểm tra replay đồng thời, payload khác trả 409, rollback không tiêu cursor, hai kết nối commit theo cursor, máy không thấy global/project lạ, event nhạy cảm bị chặn và SSE xác thực/nối lại sau restart. `journal-scope.test.ts` dùng migration 003, tạm dừng sau khi scope đọc binding, commit rebind từ kết nối khác rồi xác nhận máy cũ không thấy event mới. `pnpm --dir v2/server typecheck` cùng Biome kiểm tra kiểu và định dạng.
+diff --git a/v2/server/src/journal/events.ts b/v2/server/src/journal/events.ts
+index 450983a..603ce20 100644
+--- a/v2/server/src/journal/events.ts
++++ b/v2/server/src/journal/events.ts
+@@ -1,26 +1,29 @@
+ import type { Actor, Db, Event, EventInput, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import { canonicalJson } from './canonical.ts';
+ import { validateEventInput } from './event-contracts.ts';
+ 
+-export type EventScopeReader = (db: Db, actor: Actor) => Promise<{ projectIds: Id[]; allowGlobal: boolean }>;
++export type EventScopeReader = (
++  db: Db | Tx,
++  actor: Actor,
++) => Promise<{ projectIds: Id[]; allowGlobal: boolean }>;
+ 
+ export const ownerOnlyEventScope: EventScopeReader = async (_db, actor) => ({
+   projectIds: [],
+   allowGlobal: actor.kind === 'owner',
+ });
+ 
+ const maxCursor = 9223372036854775807n;
+ export function parseCursor(value: string): string {
+   if (!/^(0|[1-9][0-9]*)$/.test(value))
+     throw new ApiError('CURSOR_INVALID', 400, 'Con trỏ sự kiện không hợp lệ');
+   const cursor = BigInt(value);
+   if (cursor > maxCursor) throw new ApiError('CURSOR_INVALID', 400, 'Con trỏ sự kiện không hợp lệ');
+   return cursor.toString();
+ }
+ 
+ function mapEvent(row: Record<string, unknown>): Event {
+   return {
+     cursor: String(row.cursor),
+     type: String(row.type),
+     projectId: row.project_id as Id | null,
+@@ -35,31 +38,33 @@ export async function appendEvent(tx: Tx, event: EventInput): Promise<Event> {
+   validateEventInput(event);
+   const [cursorRow] =
+     await tx`update event_cursor set value = value + 1 where singleton = true returning value`;
+   if (!cursorRow) throw new Error('EVENT_CURSOR_MISSING');
+   const [row] =
+     await tx`insert into events (cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at) values (${cursorRow.value}, ${event.type}, ${event.projectId}, ${event.ticketId}, ${event.audienceMachineId}, ${tx.json(JSON.parse(canonicalJson(event.data)))}, now()) returning cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at`;
+   if (!row) throw new Error('EVENT_INSERT_FAILED');
+   return mapEvent(row);
+ }
+ 
+ export async function readEvents(
+   db: Db,
+   actor: Actor,
+   after: string,
+   limit: number,
+   scope: EventScopeReader,
+ ): Promise<Event[]> {
+   const cursor = parseCursor(after);
+   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+     throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn sự kiện không hợp lệ');
+-  const access = await scope(db, actor);
+-  if (actor.kind === 'owner') {
++  return db.begin('isolation level repeatable read read only', async (tx) => {
++    const access = await scope(tx, actor);
++    if (actor.kind === 'owner') {
++      const rows =
++        await tx`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} order by cursor limit ${limit}`;
++      return rows.map(mapEvent);
++    }
++    const ids = access.projectIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+     const rows =
+-      await db`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} order by cursor limit ${limit}`;
++      await tx`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} and (audience_machine_id = ${actor.id} or (audience_machine_id is null and project_id = any(${tx.array(ids)}::uuid[]))) order by cursor limit ${limit}`;
+     return rows.map(mapEvent);
+-  }
+-  const ids = access.projectIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+-  const rows =
+-    await db`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} and (audience_machine_id = ${actor.id} or (audience_machine_id is null and project_id = any(${db.array(ids)}::uuid[]))) order by cursor limit ${limit}`;
+-  return rows.map(mapEvent);
++  });
+ }
+diff --git a/v2/server/src/projects/service.ts b/v2/server/src/projects/service.ts
+index e135297..da81319 100644
+--- a/v2/server/src/projects/service.ts
++++ b/v2/server/src/projects/service.ts
+@@ -120,27 +120,27 @@ export async function bindProject(
+ 
+ export async function getProject(db: Db, id: Id): Promise<Project> {
+   const [row] = await db`select * from projects where id=${id}`;
+   if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
+   return mapProject(row);
+ }
+ 
+ export async function listProjects(
+   db: Db,
+   limit: number,
+   cursor: Id | null,
+ ): Promise<{ items: Project[]; nextCursor: Id | null }> {
+   const rows = cursor
+     ? await db`select * from projects where id > ${cursor} order by id limit ${limit + 1}`
+     : await db`select * from projects order by id limit ${limit + 1}`;
+   const items = rows.slice(0, limit).map(mapProject);
+   return { items, nextCursor: rows.length > limit ? (items[items.length - 1]?.id ?? null) : null };
+ }
+ 
+ export async function projectEventScope(
+-  db: Db,
++  db: Db | Tx,
+   actor: Actor,
+ ): Promise<{ projectIds: Id[]; allowGlobal: boolean }> {
+   if (actor.kind === 'owner') return { projectIds: [], allowGlobal: true };
+   const rows = await db`select id from projects where machine_id=${actor.id} order by id`;
+   return { projectIds: rows.map((row) => row.id as Id), allowGlobal: false };
+ }
+diff --git a/v2/server/test/journal-scope.test.ts b/v2/server/test/journal-scope.test.ts
+new file mode 100644
+index 0000000..c6cf41c
+--- /dev/null
++++ b/v2/server/test/journal-scope.test.ts
+@@ -0,0 +1,69 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { type EventScopeReader, readEvents } from '../src/journal/events.ts';
++import { mutate } from '../src/journal/mutation.ts';
++import type { Actor } from '../src/platform/contracts.ts';
++import { bindProject, projectEventScope } from '../src/projects/service.ts';
++import { databaseFixture } from './support/db.ts';
++
++const withDatabase = databaseFixture(3);
++
++test('máy cũ không nhận event commit sau khi scope đã đọc nhưng binding đổi', async () =>
++  withDatabase(async (db) => {
++    const machineA = randomUUID();
++    const machineB = randomUUID();
++    const projectId = randomUUID();
++    await db`insert into machines (id, name, token_hash) values (${machineA}, 'A', ${'a'.repeat(64)}), (${machineB}, 'B', ${'b'.repeat(64)})`;
++    await db`insert into projects (id, key, name, machine_id, checkout_path, binding_revision) values (${projectId}, 'SCOPE', 'Scope', ${machineA}, '/tmp/old', 2)`;
++
++    let scopeObserved: (() => void) | undefined;
++    let releaseRead: (() => void) | undefined;
++    const observed = new Promise<void>((resolve) => (scopeObserved = resolve));
++    const gate = new Promise<void>((resolve) => (releaseRead = resolve));
++    const pausedScope: EventScopeReader = async (queryDb, actor) => {
++      const access = await projectEventScope(queryDb, actor);
++      scopeObserved?.();
++      await gate;
++      return access;
++    };
++    const actorA: Actor = { kind: 'machine', id: machineA };
++    const actorB: Actor = { kind: 'machine', id: machineB };
++    const pendingRead = readEvents(db, actorA, '0', 50, pausedScope);
++    await observed;
++    try {
++      await mutate(
++        db,
++        {
++          actor: { kind: 'owner', id: 'owner' },
++          route: `PUT:/v2/projects/${projectId}/binding`,
++          key: 'rebind',
++          body: { machineId: machineB },
++        },
++        async (tx) => {
++          await bindProject(
++            tx,
++            projectId,
++            { machineId: machineB, checkoutPath: '/tmp/new', expectedRevision: 2 },
++            async () => {},
++          );
++          return { status: 200, body: {} };
++        },
++      );
++    } finally {
++      releaseRead?.();
++    }
++
++    assert.deepEqual(
++      (await pendingRead).map((event) => event.cursor),
++      [],
++    );
++    assert.deepEqual(
++      (await readEvents(db, actorA, '0', 50, projectEventScope)).map((event) => event.cursor),
++      [],
++    );
++    assert.deepEqual(
++      (await readEvents(db, actorB, '0', 50, projectEventScope)).map((event) => event.cursor),
++      ['1'],
++    );
++  }));

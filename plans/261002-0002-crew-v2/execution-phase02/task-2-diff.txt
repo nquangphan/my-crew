@@ -1,0 +1,880 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 1d5feda..779c9ba 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -1,33 +1,40 @@
+ # Tra cứu file
+ 
+ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng lệnh.
+ 
+ <!-- crew-docs:files:start -->
+ > Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.
+ 
+ | File | Flows |
+ |------|-------|
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
++| `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
++| `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
++| `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
++| `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
++| `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
++| `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
++| `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index cadedc7..22908e7 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -25,22 +25,35 @@ flows:
+   server-platform:
+     title: Nền tảng server và database riêng Crew v2
+     doc: docs/flows/server-platform.md
+     entrypoints:
+       - server/src/db/migrate.ts
+     files:
+       - server/src/platform/config.ts
+       - server/src/platform/contracts.ts
+       - server/src/platform/errors.ts
+       - server/src/platform/picomatch.d.ts
+       - server/src/platform/thread-stream.d.ts
+       - server/src/db/client.ts
+       - server/scripts/test-db-signals.mjs
+       - server/scripts/test-db.ts
+       - server/migrations/001_platform.sql
+       - server/package.json
+       - server/tsconfig.json
+     tests:
+       - server/test/platform.test.ts
+       - server/test/support/db.ts
++  server-journal:
++    title: Mutation và event journal bền vững Crew v2
++    doc: docs/flows/server-journal.md
++    entrypoints:
++      - server/src/journal/routes.ts
++    files:
++      - server/src/journal/canonical.ts
++      - server/src/journal/event-contracts.ts
++      - server/src/journal/events.ts
++      - server/src/journal/mutation.ts
++      - server/migrations/002_journal.sql
++    tests:
++      - server/test/journal.test.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-journal.md b/v2/docs/flows/server-journal.md
+new file mode 100644
+index 0000000..02304fa
+--- /dev/null
++++ b/v2/docs/flows/server-journal.md
+@@ -0,0 +1,43 @@
++# Nhật ký sự kiện và mutation bền vững
++
++## Mục đích
++
++Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL. Khóa gửi lại giúp một request thành công chỉ chạy một lần; cursor sự kiện theo thứ tự commit để client đọc tiếp sau khi mất kết nối. Dữ liệu event chỉ chứa metadata đã khai báo, không chứa credential.
++
++## Điểm vào
++
++- `server/src/journal/mutation.ts` → `createMutator`, `mutate`: ghi idempotency và chạy công việc trong transaction.
++- `server/src/journal/events.ts` → `appendEvent`, `readEvents`, `ownerOnlyEventScope`: phát cursor và đọc theo quyền.
++- `server/src/journal/routes.ts` → `registerEventRoutes`: HTTP đọc event và SSE.
++
++## Các bước
++
++1. `server/src/journal/canonical.ts` → `canonicalJson` sắp xếp key JSON, từ chối giá trị không thể biểu diễn an toàn. `server/src/journal/mutation.ts` → `createMutator` băm body SHA-256, kiểm tra khóa ASCII in được, rồi khóa phạm vi `(actor, route, key)` bằng advisory lock trong transaction.
++2. `server/src/journal/mutation.ts` → `createMutator` đọc bản ghi idempotency: cùng hash trả response đã lưu qua `ResponseCodec`; khác hash trả 409. Request mới khóa hàng `event_cursor` trước business rows, chạy `work`, ghi response, rồi commit. Lỗi rollback cả công việc, event và response.
++3. `server/src/journal/event-contracts.ts` → `validateEventInput` từ chối key nhạy cảm lồng sâu, type và payload chưa khai báo. Các hợp đồng đầu tiên là `machine.provisioned`, `project.created`, `project.bound`; `probe` chỉ phục vụ test nội bộ. `server/src/journal/events.ts` → `appendEvent` tăng `event_cursor` và chèn event trong transaction của caller.
++4. `server/src/journal/events.ts` → `readEvents` trả event sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
++5. `server/src/journal/routes.ts` → `registerEventRoutes` xác thực trước khi đọc hoặc mở stream. `GET /v2/events` trả `{items,cursor}`; cursor là event cuối trang hoặc cursor đầu vào khi trang rỗng. SSE lấy `Last-Event-ID` khi nối lại, đọc hết backlog theo trang rồi poll mỗi giây; heartbeat 15 giây. Socket chậm vượt 64 KiB bị đóng để client phát lại từ cursor cuối; socket đóng hoặc app shutdown dừng vòng poll.
++
++## Files
++
++| Đường dẫn từ `v2/` | Vai trò |
++|---|---|
++| `server/migrations/002_journal.sql` | Bảng cursor, event và idempotency; index cho project và máy |
++| `server/src/journal/canonical.ts` | JSON canonical cho hash và kiểm tra payload |
++| `server/src/journal/mutation.ts` | Transaction, khóa gửi lại và response codec |
++| `server/src/journal/event-contracts.ts` | Whitelist event metadata |
++| `server/src/journal/events.ts` | Ghi và đọc event theo actor/scope |
++| `server/src/journal/routes.ts` | Endpoint đọc event và SSE |
++| `server/test/journal.test.ts` | Kiểm thử cạnh tranh, rollback, scope và reconnect |
++
++## Dữ liệu
++
++`event_cursor` có một hàng `singleton=true`, bắt đầu ở 0. `events.cursor` là bigint tăng trong transaction, không dùng sequence cấp trước commit. `idempotency` có khóa chính `(actor_kind, actor_id, route, key)` và giữ response thành công vô hạn trong giai đoạn này. Response credential do `ResponseCodec` của module auth mã hóa trước khi lưu; journal không giải mã hoặc ghi token vào event. Cursor API là chuỗi thập phân không âm.
++
++## Flow liên quan
++
++`server-platform` cấp migration, fixture, hợp đồng `Actor`, `Tx`, `ResponseCodec`. Flow identity cung cấp authenticator, codec mã hóa credential và project scope; các flow ticket, execution và docs sau đó dùng mutation/event journal.
++
++## Tests
++
++`pnpm --dir v2/server test --test-file <đường dẫn tuyệt đối đến server/test/journal.test.ts>` dùng PostgreSQL container riêng. Test kiểm tra replay đồng thời, payload khác trả 409, rollback không tiêu cursor, hai kết nối commit theo cursor, máy không thấy global/project lạ, event nhạy cảm bị chặn và SSE xác thực/nối lại sau restart. `pnpm --dir v2/server typecheck` cùng Biome kiểm tra kiểu và định dạng.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 142d8ba..2413bed 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -10,28 +10,29 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g
+ - Node.js ≥ 24.12 chạy TypeScript bằng type stripping.
+ - TypeScript 7 kiểm tra kiểu ở chế độ strict; `node:test` chạy kiểm thử.
+ - pnpm 10.32.1 quản lý package độc lập trong `v2/` và `v2/server/`.
+ - Nền tảng server dùng Fastify 5 và postgres.js; DB v2 riêng PostgreSQL 18.6, không dùng DB v1.
+ 
+ ## Bản đồ module
+ 
+ | Thư mục | Vai trò |
+ |---------|---------|
+ | `src/` | Bốn policy thuần cho chọn model, workflow, chuyển trạng thái ticket và hoàn tất |
+ | `test/` | Kiểm thử hành vi và tính độc lập của workspace |
+ | `server/` | Nền tảng DB server độc lập, migration có checksum và fixture PostgreSQL riêng |
+ | `docs/` | Kiến trúc, manifest flow và bảng tra file |
+ 
+ ## Danh sách flow
+ 
+ <!-- crew-docs:flows:start -->
+ | Flow | Id | Điểm vào |
+ |------|----|----------|
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
++| [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ <!-- crew-docs:flows:end -->
+ 
+ ## Cách dùng docs
+ 
+ - [Kiến trúc](architecture.md) mô tả ranh giới của thư viện miền.
+ - [Bảng tra file](files.md) cho biết file thuộc flow nào.
+ - Mỗi trang trong `flows/` mô tả điểm vào, bước xử lý, dữ liệu và test của một flow.
+diff --git a/v2/server/migrations/002_journal.sql b/v2/server/migrations/002_journal.sql
+new file mode 100644
+index 0000000..4496dec
+--- /dev/null
++++ b/v2/server/migrations/002_journal.sql
+@@ -0,0 +1,29 @@
++create table event_cursor (
++  singleton boolean primary key check (singleton),
++  value bigint not null check (value >= 0)
++);
++insert into event_cursor (singleton, value) values (true, 0);
++
++create table events (
++  cursor bigint primary key,
++  type text not null,
++  project_id uuid,
++  ticket_id uuid,
++  audience_machine_id uuid,
++  data jsonb not null,
++  occurred_at timestamptz not null
++);
++create index events_project_cursor_idx on events (project_id, cursor);
++create index events_audience_cursor_idx on events (audience_machine_id, cursor);
++
++create table idempotency (
++  actor_kind text not null,
++  actor_id text not null,
++  route text not null,
++  key text not null,
++  body_hash char(64) not null,
++  status integer not null,
++  response jsonb not null,
++  created_at timestamptz not null,
++  primary key (actor_kind, actor_id, route, key)
++);
+diff --git a/v2/server/src/journal/canonical.ts b/v2/server/src/journal/canonical.ts
+new file mode 100644
+index 0000000..d4fc5d9
+--- /dev/null
++++ b/v2/server/src/journal/canonical.ts
+@@ -0,0 +1,30 @@
++export function canonicalJson(value: unknown): string {
++  const ancestors = new Set<object>();
++  const serialize = (current: unknown): string => {
++    if (current === null) return 'null';
++    if (typeof current === 'string' || typeof current === 'boolean') return JSON.stringify(current);
++    if (typeof current === 'number' && Number.isFinite(current)) return JSON.stringify(current);
++    if (typeof current !== 'object') throw new Error('JSON_CANONICAL_INVALID');
++    if (ancestors.has(current)) throw new Error('JSON_CANONICAL_INVALID');
++    ancestors.add(current);
++    try {
++      if (Array.isArray(current)) {
++        return `[${Array.from(current, (item) => serialize(item)).join(',')}]`;
++      }
++      const prototype: unknown = Object.getPrototypeOf(current);
++      if (prototype !== Object.prototype && prototype !== null) throw new Error('JSON_CANONICAL_INVALID');
++      if (Object.getOwnPropertySymbols(current).length > 0) throw new Error('JSON_CANONICAL_INVALID');
++      const fields = Object.keys(current)
++        .sort()
++        .map((key) => {
++          const descriptor = Object.getOwnPropertyDescriptor(current, key);
++          if (!descriptor || !('value' in descriptor)) throw new Error('JSON_CANONICAL_INVALID');
++          return `${JSON.stringify(key)}:${serialize(descriptor.value)}`;
++        });
++      return `{${fields.join(',')}}`;
++    } finally {
++      ancestors.delete(current);
++    }
++  };
++  return serialize(value);
++}
+diff --git a/v2/server/src/journal/event-contracts.ts b/v2/server/src/journal/event-contracts.ts
+new file mode 100644
+index 0000000..a1bca14
+--- /dev/null
++++ b/v2/server/src/journal/event-contracts.ts
+@@ -0,0 +1,79 @@
++import type { EventInput } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++const sensitive = /token|password|credential|secret/i;
++
++function safeData(value: unknown, seen = new Set<object>()): void {
++  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
++  if (typeof value === 'number' && Number.isFinite(value)) return;
++  if (typeof value !== 'object' || seen.has(value))
++    throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
++  seen.add(value);
++  try {
++    if (Array.isArray(value)) {
++      for (const item of value) safeData(item, seen);
++      return;
++    }
++    const prototype: unknown = Object.getPrototypeOf(value);
++    if (prototype !== Object.prototype && prototype !== null)
++      throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
++    for (const key of Reflect.ownKeys(value)) {
++      if (typeof key !== 'string' || sensitive.test(key))
++        throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
++      const descriptor = Object.getOwnPropertyDescriptor(value, key);
++      if (!descriptor || !('value' in descriptor))
++        throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
++      safeData(descriptor.value, seen);
++    }
++  } finally {
++    seen.delete(value);
++  }
++}
++
++function exactKeys(data: Record<string, unknown>, keys: readonly string[]): boolean {
++  const actual = Object.keys(data).sort();
++  return actual.length === keys.length && actual.every((key, index) => key === [...keys].sort()[index]);
++}
++
++export function validateEventInput(input: EventInput): void {
++  if (
++    !input ||
++    ![input.projectId, input.ticketId, input.audienceMachineId].every(
++      (id) => id === null || (typeof id === 'string' && uuid.test(id)),
++    ) ||
++    !input.data ||
++    typeof input.data !== 'object' ||
++    Array.isArray(input.data)
++  )
++    throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
++  safeData(input.data);
++  const data = input.data;
++  let valid = false;
++  switch (input.type) {
++    case 'probe':
++      valid = (exactKeys(data, []) || exactKeys(data, ['ok'])) && (!('ok' in data) || data.ok === true);
++      break;
++    case 'machine.provisioned':
++      valid =
++        exactKeys(data, ['machineId']) && typeof data.machineId === 'string' && uuid.test(data.machineId);
++      break;
++    case 'project.created':
++      valid =
++        exactKeys(data, ['revision']) &&
++        Number.isSafeInteger(data.revision) &&
++        Number(data.revision) >= 1 &&
++        input.projectId !== null;
++      break;
++    case 'project.bound':
++      valid =
++        exactKeys(data, ['machineId', 'bindingRevision']) &&
++        typeof data.machineId === 'string' &&
++        uuid.test(data.machineId) &&
++        Number.isSafeInteger(data.bindingRevision) &&
++        Number(data.bindingRevision) >= 1 &&
++        input.projectId !== null;
++      break;
++  }
++  if (!valid) throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
++}
+diff --git a/v2/server/src/journal/events.ts b/v2/server/src/journal/events.ts
+new file mode 100644
+index 0000000..450983a
+--- /dev/null
++++ b/v2/server/src/journal/events.ts
+@@ -0,0 +1,65 @@
++import type { Actor, Db, Event, EventInput, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { canonicalJson } from './canonical.ts';
++import { validateEventInput } from './event-contracts.ts';
++
++export type EventScopeReader = (db: Db, actor: Actor) => Promise<{ projectIds: Id[]; allowGlobal: boolean }>;
++
++export const ownerOnlyEventScope: EventScopeReader = async (_db, actor) => ({
++  projectIds: [],
++  allowGlobal: actor.kind === 'owner',
++});
++
++const maxCursor = 9223372036854775807n;
++export function parseCursor(value: string): string {
++  if (!/^(0|[1-9][0-9]*)$/.test(value))
++    throw new ApiError('CURSOR_INVALID', 400, 'Con trỏ sự kiện không hợp lệ');
++  const cursor = BigInt(value);
++  if (cursor > maxCursor) throw new ApiError('CURSOR_INVALID', 400, 'Con trỏ sự kiện không hợp lệ');
++  return cursor.toString();
++}
++
++function mapEvent(row: Record<string, unknown>): Event {
++  return {
++    cursor: String(row.cursor),
++    type: String(row.type),
++    projectId: row.project_id as Id | null,
++    ticketId: row.ticket_id as Id | null,
++    audienceMachineId: row.audience_machine_id as Id | null,
++    occurredAt: (row.occurred_at as Date).toISOString(),
++    data: row.data as Record<string, unknown>,
++  };
++}
++
++export async function appendEvent(tx: Tx, event: EventInput): Promise<Event> {
++  validateEventInput(event);
++  const [cursorRow] =
++    await tx`update event_cursor set value = value + 1 where singleton = true returning value`;
++  if (!cursorRow) throw new Error('EVENT_CURSOR_MISSING');
++  const [row] =
++    await tx`insert into events (cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at) values (${cursorRow.value}, ${event.type}, ${event.projectId}, ${event.ticketId}, ${event.audienceMachineId}, ${tx.json(JSON.parse(canonicalJson(event.data)))}, now()) returning cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at`;
++  if (!row) throw new Error('EVENT_INSERT_FAILED');
++  return mapEvent(row);
++}
++
++export async function readEvents(
++  db: Db,
++  actor: Actor,
++  after: string,
++  limit: number,
++  scope: EventScopeReader,
++): Promise<Event[]> {
++  const cursor = parseCursor(after);
++  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
++    throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn sự kiện không hợp lệ');
++  const access = await scope(db, actor);
++  if (actor.kind === 'owner') {
++    const rows =
++      await db`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} order by cursor limit ${limit}`;
++    return rows.map(mapEvent);
++  }
++  const ids = access.projectIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
++  const rows =
++    await db`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} and (audience_machine_id = ${actor.id} or (audience_machine_id is null and project_id = any(${db.array(ids)}::uuid[]))) order by cursor limit ${limit}`;
++  return rows.map(mapEvent);
++}
+diff --git a/v2/server/src/journal/mutation.ts b/v2/server/src/journal/mutation.ts
+new file mode 100644
+index 0000000..596b49a
+--- /dev/null
++++ b/v2/server/src/journal/mutation.ts
+@@ -0,0 +1,60 @@
++import { createHash } from 'node:crypto';
++import type postgres from 'postgres';
++import type { Db, Mutation, MutationContext, Mutator, ResponseCodec, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { canonicalJson } from './canonical.ts';
++
++const plainCodec: ResponseCodec = {
++  encode: <T>(_context: MutationContext, result: Mutation<T>): unknown => result.body,
++  decode: <T>(_context: MutationContext, status: number, response: unknown): Mutation<T> => ({
++    status,
++    body: response as T,
++  }),
++};
++
++export function createMutator(db: Db, codec: ResponseCodec = plainCodec): Mutator {
++  return async <T>(
++    context: MutationContext,
++    work: (tx: Tx) => Promise<Mutation<T>>,
++  ): Promise<Mutation<T>> => {
++    if (!/^[\x20-\x7e]{1,128}$/.test(context.key))
++      throw new ApiError('IDEMPOTENCY_KEY_INVALID', 400, 'Khóa gửi lại không hợp lệ');
++    let bodyJson: string;
++    try {
++      bodyJson = canonicalJson(context.body);
++    } catch {
++      throw new ApiError('BODY_INVALID', 400, 'Nội dung yêu cầu không hợp lệ');
++    }
++    const hash = createHash('sha256').update(bodyJson).digest('hex');
++    const scope = canonicalJson([context.actor.kind, context.actor.id, context.route, context.key]);
++    return db.begin(async (tx) => {
++      await tx`select pg_advisory_xact_lock(hashtextextended(${scope}, 0))`;
++      const [existing] =
++        await tx`select body_hash, status, response from idempotency where actor_kind = ${context.actor.kind} and actor_id = ${context.actor.id} and route = ${context.route} and key = ${context.key}`;
++      if (existing) {
++        if (existing.body_hash !== hash)
++          throw new ApiError('IDEMPOTENCY_CONFLICT', 409, 'Khóa gửi lại có nội dung khác');
++        return codec.decode<T>(context, Number(existing.status), existing.response);
++      }
++      await tx`select value from event_cursor where singleton = true for update`;
++      const result = await work(tx);
++      const response = codec.encode(context, result);
++      let safeResponse: postgres.JSONValue;
++      try {
++        safeResponse = JSON.parse(canonicalJson(response));
++      } catch {
++        throw new ApiError('RESPONSE_INVALID', 500, 'Phản hồi không hợp lệ');
++      }
++      await tx`insert into idempotency (actor_kind, actor_id, route, key, body_hash, status, response, created_at) values (${context.actor.kind}, ${context.actor.id}, ${context.route}, ${context.key}, ${hash}, ${result.status}, ${tx.json(safeResponse)}, now())`;
++      return result;
++    });
++  };
++}
++
++export function mutate<T>(
++  db: Db,
++  context: MutationContext,
++  work: (tx: Tx) => Promise<Mutation<T>>,
++): Promise<Mutation<T>> {
++  return createMutator(db)(context, work);
++}
+diff --git a/v2/server/src/journal/routes.ts b/v2/server/src/journal/routes.ts
+new file mode 100644
+index 0000000..a57673d
+--- /dev/null
++++ b/v2/server/src/journal/routes.ts
+@@ -0,0 +1,113 @@
++import { setTimeout as delay } from 'node:timers/promises';
++import type { FastifyInstance, FastifyRequest } from 'fastify';
++import type { RouteDependencies, ServerOptions } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { type EventScopeReader, parseCursor, readEvents } from './events.ts';
++
++function queryValue(request: FastifyRequest, name: string): unknown {
++  const query = request.query;
++  if (!query || typeof query !== 'object' || Array.isArray(query)) return undefined;
++  return Object.hasOwn(query, name) ? (query as Record<string, unknown>)[name] : undefined;
++}
++
++function assertAllowedQuery(request: FastifyRequest, stream: boolean): void {
++  const query = request.query;
++  if (!query || typeof query !== 'object' || Array.isArray(query))
++    throw new ApiError('QUERY_INVALID', 400, 'Tham số sự kiện không hợp lệ');
++  const allowed = stream ? ['after'] : ['after', 'limit'];
++  if (Object.keys(query).some((key) => !allowed.includes(key)))
++    throw new ApiError('QUERY_INVALID', 400, 'Tham số sự kiện không hợp lệ');
++}
++
++function requestedCursor(request: FastifyRequest, stream: boolean): string {
++  const fromHeader = stream ? request.headers['last-event-id'] : undefined;
++  const value = fromHeader ?? queryValue(request, 'after') ?? '0';
++  if (typeof value !== 'string') throw new ApiError('CURSOR_INVALID', 400, 'Con trỏ sự kiện không hợp lệ');
++  return parseCursor(value);
++}
++
++function requestedLimit(request: FastifyRequest): number {
++  const raw = queryValue(request, 'limit');
++  if (raw === undefined) return 50;
++  if (typeof raw !== 'string' || !/^[1-9][0-9]*$/.test(raw))
++    throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn sự kiện không hợp lệ');
++  const value = Number(raw);
++  if (!Number.isSafeInteger(value) || value > 100)
++    throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn sự kiện không hợp lệ');
++  return value;
++}
++
++export function registerEventRoutes(
++  app: FastifyInstance,
++  options: ServerOptions,
++  deps: RouteDependencies,
++  scope: EventScopeReader,
++): void {
++  const streams = new Set<FastifyRequest['raw']['socket']>();
++  app.addHook('onClose', async () => {
++    for (const socket of streams) socket.destroy();
++    streams.clear();
++  });
++
++  app.get('/v2/events', async (request) => {
++    const actor = await deps.auth.authenticate(request);
++    assertAllowedQuery(request, false);
++    const after = requestedCursor(request, false);
++    const limit = requestedLimit(request);
++    const items = await readEvents(options.db, actor, after, limit, scope);
++    return { items, cursor: items.at(-1)?.cursor ?? after };
++  });
++
++  app.get('/v2/events/stream', async (request, reply) => {
++    const actor = await deps.auth.authenticate(request);
++    assertAllowedQuery(request, true);
++    let cursor = requestedCursor(request, true);
++    reply.hijack();
++    reply.raw.writeHead(200, {
++      'Content-Type': 'text/event-stream; charset=utf-8',
++      'Cache-Control': 'no-cache, no-transform',
++      Connection: 'keep-alive',
++      'X-Accel-Buffering': 'no',
++    });
++    reply.raw.write(': connected\n\n');
++    const abort = new AbortController();
++    const socket = request.raw.socket;
++    streams.add(socket);
++    const close = () => {
++      abort.abort();
++      streams.delete(socket);
++    };
++    const writeBounded = (packet: string): boolean => {
++      if (reply.raw.writableLength + Buffer.byteLength(packet) > 65_536) {
++        socket.destroy();
++        return false;
++      }
++      reply.raw.write(packet);
++      return true;
++    };
++    reply.raw.on('close', close);
++    let lastHeartbeat = Date.now();
++    try {
++      while (!abort.signal.aborted) {
++        const batch = await readEvents(options.db, actor, cursor, 100, scope);
++        for (const event of batch) {
++          if (abort.signal.aborted) break;
++          const packet = `id: ${event.cursor}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
++          if (!writeBounded(packet)) break;
++          cursor = event.cursor;
++        }
++        if (batch.length === 100 && !abort.signal.aborted) continue;
++        if (Date.now() - lastHeartbeat >= 15_000 && !abort.signal.aborted) {
++          writeBounded(': heartbeat\n\n');
++          lastHeartbeat = Date.now();
++        }
++        await delay(1000, undefined, { signal: abort.signal });
++      }
++    } catch (error) {
++      if (!abort.signal.aborted) request.log.error(error, 'event stream stopped');
++    } finally {
++      close();
++      if (!reply.raw.destroyed) reply.raw.end();
++    }
++  });
++}
+diff --git a/v2/server/test/journal.test.ts b/v2/server/test/journal.test.ts
+new file mode 100644
+index 0000000..af93ef8
+--- /dev/null
++++ b/v2/server/test/journal.test.ts
+@@ -0,0 +1,294 @@
++import assert from 'node:assert/strict';
++import { randomBytes, randomUUID } from 'node:crypto';
++import test from 'node:test';
++import Fastify from 'fastify';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import { appendEvent, ownerOnlyEventScope, readEvents } from '../src/journal/events.ts';
++import { createMutator, mutate } from '../src/journal/mutation.ts';
++import { registerEventRoutes } from '../src/journal/routes.ts';
++import type { Actor, Db, Event, ServerOptions, Tx } from '../src/platform/contracts.ts';
++import { ApiError } from '../src/platform/errors.ts';
++import { databaseFixture } from './support/db.ts';
++
++const withDatabase = databaseFixture(2);
++const owner: Actor = { kind: 'owner', id: 'owner' };
++const event = { type: 'probe', projectId: null, ticketId: null, audienceMachineId: null, data: { ok: true } };
++
++test('canonical JSON ổn định theo thứ tự key và từ chối dữ liệu không phải JSON', () => {
++  assert.equal(canonicalJson({ b: 2, a: { d: 4, c: 3 } }), '{"a":{"c":3,"d":4},"b":2}');
++  assert.throws(() => canonicalJson({ value: Number.NaN }), /JSON_CANONICAL_INVALID/);
++  assert.throws(() => canonicalJson({ value: undefined }), /JSON_CANONICAL_INVALID/);
++  const cycle: Record<string, unknown> = {};
++  cycle.self = cycle;
++  assert.throws(() => canonicalJson(cycle), /JSON_CANONICAL_INVALID/);
++});
++
++test('retry concurrent chỉ ghi một event và trả cùng body', async () =>
++  withDatabase(async (db) => {
++    let calls = 0;
++    const c = { actor: owner, route: 'POST:/probe', key: 'request-1', body: { b: 2, a: 1 } };
++    const work = async (tx: Tx) => {
++      calls++;
++      const recorded = await appendEvent(tx, event);
++      return { status: 201, body: { cursor: recorded.cursor } };
++    };
++    const [first, second] = await Promise.all([mutate(db, c, work), mutate(db, c, work)]);
++    assert.deepEqual(first, second);
++    assert.equal(calls, 1);
++    await assert.rejects(() => mutate(db, { ...c, body: { a: 2 } }, work), { code: 'IDEMPOTENCY_CONFLICT' });
++    assert.equal((await readEvents(db, owner, '0', 50, ownerOnlyEventScope)).length, 1);
++  }));
++
++test('rollback không để lại response hoặc cursor đã tiêu thụ', async () =>
++  withDatabase(async (db) => {
++    const c = { actor: owner, route: 'POST:/probe', key: 'rollback', body: {} };
++    await assert.rejects(() =>
++      mutate(db, c, async (tx) => {
++        await appendEvent(tx, event);
++        throw new Error('crash');
++      }),
++    );
++    assert.equal((await readEvents(db, owner, '0', 50, ownerOnlyEventScope)).length, 0);
++    assert.equal((await db`select value from event_cursor`)[0]?.value, '0');
++    const result = await mutate(db, c, async (tx) => {
++      const recorded = await appendEvent(tx, event);
++      return { status: 201, body: { cursor: recorded.cursor } };
++    });
++    assert.equal(result.body.cursor, '1');
++  }));
++
++test('cursor được phát theo thứ tự commit của hai kết nối', async () =>
++  withDatabase(async (db) => {
++    let releaseFirst: (() => void) | undefined;
++    let signalFirst: (() => void) | undefined;
++    const firstInside = new Promise<void>((resolve) => (signalFirst = resolve));
++    const gate = new Promise<void>((resolve) => (releaseFirst = resolve));
++    const first = mutate(db, { actor: owner, route: 'POST:/probe', key: 'first', body: {} }, async (tx) => {
++      const recorded = await appendEvent(tx, event);
++      signalFirst?.();
++      await gate;
++      return { status: 201, body: { cursor: recorded.cursor } };
++    });
++    await firstInside;
++    const second = mutate(db, { actor: owner, route: 'POST:/probe', key: 'second', body: {} }, async (tx) => {
++      const recorded = await appendEvent(tx, event);
++      return { status: 201, body: { cursor: recorded.cursor } };
++    });
++    releaseFirst?.();
++    const [a, b] = await Promise.all([first, second]);
++    assert.deepEqual([a.body.cursor, b.body.cursor], ['1', '2']);
++    assert.deepEqual(
++      (await readEvents(db, owner, '0', 50, ownerOnlyEventScope)).map((row) => row.cursor),
++      ['1', '2'],
++    );
++  }));
++
++test('scope máy chỉ nhận audience riêng, không nhận global hay project lạ', async () =>
++  withDatabase(async (db) => {
++    const machineId = randomUUID();
++    const projectId = randomUUID();
++    await mutate(db, { actor: owner, route: 'POST:/probe', key: 'scope', body: {} }, async (tx) => {
++      await appendEvent(tx, event);
++      await appendEvent(tx, { ...event, projectId });
++      await appendEvent(tx, { ...event, audienceMachineId: machineId });
++      return { status: 201, body: {} };
++    });
++    const rows = await readEvents(db, { kind: 'machine', id: machineId }, '0', 50, ownerOnlyEventScope);
++    assert.deepEqual(
++      rows.map((row) => row.cursor),
++      ['3'],
++    );
++    assert.equal((await readEvents(db, owner, '2', 50, ownerOnlyEventScope))[0]?.cursor, '3');
++  }));
++
++test('journal từ chối token/password lồng trong dữ liệu và event type lạ', async () =>
++  withDatabase(async (db) => {
++    await assert.rejects(() =>
++      mutate(db, { actor: owner, route: 'POST:/probe', key: 'secret', body: {} }, async (tx) => {
++        await appendEvent(tx, { ...event, data: { nested: [{ token: 'leak' }] } });
++        return { status: 201, body: {} };
++      }),
++    );
++    await assert.rejects(() =>
++      mutate(db, { actor: owner, route: 'POST:/probe', key: 'unknown', body: {} }, async (tx) => {
++        await appendEvent(tx, { ...event, type: 'unknown' });
++        return { status: 201, body: {} };
++      }),
++    );
++    assert.equal((await readEvents(db, owner, '0', 50, ownerOnlyEventScope)).length, 0);
++  }));
++
++test('response codec quyết định dữ liệu được lưu và giải mã khi replay', async () =>
++  withDatabase(async (db) => {
++    const codec = {
++      encode: <T>(_c: unknown, result: { status: number; body: T }): unknown => ({
++        sealed: JSON.stringify(result.body),
++      }),
++      decode: <T>(_c: unknown, status: number, response: unknown) => {
++        assert.ok(response && typeof response === 'object' && 'sealed' in response);
++        return { status, body: JSON.parse(String(response.sealed)) as T };
++      },
++    };
++    const mutator = createMutator(db, codec);
++    const c = { actor: owner, route: 'POST:/v2/machines', key: 'create', body: {} };
++    const first = await mutator(c, async () => ({ status: 201, body: { marker: 'sensitive' } }));
++    const replay = await mutator(c, async () => {
++      throw new Error('should not run');
++    });
++    assert.deepEqual(replay, first);
++    const stored = await db`select response from idempotency`;
++    assert.deepEqual(Object.keys(stored[0]?.response ?? {}), ['sealed']);
++  }));
++
++function eventApp(db: Db) {
++  const app = Fastify({ ajv: { customOptions: { removeAdditional: false } } });
++  app.setErrorHandler((error, _request, reply) => {
++    if (error instanceof ApiError)
++      return reply.code(error.status).send({ error: { code: error.code, message: error.message } });
++    return reply.code(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Lỗi hệ thống' } });
++  });
++  const options: ServerOptions = {
++    db,
++    publicOrigin: 'http://127.0.0.1',
++    secureCookies: false,
++    sessionEncryptionKey: randomBytes(32),
++    now: () => new Date(),
++    authorizeDispatch: async () => {
++      throw new Error('not configured');
++    },
++    verifyFinalResult: async () => {
++      throw new Error('not configured');
++    },
++  };
++  registerEventRoutes(
++    app,
++    options,
++    {
++      mutator: createMutator(db),
++      auth: {
++        authenticate: async (request) => {
++          if (request.headers.authorization !== 'Bearer owner')
++            throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
++          return owner;
++        },
++        requireOwner: async () => owner,
++      },
++    },
++    ownerOnlyEventScope,
++  );
++  return app;
++}
++
++async function firstSseEvent(response: Response): Promise<Event> {
++  const reader = response.body?.getReader();
++  assert.ok(reader);
++  const decoder = new TextDecoder();
++  let text = '';
++  while (true) {
++    const chunk = await reader.read();
++    assert.equal(chunk.done, false, 'SSE kết thúc trước sự kiện');
++    text += decoder.decode(chunk.value, { stream: true });
++    const match = /^data: (.*)$/m.exec(text);
++    if (match) return JSON.parse(match[1] ?? '') as Event;
++  }
++}
++
++test('SSE xác thực trước stream và nối lại sau restart từ Last-Event-ID', async () =>
++  withDatabase(async (db) => {
++    await mutate(db, { actor: owner, route: 'POST:/probe', key: 'sse-one', body: {} }, async (tx) => {
++      await appendEvent(tx, event);
++      return { status: 201, body: {} };
++    });
++    const firstApp = eventApp(db);
++    const firstAddress = await firstApp.listen({ host: '127.0.0.1', port: 0 });
++    try {
++      const unauthorized = await fetch(`${firstAddress}/v2/events/stream`, {
++        signal: AbortSignal.timeout(5000),
++      });
++      assert.equal(unauthorized.status, 401);
++      const controller = new AbortController();
++      try {
++        const response = await fetch(`${firstAddress}/v2/events/stream`, {
++          headers: { authorization: 'Bearer owner' },
++          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
++        });
++        assert.equal(response.status, 200);
++        assert.equal(response.headers.get('content-type'), 'text/event-stream; charset=utf-8');
++        assert.equal((await firstSseEvent(response)).cursor, '1');
++      } finally {
++        controller.abort();
++      }
++    } finally {
++      await firstApp.close();
++    }
++    await mutate(db, { actor: owner, route: 'POST:/probe', key: 'sse-two', body: {} }, async (tx) => {
++      await appendEvent(tx, event);
++      return { status: 201, body: {} };
++    });
++    const secondApp = eventApp(db);
++    const secondAddress = await secondApp.listen({ host: '127.0.0.1', port: 0 });
++    const controller = new AbortController();
++    try {
++      const response = await fetch(`${secondAddress}/v2/events/stream`, {
++        headers: { authorization: 'Bearer owner', 'last-event-id': '1' },
++        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
++      });
++      assert.equal((await firstSseEvent(response)).cursor, '2');
++    } finally {
++      controller.abort();
++      await secondApp.close();
++    }
++  }));
++
++test('event read từ chối query lạ và cursor không hợp lệ', async () =>
++  withDatabase(async (db) => {
++    const app = eventApp(db);
++    try {
++      const unknown = await app.inject({
++        method: 'GET',
++        url: '/v2/events?after=0&extra=1',
++        headers: { authorization: 'Bearer owner' },
++      });
++      assert.equal(unknown.statusCode, 400);
++      const fractional = await app.inject({
++        method: 'GET',
++        url: '/v2/events?after=1.5',
++        headers: { authorization: 'Bearer owner' },
++      });
++      assert.equal(fractional.statusCode, 400);
++    } finally {
++      await app.close();
++    }
++  }));
++
++test('event read trả items và cursor cuối cùng của trang', async () =>
++  withDatabase(async (db) => {
++    await mutate(db, { actor: owner, route: 'POST:/probe', key: 'page', body: {} }, async (tx) => {
++      await appendEvent(tx, event);
++      await appendEvent(tx, event);
++      return { status: 201, body: {} };
++    });
++    const app = eventApp(db);
++    try {
++      const first = await app.inject({
++        method: 'GET',
++        url: '/v2/events?after=0&limit=1',
++        headers: { authorization: 'Bearer owner' },
++      });
++      assert.equal(first.statusCode, 200);
++      assert.deepEqual(Object.keys(first.json()), ['items', 'cursor']);
++      assert.deepEqual(
++        first.json().items.map((item: Event) => item.cursor),
++        ['1'],
++      );
++      assert.equal(first.json().cursor, '1');
++      const empty = await app.inject({
++        method: 'GET',
++        url: '/v2/events?after=2',
++        headers: { authorization: 'Bearer owner' },
++      });
++      assert.deepEqual(empty.json(), { items: [], cursor: '2' });
++    } finally {
++      await app.close();
++    }
++  }));

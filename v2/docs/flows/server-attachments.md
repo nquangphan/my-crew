@@ -50,6 +50,8 @@ Owner giữ original trước khi tạo ticket, comment hoặc gửi inbox. Mỗ
 | `server/test/attachments-routing.test.ts` | Actual ticket retirement, CAS, claim-in-use, rollback và pre-cache decision digest |
 | `server/test/attachments-events.unit.test.ts` | Exact message/input metadata event producer schemas do PM serialize |
 
+Checkpoint parser Task5 mở rộng `SourceLocator`: ảnh có transform nguồn/normalized cùng orientation/rotation/reflection; DOCX và sheet có `SourceComponent` cho image, unsupported-visual, calculated-value, comment hoặc external. Đây là provenance typed cho parser, không là chứng nhận model đọc hiểu hoặc production corpus. SQL009 và authority hiện hành không đổi.
+
 ## Dữ liệu
 
 Original dùng `uploads/<uuid>/original`, stage có generation và receiver UUID. Derivative dùng attachment/extraction/derivative UUID riêng; `.owner.json`, `.operation.<receiver>.json`, `.intent.<stage>.json`, `.closed.<receiver>.json` là private0600 metadata, không trả trong wire attachment. `ownership_nonce`, accepted policy/hash, receiver row và stop proof giữ provenance; quota là tổng expected bytes với latch `quota_released_at IS NULL`, không checksum refcount. Once-linked retention không bị xóa bởi revoke link.

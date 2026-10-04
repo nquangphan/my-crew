@@ -1,0 +1,21 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f349ab9e-5b4a-48d6-b434-0c0f9253636e-CV5raX","nonce":"f349ab9e-5b4a-48d6-b434-0c0f9253636e","dev":16777229,"ino":64094146,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f349ab9e-5b4a-48d6-b434-0c0f9253636e-CV5raX","nonce":"f349ab9e-5b4a-48d6-b434-0c0f9253636e","dev":16777229,"ino":64094146,"uid":501}
+✔ effect ledger default missing phase06 authority waits without durable intent (30.25475ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-3f95e23a-b49a-45c5-b128-35d4fc1521ac-iKXUMY","nonce":"3f95e23a-b49a-45c5-b128-35d4fc1521ac","dev":16777229,"ino":64094151,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-3f95e23a-b49a-45c5-b128-35d4fc1521ac-iKXUMY","nonce":"3f95e23a-b49a-45c5-b128-35d4fc1521ac","dev":16777229,"ino":64094151,"uid":501}
+✔ effect ledger durable receipt survives fallback with different transport identity (83.617041ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-7c4f9091-96e1-47d1-8628-fb152c039047-UEsjNI","nonce":"7c4f9091-96e1-47d1-8628-fb152c039047","dev":16777229,"ino":64094162,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-7c4f9091-96e1-47d1-8628-fb152c039047-UEsjNI","nonce":"7c4f9091-96e1-47d1-8628-fb152c039047","dev":16777229,"ino":64094162,"uid":501}
+✔ effect ledger rejects transport or logical metadata conflict and unverified receipt (40.06925ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-e6036cb1-022a-4ea5-af07-c625aa478d1d-q1KWHQ","nonce":"e6036cb1-022a-4ea5-af07-c625aa478d1d","dev":16777229,"ino":64094170,"uid":501}
+{"action":"removed-after-writer-close","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-e6036cb1-022a-4ea5-af07-c625aa478d1d-q1KWHQ","nonce":"e6036cb1-022a-4ea5-af07-c625aa478d1d","dev":16777229,"ino":64094170,"uid":501}
+✔ effect ledger crash window pending never executes again without target proof (66.591041ms)
+✔ effect ledger canonical encoding separates fields and invalid inputs never reserve (0.189417ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 292.195042

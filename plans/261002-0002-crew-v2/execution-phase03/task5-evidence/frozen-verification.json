@@ -1,0 +1,23 @@
+{
+  "filesVerified": 26,
+  "docs": [
+    {
+      "file": "v2/docs/flows/gateway-host.md",
+      "canonicalHeadings": true
+    },
+    {
+      "file": "v2/docs/flows/gateway-workflows.md",
+      "canonicalHeadings": true
+    },
+    {
+      "file": "v2/docs/flows/server-gateway.md",
+      "canonicalHeadings": true
+    }
+  ],
+  "cover": {
+    "exitCode": 0
+  },
+  "biome": {
+    "exitCode": 0
+  }
+}

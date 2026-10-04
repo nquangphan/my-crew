@@ -1,0 +1,94 @@
+{
+  "scope": "exact paths from FIX2 owned logs, no prefix scan/deletion of uncertainty groups",
+  "deletedAdmissionFixtures": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-FnsSXG",
+      "device": "16777229",
+      "inode": "63466961",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-rtnJcw",
+      "device": "16777229",
+      "inode": "63467025",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-HgyrhG",
+      "device": "16777229",
+      "inode": "63467095",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Rhv01F",
+      "device": "16777229",
+      "inode": "63467160",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-v6hClH",
+      "device": "16777229",
+      "inode": "63467233",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-FCcOfa",
+      "device": "16777229",
+      "inode": "63467298",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-2slwpA",
+      "device": "16777229",
+      "inode": "63467361",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-6iUDp8",
+      "device": "16777229",
+      "inode": "63467427",
+      "ownerUid": 501,
+      "deleted": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-WYoTgU",
+      "device": "16777229",
+      "inode": "63467493",
+      "ownerUid": 501,
+      "deleted": true
+    }
+  ],
+  "retainedForkFixtures": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-F37RMp",
+      "device": "16777229",
+      "inode": "63441651",
+      "ownerUid": 501,
+      "diskEntryBytes": 48671,
+      "entryCount": 21,
+      "deletionAuthorized": false,
+      "reason": "genuine-fork-observed-full-tree-stop-UNKNOWN",
+      "evidence": "fix2-focused-green.log"
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-Iy5SIj",
+      "device": "16777229",
+      "inode": "63447235",
+      "ownerUid": 501,
+      "diskEntryBytes": 48671,
+      "entryCount": 21,
+      "deletionAuthorized": false,
+      "reason": "genuine-fork-observed-full-tree-stop-UNKNOWN",
+      "evidence": "fix2-gateway-final.log"
+    }
+  ],
+  "historicalFix1Inventory": "plans/261002-0002-crew-v2/execution-phase03/task-4-evidence/recovery-owned-scratch-inventory.json",
+  "historicalFix1InventorySha256": "ef6be26376bec62df47f3b1ce7307a6d8a12950a4efc8861ccb7f11359d09e03"
+}

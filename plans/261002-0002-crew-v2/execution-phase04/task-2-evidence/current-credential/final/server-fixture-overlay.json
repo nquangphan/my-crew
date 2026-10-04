@@ -1,0 +1,18 @@
+{
+  "commit": "f58f27d",
+  "files": [
+    {
+      "path": "v2/server/test/support/http.ts",
+      "sha256": "6da03aed379f2034064245be21151fc23ae23766fec8be9ea298a7e1f11ba151"
+    },
+    {
+      "path": "v2/server/test/api-acceptance.test.ts",
+      "sha256": "88a4c15c6ba1017a46a3961543653490393a92d7d188ea65888998de0f41c74a"
+    },
+    {
+      "path": "v2/docs/flows/server-docs-view.md",
+      "sha256": "fc6b28445b54b6220f8bd077f4275da5aead49e723ac40a0dc9c5eaf2da02089"
+    }
+  ],
+  "ruling": "PM15:57 exact reviewed test-only helper/test/docs overlay; no server production or SQL changes"
+}

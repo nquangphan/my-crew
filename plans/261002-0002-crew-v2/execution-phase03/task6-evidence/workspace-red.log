@@ -1,0 +1,33 @@
+Task6 owned fixture creation {"nonce":"a42931be-d7c4-41ba-acd0-8f4536b9c507","root":"/private/tmp/crew6-w-CDo2lR","device":16777229,"inode":63868357,"ownerUid":501}
+Task6 fixture Git {"operationId":"e1141524-8bd4-4044-a36e-1a7a8a3267b3","argv":["/usr/bin/env","HOME=/private/tmp/crew6-w-CDo2lR/fixture-home","CLAUDE_CONFIG_DIR=/private/tmp/crew6-w-CDo2lR/fixture-home/claude","CODEX_HOME=/private/tmp/crew6-w-CDo2lR/fixture-home/codex","GIT_CONFIG_NOSYSTEM=1","GIT_CONFIG_GLOBAL=/dev/null","GIT_TEMPLATE_DIR=/private/tmp/crew6-w-CDo2lR/fixture-home/template","/usr/bin/sandbox-exec","-f","/private/tmp/crew6-w-CDo2lR/isolation/operations/stages/e1141524-8bd4-4044-a36e-1a7a8a3267b3/sandbox.sb","/usr/bin/git","-c","core.hooksPath=/private/tmp/crew6-w-CDo2lR/fixture-home/hooks","-c","core.fsmonitor=false","-c","gc.auto=0","-c","maintenance.auto=false","init","/private/tmp/crew6-w-CDo2lR/owner"],"executable":"/usr/bin/git","executableSha256":"179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818","policySha256":"c8564259fca4efe1cd2092e38c7cfb971794253f00c62643b24a90376e94c2d1","output":"","receipt":{"formatVersion":1,"operationId":"e1141524-8bd4-4044-a36e-1a7a8a3267b3","device":"16777229","inode":"63869678","treeEmpty":true,"forkObserved":false,"exitCode":134,"timedOut":false},"error":null,"numericPidStart":"unavailable-in-reviewed-receipt"}
+Task6 fixture commands []
+Task6 fixture retained root {"nonce":"a42931be-d7c4-41ba-acd0-8f4536b9c507","root":"/private/tmp/crew6-w-CDo2lR","device":16777229,"inode":63868357,"ownerUid":501}
+✖ actual exact clone preserves product docs, quarantines discovery and revalidates selected pins (6375.571375ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6460.675958
+
+✖ failing tests:
+
+test at v2/gateway/test/isolation-workspace.test.ts:10:1
+✖ actual exact clone preserves product docs, quarantines discovery and revalidates selected pins (6375.571375ms)
+  AssertionError [ERR_ASSERTION]: missing receipt
+  
+  134 !== 0
+  
+      at git (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-workspace.test.ts:31:14)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/isolation-workspace.test.ts:33:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 134,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

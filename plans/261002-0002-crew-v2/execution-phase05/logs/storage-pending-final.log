@@ -1,0 +1,50 @@
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MiCz6R nonceSha256=93f1cb779983a5a4ed83135ae7131e18c923a014cd2a179983a89f535e72e235
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-MiCz6R
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (96.287667ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Da7rEk nonceSha256=d514a1e187ee71e81996620c5f8e2280e534382fbc382c44db08be605c480f3f
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Da7rEk
+✔ attachment storage rejects truncated and oversized streams without publishing original (62.254958ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.948167ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7Tv6ka nonceSha256=f099c230dad45475706ca4a0d6461048dc6c79ce1d236fe5457e1a26dce98bee
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7Tv6ka
+✔ attachment storage derivative publication is separate from original (105.225458ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9dz9up nonceSha256=4e57405773419231ac2cff655a4af826af529c8f6d3210b6f676c76457df984d
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9dz9up
+✔ attachment storage leaves a published blob inspectable after injected failure (56.728292ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (0.274417ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KDF5T2 nonceSha256=8722fbdc079f3ed25e78e953dd3d1576654f4431c129fd7b85b0eec7954bd4d5
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-KDF5T2
+✔ attachment storage rejects a symlink owner marker before opening stage (42.785334ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-apOIpb nonceSha256=d73c9e83be621aa3ebdc258437036215df011e13daaa8407268cfc803630799b
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-apOIpb
+✔ attachment storage binds publication to exact attachment and generation (41.666ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-i4e4tc nonceSha256=df0248ddd643e06545c64bc595c2ac1f8c9b9937da1a16bb9f3d19c60da15cbb
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-i4e4tc
+✔ attachment storage never accepts a foreign existing destination even with equal digest (35.773958ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Kqr35J nonceSha256=869adfdabdb6e232d8ecfcbcfca53dd01a1d2a0d86425ec3e8e42ff133b7c674
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Kqr35J
+✔ attachment storage prevents publication after abort at stage flush (41.8845ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-C4WReZ nonceSha256=e50d808c4aae52c214fbe4f1a303616bb5a857b0764a9293946415ca98e79db6
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-C4WReZ
+✔ attachment storage can reopen durable root and verify originals (65.433917ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0NNYfX nonceSha256=a1f4906d2de9393d9079bae19dfda1380fba90c63a0b9da34b572a15af754cad
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-0NNYfX
+✔ attachment storage requires durable journal integration before derivative bytes (28.45625ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NuWhAb nonceSha256=97d362f6f4b78ef68b5d1d68280e198b0d037dd38b0ac1a365f2f0ac2c33726e
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NuWhAb
+✔ attachment storage publishes multiple derivatives in one extraction generation without collision (81.955208ms)
+attachment scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EE0Wbj nonceSha256=759bd8250bb2eefa1ae17638b4837c8fef6554df36a8faf7166583814cc5e846
+attachment scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EE0Wbj
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (67.158166ms)
+✔ attachment receiver parses Linux comm containing spaces and parentheses without birth-field drift (0.359916ms)
+✔ attachment receiver rejects native writer setup on unsupported host (0.110625ms)
+﹣ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (0.019541ms) # SKIP
+✔ attachment staging private lease journal serializes SQL timestamps before receiver work (1.661541ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 803.09575

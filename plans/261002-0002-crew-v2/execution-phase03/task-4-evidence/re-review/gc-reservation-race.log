@@ -1,0 +1,22 @@
+{
+  "finding": "GC_DELETED_DURABLY_RESERVED_PROJECTION",
+  "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-rereview-gc-3hofkZ",
+  "device": "16777229",
+  "inode": "63424449",
+  "uid": 501,
+  "collection": {
+    "deleted": [
+      "c81b3ba9-d856-43ec-9777-cc607a6ee848"
+    ],
+    "retained": [
+      "1f360d44-a24a-4409-8cfe-870e9b2a70ca"
+    ],
+    "failed": []
+  },
+  "durableReferenceCount": 1,
+  "exists": false,
+  "resolveError": "CHECKSUM_MISMATCH",
+  "processesSpawned": 0,
+  "nativeRuntimeCertificate": "UNVERIFIED"
+}
+{"cleanup":"exact-owned-root-deleted","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-rereview-gc-3hofkZ","deleted":true}

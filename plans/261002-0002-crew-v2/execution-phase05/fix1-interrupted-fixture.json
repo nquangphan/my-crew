@@ -1,0 +1,12 @@
+{
+  "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IU547t",
+  "nonceSha256": "dc858af9b0e012a76f9cbc3cd23293bac002e8ce3e1501b0d16ab0169f2406e0",
+  "dev": 16777229,
+  "ino": 63600164,
+  "runnerPid": 86028,
+  "runnerArgs": "node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts --test-name-pattern=review F1|review F2",
+  "containerId": "1472c7b06d62f9216daeb287735f92bdd259080c5ae055936f6d51d0041e0c91",
+  "removedRoot": true,
+  "containerInspectExit": 1,
+  "containerAbsent": true
+}

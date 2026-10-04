@@ -1,0 +1,266 @@
+{
+  "time": "2026-10-02T10:07:46.196672+00:00",
+  "status": "FROZEN_FOR_INDEPENDENT_REVIEW",
+  "schemaRuling": "PM16:53 forward-only010; accepted001\u2013009 unchanged",
+  "semanticReviewFixRounds": 0,
+  "runs": [
+    {
+      "log": "logs/task-2a-red.log",
+      "sha256": "3f5fd9e149880e644c50b8b9f4578027c08d6f9d318f86062fc6e8e805bbf702",
+      "bytes": 23462,
+      "exitCode": 1,
+      "counts": {
+        "tests": 9,
+        "pass": 1,
+        "fail": 8,
+        "skipped": 0
+      },
+      "note": "new producer absent; legacy existing behavior PASS"
+    },
+    {
+      "log": "logs/task-2a-green.log",
+      "sha256": "3bbd7193d1ad5231730da90a7a799e332a3acf63e91bdc1c24d1d190a595f3e1",
+      "bytes": 21797,
+      "exitCode": 1,
+      "counts": {
+        "tests": 9,
+        "pass": 5,
+        "fail": 4,
+        "skipped": 0
+      },
+      "note": "actual prefix9 comments_text_check23514"
+    },
+    {
+      "log": "logs/task-2a-prefix10-green.log",
+      "sha256": "bf77f1f3267cc825206d2d0a599fad9fc4348a1a5caa019b742f5ecedaa77439",
+      "bytes": 19516,
+      "exitCode": 1,
+      "counts": {
+        "tests": 10,
+        "pass": 9,
+        "fail": 1,
+        "skipped": 0
+      },
+      "note": "nine producers PASS; own restore assertion compared generated internal RI names"
+    },
+    {
+      "log": "logs/task-2a-migration-green.log",
+      "sha256": "7317acb002b576f0ad89b9cc15fa131efb96e6cda85f08dc2fc68939bca74cae",
+      "bytes": 2342,
+      "exitCode": 0,
+      "counts": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "whole corrected migration restore case PASS"
+    },
+    {
+      "log": "logs/task-2a-cover-final.log",
+      "sha256": "adaf779274192ef36e3bd2afce15bfff58a1a1ce5b4c185e090529181ba027ce",
+      "bytes": 14061,
+      "exitCode": 0,
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "final exact five files, stable FK and009 trigger assertions"
+    },
+    {
+      "log": "logs/task-2a-input-revision-final.log",
+      "sha256": "45311b1afb220fb0078f0d2623c3a1fc924a56a1a420f39d565b38172b767a3e",
+      "bytes": 1129,
+      "exitCode": 0,
+      "counts": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "skipped": 0
+      },
+      "note": "accepted legacy input revision subtree/rollback"
+    },
+    {
+      "log": "logs/task-2a-typecheck-first.log",
+      "sha256": "8f8df920214a68e590c5885be307e89d59d6aea4cb576587280820e5031850eb",
+      "exitCode": 0
+    },
+    {
+      "log": "logs/task-2a-typecheck-final.log",
+      "sha256": "8f8df920214a68e590c5885be307e89d59d6aea4cb576587280820e5031850eb",
+      "exitCode": 0
+    },
+    {
+      "log": "logs/task-2a-typecheck-source-freeze.log",
+      "sha256": "8f8df920214a68e590c5885be307e89d59d6aea4cb576587280820e5031850eb",
+      "exitCode": 0
+    },
+    {
+      "log": "logs/task-2a-biome-source-freeze.log",
+      "sha256": "de153629cb971af9ec1d795dd14ccd58b30071dc88b23353816016f7fe891002",
+      "exitCode": 0
+    }
+  ],
+  "commands": {
+    "red": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"
+    ],
+    "greenPrefix9": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"
+    ],
+    "greenPrefix10": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"
+    ],
+    "migrationFocused": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts",
+      "--test-name-pattern=migration010 forward"
+    ],
+    "finalCover": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/task-2a-cover.test.mjs"
+    ],
+    "legacyInputRevision": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "test",
+      "--test-file",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-staging.test.ts",
+      "--test-name-pattern=attachment legacy revision actual appendComment"
+    ],
+    "typecheck": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server",
+      "typecheck"
+    ],
+    "biome": [
+      "pnpm",
+      "exec",
+      "biome",
+      "check",
+      "v2/server/src/tickets/contracts.ts",
+      "v2/server/src/tickets/decisions.ts",
+      "v2/server/src/tickets/service.ts",
+      "v2/server/test/attachments-comment-factory.test.ts"
+    ],
+    "diffCheck": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "v2/server/src/tickets/contracts.ts",
+      "v2/server/src/tickets/decisions.ts",
+      "v2/server/src/tickets/service.ts",
+      "v2/server/test/attachments-comment-factory.test.ts",
+      "v2/docs/flows/server-tickets.md"
+    ]
+  },
+  "originalTask1ReportSha256": "a1b0d8196f66323addc4f7fd0725c6f42401aa08b5074ae1e63123ae99f36441",
+  "originalTask1InventorySha256": "94b7b85b060dadfaa17d2d8e69503a204a9d039ebec7e5b30ee4ea009e52cbb7",
+  "sourceInventorySha256": "846d2c91940e227115dc04117e5515cc69af9993d9ed946c5fa78482c1d8bf6a",
+  "cleanupSha256": "c47950e18c71f137d1afe68877a30e1793538ffa8b8208a89e489b890040c1d3",
+  "exclusions": [
+    "unreviewed gateway/models",
+    "unfinished model-current-credentials test",
+    "Task2b consumer",
+    "routes/app",
+    "dependency/package/manifests",
+    "global settings/hooks",
+    "Git stage/commit"
+  ],
+  "docs": "owned server-tickets R3 updated/new010 listed; PM manifest mapping and staged check next",
+  "artifacts": [
+    {
+      "path": "task-2a-brief.md",
+      "sha256": "a25f295f53fe3a862e52f41ab18b14f4e7f8f8897ae2f95d1e33a44417049fcd",
+      "bytes": 3179
+    },
+    {
+      "path": "task-2a-cleanup-final.json",
+      "sha256": "c47950e18c71f137d1afe68877a30e1793538ffa8b8208a89e489b890040c1d3",
+      "bytes": 28560
+    },
+    {
+      "path": "task-2a-cover-wrapper.mjs",
+      "sha256": "bbfefd6e216843f0715b19d1126cfa80a50b73e7d9ae86fd2f088f70e15d7e06",
+      "bytes": 277
+    },
+    {
+      "path": "task-2a-green-source-manifest.json",
+      "sha256": "8a7bfaac1e4a0aec4e2445fb1c928bbe5e5512f0df606937b96afa007814801a",
+      "bytes": 40091
+    },
+    {
+      "path": "task-2a-inventory-pending.json",
+      "sha256": "da33dae58d9ea700d9ffa7bd0278adb6afc243cf31390ee4842478763e9a34af",
+      "bytes": 1799
+    },
+    {
+      "path": "task-2a-red-source-manifest.json",
+      "sha256": "d984b0ec6de00fa2a47779dee68873de6f920f2dfdd3c13646d686b5faeb5ec2",
+      "bytes": 39965
+    },
+    {
+      "path": "task-2a-report-pending-schema.md",
+      "sha256": "c14039032918b69979e24a539cd7f47158274b787a8c3521a2fa46dfac86cfbe",
+      "bytes": 3606
+    },
+    {
+      "path": "task-2a-resource-pending.json",
+      "sha256": "981ffcefca232fa891c348659d993d2bca908f105c276b0ab6cfb1097a6d0ff5",
+      "bytes": 12655
+    },
+    {
+      "path": "task-2a-schema-plan-amendment.json",
+      "sha256": "97f7e5fbfc707d6dcd2746610c9e92af684bf6482b0bf9b3806a2ae5fb470924",
+      "bytes": 1160
+    },
+    {
+      "path": "task-2a-source-inventory.json",
+      "sha256": "846d2c91940e227115dc04117e5515cc69af9993d9ed946c5fa78482c1d8bf6a",
+      "bytes": 4609
+    },
+    {
+      "path": "task-2a-source-manifest-final.json",
+      "sha256": "b48a0cd4d5d42881da0210e5f57eee270a432882f4b14132301690c0d2e914ec",
+      "bytes": 40792
+    },
+    {
+      "path": "task-2a-source-manifest-migration-focused.json",
+      "sha256": "687bd8cbe1cd119e77b72729b4206adae5817c39cbb73046bfdfc753868fe506",
+      "bytes": 40398
+    },
+    {
+      "path": "task-2a-source-manifest-prefix10-first.json",
+      "sha256": "9a903f1f4979981c096805a7d8d1f7bc70d2d7d984ce7949e0e26524a7dd336e",
+      "bytes": 40398
+    }
+  ]
+}

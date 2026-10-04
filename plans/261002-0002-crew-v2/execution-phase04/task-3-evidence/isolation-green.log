@@ -1,0 +1,13 @@
+✔ isolation runtime missing authority and incomplete full-tree evidence deny (1.717709ms)
+✔ isolation runtime test admission is exact admitted claim and never synthetic PASS (0.352416ms)
+✔ isolation runtime context, expiry, measured failures and missing surfaces deny certified (0.322875ms)
+✔ runtime boundary tool policy denies before effects and waits without logical authority (0.368333ms)
+✔ isolation runtime context hash uses accepted server fixed field order (0.091875ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.41925

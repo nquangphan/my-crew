@@ -1,0 +1,379 @@
+{
+  "runs": [
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-biome-final.log",
+      "sha256": "c6b0a56007c053096b02e72bf6c817c64f90a9db1afabd2261712f16fecdda8a",
+      "bytes": 43,
+      "childExit": null,
+      "counts": {},
+      "command": null,
+      "sourceFiles": 0
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-consumer-focused.log",
+      "sha256": "6f6f63759ca44439c4b9a9a0c7c282c01e6ae8441c30f0d6ff23bf02303dfb9e",
+      "bytes": 12175,
+      "childExit": 0,
+      "counts": {
+        "tests": 16,
+        "pass": 16,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server/test/attachments-submissions.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server/test/attachments-routing.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-consumer-focused-aop40q79/v2/server/test/attachments-messages.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-cover-final.log",
+      "sha256": "05722a894343e23ad774c270457a2f499ef08deb244916287410fd7034f50f00",
+      "bytes": 29863,
+      "childExit": 0,
+      "counts": {
+        "tests": 50,
+        "pass": 50,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "--test-concurrency=2",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/tickets.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/dependencies.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/completion.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/repair.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/attachments-comment-factory.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/attachments-submissions.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/attachments-messages.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/attachments-routing.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-cover-final-2cx8mj5f/v2/server/test/attachments-events.unit.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-inbox-routing-green2.log",
+      "sha256": "5efbc86854dfb88c1310ec34dc227d02d73594145119e41e631fb513213f8762",
+      "bytes": 2476,
+      "childExit": 0,
+      "counts": {
+        "tests": 2,
+        "pass": 2,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-inbox-routing-green2-rhjnm7_o/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-inbox-routing-green2-rhjnm7_o/v2/server/test/attachments-messages.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-inbox-routing-green2-rhjnm7_o/v2/server/test/attachments-routing.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-messages-red.log",
+      "sha256": "3fd7c1726ce543b47ddbb5d12d69391a49c5cdef0854b4c4c90aba65ce2d543c",
+      "bytes": 2910,
+      "childExit": 1,
+      "counts": {
+        "tests": 1,
+        "pass": 0,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-red-50hdayez/v2/server",
+        "test",
+        "--test-file",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-red-50hdayez/v2/server/test/attachments-messages.test.ts"
+      ],
+      "sourceFiles": 237
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-messages-routing-green.log",
+      "sha256": "3c50f1f2078d13ec6fb0b85a8c3588ad14e5703dbc18860a18f68f1f3d369a0c",
+      "bytes": 5156,
+      "childExit": 1,
+      "counts": {
+        "tests": 2,
+        "pass": 1,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/attachments-messages.test.ts",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/attachments-routing.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-red.log",
+      "sha256": "6b20ae7179606ae15fb5a41bfd5354b8f77e6739c958d81d33470a3a62df0f51",
+      "bytes": 6991,
+      "childExit": 1,
+      "counts": {
+        "tests": 3,
+        "pass": 0,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-red-fo6jw46u/v2/server",
+        "test",
+        "--test-file",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-red-fo6jw46u/v2/server/test/attachments-submissions.test.ts"
+      ],
+      "sourceFiles": 234
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-routing-lifecycle.log",
+      "sha256": "06a44c55bff17965b3d491acf475d8c10fae8ed105ebc29a1df8a2c509a5b8fe",
+      "bytes": 6356,
+      "childExit": 1,
+      "counts": {
+        "tests": 6,
+        "pass": 5,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server/test/attachments-routing.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-routing-red-feature.log",
+      "sha256": "ba6761df448f9173ca5adf74b2c4e4867a0736dd5f11f8d7b73a9a62ec9ec41c",
+      "bytes": 3130,
+      "childExit": 1,
+      "counts": {
+        "tests": 1,
+        "pass": 0,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-feature-d4qxnam9/v2/server/test/attachments-routing.test.ts"
+      ],
+      "sourceFiles": 239
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-routing-red.log",
+      "sha256": "25459450e879a735c9dfe43da473b459dce97e0937e42ae9930408e82248766c",
+      "bytes": 2903,
+      "childExit": 1,
+      "counts": {
+        "tests": 1,
+        "pass": 0,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-zhrtllv1/v2/server",
+        "test",
+        "--test-file",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-red-zhrtllv1/v2/server/test/attachments-routing.test.ts"
+      ],
+      "sourceFiles": 239
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-submissions-green.log",
+      "sha256": "6a7877902bcf86bac7bd474b2045acf309f704962c90e1f7794d6a84665a93dd",
+      "bytes": 2576,
+      "childExit": 0,
+      "counts": {
+        "tests": 3,
+        "pass": 3,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-submissions-green-foxl7j91/v2/server",
+        "test",
+        "--test-file",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-submissions-green-foxl7j91/v2/server/test/attachments-submissions.test.ts"
+      ],
+      "sourceFiles": 235
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-submissions-negative.log",
+      "sha256": "f7439f3972b0cc2964fcbb4970df9cd12d39975fed2e7f0b45afc1e78c2b2cc2",
+      "bytes": 438835,
+      "childExit": 1,
+      "counts": {
+        "tests": 1,
+        "pass": 0,
+        "fail": 0,
+        "cancelled": 1,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-submissions-negative-ur7n4q1r/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-submissions-negative-ur7n4q1r/v2/server/test/attachments-submissions.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-terminal-selection-green.log",
+      "sha256": "fe2e5d758b4215fe63e4a39c612512ba2ec3e2ba7cd049917456774812a0bb3a",
+      "bytes": 1690,
+      "childExit": 0,
+      "counts": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-terminal-selection-green-rya9rd7i/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "--test-name-pattern=nonterminal",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-terminal-selection-green-rya9rd7i/v2/server/test/attachments-submissions.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-terminal-selection-red.log",
+      "sha256": "17a45713a9cd1510d5d777be4e7dcc236e636e5251f7abff7eff36511e014a36",
+      "bytes": 3072,
+      "childExit": 1,
+      "counts": {
+        "tests": 1,
+        "pass": 0,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-terminal-selection-red-w0u4q834/v2/server",
+        "exec",
+        "node",
+        "--test",
+        "--test-name-pattern=nonterminal",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-terminal-selection-red-w0u4q834/v2/server/test/attachments-submissions.test.ts"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-typecheck-final.log",
+      "sha256": "5a2fbd3906e9316f5ab2940fe175bf2d248687f9c885a68a2e864de94d0892fd",
+      "bytes": 375,
+      "childExit": 0,
+      "counts": {},
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-typecheck-final-zreyt_vj/v2/server",
+        "typecheck"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-typecheck-green.log",
+      "sha256": "edf78ca3707981ee90cb9727943a1f1a6e10cf0cbb3811ee9ca6b232ed061be5",
+      "bytes": 375,
+      "childExit": 0,
+      "counts": {},
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-typecheck-green-r02ev01i/v2/server",
+        "typecheck"
+      ],
+      "sourceFiles": 240
+    },
+    {
+      "log": "plans/261002-0002-crew-v2/execution-phase05/logs/task-2b-typecheck-pre-freeze.log",
+      "sha256": "0fe7e00de17a14ccd3008422551e9b646c18c564c07676a04afefa3670cd25c8",
+      "bytes": 3737,
+      "childExit": 1,
+      "counts": {},
+      "command": [
+        "pnpm",
+        "--dir",
+        "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-typecheck-pre-freeze-ub0t48p7/v2/server",
+        "typecheck"
+      ],
+      "sourceFiles": 240
+    }
+  ],
+  "finalCover": {
+    "exit": 0,
+    "tests": 50,
+    "pass": 50,
+    "fail": 0,
+    "skipped": 0,
+    "seconds": 11.118254542,
+    "files": 9
+  },
+  "finalTypesExit": 0,
+  "finalBiomeExit": 0,
+  "r3OwnedPathsPresent": true,
+  "sourceBeforeAfterUnchanged": true,
+  "startupLimitations": "Two early baseline launcher57P03 failures did not print private container IDs; finally-stop exited without cleanup error, no full-ID absence claim for those two."
+}

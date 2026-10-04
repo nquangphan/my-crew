@@ -1,0 +1,11 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-scope-xe8nnym4/v2/server", "typecheck"]
+privatePG {"command": [], "id": "", "name": "", "mapping": ""}
+
+> @crew-v2/server@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-types-scope-xe8nnym4/v2/server
+> tsc --noEmit
+
+src/attachments/references.ts(53,28): error TS2322: Type 'Promise<UnwrapPromiseArray<T>>' is not assignable to type 'Promise<T>'.
+  Type 'UnwrapPromiseArray<T>' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'UnwrapPromiseArray<T>'.
+ ELIFECYCLE  Command failed with exit code 1.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

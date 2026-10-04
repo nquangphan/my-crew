@@ -1,0 +1,14 @@
+{
+  "observedAt": "2026-10-03T11:54:06.470057+00:00",
+  "pressureLevel": "2",
+  "availableBytes": 4720967680,
+  "diskAvailableBytes": 31277006848,
+  "cpuSample": "             disk14              disk16              disk18       cpu    load average\n    KB/t  tps  MB/s     KB/t  tps  MB/s     KB/t  tps  MB/s  us sy id   1m   5m   15m\n  244.21    0  0.00     4.03    0  0.00    14.19    1  0.01   8  5 87  4.47 4.96 4.85\n    0.00    0  0.00     0.00    0  0.00     0.00    0  0.00  25 11 64  4.47 4.96 4.85\n",
+  "quota": {
+    "ordinaryUsageAllowed": true,
+    "usedPercent": 28,
+    "remainingPercent": 72,
+    "sampledAtEpoch": 1791028445.035
+  },
+  "cpuIdlePercent": 64.0
+}

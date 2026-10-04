@@ -1,0 +1,194 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts
+
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_a5e06a67289d4113a5dff844148d2965 pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ql88yD
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ql88yD nonceSha256=e49908b54bf12bea50f245c522b3687aa1f8ff01edc0e885c5e3aee64a62a596
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ql88yD dev=16777229 ino=63822770 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Ql88yD
+✔ attachment comment producer default denies before INSERT and freezes absence at factory creation (244.786375ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_da76eee8316d4daeb6a9ac1245977337 pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bOng8V
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bOng8V nonceSha256=c9890f7bdfc3b091f0e9575ca1dfc815f53d24bf2d42aa0ecf618146c7b36291
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bOng8V dev=16777229 ino=63822777 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bOng8V
+✔ attachment comment producer preserves legacy appendComment whitespace and empty rejection exactly (171.257917ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_1dbdb9f5c4f241789fccd0ec5429a47d pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IYRLmF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IYRLmF nonceSha256=63349907564f024f5252540c998e8e58d843adae8a3073227b0f58fa72bb8109
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IYRLmF dev=16777229 ino=63822784 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-IYRLmF
+✖ attachment comment producer attachment-only actual ready originals emits one event and sole009 subtree fanout (325.937833ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_25f7118a472e4cf8a4f660b3afb25d08 pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9vgev4
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9vgev4 nonceSha256=17b19a786a14be7d3efd3d2bd0ab4d0c8d8c0e233c2ef562beaf9e2dba082c89
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9vgev4 dev=16777229 ino=63822807 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9vgev4
+✔ attachment comment producer mixed input and whitespace with actual originals preserve supplied text (325.622208ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_c5e7f8345bda4a9dac86d5cf60cb067a pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AEmQbu
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AEmQbu nonceSha256=cd0ff063060578bae1c33eaca2ebfec638c4093fc9f5f4e777cf8a481cd2ec99
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AEmQbu dev=16777229 ino=63822830 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-AEmQbu
+✔ attachment comment producer rejects empty whitespace invalid type and over max without client allowEmpty authority (186.975791ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_7a3a75af0e3e4fb2b1477878697c73db pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Hxdcb9
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Hxdcb9 nonceSha256=ca0c513bb9a4dfaaeb18a778da9a57cbb4a02e55c3c26a1895d73722210360f9
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Hxdcb9 dev=16777229 ino=63822837 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Hxdcb9
+✔ attachment comment producer accepts exact max text with trusted empty selection (175.334833ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_f11c0c2f2179490d968d4252039cdf91 pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OvEwhX
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OvEwhX nonceSha256=372950e76b04dd3677c8da171407f5438e5f6fb296a18d00c63798f0b45d68ee
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OvEwhX dev=16777229 ino=63822844 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OvEwhX
+✖ attachment comment producer fake IDs unavailable and reserved originals cannot authorize attachment-only text (233.3925ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_776c820fc41547019708c603383306c5 pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NR5FFv
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NR5FFv nonceSha256=5e5148284d9043b061cf27d9e386aae55eb822f647a337c7fbc58a9018070033
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NR5FFv dev=16777229 ino=63822859 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NR5FFv
+✖ attachment comment producer callback failure rolls back inserted comment links event and existing009 fanout (251.114584ms)
+comment producer resource container=0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 port=51605 database=crew_v2_test_a8d46aeeb08e4c6e970dae3b12f4b226 pid=6855 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container 0860350ff418724a5c22a9e79b96984c2d53b4de0b06787b2e0471d25b982634 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EKpgRR
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EKpgRR nonceSha256=a658e9d85fc1f140fddfbdaaa6d2473a69b23ef0fd6eed84847365b5314ec0b3
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EKpgRR dev=16777229 ino=63822874 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-EKpgRR
+✖ attachment comment producer captured linker cannot be replaced through caller dependency mutation (238.91525ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 5
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2250.513125
+
+✖ failing tests:
+
+test at test/attachments-comment-factory.test.ts:197:1
+✖ attachment comment producer attachment-only actual ready originals emits one event and sole009 subtree fanout (325.937833ms)
+  Error [PostgresError]: new row for relation "comments" violates check constraint "comments_text_check"
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at appendAttachmentComment (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/src/tickets/decisions.ts:54:25) {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '23514',
+    detail: 'Failing row contains (0063dc28-1f9e-45f7-95cb-6331a418907c, 912279ce-d703-4581-8ea0-d48d24bf09c6, owner, owner, , 2026-10-02 09:50:34.548932+00).',
+    schema_name: 'public',
+    table_name: 'comments',
+    constraint_name: 'comments_text_check',
+    file: 'execMain.c',
+    line: '2076',
+    routine: 'ExecConstraints'
+  }
+
+test at test/attachments-comment-factory.test.ts:283:1
+✖ attachment comment producer fake IDs unavailable and reserved originals cannot authorize attachment-only text (233.3925ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: '23514'
+  -   code: 'ATTACHMENT_NOT_READY'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:288:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: PostgresError: new row for relation "comments" violates check constraint "comments_text_check"
+        at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+        at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+        at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+        at Socket.emit (node:events:508:28)
+        at addChunk (node:internal/streams/readable:563:12)
+        at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+        at Readable.push (node:internal/streams/readable:394:5)
+        at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+        at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+        at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+        at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+        at appendAttachmentComment (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/src/tickets/decisions.ts:54:25),
+    expected: { code: 'ATTACHMENT_NOT_READY' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:343:1
+✖ attachment comment producer callback failure rolls back inserted comment links event and existing009 fanout (251.114584ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /LINKER_AFTER_WRITE_FAILURE/. Input:
+  
+  'PostgresError: new row for relation "comments" violates check constraint "comments_text_check"'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:362:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: PostgresError: new row for relation "comments" violates check constraint "comments_text_check"
+        at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+        at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+        at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+        at Socket.emit (node:events:508:28)
+        at addChunk (node:internal/streams/readable:563:12)
+        at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+        at Readable.push (node:internal/streams/readable:394:5)
+        at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+        at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+        at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+        at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+        at appendAttachmentComment (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/src/tickets/decisions.ts:54:25),
+    expected: /LINKER_AFTER_WRITE_FAILURE/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:372:1
+✖ attachment comment producer captured linker cannot be replaced through caller dependency mutation (238.91525ms)
+  Error [PostgresError]: new row for relation "comments" violates check constraint "comments_text_check"
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at appendAttachmentComment (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/src/tickets/decisions.ts:54:25) {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '23514',
+    detail: 'Failing row contains (0b357788-9ce9-492d-b538-c726ce0a065b, 5d9fce40-b28c-4bd1-a480-66298b1f75c3, owner, owner, , 2026-10-02 09:50:35.962266+00).',
+    schema_name: 'public',
+    table_name: 'comments',
+    constraint_name: 'comments_text_check',
+    file: 'execMain.c',
+    line: '2076',
+    routine: 'ExecConstraints'
+  }
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

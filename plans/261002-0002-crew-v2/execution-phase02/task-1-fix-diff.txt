@@ -1,0 +1,500 @@
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 969ff27..1d5feda 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -2,20 +2,21 @@
+ 
+ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng lệnh.
+ 
+ <!-- crew-docs:files:start -->
+ > Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.
+ 
+ | File | Flows |
+ |------|-------|
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
++| `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
+ | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 6456f9f..cadedc7 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -27,19 +27,20 @@ flows:
+     doc: docs/flows/server-platform.md
+     entrypoints:
+       - server/src/db/migrate.ts
+     files:
+       - server/src/platform/config.ts
+       - server/src/platform/contracts.ts
+       - server/src/platform/errors.ts
+       - server/src/platform/picomatch.d.ts
+       - server/src/platform/thread-stream.d.ts
+       - server/src/db/client.ts
++      - server/scripts/test-db-signals.mjs
+       - server/scripts/test-db.ts
+       - server/migrations/001_platform.sql
+       - server/package.json
+       - server/tsconfig.json
+     tests:
+       - server/test/platform.test.ts
+       - server/test/support/db.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-platform.md b/v2/docs/flows/server-platform.md
+index 48b2651..d32b3f6 100644
+--- a/v2/docs/flows/server-platform.md
++++ b/v2/docs/flows/server-platform.md
+@@ -4,50 +4,53 @@
+ 
+ `server/` là package API độc lập của Crew v2. Giao dịch dùng PostgreSQL riêng; các policy thuần nằm ở `src/` của v2. Package này không dùng schema, runtime hay database v1.
+ 
+ ## Điểm vào
+ 
+ - `server/src/platform/config.ts` → `loadConfig`: đọc và kiểm tra cấu hình v2.
+ - `server/src/db/client.ts` → `connectDb`: tạo pool PostgreSQL sau khi kiểm tra URL.
+ - `server/src/db/migrate.ts` → `captureMigrations`, `migrate`: chụp prefix SQL bất biến, kiểm tra marker và áp dụng trong transaction.
+ - `server/test/support/db.ts` → `databaseFixture`: cấp logical DB riêng cho mỗi test callback.
+ - `server/scripts/test-db.ts` → chạy test trên container PostgreSQL tạm.
++- `server/scripts/test-db-signals.mjs` → probe riêng cho đường ngắt test runner.
+ 
+ ## Các bước
+ 
+ 1. `server/src/platform/config.ts` → `loadConfig`: yêu cầu `CREW_V2_DATABASE_URL`, `CREW_V2_PUBLIC_ORIGIN`, khóa session 32 byte ở dạng 64 ký tự hex; cổng API mặc định 8788. Tên database phải bắt đầu bằng `crew_v2_`; URL loopback phải có cổng riêng, khác 5432 và 55432.
+ 2. `server/src/db/client.ts` → `connectDb`: kiểm tra lại tên DB/cổng trước khi mở pool. Không đọc DSN v1.
+ 3. `server/src/db/migrate.ts` → `captureMigrations(through)`: đọc đúng các file `001` đến `through`, giữ SQL và SHA-256 trong `MigrationSet` bất biến. `migrate(db,set)` dùng advisory lock `crew-v2-migrations`, xác nhận marker `crew-v2`, phát hiện checksum drift rồi chạy các migration còn thiếu trong một transaction. SQL lỗi khiến toàn bộ lượt migration rollback.
+ 4. `server/test/support/db.ts` → `databaseFixture(through)`: chụp prefix trước khi tạo DB dạng `crew_v2_test_<uuid>`, migrate, chạy callback, đóng pool và xóa đúng DB vừa tạo trong `finally`.
+-5. `server/scripts/test-db.ts` → khởi chạy `postgres:18.6` không volume, publish cổng ngẫu nhiên trên `127.0.0.1`, chờ `pg_isready` tối đa 30 giây, chuyển URL test cho `node:test`; khi test xong, lỗi hoặc nhận tín hiệu thì dừng đúng container đã tạo.
++5. `server/scripts/test-db.ts` → khởi chạy `postgres:18.6` không volume, publish cổng ngẫu nhiên trên `127.0.0.1`, chờ `pg_isready` tối đa 30 giây, chuyển URL test cho `node:test`. Mặc định runner tự chọn file `test/*.test.ts`; probe có thể truyền `--test-file` với đường dẫn tuyệt đối đến đúng một fixture riêng. Test child chạy trong process group riêng; khi nhận SIGINT/SIGTERM, runner gửi tín hiệu cho group, sau 750 ms cưỡng chế SIGKILL và chờ reap thêm tối đa 750 ms, rồi dừng đúng container đã tạo. Đường test thoát bình thường giữ exit code của `node:test`.
++6. `server/scripts/test-db-signals.mjs` → tạo fixture `.mjs` trong thư mục scratch riêng, không thêm file vào `server/test/`. Fixture ghi container ID chính xác từ `CREW_V2_TEST_CONTAINER_ID` vào readiness file; preload ghi PID direct child. Probe chỉ dọn các PID/ID nhận từ chính lượt này. Một lượt đặt test child vào trạng thái `SIGSTOP` để kiểm tra đường cưỡng chế khi child không thể tự thoát. Probe xác minh process, descendant và container riêng đã dừng trong 4 giây; tài nguyên tạm được dọn trong `finally`.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/package.json`, `server/pnpm-lock.yaml`, `server/tsconfig.json` | Pin dependency, lệnh và kiểm tra kiểu strict |
+ | `server/.env.example` | Tên biến cấu hình mẫu, không chứa secret thật |
+ | `server/src/platform/contracts.ts` | Kiểu dùng chung cho Actor, mutation, route và server options |
+ | `server/src/platform/errors.ts` | `ApiError` có code, HTTP status và details |
+ | `server/src/platform/config.ts` | `loadConfig` |
+ | `server/src/platform/picomatch.d.ts` | Kiểu cho picomatch 4 |
+ | `server/src/platform/thread-stream.d.ts` | Alias kiểu hẹp cho thread-stream 4.2.0 với `@types/node` 26 |
+ | `server/src/db/client.ts` | `connectDb` |
+ | `server/src/db/migrate.ts` | `MigrationSet`, `captureMigrations`, `migrate` |
+ | `server/migrations/001_platform.sql` | Bảng `system_identity` và marker `crew-v2` |
+ | `server/scripts/test-db.ts` | Container test riêng, cổng loopback ngẫu nhiên và cleanup |
++| `server/scripts/test-db-signals.mjs` | Regression probe cho cleanup khi child bỏ qua tín hiệu |
+ | `server/test/support/db.ts` | `databaseFixture` |
+ | `server/test/platform.test.ts` | Kiểm thử cấu hình, migration, fixture và backup/restore |
+ 
+ ## Dữ liệu
+ 
+ Cấu hình mẫu nằm tại `server/.env.example`; giá trị thật cấp từ nơi giữ secret. Migration không chạy khi import module hoặc khởi động app. Người vận hành chọn prefix phát hành bằng `CREW_V2_MIGRATION_THROUGH` rồi chạy `pnpm --dir v2/server db:migrate`. Trước khi migrate DB v2 có dữ liệu phải backup và diễn tập restore. CLI không tự lấy file SQL mới xuất hiện giữa lượt chạy.
+ 
+ Test chỉ dùng container tạm với trust auth trên loopback; URL test lấy từ runner, không dùng `CREW_V2_DATABASE_URL`. Image PostgreSQL đã xác minh khi triển khai: `postgres:18.6`, digest `sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722`.
+ 
+ ## Flow liên quan
+ 
+ `domain-foundation` cung cấp policy thuần. Các flow journal, identity, tickets, execution và docs ở phần tiếp theo tiêu thụ `MigrationSet`, fixture DB và hợp đồng route; flow này không cài các nghiệp vụ đó.
+ 
+ ## Tests
+ 
+-`pnpm --dir v2/server test` cần Docker. Test chạy migration lặp lại, từ chối DB lạ/cổng dùng chung, checksum drift, rollback SQL lỗi và prefix đã chụp không đổi khi file sửa. `pg_dump`/`pg_restore` chạy qua `docker exec` trong đúng container test để xác nhận marker và dữ liệu được giữ. `pnpm --dir v2/server typecheck` kiểm tra mã TypeScript; `pnpm --dir v2 test` kiểm tra policy miền.
++`pnpm --dir v2/server test` cần Docker. Test chạy migration lặp lại, từ chối DB lạ/cổng dùng chung, checksum drift, rollback SQL lỗi và prefix đã chụp không đổi khi file sửa. `pg_dump`/`pg_restore` chạy qua `docker exec` trong đúng container test để xác nhận marker và dữ liệu được giữ. `pnpm --dir v2/server test:signals` thực hiện SIGTERM, SIGINT cùng trường hợp child bị `SIGSTOP`; có thể chạy đồng thời với suite thường vì fixture nằm ngoài thư mục test chung và mỗi runner dùng container riêng. `pnpm --dir v2/server typecheck` kiểm tra mã TypeScript; `pnpm --dir v2 test` kiểm tra policy miền.
+diff --git a/v2/server/package.json b/v2/server/package.json
+index a1eb983..18fc725 100644
+--- a/v2/server/package.json
++++ b/v2/server/package.json
+@@ -2,20 +2,21 @@
+   "name": "@crew-v2/server",
+   "private": true,
+   "type": "module",
+   "packageManager": "pnpm@10.32.1",
+   "engines": {
+     "node": ">=24.12"
+   },
+   "scripts": {
+     "start": "node src/main.ts",
+     "test": "node scripts/test-db.ts",
++    "test:signals": "node scripts/test-db-signals.mjs SIGTERM && node scripts/test-db-signals.mjs SIGINT && node scripts/test-db-signals.mjs SIGTERM --pause-child",
+     "test:unit": "node --test test/*.unit.test.ts",
+     "typecheck": "tsc --noEmit",
+     "db:migrate": "node src/db/migrate.ts"
+   },
+   "dependencies": {
+     "fastify": "5.12.5",
+     "postgres": "3.4.9",
+     "yaml": "2.9.1",
+     "picomatch": "4.0.7"
+   },
+diff --git a/v2/server/scripts/test-db-signals.mjs b/v2/server/scripts/test-db-signals.mjs
+new file mode 100644
+index 0000000..ec7e8aa
+--- /dev/null
++++ b/v2/server/scripts/test-db-signals.mjs
+@@ -0,0 +1,192 @@
++import { execFileSync, spawn } from 'node:child_process';
++import { once } from 'node:events';
++import { existsSync, mkdtempSync, readFileSync, rmSync, watch, writeFileSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const server = fileURLToPath(new URL('../', import.meta.url));
++const signal = process.argv[2] === 'SIGINT' ? 'SIGINT' : 'SIGTERM';
++const pauseChild = process.argv.includes('--pause-child');
++const scratch = mkdtempSync(join(tmpdir(), 'crew-v2-signal-probe-'));
++const ready = join(scratch, 'ready');
++const signalAck = join(scratch, 'signal-ack');
++const nodeTestPidFile = join(scratch, 'node-test-pid');
++const descendantPidFile = join(scratch, 'descendant-pid');
++const preload = join(scratch, 'preload.mjs');
++const testFile = join(scratch, 'runner-stubborn.test.mjs');
++let runner;
++let nodeTestPid;
++let containerId;
++
++function ownContainerRunning(id) {
++  try {
++    return (
++      execFileSync('docker', ['inspect', '--format', '{{.State.Running}}', id], {
++        encoding: 'utf8',
++        stdio: ['ignore', 'pipe', 'ignore'],
++      }).trim() === 'true'
++    );
++  } catch {
++    return false;
++  }
++}
++
++function alive(pid) {
++  try {
++    process.kill(pid, 0);
++    return true;
++  } catch {
++    return false;
++  }
++}
++
++async function waitFile(path, timeoutMs) {
++  if (existsSync(path)) return;
++  await new Promise((resolveReady, reject) => {
++    const watcher = watch(scratch, (_event, file) => {
++      if (file === path.split('/').at(-1) && existsSync(path)) finish();
++    });
++    const timer = setTimeout(() => finish(new Error(`probe file timed out: ${path}`)), timeoutMs);
++    function finish(error) {
++      clearTimeout(timer);
++      watcher.close();
++      error ? reject(error) : resolveReady();
++    }
++    if (existsSync(path)) finish();
++  });
++}
++
++function waitClose(child, ms) {
++  return new Promise((resolveWait) => {
++    if (child.exitCode !== null || child.signalCode !== null) return resolveWait(true);
++    const timer = setTimeout(() => resolveWait(false), ms);
++    child.once('close', () => {
++      clearTimeout(timer);
++      resolveWait(true);
++    });
++  });
++}
++
++writeFileSync(
++  preload,
++  `import { writeFileSync } from 'node:fs';
++writeFileSync(process.env.CREW_PROBE_NODE_TEST_PID_FILE, String(process.pid));
++const acknowledge = () => writeFileSync(process.env.CREW_PROBE_SIGNAL_ACK_FILE, String(process.pid));
++process.on('SIGTERM', acknowledge); process.on('SIGINT', acknowledge);
++setInterval(() => {}, 1000);\n`,
++);
++writeFileSync(
++  testFile,
++  `
++import test from 'node:test';
++import { spawn } from 'node:child_process';
++import { once } from 'node:events';
++import { writeFileSync } from 'node:fs';
++test('runner stubborn signal probe', async () => {
++  process.on('SIGTERM', () => {});
++  process.on('SIGINT', () => {});
++  const descendant = spawn(process.execPath, ['-e', "process.on('SIGTERM',()=>{});process.on('SIGINT',()=>{});setInterval(()=>{},1000);process.send?.('ready')"],
++    { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
++  await once(descendant, 'message');
++  writeFileSync(process.env.CREW_PROBE_DESCENDANT_PID_FILE, String(descendant.pid));
++  writeFileSync(process.env.CREW_PROBE_READY_FILE, JSON.stringify({
++    containerId: process.env.CREW_V2_TEST_CONTAINER_ID,
++    descendantPid: descendant.pid,
++  }));
++  await new Promise(() => {});
++});
++`,
++);
++
++try {
++  runner = spawn(
++    process.execPath,
++    [
++      process.env.CREW_V2_PROBE_RUNNER ?? 'scripts/test-db.ts',
++      '--test-isolation=none',
++      `--import=${preload}`,
++      '--test-name-pattern=runner stubborn signal probe',
++      '--test-file',
++      testFile,
++    ],
++    {
++      cwd: server,
++      stdio: 'ignore',
++      env: {
++        ...process.env,
++        CREW_PROBE_READY_FILE: ready,
++        CREW_PROBE_DESCENDANT_PID_FILE: descendantPidFile,
++        CREW_PROBE_SIGNAL_ACK_FILE: signalAck,
++        CREW_PROBE_NODE_TEST_PID_FILE: nodeTestPidFile,
++      },
++    },
++  );
++  const readyOrExit = await Promise.race([
++    waitFile(ready, 15000).then(() => 'ready'),
++    once(runner, 'close').then(() => 'exit'),
++  ]);
++  if (readyOrExit === 'exit') throw new Error('runner exited before explicit scratch test became ready');
++  const fixture = JSON.parse(readFileSync(ready, 'utf8'));
++  containerId = fixture.containerId;
++  nodeTestPid = Number(readFileSync(nodeTestPidFile, 'utf8'));
++  if (
++    !/^[0-9a-f]{64}$/.test(containerId) ||
++    !Number.isSafeInteger(nodeTestPid) ||
++    !ownContainerRunning(containerId)
++  )
++    throw new Error('probe own child/container not observed');
++  if (pauseChild) process.kill(nodeTestPid, 'SIGSTOP');
++  const signaledAt = Date.now();
++  runner.kill(signal);
++  if (!pauseChild) {
++    await waitFile(signalAck, 1000);
++    const acknowledgingPid = Number(readFileSync(signalAck, 'utf8'));
++    if (acknowledgingPid !== nodeTestPid)
++      throw new Error(`signal received by ${acknowledgingPid}, direct child was ${nodeTestPid}`);
++  }
++  const closed = await waitClose(runner, Math.max(0, 4000 - (Date.now() - signaledAt)));
++  const descendantPid = Number(fixture.descendantPid);
++  const containerStopped = !ownContainerRunning(containerId);
++  if (!closed || !containerStopped || alive(descendantPid) || alive(nodeTestPid)) {
++    throw new Error(
++      `cleanup failed: closed=${closed}, containerStopped=${containerStopped}, descendantAlive=${alive(descendantPid)}, testChildAlive=${alive(nodeTestPid)}`,
++    );
++  }
++  console.log(
++    `${signal}${pauseChild ? ' paused' : ''} cleanup PASS: runner, child, descendant, and own container stopped within 4s`,
++  );
++} finally {
++  if (!containerId && existsSync(ready)) {
++    try {
++      const reported = JSON.parse(readFileSync(ready, 'utf8')).containerId;
++      if (/^[0-9a-f]{64}$/.test(reported)) containerId = reported;
++    } catch {}
++  }
++  if (!nodeTestPid && existsSync(nodeTestPidFile)) {
++    const reported = Number(readFileSync(nodeTestPidFile, 'utf8'));
++    if (Number.isSafeInteger(reported) && reported > 1) nodeTestPid = reported;
++  }
++  if (runner && alive(runner.pid)) {
++    runner.kill('SIGTERM');
++    await waitClose(runner, 2500);
++  }
++  if (nodeTestPid)
++    try {
++      process.kill(nodeTestPid, 'SIGKILL');
++    } catch {}
++  if (existsSync(descendantPidFile))
++    try {
++      process.kill(Number(readFileSync(descendantPidFile, 'utf8')), 'SIGKILL');
++    } catch {}
++  if (runner && alive(runner.pid)) {
++    await waitClose(runner, 500);
++    if (alive(runner.pid)) runner.kill('SIGKILL');
++  }
++  if (containerId && ownContainerRunning(containerId))
++    try {
++      execFileSync('docker', ['stop', containerId]);
++    } catch {}
++  rmSync(testFile, { force: true });
++  rmSync(scratch, { recursive: true, force: true });
++}
+diff --git a/v2/server/scripts/test-db.ts b/v2/server/scripts/test-db.ts
+index 6af57aa..c24c056 100644
+--- a/v2/server/scripts/test-db.ts
++++ b/v2/server/scripts/test-db.ts
+@@ -1,19 +1,34 @@
+ import { spawn } from 'node:child_process';
+ import { randomUUID } from 'node:crypto';
+ import { readdir } from 'node:fs/promises';
++import { isAbsolute } from 'node:path';
+ import { setTimeout as delay } from 'node:timers/promises';
+ 
+ const name = `crew-v2-test-${randomUUID()}`;
+ let containerId = '';
+ let child: ReturnType<typeof spawn> | undefined;
+-let interrupted = false;
++let interrupted: 'SIGINT' | 'SIGTERM' | undefined;
++let wakeInterruption: (() => void) | undefined;
++const interruption = new Promise<void>((resolve) => {
++  wakeInterruption = resolve;
++});
++
++function signalOwnTestGroup(signal: NodeJS.Signals): void {
++  if (!child?.pid) return;
++  try {
++    // The detached node --test process owns this group; descendants inherit it.
++    process.kill(process.platform === 'win32' ? child.pid : -child.pid, signal);
++  } catch (error) {
++    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
++  }
++}
+ 
+ async function docker(...args: string[]): Promise<string> {
+   return new Promise((resolve, reject) => {
+     const process = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+     let stdout = '';
+     let stderr = '';
+     if (!process.stdout || !process.stderr) {
+       process.kill();
+       reject(new Error('DOCKER_PIPE_UNAVAILABLE'));
+       return;
+@@ -22,22 +37,23 @@ async function docker(...args: string[]): Promise<string> {
+     process.stderr.on('data', (chunk) => (stderr += chunk));
+     process.on('error', reject);
+     process.on('close', (code) =>
+       code === 0 ? resolve(stdout.trim()) : reject(new Error(`docker ${args[0]}: ${stderr.trim()}`)),
+     );
+   });
+ }
+ 
+ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+   process.on(signal, () => {
+-    interrupted = true;
+-    child?.kill(signal);
++    if (interrupted) return;
++    interrupted = signal;
++    wakeInterruption?.();
+   });
+ }
+ 
+ try {
+   containerId = await docker(
+     'run',
+     '--rm',
+     '-d',
+     '--name',
+     name,
+@@ -58,42 +74,80 @@ try {
+   for (let attempt = 0; attempt < 60; attempt++) {
+     if (interrupted) throw new Error('INTERRUPTED');
+     try {
+       await docker('exec', containerId, 'pg_isready', '-U', 'postgres', '-d', 'crew_v2_test');
+       ready = true;
+       break;
+     } catch {
+       await delay(500);
+     }
+   }
++  if (interrupted) throw new Error('INTERRUPTED');
+   if (!ready) throw new Error('TEST_DB_NOT_READY');
+-  const files = (await readdir(new URL('../test/', import.meta.url)))
+-    .filter((file) => file.endsWith('.test.ts'))
+-    .sort()
+-    .map((file) => `test/${file}`);
+-  const args = ['--test', ...process.argv.slice(2), ...files];
+-  const exitCode = await new Promise<number>((resolve, reject) => {
+-    child = spawn(process.execPath, args, {
+-      stdio: 'inherit',
+-      env: {
+-        ...process.env,
+-        CREW_V2_TEST_DATABASE_URL: `postgres://postgres@127.0.0.1:${port}/crew_v2_test`,
+-        CREW_V2_TEST_CONTAINER_ID: containerId,
+-      },
+-    });
+-    child.on('error', reject);
+-    child.on('close', (code, signal) => resolve(signal ? 128 + (signal === 'SIGINT' ? 2 : 15) : (code ?? 1)));
++  const forwarded = process.argv.slice(2);
++  const explicitIndex = forwarded.indexOf('--test-file');
++  let files: string[];
++  if (explicitIndex >= 0) {
++    const file = forwarded[explicitIndex + 1];
++    if (
++      !file ||
++      !isAbsolute(file) ||
++      !/\.test\.(?:ts|mjs)$/.test(file) ||
++      forwarded.indexOf('--test-file', explicitIndex + 1) >= 0
++    )
++      throw new Error('TEST_FILE_INVALID');
++    files = [file];
++    forwarded.splice(explicitIndex, 2);
++  } else {
++    files = (await readdir(new URL('../test/', import.meta.url)))
++      .filter((file) => file.endsWith('.test.ts'))
++      .sort()
++      .map((file) => `test/${file}`);
++  }
++  const args = ['--test', ...forwarded, ...files];
++  child = spawn(process.execPath, args, {
++    detached: process.platform !== 'win32',
++    stdio: 'inherit',
++    env: {
++      ...process.env,
++      CREW_V2_TEST_DATABASE_URL: `postgres://postgres@127.0.0.1:${port}/crew_v2_test`,
++      CREW_V2_TEST_CONTAINER_ID: containerId,
++    },
+   });
+-  process.exitCode = interrupted ? 130 : exitCode;
++  const testChild = child;
++  const childExit = new Promise<number>((resolve, reject) => {
++    testChild.on('error', reject);
++    testChild.on('close', (code, signal) =>
++      resolve(signal ? 128 + (signal === 'SIGINT' ? 2 : 15) : (code ?? 1)),
++    );
++  });
++  const first = await Promise.race([
++    childExit.then((code) => ({ kind: 'exit' as const, code })),
++    interruption.then(() => ({ kind: 'interrupt' as const })),
++  ]);
++  if (interrupted) {
++    signalOwnTestGroup(interrupted);
++    await delay(750);
++    signalOwnTestGroup('SIGKILL');
++    const reaped = await Promise.race([childExit.then(() => true), delay(750).then(() => false)]);
++    if (!reaped) {
++      console.error('TEST_CHILD_REAP_TIMEOUT');
++      process.exitCode = 1;
++    } else {
++      process.exitCode = interrupted === 'SIGINT' ? 130 : 143;
++    }
++  } else if (first.kind === 'exit') {
++    process.exitCode = first.code;
++  }
+ } catch (error) {
+   console.error(error);
+-  process.exitCode = 1;
++  process.exitCode = interrupted === 'SIGINT' ? 130 : interrupted === 'SIGTERM' ? 143 : 1;
+ } finally {
+   if (containerId) {
+     try {
+       await docker('stop', containerId);
+     } catch (error) {
+       console.error('TEST_DB_CLEANUP_FAILED', error);
+       process.exitCode = 1;
+     }
+   }
+ }

@@ -1,0 +1,1211 @@
+[
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8195f96f-c5b0-449c-af67-6bbb41c65c99-g1bxIK",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "8195f96f-c5b0-449c-af67-6bbb41c65c99",
+        "dev": 16777229,
+        "ino": 64118560,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "8195f96f-c5b0-449c-af67-6bbb41c65c99",
+        "dev": 16777229,
+        "ino": 64118560,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-c2666801-c195-4e53-bfbf-d1c68ede594f-mn1xpw",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "c2666801-c195-4e53-bfbf-d1c68ede594f",
+        "dev": 16777229,
+        "ino": 64118564,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "c2666801-c195-4e53-bfbf-d1c68ede594f",
+        "dev": 16777229,
+        "ino": 64118564,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6942b4e3-e24b-45d5-bcb7-7ad3b4d560b1-wFNvMk",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "6942b4e3-e24b-45d5-bcb7-7ad3b4d560b1",
+        "dev": 16777229,
+        "ino": 64118574,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "6942b4e3-e24b-45d5-bcb7-7ad3b4d560b1",
+        "dev": 16777229,
+        "ino": 64118574,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1d6f8cff-9f75-4ca9-958b-48f1eb49dd9e-xpQSrs",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "1d6f8cff-9f75-4ca9-958b-48f1eb49dd9e",
+        "dev": 16777229,
+        "ino": 64118582,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "1d6f8cff-9f75-4ca9-958b-48f1eb49dd9e",
+        "dev": 16777229,
+        "ino": 64118582,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-814ceae9-c54d-4c03-a913-33fe15d229eb-YwSygB",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "814ceae9-c54d-4c03-a913-33fe15d229eb",
+        "dev": 16777229,
+        "ino": 64118607,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "814ceae9-c54d-4c03-a913-33fe15d229eb",
+        "dev": 16777229,
+        "ino": 64118607,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mQnlJa",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64118664",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64118664",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-18WgrW",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64119071",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64119071",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-0grvDh",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64119341",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64119341",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mGhFAJ",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64120394",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64120394",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-krpWtl",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64120580",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64120580",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-wqmnpo",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64120763",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64120763",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Oeq290",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64120934",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64120934",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-DdBlvA",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64121131",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64121131",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-A33zbz",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64121350",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64121350",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ETnEsV",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64121556",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64121556",
+        "uid": 501,
+        "stage": "fork-cancel"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64121556,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-VGh19h",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64121779",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64121779",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-beORPg",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64121961",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64121961",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-xXDJwg",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122160",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122160",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sbU6p0",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122215",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122215",
+        "uid": 501,
+        "stage": "orphan-admission"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64122215,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-M2DWaA",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122383",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122383",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-nSqXPa",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122582",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122582",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LbHkUc",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122768",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122768",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-kBLysN",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122954",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122954",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-PwcbsE",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64122996",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64122996",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-0v0uuZ",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123042",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123042",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-zGlIBV",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123092",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123092",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-O0278t",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123140",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123140",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-50hiz0",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123306",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123306",
+        "uid": 501,
+        "stage": "spawned"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64123306,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-amQHx4",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123480",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123480",
+        "uid": 501,
+        "stage": "ready"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64123480,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qQVbsE",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123649",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123649",
+        "uid": 501,
+        "stage": "claim"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64123649,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-N8Xvca",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64123841",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64123841",
+        "uid": 501,
+        "stage": "companion"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64123841,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-yo2DOx",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64124021",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64124021",
+        "uid": 501,
+        "stage": "authorized"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64124021,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-y3mXK7",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64124204",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64124204",
+        "uid": 501,
+        "stage": "released"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64124204,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-http-retry-SMXelj",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64124473",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64124473",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/tmp/crew6-w-lEFTQl",
+    "events": [
+      {
+        "nonce": "8b265a47-c1fc-4641-b1cb-39369200b3a5",
+        "device": 16777229,
+        "inode": 64124487,
+        "ownerUid": 501
+      },
+      {
+        "nonce": "8b265a47-c1fc-4641-b1cb-39369200b3a5",
+        "device": 16777229,
+        "inode": 64124487,
+        "ownerUid": 501
+      }
+    ],
+    "prefix": "Task6 fixture retained root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64124487,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ykLs3Q",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64126866",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64126866",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-JuXtiN",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64127042",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64127042",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-FJXti9",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64127216",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64127216",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ar2cWT",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64127390",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64127390",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-YIQ5iR",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64127571",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64127571",
+        "uid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Task5 owned cleanup ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-69a36b0a-cbaa-4f7a-aac5-1c107420b2d1-tJHF1V",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "69a36b0a-cbaa-4f7a-aac5-1c107420b2d1",
+        "dev": 16777229,
+        "ino": 64127749,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "69a36b0a-cbaa-4f7a-aac5-1c107420b2d1",
+        "dev": 16777229,
+        "ino": 64127749,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1f6c2d9c-0b4c-4055-a363-45e3d4cb756c-z0vDgf",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "1f6c2d9c-0b4c-4055-a363-45e3d4cb756c",
+        "dev": 16777229,
+        "ino": 64127929,
+        "uid": 501
+      },
+      {
+        "action": "removed-after-writer-close",
+        "nonce": "1f6c2d9c-0b4c-4055-a363-45e3d4cb756c",
+        "dev": 16777229,
+        "ino": 64127929,
+        "uid": 501
+      }
+    ],
+    "prefix": "",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-a75b7277-183d-4acb-8383-aed48ccece49-6PhiHo",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "a75b7277-183d-4acb-8383-aed48ccece49",
+        "dev": 16777229,
+        "ino": 64128118,
+        "uid": 501
+      },
+      {
+        "action": "owned-crash-child",
+        "stage": "ready",
+        "identity": {
+          "pid": 74168,
+          "uid": 501,
+          "processGroupId": 67987,
+          "birth": "1790945344:668167"
+        },
+        "argv": [
+          "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway/test/support/runtime-crash-worker.ts",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-a75b7277-183d-4acb-8383-aed48ccece49-6PhiHo",
+          "ready"
+        ]
+      },
+      {
+        "device": "16777229",
+        "inode": "64128118",
+        "uid": 501,
+        "stage": "ready"
+      }
+    ],
+    "prefix": "Task3 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64128118,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-716a1f89-91db-43ff-b0fe-effc16e8c69d-W6pDXC",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "716a1f89-91db-43ff-b0fe-effc16e8c69d",
+        "dev": 16777229,
+        "ino": 64128296,
+        "uid": 501
+      },
+      {
+        "action": "owned-crash-child",
+        "stage": "claim",
+        "identity": {
+          "pid": 74406,
+          "uid": 501,
+          "processGroupId": 67987,
+          "birth": "1790945347:714510"
+        },
+        "argv": [
+          "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway/test/support/runtime-crash-worker.ts",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-716a1f89-91db-43ff-b0fe-effc16e8c69d-W6pDXC",
+          "claim"
+        ]
+      },
+      {
+        "device": "16777229",
+        "inode": "64128296",
+        "uid": 501,
+        "stage": "claim"
+      }
+    ],
+    "prefix": "Task3 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64128296,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9c2e9666-14e9-41c8-bdcc-59c285a44b2a-h35wsi",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "9c2e9666-14e9-41c8-bdcc-59c285a44b2a",
+        "dev": 16777229,
+        "ino": 64128471,
+        "uid": 501
+      },
+      {
+        "action": "owned-crash-child",
+        "stage": "companion",
+        "identity": {
+          "pid": 74513,
+          "uid": 501,
+          "processGroupId": 67987,
+          "birth": "1790945350:740364"
+        },
+        "argv": [
+          "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway/test/support/runtime-crash-worker.ts",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9c2e9666-14e9-41c8-bdcc-59c285a44b2a-h35wsi",
+          "companion"
+        ]
+      },
+      {
+        "device": "16777229",
+        "inode": "64128471",
+        "uid": 501,
+        "stage": "companion"
+      }
+    ],
+    "prefix": "Task3 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64128471,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-de484df7-8728-4002-9a3d-82f150a2ee9c-3xoC36",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "de484df7-8728-4002-9a3d-82f150a2ee9c",
+        "dev": 16777229,
+        "ino": 64128668,
+        "uid": 501
+      },
+      {
+        "action": "owned-crash-child",
+        "stage": "runtime-pin",
+        "identity": {
+          "pid": 74850,
+          "uid": 501,
+          "processGroupId": 67987,
+          "birth": "1790945353:752415"
+        },
+        "argv": [
+          "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway/test/support/runtime-crash-worker.ts",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-de484df7-8728-4002-9a3d-82f150a2ee9c-3xoC36",
+          "runtime-pin"
+        ]
+      },
+      {
+        "device": "16777229",
+        "inode": "64128668",
+        "uid": 501,
+        "stage": "runtime-pin"
+      }
+    ],
+    "prefix": "Task3 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64128668,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-7d9cfb81-6ac6-47f3-b648-025a548d9095-Iu1HM1",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "7d9cfb81-6ac6-47f3-b648-025a548d9095",
+        "dev": 16777229,
+        "ino": 64128865,
+        "uid": 501
+      },
+      {
+        "action": "owned-crash-child",
+        "stage": "authorized",
+        "identity": {
+          "pid": 74963,
+          "uid": 501,
+          "processGroupId": 67987,
+          "birth": "1790945356:975685"
+        },
+        "argv": [
+          "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway/test/support/runtime-crash-worker.ts",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-7d9cfb81-6ac6-47f3-b648-025a548d9095-Iu1HM1",
+          "authorized"
+        ]
+      },
+      {
+        "device": "16777229",
+        "inode": "64128865",
+        "uid": 501,
+        "stage": "authorized"
+      }
+    ],
+    "prefix": "Task3 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64128865,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-4833ff87-1eb9-4651-9851-c005a7c428e8-im3p7G",
+    "events": [
+      {
+        "action": "created",
+        "nonce": "4833ff87-1eb9-4651-9851-c005a7c428e8",
+        "dev": 16777229,
+        "ino": 64129063,
+        "uid": 501
+      },
+      {
+        "action": "owned-crash-child",
+        "stage": "released",
+        "identity": {
+          "pid": 75050,
+          "uid": 501,
+          "processGroupId": 67987,
+          "birth": "1790945360:65643"
+        },
+        "argv": [
+          "/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo/v2/gateway/test/support/runtime-crash-worker.ts",
+          "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-4833ff87-1eb9-4651-9851-c005a7c428e8-im3p7G",
+          "released"
+        ]
+      },
+      {
+        "device": "16777229",
+        "inode": "64129063",
+        "uid": 501,
+        "stage": "released"
+      }
+    ],
+    "prefix": "Task3 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64129063,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-58M6uS",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64129622",
+        "uid": 501
+      },
+      {
+        "device": "16777229",
+        "inode": "64129622",
+        "uid": 501,
+        "stage": "release-race"
+      }
+    ],
+    "prefix": "Task5 retained UNKNOWN root ",
+    "present": true,
+    "currentIdentity": {
+      "dev": 16777229,
+      "ino": 64129622,
+      "uid": 501
+    }
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Jvzl0w",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64129814",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Z9P7E3",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64129880",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-7GPOQR",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64129949",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-aYvhf4",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64130027",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-hnqCWP",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64130105",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-Dg8IU5",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64130175",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-jHvzEH",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64130242",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-8AZlR4",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64130317",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  },
+  {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-admission-crash-lZM9Ty",
+    "events": [
+      {
+        "device": "16777229",
+        "inode": "64130394",
+        "ownerUid": 501,
+        "deleted": true
+      }
+    ],
+    "prefix": "Admission owned cleanup: ",
+    "present": false
+  }
+]

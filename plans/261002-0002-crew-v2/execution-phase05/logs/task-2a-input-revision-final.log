@@ -1,0 +1,16 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-staging.test.ts '--test-name-pattern=attachment legacy revision actual appendComment'
+
+attachment DB container c12b7e00cae2d162a062449f9a62aac007103391d1111c5dcbfd8af961a113f3 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-JlZwkx
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-JlZwkx nonceSha256=10df01fbeaeccb60fd80047550e58fe23bad827354d57245362931a5e13fa2e0
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-JlZwkx
+✔ attachment legacy revision actual appendComment bumps descendant subtree exactly once and rollback restores counters (258.262291ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 359.529208

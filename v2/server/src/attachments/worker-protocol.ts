@@ -76,6 +76,12 @@ function locator(value: unknown): boolean {
   if (!record(value)) return false;
   const box = (b: unknown) =>
     Array.isArray(b) && b.length === 4 && b.every((v) => typeof v === 'number' && Number.isFinite(v));
+  const component = (v: unknown) =>
+    record(v) &&
+    exact(v, ['kind', 'index']) &&
+    ['image', 'unsupported-visual', 'calculated-value', 'comment', 'external'].includes(String(v.kind)) &&
+    integer(v.index, 1, 100000);
+  const componentKeys = Object.hasOwn(value, 'component') ? ['component'] : [];
   switch (value.kind) {
     case 'text':
       return (
@@ -96,21 +102,56 @@ function locator(value: unknown): boolean {
       );
     case 'image':
       return (
-        exact(value, ['kind', 'width', 'height', 'box']) &&
+        exact(value, [
+          'kind',
+          'width',
+          'height',
+          'box',
+          ...(Object.hasOwn(value, 'transform') ? ['transform'] : []),
+        ]) &&
+        (!Object.hasOwn(value, 'transform') ||
+          (record(value.transform) &&
+            exact(value.transform, [
+              'originalWidth',
+              'originalHeight',
+              'orientation',
+              'normalizedWidth',
+              'normalizedHeight',
+              'rotation',
+              'reflected',
+            ]) &&
+            integer(value.transform.originalWidth, 1, 40000000) &&
+            integer(value.transform.originalHeight, 1, 40000000) &&
+            value.transform.originalWidth * value.transform.originalHeight <= 40000000 &&
+            integer(value.transform.orientation, 1, 8) &&
+            value.transform.normalizedWidth === value.width &&
+            value.transform.normalizedHeight === value.height &&
+            value.width ===
+              (value.transform.orientation >= 5
+                ? value.transform.originalHeight
+                : value.transform.originalWidth) &&
+            value.height ===
+              (value.transform.orientation >= 5
+                ? value.transform.originalWidth
+                : value.transform.originalHeight) &&
+            value.transform.rotation === [0, 0, 0, 180, 180, 90, 90, 270, 270][value.transform.orientation] &&
+            value.transform.reflected === [2, 4, 5, 7].includes(value.transform.orientation))) &&
         integer(value.width, 1) &&
         integer(value.height, 1) &&
         box(value.box)
       );
     case 'docx':
       return (
-        exact(value, ['kind', 'part', 'paragraph', 'table', 'row', 'cell']) &&
+        exact(value, ['kind', 'part', 'paragraph', 'table', 'row', 'cell', ...componentKeys]) &&
+        (!componentKeys.length || component(value.component)) &&
         text(value.part) &&
         integer(value.paragraph) &&
         ['table', 'row', 'cell'].every((k) => value[k] === null || integer(value[k]))
       );
     case 'sheet':
       return (
-        exact(value, ['kind', 'part', 'sheet', 'range', 'hidden']) &&
+        exact(value, ['kind', 'part', 'sheet', 'range', 'hidden', ...componentKeys]) &&
+        (!componentKeys.length || component(value.component)) &&
         text(value.part) &&
         text(value.sheet) &&
         text(value.range) &&
@@ -130,8 +171,19 @@ function locator(value: unknown): boolean {
       return false;
   }
 }
-function locatorKey(value: unknown): string {
-  return record(value) ? JSON.stringify(value, Object.keys(value).sort()) : '';
+export function locatorKey(value: unknown): string {
+  if (!record(value)) return '';
+  const { component, transform: _transform, render: _render, ...origin } = value;
+  // Pixel dimensions describe rendering; the normalized region identifies the
+  // source component within the original already bound by WorkerResult.
+  if (origin.kind === 'image') {
+    delete origin.width;
+    delete origin.height;
+  }
+  return (
+    JSON.stringify(Object.fromEntries(Object.entries(origin).sort(([a], [b]) => a.localeCompare(b)))) +
+    (record(component) ? `:${component.kind}:${component.index}` : ':default')
+  );
 }
 export function validateWorkerInput(value: unknown): WorkerInput {
   if (

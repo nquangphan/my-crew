@@ -1,0 +1,13 @@
+{
+  "pressure": "2",
+  "estimatedAvailableBytes": 5341020160,
+  "availableMethod": "vm_stat free+inactive+speculative pages; reclaimability estimate, not resident hardlimit",
+  "cpuIdlePercent": 70.36,
+  "diskAvailableBytes": 33446330368,
+  "rawVm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     8560.\nPages active:                                 314006.\nPages inactive:                               316361.\nPages speculative:                              1069.\nPages throttled:                                   0.\nPages wired down:                             370206.\nPages purgeable:                                4363.\n\"Translation faults\":                    63733700035.\nPages copy-on-write:                      3018747720.\nPages zero filled:                       24388776273.\nPages reactivated:                        8974461169.\nPages purged:                              569962611.\nFile-backed pages:                            196478.\nAnonymous pages:                              434958.\nPages stored in compressor:                  2586962.\nPages occupied by compressor:                 519483.\nDecompressions:                           8383204279.\nCompressions:                             9951820060.\nPageins:                                  2184048536.\nPageouts:                                    8178066.\nSwapins:                                   118595688.\nSwapouts:                                  139683950.\n",
+  "rawCpu": "Processes: 795 total, 4 running, 791 sleeping, 7481 threads \n2026/10/03 17:44:14\nLoad Avg: 7.18, 5.39, 4.04 \nCPU usage: 19.56% user, 10.7% sys, 70.36% idle \nSharedLibs: 495M resident, 120M data, 90M linkedit.\nMemRegions: 872861 total, 4792M resident, 110M private, 3222M shared.\nPhysMem: 23G used (5785M wired, 8109M compressor), 130M unused.\nVM: 377T vsize, 6144M framework vsize, 118595688(0) swapins, 139683950(0) swapouts.\nNetworks: packets: 603447726/408G in, 529829422/311G out.\nDisks: 1635151899/41T read, 496305627/56T written.\n\n\n",
+  "rawDisk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   482797652 397734388  32662432    93% 4620167 326624320    1%   /System/Volumes/Data\n",
+  "ruling": "PM Oct3 17:13:39 explicit T1 exclusive serial slot: pressure1or2, estimated available>=4GiB, idle>=50%, disk>=8GiB, PG256MiB/cpu1/pids64 and Node heap384MiB; no native/provider canary; no other heavy work",
+  "capturedBeforeCreation": true,
+  "timeUnix": 1791024254.4401212
+}

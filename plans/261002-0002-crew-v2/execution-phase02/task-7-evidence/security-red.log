@@ -1,0 +1,69 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts '--test-name-pattern=cached replay cannot race|real SSE current'
+
+(node:38528) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1790912046114,"pid":38528,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62870"}
+✖ HTTP ticket cached replay cannot race current binding or machine revocation across pools (412.615333ms)
+(node:38528) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+{"level":30,"time":1790912046404,"pid":38528,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:62879"}
+{"level":30,"time":1790912047507,"pid":38528,"hostname":"Phans-MacBook-Pro.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✖ real SSE current credential revocation and owner expiry close streams without future data (7286.00525ms)
+✔ test/attempts.test.ts (253.102125ms)
+✔ test/auth.test.ts (242.323959ms)
+✔ test/commands.test.ts (261.882792ms)
+✔ test/completion.test.ts (191.925ms)
+✔ test/dependencies.test.ts (197.039ms)
+✔ test/deploy.test.ts (158.878791ms)
+✔ test/docs-events.unit.test.ts (146.546667ms)
+✔ test/docs-import-cli.unit.test.ts (198.484542ms)
+✔ test/docs-import.test.ts (226.471416ms)
+✔ test/docs-read.test.ts (294.653083ms)
+✔ test/docs-validator.unit.test.ts (164.110625ms)
+✔ test/execution-events.unit.test.ts (105.941666ms)
+✔ test/journal-scope.test.ts (113.738042ms)
+✔ test/journal.test.ts (138.310208ms)
+✔ test/platform.test.ts (105.48725ms)
+✔ test/projects.test.ts (129.491083ms)
+✔ test/repair.test.ts (111.090875ms)
+✔ test/ticket-events.unit.test.ts (83.349667ms)
+✔ test/tickets.test.ts (127.309708ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 19
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8023.401959
+
+✖ failing tests:
+
+test at test/api-acceptance.test.ts:123:1
+✖ HTTP ticket cached replay cannot race current binding or machine revocation across pools (412.615333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  201 !== 404
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/api-acceptance.test.ts:139:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 201,
+    expected: 404,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/api-acceptance.test.ts:153:1
+✖ real SSE current credential revocation and owner expiry close streams without future data (7286.00525ms)
+  TimeoutError: The operation was aborted due to timeout
+      at new DOMException (node:internal/per_context/domexception:76:18)
+      at Timeout._onTimeout (node:internal/abort_controller:154:9)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7)
+ ELIFECYCLE  Test failed. See above for more details.

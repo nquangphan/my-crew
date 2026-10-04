@@ -1,0 +1,151 @@
+{
+  "baseline": "703b922",
+  "sources": [
+    {
+      "file": "v2/server/src/attachments/jobs.ts",
+      "sha256": "c03a2ad2c6d7f94cdde6999c33488758a603ba756ae6e9eee04bc19fe729e37a",
+      "bytes": 14402
+    },
+    {
+      "file": "v2/server/src/attachments/worker-runner.ts",
+      "sha256": "5080d8182fbd59e984f6e7856cf063a147221308fda5fe1f0de1a99f51f0cf48",
+      "bytes": 16751
+    },
+    {
+      "file": "v2/server/src/attachments/worker-protocol.ts",
+      "sha256": "836615d455854469acc8280c3d66e97adff1b190df7a2ece234e101b1d156aa5",
+      "bytes": 17349
+    },
+    {
+      "file": "v2/server/src/attachments/worker-entry.ts",
+      "sha256": "826cbb9395f0a4837e9f862b92fa8cb9c81e664e0752840cf1ac81d45d4b6566",
+      "bytes": 1636
+    },
+    {
+      "file": "v2/server/src/attachments/worker-diagnostic.ts",
+      "sha256": "eb9100e61b9fc5587c7aaafed21ad65b96a4578727c15d1a8827564ff4f28a8b",
+      "bytes": 5612
+    },
+    {
+      "file": "v2/server/extractor.Dockerfile",
+      "sha256": "6b90aea51d0b5f56c5112b46becc3d19a463d0cd66662fb1f7fd7ccb7c28f003",
+      "bytes": 661
+    },
+    {
+      "file": "v2/server/extractor.dockerignore",
+      "sha256": "14bc90088f0bbf149c8f18da73058cb7b5020508d4af47978bf1788f08bb89a7",
+      "bytes": 101
+    },
+    {
+      "file": "v2/server/test/attachments-worker.test.ts",
+      "sha256": "9c0308d278cf366202ebb7bd71dae235a8a55fe7b9266d161c1217afc2a20765",
+      "bytes": 22302
+    },
+    {
+      "file": "v2/server/test/attachments-worker-live.test.ts",
+      "sha256": "d657aa48a669b85525ed89bbb8cfae629121b9e9b6967729d605b4ea882c0e7c",
+      "bytes": 9651
+    },
+    {
+      "file": "v2/docs/flows/attachment-extraction.md",
+      "sha256": "fc07b6579adb56c25dd31af535926fff115f96bd71530aaa42bf8c564db19fb4",
+      "bytes": 8473
+    }
+  ],
+  "evidence": [
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-frozen-cover-9c0308d2.log",
+      "sha256": "b187e22632fa83af2ae4d33a4439e7c220fd28ca71181befec098021c2432511",
+      "bytes": 72998
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-live-20074d30.log",
+      "sha256": "e0d6e5ea804e9420ecdaab7859b3e40c6eddb89aadb1d2aad8c2acd1471591c9",
+      "bytes": 3579
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-live-fix1.log",
+      "sha256": "15430d152e1dc02f60ad29a81d6c13bde5fc9a6e60a83809048704c58f915831",
+      "bytes": 3992
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-live-final.log",
+      "sha256": "e0838d07b026178711c7340e3a7af1a25cd56b3b302fa9e5113c74e246d44168",
+      "bytes": 6034
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-native-repair.log",
+      "sha256": "eea692a4d924df99b4570d91421569ac9e1a3e62813d32ab0b062075a29b6b24",
+      "bytes": 3837
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-native-repair-fix1.log",
+      "sha256": "beaa1e1318fa7a908641e2c6900736f056a8bc462e574edc45bece800dab53b8",
+      "bytes": 1505
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-native-wrapper.log",
+      "sha256": "9c58d56b42c216abc94a2a2ffbb2a69712890ae0593fd7250a1e4aac251bc06e",
+      "bytes": 1820
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-targeted-final.log",
+      "sha256": "432bc4edc26902630583e7fdf26b2b6555e2f8106ccfd43043e8c6e8576e171c",
+      "bytes": 7939
+    },
+    {
+      "file": "plans/261002-0002-crew-v2/execution-phase05/task-4-diagnostic-build-receipt.json",
+      "sha256": "775b2a27dc3f102a13d1d995c74f8827ae3d9832448daa3fa31b63e0c60cf324",
+      "bytes": 787
+    }
+  ],
+  "verification": {
+    "strictTypecheck": {
+      "exit": 0,
+      "snapshot": "703b922 + exact Task4 overlays",
+      "skipLibCheck": false
+    },
+    "biome": {
+      "exit": 0,
+      "files": 7
+    },
+    "targeted": {
+      "exit": 0,
+      "tests": 18,
+      "pass": 18,
+      "fail": 0,
+      "skipped": 0
+    },
+    "broadHistorical": {
+      "exit": 1,
+      "tests": 293,
+      "pass": 289,
+      "fail": 1,
+      "skipped": 3,
+      "failure": "attachment staging Linux native receiver uses actual private PostgreSQL and replays terminal ACK: snapshot mount missing postgres dependency"
+    },
+    "repairedWholeNativeCase": {
+      "exit": 0,
+      "tests": 1,
+      "pass": 1,
+      "fail": 0
+    },
+    "liveFinal": {
+      "exit": 0,
+      "tests": 1,
+      "scenarios": 5,
+      "allContainersStoppedPid0": true,
+      "logging": "none",
+      "corpusResult": "unverified"
+    }
+  },
+  "snapshotOwner": {
+    "nonce": "043539d1-a6b6-4aa0-9193-bb3bffffeb83",
+    "dev": 16777229,
+    "ino": 64003020,
+    "uid": 501,
+    "pid": 77521,
+    "baseline": "703b922"
+  },
+  "snapshotCleanup": "identity checked after all own exec sessions and native/live/PG work completed; removed"
+}

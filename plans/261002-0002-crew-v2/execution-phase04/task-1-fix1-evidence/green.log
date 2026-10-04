@@ -1,0 +1,25 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-model-fix1-mzr2137j/models.test.ts
+
+model-fixture-container {"containerId":"73df5af87cae2ae00852bc7ecc408e3b9d23ca0f12d4a12fd9c105f5f19c6ee8","url":"postgres://postgres@127.0.0.1:56429/crew_v2_test"}
+{"level":30,"time":1790923013159,"pid":28681,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:56449"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (534.970584ms)
+✔ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (559.075958ms)
+✔ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (537.151125ms)
+✔ model secret key proof encrypted provisioning and lost ACK replay erase ciphertext exactly once (324.201209ms)
+✔ model secret rotation scopes pending envelopes to own machine and rejects stale key/revision ACK (303.499958ms)
+✔ model secret envelope pagination uses a durable decimal cursor so reconnect cannot miss a new random UUID (257.646167ms)
+✔ production app real HTTP secret rejection and structured logger redact plaintext (557.507083ms)
+✔ FIX1 R2 older pending ack cannot rewind newer stored credential (325.209542ms)
+✔ FIX1 R2 older pending loss cannot rewind newer stored credential (311.958333ms)
+✔ FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history (388.596292ms)
+✔ FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key (319.288792ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5625.897834

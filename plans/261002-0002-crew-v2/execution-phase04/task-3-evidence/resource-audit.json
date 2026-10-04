@@ -1,0 +1,763 @@
+{
+  "runtimeRoots": [
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9fd6e0bd-29a6-4f91-979d-ee153b8832ba-IeGBtZ",
+      "evidence": [
+        {
+          "log": "runtime-green.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "9fd6e0bd-29a6-4f91-979d-ee153b8832ba",
+      "dev": 16777229,
+      "ino": 64103296,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-43199c4a-2a76-47d8-9662-28b864cf21e2-h8EZID",
+      "evidence": [
+        {
+          "log": "runtime-green.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "43199c4a-2a76-47d8-9662-28b864cf21e2",
+      "dev": 16777229,
+      "ino": 64103479,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-0d97f4e4-c8a4-4f2c-b574-0100c24dfc79-P2fHaY",
+      "evidence": [
+        {
+          "log": "entrypoint-green.log",
+          "action": "created"
+        },
+        {
+          "log": "entrypoint-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "0d97f4e4-c8a4-4f2c-b574-0100c24dfc79",
+      "dev": 16777229,
+      "ino": 64114490,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-063bca5e-f5ec-4ae8-87bb-c4b62f2c0b67-3oO9h4",
+      "evidence": [
+        {
+          "log": "entrypoint-green.log",
+          "action": "created"
+        },
+        {
+          "log": "entrypoint-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "063bca5e-f5ec-4ae8-87bb-c4b62f2c0b67",
+      "dev": 16777229,
+      "ino": 64114666,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-609b8fd6-5b2d-46be-90f3-d543d832ae95-PNcnYw",
+      "evidence": [
+        {
+          "log": "entrypoint-red.log",
+          "action": "created"
+        },
+        {
+          "log": "entrypoint-red.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "609b8fd6-5b2d-46be-90f3-d543d832ae95",
+      "dev": 16777229,
+      "ino": 64113473,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6d5d2f15-49ba-4b04-8d7b-7f9c739a7c06-rw32wy",
+      "evidence": [
+        {
+          "log": "entrypoint-red.log",
+          "action": "created"
+        },
+        {
+          "log": "entrypoint-red.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "6d5d2f15-49ba-4b04-8d7b-7f9c739a7c06",
+      "dev": 16777229,
+      "ino": 64113651,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-197fd8de-416d-4b4f-adfd-cae0c8faa598-Wy0Zv7",
+      "evidence": [
+        {
+          "log": "runtime-crash.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "197fd8de-416d-4b4f-adfd-cae0c8faa598",
+      "dev": 16777229,
+      "ino": 64106198,
+      "uid": 501,
+      "stage": "ready",
+      "device": "16777229",
+      "inode": "64106198",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-ca19d1bb-a38c-4458-a0d5-05d0304b688a-LfbUDT",
+      "evidence": [
+        {
+          "log": "runtime-crash.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "ca19d1bb-a38c-4458-a0d5-05d0304b688a",
+      "dev": 16777229,
+      "ino": 64106388,
+      "uid": 501,
+      "stage": "claim",
+      "device": "16777229",
+      "inode": "64106388",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-ff369b54-2a01-431a-b890-bf71c5d6887e-mManUl",
+      "evidence": [
+        {
+          "log": "runtime-crash.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "ff369b54-2a01-431a-b890-bf71c5d6887e",
+      "dev": 16777229,
+      "ino": 64106585,
+      "uid": 501,
+      "stage": "companion",
+      "device": "16777229",
+      "inode": "64106585",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-034980a1-f6df-4744-a83a-873d9d6fd348-3M5lHz",
+      "evidence": [
+        {
+          "log": "runtime-crash.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "034980a1-f6df-4744-a83a-873d9d6fd348",
+      "dev": 16777229,
+      "ino": 64106933,
+      "uid": 501,
+      "stage": "runtime-pin",
+      "device": "16777229",
+      "inode": "64106933",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-04ada262-706b-4cff-bef8-2b9784328a1c-2MRFkf",
+      "evidence": [
+        {
+          "log": "runtime-crash.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "04ada262-706b-4cff-bef8-2b9784328a1c",
+      "dev": 16777229,
+      "ino": 64107111,
+      "uid": 501,
+      "stage": "authorized",
+      "device": "16777229",
+      "inode": "64107111",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-df1578c6-2aed-4f0e-b199-04ec2e0fec1e-Iebmqx",
+      "evidence": [
+        {
+          "log": "runtime-crash.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "runtime-crash.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "df1578c6-2aed-4f0e-b199-04ec2e0fec1e",
+      "dev": 16777229,
+      "ino": 64107303,
+      "uid": 501,
+      "stage": "released",
+      "device": "16777229",
+      "inode": "64107303",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-29ecb663-632b-4dc5-98f6-890f1b4b2310-1v6pfB",
+      "evidence": [
+        {
+          "log": "ledger-red.log",
+          "action": "created"
+        }
+      ],
+      "nonce": "29ecb663-632b-4dc5-98f6-890f1b4b2310",
+      "dev": 16777229,
+      "ino": 64091700,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b2fc8536-cdb2-4f6b-a14e-f227de713142-zRoqbM",
+      "evidence": [
+        {
+          "log": "ledger-red.log",
+          "action": "created"
+        }
+      ],
+      "nonce": "b2fc8536-cdb2-4f6b-a14e-f227de713142",
+      "dev": 16777229,
+      "ino": 64091701,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-023da9d6-816d-49d4-8f7d-8c77b6902217-l9Ucbm",
+      "evidence": [
+        {
+          "log": "ledger-red.log",
+          "action": "created"
+        }
+      ],
+      "nonce": "023da9d6-816d-49d4-8f7d-8c77b6902217",
+      "dev": 16777229,
+      "ino": 64091702,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-12a594ba-b9c7-4c10-ae64-0e1dcaa2ead7-vEe7y3",
+      "evidence": [
+        {
+          "log": "ledger-red.log",
+          "action": "created"
+        }
+      ],
+      "nonce": "12a594ba-b9c7-4c10-ae64-0e1dcaa2ead7",
+      "dev": 16777229,
+      "ino": 64091703,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-06e7965a-9626-4965-b970-782381153b7f-f0yqsh",
+      "evidence": [
+        {
+          "log": "bridge-red.log",
+          "action": "created"
+        },
+        {
+          "log": "bridge-red.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "06e7965a-9626-4965-b970-782381153b7f",
+      "dev": 16777229,
+      "ino": 64100180,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-87e27235-752d-4e76-a47e-4a09af51a85a-tx8Xtn",
+      "evidence": [
+        {
+          "log": "runtime-red.log",
+          "action": "created"
+        },
+        {
+          "log": "runtime-red.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "87e27235-752d-4e76-a47e-4a09af51a85a",
+      "dev": 16777229,
+      "ino": 64101835,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-21de8100-befe-459d-be67-c90f6ca18039-MjIC5o",
+      "evidence": [
+        {
+          "log": "runtime-red.log",
+          "action": "created"
+        }
+      ],
+      "nonce": "21de8100-befe-459d-be67-c90f6ca18039",
+      "dev": 16777229,
+      "ino": 64102011,
+      "uid": 501,
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-f349ab9e-5b4a-48d6-b434-0c0f9253636e-CV5raX",
+      "evidence": [
+        {
+          "log": "ledger-green.log",
+          "action": "created"
+        },
+        {
+          "log": "ledger-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "f349ab9e-5b4a-48d6-b434-0c0f9253636e",
+      "dev": 16777229,
+      "ino": 64094146,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-3f95e23a-b49a-45c5-b128-35d4fc1521ac-iKXUMY",
+      "evidence": [
+        {
+          "log": "ledger-green.log",
+          "action": "created"
+        },
+        {
+          "log": "ledger-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "3f95e23a-b49a-45c5-b128-35d4fc1521ac",
+      "dev": 16777229,
+      "ino": 64094151,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-7c4f9091-96e1-47d1-8628-fb152c039047-UEsjNI",
+      "evidence": [
+        {
+          "log": "ledger-green.log",
+          "action": "created"
+        },
+        {
+          "log": "ledger-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "7c4f9091-96e1-47d1-8628-fb152c039047",
+      "dev": 16777229,
+      "ino": 64094162,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-e6036cb1-022a-4ea5-af07-c625aa478d1d-q1KWHQ",
+      "evidence": [
+        {
+          "log": "ledger-green.log",
+          "action": "created"
+        },
+        {
+          "log": "ledger-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "e6036cb1-022a-4ea5-af07-c625aa478d1d",
+      "dev": 16777229,
+      "ino": 64094170,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-8195f96f-c5b0-449c-af67-6bbb41c65c99-g1bxIK",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "8195f96f-c5b0-449c-af67-6bbb41c65c99",
+      "dev": 16777229,
+      "ino": 64118560,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-c2666801-c195-4e53-bfbf-d1c68ede594f-mn1xpw",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "c2666801-c195-4e53-bfbf-d1c68ede594f",
+      "dev": 16777229,
+      "ino": 64118564,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-6942b4e3-e24b-45d5-bcb7-7ad3b4d560b1-wFNvMk",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "6942b4e3-e24b-45d5-bcb7-7ad3b4d560b1",
+      "dev": 16777229,
+      "ino": 64118574,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1d6f8cff-9f75-4ca9-958b-48f1eb49dd9e-xpQSrs",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "1d6f8cff-9f75-4ca9-958b-48f1eb49dd9e",
+      "dev": 16777229,
+      "ino": 64118582,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-814ceae9-c54d-4c03-a913-33fe15d229eb-YwSygB",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "814ceae9-c54d-4c03-a913-33fe15d229eb",
+      "dev": 16777229,
+      "ino": 64118607,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-69a36b0a-cbaa-4f7a-aac5-1c107420b2d1-tJHF1V",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "69a36b0a-cbaa-4f7a-aac5-1c107420b2d1",
+      "dev": 16777229,
+      "ino": 64127749,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-1f6c2d9c-0b4c-4055-a363-45e3d4cb756c-z0vDgf",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "1f6c2d9c-0b4c-4055-a363-45e3d4cb756c",
+      "dev": 16777229,
+      "ino": 64127929,
+      "uid": 501,
+      "present": false
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-a75b7277-183d-4acb-8383-aed48ccece49-6PhiHo",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "a75b7277-183d-4acb-8383-aed48ccece49",
+      "dev": 16777229,
+      "ino": 64128118,
+      "uid": 501,
+      "stage": "ready",
+      "device": "16777229",
+      "inode": "64128118",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-716a1f89-91db-43ff-b0fe-effc16e8c69d-W6pDXC",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "716a1f89-91db-43ff-b0fe-effc16e8c69d",
+      "dev": 16777229,
+      "ino": 64128296,
+      "uid": 501,
+      "stage": "claim",
+      "device": "16777229",
+      "inode": "64128296",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-9c2e9666-14e9-41c8-bdcc-59c285a44b2a-h35wsi",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "9c2e9666-14e9-41c8-bdcc-59c285a44b2a",
+      "dev": 16777229,
+      "ino": 64128471,
+      "uid": 501,
+      "stage": "companion",
+      "device": "16777229",
+      "inode": "64128471",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-de484df7-8728-4002-9a3d-82f150a2ee9c-3xoC36",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "de484df7-8728-4002-9a3d-82f150a2ee9c",
+      "dev": 16777229,
+      "ino": 64128668,
+      "uid": 501,
+      "stage": "runtime-pin",
+      "device": "16777229",
+      "inode": "64128668",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-7d9cfb81-6ac6-47f3-b648-025a548d9095-Iu1HM1",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "7d9cfb81-6ac6-47f3-b648-025a548d9095",
+      "dev": 16777229,
+      "ino": 64128865,
+      "uid": 501,
+      "stage": "authorized",
+      "device": "16777229",
+      "inode": "64128865",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-4833ff87-1eb9-4651-9851-c005a7c428e8-im3p7G",
+      "evidence": [
+        {
+          "log": "frozen-covering.log",
+          "action": "created"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "owned-crash-child"
+        },
+        {
+          "log": "frozen-covering.log",
+          "action": "unknown-hold"
+        }
+      ],
+      "nonce": "4833ff87-1eb9-4651-9851-c005a7c428e8",
+      "dev": 16777229,
+      "ino": 64129063,
+      "uid": 501,
+      "stage": "released",
+      "device": "16777229",
+      "inode": "64129063",
+      "present": true,
+      "identityMatches": true
+    },
+    {
+      "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-cddfdb82-88d5-418b-9e25-9413900dd832-K1i8On",
+      "evidence": [
+        {
+          "log": "bridge-green.log",
+          "action": "created"
+        },
+        {
+          "log": "bridge-green.log",
+          "action": "removed-after-writer-close"
+        }
+      ],
+      "nonce": "cddfdb82-88d5-418b-9e25-9413900dd832",
+      "dev": 16777229,
+      "ino": 64100939,
+      "uid": 501,
+      "present": false
+    }
+  ],
+  "presentRuntimeRoots": 13,
+  "frozenSnapshot": {
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-frozen-876fd1f0-72d7-4d49-91bb-1380efc7d593-rw4up0mo",
+    "nonce": "876fd1f0-72d7-4d49-91bb-1380efc7d593",
+    "dev": 16777229,
+    "ino": 64118106,
+    "uid": 501
+  },
+  "processesReferencingFrozenRoot": [],
+  "snapshotRetained": "static reviewer snapshot; no matching process",
+  "setupFailureHold": "crew-runtime-21de8100-befe-459d-be67-c90f6ca18039-MjIC5o: setup RED stub failed before fixture finally; no runtime claim; preserved rather than infer closure",
+  "container": {
+    "id": "5b07538d46a547b00c6c27d3d294ef96285334037edd3f251c9314780aa3058e",
+    "nonce": "876fd1f0-72d7-4d49-91bb-1380efc7d593",
+    "removed": true
+  }
+}

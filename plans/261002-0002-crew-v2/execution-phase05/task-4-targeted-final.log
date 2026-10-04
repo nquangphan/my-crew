@@ -1,0 +1,60 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task4-verify-043539d1-a6b6-4aa0-9193-bb3bffffeb83/v2/server/test/attachments-worker.test.ts
+
+✔ attachment worker duplicate locator cannot bypass coverage by JSON key order (1.489083ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-dd69f057-6e20-4842-95f9-fc85bfcd12a2 nonce=dd69f057-6e20-4842-95f9-fc85bfcd12a2 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-dd69f057-6e20-4842-95f9-fc85bfcd12a2 dev=16777229 ino=64017235 uid=501
+✔ attachment worker Docker inspect rejects foreign identity and pending created start (688.489417ms)
+✔ attachment worker rejects stale results before persisting derivatives (0.309208ms)
+✔ attachment worker accepts exact result and rejects identity changes (0.334375ms)
+✔ attachment worker rejects paths sizes hashes and false coverage (0.420208ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-b57adbe9-a8ce-429e-9ed9-7c73fe8e9228 nonce=b57adbe9-a8ce-429e-9ed9-7c73fe8e9228 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-b57adbe9-a8ce-429e-9ed9-7c73fe8e9228 dev=16777229 ino=64017248 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-55a38bae-2edc-444c-bf01-13020286e389 nonce=55a38bae-2edc-444c-bf01-13020286e389 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-55a38bae-2edc-444c-bf01-13020286e389 dev=16777229 ino=64017250 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0b48844e-43e0-41d6-8303-540237378ed9 nonce=0b48844e-43e0-41d6-8303-540237378ed9 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0b48844e-43e0-41d6-8303-540237378ed9 dev=16777229 ino=64017252 uid=501
+✔ attachment worker bounded frames verify actual bytes and refuse forged terminal (14.322792ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-fe6e772d-aaab-4cac-9968-fc516aa93acc nonce=fe6e772d-aaab-4cac-9968-fc516aa93acc pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-fe6e772d-aaab-4cac-9968-fc516aa93acc dev=16777229 ino=64017254 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-b90c7d74-2a96-427f-9645-5293a5b21658 nonce=b90c7d74-2a96-427f-9645-5293a5b21658 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-b90c7d74-2a96-427f-9645-5293a5b21658 dev=16777229 ino=64017256 uid=501
+✔ attachment worker frames cannot follow output symlink or reuse a filename (6.913875ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-6f787a13-f5e3-40e0-bbbd-6303ed518741 nonce=6f787a13-f5e3-40e0-bbbd-6303ed518741 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-6f787a13-f5e3-40e0-bbbd-6303ed518741 dev=16777229 ino=64017258 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-6a2ca0af-9bc7-49a3-82bf-83fbf6566bb8 nonce=6a2ca0af-9bc7-49a3-82bf-83fbf6566bb8 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-6a2ca0af-9bc7-49a3-82bf-83fbf6566bb8 dev=16777229 ino=64017260 uid=501
+✔ attachment worker detects truncated streams and bounds decoded chunk before write (165.296667ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7c16c6d2-39e2-48ae-b3a1-eaa02084c784 nonce=7c16c6d2-39e2-48ae-b3a1-eaa02084c784 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7c16c6d2-39e2-48ae-b3a1-eaa02084c784 dev=16777229 ino=64017263 uid=501
+✔ attachment worker creates exclusive owned job intent and preserves it on unknown (28.497959ms)
+✔ attachment worker extraction defaults denied before Task5 corpus receipt (0.495958ms)
+✔ attachment worker legacy entry refuses ambient root and configuration (0.16475ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7007b80f-02d2-4ea5-aeea-f3eebb41ba63 nonce=7007b80f-02d2-4ea5-aeea-f3eebb41ba63 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7007b80f-02d2-4ea5-aeea-f3eebb41ba63 dev=16777229 ino=64017270 uid=501
+✔ attachment worker stops unterminated nonterminal line before more stream reads (1.195084ms)
+✔ attachment worker problem codes are allowlisted and messages cannot expose content (0.4765ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-dd287a15-dfcd-4034-a7d2-18599d322f1f nonce=dd287a15-dfcd-4034-a7d2-18599d322f1f pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-dd287a15-dfcd-4034-a7d2-18599d322f1f dev=16777229 ino=64017274 uid=501
+✔ attachment worker DB generation CAS commits verified bytes once (387.837208ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-3845cf61-c3fe-4b46-b910-ce5fc8c13dbb nonce=3845cf61-c3fe-4b46-b910-ce5fc8c13dbb pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-3845cf61-c3fe-4b46-b910-ce5fc8c13dbb dev=16777229 ino=64017308 uid=501
+✔ attachment worker DB refuses unavailable accepted configuration and stale result (260.244625ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-8f17afc4-5901-4491-849c-600e12be8297 nonce=8f17afc4-5901-4491-849c-600e12be8297 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-8f17afc4-5901-4491-849c-600e12be8297 dev=16777229 ino=64017334 uid=501
+✔ attachment worker DB expired lease with unknown prior worker blocks replacement (246.479084ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-318bfb03-8df8-45f0-9e14-4784609eb4c7 nonce=318bfb03-8df8-45f0-9e14-4784609eb4c7 pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-318bfb03-8df8-45f0-9e14-4784609eb4c7 dev=16777229 ino=64017346 uid=501
+✔ attachment worker DB stopped container without publisher closure cannot retry expired generation (168.859833ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-2cc2e5a4-0c3f-4d13-9055-392f5703bb4c nonce=2cc2e5a4-0c3f-4d13-9055-392f5703bb4c pid=13844
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-2cc2e5a4-0c3f-4d13-9055-392f5703bb4c dev=16777229 ino=64017358 uid=501
+✔ attachment worker DB concurrent call starts once and fencing forbids publication (238.511167ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2309.406584

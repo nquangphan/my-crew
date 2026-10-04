@@ -1,0 +1,27 @@
+v24.14.0
+
+added 1 package in 4s
+npm notice
+npm notice New minor version of npm available! 11.9.0 -> 11.21.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.0
+npm notice To update run: npm install -g npm@11.21.0
+npm notice
+10.32.1
+Progress: resolved 1, reused 0, downloaded 0, added 0
+
+   ╭─────────────────────────────────────────╮
+   │                                         │
+   │   Update available! 10.32.1 → 12.8.1.   │
+   │   Changelog: https://pnpm.io/v/12.8.1   │
+   │    To update, run: pnpm add -g pnpm     │
+   │                                         │
+   ╰─────────────────────────────────────────╯
+
+Progress: resolved 7, reused 0, downloaded 0, added 0
+Progress: resolved 8, reused 0, downloaded 0, added 0
+Progress: resolved 10, reused 0, downloaded 0, added 0
+Progress: resolved 53, reused 0, downloaded 0, added 0
+Progress: resolved 76, reused 0, downloaded 0, added 0
+Progress: resolved 92, reused 0, downloaded 0, added 0, done
+
+Done in 7s using pnpm v10.32.1

@@ -1,0 +1,258 @@
+[
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG",
+    "dev": 16777229,
+    "ino": 63658771,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 53897,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 53962,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 53963,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 53965,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 53897,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 53962,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 53963,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 53965,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-5CSdxG",
+    "dev": 16777229,
+    "ino": 63658771,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-WgfYIv",
+    "dev": 16777229,
+    "ino": 63658768,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-WgfYIv",
+    "dev": 16777229,
+    "ino": 63658768,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-bWqKZ6",
+    "dev": 16777229,
+    "ino": 63658908,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-bWqKZ6",
+    "dev": 16777229,
+    "ino": 63658908,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-model-reporter-ITyioz",
+    "dev": 16777229,
+    "ino": 63658784,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-model-reporter-ITyioz",
+    "dev": 16777229,
+    "ino": 63658784,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/continuation/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK",
+    "dev": 16777229,
+    "ino": 63684902,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 65396,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 65444,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 65445,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-created",
+    "pid": 65446,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 65396,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 65444,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 65445,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-process",
+    "action": "fake-helper-reaped",
+    "pid": 65446,
+    "helper": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK/fake-security-channel",
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-broker-rLCNOK",
+    "dev": 16777229,
+    "ino": 63684902,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-Qz9wpl",
+    "dev": 16777229,
+    "ino": 63684906,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-Qz9wpl",
+    "dev": 16777229,
+    "ino": 63684906,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-fpqOii",
+    "dev": 16777229,
+    "ino": 63685048,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-fpqOii",
+    "dev": 16777229,
+    "ino": 63685048,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "create",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-model-reporter-cQquL5",
+    "dev": 16777229,
+    "ino": 63684916,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  },
+  {
+    "type": "task2-owned-resource",
+    "action": "removed",
+    "root": "/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-model-reporter-cQquL5",
+    "dev": 16777229,
+    "ino": 63684916,
+    "uid": 501,
+    "log": "plans/261002-0002-crew-v2/execution-phase04/task-2-evidence/current-credential/final/gateway-covering.log"
+  }
+]

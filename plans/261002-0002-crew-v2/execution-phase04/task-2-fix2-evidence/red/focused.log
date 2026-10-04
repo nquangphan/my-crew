@@ -1,0 +1,43 @@
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-79xcWU","dev":16777229,"ino":63869999,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-79xcWU","dev":16777229,"ino":63869999,"uid":501}
+✔ credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss (208.550834ms)
+✔ credential broker expiry needs bounded server receipt clock and ignores host wall clock (0.136917ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-JMwU3r","dev":16777229,"ino":63870018,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-credential-provisioning-JMwU3r","dev":16777229,"ino":63870018,"uid":501}
+✔ credential broker reconnect gets own desired/serverTime before secret envelopes and rejects disabled source (44.11675ms)
+✔ FIX1 R1 registration TTL upper bound uses estimated current server time without extending expired receipts (0.948167ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-ack-reconnect-1OAhk9","dev":16777229,"ino":63870025,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix1-ack-reconnect-1OAhk9","dev":16777229,"ino":63870025,"uid":501}
+✔ FIX1 R2 public reconnect replays committed lost ACK after expiry and revision change without rewriting secret (254.238125ms)
+{"type":"task2-owned-resource","action":"create","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix2-current-credential-U3pS0x","dev":16777229,"ino":63870050,"uid":501}
+{"type":"task2-owned-resource","action":"removed","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task2-fix2-current-credential-U3pS0x","dev":16777229,"ino":63870050,"uid":501}
+✖ FIX2 public sync distinguishes missing current A from healthy current B and historical ACK without promotion (120.901958ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 702.485958
+
+✖ failing tests:
+
+test at test/credential-provisioning.test.ts:346:1
+✖ FIX2 public sync distinguishes missing current A from healthy current B and historical ACK without promotion (120.901958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'stored'
+  - 'pending'
+  
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-01023007-b1e0-4c39-bde5-f13ab0ca48ab/v2/gateway/test/credential-provisioning.test.ts:395:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'stored',
+    expected: 'pending',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "root": "/private/tmp/c6-1gtwHE",
+  "nonce": "851c5145-3ccd-435e-9804-586ce8ec3a27",
+  "identity": {
+    "device": "16777229",
+    "inode": "63864052",
+    "ownerUid": 501,
+    "kind": "directory",
+    "linkCount": 2,
+    "bytes": 0
+  },
+  "messages": [],
+  "id": "226c133a-1c69-408a-a79d-d58bf5fa441c",
+  "stage": "/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c",
+  "socketPath": "/private/tmp/c6-1gtwHE/discovery.sock",
+  "argv": [
+    "/usr/bin/env",
+    "CODEX_HOME=/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c/home/codex",
+    "/usr/bin/sandbox-exec",
+    "-f",
+    "/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c/policy.sb",
+    "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+    "app-server",
+    "--listen",
+    "unix:///private/tmp/c6-1gtwHE/discovery.sock"
+  ],
+  "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read*)(allow file-read-metadata)(allow file-read* (subpath \"/System\") (subpath \"/usr\") (subpath \"/Library/Apple\") (subpath \"/bin\") (subpath \"/sbin\") (subpath \"/private/etc\") (subpath \"/dev\") (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c\"))(deny file-write*)(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6-1gtwHE/ops/stages/226c133a-1c69-408a-a79d-d58bf5fa441c\") (literal \"/private/tmp/c6-1gtwHE/discovery.sock\"))",
+  "executableSha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+  "receipt": {
+    "formatVersion": 1,
+    "operationId": "226c133a-1c69-408a-a79d-d58bf5fa441c",
+    "device": "16777229",
+    "inode": "63864052",
+    "treeEmpty": true,
+    "forkObserved": false,
+    "exitCode": 134,
+    "timedOut": false
+  },
+  "discoveryError": "Error: SOCKET_NOT_READY",
+  "output": "",
+  "socketCleanup": "absent",
+  "cleanup": "deleted"
+}

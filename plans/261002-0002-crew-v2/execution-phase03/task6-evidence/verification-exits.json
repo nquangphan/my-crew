@@ -1,0 +1,17 @@
+[
+  {
+    "label": "types-frozen",
+    "exit": 0,
+    "seconds": 0.557761916
+  },
+  {
+    "label": "build-frozen",
+    "exit": 0,
+    "seconds": 0.35206575000000007
+  },
+  {
+    "label": "cover-final",
+    "exit": 1,
+    "seconds": 264.965543791
+  }
+]

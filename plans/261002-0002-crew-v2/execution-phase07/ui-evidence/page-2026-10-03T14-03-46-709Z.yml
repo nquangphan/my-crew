@@ -1,0 +1,44 @@
+- generic [ref=e3]:
+  - link "Bỏ qua điều hướng" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary "Thanh bên" [ref=e5]:
+    - generic [ref=e6]:
+      - generic [aria-hidden] [ref=e7]: C
+      - generic [ref=e8]:
+        - strong [ref=e9]: Crew
+        - generic [ref=e10]: Không gian v2
+    - navigation "Điều hướng chính" [ref=e11]:
+      - paragraph [ref=e12]: Làm việc
+      - link "Tổng quan" [ref=e13] [cursor=pointer]:
+        - /url: /crew-v2/
+        - generic [aria-hidden] [ref=e14]: ▦
+        - text: Tổng quan
+    - navigation "Điều hướng dự án" [ref=e15]:
+      - paragraph [ref=e16]: Dự án
+      - paragraph [ref=e17]: Chưa có dự án để hiển thị.
+  - generic [ref=e18]:
+    - banner [ref=e19]:
+      - generic [ref=e20]: Không gian làm việc
+      - generic [ref=e21]: Bản minh họa
+    - main [ref=e22]:
+      - region [ref=e23]:
+        - generic [ref=e24]:
+          - text: Bản minh họa
+          - heading "Không gian làm việc" [level=1] [ref=e25]
+          - paragraph [ref=e26]: Điều hướng dự án và các trạng thái giao diện của Crew v2.
+        - region "Các trạng thái giao diện" [ref=e27]:
+          - region "Đang tải" [ref=e28]:
+            - generic [aria-hidden] [ref=e29]: ◌
+            - generic [ref=e30]:
+              - heading "Đang tải" [level=2] [ref=e31]
+              - paragraph [ref=e32]: Đang lấy dữ liệu mới nhất.
+          - region "Không tải được" [ref=e33]:
+            - generic [aria-hidden] [ref=e34]: "!"
+            - generic [ref=e35]:
+              - heading "Không tải được" [level=2] [ref=e36]
+              - paragraph [ref=e37]: Vui lòng thử lại sau.
+          - region "Chưa có dữ liệu" [ref=e38]:
+            - generic [aria-hidden] [ref=e39]: ◇
+            - generic [ref=e40]:
+              - heading "Chưa có dữ liệu" [level=2] [ref=e41]
+              - paragraph [ref=e42]: Nội dung sẽ xuất hiện tại đây.

@@ -1,0 +1,66 @@
+[
+  {
+    "log": "red-home-metadata.log",
+    "label": "HOME/.git/foreign-skill hardlink",
+    "status": "UNVERIFIED",
+    "commands": 7,
+    "blockers": [
+      "RUNTIME_EXECUTABLE_NOT_BOUND_OR_MISSING",
+      "NATIVE_READ_UNVERIFIED",
+      "NATIVE_SKILL_UNVERIFIED",
+      "MCP_INVOKE_UNVERIFIED",
+      "CHILD_POLICY_UNVERIFIED",
+      "FULL_TREE_PROOF_UNVERIFIED",
+      "RENDERER_INVOKE_UNVERIFIED"
+    ],
+    "evidenceSha256": "3abf54a05326f907ab0907cec18e3073ebc519bd864e6d452f286752c7697e07"
+  },
+  {
+    "log": "isolation-green.log",
+    "label": "HOME/.git/foreign-skill hardlink",
+    "status": "FAIL",
+    "commands": 0,
+    "blockers": [
+      "CROSS_WORKFLOW_SOURCE",
+      "NATIVE_READ_UNVERIFIED",
+      "NATIVE_SKILL_UNVERIFIED",
+      "MCP_INVOKE_UNVERIFIED",
+      "CHILD_POLICY_UNVERIFIED",
+      "FULL_TREE_PROOF_UNVERIFIED",
+      "RENDERER_INVOKE_UNVERIFIED"
+    ],
+    "evidenceSha256": "555c20b698a8e9768c8ff5ac39313791b6cf9f9f9293c87208db336a6eb3a95e"
+  },
+  {
+    "log": "isolation-green.log",
+    "label": "HOME/.git symlink",
+    "status": "FAIL",
+    "commands": 0,
+    "blockers": [
+      "CROSS_WORKFLOW_SOURCE",
+      "NATIVE_READ_UNVERIFIED",
+      "NATIVE_SKILL_UNVERIFIED",
+      "MCP_INVOKE_UNVERIFIED",
+      "CHILD_POLICY_UNVERIFIED",
+      "FULL_TREE_PROOF_UNVERIFIED",
+      "RENDERER_INVOKE_UNVERIFIED"
+    ],
+    "evidenceSha256": "555c20b698a8e9768c8ff5ac39313791b6cf9f9f9293c87208db336a6eb3a95e"
+  },
+  {
+    "log": "isolation-green.log",
+    "label": "HOME/cache/.git nested symlink",
+    "status": "FAIL",
+    "commands": 0,
+    "blockers": [
+      "CROSS_WORKFLOW_SOURCE",
+      "NATIVE_READ_UNVERIFIED",
+      "NATIVE_SKILL_UNVERIFIED",
+      "MCP_INVOKE_UNVERIFIED",
+      "CHILD_POLICY_UNVERIFIED",
+      "FULL_TREE_PROOF_UNVERIFIED",
+      "RENDERER_INVOKE_UNVERIFIED"
+    ],
+    "evidenceSha256": "555c20b698a8e9768c8ff5ac39313791b6cf9f9f9293c87208db336a6eb3a95e"
+  }
+]

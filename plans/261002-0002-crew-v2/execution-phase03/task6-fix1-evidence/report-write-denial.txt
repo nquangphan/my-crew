@@ -1,0 +1,12 @@
+Action: shell command planned to append owned Task6 Markdown report and finalize metadata inventory.
+Target report: plans/261002-0002-crew-v2/execution-phase03/task-6-report.md
+The command did not execute; no actions in that rejected compound command ran.
+
+Exact denial:
+Command blocked by PreToolUse hook: NOTE: This is not an error - this block is intentional to optimize context.
+BLOCKED: Access to '...UNVERIFIED/disabled; không thay Phase04 invocation gates.' denied
+Pattern: .git
+Tool: Bash
+
+The pattern occurred in report prose, not an attempted metadata read. Source patching and actual RED/GREEN fixture execution had already succeeded normally.
+PM subsequently confirmed normal apply_patch for the owned report Markdown. No encoding, ignore/settings changes, protected metadata access, or additional discovery probe was used. Independent snapshot identity/cleanup metadata completed normally.

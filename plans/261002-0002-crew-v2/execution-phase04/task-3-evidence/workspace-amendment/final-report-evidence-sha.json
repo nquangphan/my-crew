@@ -1,0 +1,82 @@
+{
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-report.md": {
+    "sha256": "9ce3c74ce1cd37a61ac8e40768095353a333934560622eeffdc511cad190f1e4",
+    "bytes": 15904
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/affected-cover.log": {
+    "sha256": "4a526458bfa15f803f24e6896368a658c3c84d58885b800cc7ff128a57df16cd",
+    "bytes": 282203
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/biome-final.log": {
+    "sha256": "900daf0fd55ee7d227ffe7cf1b76a42af1b4744869b224c5c4eb45c09603436a",
+    "bytes": 44
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/biome-static.log": {
+    "sha256": "0c421f4b420b612959da5c1de140d3f3ebc3fc21798053b3c46ac48fa92f84f2",
+    "bytes": 1144
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/build.log": {
+    "sha256": "314928ed838d5172c57fc83affda25abaf5d5a7de13c47471d99298f546c8acb",
+    "bytes": 194
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/commands.json": {
+    "sha256": "137845c478bfe1b2e838079abaa8a953735701c16fa5fe7fd94267224dec622e",
+    "bytes": 1875
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/owned-final-sha.json": {
+    "sha256": "9bc684f3ae9462ac25abf5458435bd2f304330ae84d87d9c3fd2d7eb1386f39e",
+    "bytes": 3039
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/process-closure.json": {
+    "sha256": "4747b38338e9080d3bf49a2fae708acac4c1e43bc243ae0364bcb7295d5d834a",
+    "bytes": 2179
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/red-historical-consumer.log": {
+    "sha256": "9df0e799d8c9ba31b8c2873757849be7c7ba446fa1872a14d147a079c2fa8e40",
+    "bytes": 3571
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/resource-audit.json": {
+    "sha256": "d2675b90dad93eddbdafa1177609de0329de250bcde8e959b15664368d24e1d0",
+    "bytes": 16990
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/resource-gates.jsonl": {
+    "sha256": "84ec5334eca36860f60af5bfbe80fbe8a35088e935b592270236711835aa50bc",
+    "bytes": 902
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/root.json": {
+    "sha256": "4d3b3f27ff442e1828efda652f5046463e806a75f13ffff24e639a9e90ede04e",
+    "bytes": 245
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/runner.log": {
+    "sha256": "c111d3c5ba32dd4d96e540a218ff46f7bb2557983e5c5fd13b66f27fad10ba09",
+    "bytes": 1715
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/source-sha.json": {
+    "sha256": "0dcb3706a1eeb56f1f3536875a7a85a9a2d11d0b35c8dd6c2b85dd943b0f6a46",
+    "bytes": 2958
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/source-stability.json": {
+    "sha256": "2d6378310ab27f9830566eff565c537dca729a476e4e1931d0ae9223d67312b9",
+    "bytes": 48
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/static-status.md": {
+    "sha256": "5a270d8d1f60f95b159f8077e268452940f2182bdad01820e026376d0d050175",
+    "bytes": 1882
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/strict-static.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/strict.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/test-manifest.json": {
+    "sha256": "e6de99abf729c2289e213838b850431bbdc96789002705982a8dd5e3aaed1a0c",
+    "bytes": 259
+  },
+  "plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/workspace-amendment/verify-amendment.py": {
+    "sha256": "269e2c2ee23aabccf2ad2706dec5b28268698757f62d2c97d427a5cf5a8af7ca",
+    "bytes": 4533
+  }
+}

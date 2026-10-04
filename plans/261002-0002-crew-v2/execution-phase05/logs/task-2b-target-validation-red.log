@@ -1,0 +1,54 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server", "exec", "node", "--test", "--test-name-pattern=malformed", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server/test/attachments-submissions.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-f87191b9-0093-4384-b539-126f8ff43b00", "--label", "crew.phase05.task2b=915aadc6-7997-4c91-b44e-d3e675f8e25b", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "56eaade76ddeae168a9fb6fb9c60add0a824ba47796039fe652c44b89157b4c2", "name": "crew-v2-test-f87191b9-0093-4384-b539-126f8ff43b00", "mapping": "127.0.0.1:51025"}
+attachment DB container 56eaade76ddeae168a9fb6fb9c60add0a824ba47796039fe652c44b89157b4c2 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9SQM3W
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9SQM3W nonceSha256=deb7d1e14e4b096a580505877a59a817c3c67010fb6607d74224adce07f0d36f
+attachment DB scratch identity dev=16777229 ino=64012845 uid=501 pid=96726
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9SQM3W
+✖ attachment submission malformed target returns400 before scope SQL or cached replay (282.210083ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 385.293042
+
+✖ failing tests:
+
+test at test/attachments-submissions.test.ts:407:1
+✖ attachment submission malformed target returns400 before scope SQL or cached replay (282.210083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: '22P02'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server/test/attachments-submissions.test.ts:410:3
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server/test/attachments-submissions.test.ts:22:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server/test/support/db.ts:51:9
+      at async fixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server/test/attachments-submissions.test.ts:19:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: PostgresError: invalid input syntax for type uuid: "invalid-uuid"
+        at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+        at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+        at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+        at Socket.emit (node:events:508:28)
+        at addChunk (node:internal/streams/readable:563:12)
+        at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+        at Readable.push (node:internal/streams/readable:394:5)
+        at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+        at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+        at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+        at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+        at authorizeSubmission (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-target-validation-red-ea4fg5vm/v2/server/src/attachments/submissions.ts:61:31),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }

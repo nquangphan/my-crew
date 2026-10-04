@@ -1,0 +1,18 @@
+[
+  {
+    "label": "focused",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-01023007-b1e0-4c39-bde5-f13ab0ca48ab/v2/gateway",
+      "exec",
+      "node",
+      "--test",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-01023007-b1e0-4c39-bde5-f13ab0ca48ab/v2/gateway/test/credential-provisioning.test.ts"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790936062.270808,
+    "exit": 1,
+    "finished": 1790936063.1313732
+  }
+]

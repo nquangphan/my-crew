@@ -1,0 +1,121 @@
+diff --git a/v2/docs/flows/server-attachments.md b/v2/docs/flows/server-attachments.md
+index 60b86ac..d4eb16b 100644
+--- a/v2/docs/flows/server-attachments.md
++++ b/v2/docs/flows/server-attachments.md
+@@ -60,10 +60,12 @@ Original dùng `uploads/<uuid>/original`, stage có generation và receiver UUID
+ 
+ ## Tests
+ 
+ Pure run: `node --test v2/server/test/attachments-storage.test.ts`. Native run cùng file trong immutable Node24.12.0 Linux container riêng, network none, read-only repo, tmpfs và resource bounds; macOS fixture port chỉ chứng minh terminal protocol, không cấp native gone proof. DB tests chỉ được chạy `databaseFixture(9)` sau actual008 được PM review READY/checksum, event metadata đã đăng ký. Cuối task chạy một covering qua `pnpm --dir v2/server test --test-file <absolute-wrapper.test.mjs>` với đúng 24 file test server đã review ở candidate d249a82 và ba file test Task1, typecheck và Biome sau final production change; report ghi commands/exits/counts/checksums/resource cleanup. Khi gate008 chưa READY, chưa công bố DB/integration hoàn tất.
+ 
+ Actual008 đã độc lập SPEC+QUALITY READY tại candidate d249a82, checksum `d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f`. Test Task1 dùng actual PostgreSQL private runner, migration009 pinned `fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a`. Native driver chạy immutable Linux Node24.12.0 trong namespace network của đúng private PG container, chỉ proxy loopback random để kiểm actual receiver lifecycle. Đây là connectivity của test có kiểm soát; không phải extraction sandbox hoặc certification. Driver kiểm birth identity DB, heartbeat, socket abort khi producer đang chờ, ACK chỉ sau terminal, replay ACK sau local map release và quota còn giữ. Backup `pg_dump -Fc`/restore prefix008→009 và prefix009 giữ marker, legacy ticket, reserved identity và checksum; deliberate test-owned drift bị từ chối. Fault sau publication giữ blob/intent nhưng vẫn ghi terminal close ACK.
+ 
+ FIX1/5 đáp ứng hai P2 của review f58f27d: actual PostgreSQL regressions kiểm saved wall policy khác currentconfig, stalled/caller-abort/verification/noncooperative cleanup;29 control một byte và EOF UTF8/UTF16 dở dang bị từ chối, receiver terminal/quota giữ/original chưa có. Probe Linux privatePG có exact birth/ACK và cùng EOF/replay cases, dùng immutable Nodeimage/resource bounds; các artifact nằm execution-phase05/task-1-fix1-*. Original report/evidence giữ nguyên; báo cáo FIX1 riêng, không suy timeout thành process STOP hoặc chứng nhận recovery Task7.
+ 
+ Task2a producer f6d3728 và additive010 đã independent READY:010 chỉ đổi comments_text_check length0..32768, legacy appendComment vẫn reject empty và giữ whitespace. Consumer Task2b verification dùng readonly f58:v2 + exact ec3/f6 six/228f9e4 three overlays + own consumer paths, actual private PG18.6 prefix10 và pinned001–010. Evidence launcher kiểm TCP SQL sẵn sàng trước feature vì reviewed baseline runner có socket startup race57P03; không sửa baseline runner/fixture. Test claim-in-use chỉ tạo durable attempt qua actual claim API với test-owned authorization, không launch process/provider hoặc chứng nhận runtime. Final explicit ticket/dependency/completion/repair/producer/consumer/event cover, strict types và scoped Biome nằm task-2b report; không import unfinished peer tests. R2 manifest/Git/full independent consumer review do PM serialize.
++
++Task2b FIX1/5 sau review6150254: fresh submission chỉ nhận `stop_proof.kind=closed-ack` với ACK digest khớp receiver closed hiện hành, đồng thời giữ ready/durable, receiver ID/generation/writer instance và original hash/byte verification. `process-gone`, `native-process-gone` và discriminator lạ đều bị422 trước tạo links/receipt/job hoặc release quota. Producer native proveStopped hiện chỉ ghi stop proof, chưa tạo closed/publication-ready transition; recovery đó cần Task7 review riêng. Regression dùng reserve/receive thật trên PostgreSQL prefix10, chỉ tamper discriminator để kiểm fail-closed rồi phục hồi ACK thực đã capture để kiểm positive. Final focused producer/submission cover, strict types, Biome và receipt cleanup được ghi riêng trong FIX1 report, không cộng với original51 cover.
+diff --git a/v2/server/src/attachments/submissions.ts b/v2/server/src/attachments/submissions.ts
+index a28d70e..2e309ee 100644
+--- a/v2/server/src/attachments/submissions.ts
++++ b/v2/server/src/attachments/submissions.ts
+@@ -152,32 +152,34 @@ export function createSelectionServices(deps: SelectionDependencies) {
+           upload.state !== 'ready' ||
+           !upload.durable_at ||
+           upload.linked_at ||
+           upload.quota_released_at ||
+           new Date(String(upload.expires_at)).getTime() <= now().getTime()
+         )
+           throw new ApiError('ATTACHMENT_NOT_READY', 422, 'Tệp chưa sẵn sàng');
+         const [receiver] =
+           await tx`select state,attachment_id,generation,instance_id,closed_at,closed_ack_sha256,stop_proof from attachment_receivers where id=${upload.receiver_id} for share`;
+         const proof = receiver?.stop_proof;
++        // Native disappearance proves stop, not the current producer's closed
++        // publication ACK. Recovery readiness needs a separately reviewed transition.
+         if (
+           receiver?.state !== 'closed' ||
+           !receiver.closed_at ||
+           receiver.attachment_id !== upload.id ||
+           String(receiver.generation) !== String(upload.generation) ||
+           !record(proof) ||
+           proof.receiverId !== upload.receiver_id ||
+           String(proof.generation) !== String(upload.generation) ||
+           !record(proof.identity) ||
+           proof.identity.instanceId !== receiver.instance_id ||
+-          !['closed-ack', 'process-gone'].includes(String(proof.kind)) ||
+-          (proof.kind === 'closed-ack' && proof.proofSha256 !== receiver.closed_ack_sha256)
++          proof.kind !== 'closed-ack' ||
++          proof.proofSha256 !== receiver.closed_ack_sha256
+         )
+           throw new ApiError('ATTACHMENT_NOT_READY', 422, 'Writer chưa có proof dừng');
+         const original = {
+           attachmentId: String(upload.id),
+           ownerId: 'owner' as const,
+           sha256: String(upload.expected_sha256),
+           storageKey: String(upload.storage_key),
+           byteLength: Number(upload.expected_bytes),
+         };
+         if (
+diff --git a/v2/server/test/attachments-submissions.test.ts b/v2/server/test/attachments-submissions.test.ts
+index 3c90977..48b21c9 100644
+--- a/v2/server/test/attachments-submissions.test.ts
++++ b/v2/server/test/attachments-submissions.test.ts
+@@ -423,10 +423,58 @@ test('attachment submission malformed target returns400 before scope SQL or cach
+     const key = randomUUID();
+     const result = await f.mutationAs(key, body, owner, { projectId: f.project.id }, (tx) =>
+       s.ticket(tx, body, owner),
+     );
+     await assert.rejects(
+       f.mutationAs(key, body, owner, { projectId: 'invalid-uuid' }, async () => result),
+       { code: 'VALIDATION' },
+     );
+     assert.equal((await db`select * from attachment_submissions`).length, 1);
+   }));
++
++test('attachment submission accepts actual closed ACK only; unknown and native gone proofs retain quota', async () =>
++  fixture(async (db, f, s) => {
++    const bytes = Buffer.from('Actual staged original');
++    const selected = await selection(f, 'comment', [bytes]);
++    const beforeUploads = await db`select * from attachment_uploads where id=${selected.attachmentIds[0]}`;
++    const [upload] = beforeUploads;
++    const [receiver] = await db`select * from attachment_receivers where id=${upload.receiver_id}`;
++    const actualProof = receiver.stop_proof;
++    assert.equal(actualProof.kind, 'closed-ack');
++    assert.equal(receiver.state, 'closed');
++    assert.equal(actualProof.proofSha256, receiver.closed_ack_sha256);
++    const revisions = await db`select * from attachment_input_revisions order by target_id`;
++    const body = { text: '', selection: selected };
++    for (const kind of ['process-gone', 'native-process-gone', 'unknown-proof']) {
++      // Negative corruption preserves every real ready/identity/hash/byte gate.
++      // Native process disappearance is not the producer's publication ACK.
++      await db`update attachment_receivers set stop_proof=${db.json({ ...actualProof, kind })} where id=${receiver.id}`;
++      await assert.rejects(
++        f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, body, owner)),
++        { code: 'ATTACHMENT_NOT_READY' },
++      );
++      assert.equal((await db`select * from comments`).length, 0);
++      assert.equal((await db`select * from attachment_links`).length, 0);
++      assert.equal((await db`select * from attachment_submissions`).length, 0);
++      assert.equal((await db`select * from attachment_extractions`).length, 0);
++      assert.deepEqual(await db`select * from attachment_input_revisions order by target_id`, revisions);
++      assert.deepEqual(await db`select * from attachment_uploads where id=${upload.id}`, beforeUploads);
++      assert.equal(
++        await f.store.verify({
++          key: String(upload.storage_key),
++          sha256: sha(bytes),
++          byteLength: bytes.length,
++        }),
++        'present',
++      );
++    }
++    // Restore the ACK captured from actual reserve/receive, never synthesize one.
++    await db`update attachment_receivers set stop_proof=${db.json(actualProof)} where id=${receiver.id}`;
++    await f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, body, owner));
++    assert.equal((await db`select * from attachment_links where attachment_id=${upload.id}`).length, 1);
++    const [retained] =
++      await db`select linked_at,quota_released_at from attachment_uploads where id=${upload.id}`;
++    assert.ok(retained.linked_at);
++    assert.ok(retained.quota_released_at);
++    const [job] = await db`select status from attachment_extractions where attachment_id=${upload.id}`;
++    assert.equal(job.status, 'pending');
++  }));

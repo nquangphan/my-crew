@@ -1,0 +1,490 @@
+164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57
+[
+    {
+        "Id": "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57",
+        "Created": "2026-10-02T13:15:44.941805542Z",
+        "Path": "node",
+        "Args": [
+            "--input-type=module",
+            "-e",
+            "import {execFileSync} from 'node:child_process';\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\nconst {PDFDocument}=await import('pdf-lib');\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\nconsole.log('native PNG and parsed PDF public APIs verified');\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\n"
+        ],
+        "State": {
+            "Status": "created",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+        "ResolvConfPath": "",
+        "HostnamePath": "",
+        "HostsPath": "",
+        "LogPath": "",
+        "Name": "/crew-v2-pdf-image-c0291674dc05490e8b5d52efa9791a38",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "none",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 536870912,
+            "NanoCpus": 1000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 536870912,
+            "MemorySwappiness": null,
+            "OomKillDisable": false,
+            "PidsLimit": 32,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "164025677b09",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=24.14.0",
+                "YARN_VERSION=1.22.22"
+            ],
+            "Cmd": [
+                "--input-type=module",
+                "-e",
+                "import {execFileSync} from 'node:child_process';\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\nconst {PDFDocument}=await import('pdf-lib');\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\nconsole.log('native PNG and parsed PDF public APIs verified');\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\n"
+            ],
+            "Image": "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+            "Volumes": null,
+            "WorkingDir": "/fixture/v2/server",
+            "Entrypoint": [
+                "node"
+            ],
+            "Labels": {
+                "crew.v2.fixture": "c0291674dc05490e8b5d52efa9791a38",
+                "crew.v2.owner": "13b13820d0a74255b55daccdc63b3b95"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:a51c67e27375132b4d3cf3a2b1e6041b57f8a705fb124fac5af6f7dfbabfd10c",
+            "size": 2381,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +5
++++++
+Progress: resolved 5, reused 0, downloaded 4, added 4
+Progress: resolved 5, reused 0, downloaded 5, added 5, done
+
+dependencies:
++ pdf-lib 1.17.1
+
+Done in 2.4s using pnpm v10.32.1
+native PNG and parsed PDF public APIs verified
+Version 7.0.2
+[
+    {
+        "Id": "164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57",
+        "Created": "2026-10-02T13:15:44.941805542Z",
+        "Path": "node",
+        "Args": [
+            "--input-type=module",
+            "-e",
+            "import {execFileSync} from 'node:child_process';\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\nconst {PDFDocument}=await import('pdf-lib');\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\nconsole.log('native PNG and parsed PDF public APIs verified');\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\n"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-10-02T13:15:45.095211917Z",
+            "FinishedAt": "2026-10-02T13:15:49.828697919Z"
+        },
+        "Image": "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+        "ResolvConfPath": "/var/lib/docker/containers/164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57/hostname",
+        "HostsPath": "/var/lib/docker/containers/164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57/hosts",
+        "LogPath": "",
+        "Name": "/crew-v2-pdf-image-c0291674dc05490e8b5d52efa9791a38",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "none",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 536870912,
+            "NanoCpus": 1000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 536870912,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 32,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "164025677b09",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=24.14.0",
+                "YARN_VERSION=1.22.22"
+            ],
+            "Cmd": [
+                "--input-type=module",
+                "-e",
+                "import {execFileSync} from 'node:child_process';\nexecFileSync('/opt/pnpm/bin/pnpm',['install','--frozen-lockfile','--ignore-scripts'],{stdio:'inherit'});\nconst {createCanvas,loadImage}=await import('@napi-rs/canvas');\nconst {PDFDocument}=await import('pdf-lib');\nconst canvas=createCanvas(2,3), bytes=canvas.toBuffer('image/png'), image=await loadImage(bytes);\nif(image.width!==2||image.height!==3)throw Error('NATIVE_PNG_PROBE');\nconst pdf=await PDFDocument.create();pdf.addPage();const saved=await pdf.save({useObjectStreams:true});\nconst loaded=await PDFDocument.load(saved,{throwOnInvalidObject:true});if(loaded.getPageCount()!==1)throw Error('PDF_GRAPH_PROBE');\nconsole.log('native PNG and parsed PDF public APIs verified');\nexecFileSync('/opt/pnpm/bin/pnpm',['exec','tsc','--version'],{stdio:'inherit'});\n"
+            ],
+            "Image": "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+            "Volumes": null,
+            "WorkingDir": "/fixture/v2/server",
+            "Entrypoint": [
+                "node"
+            ],
+            "Labels": {
+                "crew.v2.fixture": "c0291674dc05490e8b5d52efa9791a38",
+                "crew.v2.owner": "13b13820d0a74255b55daccdc63b3b95"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "34c35a0093c81a646521cf425c47a6f3d65d046e292bb83253683a2d217138fc",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:a51c67e27375132b4d3cf3a2b1e6041b57f8a705fb124fac5af6f7dfbabfd10c",
+            "size": 2381,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]
+sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856
+[
+    {
+        "Architecture": "amd64",
+        "Config": {
+            "Cmd": [
+                "--help"
+            ],
+            "Entrypoint": [
+                "node"
+            ],
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=24.14.0",
+                "YARN_VERSION=1.22.22"
+            ],
+            "Labels": {
+                "crew.v2.fixture": "c0291674dc05490e8b5d52efa9791a38",
+                "crew.v2.owner": "13b13820d0a74255b55daccdc63b3b95",
+                "desktop.docker.io/ports.scheme": "v2"
+            },
+            "WorkingDir": "/fixture/v2/server"
+        },
+        "Created": "2026-10-02T13:15:51.66727167Z",
+        "Descriptor": {
+            "digest": "sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856",
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "size": 2909
+        },
+        "Id": "sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856",
+        "Metadata": {
+            "LastTagTime": "2026-10-02T13:15:51.899629337Z"
+        },
+        "Os": "linux",
+        "Parent": "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+        "RepoDigests": [
+            "crew-v2-parser-deps@sha256:719dfc5bd6c6d58712f6b1a49f255e87afbf4b1ce6cf921b9e88d2fa25ae7856"
+        ],
+        "RepoTags": [
+            "crew-v2-parser-deps:c0291674dc05490e8b5d52efa9791a38"
+        ],
+        "RootFS": {
+            "Layers": [
+                "sha256:6143ee9e3de07e6ca35edaf392cf93dea566a5bcd0d3696607ae6c324193d099",
+                "sha256:936daadbd492e93380bbd4df2b3d73c702353836fbeee7160510f0eb7a2d5e0d",
+                "sha256:7a0c9255fc5c4e74a09a0b0aa5025470a81f3059dd03fa53f0fcd712429d2947",
+                "sha256:82da67f0f0a986b7f306b397d2a7313b5a07475c33173f6acb7d327638dbd68b",
+                "sha256:f7099a7ec18e72eaa98019f226b405db6e4c968518e03ceaa7cd57a267152c7c",
+                "sha256:6e74516cfb2e158c0433721a1a251c123de988c295dbe9c4386b023c2b7aa1b0",
+                "sha256:773cdbc1da163ddbb8d2f4f89de8024ad7a5f042633564c6b48c3eb018e0c960",
+                "sha256:ef6df01eb0b06629114d50074f6b132f81ad322cf55ad27ca1cac29e5a7aada7",
+                "sha256:63c334067af23c446f0184c4d968c4c5eca120cea06b2a23199105212081a3c5",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:063ada28d3604afa5bb1091502e1956cce88fee9ff6447d0b0b96e5b63db966f"
+            ],
+            "Type": "layers"
+        },
+        "Size": 564314140
+    }
+]
+164025677b09c607d00ab8afe08c0d59f5d12963c89432e652ebafdfdcf43d57

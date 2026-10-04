@@ -1,0 +1,103 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts
+
+model-fixture-container {"containerId":"ee59b3c2c067755bb53ceee95176e317094d7d990e9b779292ae723b26f329a6","url":"postgres://postgres@127.0.0.1:60272/crew_v2_test"}
+✖ current credential machine-own read exposes metadata only and never selects by UUID or late historical ACK (519.247791ms)
+✖ current credential retained stored ref legitimately has null operation after same endpoint revision; pending/loss/OFF/removal stay exact (331.776375ms)
+✖ current credential endpoint/protocol change detaches credential and read cannot cross machine or owner session (317.547625ms)
+✖ current credential read reauthenticates actual credential after preflight in existing repeatable-read snapshot (254.985291ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1589.984625
+
+✖ failing tests:
+
+test at test/model-current-credentials.test.ts:30:1
+✖ current credential machine-own read exposes metadata only and never selects by UUID or late historical ACK (519.247791ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route GET:/v2/machine/api-credential-bindings not found","error":"Not Found","statusCode":404}
+  
+  404 !== 200
+  
+      at Object.get (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:27:64)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:36:20
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:31:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-current-credentials.test.ts:47:1
+✖ current credential retained stored ref legitimately has null operation after same endpoint revision; pending/loss/OFF/removal stay exact (331.776375ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route GET:/v2/machine/api-credential-bindings not found","error":"Not Found","statusCode":404}
+  
+  404 !== 200
+  
+      at Object.get (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:27:64)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:53:18
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:48:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-current-credentials.test.ts:65:1
+✖ current credential endpoint/protocol change detaches credential and read cannot cross machine or owner session (317.547625ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route GET:/v2/machine/api-credential-bindings not found","error":"Not Found","statusCode":404}
+  
+  404 !== 200
+  
+      at Object.get (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:27:64)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:71:21
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:66:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/model-current-credentials.test.ts:81:1
+✖ current credential read reauthenticates actual credential after preflight in existing repeatable-read snapshot (254.985291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:87:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-current-credentials.test.ts:82:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

@@ -1,0 +1,14 @@
+{
+  "pressure": "2",
+  "availableBytes": 5249875968,
+  "idlePercent": 67.15,
+  "diskBytes": 31255072768,
+  "quota": {
+    "capturedAtUnix": 1791028630.029,
+    "weeklyUsedPercent": 29,
+    "weeklyRemainingPercent": 71,
+    "ordinaryUsageAllowed": true,
+    "windowDurationMins": 10080
+  },
+  "timeUnix": 1791028631.4190989
+}

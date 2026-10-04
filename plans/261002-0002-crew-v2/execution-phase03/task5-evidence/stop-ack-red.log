@@ -1,0 +1,29 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts '--test-name-pattern=stop: pause' --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts
+
+Task5 private database container 2ba050bfbe1a49e452ed1c27a94e01e2dad0af9434f35d8f49b7600215263e5d
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-TOEXAC","device":"16777229","inode":"63547189","uid":501}
+{"level":30,"time":1790928807062,"pid":45678,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:52871"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-TOEXAC","device":"16777229","inode":"63547189","uid":501,"stage":"pause"}
+✖ execution bridge actual server selection and stop: pause (3321.925208ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3523.901292
+
+✖ failing tests:
+
+test at ../gateway/test/execution-bridge-db.test.ts:222:3
+✖ execution bridge actual server selection and stop: pause (3321.925208ms)
+  Error: PROCESS_UNKNOWN
+      at TicketCommandBridge.stopCommand (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/execution/ticket-command-bridge.ts:424:13)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts:390:13
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+ ELIFECYCLE  Test failed. See above for more details.

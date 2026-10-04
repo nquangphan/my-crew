@@ -1,0 +1,35 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y/v2/server", "exec", "node", "--test", "--test-name-pattern=actual closed ACK only", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y/v2/server/test/attachments-submissions.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-397e07bc-3207-4da7-a2a5-b1c84e7b72c9", "--label", "crew.phase05.task2b=3199a238-f4d7-4ec0-bd96-062b60c9dfed", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "7eae323386ff0cb88b3ccf64488c351f62098953f33140ecdaa108d2d488da8d", "name": "crew-v2-test-397e07bc-3207-4da7-a2a5-b1c84e7b72c9", "mapping": "127.0.0.1:61541"}
+attachment DB container 7eae323386ff0cb88b3ccf64488c351f62098953f33140ecdaa108d2d488da8d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eQ2ATW
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eQ2ATW nonceSha256=b46ccef7b13534f9d4c162e198e3f55ebb3886a315424d703a53086149068610
+attachment DB scratch identity dev=16777229 ino=64049692 uid=501 pid=88403
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-eQ2ATW
+✖ attachment submission accepts actual closed ACK only; unknown and native gone proofs retain quota (434.237958ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 547.220958
+
+✖ failing tests:
+
+test at test/attachments-submissions.test.ts:434:1
+✖ attachment submission accepts actual closed ACK only; unknown and native gone proofs retain quota (434.237958ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y/v2/server/test/attachments-submissions.test.ts:450:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y/v2/server/test/attachments-submissions.test.ts:22:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y/v2/server/test/support/db.ts:51:9
+      at async fixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-fix1-red-jep4xp7y/v2/server/test/attachments-submissions.test.ts:19:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ATTACHMENT_NOT_READY' },
+    operator: 'rejects',
+    diff: 'simple'
+  }

@@ -1,0 +1,20 @@
+[
+  {
+    "containerId": "be9cba4900348066d1e107d48363ecd807bb87f7b2641b58ba02696a45f03605",
+    "inspectExit": 1,
+    "absent": true,
+    "stderr": "error: no such object: be9cba4900348066d1e107d48363ecd807bb87f7b2641b58ba02696a45f03605"
+  },
+  {
+    "containerId": "c74ffc2b300226ccd9073917e7864600a263fb7b3789e5e27b29ece1ac57de4f",
+    "inspectExit": 1,
+    "absent": true,
+    "stderr": "error: no such object: c74ffc2b300226ccd9073917e7864600a263fb7b3789e5e27b29ece1ac57de4f"
+  },
+  {
+    "containerId": "dd860d9d275e118c06940ede5d632fc4deabc2d8834b73b9b65c786de20afd48",
+    "inspectExit": 1,
+    "absent": true,
+    "stderr": "error: no such object: dd860d9d275e118c06940ede5d632fc4deabc2d8834b73b9b65c786de20afd48"
+  }
+]

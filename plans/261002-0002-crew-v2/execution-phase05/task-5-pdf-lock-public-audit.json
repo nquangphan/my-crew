@@ -1,0 +1,61 @@
+{
+  "baselinePreserved": 92,
+  "added": [
+    {
+      "name": "@pdf-lib/standard-fonts",
+      "version": "1.0.0",
+      "url": "https://registry.npmjs.org/%40pdf-lib%2Fstandard-fonts/1.0.0",
+      "metadataSha256": "18fe130eaa90f04023ba5bac999b4557e85feebc0589a773868646701d4a4fd4",
+      "license": "MIT",
+      "tarball": "https://registry.npmjs.org/@pdf-lib/standard-fonts/-/standard-fonts-1.0.0.tgz",
+      "bytes": 468935,
+      "integrity": "sha512-hU30BK9IUN/su0Mn9VdlVKsWBS6GyhVfqjwl1FjZN4TxP6cCw0jP2w7V3Hf5uX7M0AZJ16vey9yE0ny7Sa59ZA==",
+      "actualTarballVerified": true
+    },
+    {
+      "name": "@pdf-lib/upng",
+      "version": "1.0.1",
+      "url": "https://registry.npmjs.org/%40pdf-lib%2Fupng/1.0.1",
+      "metadataSha256": "9e0150d9b294d8e23665e91f4546313b53239f4ec31b30dc25ed3a477176bfa3",
+      "license": "MIT",
+      "tarball": "https://registry.npmjs.org/@pdf-lib/upng/-/upng-1.0.1.tgz",
+      "bytes": 193826,
+      "integrity": "sha512-dQK2FUMQtowVP00mtIksrlZhdFXQZPC+taih1q4CvPZ5vqdxR/LKBaFg0oAfzd1GlHZXXSPdQfzQnt+ViGvEIQ==",
+      "actualTarballVerified": true
+    },
+    {
+      "name": "pako",
+      "version": "1.0.11",
+      "url": "https://registry.npmjs.org/pako/1.0.11",
+      "metadataSha256": "0c380eb3d27a5a93fc5af301c13b9ff4f3e42085aadd2a5141c0bc9ddc30faad",
+      "license": "(MIT AND Zlib)",
+      "tarball": "https://registry.npmjs.org/pako/-/pako-1.0.11.tgz",
+      "bytes": 204482,
+      "integrity": "sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==",
+      "actualTarballVerified": true
+    },
+    {
+      "name": "pdf-lib",
+      "version": "1.17.1",
+      "url": "https://registry.npmjs.org/pdf-lib/1.17.1",
+      "metadataSha256": "89934a7e887ac7f0c4d1a47a5e080c235ae6e3472e7a04cb2c34ae8bb7be5c04",
+      "license": "MIT",
+      "tarball": "https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz",
+      "bytes": 4226739,
+      "integrity": "sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==",
+      "actualTarballVerified": true
+    },
+    {
+      "name": "tslib",
+      "version": "1.14.1",
+      "url": "https://registry.npmjs.org/tslib/1.14.1",
+      "metadataSha256": "aeb9d90ce593b3625c09924d91bdad0b035078a1edacf097accdba4af166ac51",
+      "license": "0BSD",
+      "tarball": "https://registry.npmjs.org/tslib/-/tslib-1.14.1.tgz",
+      "bytes": 7605,
+      "integrity": "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==",
+      "actualTarballVerified": true
+    }
+  ],
+  "allPublicMetadataAndPayloadVerified": true
+}

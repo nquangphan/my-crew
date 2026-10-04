@@ -1,0 +1,55 @@
+{
+  "status": "PENDING_SCHEMA_RULING_NOT_READY",
+  "time": "2026-10-02T09:55:18.333009+00:00",
+  "brief": "task-2a-brief.md",
+  "schemaFinding": {
+    "file": "v2/server/migrations/004_tickets.sql",
+    "line": 57,
+    "constraint": "comments_text_check",
+    "sqlState": "23514",
+    "expected": "empty text only with actual ready attachments accepted by trusted linker",
+    "actual": "INSERT fails before callback because length(text) must be 1..32768",
+    "sourceUntouched": true
+  },
+  "files": [
+    {
+      "path": "v2/server/src/tickets/contracts.ts",
+      "sha256": "352f831eb2d23d96dccefd07b45ec41e3e2a82c25912307c2cea1eaea3ff485a",
+      "bytes": 3156
+    },
+    {
+      "path": "v2/server/src/tickets/decisions.ts",
+      "sha256": "93ffcd5601bbeb3754778bfab12907f0d62bf6ec2a726623ae98c17a2f46aa5c",
+      "bytes": 7009
+    },
+    {
+      "path": "v2/server/src/tickets/service.ts",
+      "sha256": "e235e098fea042ce9be79b9bfc9e61a5f7c9b4f85c141bb6049463f5d24e619c",
+      "bytes": 16424
+    },
+    {
+      "path": "v2/server/test/attachments-comment-factory.test.ts",
+      "sha256": "5bd151b1bf5f89affe20a11789de2fa51e21e633987cd469be2d77f908ec8929",
+      "bytes": 15736
+    },
+    {
+      "path": "v2/docs/flows/server-tickets.md",
+      "sha256": "bc87e185b6ee3020b279f68d0fff0a305150b87688e54ca3c6b77610c4c02add",
+      "bytes": 10708
+    }
+  ],
+  "logs": [
+    {
+      "path": "logs/task-2a-red.log",
+      "sha256": "3f5fd9e149880e644c50b8b9f4578027c08d6f9d318f86062fc6e8e805bbf702"
+    },
+    {
+      "path": "logs/task-2a-green.log",
+      "sha256": "3bbd7193d1ad5231730da90a7a799e332a3acf63e91bdc1c24d1d190a595f3e1"
+    },
+    {
+      "path": "logs/task-2a-typecheck-first.log",
+      "sha256": "8f8df920214a68e590c5885be307e89d59d6aea4cb576587280820e5031850eb"
+    }
+  ]
+}

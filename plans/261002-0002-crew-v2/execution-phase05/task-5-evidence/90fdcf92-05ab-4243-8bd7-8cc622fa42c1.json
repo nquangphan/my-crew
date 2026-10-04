@@ -1,0 +1,281 @@
+{
+  "runid": "90fdcf92-05ab-4243-8bd7-8cc622fa42c1",
+  "kind": "unit",
+  "argv": [
+    "/usr/local/bin/docker",
+    "create",
+    "--pull=never",
+    "--name",
+    "crew-v2-parser-test-90fdcf92-05ab-4243-8bd7-8cc622fa42c1",
+    "--label",
+    "crew.v2.fixture=b953796e-f601-4a6a-9311-38bd9f79c43d",
+    "--label",
+    "crew.v2.challenge=90fdcf92-05ab-4243-8bd7-8cc622fa42c1",
+    "--network=none",
+    "--read-only",
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges",
+    "--user=65532:65532",
+    "--memory=512m",
+    "--memory-swap=512m",
+    "--cpus=1",
+    "--pids-limit=32",
+    "--log-driver=none",
+    "--tmpfs",
+    "/tmp:rw,noexec,nosuid,size=16777216",
+    "--entrypoint",
+    "node",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/src,dst=/fixture/v2/server/src,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/test,dst=/fixture/v2/server/test,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/src,dst=/fixture/v2/src,readonly",
+    "--mount",
+    "type=bind,src=/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/tsconfig.json,dst=/fixture/v2/server/tsconfig.json,readonly",
+    "sha256:ebdbe6bb3879dc106b80d13fd447d8b64f0c7db87010661c338bf410774e792e",
+    "--test",
+    "--test-name-pattern=attachment",
+    "test/attachments-formats.unit.test.ts",
+    "test/attachments-text-csv.unit.test.ts",
+    "test/attachments-pdf-image.unit.test.ts",
+    "test/attachments-ooxml.unit.test.ts"
+  ],
+  "parentPid": 56132,
+  "manifest": {
+    "v2/server/src/attachments/extract/image.ts": {
+      "sha256": "9d2b879daca56bb02a7aa7a0b8b8ab9caa22f34903033eca1f9e3f344b86b738",
+      "bytes": 1758
+    },
+    "v2/server/src/attachments/extract/verify.ts": {
+      "sha256": "df82dc3b1167c377f62c543fd151217e52d1ffbc8c658b0be803f62b24cdd46f",
+      "bytes": 1605
+    },
+    "v2/server/src/attachments/extract/xlsx.ts": {
+      "sha256": "7a428a5e8c2ab147ca2bbd44ea7e7235120d63a2831cea2a52b46299fabd1522",
+      "bytes": 5814
+    },
+    "v2/server/src/attachments/extract/text.ts": {
+      "sha256": "6093eb3ebea31b79281c9acaea31e8729258b1a7eb15e37f54e8f670cb09a219",
+      "bytes": 1832
+    },
+    "v2/server/src/attachments/extract/formats.ts": {
+      "sha256": "162fe3801f38c074777ff0d760642f0198720e1a3195de83d00f08be48a7554b",
+      "bytes": 3311
+    },
+    "v2/server/src/attachments/extract/csv.ts": {
+      "sha256": "36281a4640bf000abc2d1544121f9fce679719e8047ae89a24699a6f117a8ace",
+      "bytes": 1915
+    },
+    "v2/server/src/attachments/extract/yauzl.d.ts": {
+      "sha256": "ce254007ac49b3b222677e634f94571477fbdbe94ba9240a1a132cbbb6cd6b5e",
+      "bytes": 669
+    },
+    "v2/server/src/attachments/extract/zip.ts": {
+      "sha256": "785a42676e60093df9ba31846a288a6f22add0b1ac55006445172f6ee88cea11",
+      "bytes": 5312
+    },
+    "v2/server/src/attachments/extract/pdf.ts": {
+      "sha256": "91900b1ea9835487f60297eab71b47bc34970879a7a5efb03bc62aa574fd918e",
+      "bytes": 5160
+    },
+    "v2/server/src/attachments/extract/xml.ts": {
+      "sha256": "4b9980b639b0f033d4de99d75fcddea33f782aaf77fe4e8a834b158490514392",
+      "bytes": 1490
+    },
+    "v2/server/src/attachments/extract/index.ts": {
+      "sha256": "9f35ea597ab9ffcbc3d07a3c9647873521a201132b7b008c18bf81f52fb7dcf1",
+      "bytes": 2911
+    },
+    "v2/server/src/attachments/extract/docx.ts": {
+      "sha256": "9434d9f1fad4951950f410f90fac4cb74293d20fb6278656d319e55756f2bd36",
+      "bytes": 6000
+    },
+    "v2/server/test/attachments-events.unit.test.ts": {
+      "sha256": "ae0b69ad82805893b5d6425e0e2ac3324ced6107891ed1735889a156547fbed7",
+      "bytes": 2429
+    },
+    "v2/server/test/attachments-ooxml.unit.test.ts": {
+      "sha256": "e73c4eb7b63de246e8243180fc798b74fd2d8b95d442e3afac48af1266b2c87f",
+      "bytes": 3379
+    },
+    "v2/server/test/attachments-pdf-image.unit.test.ts": {
+      "sha256": "4d0a4c3d60ecd56ce678786a451eaf8342edcf9835fa9bcee0ca85531a029d76",
+      "bytes": 2313
+    },
+    "v2/server/test/attachments-text-csv.unit.test.ts": {
+      "sha256": "659bd042dcfe38f1311eb89e391319ba7d7a9be14b1be9ee99a4caf43e5226bc",
+      "bytes": 3057
+    },
+    "v2/server/test/attachments-formats.unit.test.ts": {
+      "sha256": "f15d20c10a7b53b6f5eaf98f1d300b824e6ba1011b6cd18ef0564c6018a10e2f",
+      "bytes": 1107
+    },
+    "v2/server/test/fixtures/attachments/encrypted.pdf": {
+      "sha256": "e39ff9ad175663b2a603104c88cd80ab2f24f51a18ddc129a1a6bfc2c8bd66b8",
+      "bytes": 1929
+    },
+    "v2/server/test/fixtures/attachments/mixed.pdf": {
+      "sha256": "e967451dd350be34adcd78a5a44e3d9112b28b051b3e3b32a79fe5848e277fa3",
+      "bytes": 2029
+    },
+    "v2/server/test/fixtures/attachments/make-fixtures.ts": {
+      "sha256": "43d0529a45b4410baa4e3da69f1ee4f7b487ad40d2faef5810c956197e47fb22",
+      "bytes": 4850
+    },
+    "v2/server/test/fixtures/attachments/scan.pdf": {
+      "sha256": "e0dd29c35085b59e7305bcc8dad57fc022671d74871cd1710b738322235c8ad9",
+      "bytes": 1645
+    },
+    "v2/server/test/fixtures/attachments/text.pdf": {
+      "sha256": "42e7fee83fca52e8901f2b48c84cc3ff94d1f22941ca644a8fc9da738343befe",
+      "bytes": 1335
+    }
+  },
+  "nonce": "b953796e-f601-4a6a-9311-38bd9f79c43d",
+  "createExit": 0,
+  "containerId": "cd2927dd2c7186a02cffdecd52de5f547c440b076d1077f693a854ec0f516bca",
+  "attachPid": 56140,
+  "attachExit": 1,
+  "state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 1,
+    "Error": "",
+    "StartedAt": "2026-10-02T12:06:26.079067298Z",
+    "FinishedAt": "2026-10-02T12:06:30.580125466Z"
+  },
+  "hostConfig": {
+    "Binds": null,
+    "ContainerIDFile": "",
+    "LogConfig": {
+      "Type": "none",
+      "Config": {}
+    },
+    "NetworkMode": "none",
+    "PortBindings": {},
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "AutoRemove": false,
+    "VolumeDriver": "",
+    "VolumesFrom": null,
+    "ConsoleSize": [
+      0,
+      0
+    ],
+    "CapAdd": null,
+    "CapDrop": [
+      "ALL"
+    ],
+    "CgroupnsMode": "private",
+    "Dns": null,
+    "DnsOptions": [],
+    "DnsSearch": [],
+    "ExtraHosts": null,
+    "GroupAdd": null,
+    "IpcMode": "private",
+    "Cgroup": "",
+    "Links": null,
+    "OomScoreAdj": 0,
+    "PidMode": "",
+    "Privileged": false,
+    "PublishAllPorts": false,
+    "ReadonlyRootfs": true,
+    "SecurityOpt": [
+      "no-new-privileges"
+    ],
+    "Tmpfs": {
+      "/tmp": "rw,noexec,nosuid,size=16777216"
+    },
+    "UTSMode": "",
+    "UsernsMode": "",
+    "ShmSize": 67108864,
+    "Runtime": "runc",
+    "Isolation": "",
+    "CpuShares": 0,
+    "Memory": 536870912,
+    "NanoCpus": 1000000000,
+    "CgroupParent": "",
+    "BlkioWeight": 0,
+    "BlkioWeightDevice": [],
+    "BlkioDeviceReadBps": [],
+    "BlkioDeviceWriteBps": [],
+    "BlkioDeviceReadIOps": [],
+    "BlkioDeviceWriteIOps": [],
+    "CpuPeriod": 0,
+    "CpuQuota": 0,
+    "CpuRealtimePeriod": 0,
+    "CpuRealtimeRuntime": 0,
+    "CpusetCpus": "",
+    "CpusetMems": "",
+    "Devices": [],
+    "DeviceCgroupRules": null,
+    "DeviceRequests": null,
+    "MemoryReservation": 0,
+    "MemorySwap": 536870912,
+    "MemorySwappiness": null,
+    "OomKillDisable": null,
+    "PidsLimit": 32,
+    "Ulimits": null,
+    "CpuCount": 0,
+    "CpuPercent": 0,
+    "IOMaximumIOps": 0,
+    "IOMaximumBandwidth": 0,
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/src",
+        "Target": "/fixture/v2/server/src",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/test",
+        "Target": "/fixture/v2/server/test",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/src",
+        "Target": "/fixture/v2/src",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/tmp/crew-v2-attachments-parser-b953796e-f601-4a6a-9311-38bd9f79c43d/v2/server/tsconfig.json",
+        "Target": "/fixture/v2/server/tsconfig.json",
+        "ReadOnly": true
+      }
+    ],
+    "MaskedPaths": [
+      "/proc/acpi",
+      "/proc/asound",
+      "/proc/interrupts",
+      "/proc/kcore",
+      "/proc/keys",
+      "/proc/latency_stats",
+      "/proc/sched_debug",
+      "/proc/scsi",
+      "/proc/timer_list",
+      "/proc/timer_stats",
+      "/sys/devices/virtual/powercap",
+      "/sys/firmware"
+    ],
+    "ReadonlyPaths": [
+      "/proc/bus",
+      "/proc/fs",
+      "/proc/irq",
+      "/proc/sys",
+      "/proc/sysrq-trigger"
+    ]
+  },
+  "sourceStable": true,
+  "removeExit": 0
+}

@@ -1,0 +1,3874 @@
+# Review package: 98e0c17..77ac18b
+
+## Commits
+77ac18b feat(v2): persist fenced assistant inbox and orchestration schema
+
+## Files changed
+ v2/docs/files.md                       |    6 +
+ v2/docs/flows.yaml                     |   12 +
+ v2/docs/flows/server-assistant.md      |   46 ++
+ v2/docs/index.md                       |    3 +-
+ v2/server/migrations/011_assistant.sql |  489 ++++++++++++++
+ v2/server/src/assistant/contracts.ts   | 1087 ++++++++++++++++++++++++++++++++
+ v2/server/src/assistant/inbox.ts       |  176 ++++++
+ v2/server/src/assistant/store.ts       |   80 +++
+ v2/server/test/assistant-store.test.ts |  977 ++++++++++++++++++++++++++++
+ v2/server/test/support/assistant.ts    |  806 +++++++++++++++++++++++
+ 10 files changed, 3681 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 1adfd83..f3e9068 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -151,25 +151,29 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+ | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+ | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+ | `server/migrations/004_tickets.sql` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/migrations/005_execution.sql` | [server-execution](flows/server-execution.md) (file) |
+ | `server/migrations/006_docs.sql` | [server-docs-import](flows/server-docs-import.md) (file) |
+ | `server/migrations/007_gateway.sql` | [server-gateway](flows/server-gateway.md) (file) |
+ | `server/migrations/008_model_pool.sql` | [server-models](flows/server-models.md) (file) |
+ | `server/migrations/009_attachments.sql` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/migrations/010_attachment_comment_text.sql` | [server-tickets](flows/server-tickets.md) (file) |
++| `server/migrations/011_assistant.sql` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
++| `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
++| `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
++| `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/grants.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/jobs.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/messages.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/receivers.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/references.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/routes.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/routing.ts` | [server-attachments](flows/server-attachments.md) (file) |
+@@ -230,20 +234,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/tickets/completion.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/decisions.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/deploy.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
++| `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-routing.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-snapshots.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-staging.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+@@ -267,20 +272,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/test/gateway.test.ts` | [server-gateway](flows/server-gateway.md) (test) |
+ | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+ | `server/test/model-certification.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/model-current-credentials.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/model-pool.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/model-secret.test.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
++| `server/test/support/assistant.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/support/attachment-access-authority.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-access-inbox.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-access-publication.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-access.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-snapshot-work.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachment-subset-work.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/attachments.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+ | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/execution.ts` | [server-execution](flows/server-execution.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index e68da82..e172b16 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -401,12 +401,24 @@ flows:
+       - gateway/test/effect-ledger.test.ts
+       - gateway/test/isolation-runtime.test.ts
+       - gateway/test/runtime-boundary.test.ts
+       - gateway/test/runtime-crash.test.ts
+       - gateway/test/runtime-workspace.test.ts
+       - gateway/test/support/runtime-crash-worker.ts
+       - gateway/test/support/runtime-fixture.ts
+       - gateway/test/support/runtime-pins.ts
+       - gateway/test/support/runtime-typecheck.json
+       - gateway/test/support/runtime-workspace.ts
++  server-assistant:
++    title: Trợ lý, workflow và work inbox bền vững Crew v2
++    doc: docs/flows/server-assistant.md
++    entrypoints: []
++    files:
++      - server/src/assistant/contracts.ts
++      - server/src/assistant/inbox.ts
++      - server/src/assistant/store.ts
++      - server/migrations/011_assistant.sql
++    tests:
++      - server/test/assistant-store.test.ts
++      - server/test/support/assistant.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+new file mode 100644
+index 0000000..2a6a839
+--- /dev/null
++++ b/v2/docs/flows/server-assistant.md
+@@ -0,0 +1,46 @@
++# Kho bền vững của Trợ lý
++
++## Mục đích
++
++Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối trong PostgreSQL. Inbox tích lũy khi máy offline hoặc chưa designation; chỉ fence hiện hành mới claim hoặc ACK. Paid budget mặc định bằng 0. Lượt chưa biết đã dừng hay chưa giữ quyền chiếm chỗ, không tự giải phóng theo TTL.
++
++## Điểm vào
++
++`assistant/inbox.ts` cung cấp `enqueueWork`, `ingestEvents`, `reconcileWork`, `claimWork`, `ackWork`. `assistant/store.ts` kiểm fence và cấp generation trong transaction. `assistant/contracts.ts` khai báo DTO và runtime schema strict cho toàn bộ DTO serializable, kể cả dữ liệu lồng trong routing tool/event/result, workflow, assessment, capacity và chứng từ R1–R4. Function port không có JSON schema. T1 chưa đăng ký route, driver, admission hoặc lời gọi model.
++
++## Các bước
++
++1. Ingestion khóa `event_cursor` rồi monitor, đọc event đã commit theo trang 200, chèn work và tiến cursor trong cùng transaction. Rollback giữ cả work và cursor ở trạng thái trước đó. Event duplicate vẫn cho cursor tiến; work đã claim/ACK không bị ghi đè.
++2. `assistant.message.created` và message `attachment.input.changed` đọc revision từ message009. Ticket `attachment.input.changed`, `attachment.changed` đọc counter009 của đích. `comment.created` đọc cây con hiện tại và revision của từng descendant; không tăng counter thêm lần nữa. Ticket lifecycle `ticket.created/changed`, `dependency.added`, `decision.created`, `repair.recorded`, command và attempt events tạo work cursor riêng với `input_revision=null`. Event khác chỉ tiến cursor.
++3. Input wake khử trùng trên `(target_kind,target_id,input_revision)` khi revision khác null. `reconcileWork` quét revision message/ticket thực để bù wake mất, dùng cùng khóa dedup và giữ logical key/source cursor ban đầu. Các hàm này không tạo turn hay quyền inference.
++4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
++5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
++6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
++7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. UUID artifact không chứng minh đã dừng.
++
++## Files
++
++| Đường dẫn từ `v2/` | Vai trò |
++|---|---|
++| `server/migrations/011_assistant.sql` | Persistence Assistant và ràng buộc R1–R4 |
++| `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
++| `server/src/assistant/store.ts` | Fence và generation persistence |
++| `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
++| `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
++| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử |
++
++## Dữ liệu
++
++Migrations001–010 giữ nguyên. SQL011 lưu config/designation/monitor/guard, routing certification, turns/selections/scopes, inbox, workflows/gates/questions/answers, assessments/dispatches, capacity/reservations, interventions/operation IDs, text/budget/route/retirement/launch/tool/doc receipts. Khóa ngoại dùng bảng thực và ON DELETE RESTRICT; các vòng phụ thuộc được kiểm deferred trong transaction.
++
++`request_sha256` và `receipt_sha256` là SHA256 lowercase hex64 của toàn bộ DTO CapacityRequest/CapacityReceipt qua `canonicalJson`, không bao gồm hash tự thân hoặc linkage `receipt_id` ngoài DTO. Trusted producer T4 tính tại insert; T5 tiêu thụ. Hash không chứng nhận telemetry hay cấp admission. Consent producer phải kiểm identity/hash/current scope trước tạo linkage; artifact UUID chưa có registry generic trong001–010 nên trusted producer T2/native phải xác minh artifact và stop proof thực. Thiếu producer thì mặc định từ chối; fixture UNVERIFIED không phải production certificate.
++
++Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số revision không an toàn và decimal bigint vượt 9223372036854775807. SourcePin/ProjectionPin dùng schema exported của producer hiện có. CreateTicket/SourceRef phản ánh shape type/route accepted; serialized CreateTicket bắt buộc workflowPin nullable, còn ticket HTTP route cũ có thể bỏ field và producer chuẩn hóa. Chỉ criteria/inputs/outputs/payload/result là JSON record theo đúng DTO producer; schema kiểm JSON đệ quy và cấm prototype keys, producer vẫn kiểm safeTicketJson/depth và business authority. Consumer phải cấu hình validator không xóa field dư, không ép kiểu hoặc chèn default.
++
++## Flow liên quan
++
++`server-journal` cấp event cursor và mutation transaction. `server-attachments` cấp conversation/message, authorization, snapshot và input revision009. `server-tickets` cấp ticket tree/lifecycle; `server-execution` cấp command/attempt và finalization. `server-models` và `server-gateway` cấp ModelKey, capabilities và pin thực. T2–T7 còn chịu trách nhiệm admission, grants, model routing, capacity, driver và HTTP assembly.
++
++## Tests
++
++`assistant-store.test.ts` chạy với private PostgreSQL18.6 và accepted baseline `0c838d2` cộng đúng source T1. Kiểm duplicate/restart, rollback cursor, concurrent ingestion, descendant revision, event/reconcile dedup, fence stale/unknown, generation rollback/overflow, bất biến linkage/receipt, effect ordinal, budget uncertain, R3 consent và R4 prelaunch/retirement. Pure validation dùng public compiler thực của Fastify, kiểm mọi DTO/variant cùng các negative nested, không mở HTTP/socket/model. Backup prefix010 được restore trước upgrade; prefix011 có dữ liệu cũng được dump/restore rồi đối chiếu SHA256 toàn bộ bảng và từng migration. Report Phase06/T1 ghi lần chạy cuối, các RED và identity/cleanup; các fixture SQL không chứng minh HTTP/admission/certification production. Typecheck frozen baseline, Biome các file sở hữu và kiểm đúng bảy H2 đi cùng source freeze.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 6fa7a95..9dd2505 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -1,17 +1,17 @@
+ # Tổng quan Crew v2
+ 
+ ## Mục đích
+ 
+ `@crew-v2/domain` là thư viện miền độc lập cho ticket, chọn model, workflow và điều kiện hoàn tất docs. `server/` là API/database v2 riêng; phần02 đã review các migration001–006 và xác thực, project, ticket, execution journal, import/read/search docs. Gateway control plane007 và model pool/provisioning008 đã qua review độc lập. Schema/storage attachment009 đã qua review độc lập, gồm sửa replay deadline và kiểm tra text EOF; chưa nghiệm thu public attachment API hay extraction. Producer comment attachment và migration010 đã nghiệm thu f6d3728; atomic submission/inbox/routing490001c đã nghiệm thu sau FIX1, bounded extractor workerb670d82 đã nghiệm thu trong phạm vi protocol/diagnostic. Public access/API và parser/corpus đang triển khai riêng. Các migration001–010 giữ nguyên.
+ 
+-`gateway/` và `desktop/` cung cấp host macOS độc lập cửa sổ UI. Host/journal/resource registry và workflow source/projection registry đã qua review. Bridge đồng bộ/thực thi7c7c719 đã qua review độc lập; bước cách ly workflow ced6bb1 đã qua full review và FIX1 review. Runtime boundary đang triển khai. Model inventory/broker/current credential binding đã nghiệm thu49e2333 sau full review và hai batch sửa; final scoped gateway cover114/114 PASS. Các class chưa được nối đầy đủ vào host composition. Checksum và test protocol không cấp chứng nhận runtime isolation/live/Keychain/signing. Dispatch production và xác nhận kết quả vẫn mặc định từ chối đến producer phần06/08. Web v2 đang chờ duyệt prototype; Assistant, integration và signed updater chưa triển khai. Lộ trình và trạng thái chi tiết ở `plans/261002-0002-crew-v2/plan.md` từ repo root.
++`gateway/` và `desktop/` cung cấp host macOS độc lập cửa sổ UI. Host/journal/resource registry và workflow source/projection registry đã qua review. Bridge đồng bộ/thực thi7c7c719 đã qua review độc lập; bước cách ly workflow ced6bb1 đã qua full review và FIX1 review. Runtime boundary4db2d9e đã qua full review và FIX1 review; adapter Claude/Codex còn chuẩn bị giao thức. Model inventory/broker/current credential binding đã nghiệm thu49e2333 sau full review và hai batch sửa; final scoped gateway cover114/114 PASS. Các class chưa được nối đầy đủ vào host composition. Checksum và test protocol không cấp chứng nhận runtime isolation/live/Keychain/signing. Dispatch production và xác nhận kết quả vẫn mặc định từ chối đến producer phần06/08. Owner đã duyệt UI; web v2 đang lập kế hoạch chi tiết. Schema/inbox Trợ lý011 có candidate29/29 kiểm thử và backup/restore, đang chờ review độc lập; integration và signed updater chưa triển khai. Lộ trình và trạng thái chi tiết ở `plans/261002-0002-crew-v2/plan.md` từ repo root.
+ 
+ ## Stack
+ 
+ - Node.js ≥ 24.12 chạy TypeScript bằng type stripping.
+ - TypeScript 7 kiểm tra kiểu ở chế độ strict; `node:test` chạy kiểm thử.
+ - pnpm 10.32.1 quản lý package độc lập trong `v2/` và `v2/server/`.
+ - Nền tảng server dùng Fastify 5 và postgres.js; DB v2 riêng PostgreSQL 18.6, không dùng DB v1.
+ 
+ ## Bản đồ module
+ 
+@@ -29,20 +29,21 @@
+ <!-- crew-docs:flows:start -->
+ | Flow | Id | Điểm vào |
+ |------|----|----------|
+ | [Worker trích xuất attachment có giới hạn](flows/attachment-extraction.md) | `attachment-extraction` | `server/src/attachments/worker-entry.ts` |
+ | [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
+ | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
+ | [Inventory, credential broker và probe model trên gateway](flows/gateway-models.md) | `gateway-models` | — |
+ | [Boundary runtime và receipt logical effect Crew v2](flows/gateway-runtime.md) | `gateway-runtime` | — |
+ | [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
++| [Trợ lý, workflow và work inbox bền vững Crew v2](flows/server-assistant.md) | `server-assistant` | — |
+ | [Storage và staging attachment Crew v2](flows/server-attachments.md) | `server-attachments` | — |
+ | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |
+ | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
+ | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |
+ | [Control plane gateway và boot/config/report](flows/server-gateway.md) | `server-gateway` | `server/src/gateway/routes.ts` |
+ | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nguồn model, catalogue và provisioning credential Crew v2](flows/server-models.md) | `server-models` | `server/src/models/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ | [Cây ticket, phụ thuộc và bằng chứng hoàn tất](flows/server-tickets.md) | `server-tickets` | `server/src/tickets/routes.ts` |
+diff --git a/v2/server/migrations/011_assistant.sql b/v2/server/migrations/011_assistant.sql
+new file mode 100644
+index 0000000..30d93aa
+--- /dev/null
++++ b/v2/server/migrations/011_assistant.sql
+@@ -0,0 +1,489 @@
++-- Persistence only. Admission/certification and external proof verification remain deny by default.
++create table assistant_designations (
++ id uuid primary key, owner_id text not null check(owner_id='owner'),
++ machine_id uuid not null references machines(id) on delete restrict,
++ revision integer not null unique check(revision>=1), retired_at timestamptz,
++ unique(id,revision)
++);
++create unique index assistant_designation_current on assistant_designations(owner_id) where retired_at is null;
++create table assistant_config (
++ singleton boolean primary key check(singleton), deployment_id uuid not null unique,
++ revision bigint not null check(revision>=1), designation_id uuid references assistant_designations(id) on delete restrict,
++ preferred_model jsonb, policy jsonb not null check(jsonb_typeof(policy)='object'), pending_designation jsonb,
++ check(preferred_model is null or jsonb_typeof(preferred_model)='object'),
++ check(pending_designation is null or jsonb_typeof(pending_designation)='object')
++);
++insert into assistant_config(singleton,deployment_id,revision,policy) values(true,gen_random_uuid(),1,
++ '{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}'::jsonb);
++create table assistant_monitor (
++ singleton boolean primary key check(singleton), cursor bigint not null default 0 check(cursor>=0),
++ generation bigint not null default 0 check(generation>=0), lease_owner uuid, lease_expires_at timestamptz,
++ next_tick_at timestamptz not null default now(), check((lease_owner is null)=(lease_expires_at is null))
++);
++insert into assistant_monitor(singleton) values(true);
++create table routing_certification_challenges (
++ id uuid primary key, deployment_id uuid not null references assistant_config(deployment_id) on delete restrict,
++ context jsonb not null check(jsonb_typeof(context)='object'),
++ nonce_hash text not null check(nonce_hash ~ '^[0-9a-f]{64}$'), expires_at timestamptz not null,
++ budgets jsonb not null check(jsonb_typeof(budgets)='object'),
++ fixture_sha256 text not null check(fixture_sha256 ~ '^[0-9a-f]{64}$'),
++ state text not null check(state in ('issued','admitted','verified','failed')),
++ launch jsonb unique, receipt_id uuid, check(launch is null or jsonb_typeof(launch)='object')
++);
++create table assistant_calibration_guard (
++ singleton boolean primary key check(singleton),
++ challenge_id uuid unique references routing_certification_challenges(id) on delete restrict
++);
++insert into assistant_calibration_guard(singleton) values(true);
++create table routing_certification_evidence (
++ id uuid primary key, challenge_id uuid not null references routing_certification_challenges(id) on delete restrict,
++ body_hash text not null check(body_hash ~ '^[0-9a-f]{64}$'), body jsonb not null check(jsonb_typeof(body)='object'),
++ created_at timestamptz not null default now(), unique(challenge_id,body_hash)
++);
++create table assistant_policy_receipts (
++ id uuid primary key, deployment_id uuid not null references assistant_config(deployment_id) on delete restrict,
++ challenge_id uuid not null references routing_certification_challenges(id) on delete restrict,
++ verifier_build_sha256 text not null check(verifier_build_sha256 ~ '^[0-9a-f]{64}$'),
++ machine_id uuid not null references machines(id) on delete restrict,
++ model_key jsonb not null check(jsonb_typeof(model_key)='object'), os_version text not null,
++ binary_sha256 text not null check(binary_sha256 ~ '^[0-9a-f]{64}$'),
++ policy_sha256 text not null check(policy_sha256 ~ '^[0-9a-f]{64}$'),
++ probe_context_sha256 text not null check(probe_context_sha256 ~ '^[0-9a-f]{64}$'),
++ status text not null check(status in ('PASS','FAIL','UNVERIFIED')),
++ evidence_ids jsonb not null check(jsonb_typeof(evidence_ids)='array'), expires_at timestamptz not null, revoked_at timestamptz
++);
++alter table routing_certification_challenges add constraint assistant_challenge_receipt_fk
++ foreign key(receipt_id) references assistant_policy_receipts(id) on delete restrict deferrable initially deferred;
++create table routing_capability_receipts (
++ id uuid primary key, certification_receipt_id uuid not null references assistant_policy_receipts(id) on delete restrict,
++ model_key jsonb not null check(jsonb_typeof(model_key)='object'),
++ context_sha256 text not null check(context_sha256 ~ '^[0-9a-f]{64}$'),
++ capabilities jsonb not null check(jsonb_typeof(capabilities)='array'),
++ received_at timestamptz not null, expires_at timestamptz not null check(expires_at>received_at),
++ unique(id,certification_receipt_id)
++);
++create table assistant_turns (
++ id uuid primary key, conversation_id uuid not null references attachment_conversations(id) on delete restrict,
++ message_id uuid references attachment_messages(id) on delete restrict,
++ designation_id uuid not null, designation_revision integer not null check(designation_revision>=1),
++ generation bigint not null unique check(generation>=1), process_instance_id uuid not null unique,
++ model_selection_id uuid not null unique, admission_id uuid unique,
++ read_session_id uuid references attachment_assistant_sessions(id) on delete restrict,
++ state text not null check(state in ('reserved','running','uncertain','finalizing','stopped')),
++ checkpoint_artifact_id uuid, stop_evidence_id uuid,
++ created_at timestamptz not null default now(), finalized_at timestamptz,
++ foreign key(designation_id,designation_revision) references assistant_designations(id,revision) on delete restrict,
++ foreign key(admission_id) references attachment_assistant_sessions(admission_id) on delete restrict deferrable initially deferred,
++ check((state='stopped')=(finalized_at is not null)), check(state<>'stopped' or stop_evidence_id is not null),
++ unique(id,generation)
++);
++create unique index assistant_single_live_turn on assistant_turns((true)) where state<>'stopped';
++create table assistant_model_selections (
++ id uuid primary key, turn_id uuid not null unique references assistant_turns(id) on delete restrict deferrable initially deferred,
++ model_key jsonb not null check(jsonb_typeof(model_key)='object'), model_config_revision bigint not null check(model_config_revision>=1),
++ probe_receipt_id uuid not null, policy_receipt_id uuid not null,
++ required jsonb not null check(jsonb_typeof(required)='array'), rationale text not null, created_at timestamptz not null default now(),
++ foreign key(probe_receipt_id,policy_receipt_id) references routing_capability_receipts(id,certification_receipt_id) on delete restrict,
++ unique(id,turn_id)
++);
++alter table assistant_turns add constraint assistant_turn_selection_fk
++ foreign key(model_selection_id,id) references assistant_model_selections(id,turn_id) on delete restrict deferrable initially deferred;
++create table assistant_scopes (
++ id uuid primary key, turn_id uuid not null references assistant_turns(id) on delete restrict,
++ root_ticket_id uuid references tickets(id) on delete restrict, message_id uuid references attachment_messages(id) on delete restrict,
++ project_id uuid references projects(id) on delete restrict,
++ actions jsonb not null check(jsonb_typeof(actions)='array'), tool_names jsonb not null check(jsonb_typeof(tool_names)='array'),
++ input_snapshot_id uuid not null references attachment_input_snapshots(id) on delete restrict,
++ scope_sha256 text not null check(scope_sha256 ~ '^[0-9a-f]{64}$'), owner_authorization_id uuid not null, expires_at timestamptz not null,
++ check((root_ticket_id is null)<>(message_id is null)), check(project_id is not null or message_id is not null),
++ check(actions <@ '["create_ticket","decision","dependency","command","signal"]'::jsonb),
++ check(tool_names <@ '["read_catalog","read_docs","route_message","read_execution_candidates","assess_ticket","ask_owner","create_run","request_dispatch","request_review","publish_reply"]'::jsonb)
++);
++create table assistant_work_inbox (
++ id uuid primary key, logical_key text not null unique, source_cursor bigint references events(cursor) on delete restrict,
++ target_kind text not null check(target_kind in ('ticket','message')), target_id uuid not null,
++ input_revision bigint check(input_revision>=1), state text not null check(state in ('pending','claimed','acked')),
++ turn_id uuid, claim_generation bigint, next_due_at timestamptz not null default now(),
++ attempts integer not null default 0 check(attempts>=0), acked_at timestamptz,
++ foreign key(turn_id,claim_generation) references assistant_turns(id,generation) on delete restrict,
++ check((turn_id is null)=(claim_generation is null)), check((state='pending')=(turn_id is null)),
++ check((state='acked')=(acked_at is not null))
++);
++create unique index assistant_input_work_revision on assistant_work_inbox(target_kind,target_id,input_revision) where input_revision is not null;
++create index assistant_work_due on assistant_work_inbox(state,next_due_at,id);
++create table workflow_runs (
++ id uuid primary key, root_ticket_id uuid not null references tickets(id) on delete restrict,
++ source jsonb not null check(jsonb_typeof(source)='object'), projection jsonb not null check(jsonb_typeof(projection)='object'),
++ definition_sha256 text not null check(definition_sha256 ~ '^[0-9a-f]{64}$'),
++ customization_sha256 text not null check(customization_sha256 ~ '^[0-9a-f]{64}$'), rendered_artifact_id uuid,
++ path text not null check(path in ('architectural','bounded','bug','spike','bmad-dispatch','bmad-oneshot')),
++ revision integer not null check(revision>=1), parallel_approval_id uuid references decisions(id) on delete restrict
++);
++create table workflow_steps (
++ id uuid primary key, run_id uuid not null references workflow_runs(id) on delete restrict,
++ ticket_id uuid not null unique references tickets(id) on delete restrict, skill text not null, source_path text not null,
++ source_sha256 text not null check(source_sha256 ~ '^[0-9a-f]{64}$'),
++ predecessor_ids jsonb not null check(jsonb_typeof(predecessor_ids)='array'), acceptance jsonb not null check(jsonb_typeof(acceptance)='array'),
++ output_kinds jsonb not null check(jsonb_typeof(output_kinds)='array'), gate_ids jsonb not null check(jsonb_typeof(gate_ids)='array'),
++ ownership_keys jsonb not null check(jsonb_typeof(ownership_keys)='array'), role text not null check(role in ('implement','review','fix','research')),
++ unique(id,run_id)
++);
++create table workflow_gates (
++ id uuid primary key, run_id uuid not null references workflow_runs(id) on delete restrict, step_id uuid not null,
++ kind text not null, source_path text not null, source_sha256 text not null check(source_sha256 ~ '^[0-9a-f]{64}$'),
++ artifact_sha256 text not null check(artifact_sha256 ~ '^[0-9a-f]{64}$'), scope_sha256 text not null check(scope_sha256 ~ '^[0-9a-f]{64}$'),
++ required_actor text not null check(required_actor in ('owner','delegated')), decision_id uuid references decisions(id) on delete restrict,
++ state text not null check(state in ('pending','approved','rejected','superseded')),
++ foreign key(step_id,run_id) references workflow_steps(id,run_id) on delete restrict, unique(id,step_id,run_id)
++);
++create table assistant_questions (
++ id uuid primary key, conversation_id uuid not null references attachment_conversations(id) on delete restrict,
++ ticket_id uuid references tickets(id) on delete restrict, run_id uuid references workflow_runs(id) on delete restrict,
++ step_id uuid, gate_id uuid, cycle_id uuid, artifact_sha256 text check(artifact_sha256 ~ '^[0-9a-f]{64}$'),
++ question text not null, options jsonb not null check(jsonb_typeof(options)='array'),
++ scope_sha256 text not null check(scope_sha256 ~ '^[0-9a-f]{64}$'), revision integer not null check(revision>=1),
++ state text not null check(state in ('open','answered','superseded')),
++ foreign key(step_id,run_id) references workflow_steps(id,run_id) on delete restrict,
++ foreign key(gate_id,step_id,run_id) references workflow_gates(id,step_id,run_id) on delete restrict,
++ check(step_id is null or run_id is not null), check(gate_id is null or step_id is not null)
++);
++create table assistant_answers (
++ id uuid primary key, question_id uuid not null references assistant_questions(id) on delete restrict,
++ question_revision integer not null check(question_revision>=1), body jsonb not null,
++ actor_kind text not null check(actor_kind in ('owner','machine')), decision_id uuid references decisions(id) on delete restrict,
++ created_at timestamptz not null default now(), unique(question_id,question_revision)
++);
++create table assistant_assessments (
++ id uuid primary key, ticket_id uuid not null references tickets(id) on delete restrict,
++ input_snapshot_id uuid not null references attachment_input_snapshots(id) on delete restrict,
++ body jsonb not null check(jsonb_typeof(body)='object'), hash text not null check(hash ~ '^[0-9a-f]{64}$')
++);
++create table assistant_dispatches (
++ command_id uuid primary key references commands(id) on delete restrict, decision_id uuid not null references decisions(id) on delete restrict,
++ run_id uuid not null references workflow_runs(id) on delete restrict, step_id uuid not null,
++ assessment_id uuid not null references assistant_assessments(id) on delete restrict,
++ permit jsonb not null check(jsonb_typeof(permit)='object'), admitted_at timestamptz,
++ foreign key(step_id,run_id) references workflow_steps(id,run_id) on delete restrict
++);
++create table assistant_capacity_requests (
++ id uuid primary key, machine_id uuid not null references machines(id) on delete restrict,
++ ticket_id uuid not null references tickets(id) on delete restrict, kind text not null check(kind in ('implement','review','fix')),
++ ownership_keys jsonb not null check(jsonb_typeof(ownership_keys)='array'), boot_generation text not null,
++ requested_at timestamptz not null, expires_at timestamptz not null check(expires_at>requested_at), receipt_id uuid unique,
++ request_sha256 text not null check(request_sha256 ~ '^[0-9a-f]{64}$'),
++ unique(id,machine_id)
++);
++create table assistant_capacity_receipts (
++ id uuid primary key, request_id uuid not null, machine_id uuid not null references machines(id) on delete restrict,
++ boot_generation text not null, ticket_id uuid not null references tickets(id) on delete restrict,
++ kind text not null check(kind in ('implement','review','fix')), ownership_keys jsonb not null check(jsonb_typeof(ownership_keys)='array'),
++ telemetry jsonb not null check(jsonb_typeof(telemetry)='object'), received_at timestamptz not null,
++ expires_at timestamptz not null check(expires_at>received_at), allowed boolean not null, reason text not null,
++ receipt_sha256 text not null check(receipt_sha256 ~ '^[0-9a-f]{64}$'),
++ foreign key(request_id,machine_id) references assistant_capacity_requests(id,machine_id) on delete restrict,
++ unique(machine_id,request_id), unique(id,request_id), unique(id,machine_id)
++);
++alter table assistant_capacity_requests add constraint assistant_capacity_request_receipt_fk
++ foreign key(receipt_id,id) references assistant_capacity_receipts(id,request_id) on delete restrict deferrable initially deferred;
++create table assistant_reservations (
++ id uuid primary key, command_id uuid not null unique references commands(id) on delete restrict,
++ receipt_id uuid not null, machine_id uuid not null references machines(id) on delete restrict,
++ ownership_keys jsonb not null check(jsonb_typeof(ownership_keys)='array'),
++ state text not null check(state in ('reserved','active','retiring','released')),
++ foreign key(receipt_id,machine_id) references assistant_capacity_receipts(id,machine_id) on delete restrict
++);
++create table assistant_interventions (
++ id uuid primary key, work_id uuid not null references assistant_work_inbox(id) on delete restrict,
++ action text not null, reason text not null, policy_receipt_ids jsonb not null check(jsonb_typeof(policy_receipt_ids)='array'),
++ state_digest text not null check(state_digest ~ '^[0-9a-f]{64}$'), operation_id uuid not null unique,
++ next_retry_at timestamptz, attempts integer not null default 0 check(attempts>=0), unique(work_id,action,state_digest)
++);
++create table assistant_operation_ids (
++ id uuid primary key, run_id uuid not null references workflow_runs(id) on delete restrict,
++ step_id uuid not null, action_kind text not null, target_identity text not null,
++ precondition_sha256 text not null check(precondition_sha256 ~ '^[0-9a-f]{64}$'),
++ effect_id text not null unique check(effect_id ~ '^[0-9a-f]{64}$'),
++ foreign key(step_id,run_id) references workflow_steps(id,run_id) on delete restrict,
++ unique(step_id,action_kind,target_identity,precondition_sha256)
++);
++create table assistant_text_receipts (
++ id uuid primary key, session_id uuid not null references attachment_assistant_sessions(id) on delete restrict,
++ snapshot_id uuid not null references attachment_input_snapshots(id) on delete restrict,
++ snapshot_sha256 text not null check(snapshot_sha256 ~ '^[0-9a-f]{64}$'), comments jsonb not null check(jsonb_typeof(comments)='array'),
++ message_sha256 text check(message_sha256 ~ '^[0-9a-f]{64}$'), transport_sha256 text not null check(transport_sha256 ~ '^[0-9a-f]{64}$'),
++ trust text not null check(trust='reported_transport'), created_at timestamptz not null default now()
++);
++create table assistant_budget_reservations (
++ id uuid primary key, scope_kind text not null check(scope_kind in ('conversation','run')), scope_id uuid not null,
++ turn_id uuid references assistant_turns(id) on delete restrict, command_id uuid unique references commands(id) on delete restrict,
++ reserved_usd numeric not null check(reserved_usd>=0 and reserved_usd<'Infinity'::numeric),
++ spent_usd numeric not null default 0 check(spent_usd>=0 and spent_usd<'Infinity'::numeric),
++ state text not null check(state in ('reserved','settled','uncertain')), receipt_sha256 text check(receipt_sha256 ~ '^[0-9a-f]{64}$')
++);
++create table assistant_route_authorizations (
++ route_id uuid primary key references attachment_message_routes(id) on delete restrict,
++ parent_authorization_id uuid not null references attachment_submission_authorizations(id) on delete restrict,
++ derived_authorization_id uuid not null unique references attachment_submission_authorizations(id) on delete restrict,
++ parent_scope_sha256 text not null check(parent_scope_sha256 ~ '^[0-9a-f]{64}$'),
++ check(parent_authorization_id<>derived_authorization_id)
++);
++create table assistant_dispatch_retirements (
++ command_id uuid primary key references commands(id) on delete restrict, retirement_id uuid not null unique,
++ reason text not null check(reason in ('expired','input_changed','source_off','superseded')),
++ retired_at timestamptz not null default now(), proof jsonb, released_at timestamptz,
++ check(proof is null or jsonb_typeof(proof)='object'), check(released_at is null or proof is not null)
++);
++create table assistant_launch_authorizations (
++ command_id uuid primary key references commands(id) on delete restrict, id uuid not null unique,
++ machine_id uuid not null references machines(id) on delete restrict, process_instance_id uuid not null,
++ boot_generation text not null, generation bigint not null check(generation>=1), expires_at timestamptz not null,
++ state text not null check(state in ('issued','retired','claimed','closed')),
++ attempt_id uuid unique references attempts(id) on delete restrict,
++ check(state<>'claimed' or attempt_id is not null)
++);
++create table assistant_tool_operations (
++ operation_id uuid primary key, turn_id uuid not null references assistant_turns(id) on delete restrict,
++ client_sequence bigint not null check(client_sequence>=1), provider_call_id text not null,
++ request_hash text not null check(request_hash ~ '^[0-9a-f]{64}$'),
++ input_snapshot_id uuid not null references attachment_input_snapshots(id) on delete restrict,
++ state text not null check(state in ('completed','pending','rejected')), response jsonb,
++ unique(turn_id,client_sequence), check(response is null or jsonb_typeof(response)='object'),
++ check(state='pending' or response is not null)
++);
++create table assistant_doc_read_receipts (
++ id uuid primary key, turn_id uuid not null references assistant_turns(id) on delete restrict,
++ snapshot_id uuid not null, path text not null, sha256 text not null check(sha256 ~ '^[0-9a-f]{64}$'),
++ foreign key(snapshot_id,path) references docs_files(snapshot_id,path) on delete restrict
++);
++
++-- Mutable columns are explicit. Immutable history cannot be deleted or reassigned.
++create function assistant_keep_record() returns trigger language plpgsql as $$
++begin
++ if TG_OP='DELETE' then raise exception 'ASSISTANT_RECORD_IMMUTABLE'; end if;
++ if (to_jsonb(NEW)-coalesce(TG_ARGV,array[]::text[])) is distinct from (to_jsonb(OLD)-coalesce(TG_ARGV,array[]::text[])) then
++  raise exception 'ASSISTANT_RECORD_IMMUTABLE';
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_config_identity before update or delete on assistant_config for each row
++ execute function assistant_keep_record('revision','designation_id','preferred_model','policy','pending_designation');
++create trigger assistant_designation_identity before update or delete on assistant_designations for each row execute function assistant_keep_record('retired_at');
++create trigger assistant_turn_identity before update or delete on assistant_turns for each row
++ execute function assistant_keep_record('admission_id','read_session_id','state','checkpoint_artifact_id','stop_evidence_id','finalized_at');
++create trigger assistant_selection_identity before update or delete on assistant_model_selections for each row execute function assistant_keep_record();
++create trigger assistant_policy_identity before update or delete on assistant_policy_receipts for each row execute function assistant_keep_record('revoked_at');
++create trigger assistant_capability_identity before update or delete on routing_capability_receipts for each row execute function assistant_keep_record();
++create trigger assistant_challenge_identity before update or delete on routing_certification_challenges for each row execute function assistant_keep_record('state','launch','receipt_id');
++create trigger assistant_certification_evidence_identity before update or delete on routing_certification_evidence for each row execute function assistant_keep_record();
++create trigger assistant_scope_identity before update or delete on assistant_scopes for each row execute function assistant_keep_record();
++create trigger assistant_work_identity before update or delete on assistant_work_inbox for each row
++ execute function assistant_keep_record('state','turn_id','claim_generation','next_due_at','attempts','acked_at');
++create trigger assistant_run_identity before update or delete on workflow_runs for each row execute function assistant_keep_record('rendered_artifact_id','revision');
++create trigger assistant_step_identity before update or delete on workflow_steps for each row execute function assistant_keep_record();
++create trigger assistant_gate_identity before update or delete on workflow_gates for each row execute function assistant_keep_record('decision_id','state');
++create trigger assistant_question_identity before update or delete on assistant_questions for each row execute function assistant_keep_record('state');
++create trigger assistant_answer_identity before update or delete on assistant_answers for each row execute function assistant_keep_record();
++create trigger assistant_assessment_identity before update or delete on assistant_assessments for each row execute function assistant_keep_record();
++create trigger assistant_dispatch_identity before update or delete on assistant_dispatches for each row execute function assistant_keep_record('admitted_at');
++create trigger assistant_capacity_request_identity before update or delete on assistant_capacity_requests for each row execute function assistant_keep_record('receipt_id');
++create trigger assistant_capacity_receipt_identity before update or delete on assistant_capacity_receipts for each row execute function assistant_keep_record();
++create trigger assistant_reservation_identity before update or delete on assistant_reservations for each row execute function assistant_keep_record('state');
++create trigger assistant_intervention_identity before update or delete on assistant_interventions for each row execute function assistant_keep_record('next_retry_at','attempts');
++create trigger assistant_operation_identity before update or delete on assistant_operation_ids for each row execute function assistant_keep_record();
++create trigger assistant_text_receipt_identity before update or delete on assistant_text_receipts for each row execute function assistant_keep_record();
++create trigger assistant_budget_identity before update or delete on assistant_budget_reservations for each row execute function assistant_keep_record('spent_usd','state','receipt_sha256');
++create trigger assistant_route_authorization_identity before update or delete on assistant_route_authorizations for each row execute function assistant_keep_record();
++create trigger assistant_retirement_identity before update or delete on assistant_dispatch_retirements for each row execute function assistant_keep_record('proof','released_at');
++create trigger assistant_launch_identity before update or delete on assistant_launch_authorizations for each row execute function assistant_keep_record('state','attempt_id');
++create trigger assistant_tool_identity before update or delete on assistant_tool_operations for each row execute function assistant_keep_record('state','response');
++create trigger assistant_doc_receipt_identity before update or delete on assistant_doc_read_receipts for each row execute function assistant_keep_record();
++
++create function assistant_check_turn_message() returns trigger language plpgsql as $$
++begin
++ if NEW.message_id is not null and not exists(select 1 from attachment_messages where id=NEW.message_id and conversation_id=NEW.conversation_id) then
++  raise exception 'ASSISTANT_MESSAGE_CONVERSATION_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_turn_message before insert on assistant_turns for each row execute function assistant_check_turn_message();
++
++-- The additive hook preserves 005 claim and applies only to Assistant dispatches.
++create function assistant_bind_claimed_attempt() returns trigger language plpgsql as $$
++declare launch assistant_launch_authorizations%rowtype;
++begin
++ if not exists(select 1 from assistant_dispatches where command_id=NEW.command_id) then return NEW; end if;
++ select * into launch from assistant_launch_authorizations where command_id=NEW.command_id for update;
++ if not found or launch.machine_id<>NEW.machine_id or launch.process_instance_id::text<>NEW.process_instance_id
++   or launch.state<>'issued' or launch.expires_at<=clock_timestamp()
++   or exists(select 1 from assistant_dispatch_retirements where command_id=NEW.command_id) then
++  raise exception 'ASSISTANT_PRELAUNCH_REQUIRED';
++ end if;
++ update assistant_reservations set state='active' where command_id=NEW.command_id and machine_id=NEW.machine_id and state='reserved';
++ if not found then raise exception 'ASSISTANT_RESERVATION_REQUIRED'; end if;
++ update assistant_launch_authorizations set state='claimed',attempt_id=NEW.id where command_id=NEW.command_id;
++ return NEW;
++end $$;
++create trigger assistant_attempt_prelaunch after insert on attempts for each row execute function assistant_bind_claimed_attempt();
++
++create function assistant_latch_fields() returns trigger language plpgsql as $$
++declare field_name text;
++begin
++ foreach field_name in array TG_ARGV loop
++  if to_jsonb(OLD)->field_name is distinct from 'null'::jsonb and
++     to_jsonb(OLD)->field_name is distinct from to_jsonb(NEW)->field_name then
++   raise exception 'ASSISTANT_RECORD_LATCHED';
++  end if;
++ end loop;
++ return NEW;
++end $$;
++create trigger assistant_challenge_latches before update on routing_certification_challenges for each row execute function assistant_latch_fields('launch','receipt_id');
++create trigger assistant_policy_revocation_latch before update on assistant_policy_receipts for each row execute function assistant_latch_fields('revoked_at');
++create trigger assistant_designation_retirement_latch before update on assistant_designations for each row execute function assistant_latch_fields('retired_at');
++create trigger assistant_turn_admission_latch before update on assistant_turns for each row execute function assistant_latch_fields('admission_id','read_session_id','stop_evidence_id','finalized_at');
++create trigger assistant_gate_decision_latch before update on workflow_gates for each row execute function assistant_latch_fields('decision_id');
++create trigger assistant_dispatch_admission_latch before update on assistant_dispatches for each row execute function assistant_latch_fields('admitted_at');
++create trigger assistant_capacity_receipt_latch before update on assistant_capacity_requests for each row execute function assistant_latch_fields('receipt_id');
++create trigger assistant_retirement_proof_latch before update on assistant_dispatch_retirements for each row execute function assistant_latch_fields('proof','released_at');
++create trigger assistant_launch_attempt_latch before update on assistant_launch_authorizations for each row execute function assistant_latch_fields('attempt_id');
++
++create function assistant_check_receipt_context() returns trigger language plpgsql as $$
++declare context_value jsonb;
++begin
++ select context into context_value from routing_certification_challenges where id=NEW.challenge_id;
++ if context_value->>'deploymentId' is distinct from NEW.deployment_id::text
++   or context_value->>'machineId' is distinct from NEW.machine_id::text
++   or context_value->'key' is distinct from NEW.model_key
++   or context_value->>'binarySha256' is distinct from NEW.binary_sha256
++   or context_value->>'policySha256' is distinct from NEW.policy_sha256
++   or context_value->>'osVersion' is distinct from NEW.os_version
++   or NEW.model_key->>'machineId' is distinct from NEW.machine_id::text then
++  raise exception 'ASSISTANT_CERTIFICATION_CONTEXT_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_receipt_context before insert on assistant_policy_receipts for each row execute function assistant_check_receipt_context();
++create function assistant_check_capability_context() returns trigger language plpgsql as $$
++declare receipt assistant_policy_receipts%rowtype;
++begin
++ select * into receipt from assistant_policy_receipts where id=NEW.certification_receipt_id;
++ if not found or receipt.model_key is distinct from NEW.model_key
++   or receipt.probe_context_sha256 is distinct from NEW.context_sha256
++   or NEW.expires_at>receipt.expires_at then raise exception 'ASSISTANT_CAPABILITY_CONTEXT_MISMATCH'; end if;
++ return NEW;
++end $$;
++create trigger assistant_capability_context before insert on routing_capability_receipts for each row execute function assistant_check_capability_context();
++
++create function assistant_check_scope_target() returns trigger language plpgsql as $$
++declare snapshot attachment_input_snapshots%rowtype;
++begin
++ select * into snapshot from attachment_input_snapshots where id=NEW.input_snapshot_id;
++ if not found then raise exception 'ASSISTANT_SCOPE_SNAPSHOT_MISSING'; end if;
++ if NEW.root_ticket_id is not null then
++  if snapshot.target_kind<>'ticket' or snapshot.target_id<>NEW.root_ticket_id or
++    not exists(select 1 from tickets where id=NEW.root_ticket_id and root_id=NEW.root_ticket_id and project_id=NEW.project_id) then
++   raise exception 'ASSISTANT_SCOPE_TARGET_MISMATCH';
++  end if;
++ else
++  if snapshot.target_kind<>'message' or snapshot.target_id<>NEW.message_id then raise exception 'ASSISTANT_SCOPE_TARGET_MISMATCH'; end if;
++  if NEW.project_id is not null and not exists(select 1 from attachment_message_routes where message_id=NEW.message_id and project_id=NEW.project_id and revoked_at is null) then
++   raise exception 'ASSISTANT_SCOPE_PROJECT_MISMATCH';
++  end if;
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_scope_target before insert on assistant_scopes for each row execute function assistant_check_scope_target();
++
++create function assistant_check_work_target() returns trigger language plpgsql as $$
++begin
++ if (NEW.target_kind='message' and not exists(select 1 from attachment_messages where id=NEW.target_id)) or
++    (NEW.target_kind='ticket' and not exists(select 1 from tickets where id=NEW.target_id)) then
++  raise exception 'ASSISTANT_WORK_TARGET_MISSING';
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_work_target before insert on assistant_work_inbox for each row execute function assistant_check_work_target();
++
++create function assistant_keep_terminal_work() returns trigger language plpgsql as $$
++begin
++ if OLD.state='acked' and NEW is distinct from OLD then raise exception 'ASSISTANT_ACK_IMMUTABLE'; end if;
++ return NEW;
++end $$;
++create trigger assistant_work_terminal before update on assistant_work_inbox for each row execute function assistant_keep_terminal_work();
++create function assistant_keep_tool_result() returns trigger language plpgsql as $$
++begin
++ if OLD.state<>'pending' and NEW is distinct from OLD then raise exception 'ASSISTANT_TOOL_RESULT_IMMUTABLE'; end if;
++ return NEW;
++end $$;
++create trigger assistant_tool_terminal before update on assistant_tool_operations for each row execute function assistant_keep_tool_result();
++
++create function assistant_check_budget() returns trigger language plpgsql as $$
++begin
++ if TG_OP='INSERT' then
++  if (NEW.scope_kind='conversation' and not exists(select 1 from attachment_conversations where id=NEW.scope_id)) or
++     (NEW.scope_kind='run' and not exists(select 1 from workflow_runs where id=NEW.scope_id)) then
++   raise exception 'ASSISTANT_BUDGET_SCOPE_MISSING';
++  end if;
++ else
++  if NEW.spent_usd<OLD.spent_usd or (OLD.state='settled' and NEW is distinct from OLD) or
++     (OLD.state='uncertain' and NEW.state='reserved') then raise exception 'ASSISTANT_BUDGET_REWIND'; end if;
++ end if;
++ if NEW.state='settled' and NEW.receipt_sha256 is null then raise exception 'ASSISTANT_BUDGET_RECEIPT_REQUIRED'; end if;
++ return NEW;
++end $$;
++create trigger assistant_budget_guard before insert or update on assistant_budget_reservations for each row execute function assistant_check_budget();
++
++create function assistant_check_reservation_release() returns trigger language plpgsql as $$
++declare attempt attempts%rowtype; retirement assistant_dispatch_retirements%rowtype; launch assistant_launch_authorizations%rowtype;
++begin
++ if OLD.state='released' and NEW.state<>'released' then raise exception 'ASSISTANT_RESERVATION_RELEASED'; end if;
++ if NEW.state<>'released' or OLD.state='released' then return NEW; end if;
++ select * into attempt from attempts where command_id=NEW.command_id;
++ if found then
++  if attempt.state<>'stopped' or attempt.stopped_at is null or attempt.finalized_at is null then raise exception 'ASSISTANT_FINALIZATION_REQUIRED'; end if;
++  return NEW;
++ end if;
++ select * into retirement from assistant_dispatch_retirements where command_id=NEW.command_id;
++ if not found or retirement.proof is null or retirement.released_at is null or
++    retirement.proof->>'commandId' is distinct from NEW.command_id::text then raise exception 'ASSISTANT_RETIREMENT_PROOF_REQUIRED'; end if;
++ select * into launch from assistant_launch_authorizations where command_id=NEW.command_id;
++ if not found then
++  if retirement.proof->>'kind' is distinct from 'never-authorized' or
++     retirement.proof->>'retirementId' is distinct from retirement.retirement_id::text then raise exception 'ASSISTANT_NO_LAUNCH_PROOF_REQUIRED'; end if;
++ else
++  if coalesce(retirement.proof->>'kind','') not in ('journal-no-launch','process-stopped') or launch.state<>'closed' or
++    retirement.proof->>'launchAuthorizationId' is distinct from launch.id::text or
++    retirement.proof->>'processInstanceId' is distinct from launch.process_instance_id::text or
++    retirement.proof->>'bootGeneration' is distinct from launch.boot_generation or
++    retirement.proof->>'generation' is distinct from launch.generation::text or
++    coalesce(retirement.proof->>'journalSha256','') !~ '^[0-9a-f]{64}$' or
++    coalesce(retirement.proof->>'stopEvidenceId','') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then
++   raise exception 'ASSISTANT_STOP_PROOF_REQUIRED';
++  end if;
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_reservation_release before update on assistant_reservations for each row execute function assistant_check_reservation_release();
++
++create function assistant_check_route_consent() returns trigger language plpgsql as $$
++declare parent attachment_submission_authorizations%rowtype; derived attachment_submission_authorizations%rowtype; route attachment_message_routes%rowtype;
++begin
++ select * into route from attachment_message_routes where id=NEW.route_id;
++ if not found then raise exception 'ASSISTANT_ROUTE_CONSENT_MISMATCH'; end if;
++ select * into parent from attachment_submission_authorizations where id=NEW.parent_authorization_id;
++ if not found then raise exception 'ASSISTANT_ROUTE_CONSENT_MISMATCH'; end if;
++ select * into derived from attachment_submission_authorizations where id=NEW.derived_authorization_id;
++ if not found or route.revoked_at is not null or parent.revoked_at is not null or derived.revoked_at is not null
++   or parent.target_kind<>'message' or parent.target_id<>route.message_id
++   or derived.target_kind<>'ticket' or derived.target_id<>route.ticket_id
++   or parent.authorization_sha256<>NEW.parent_scope_sha256 or parent.owner_id<>derived.owner_id
++   or derived.expires_at>parent.expires_at or (derived.allow_original and not parent.allow_original)
++   or jsonb_typeof(derived.originals)<>'array' or jsonb_typeof(parent.originals)<>'array' then
++  raise exception 'ASSISTANT_ROUTE_CONSENT_MISMATCH';
++ end if;
++ if exists(select 1 from jsonb_array_elements(derived.originals) d
++    where not exists(select 1 from jsonb_array_elements(parent.originals) p where p=d)) then
++  raise exception 'ASSISTANT_ROUTE_CONSENT_MISMATCH';
++ end if;
++ return NEW;
++end $$;
++create trigger assistant_route_consent before insert on assistant_route_authorizations for each row execute function assistant_check_route_consent();
+diff --git a/v2/server/src/assistant/contracts.ts b/v2/server/src/assistant/contracts.ts
+new file mode 100644
+index 0000000..5b45584
+--- /dev/null
++++ b/v2/server/src/assistant/contracts.ts
+@@ -0,0 +1,1087 @@
++import type {
++  AssistantDesignation,
++  AssistantRepresentationTransport,
++  AssistantTurnAdmission,
++  DispatchInputPin,
++  InputSnapshot,
++  MessageRoute,
++  Sha256,
++} from '../attachments/contracts.ts';
++import type { Command, CreateCommand } from '../execution/contracts.ts';
++import type { DispatchSelection, ProjectionPin, SourcePin } from '../gateway/contracts.ts';
++import {
++  digestSchema,
++  objectSchema,
++  projectionSchema,
++  sourceSchema,
++  uuidSchema,
++} from '../gateway/contracts.ts';
++import type { Capability, ModelDispatchChoice, ModelKey } from '../models/contracts.ts';
++import { capabilities, modelKeySchema } from '../models/contracts.ts';
++import type { Actor, DispatchPermit, Id, ServerOptions, Tx } from '../platform/contracts.ts';
++import type { CreateTicket, DecisionInput, SourceRef, Ticket } from '../tickets/contracts.ts';
++
++export type { Sha256 } from '../attachments/contracts.ts';
++
++export type TurnFence = {
++  turnId: Id;
++  designationId: Id;
++  designationRevision: number;
++  generation: string;
++  processInstanceId: Id;
++};
++export type AssistantConfig = {
++  designation: AssistantDesignation | null;
++  revision: number;
++  preferred: ModelKey | null;
++  policy: AssistantPolicy;
++};
++export type AssistantPolicy = {
++  maxJobs: number;
++  telemetryMaxAgeMs: number;
++  maxLoadPerCpu: number;
++  minMemoryBytes: string;
++  minDiskBytes: string;
++  maxTurnsPerRun: number;
++  maxToolsPerTurn: number;
++  maxCostUsdPerRun: number;
++  maxTurnMs: number;
++  maxRecoveryAttempts: number;
++  parallelApprovalId: Id | null;
++};
++export type AssistantModelSelection = {
++  id: Id;
++  turnId: Id;
++  key: ModelKey;
++  modelConfigRevision: number;
++  probeReceiptId: Id;
++  policyReceiptId: Id;
++  required: Capability[];
++  rationale: string;
++  createdAt: string;
++};
++export type RoutingPolicyReceipt = {
++  id: Id;
++  deploymentId: Id;
++  challengeId: Id;
++  verifierBuildSha256: Sha256;
++  machineId: Id;
++  key: ModelKey;
++  osVersion: string;
++  binarySha256: Sha256;
++  policySha256: Sha256;
++  probeContextSha256: Sha256;
++  status: 'PASS' | 'FAIL' | 'UNVERIFIED';
++  evidenceIds: Id[];
++  expiresAt: string;
++  revokedAt: string | null;
++};
++export type AssistantTurn = {
++  fence: TurnFence;
++  conversationId: Id;
++  messageId: Id | null;
++  selection: AssistantModelSelection;
++  admission: AssistantTurnAdmission | null;
++  readSessionId: Id | null;
++  state: 'reserved' | 'running' | 'uncertain' | 'finalizing' | 'stopped';
++  checkpointArtifactId: Id | null;
++};
++export type OrchestrationProof = { fence: TurnFence; scopeId: Id; operationId: Id };
++export type OrchestrationAction = 'create_ticket' | 'decision' | 'dependency' | 'command' | 'signal';
++export interface ProjectOrchestrationAuthority {
++  verify(
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    action: OrchestrationAction,
++    targetSha256: Sha256,
++  ): Promise<void>;
++}
++export interface ProjectOrchestrationPort {
++  createTicket(tx: Tx, actor: Actor, proof: OrchestrationProof, input: CreateTicket): Promise<Ticket>;
++  decision(tx: Tx, actor: Actor, proof: OrchestrationProof, ticketId: Id, input: DecisionInput): Promise<Id>;
++  dependency(
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    ticketId: Id,
++    predecessorId: Id,
++    expectedRevision: number,
++  ): Promise<void>;
++  command(tx: Tx, actor: Actor, proof: OrchestrationProof, input: CreateCommand): Promise<Command>;
++  signal(
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    ticketId: Id,
++    signal: 'dependencies_ready' | 'wait_owner',
++    expectedRevision: number,
++  ): Promise<Ticket>;
++}
++export type DocRead = {
++  projectId: Id;
++  snapshotId: Id;
++  path: string;
++  sha256: Sha256;
++  sourceCommit: string | null;
++  receivedAt: string;
++  auditState: 'unverified' | 'invalid' | 'verified';
++  contentClass: 'implemented' | 'workflow_artifact';
++  text: string;
++  state: 'current' | 'stale' | 'unverified';
++};
++export type Assessment = {
++  id: Id;
++  ticketId: Id;
++  candidateReadOperationId: Id;
++  input: DispatchInputPin;
++  complexity: 'bounded' | 'integration' | 'architectural';
++  risk: string[];
++  uncertainty: string[];
++  required: Capability[];
++  strengthRationale: string;
++  sources: SourceRef[];
++  candidateReasons: { key: ModelKey; reason: string }[];
++};
++export type SkillStep = {
++  id: Id;
++  ticketId: Id;
++  skill: string;
++  sourcePath: string;
++  sourceSha256: Sha256;
++  predecessorIds: Id[];
++  acceptance: string[];
++  outputKinds: string[];
++  gateIds: Id[];
++  ownershipKeys: string[];
++  role: 'implement' | 'review' | 'fix' | 'research';
++};
++export type WorkflowRun = {
++  id: Id;
++  rootTicketId: Id;
++  source: SourcePin;
++  projection: ProjectionPin;
++  definitionSha256: Sha256;
++  customizationSha256: Sha256;
++  renderedArtifactId: Id | null;
++  path: 'architectural' | 'bounded' | 'bug' | 'spike' | 'bmad-dispatch' | 'bmad-oneshot';
++  revision: number;
++  steps: SkillStep[];
++  parallelApprovalId: Id | null;
++};
++export type OwnerQuestion = {
++  id: Id;
++  conversationId: Id;
++  ticketId: Id | null;
++  runId: Id | null;
++  stepId: Id | null;
++  gateId: Id | null;
++  cycleId: Id | null;
++  artifactSha256: Sha256 | null;
++  question: string;
++  options: string[];
++  scopeSha256: Sha256;
++  revision: number;
++  state: 'open' | 'answered' | 'superseded';
++};
++export type RoutingCandidate = {
++  key: ModelKey;
++  requiredSupported: Capability[];
++  sourceDesired: boolean;
++  sourceApplied: boolean;
++  modelConfigRevision: number;
++  probeReceiptId: Id;
++  probeContextSha256: Sha256;
++  binarySha256: Sha256;
++  probeExpiresAt: string;
++  available: boolean;
++  reason: string | null;
++};
++export interface RoutingModelPort {
++  candidates(tx: Tx, machineId: Id): Promise<RoutingCandidate[]>;
++  assertCurrent(tx: Tx, selection: AssistantModelSelection, receipt: RoutingPolicyReceipt): Promise<void>;
++}
++export type CapacityRequest = {
++  id: Id;
++  machineId: Id;
++  ticketId: Id;
++  kind: 'implement' | 'review' | 'fix';
++  ownershipKeys: string[];
++  bootGeneration: string;
++  requestedAt: string;
++  expiresAt: string;
++};
++export type AssistantTelemetry = {
++  sampleId: Id;
++  bootGeneration: string;
++  sampleAgeMs: number;
++  cpuLoad1: number;
++  cpuCount: number;
++  memoryAvailableBytes: string;
++  memoryPressure: 'normal' | 'warn' | 'critical';
++  diskAvailableBytes: string;
++  activeJobs: number;
++  configuredMaxJobs: number;
++};
++export type CapacityReceipt = {
++  id: Id;
++  requestId: Id;
++  machineId: Id;
++  bootGeneration: string;
++  ticketId: Id;
++  kind: 'implement' | 'review' | 'fix';
++  ownershipKeys: string[];
++  telemetry: AssistantTelemetry;
++  receivedAt: string;
++  expiresAt: string;
++  allowed: boolean;
++  reason: string;
++};
++export type PreparedDispatch = {
++  command: Command;
++  permit: DispatchPermit;
++  selection: DispatchSelection;
++  modelChoice: ModelDispatchChoice;
++  inputSnapshot: DispatchInputPin;
++};
++export interface FinalEvidencePort {
++  verify(tx: Tx, input: Parameters<ServerOptions['verifyFinalResult']>[1]): Promise<void>;
++  requestDocsSync(
++    tx: Tx,
++    input: { ticketId: Id; mergedCommit: string; operationId: Id },
++  ): Promise<{ commandId: Id }>;
++}
++export interface AssistantDriver {
++  start(
++    turn: AssistantTurn,
++    policy: RoutingPolicyReceipt,
++    input: { snapshot: InputSnapshot; docs: DocRead[]; executionContext: ExecutionCandidateScope | null },
++  ): AsyncIterable<RoutingEvent>;
++  resolve(turn: AssistantTurn, providerCallId: string, result: RoutingToolResult): Promise<void>;
++  deliver: AssistantRepresentationTransport['deliver'];
++  checkpoint(turn: AssistantTurn): Promise<{ artifactId: Id; sha256: Sha256 }>;
++  stop(turn: AssistantTurn): Promise<{ state: 'stopped' | 'unknown'; stopEvidenceId: Id | null }>;
++}
++
++export type RoutingCertificationContext = {
++  deploymentId: Id;
++  machineId: Id;
++  key: ModelKey;
++  binarySha256: Sha256;
++  policySha256: Sha256;
++  observerSha256: Sha256;
++  osVersion: string;
++};
++export type RoutingCertificationChallenge = {
++  id: Id;
++  context: RoutingCertificationContext;
++  nonce: string;
++  expiresAt: string;
++  maxTurns: number;
++  maxTools: number;
++  maxCostUsd: number;
++  maxMs: number;
++  fixtureSha256: Sha256;
++};
++export type RoutingCertificationLaunch = {
++  challengeId: Id;
++  turnId: Id;
++  generation: string;
++  processInstanceId: Id;
++  context: RoutingCertificationContext;
++};
++export type RoutingCertificationEvidence = {
++  launch: RoutingCertificationLaunch;
++  traceArtifactIds: Id[];
++  stopEvidenceId: Id;
++  surfaces: {
++    name: 'docs' | 'input' | 'tool' | 'native-read' | 'child' | 'absolute-path' | 'symlink' | 'network';
++    allowedTrace: Sha256;
++    deniedTrace: Sha256;
++  }[];
++  usage: { turns: number; tools: number; costUsd: number; elapsedMs: number };
++};
++export interface CertificationSupervisor {
++  launch(
++    launch: RoutingCertificationLaunch,
++    challenge: RoutingCertificationChallenge,
++  ): AsyncIterable<RoutingEvent>;
++  stop(
++    launch: RoutingCertificationLaunch,
++  ): Promise<{ state: 'stopped' | 'unknown'; stopEvidenceId: Id | null }>;
++}
++export interface RoutingCertificationAuthority {
++  issue(
++    tx: Tx,
++    actor: Actor,
++    input: {
++      context: RoutingCertificationContext;
++      maxTurns: number;
++      maxTools: number;
++      maxCostUsd: number;
++      maxMs: number;
++    },
++  ): Promise<RoutingCertificationChallenge>;
++  admit(
++    tx: Tx,
++    actor: Actor,
++    input: { challengeId: Id; nonce: string; processInstanceId: Id },
++  ): Promise<RoutingCertificationLaunch>;
++  verify(tx: Tx, actor: Actor, evidence: RoutingCertificationEvidence): Promise<RoutingPolicyReceipt>;
++}
++
++export type ExecutionCandidateScope = {
++  ticketId: Id;
++  projectId: Id;
++  machineId: Id;
++  bindingRevision: number;
++  runId: Id;
++  runRevision: number;
++  definitionSha256: Sha256;
++  input: DispatchInputPin;
++  source: Pick<
++    SourcePin,
++    'name' | 'version' | 'sourceRevision' | 'sourceManifestSha256' | 'sourceTreeSha256'
++  >;
++};
++export type ExecutionCandidate = {
++  key: ModelKey;
++  declared: Capability[];
++  capabilities: Capability[];
++  available: boolean;
++  reason: string | null;
++  sourceDesired: boolean;
++  sourceApplied: boolean;
++  probe: {
++    receiptId: Id | null;
++    contextSha256: Sha256 | null;
++    status: 'pass' | 'fail' | 'unverified';
++    receivedAt: string | null;
++    expiresAt: string | null;
++  };
++  projection:
++    | (Pick<ProjectionPin, 'runtime' | 'sourceTreeSha256' | 'manifestSha256' | 'treeSha256'> & {
++        derivationSha256: Sha256;
++      })
++    | null;
++  installReportId: Id | null;
++  certificationReceiptId: Id | null;
++};
++export type ExecutionCandidateSnapshot = {
++  scope: ExecutionCandidateScope;
++  observedAt: string;
++  sha256: Sha256;
++  modelConfigRevision: number;
++  modelAppliedRevision: number | null;
++  gatewayConfigRevision: number;
++  gatewayAppliedRevision: number | null;
++  inventoryReportId: Id | null;
++  bootGeneration: string;
++  entries: ExecutionCandidate[];
++};
++export interface ExecutionCandidateReader {
++  read(
++    actor: Actor,
++    request: RoutingToolRequest & {
++      call: { name: 'read_execution_candidates'; input: { ticketId: Id; runId: Id } };
++    },
++  ): Promise<RoutingToolResult>;
++}
++export type AssessmentProposal = Omit<Assessment, 'id'> & { chosen: ModelKey; choiceRationale: string };
++export type QuestionProposal = Omit<OwnerQuestion, 'id' | 'revision' | 'state'>;
++export type RoutingTool =
++  | { name: 'read_catalog'; input: Record<string, never> }
++  | { name: 'read_docs'; input: { projectId: Id; snapshotId: Id; path: string } }
++  | {
++      name: 'route_message';
++      input: {
++        messageId: Id;
++        expectedInputRevision: string;
++        expectedRouteRevision: number;
++        ticket: CreateTicket;
++        confidence: number;
++        rationale: string;
++        docReadIds: Id[];
++      };
++    }
++  | { name: 'read_execution_candidates'; input: { ticketId: Id; runId: Id } }
++  | { name: 'assess_ticket'; input: AssessmentProposal }
++  | { name: 'ask_owner'; input: QuestionProposal }
++  | { name: 'create_run'; input: { rootTicketId: Id; path: WorkflowRun['path']; definitionSha256: Sha256 } }
++  | {
++      name: 'request_dispatch';
++      input: { stepId: Id; assessmentId: Id; chosen: ModelKey; priorAttemptId: Id | null };
++    }
++  | { name: 'request_review'; input: { runId: Id; implementationStepId: Id; implementationAttemptId: Id } }
++  | {
++      name: 'publish_reply';
++      input: {
++        messageId: Id;
++        inputRevision: string;
++        snapshotId: Id;
++        receiptIds: Id[];
++        text: string;
++        sources: SourceRef[];
++      };
++    };
++export type RoutingEvent =
++  | { kind: 'tool'; providerCallId: string; sequence: string; call: RoutingTool }
++  | { kind: 'finished'; outcome: 'completed' | 'failed' | 'interrupted' };
++export type RoutingToolValue =
++  | {
++      kind: 'catalog';
++      items: {
++        projectId: Id;
++        key: string;
++        name: string;
++        latestSnapshotId: Id | null;
++        sourceCommit: string | null;
++      }[];
++    }
++  | { kind: 'execution_candidates'; snapshot: ExecutionCandidateSnapshot }
++  | { kind: 'docs'; page: DocRead; readReceiptId: Id }
++  | { kind: 'route'; route: MessageRoute }
++  | { kind: 'assessment'; assessment: Assessment }
++  | { kind: 'question'; question: OwnerQuestion }
++  | { kind: 'run'; run: WorkflowRun }
++  | { kind: 'review'; step: SkillStep }
++  | { kind: 'capacity'; request: CapacityRequest }
++  | { kind: 'dispatch'; dispatch: PreparedDispatch }
++  | { kind: 'reply'; decisionId: Id };
++export type RoutingToolResult = {
++  operationId: Id;
++  state: 'completed' | 'pending' | 'rejected';
++  result: RoutingToolValue | null;
++  errorCode: string | null;
++};
++export type RoutingToolRequest = {
++  fence: TurnFence;
++  operationId: Id;
++  clientSequence: string;
++  inputSnapshot: DispatchInputPin;
++  call: RoutingTool;
++};
++export type RoutingToolConsumer = (
++  tx: Tx,
++  actor: Actor,
++  request: RoutingToolRequest,
++) => Promise<RoutingToolResult>;
++export interface AssistantWorkService {
++  bootstrap(
++    tx: Tx,
++    actor: Actor,
++    input: { workId: Id; processInstanceId: Id },
++  ): Promise<{
++    turn: AssistantTurn;
++    snapshot: InputSnapshot;
++    grantId: Id;
++    scopeId: Id | null;
++    executionContext: ExecutionCandidateScope | null;
++  }>;
++}
++
++export type LaunchAuthorization = {
++  id: Id;
++  commandId: Id;
++  processInstanceId: Id;
++  bootGeneration: string;
++  generation: string;
++  expiresAt: string;
++};
++export type UnclaimedStopProof =
++  | { kind: 'never-authorized'; commandId: Id; retirementId: Id }
++  | {
++      kind: 'journal-no-launch' | 'process-stopped';
++      commandId: Id;
++      launchAuthorizationId: Id;
++      processInstanceId: Id;
++      bootGeneration: string;
++      generation: string;
++      journalSha256: Sha256;
++      stopEvidenceId: Id;
++    };
++
++const nullable = (schema: unknown) => ({ anyOf: [schema, { type: 'null' }] });
++const positive = { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER };
++const nonnegative = { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
++// Canonical decimal, bounded to PostgreSQL signed bigint without JS rounding.
++const maxCounter = '9223372036854775807';
++const counterAlternatives = ['[1-9][0-9]{0,17}', maxCounter];
++for (let index = 0; index < maxCounter.length; index++) {
++  const digit = Number(maxCounter[index]);
++  const minimum = index === 0 ? 1 : 0;
++  if (digit > minimum)
++    counterAlternatives.push(
++      `${maxCounter.slice(0, index)}[${minimum}-${digit - 1}][0-9]{${maxCounter.length - index - 1}}`,
++    );
++}
++const counter = { type: 'string', pattern: `^(${counterAlternatives.join('|')})$` };
++const bytes = { type: 'string', pattern: `^(0|${counterAlternatives.join('|')})$` };
++const timestamp = { type: 'string', format: 'date-time', maxLength: 40 };
++const short = { type: 'string', minLength: 1, maxLength: 200 };
++const ids = { type: 'array', items: uuidSchema, uniqueItems: true, maxItems: 1000 };
++const requiredCapabilities = {
++  type: 'array',
++  uniqueItems: true,
++  maxItems: capabilities.length,
++  items: { enum: capabilities },
++};
++export const turnFenceSchema = objectSchema({
++  turnId: uuidSchema,
++  designationId: uuidSchema,
++  designationRevision: positive,
++  generation: counter,
++  processInstanceId: uuidSchema,
++});
++export const assistantPolicySchema = objectSchema({
++  maxJobs: positive,
++  telemetryMaxAgeMs: { ...positive, maximum: 15000 },
++  maxLoadPerCpu: { type: 'number', exclusiveMinimum: 0 },
++  minMemoryBytes: bytes,
++  minDiskBytes: bytes,
++  maxTurnsPerRun: positive,
++  maxToolsPerTurn: positive,
++  maxCostUsdPerRun: { type: 'number', minimum: 0 },
++  maxTurnMs: positive,
++  maxRecoveryAttempts: nonnegative,
++  parallelApprovalId: nullable(uuidSchema),
++});
++export const assistantConfigSchema = objectSchema({
++  designation: nullable(
++    objectSchema({ id: uuidSchema, ownerId: { const: 'owner' }, machineId: uuidSchema, revision: positive }),
++  ),
++  revision: positive,
++  preferred: nullable(modelKeySchema),
++  policy: assistantPolicySchema,
++});
++export const assistantModelSelectionSchema = objectSchema({
++  id: uuidSchema,
++  turnId: uuidSchema,
++  key: modelKeySchema,
++  modelConfigRevision: positive,
++  probeReceiptId: uuidSchema,
++  policyReceiptId: uuidSchema,
++  required: requiredCapabilities,
++  rationale: { type: 'string', maxLength: 32768 },
++  createdAt: timestamp,
++});
++export const routingCertificationContextSchema = objectSchema({
++  deploymentId: uuidSchema,
++  machineId: uuidSchema,
++  key: modelKeySchema,
++  binarySha256: digestSchema,
++  policySha256: digestSchema,
++  observerSha256: digestSchema,
++  osVersion: short,
++});
++export const routingPolicyReceiptSchema = objectSchema({
++  id: uuidSchema,
++  deploymentId: uuidSchema,
++  challengeId: uuidSchema,
++  verifierBuildSha256: digestSchema,
++  machineId: uuidSchema,
++  key: modelKeySchema,
++  osVersion: short,
++  binarySha256: digestSchema,
++  policySha256: digestSchema,
++  probeContextSha256: digestSchema,
++  status: { enum: ['PASS', 'FAIL', 'UNVERIFIED'] },
++  evidenceIds: ids,
++  expiresAt: timestamp,
++  revokedAt: nullable(timestamp),
++});
++export const dispatchInputPinSchema = objectSchema({
++  snapshotId: uuidSchema,
++  snapshotSha256: digestSchema,
++  inputRevision: counter,
++  selectionSha256: digestSchema,
++});
++export const assistantTelemetrySchema = objectSchema({
++  sampleId: uuidSchema,
++  bootGeneration: counter,
++  sampleAgeMs: { ...nonnegative, maximum: 15000 },
++  cpuLoad1: { type: 'number', minimum: 0 },
++  cpuCount: positive,
++  memoryAvailableBytes: bytes,
++  memoryPressure: { enum: ['normal', 'warn', 'critical'] },
++  diskAvailableBytes: bytes,
++  activeJobs: nonnegative,
++  configuredMaxJobs: positive,
++});
++export const capacityRequestSchema = objectSchema({
++  id: uuidSchema,
++  machineId: uuidSchema,
++  ticketId: uuidSchema,
++  kind: { enum: ['implement', 'review', 'fix'] },
++  ownershipKeys: { type: 'array', items: short, uniqueItems: true, maxItems: 1000 },
++  bootGeneration: counter,
++  requestedAt: timestamp,
++  expiresAt: timestamp,
++});
++export const launchAuthorizationSchema = objectSchema({
++  id: uuidSchema,
++  commandId: uuidSchema,
++  processInstanceId: uuidSchema,
++  bootGeneration: counter,
++  generation: counter,
++  expiresAt: timestamp,
++});
++
++// Transport shapes only. Record-valued fields below reflect the actual accepted
++// CreateTicket/Command DTOs; their services still enforce business authority and
++// safeTicketJson depth. All other objects reject undeclared fields recursively.
++const bool = { type: 'boolean' };
++const prose = { type: 'string', maxLength: 32768 };
++const pathSchema = { type: 'string', minLength: 1, maxLength: 4096 };
++const list = (items: unknown, maxItems = 1000) => ({ type: 'array', items, maxItems });
++const textList = list(prose);
++const jsonKey = { not: { enum: ['__proto__', 'prototype', 'constructor'] } };
++const jsonDefinitions = {
++  jsonValue: {
++    anyOf: [
++      { type: 'null' },
++      { type: 'boolean' },
++      { type: 'number' },
++      { type: 'string' },
++      { type: 'array', items: { $ref: '#/definitions/jsonValue' } },
++      { type: 'object', propertyNames: jsonKey, additionalProperties: { $ref: '#/definitions/jsonValue' } },
++    ],
++  },
++};
++const dto = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({
++  ...objectSchema(properties, required),
++  definitions: jsonDefinitions,
++});
++const union = (variants: unknown[]) => ({ oneOf: variants, definitions: jsonDefinitions });
++const jsonRecord = {
++  type: 'object',
++  propertyNames: jsonKey,
++  additionalProperties: { $ref: '#/definitions/jsonValue' },
++};
++const workflowPath = { enum: ['architectural', 'bounded', 'bug', 'spike', 'bmad-dispatch', 'bmad-oneshot'] };
++const executionKind = { enum: ['implement', 'review', 'fix'] };
++const runtimeSchema = { enum: ['claude', 'codex', 'api'] };
++const workflowPinSchema = dto({
++  workflow: { enum: ['superpowers', 'bmad'] },
++  version: { type: 'string', minLength: 1 },
++  revision: { type: 'string', minLength: 1 },
++  checksum: { type: 'string', pattern: '^[0-9a-fA-F]{64}$' },
++});
++const createTicketProperties = {
++  projectId: uuidSchema,
++  parentId: nullable(uuidSchema),
++  level: { enum: ['request', 'step', 'task'] },
++  kind: { enum: ['code', 'research', 'docs', 'deploy'] },
++  title: short,
++  description: { type: 'string', maxLength: 65536 },
++  mandatory: bool,
++  criteria: jsonRecord,
++  inputs: jsonRecord,
++  outputs: jsonRecord,
++  skill: nullable(short),
++  workflowPin: nullable(workflowPinSchema),
++  deployApprovalDecisionId: nullable(uuidSchema),
++};
++// workflowPin is required by the serialized DTO. The existing ticket HTTP route
++// may omit it and its producer normalizes that input before returning CreateTicket.
++const createTicketSchema = dto(
++  createTicketProperties,
++  Object.keys(createTicketProperties).filter((key) => key !== 'deployApprovalDecisionId'),
++);
++const sourceRefSchema = dto(
++  {
++    kind: { enum: ['docs', 'ticket', 'artifact', 'owner_decision'] },
++    id: uuidSchema,
++    path: pathSchema,
++    locator: { type: 'string', minLength: 1, maxLength: 2048 },
++  },
++  ['kind', 'id'],
++);
++const sourcesSchema = list(sourceRefSchema, 100);
++export const orchestrationActionSchema = {
++  enum: ['create_ticket', 'decision', 'dependency', 'command', 'signal'],
++};
++export const orchestrationProofSchema = dto({
++  fence: turnFenceSchema,
++  scopeId: uuidSchema,
++  operationId: uuidSchema,
++});
++export const assistantTurnSchema = dto({
++  fence: turnFenceSchema,
++  conversationId: uuidSchema,
++  messageId: nullable(uuidSchema),
++  selection: assistantModelSelectionSchema,
++  admission: nullable(
++    dto({
++      id: uuidSchema,
++      admittedAt: timestamp,
++      modelConfigRevision: positive,
++      sourceEnabledAtAdmission: { const: true },
++    }),
++  ),
++  readSessionId: nullable(uuidSchema),
++  state: { enum: ['reserved', 'running', 'uncertain', 'finalizing', 'stopped'] },
++  checkpointArtifactId: nullable(uuidSchema),
++});
++export const docReadSchema = dto({
++  projectId: uuidSchema,
++  snapshotId: uuidSchema,
++  path: pathSchema,
++  sha256: digestSchema,
++  sourceCommit: nullable({ type: 'string' }),
++  receivedAt: timestamp,
++  auditState: { enum: ['unverified', 'invalid', 'verified'] },
++  contentClass: { enum: ['implemented', 'workflow_artifact'] },
++  text: { type: 'string' },
++  state: { enum: ['current', 'stale', 'unverified'] },
++});
++const assessmentFields = {
++  ticketId: uuidSchema,
++  candidateReadOperationId: uuidSchema,
++  input: dispatchInputPinSchema,
++  complexity: { enum: ['bounded', 'integration', 'architectural'] },
++  risk: textList,
++  uncertainty: textList,
++  required: requiredCapabilities,
++  strengthRationale: prose,
++  sources: sourcesSchema,
++  candidateReasons: list(dto({ key: modelKeySchema, reason: prose })),
++};
++export const assessmentSchema = dto({ id: uuidSchema, ...assessmentFields });
++export const assessmentProposalSchema = dto({
++  ...assessmentFields,
++  chosen: modelKeySchema,
++  choiceRationale: prose,
++});
++export const skillStepSchema = dto({
++  id: uuidSchema,
++  ticketId: uuidSchema,
++  skill: short,
++  sourcePath: pathSchema,
++  sourceSha256: digestSchema,
++  predecessorIds: ids,
++  acceptance: textList,
++  outputKinds: list(short),
++  gateIds: ids,
++  ownershipKeys: list(pathSchema),
++  role: { enum: ['implement', 'review', 'fix', 'research'] },
++});
++export const workflowRunSchema = dto({
++  id: uuidSchema,
++  rootTicketId: uuidSchema,
++  source: sourceSchema,
++  projection: projectionSchema,
++  definitionSha256: digestSchema,
++  customizationSha256: digestSchema,
++  renderedArtifactId: nullable(uuidSchema),
++  path: workflowPath,
++  revision: positive,
++  steps: list(skillStepSchema),
++  parallelApprovalId: nullable(uuidSchema),
++});
++const questionFields = {
++  conversationId: uuidSchema,
++  ticketId: nullable(uuidSchema),
++  runId: nullable(uuidSchema),
++  stepId: nullable(uuidSchema),
++  gateId: nullable(uuidSchema),
++  cycleId: nullable(uuidSchema),
++  artifactSha256: nullable(digestSchema),
++  question: prose,
++  options: textList,
++  scopeSha256: digestSchema,
++};
++export const questionProposalSchema = dto(questionFields);
++export const ownerQuestionSchema = dto({
++  id: uuidSchema,
++  ...questionFields,
++  revision: positive,
++  state: { enum: ['open', 'answered', 'superseded'] },
++});
++export const routingCandidateSchema = dto({
++  key: modelKeySchema,
++  requiredSupported: requiredCapabilities,
++  sourceDesired: bool,
++  sourceApplied: bool,
++  modelConfigRevision: positive,
++  probeReceiptId: uuidSchema,
++  probeContextSha256: digestSchema,
++  binarySha256: digestSchema,
++  probeExpiresAt: timestamp,
++  available: bool,
++  reason: nullable(prose),
++});
++export const capacityReceiptSchema = dto({
++  id: uuidSchema,
++  requestId: uuidSchema,
++  machineId: uuidSchema,
++  bootGeneration: counter,
++  ticketId: uuidSchema,
++  kind: executionKind,
++  ownershipKeys: list(short),
++  telemetry: assistantTelemetrySchema,
++  receivedAt: timestamp,
++  expiresAt: timestamp,
++  allowed: bool,
++  reason: prose,
++});
++const commandSchema = dto({
++  id: uuidSchema,
++  machineId: uuidSchema,
++  ticketId: uuidSchema,
++  type: { enum: ['start', 'pause', 'cancel', 'resume', 'reconcile'] },
++  payload: jsonRecord,
++  state: { enum: ['queued', 'received', 'completed'] },
++  result: nullable(jsonRecord),
++  createdAt: timestamp,
++});
++const dispatchPermitSchema = dto({
++  commandId: uuidSchema,
++  ticketId: uuidSchema,
++  machineId: uuidSchema,
++  bindingRevision: positive,
++  ticketRevision: positive,
++  workflow: workflowPinSchema,
++  checkedAt: timestamp,
++  expiresAt: timestamp,
++  telemetryId: uuidSchema,
++  decisionId: uuidSchema,
++});
++const dispatchSelectionSchema = dto({
++  runtime: runtimeSchema,
++  sourceTreeSha256: digestSchema,
++  projectionManifestSha256: digestSchema,
++  projectionTreeSha256: digestSchema,
++  installReportId: uuidSchema,
++  configRevision: positive,
++  decisionId: uuidSchema,
++});
++const modelChoiceSchema = dto({
++  model: modelKeySchema,
++  modelConfigRevision: positive,
++  probeReceiptId: uuidSchema,
++  probeContextSha256: digestSchema,
++  certificationReceiptId: nullable(uuidSchema),
++  required: requiredCapabilities,
++});
++export const preparedDispatchSchema = dto({
++  command: commandSchema,
++  permit: dispatchPermitSchema,
++  selection: dispatchSelectionSchema,
++  modelChoice: modelChoiceSchema,
++  inputSnapshot: dispatchInputPinSchema,
++});
++export const routingCertificationChallengeSchema = dto({
++  id: uuidSchema,
++  context: routingCertificationContextSchema,
++  nonce: { type: 'string', minLength: 1, maxLength: 4096 },
++  expiresAt: timestamp,
++  maxTurns: positive,
++  maxTools: positive,
++  maxCostUsd: { type: 'number', minimum: 0 },
++  maxMs: positive,
++  fixtureSha256: digestSchema,
++});
++export const routingCertificationLaunchSchema = dto({
++  challengeId: uuidSchema,
++  turnId: uuidSchema,
++  generation: counter,
++  processInstanceId: uuidSchema,
++  context: routingCertificationContextSchema,
++});
++export const routingCertificationEvidenceSchema = dto({
++  launch: routingCertificationLaunchSchema,
++  traceArtifactIds: ids,
++  stopEvidenceId: uuidSchema,
++  surfaces: list(
++    dto({
++      name: {
++        enum: ['docs', 'input', 'tool', 'native-read', 'child', 'absolute-path', 'symlink', 'network'],
++      },
++      allowedTrace: digestSchema,
++      deniedTrace: digestSchema,
++    }),
++    8,
++  ),
++  usage: dto({
++    turns: nonnegative,
++    tools: nonnegative,
++    costUsd: { type: 'number', minimum: 0 },
++    elapsedMs: nonnegative,
++  }),
++});
++const candidateSourceSchema = dto({
++  name: { enum: ['superpowers', 'bmad'] },
++  version: sourceSchema.properties.version,
++  sourceRevision: sourceSchema.properties.sourceRevision,
++  sourceManifestSha256: digestSchema,
++  sourceTreeSha256: digestSchema,
++});
++export const executionCandidateScopeSchema = dto({
++  ticketId: uuidSchema,
++  projectId: uuidSchema,
++  machineId: uuidSchema,
++  bindingRevision: positive,
++  runId: uuidSchema,
++  runRevision: positive,
++  definitionSha256: digestSchema,
++  input: dispatchInputPinSchema,
++  source: candidateSourceSchema,
++});
++export const executionCandidateSchema = dto({
++  key: modelKeySchema,
++  declared: requiredCapabilities,
++  capabilities: requiredCapabilities,
++  available: bool,
++  reason: nullable(prose),
++  sourceDesired: bool,
++  sourceApplied: bool,
++  probe: dto({
++    receiptId: nullable(uuidSchema),
++    contextSha256: nullable(digestSchema),
++    status: { enum: ['pass', 'fail', 'unverified'] },
++    receivedAt: nullable(timestamp),
++    expiresAt: nullable(timestamp),
++  }),
++  projection: nullable(
++    dto({
++      runtime: runtimeSchema,
++      sourceTreeSha256: digestSchema,
++      manifestSha256: digestSchema,
++      treeSha256: digestSchema,
++      derivationSha256: digestSchema,
++    }),
++  ),
++  installReportId: nullable(uuidSchema),
++  certificationReceiptId: nullable(uuidSchema),
++});
++export const executionCandidateSnapshotSchema = dto({
++  scope: executionCandidateScopeSchema,
++  observedAt: timestamp,
++  sha256: digestSchema,
++  modelConfigRevision: positive,
++  modelAppliedRevision: nullable(positive),
++  gatewayConfigRevision: positive,
++  gatewayAppliedRevision: nullable(positive),
++  inventoryReportId: nullable(uuidSchema),
++  bootGeneration: counter,
++  entries: list(executionCandidateSchema),
++});
++const toolVariant = (name: string, input: unknown) => dto({ name: { const: name }, input });
++export const routingToolSchema = union([
++  toolVariant('read_catalog', dto({})),
++  toolVariant('read_docs', dto({ projectId: uuidSchema, snapshotId: uuidSchema, path: pathSchema })),
++  toolVariant(
++    'route_message',
++    dto({
++      messageId: uuidSchema,
++      expectedInputRevision: counter,
++      expectedRouteRevision: nonnegative,
++      ticket: createTicketSchema,
++      confidence: { type: 'number', minimum: 0, maximum: 1 },
++      rationale: prose,
++      docReadIds: ids,
++    }),
++  ),
++  toolVariant('read_execution_candidates', dto({ ticketId: uuidSchema, runId: uuidSchema })),
++  toolVariant('assess_ticket', assessmentProposalSchema),
++  toolVariant('ask_owner', questionProposalSchema),
++  toolVariant(
++    'create_run',
++    dto({ rootTicketId: uuidSchema, path: workflowPath, definitionSha256: digestSchema }),
++  ),
++  toolVariant(
++    'request_dispatch',
++    dto({
++      stepId: uuidSchema,
++      assessmentId: uuidSchema,
++      chosen: modelKeySchema,
++      priorAttemptId: nullable(uuidSchema),
++    }),
++  ),
++  toolVariant(
++    'request_review',
++    dto({ runId: uuidSchema, implementationStepId: uuidSchema, implementationAttemptId: uuidSchema }),
++  ),
++  toolVariant(
++    'publish_reply',
++    dto({
++      messageId: uuidSchema,
++      inputRevision: counter,
++      snapshotId: uuidSchema,
++      receiptIds: ids,
++      text: prose,
++      sources: sourcesSchema,
++    }),
++  ),
++]);
++export const routingEventSchema = union([
++  dto({
++    kind: { const: 'tool' },
++    providerCallId: { type: 'string', minLength: 1, maxLength: 4096 },
++    sequence: counter,
++    call: routingToolSchema,
++  }),
++  dto({ kind: { const: 'finished' }, outcome: { enum: ['completed', 'failed', 'interrupted'] } }),
++]);
++const messageRouteSchema = dto({
++  id: uuidSchema,
++  messageId: uuidSchema,
++  revision: positive,
++  projectId: uuidSchema,
++  ticketId: uuidSchema,
++  decisionId: uuidSchema,
++  supersedesRouteId: nullable(uuidSchema),
++  revokedAt: nullable(timestamp),
++});
++const valueVariant = (kind: string, fields: Record<string, unknown>) =>
++  dto({ kind: { const: kind }, ...fields });
++export const routingToolValueSchema = union([
++  valueVariant('catalog', {
++    items: list(
++      dto({
++        projectId: uuidSchema,
++        key: short,
++        name: short,
++        latestSnapshotId: nullable(uuidSchema),
++        sourceCommit: nullable({ type: 'string' }),
++      }),
++    ),
++  }),
++  valueVariant('execution_candidates', { snapshot: executionCandidateSnapshotSchema }),
++  valueVariant('docs', { page: docReadSchema, readReceiptId: uuidSchema }),
++  valueVariant('route', { route: messageRouteSchema }),
++  valueVariant('assessment', { assessment: assessmentSchema }),
++  valueVariant('question', { question: ownerQuestionSchema }),
++  valueVariant('run', { run: workflowRunSchema }),
++  valueVariant('review', { step: skillStepSchema }),
++  valueVariant('capacity', { request: capacityRequestSchema }),
++  valueVariant('dispatch', { dispatch: preparedDispatchSchema }),
++  valueVariant('reply', { decisionId: uuidSchema }),
++]);
++export const routingToolResultSchema = dto({
++  operationId: uuidSchema,
++  state: { enum: ['completed', 'pending', 'rejected'] },
++  result: nullable(routingToolValueSchema),
++  errorCode: nullable(short),
++});
++export const routingToolRequestSchema = dto({
++  fence: turnFenceSchema,
++  operationId: uuidSchema,
++  clientSequence: counter,
++  inputSnapshot: dispatchInputPinSchema,
++  call: routingToolSchema,
++});
++export const unclaimedStopProofSchema = union([
++  dto({ kind: { const: 'never-authorized' }, commandId: uuidSchema, retirementId: uuidSchema }),
++  dto({
++    kind: { enum: ['journal-no-launch', 'process-stopped'] },
++    commandId: uuidSchema,
++    launchAuthorizationId: uuidSchema,
++    processInstanceId: uuidSchema,
++    bootGeneration: counter,
++    generation: counter,
++    journalSha256: digestSchema,
++    stopEvidenceId: uuidSchema,
++  }),
++]);
+diff --git a/v2/server/src/assistant/inbox.ts b/v2/server/src/assistant/inbox.ts
+new file mode 100644
+index 0000000..65e31a9
+--- /dev/null
++++ b/v2/server/src/assistant/inbox.ts
+@@ -0,0 +1,176 @@
++import { randomUUID } from 'node:crypto';
++import { canonicalJson } from '../journal/canonical.ts';
++import { parseCursor } from '../journal/events.ts';
++import type { Event, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import type { TurnFence } from './contracts.ts';
++import { assertAssistantId, assertCurrentTurnFence } from './store.ts';
++
++const inputEvents = new Set([
++  'assistant.message.created',
++  'attachment.input.changed',
++  'comment.created',
++  'attachment.changed',
++]);
++const lifecycleEvents = new Set([
++  'ticket.created',
++  'ticket.changed',
++  'dependency.added',
++  'decision.created',
++  'repair.recorded',
++  'command.created',
++  'command.acknowledged',
++  'attempt.claimed',
++  'attempt.checkpoint',
++  'attempt.stopped',
++  'attempt.finalized',
++]);
++type Target = { kind: 'message' | 'ticket'; id: Id; revision: string | null };
++
++async function insertWork(tx: Tx, target: Target, cursor: string | null): Promise<void> {
++  const logicalKey =
++    cursor === null
++      ? `reconcile:${target.kind}:${target.id}:${target.revision}`
++      : `event:${cursor}:${target.kind}:${target.id}:${target.revision ?? 'lifecycle'}`;
++  await tx`insert into assistant_work_inbox(id,logical_key,source_cursor,target_kind,target_id,input_revision,state)
++    values(${randomUUID()},${logicalKey},${cursor},${target.kind},${target.id},${target.revision},'pending')
++    on conflict do nothing`;
++}
++
++async function inputTargets(tx: Tx, event: Event): Promise<Target[]> {
++  if (
++    event.type === 'assistant.message.created' ||
++    (event.type === 'attachment.input.changed' && event.data.targetKind === 'message')
++  ) {
++    const id = event.type === 'assistant.message.created' ? event.data.messageId : event.data.targetId;
++    assertAssistantId(id);
++    const [message] = await tx`select id,input_revision from attachment_messages where id=${id}`;
++    return message
++      ? [{ kind: 'message', id: String(message.id), revision: String(message.input_revision) }]
++      : [];
++  }
++  if (!event.ticketId || !event.projectId) return [];
++  // Only comments are inherited by every current descendant. Other scoped input
++  // events already name the target whose 009 producer owns its revision.
++  const descendants = event.type === 'comment.created';
++  const rows = descendants
++    ? await tx`with recursive affected as (
++        select id from tickets where id=${event.ticketId} and project_id=${event.projectId}
++        union all select t.id from tickets t join affected a on t.parent_id=a.id
++      ) select t.id,coalesce(r.revision,1) as revision from tickets t join affected a on a.id=t.id
++      left join attachment_input_revisions r on r.target_kind='ticket' and r.target_id=t.id order by t.id`
++    : await tx`select t.id,coalesce(r.revision,1) as revision from tickets t
++      left join attachment_input_revisions r on r.target_kind='ticket' and r.target_id=t.id
++      where t.id=${event.ticketId} and t.project_id=${event.projectId}`;
++  return rows.map((row) => ({ kind: 'ticket', id: String(row.id), revision: String(row.revision) }));
++}
++
++async function fanout(tx: Tx, event: Event): Promise<void> {
++  if (inputEvents.has(event.type)) {
++    for (const target of await inputTargets(tx, event)) await insertWork(tx, target, event.cursor);
++  } else if (lifecycleEvents.has(event.type) && event.ticketId && event.projectId) {
++    const [ticket] =
++      await tx`select id from tickets where id=${event.ticketId} and project_id=${event.projectId}`;
++    if (ticket) await insertWork(tx, { kind: 'ticket', id: event.ticketId, revision: null }, event.cursor);
++  }
++}
++
++function eventRow(row: Record<string, unknown>): Event {
++  return {
++    cursor: String(row.cursor),
++    type: String(row.type),
++    projectId: row.project_id as Id | null,
++    ticketId: row.ticket_id as Id | null,
++    audienceMachineId: row.audience_machine_id as Id | null,
++    occurredAt: new Date(String(row.occurred_at)).toISOString(),
++    data: row.data as Record<string, unknown>,
++  };
++}
++
++export async function enqueueWork(tx: Tx, event: Event): Promise<void> {
++  const cursor = parseCursor(event.cursor);
++  await tx`select value from event_cursor where singleton=true for update`;
++  const [row] = await tx`select * from events where cursor=${cursor}`;
++  if (!row || canonicalJson(eventRow(row)) !== canonicalJson(event))
++    throw new ApiError('ASSISTANT_EVENT_MISMATCH', 409, 'Sự kiện không khớp journal đã lưu');
++  await fanout(tx, eventRow(row));
++}
++
++export async function ingestEvents(tx: Tx, through: string): Promise<void> {
++  const cursor = parseCursor(through);
++  const [journal] = await tx`select value from event_cursor where singleton=true for update`;
++  if (!journal || BigInt(cursor) > BigInt(String(journal.value)))
++    throw new ApiError('ASSISTANT_CURSOR_AHEAD', 409, 'Con trỏ vượt journal hiện hành');
++  const [monitor] = await tx`select cursor from assistant_monitor where singleton=true for update`;
++  if (!monitor) throw new ApiError('ASSISTANT_STORE_MISSING', 503, 'Chưa khởi tạo kho Trợ lý');
++  let after = String(monitor.cursor);
++  if (BigInt(cursor) <= BigInt(after)) return;
++  // Bounded pages avoid materializing the complete event history in memory.
++  while (BigInt(after) < BigInt(cursor)) {
++    const rows =
++      await tx`select * from events where cursor>${after} and cursor<=${cursor} order by cursor limit 200`;
++    if (!rows.length) break;
++    for (const row of rows) await fanout(tx, eventRow(row));
++    after = String(rows.at(-1)?.cursor);
++  }
++  await tx`update assistant_monitor set cursor=${cursor} where singleton=true`;
++}
++
++export async function reconcileWork(tx: Tx): Promise<void> {
++  await tx`select value from event_cursor where singleton=true for update`;
++  await tx`select cursor from assistant_monitor where singleton=true for update`;
++  // Counter009 owns inherited inputs. The scanner never increments it or mints a turn.
++  const messages = await tx`select id,input_revision from attachment_messages order by id`;
++  for (const row of messages)
++    await insertWork(tx, { kind: 'message', id: String(row.id), revision: String(row.input_revision) }, null);
++  const tickets = await tx`select t.id,coalesce(r.revision,1) as revision from tickets t
++    left join attachment_input_revisions r on r.target_kind='ticket' and r.target_id=t.id order by t.id`;
++  for (const row of tickets)
++    await insertWork(tx, { kind: 'ticket', id: String(row.id), revision: String(row.revision) }, null);
++}
++
++async function lockWorkRoot(tx: Tx, workId: Id): Promise<void> {
++  assertAssistantId(workId);
++  const [work] = await tx`select target_kind,target_id from assistant_work_inbox where id=${workId}`;
++  if (!work) throw new ApiError('ASSISTANT_WORK_MISSING', 404, 'Không tìm thấy công việc');
++  if (work.target_kind === 'ticket') {
++    await tx`select value from event_cursor where singleton=true for update`;
++    const [ticket] = await tx`select root_id from tickets where id=${work.target_id}`;
++    if (!ticket) throw new ApiError('ASSISTANT_WORK_MISSING', 404, 'Không tìm thấy ticket');
++    await tx`select id from tickets where id=${ticket.root_id} for update`;
++  }
++}
++
++export async function claimWork(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
++  await lockWorkRoot(tx, workId);
++  await assertCurrentTurnFence(tx, fence, 'claim');
++  const [work] =
++    await tx`select state,turn_id,claim_generation,next_due_at from assistant_work_inbox where id=${workId} for update`;
++  if (
++    work?.state === 'claimed' &&
++    work.turn_id === fence.turnId &&
++    String(work.claim_generation) === fence.generation
++  )
++    return;
++  if (work?.state !== 'pending')
++    throw new ApiError('ASSISTANT_WORK_HELD', 409, 'Công việc đã giữ quyền hoặc hoàn tất');
++  const [changed] = await tx`update assistant_work_inbox set state='claimed',turn_id=${fence.turnId},
++    claim_generation=${fence.generation},attempts=attempts+1 where id=${workId} and next_due_at<=now() returning id`;
++  if (!changed) throw new ApiError('ASSISTANT_WORK_NOT_DUE', 409, 'Công việc chưa đến lượt thử lại');
++}
++
++export async function ackWork(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
++  await lockWorkRoot(tx, workId);
++  await assertCurrentTurnFence(tx, fence, 'ack');
++  const [work] =
++    await tx`select state,turn_id,claim_generation from assistant_work_inbox where id=${workId} for update`;
++  if (
++    !work ||
++    !['claimed', 'acked'].includes(String(work.state)) ||
++    work.turn_id !== fence.turnId ||
++    String(work.claim_generation) !== fence.generation
++  )
++    throw new ApiError('ASSISTANT_WORK_FENCE_MISMATCH', 409, 'Công việc không thuộc lượt hiện hành');
++  if (work.state === 'acked') return;
++  await tx`update assistant_work_inbox set state='acked',acked_at=now() where id=${workId}`;
++}
+diff --git a/v2/server/src/assistant/store.ts b/v2/server/src/assistant/store.ts
+new file mode 100644
+index 0000000..d08907e
+--- /dev/null
++++ b/v2/server/src/assistant/store.ts
+@@ -0,0 +1,80 @@
++import type { Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import type { TurnFence } from './contracts.ts';
++
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++const maxGeneration = 9223372036854775807n;
++export function assertAssistantId(value: unknown): asserts value is Id {
++  if (typeof value !== 'string' || !uuid.test(value))
++    throw new ApiError('ASSISTANT_ID_INVALID', 400, 'Định danh Trợ lý không hợp lệ');
++}
++export function assertTurnFence(value: unknown): asserts value is TurnFence {
++  if (!value || typeof value !== 'object' || Array.isArray(value))
++    throw new ApiError('ASSISTANT_FENCE_INVALID', 400, 'Fence Trợ lý không hợp lệ');
++  const row = value as Record<string, unknown>;
++  const fields = ['turnId', 'designationId', 'designationRevision', 'generation', 'processInstanceId'];
++  if (Object.keys(row).length !== fields.length || fields.some((key) => !Object.hasOwn(row, key)))
++    throw new ApiError('ASSISTANT_FENCE_INVALID', 400, 'Fence Trợ lý có trường không hợp lệ');
++  for (const key of ['turnId', 'designationId', 'processInstanceId']) assertAssistantId(row[key]);
++  if (
++    !Number.isSafeInteger(row.designationRevision) ||
++    Number(row.designationRevision) < 1 ||
++    typeof row.generation !== 'string' ||
++    !/^[1-9][0-9]{0,18}$/.test(row.generation) ||
++    BigInt(row.generation) > maxGeneration
++  )
++    throw new ApiError('ASSISTANT_FENCE_INVALID', 400, 'Revision hoặc generation không hợp lệ');
++}
++
++// Persistence primitive only. The admission caller holds the same transaction
++// through writing its exact normal turn or calibration launch. No separate commit.
++export async function allocateAssistantGeneration(tx: Tx): Promise<string> {
++  const [guard] = await tx`select singleton from assistant_calibration_guard where singleton=true for update`;
++  if (!guard) throw new ApiError('ASSISTANT_STORE_MISSING', 503, 'Chưa khởi tạo kho Trợ lý');
++  const [row] = await tx`
++    update assistant_monitor set generation=generation+1
++    where singleton=true and generation<9223372036854775807 returning generation
++  `;
++  if (!row) throw new ApiError('ASSISTANT_GENERATION_EXHAUSTED', 409, 'Generation Trợ lý đã hết');
++  return String(row.generation);
++}
++
++export async function assertCurrentTurnFence(
++  tx: Tx,
++  fence: TurnFence,
++  purpose: 'claim' | 'ack',
++): Promise<void> {
++  assertTurnFence(fence);
++  const reject = () => new ApiError('ASSISTANT_TURN_STALE', 409, 'Lượt Trợ lý không còn quyền hiện hành');
++  const [guard] =
++    await tx`select challenge_id from assistant_calibration_guard where singleton=true for update`;
++  if (!guard || guard.challenge_id !== null) throw reject();
++  // Resolve identity before ordered locking; every field is rechecked below.
++  const [identity] = await tx`select machine_id from assistant_designations where id=${fence.designationId}`;
++  if (!identity) throw reject();
++  const [machine] = await tx`select revoked_at from machines where id=${identity.machine_id} for update`;
++  const [config] = await tx`select designation_id from assistant_config where singleton=true for update`;
++  const [designation] =
++    await tx`select machine_id,revision,retired_at from assistant_designations where id=${fence.designationId} for update`;
++  const [turn] =
++    await tx`select designation_id,designation_revision,generation,process_instance_id,state from assistant_turns where id=${fence.turnId} for update`;
++  const [monitor] = await tx`select generation from assistant_monitor where singleton=true for update`;
++  const states = purpose === 'claim' ? ['reserved', 'running'] : ['running', 'finalizing', 'stopped'];
++  if (
++    !machine ||
++    machine.revoked_at !== null ||
++    config?.designation_id !== fence.designationId ||
++    !designation ||
++    designation.retired_at !== null ||
++    designation.machine_id !== identity.machine_id ||
++    Number(designation.revision) !== fence.designationRevision ||
++    !turn ||
++    turn.designation_id !== fence.designationId ||
++    Number(turn.designation_revision) !== fence.designationRevision ||
++    String(turn.generation) !== fence.generation ||
++    String(monitor?.generation) !== fence.generation ||
++    turn.process_instance_id !== fence.processInstanceId ||
++    !states.includes(String(turn.state))
++  )
++    throw reject();
++}
+diff --git a/v2/server/test/assistant-store.test.ts b/v2/server/test/assistant-store.test.ts
+new file mode 100644
+index 0000000..f2df566
+--- /dev/null
++++ b/v2/server/test/assistant-store.test.ts
+@@ -0,0 +1,977 @@
++import assert from 'node:assert/strict';
++import { createHash, randomUUID } from 'node:crypto';
++import { existsSync } from 'node:fs';
++import test from 'node:test';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import { appendEvent } from '../src/journal/events.ts';
++import {
++  assistantContractSamples,
++  assistantFixture,
++  assistantSchemaCompiler,
++  pendingCount,
++} from './support/assistant.ts';
++import { databaseFixture } from './support/db.ts';
++import { openPeerDb } from './support/execution.ts';
++import { inputTicket, owner } from './support/tickets.ts';
++
++test('assistant runtime schemas reject overflowing persisted counters without coercion', async () => {
++  const { turnFenceSchema } = await import('../src/assistant/contracts.ts');
++  {
++    const validate = assistantSchemaCompiler()(turnFenceSchema);
++    const fence = {
++      turnId: randomUUID(),
++      designationId: randomUUID(),
++      designationRevision: 1,
++      generation: '9223372036854775807',
++      processInstanceId: randomUUID(),
++    };
++    assert.equal(validate(fence), true);
++    for (const generation of ['9223372036854775808', '0', '01', '-1']) {
++      assert.equal(validate({ ...fence, generation }), false, generation);
++    }
++    assert.equal(validate({ ...fence, designationRevision: '1' }), false);
++    assert.equal(validate({ ...fence, extra: true }), false);
++  }
++});
++
++test('assistant runtime schemas validate every serializable DTO and discriminated routing variant', async () => {
++  const schemas: Record<string, unknown> = await import('../src/assistant/contracts.ts');
++  const compile = assistantSchemaCompiler();
++  {
++    for (const [name, samples] of Object.entries(assistantContractSamples())) {
++      assert.ok(schemas[name], `${name} must exist`);
++      const validate = compile(schemas[name]);
++      for (const sample of samples) {
++        assert.equal(validate(sample), true, `${name}: ${JSON.stringify(validate.errors)}`);
++        if (typeof sample === 'object' && sample !== null) {
++          assert.equal(validate({ ...sample, unapproved: true }), false, `${name} rejects extra field`);
++          const invalid = structuredClone(sample) as Record<string, unknown>;
++          if ('kind' in invalid) {
++            invalid.kind = 'unapproved';
++            assert.equal(validate(invalid), false, `${name} discriminator`);
++          }
++          if ('name' in invalid) {
++            invalid.name = 'unapproved';
++            assert.equal(validate(invalid), false, `${name} tool name`);
++          }
++        }
++      }
++    }
++    const request = assistantContractSamples().routingToolRequestSchema?.[4] as Record<string, unknown>;
++    const validate = compile(schemas.routingToolRequestSchema);
++    for (const path of [
++      ['fence', 'turnId'],
++      ['inputSnapshot', 'snapshotSha256'],
++      ['call', 'input', 'candidateReadOperationId'],
++      ['call', 'input', 'chosen', 'machineId'],
++      ['call', 'input', 'sources', 0, 'kind'],
++    ]) {
++      const invalid = structuredClone(request);
++      let cursor: Record<string | number, unknown> = invalid;
++      for (const part of path.slice(0, -1)) cursor = cursor[part] as Record<string | number, unknown>;
++      const last = path.at(-1);
++      assert.ok(last !== undefined);
++      cursor[last] = 'invalid';
++      assert.equal(validate(invalid), false, `nested ${path.join('.')}`);
++    }
++    const tool = compile(schemas.routingToolSchema);
++    assert.equal(tool({ name: 'read_catalog', input: { path: 'unexpected' } }), false);
++    const swapped = structuredClone(assistantContractSamples().routingToolSchema?.[1]) as Record<
++      string,
++      unknown
++    >;
++    swapped.name = 'request_dispatch';
++    assert.equal(tool(swapped), false);
++    const negatives: [string, number, (string | number)[], unknown][] = [
++      ['workflowRunSchema', 0, ['source', 'sourceRevision'], 'bad'],
++      ['workflowRunSchema', 0, ['projection', 'derivation', 'extra'], true],
++      ['workflowRunSchema', 0, ['steps', 0, 'role'], 'operator'],
++      ['ownerQuestionSchema', 0, ['revision'], 0],
++      ['capacityReceiptSchema', 0, ['telemetry', 'memoryAvailableBytes'], '-1'],
++      ['capacityReceiptSchema', 0, ['telemetry', 'diskAvailableBytes'], '9223372036854775808'],
++      ['capacityReceiptSchema', 0, ['telemetry', 'memoryPressure'], 'unknown'],
++      ['capacityReceiptSchema', 0, ['telemetry', 'sampleAgeMs'], 15001],
++      ['routingCertificationEvidenceSchema', 0, ['surfaces', 0, 'allowedTrace'], 'G'.repeat(64)],
++      ['routingCertificationEvidenceSchema', 0, ['usage', 'costUsd'], -1],
++      ['routingCertificationLaunchSchema', 0, ['context', 'key', 'machineId'], 'not-uuid'],
++      ['executionCandidateSnapshotSchema', 0, ['scope', 'bindingRevision'], 1.5],
++      ['executionCandidateSnapshotSchema', 0, ['entries', 0, 'capabilities'], ['unknown']],
++      ['preparedDispatchSchema', 0, ['permit', 'workflow', 'checksum'], 'bad'],
++      ['preparedDispatchSchema', 0, ['modelChoice', 'probeReceiptId'], 'bad'],
++      ['routingToolSchema', 2, ['input', 'ticket', 'level'], 'workspace'],
++      ['routingToolSchema', 2, ['input', 'ticket', 'workflowPin', 'extra'], true],
++      ['routingToolSchema', 2, ['input', 'ticket', 'criteria', 'constructor'], {}],
++      ['routingToolSchema', 5, ['input', 'scopeSha256'], 'bad'],
++      ['routingToolResultSchema', 1, ['result', 'snapshot', 'modelConfigRevision'], 0],
++      ['unclaimedStopProofSchema', 0, ['stopEvidenceId'], randomUUID()],
++      ['unclaimedStopProofSchema', 1, ['generation'], '01'],
++    ];
++    const samples = assistantContractSamples();
++    for (const [name, index, path, value] of negatives) {
++      const invalid = structuredClone(samples[name]?.[index]) as Record<string | number, unknown>;
++      let cursor = invalid;
++      for (const part of path.slice(0, -1)) cursor = cursor[part] as Record<string | number, unknown>;
++      const last = path.at(-1);
++      assert.ok(last !== undefined);
++      cursor[last] = value;
++      assert.equal(compile(schemas[name])(invalid), false, `${name}: ${path.join('.')}`);
++    }
++  }
++});
++
++// Static RED preparation. The first authorized real run must fail on missing
++// migration011/service; no production implementation precedes that observation.
++test('assistant store schema has a durable empty inbox in the actual PostgreSQL migration prefix', async () => {
++  // Before 011 exists, connect/migrate the accepted prefix010 and exercise the
++  // missing relation in PostgreSQL. Once authored, require/checksum prefix011.
++  const through = existsSync(new URL('../migrations/011_assistant.sql', import.meta.url)) ? 11 : 10;
++  await databaseFixture(through)(async (db) => {
++    const [inbox] = await db`select count(*)::integer as count from assistant_work_inbox`;
++    assert.equal(inbox?.count, 0);
++    const [monitor] = await db`select cursor,generation from assistant_monitor where singleton=true`;
++    assert.equal(String(monitor?.cursor), '0');
++    assert.equal(String(monitor?.generation), '0');
++  });
++});
++
++test('assistant store retains one unrouted message across duplicate event ingestion and pool restart', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const submitted = await f.submitMessage();
++      const ticketCount = (await db`select id from tickets`).length;
++      await db.begin(async (tx) => {
++        await ingestEvents(tx, submitted.cursor);
++        await ingestEvents(tx, submitted.cursor);
++        assert.equal(await pendingCount(tx, submitted.cursor), 1);
++      });
++      const [before] = await db`
++        select id,logical_key,target_kind,target_id,input_revision,state,turn_id
++        from assistant_work_inbox where source_cursor=${submitted.cursor}
++      `;
++      assert.ok(before);
++      assert.equal(before.target_kind, 'message');
++      assert.equal(before.target_id, submitted.message.id);
++      assert.equal(String(before.input_revision), '1');
++      assert.equal(before.state, 'pending');
++      assert.equal(before.turn_id, null);
++      const first = await openPeerDb(db);
++      try {
++        await first.begin((tx) => ingestEvents(tx, submitted.cursor));
++      } finally {
++        await first.end();
++      }
++      const restarted = await openPeerDb(db);
++      try {
++        await restarted.begin(async (tx) => {
++          await ingestEvents(tx, submitted.cursor);
++          assert.equal(await pendingCount(tx, submitted.cursor), 1);
++        });
++        const [after] = await restarted`
++          select id,logical_key,target_kind,target_id,input_revision,state,turn_id
++          from assistant_work_inbox where source_cursor=${submitted.cursor}
++        `;
++        assert.deepEqual(after, before);
++        const [linked] = await restarted`
++          select conversation_id,text from attachment_messages where id=${submitted.message.id}
++        `;
++        assert.equal(linked?.conversation_id, submitted.conversation.id);
++        assert.equal(linked?.text, submitted.input.text);
++        assert.equal((await restarted`select id from tickets`).length, ticketCount);
++        assert.equal((await restarted`select id from attachment_messages`).length, 1);
++      } finally {
++        await restarted.end();
++      }
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store rolls back inbox insertion and cursor together after a crashed transaction', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const submitted = await f.submitMessage();
++      const before = await db`select cursor from assistant_monitor where singleton=true`;
++      await assert.rejects(
++        db.begin(async (tx) => {
++          await ingestEvents(tx, submitted.cursor);
++          assert.equal(await pendingCount(tx, submitted.cursor), 1);
++          throw new Error('FIXTURE_CRASH_BEFORE_COMMIT');
++        }),
++        /FIXTURE_CRASH_BEFORE_COMMIT/,
++      );
++      assert.equal(await db.begin((tx) => pendingCount(tx, submitted.cursor)), 0);
++      assert.deepEqual(await db`select cursor from assistant_monitor where singleton=true`, before);
++      await db.begin((tx) => ingestEvents(tx, submitted.cursor));
++      assert.equal(await db.begin((tx) => pendingCount(tx, submitted.cursor)), 1);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store advances cursor in commit order without skipping or re-enqueuing an earlier event', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const first = await f.submitMessage('Yêu cầu thứ nhất');
++      const second = await f.submitMessage('Yêu cầu thứ hai');
++      await db.begin((tx) => ingestEvents(tx, first.cursor));
++      assert.equal(await db.begin((tx) => pendingCount(tx, first.cursor)), 1);
++      assert.equal(await db.begin((tx) => pendingCount(tx, second.cursor)), 0);
++      await db.begin((tx) => ingestEvents(tx, second.cursor));
++      await db.begin((tx) => ingestEvents(tx, first.cursor));
++      const [monitor] = await db`select cursor from assistant_monitor where singleton=true`;
++      assert.equal(String(monitor?.cursor), second.cursor);
++      assert.equal(await db.begin((tx) => pendingCount(tx, first.cursor)), 1);
++      assert.equal(await db.begin((tx) => pendingCount(tx, second.cursor)), 1);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store concurrent consumers commit one wake per event target revision', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    const peer = await openPeerDb(db);
++    try {
++      const submitted = await f.submitMessage();
++      await Promise.all([
++        db.begin((tx) => ingestEvents(tx, submitted.cursor)),
++        peer.begin((tx) => ingestEvents(tx, submitted.cursor)),
++      ]);
++      assert.equal(await db.begin((tx) => pendingCount(tx, submitted.cursor)), 1);
++      assert.equal(
++        (await db`select id from assistant_work_inbox where source_cursor=${submitted.cursor}`).length,
++        1,
++      );
++    } finally {
++      await peer.end();
++      await f.close();
++    }
++  }));
++
++test('assistant store legacy root comment wakes current descendants using existing 009 counters exactly once', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const child = await f.mutation(randomUUID(), (tx) =>
++        f.services.createTicket(tx, inputTicket(f.project.id, 'task', f.a.id), owner),
++      );
++      const { cursor } = await f.comment(f.request.id);
++      const before = await db`
++        select target_id,revision from attachment_input_revisions where target_kind='ticket' order by target_id
++      `;
++      await db.begin((tx) => ingestEvents(tx, cursor));
++      const work = await db`
++        select target_id,input_revision from assistant_work_inbox where source_cursor=${cursor} order by target_id
++      `;
++      assert.deepEqual(
++        work.map((row) => row.target_id).sort(),
++        [f.request.id, f.a.id, f.b.id, child.id].sort(),
++      );
++      assert.ok(work.every((row) => String(row.input_revision) === '2'));
++      assert.deepEqual(
++        await db`select target_id,revision from attachment_input_revisions where target_kind='ticket' order by target_id`,
++        before,
++      );
++      await db.begin((tx) => ingestEvents(tx, cursor));
++      assert.equal(await db.begin((tx) => pendingCount(tx, cursor)), 4);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store child comment excludes parent and sibling work', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const child = await f.mutation(randomUUID(), (tx) =>
++        f.services.createTicket(tx, inputTicket(f.project.id, 'task', f.a.id), owner),
++      );
++      const { cursor } = await f.comment(f.a.id);
++      await db.begin((tx) => ingestEvents(tx, cursor));
++      const work = await db`select target_id from assistant_work_inbox where source_cursor=${cursor}`;
++      assert.deepEqual(work.map((row) => row.target_id).sort(), [f.a.id, child.id].sort());
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store does not create an Assistant wake from unrelated internal probe metadata', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const event = await db.begin((tx) =>
++      appendEvent(tx, {
++        type: 'probe',
++        projectId: null,
++        ticketId: null,
++        audienceMachineId: null,
++        data: {},
++      }),
++    );
++    await db.begin((tx) => ingestEvents(tx, event.cursor));
++    assert.equal(await db.begin((tx) => pendingCount(tx, event.cursor)), 0);
++    const [monitor] = await db`select cursor from assistant_monitor where singleton=true`;
++    assert.equal(String(monitor?.cursor), event.cursor);
++  }));
++
++test('assistant store revision reconciliation recovers an unrouted message and deduplicates its later event', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents, reconcileWork } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const submitted = await f.submitMessage();
++      await db.begin((tx) => reconcileWork(tx));
++      const [recovered] = await db`
++        select id,target_id,input_revision,state from assistant_work_inbox
++        where target_kind='message' and target_id=${submitted.message.id}
++      `;
++      assert.ok(recovered);
++      assert.equal(recovered.target_id, submitted.message.id);
++      assert.equal(String(recovered.input_revision), '1');
++      assert.equal(recovered.state, 'pending');
++      await db.begin((tx) => reconcileWork(tx));
++      await db.begin((tx) => ingestEvents(tx, submitted.cursor));
++      const rows = await db`
++        select id,target_id,input_revision,state from assistant_work_inbox
++        where target_kind='message' and target_id=${submitted.message.id}
++      `;
++      assert.equal(rows.length, 1);
++      assert.deepEqual(rows[0], recovered);
++      assert.equal((await db`select id from assistant_turns`).length, 0);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store revision reconciliation preserves newer child input without waking its unchanged sibling twice', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents, reconcileWork } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      await db.begin((tx) => reconcileWork(tx));
++      const siblingBefore = await db`
++        select id,input_revision,state from assistant_work_inbox
++        where target_kind='ticket' and target_id=${f.b.id} and input_revision is not null order by id
++      `;
++      const changed = await f.comment(f.a.id);
++      await db.begin((tx) => reconcileWork(tx));
++      await db.begin((tx) => ingestEvents(tx, changed.cursor));
++      const changedRows = await db`
++        select input_revision from assistant_work_inbox
++        where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null order by input_revision
++      `;
++      assert.deepEqual(
++        changedRows.map((row) => String(row.input_revision)),
++        ['1', '2'],
++      );
++      const siblingAfter = await db`
++        select id,input_revision,state from assistant_work_inbox
++        where target_kind='ticket' and target_id=${f.b.id} and input_revision is not null order by id
++      `;
++      assert.deepEqual(siblingAfter, siblingBefore);
++      assert.equal((await db`select id from assistant_turns`).length, 0);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store input events share a revision wake without rewriting its original cursor or logical key', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const submitted = await f.submitMessage();
++      await db.begin((tx) => ingestEvents(tx, submitted.cursor));
++      const original = await db`
++        select id,logical_key,source_cursor,target_id,input_revision,state from assistant_work_inbox
++        where target_kind='message' and target_id=${submitted.message.id}
++      `;
++      const machineId = randomUUID();
++      await db`insert into machines(id,name,token_hash) values(${machineId},'fixture-input-wake',${'f'.repeat(64)})`;
++      const duplicate = await db.begin((tx) =>
++        appendEvent(tx, {
++          type: 'attachment.input.changed',
++          projectId: null,
++          ticketId: null,
++          audienceMachineId: machineId,
++          data: { targetKind: 'message', targetId: submitted.message.id, inputRevision: '1' },
++        }),
++      );
++      await db.begin((tx) => ingestEvents(tx, duplicate.cursor));
++      assert.deepEqual(
++        await db`
++        select id,logical_key,source_cursor,target_id,input_revision,state from assistant_work_inbox
++        where target_kind='message' and target_id=${submitted.message.id}
++      `,
++        original,
++      );
++      const [monitor] = await db`select cursor from assistant_monitor where singleton=true`;
++      assert.equal(String(monitor?.cursor), duplicate.cursor);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store distinct lifecycle events survive deduplication while input revision is unchanged', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const cursors: string[] = [];
++      let revision = f.a.revision;
++      for (const signal of ['wait_owner', 'resume'] as const) {
++        const ticket = await f.mutation(randomUUID(), (tx) =>
++          f.services.signalTicket(tx, f.a.id, signal, revision, null, owner),
++        );
++        revision = ticket.revision;
++        const [event] = await db`
++          select cursor from events where type='ticket.changed' and ticket_id=${f.a.id}
++          and (data->>'revision')::integer=${revision}
++        `;
++        assert.ok(event);
++        cursors.push(String(event.cursor));
++      }
++      await db.begin((tx) => ingestEvents(tx, cursors[1] ?? '0'));
++      const work = await db`
++        select source_cursor,input_revision from assistant_work_inbox
++        where source_cursor in ${db(cursors)} order by source_cursor
++      `;
++      assert.deepEqual(
++        work.map((row) => String(row.source_cursor)),
++        cursors,
++      );
++      assert.ok(work.every((row) => row.input_revision === null));
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store rejects claiming work with an unpersisted turn fence and preserves pending delivery', async () =>
++  databaseFixture(11)(async (db) => {
++    const { claimWork, ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const submitted = await f.submitMessage();
++      await db.begin((tx) => ingestEvents(tx, submitted.cursor));
++      const [work] = await db`
++        select id,state,turn_id,claim_generation,attempts,acked_at from assistant_work_inbox
++        where target_kind='message' and target_id=${submitted.message.id}
++      `;
++      assert.ok(work);
++      await assert.rejects(
++        db.begin((tx) =>
++          claimWork(tx, String(work.id), {
++            turnId: randomUUID(),
++            designationId: randomUUID(),
++            designationRevision: 1,
++            generation: '1',
++            processInstanceId: randomUUID(),
++          }),
++        ),
++        { status: 409 },
++      );
++      const [after] = await db`
++        select id,state,turn_id,claim_generation,attempts,acked_at from assistant_work_inbox where id=${work.id}
++      `;
++      assert.deepEqual(after, work);
++      assert.equal(after?.state, 'pending');
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store rejects acknowledging mere delivery without persisted turn authority', async () =>
++  databaseFixture(11)(async (db) => {
++    const { ackWork, ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const submitted = await f.submitMessage();
++      await db.begin((tx) => ingestEvents(tx, submitted.cursor));
++      const [work] = await db`
++        select id,state,turn_id,claim_generation,attempts,acked_at from assistant_work_inbox
++        where target_kind='message' and target_id=${submitted.message.id}
++      `;
++      assert.ok(work);
++      await assert.rejects(
++        db.begin((tx) =>
++          ackWork(tx, String(work.id), {
++            turnId: randomUUID(),
++            designationId: randomUUID(),
++            designationRevision: 1,
++            generation: '1',
++            processInstanceId: randomUUID(),
++          }),
++        ),
++        { status: 409 },
++      );
++      const [after] = await db`
++        select id,state,turn_id,claim_generation,attempts,acked_at from assistant_work_inbox where id=${work.id}
++      `;
++      assert.deepEqual(after, work);
++      assert.equal(after?.state, 'pending');
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store claims once and acknowledges only its exact current persisted fence', async () =>
++  databaseFixture(11)(async (db) => {
++    const { claimWork, ackWork, ingestEvents, reconcileWork } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      const fence = await f.seedTurn(m.conversation.id, m.message.id);
++      await db.begin((tx) => ingestEvents(tx, m.cursor));
++      const [work] =
++        await db`select id from assistant_work_inbox where target_kind='message' and target_id=${m.message.id}`;
++      assert.ok(work);
++      for (const change of [
++        { processInstanceId: randomUUID() },
++        { generation: '2' },
++        { designationRevision: 2 },
++        { designationId: randomUUID() },
++      ])
++        await assert.rejects(
++          db.begin((tx) => claimWork(tx, String(work.id), { ...fence, ...change })),
++          { status: 409 },
++        );
++      await db.begin((tx) => claimWork(tx, String(work.id), fence));
++      await db.begin((tx) => claimWork(tx, String(work.id), fence));
++      const [claimed] =
++        await db`select state,attempts,acked_at from assistant_work_inbox where id=${work.id}`;
++      assert.equal(claimed?.state, 'claimed');
++      assert.equal(claimed?.attempts, 1);
++      assert.equal(claimed?.acked_at, null);
++      await db`update assistant_config set designation_id=null,revision=revision+1 where singleton=true`;
++      await assert.rejects(
++        db.begin((tx) => ackWork(tx, String(work.id), fence)),
++        { status: 409 },
++      );
++      const [held] = await db`select state,attempts,acked_at from assistant_work_inbox where id=${work.id}`;
++      assert.deepEqual(held, claimed);
++      await db`update assistant_config set designation_id=${fence.designationId},revision=revision+1 where singleton=true`;
++      await db.begin((tx) => ackWork(tx, String(work.id), fence));
++      await db.begin((tx) => ackWork(tx, String(work.id), fence));
++      await db.begin((tx) => reconcileWork(tx));
++      const done =
++        await db`select state,attempts,acked_at from assistant_work_inbox where target_kind='message' and target_id=${m.message.id}`;
++      assert.equal(done.length, 1);
++      assert.equal(done[0]?.state, 'acked');
++      assert.equal(done[0]?.attempts, 1);
++      assert.ok(done[0]?.acked_at);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store uncertain turn retains singleton guard and claimed work across restart', async () =>
++  databaseFixture(11)(async (db) => {
++    const { claimWork, ackWork, ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      const fence = await f.seedTurn(m.conversation.id, m.message.id);
++      await db.begin((tx) => ingestEvents(tx, m.cursor));
++      const [work] =
++        await db`select id from assistant_work_inbox where target_kind='message' and target_id=${m.message.id}`;
++      assert.ok(work);
++      await db.begin((tx) => claimWork(tx, String(work.id), fence));
++      await db`update assistant_turns set state='uncertain' where id=${fence.turnId}`;
++      const peer = await openPeerDb(db);
++      try {
++        await assert.rejects(
++          peer.begin((tx) => ackWork(tx, String(work.id), fence)),
++          { status: 409 },
++        );
++        await assert.rejects(
++          peer`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,model_selection_id,state)
++          select ${randomUUID()},conversation_id,message_id,designation_id,designation_revision,2,${randomUUID()},${randomUUID()},'reserved'
++          from assistant_turns where id=${fence.turnId}`,
++          { code: '23505' },
++        );
++        const [held] = await peer`select state from assistant_turns where id=${fence.turnId}`;
++        assert.equal(held?.state, 'uncertain');
++        const [pending] = await peer`select state,acked_at from assistant_work_inbox where id=${work.id}`;
++        assert.equal(pending?.state, 'claimed');
++        assert.equal(pending?.acked_at, null);
++      } finally {
++        await peer.end();
++      }
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store generation allocation rolls back and fails rather than wrapping bigint', async () =>
++  databaseFixture(11)(async (db) => {
++    const { allocateAssistantGeneration } = await import('../src/assistant/store.ts');
++    await assert.rejects(
++      db.begin(async (tx) => {
++        assert.equal(await allocateAssistantGeneration(tx), '1');
++        throw new Error('RESERVATION_ROLLBACK');
++      }),
++      /RESERVATION_ROLLBACK/,
++    );
++    assert.equal(await db.begin((tx) => allocateAssistantGeneration(tx)), '1');
++    assert.equal(await db.begin((tx) => allocateAssistantGeneration(tx)), '2');
++    await db`update assistant_monitor set generation=9223372036854775807 where singleton=true`;
++    await assert.rejects(
++      db.begin((tx) => allocateAssistantGeneration(tx)),
++      { code: 'ASSISTANT_GENERATION_EXHAUSTED' },
++    );
++    const [row] = await db`select generation from assistant_monitor where singleton=true`;
++    assert.equal(String(row?.generation), '9223372036854775807');
++  }));
++
++test('assistant store turn linkage is immutable and exact to the submitted conversation', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const first = await f.submitMessage();
++      const second = await f.submitMessage();
++      const fence = await f.seedTurn(first.conversation.id, first.message.id);
++      await assert.rejects(
++        db`update assistant_turns set message_id=${second.message.id} where id=${fence.turnId}`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      await assert.rejects(
++        db`update assistant_turns set conversation_id=${second.conversation.id} where id=${fence.turnId}`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      await assert.rejects(
++        db`update attachment_messages set text='Thay đổi' where id=${first.message.id}`,
++        /ATTACHMENT_RECORD_IMMUTABLE/,
++      );
++      const [stored] =
++        await db`select conversation_id,message_id from assistant_turns where id=${fence.turnId}`;
++      assert.equal(stored?.conversation_id, first.conversation.id);
++      assert.equal(stored?.message_id, first.message.id);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store routing certificate cannot change deployment or admit a different binary context', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      await f.seedTurn(m.conversation.id, m.message.id);
++      await assert.rejects(
++        db`update assistant_config set deployment_id=${randomUUID()} where singleton=true`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      await assert.rejects(
++        db`update assistant_policy_receipts set status='PASS'`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      await assert.rejects(
++        db`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
++        select ${randomUUID()},deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,${'0'.repeat(64)},policy_sha256,probe_context_sha256,status,evidence_ids,expires_at from assistant_policy_receipts`,
++        /ASSISTANT_CERTIFICATION_CONTEXT_MISMATCH/,
++      );
++      await assert.rejects(
++        db`update routing_capability_receipts set context_sha256=${'0'.repeat(64)}`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store uncertain budget cannot rewind or settle without a reported spend receipt', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      const id = randomUUID();
++      await db`insert into assistant_budget_reservations(id,scope_kind,scope_id,reserved_usd,spent_usd,state)
++        values(${id},'conversation',${m.conversation.id},5,1,'uncertain')`;
++      await assert.rejects(
++        db`update assistant_budget_reservations set spent_usd=0 where id=${id}`,
++        /ASSISTANT_BUDGET_REWIND/,
++      );
++      await assert.rejects(
++        db`update assistant_budget_reservations set state='reserved' where id=${id}`,
++        /ASSISTANT_BUDGET_REWIND/,
++      );
++      await assert.rejects(
++        db`update assistant_budget_reservations set state='settled' where id=${id}`,
++        /ASSISTANT_BUDGET_RECEIPT_REQUIRED/,
++      );
++      const [row] =
++        await db`select state,reserved_usd,spent_usd from assistant_budget_reservations where id=${id}`;
++      assert.equal(row?.state, 'uncertain');
++      assert.equal(Number(row?.reserved_usd), 5);
++      assert.equal(Number(row?.spent_usd), 1);
++      const [config] =
++        await db`select policy->>'maxCostUsdPerRun' as budget from assistant_config where singleton=true`;
++      assert.equal(config?.budget, '0');
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store durable effects use hex64 and a persisted ordinal across repeated intentional actions', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const run = await f.seedWorkflowRows();
++      const insert = (id: string, identity: string, effect: string) => db`
++        insert into assistant_operation_ids(id,run_id,step_id,action_kind,target_identity,precondition_sha256,effect_id)
++        values(${id},${run.runId},${run.stepId},'write',${identity},${'a'.repeat(64)},${effect})`;
++      await insert(randomUUID(), 'fixture.txt:ordinal:1', 'b'.repeat(64));
++      await assert.rejects(insert(randomUUID(), 'fixture.txt:ordinal:1', 'c'.repeat(64)), { code: '23505' });
++      await assert.rejects(insert(randomUUID(), 'fixture.txt:ordinal:2', 'b'.repeat(64)), { code: '23505' });
++      await assert.rejects(insert(randomUUID(), 'fixture.txt:ordinal:2', randomUUID()), { code: '23514' });
++      await insert(randomUUID(), 'fixture.txt:ordinal:2', 'c'.repeat(64));
++      await assert.rejects(
++        db`update assistant_operation_ids set effect_id=${'d'.repeat(64)} where target_identity='fixture.txt:ordinal:1'`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      const rows =
++        await db`select target_identity,effect_id from assistant_operation_ids order by target_identity`;
++      assert.deepEqual(
++        rows.map((r) => [r.target_identity, r.effect_id]),
++        [
++          ['fixture.txt:ordinal:1', 'b'.repeat(64)],
++          ['fixture.txt:ordinal:2', 'c'.repeat(64)],
++        ],
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store tool operations keep sequence and completed result immutable', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      const fence = await f.seedTurn(m.conversation.id, m.message.id);
++      const snapshotId = randomUUID(),
++        operationId = randomUUID();
++      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++        values(${snapshotId},'message',${m.message.id},1,0,'{}',${'a'.repeat(64)})`;
++      await db`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state)
++        values(${operationId},${fence.turnId},1,'provider-1',${'b'.repeat(64)},${snapshotId},'pending')`;
++      await assert.rejects(
++        db`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state)
++        values(${randomUUID()},${fence.turnId},1,'provider-2',${'c'.repeat(64)},${snapshotId},'pending')`,
++        { code: '23505' },
++      );
++      await assert.rejects(
++        db`update assistant_tool_operations set request_hash=${'c'.repeat(64)} where operation_id=${operationId}`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      const response = { operationId, state: 'rejected', result: null, errorCode: 'FIXTURE_NOT_ADMITTED' };
++      await db`update assistant_tool_operations set state='rejected',response=${db.json(response)} where operation_id=${operationId}`;
++      await assert.rejects(
++        db`update assistant_tool_operations set response='{}' where operation_id=${operationId}`,
++        /ASSISTANT_TOOL_RESULT_IMMUTABLE/,
++      );
++      const [stored] =
++        await db`select response from assistant_tool_operations where operation_id=${operationId}`;
++      assert.deepEqual(stored?.response, response);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store prelaunch hook rejects missing or different process identity and binds a matching claim atomically', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const dispatch = await f.seedDispatchRows();
++      await assert.rejects(dispatch.insertAttempt(randomUUID()), /ASSISTANT_PRELAUNCH_REQUIRED/);
++      const launch = await dispatch.launch();
++      await assert.rejects(dispatch.insertAttempt(randomUUID()), /ASSISTANT_PRELAUNCH_REQUIRED/);
++      assert.equal((await db`select id from attempts where command_id=${dispatch.command.id}`).length, 0);
++      const [before] = await db`select state from assistant_reservations where id=${dispatch.reservationId}`;
++      assert.equal(before?.state, 'reserved');
++      const attemptId = await dispatch.insertAttempt(launch.processInstanceId);
++      const [bound] =
++        await db`select state,attempt_id from assistant_launch_authorizations where command_id=${dispatch.command.id}`;
++      const [active] = await db`select state from assistant_reservations where id=${dispatch.reservationId}`;
++      assert.equal(bound?.state, 'claimed');
++      assert.equal(bound?.attempt_id, attemptId);
++      assert.equal(active?.state, 'active');
++      await assert.rejects(
++        db`update assistant_reservations set state='released' where id=${dispatch.reservationId}`,
++        /ASSISTANT_FINALIZATION_REQUIRED/,
++      );
++      await db`update attempts set state='finalizing',stopped_at=now(),stop_reason='exit' where id=${attemptId}`;
++      await assert.rejects(
++        db`update assistant_reservations set state='released' where id=${dispatch.reservationId}`,
++        /ASSISTANT_FINALIZATION_REQUIRED/,
++      );
++      await db`update attempts set state='stopped',finalized_at=now() where id=${attemptId}`;
++      await db`update assistant_reservations set state='released' where id=${dispatch.reservationId}`;
++      const [released] =
++        await db`select state from assistant_reservations where id=${dispatch.reservationId}`;
++      assert.equal(released?.state, 'released');
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store retirement tombstone blocks claim and unclaimed release needs exact never-authorized proof', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const dispatch = await f.seedDispatchRows();
++      const retirementId = randomUUID();
++      await db`insert into assistant_dispatch_retirements(command_id,retirement_id,reason) values(${dispatch.command.id},${retirementId},'expired')`;
++      await assert.rejects(
++        db`update assistant_reservations set state='released' where id=${dispatch.reservationId}`,
++        /ASSISTANT_RETIREMENT_PROOF_REQUIRED/,
++      );
++      const proof = { kind: 'never-authorized', commandId: dispatch.command.id, retirementId };
++      await db`update assistant_dispatch_retirements set proof=${db.json(proof)},released_at=now() where command_id=${dispatch.command.id}`;
++      await db`update assistant_reservations set state='released' where id=${dispatch.reservationId}`;
++      const launch = await dispatch.launch();
++      await assert.rejects(dispatch.insertAttempt(launch.processInstanceId), /ASSISTANT_PRELAUNCH_REQUIRED/);
++      await assert.rejects(
++        db`update assistant_dispatch_retirements set proof='{}' where command_id=${dispatch.command.id}`,
++        /ASSISTANT_RECORD_LATCHED/,
++      );
++      assert.equal((await db`select id from attempts where command_id=${dispatch.command.id}`).length, 0);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store derived route consent cannot extend parent expiry or widen original access', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const m = await f.submitMessage();
++      const routeId = randomUUID(),
++        decisionId = randomUUID(),
++        parentId = randomUUID();
++      await db`insert into attachment_message_decisions(id,message_id,input_revision,actor_kind,actor_id,kind,body,sha256)
++        values(${decisionId},${m.message.id},1,'owner','owner','routing','{}',${'a'.repeat(64)})`;
++      await db`insert into attachment_message_routes(id,message_id,revision,project_id,ticket_id,decision_id)
++        values(${routeId},${m.message.id},1,${f.project.id},${f.request.id},${decisionId})`;
++      const original = { attachmentId: randomUUID(), sha256: 'e'.repeat(64), ownerId: 'owner' };
++      await db`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,allow_original,expires_at)
++        values(${parentId},'message',${m.message.id},${db.json([original])},${'b'.repeat(64)},false,now()+interval '1 hour')`;
++      for (const invalid of [
++        { minutes: 120, allowOriginal: false, ticketId: f.request.id, originals: [] },
++        { minutes: 30, allowOriginal: true, ticketId: f.request.id, originals: [] },
++        { minutes: 30, allowOriginal: false, ticketId: f.a.id, originals: [] },
++        {
++          minutes: 30,
++          allowOriginal: false,
++          ticketId: f.request.id,
++          originals: [{ attachmentId: original.attachmentId }],
++        },
++      ]) {
++        const derivedId = randomUUID();
++        await db`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,allow_original,expires_at)
++          values(${derivedId},'ticket',${invalid.ticketId},${db.json(invalid.originals)},${'c'.repeat(64)},${invalid.allowOriginal},now()+${invalid.minutes}*interval '1 minute')`;
++        await assert.rejects(
++          db`insert into assistant_route_authorizations(route_id,parent_authorization_id,derived_authorization_id,parent_scope_sha256)
++          values(${routeId},${parentId},${derivedId},${'b'.repeat(64)})`,
++          /ASSISTANT_ROUTE_CONSENT_MISMATCH/,
++        );
++      }
++      const validId = randomUUID();
++      await db`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,allow_original,expires_at)
++        values(${validId},'ticket',${f.request.id},'[]',${'c'.repeat(64)},false,now()+interval '30 minutes')`;
++      await assert.rejects(
++        db`insert into assistant_route_authorizations(route_id,parent_authorization_id,derived_authorization_id,parent_scope_sha256)
++        values(${routeId},${parentId},${validId},${'d'.repeat(64)})`,
++        /ASSISTANT_ROUTE_CONSENT_MISMATCH/,
++      );
++      await db`insert into assistant_route_authorizations(route_id,parent_authorization_id,derived_authorization_id,parent_scope_sha256)
++        values(${routeId},${parentId},${validId},${'b'.repeat(64)})`;
++      const [linked] =
++        await db`select derived_authorization_id from assistant_route_authorizations where route_id=${routeId}`;
++      assert.equal(linked?.derived_authorization_id, validId);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store capacity hashes are required hex64 immutable values independent of the request receipt latch', async () =>
++  databaseFixture(11)(async (db) => {
++    const f = await assistantFixture(db);
++    try {
++      const dispatch = await f.seedDispatchRows();
++      const [row] = await db`select q.id as request_id,q.request_sha256,r.id as receipt_id,r.receipt_sha256
++        from assistant_capacity_requests q join assistant_capacity_receipts r on r.id=q.receipt_id
++        where q.machine_id=${dispatch.machineId}`;
++      assert.match(String(row?.request_sha256), /^[0-9a-f]{64}$/);
++      assert.match(String(row?.receipt_sha256), /^[0-9a-f]{64}$/);
++      assert.equal(
++        row?.request_sha256,
++        createHash('sha256').update(canonicalJson(dispatch.request)).digest('hex'),
++      );
++      assert.equal(
++        row?.receipt_sha256,
++        createHash('sha256').update(canonicalJson(dispatch.receipt)).digest('hex'),
++      );
++      await assert.rejects(
++        db`update assistant_capacity_requests set request_sha256=${'f'.repeat(64)} where id=${row?.request_id}`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      await assert.rejects(
++        db`update assistant_capacity_receipts set receipt_sha256=${'f'.repeat(64)} where id=${row?.receipt_id}`,
++        /ASSISTANT_RECORD_IMMUTABLE/,
++      );
++      await assert.rejects(
++        db`update assistant_capacity_requests set receipt_id=null where id=${row?.request_id}`,
++        /ASSISTANT_RECORD_LATCHED/,
++      );
++      for (const value of [null, 'bad']) {
++        await assert.rejects(
++          db`insert into assistant_capacity_requests(id,machine_id,ticket_id,kind,ownership_keys,boot_generation,requested_at,expires_at,request_sha256)
++          values(${randomUUID()},${dispatch.machineId},${f.a.id},'implement','[]','1',now(),now()+interval '10 seconds',${value})`,
++          { code: value === null ? '23502' : '23514' },
++        );
++        await assert.rejects(
++          db`insert into assistant_capacity_receipts(id,request_id,machine_id,boot_generation,ticket_id,kind,ownership_keys,telemetry,received_at,expires_at,allowed,reason,receipt_sha256)
++          values(${randomUUID()},${row?.request_id},${dispatch.machineId},'1',${f.a.id},'implement','[]','{}',now(),now()+interval '10 seconds',true,'Fixture',${value})`,
++          { code: value === null ? '23502' : '23514' },
++        );
++      }
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant store restores prefix010 before upgrade and prefix011 with identical data and migration hashes', async () =>
++  databaseFixture(10)(async (db) => {
++    const { verifyBackupRestore } = await import('./support/assistant.ts');
++    const { captureMigrations, migrate } = await import('../src/db/migrate.ts');
++    const { ingestEvents } = await import('../src/assistant/inbox.ts');
++    const f = await assistantFixture(db);
++    let cursor: string;
++    try {
++      cursor = (await f.submitMessage('Nội dung phải giữ nguyên qua backup và restore')).cursor;
++    } finally {
++      await f.close();
++    }
++    const before = await db`select version,checksum from schema_migrations order by version`;
++    await verifyBackupRestore(db, 10);
++    const prefix11 = await captureMigrations(11);
++    await migrate(db, prefix11);
++    assert.deepEqual(
++      await db`select version,checksum from schema_migrations where version<=10 order by version`,
++      before,
++    );
++    await db.begin((tx) => ingestEvents(tx, cursor));
++    assert.equal(await db.begin((tx) => pendingCount(tx, cursor)), 1);
++    await verifyBackupRestore(db, 11);
++    const [eleventh] = await db`select checksum from schema_migrations where version=11`;
++    assert.equal(eleventh?.checksum, prefix11.files[10]?.sha256);
++  }));
+diff --git a/v2/server/test/support/assistant.ts b/v2/server/test/support/assistant.ts
+new file mode 100644
+index 0000000..451c651
+--- /dev/null
++++ b/v2/server/test/support/assistant.ts
+@@ -0,0 +1,806 @@
++import { spawn } from 'node:child_process';
++import { createHash, randomUUID } from 'node:crypto';
++import { createRequire } from 'node:module';
++import type { CapacityReceipt, CapacityRequest, TurnFence } from '../../src/assistant/contracts.ts';
++import type { MessageSubmission } from '../../src/attachments/contracts.ts';
++import { createMessageServices } from '../../src/attachments/messages.ts';
++import { connectDb } from '../../src/db/client.ts';
++import { createCommand } from '../../src/execution/commands.ts';
++import { canonicalJson } from '../../src/journal/canonical.ts';
++import type { Db, Id, Tx } from '../../src/platform/contracts.ts';
++import { attachmentFixture } from './attachments.ts';
++import { pin } from './execution.ts';
++import { inputTicket, owner } from './tickets.ts';
++
++export function assistantSchemaCompiler() {
++  // Execute the public compiler used by the accepted Fastify dependency. No server,
++  // request route, socket, or production authority is assembled by this helper.
++  const require = createRequire(import.meta.resolve('fastify'));
++  type Validate = ((input: unknown) => boolean) & { errors?: unknown };
++  const factory = require('@fastify/ajv-compiler') as () => (
++    schemas: Record<string, unknown>,
++    options: { customOptions: Record<string, unknown> },
++  ) => (input: { schema: unknown; method: string; url: string; httpPart: string }) => Validate;
++  const compiler = factory()(
++    {},
++    { customOptions: { removeAdditional: false, coerceTypes: false, useDefaults: false } },
++  );
++  return (schema: unknown) => compiler({ schema, method: 'POST', url: '/validation-only', httpPart: 'body' });
++}
++
++// Transport samples only: no database, HTTP authority, certificate or model call.
++export function assistantContractSamples(): Record<string, unknown[]> {
++  const id = randomUUID(),
++    hash = 'a'.repeat(64),
++    time = '2026-10-03T10:00:00.000Z';
++  const key = { machineId: id, runtime: 'api', providerId: 'fixture', modelId: 'fixture' };
++  const fence = {
++    turnId: id,
++    designationId: id,
++    designationRevision: 1,
++    generation: '1',
++    processInstanceId: id,
++  };
++  const input = { snapshotId: id, snapshotSha256: hash, inputRevision: '1', selectionSha256: hash };
++  const context = {
++    deploymentId: id,
++    machineId: id,
++    key,
++    binarySha256: hash,
++    policySha256: hash,
++    observerSha256: hash,
++    osVersion: 'fixture',
++  };
++  const source = {
++    name: 'superpowers',
++    version: '1',
++    sourceRevision: 'a'.repeat(40),
++    sourceUrl: 'https://example.test/source',
++    payloadSha256: hash,
++    packageIntegrity: null,
++    sourceManifestSha256: hash,
++    sourceTreeSha256: hash,
++  };
++  const projection = {
++    runtime: 'api',
++    sourceTreeSha256: hash,
++    manifestSha256: hash,
++    treeSha256: hash,
++    derivation: { tool: 'fixture', version: '1', options: [], layoutSchema: '1', policySha256: hash },
++  };
++  const step = {
++    id,
++    ticketId: id,
++    skill: 'fixture',
++    sourcePath: 'SKILL.md',
++    sourceSha256: hash,
++    predecessorIds: [],
++    acceptance: ['Kiểm chứng'],
++    outputKinds: ['report'],
++    gateIds: [],
++    ownershipKeys: ['file.ts'],
++    role: 'implement',
++  };
++  const run = {
++    id,
++    rootTicketId: id,
++    source,
++    projection,
++    definitionSha256: hash,
++    customizationSha256: hash,
++    renderedArtifactId: null,
++    path: 'bounded',
++    revision: 1,
++    steps: [step],
++    parallelApprovalId: null,
++  };
++  const refs = ['docs', 'ticket', 'artifact', 'owner_decision'].map((kind) => ({
++    kind,
++    id,
++    path: 'README.md',
++    locator: 'L1',
++  }));
++  const assessmentFields = {
++    ticketId: id,
++    candidateReadOperationId: id,
++    input,
++    complexity: 'bounded',
++    risk: [],
++    uncertainty: [],
++    required: ['text'],
++    strengthRationale: 'Fixture',
++    sources: refs,
++    candidateReasons: [{ key, reason: 'Fixture' }],
++  };
++  const assessment = { id, ...assessmentFields };
++  const proposal = { ...assessmentFields, chosen: key, choiceRationale: 'Fixture' };
++  const questionFields = {
++    conversationId: id,
++    ticketId: null,
++    runId: null,
++    stepId: null,
++    gateId: null,
++    cycleId: null,
++    artifactSha256: null,
++    question: 'Chọn?',
++    options: ['Tiếp tục'],
++    scopeSha256: hash,
++  };
++  const question = { id, ...questionFields, revision: 1, state: 'open' };
++  const scope = {
++    ticketId: id,
++    projectId: id,
++    machineId: id,
++    bindingRevision: 1,
++    runId: id,
++    runRevision: 1,
++    definitionSha256: hash,
++    input,
++    source: {
++      name: 'superpowers',
++      version: '1',
++      sourceRevision: 'a'.repeat(40),
++      sourceManifestSha256: hash,
++      sourceTreeSha256: hash,
++    },
++  };
++  const candidate = {
++    key,
++    declared: ['text'],
++    capabilities: ['text'],
++    available: true,
++    reason: null,
++    sourceDesired: true,
++    sourceApplied: true,
++    probe: { receiptId: id, contextSha256: hash, status: 'pass', receivedAt: time, expiresAt: time },
++    projection: {
++      runtime: 'api',
++      sourceTreeSha256: hash,
++      manifestSha256: hash,
++      treeSha256: hash,
++      derivationSha256: hash,
++    },
++    installReportId: id,
++    certificationReceiptId: id,
++  };
++  const snapshot = {
++    scope,
++    observedAt: time,
++    sha256: hash,
++    modelConfigRevision: 1,
++    modelAppliedRevision: 1,
++    gatewayConfigRevision: 1,
++    gatewayAppliedRevision: 1,
++    inventoryReportId: id,
++    bootGeneration: '1',
++    entries: [candidate],
++  };
++  const telemetry = {
++    sampleId: id,
++    bootGeneration: '1',
++    sampleAgeMs: 0,
++    cpuLoad1: 0,
++    cpuCount: 1,
++    memoryAvailableBytes: '4294967296',
++    memoryPressure: 'normal',
++    diskAvailableBytes: '8589934592',
++    activeJobs: 0,
++    configuredMaxJobs: 1,
++  };
++  const request = {
++    id,
++    machineId: id,
++    ticketId: id,
++    kind: 'implement',
++    ownershipKeys: ['file.ts'],
++    bootGeneration: '1',
++    requestedAt: time,
++    expiresAt: time,
++  };
++  const receipt = {
++    id,
++    requestId: id,
++    machineId: id,
++    bootGeneration: '1',
++    ticketId: id,
++    kind: 'implement',
++    ownershipKeys: ['file.ts'],
++    telemetry,
++    receivedAt: time,
++    expiresAt: time,
++    allowed: true,
++    reason: 'Fixture',
++  };
++  const doc = {
++    projectId: id,
++    snapshotId: id,
++    path: 'README.md',
++    sha256: hash,
++    sourceCommit: null,
++    receivedAt: time,
++    auditState: 'verified',
++    contentClass: 'implemented',
++    text: 'Fixture',
++    state: 'current',
++  };
++  const route = {
++    id,
++    messageId: id,
++    revision: 1,
++    projectId: id,
++    ticketId: id,
++    decisionId: id,
++    supersedesRouteId: null,
++    revokedAt: null,
++  };
++  const dispatch = {
++    command: {
++      id,
++      machineId: id,
++      ticketId: id,
++      type: 'start',
++      payload: { nested: { enabled: true } },
++      state: 'queued',
++      result: null,
++      createdAt: time,
++    },
++    permit: {
++      commandId: id,
++      ticketId: id,
++      machineId: id,
++      bindingRevision: 1,
++      ticketRevision: 1,
++      workflow: pin,
++      checkedAt: time,
++      expiresAt: time,
++      telemetryId: id,
++      decisionId: id,
++    },
++    selection: {
++      runtime: 'api',
++      sourceTreeSha256: hash,
++      projectionManifestSha256: hash,
++      projectionTreeSha256: hash,
++      installReportId: id,
++      configRevision: 1,
++      decisionId: id,
++    },
++    modelChoice: {
++      model: key,
++      modelConfigRevision: 1,
++      probeReceiptId: id,
++      probeContextSha256: hash,
++      certificationReceiptId: null,
++      required: ['text'],
++    },
++    inputSnapshot: input,
++  };
++  const ticket = { ...inputTicket(id, 'request'), workflowPin: pin };
++  const calls = [
++    { name: 'read_catalog', input: {} },
++    { name: 'read_docs', input: { projectId: id, snapshotId: id, path: 'README.md' } },
++    {
++      name: 'route_message',
++      input: {
++        messageId: id,
++        expectedInputRevision: '1',
++        expectedRouteRevision: 0,
++        ticket,
++        confidence: 0.9,
++        rationale: 'Fixture',
++        docReadIds: [id],
++      },
++    },
++    { name: 'read_execution_candidates', input: { ticketId: id, runId: id } },
++    { name: 'assess_ticket', input: proposal },
++    { name: 'ask_owner', input: questionFields },
++    { name: 'create_run', input: { rootTicketId: id, path: 'bounded', definitionSha256: hash } },
++    { name: 'request_dispatch', input: { stepId: id, assessmentId: id, chosen: key, priorAttemptId: null } },
++    { name: 'request_review', input: { runId: id, implementationStepId: id, implementationAttemptId: id } },
++    {
++      name: 'publish_reply',
++      input: {
++        messageId: id,
++        inputRevision: '1',
++        snapshotId: id,
++        receiptIds: [id],
++        text: 'Fixture',
++        sources: refs,
++      },
++    },
++  ];
++  const values = [
++    {
++      kind: 'catalog',
++      items: [{ projectId: id, key: 'P1', name: 'Fixture', latestSnapshotId: null, sourceCommit: null }],
++    },
++    { kind: 'execution_candidates', snapshot },
++    { kind: 'docs', page: doc, readReceiptId: id },
++    { kind: 'route', route },
++    { kind: 'assessment', assessment },
++    { kind: 'question', question },
++    { kind: 'run', run },
++    { kind: 'review', step },
++    { kind: 'capacity', request },
++    { kind: 'dispatch', dispatch },
++    { kind: 'reply', decisionId: id },
++  ];
++  const selection = {
++    id,
++    turnId: id,
++    key,
++    modelConfigRevision: 1,
++    probeReceiptId: id,
++    policyReceiptId: id,
++    required: ['text'],
++    rationale: 'Fixture',
++    createdAt: time,
++  };
++  const policyReceipt = {
++    id,
++    deploymentId: id,
++    challengeId: id,
++    verifierBuildSha256: hash,
++    machineId: id,
++    key,
++    osVersion: 'fixture',
++    binarySha256: hash,
++    policySha256: hash,
++    probeContextSha256: hash,
++    status: 'UNVERIFIED',
++    evidenceIds: [],
++    expiresAt: time,
++    revokedAt: null,
++  };
++  const launch = { challengeId: id, turnId: id, generation: '1', processInstanceId: id, context };
++  const policy = {
++    maxJobs: 1,
++    telemetryMaxAgeMs: 15000,
++    maxLoadPerCpu: 1,
++    minMemoryBytes: '4294967296',
++    minDiskBytes: '8589934592',
++    maxTurnsPerRun: 1,
++    maxToolsPerTurn: 1,
++    maxCostUsdPerRun: 0,
++    maxTurnMs: 1000,
++    maxRecoveryAttempts: 0,
++    parallelApprovalId: null,
++  };
++  return {
++    assistantPolicySchema: [policy],
++    assistantConfigSchema: [
++      { designation: null, revision: 1, preferred: null, policy },
++      {
++        designation: { id, ownerId: 'owner', machineId: id, revision: 1 },
++        revision: 1,
++        preferred: key,
++        policy,
++      },
++    ],
++    dispatchInputPinSchema: [input],
++    turnFenceSchema: [fence],
++    assistantModelSelectionSchema: [selection],
++    routingPolicyReceiptSchema: [policyReceipt],
++    assistantTurnSchema: [
++      {
++        fence,
++        conversationId: id,
++        messageId: id,
++        selection,
++        admission: { id, admittedAt: time, modelConfigRevision: 1, sourceEnabledAtAdmission: true },
++        readSessionId: null,
++        state: 'running',
++        checkpointArtifactId: null,
++      },
++    ],
++    orchestrationProofSchema: [{ fence, scopeId: id, operationId: id }],
++    orchestrationActionSchema: ['create_ticket', 'decision', 'dependency', 'command', 'signal'],
++    docReadSchema: [doc],
++    assessmentSchema: [assessment],
++    assessmentProposalSchema: [proposal],
++    skillStepSchema: [step],
++    workflowRunSchema: [run],
++    ownerQuestionSchema: [question],
++    questionProposalSchema: [questionFields],
++    routingCandidateSchema: [
++      {
++        key,
++        requiredSupported: ['text'],
++        sourceDesired: true,
++        sourceApplied: true,
++        modelConfigRevision: 1,
++        probeReceiptId: id,
++        probeContextSha256: hash,
++        binarySha256: hash,
++        probeExpiresAt: time,
++        available: true,
++        reason: null,
++      },
++    ],
++    capacityRequestSchema: [request],
++    assistantTelemetrySchema: [telemetry],
++    capacityReceiptSchema: [receipt],
++    preparedDispatchSchema: [dispatch],
++    routingCertificationContextSchema: [context],
++    routingCertificationChallengeSchema: [
++      {
++        id,
++        context,
++        nonce: 'opaque-nonce',
++        expiresAt: time,
++        maxTurns: 1,
++        maxTools: 1,
++        maxCostUsd: 0,
++        maxMs: 1000,
++        fixtureSha256: hash,
++      },
++    ],
++    routingCertificationLaunchSchema: [launch],
++    routingCertificationEvidenceSchema: [
++      {
++        launch,
++        traceArtifactIds: [id],
++        stopEvidenceId: id,
++        surfaces: [{ name: 'network', allowedTrace: hash, deniedTrace: hash }],
++        usage: { turns: 1, tools: 1, costUsd: 0, elapsedMs: 100 },
++      },
++    ],
++    executionCandidateScopeSchema: [scope],
++    executionCandidateSchema: [candidate, { ...candidate, projection: null }],
++    executionCandidateSnapshotSchema: [snapshot],
++    routingToolSchema: calls,
++    routingEventSchema: [
++      ...calls.map((call) => ({ kind: 'tool', providerCallId: 'provider-call', sequence: '1', call })),
++      ...['completed', 'failed', 'interrupted'].map((outcome) => ({ kind: 'finished', outcome })),
++    ],
++    routingToolValueSchema: values,
++    routingToolRequestSchema: calls.map((call) => ({
++      fence,
++      operationId: id,
++      clientSequence: '1',
++      inputSnapshot: input,
++      call,
++    })),
++    routingToolResultSchema: [
++      ...values.map((result) => ({ operationId: id, state: 'completed', result, errorCode: null })),
++      { operationId: id, state: 'pending', result: null, errorCode: null },
++      { operationId: id, state: 'rejected', result: null, errorCode: 'STALE' },
++    ],
++    launchAuthorizationSchema: [
++      { id, commandId: id, processInstanceId: id, bootGeneration: '1', generation: '1', expiresAt: time },
++    ],
++    unclaimedStopProofSchema: [
++      { kind: 'never-authorized', commandId: id, retirementId: id },
++      ...['journal-no-launch', 'process-stopped'].map((kind) => ({
++        kind,
++        commandId: id,
++        launchAuthorizationId: id,
++        processInstanceId: id,
++        bootGeneration: '1',
++        generation: '1',
++        journalSha256: hash,
++        stopEvidenceId: id,
++      })),
++    ],
++  };
++}
++
++// These helpers exercise accepted 009 producers. They do not implement
++// admission, HTTP clients, routing certification, or production authority.
++export async function assistantFixture(db: Db) {
++  const attachments = await attachmentFixture(db);
++  const messages = createMessageServices({ store: attachments.store, now: attachments.clock.now });
++  async function seedWorkflowRows() {
++    const runId = randomUUID(),
++      stepId = randomUUID();
++    await db`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,path,revision)
++      values(${runId},${attachments.request.id},'{}','{}',${'a'.repeat(64)},${'b'.repeat(64)},'bounded',1)`;
++    await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,output_kinds,gate_ids,ownership_keys,role)
++      values(${stepId},${runId},${attachments.a.id},'fixture-only','SKILL.md',${'a'.repeat(64)},'[]','[]','[]','[]','["fixture.txt"]','implement')`;
++    return { runId, stepId };
++  }
++  return {
++    ...attachments,
++    messages,
++    seedWorkflowRows,
++    async seedDispatchRows() {
++      // This seeds relational hook preconditions, not a permitted production run.
++      const { runId, stepId } = await seedWorkflowRows();
++      const machineId = randomUUID(),
++        snapshotId = randomUUID(),
++        assessmentId = randomUUID();
++      const requestId = randomUUID(),
++        receiptId = randomUUID(),
++        reservationId = randomUUID();
++      await db`insert into machines(id,name,token_hash) values(${machineId},'fixture-project',${createHash('sha256').update(machineId).digest('hex')})`;
++      await db`update projects set machine_id=${machineId},checkout_path='/tmp/fixture',binding_revision=2 where id=${attachments.project.id}`;
++      await attachments.mutation(randomUUID(), (tx) =>
++        attachments.services.signalTicket(
++          tx,
++          attachments.a.id,
++          'dependencies_ready',
++          attachments.a.revision,
++          null,
++          owner,
++        ),
++      );
++      const command = await attachments.mutation(randomUUID(), (tx) =>
++        createCommand(
++          tx,
++          {
++            machineId,
++            ticketId: attachments.a.id,
++            type: 'start',
++            payload: {},
++          },
++          owner,
++        ),
++      );
++      const decisionId = await attachments.mutation(randomUUID(), (tx) =>
++        attachments.services.recordDecision(
++          tx,
++          attachments.a.id,
++          {
++            kind: 'dispatch',
++            content: 'Fixture constraint',
++            rationale: 'Không có authority production',
++            sources: [],
++            scope: {},
++          },
++          owner,
++        ),
++      );
++      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++        values(${snapshotId},'ticket',${attachments.a.id},1,0,'{}',${'c'.repeat(64)})`;
++      await db`insert into assistant_assessments(id,ticket_id,input_snapshot_id,body,hash)
++        values(${assessmentId},${attachments.a.id},${snapshotId},'{}',${'d'.repeat(64)})`;
++      await db`insert into assistant_dispatches(command_id,decision_id,run_id,step_id,assessment_id,permit)
++        values(${command.id},${decisionId},${runId},${stepId},${assessmentId},'{}')`;
++      const now = Date.now();
++      const request: CapacityRequest = {
++        id: requestId,
++        machineId,
++        ticketId: attachments.a.id,
++        kind: 'implement',
++        ownershipKeys: ['fixture.txt'],
++        bootGeneration: '1',
++        requestedAt: new Date(now).toISOString(),
++        expiresAt: new Date(now + 15000).toISOString(),
++      };
++      const receipt: CapacityReceipt = {
++        id: receiptId,
++        requestId,
++        machineId,
++        ticketId: attachments.a.id,
++        kind: 'implement',
++        ownershipKeys: request.ownershipKeys,
++        bootGeneration: '1',
++        telemetry: {
++          sampleId: randomUUID(),
++          bootGeneration: '1',
++          sampleAgeMs: 0,
++          cpuLoad1: 0,
++          cpuCount: 1,
++          memoryAvailableBytes: '4294967296',
++          memoryPressure: 'normal',
++          diskAvailableBytes: '8589934592',
++          activeJobs: 0,
++          configuredMaxJobs: 1,
++        },
++        receivedAt: new Date(now).toISOString(),
++        expiresAt: new Date(now + 10000).toISOString(),
++        allowed: true,
++        reason: 'Fixture SQL only',
++      };
++      const requestHash = createHash('sha256').update(canonicalJson(request)).digest('hex');
++      const receiptHash = createHash('sha256').update(canonicalJson(receipt)).digest('hex');
++      await db`insert into assistant_capacity_requests(id,machine_id,ticket_id,kind,ownership_keys,boot_generation,requested_at,expires_at,request_sha256)
++        values(${request.id},${machineId},${request.ticketId},${request.kind},${db.json(request.ownershipKeys)},${request.bootGeneration},${request.requestedAt},${request.expiresAt},${requestHash})`;
++      await db`insert into assistant_capacity_receipts(id,request_id,machine_id,boot_generation,ticket_id,kind,ownership_keys,telemetry,received_at,expires_at,allowed,reason,receipt_sha256)
++        values(${receipt.id},${requestId},${machineId},${receipt.bootGeneration},${receipt.ticketId},${receipt.kind},${db.json(receipt.ownershipKeys)},${db.json(receipt.telemetry)},${receipt.receivedAt},${receipt.expiresAt},${receipt.allowed},${receipt.reason},${receiptHash})`;
++      await db`update assistant_capacity_requests set receipt_id=${receiptId} where id=${requestId}`;
++      await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
++        values(${reservationId},${command.id},${receiptId},${machineId},'["fixture.txt"]','reserved')`;
++      return {
++        runId,
++        stepId,
++        command,
++        machineId,
++        reservationId,
++        request,
++        receipt,
++        async launch() {
++          const id = randomUUID(),
++            processInstanceId = randomUUID();
++          await db`insert into assistant_launch_authorizations(command_id,id,machine_id,process_instance_id,boot_generation,generation,expires_at,state)
++            values(${command.id},${id},${machineId},${processInstanceId},'1',1,now()+interval '15 seconds','issued')`;
++          return { id, processInstanceId };
++        },
++        async insertAttempt(processInstanceId: Id) {
++          const id = randomUUID();
++          await db`insert into attempts(id,ticket_id,machine_id,command_id,fence,binding_revision,process_instance_id,state,lease_expires_at,workflow_pin)
++            values(${id},${attachments.a.id},${machineId},${command.id},1,2,${processInstanceId},'active',now()+interval '10 seconds',${db.json(pin)})`;
++          return id;
++        },
++      };
++    },
++    async seedTurn(conversationId: Id, messageId: Id): Promise<TurnFence> {
++      // Explicit test-only persisted rows. UNVERIFIED routing receipts never
++      // demonstrate admission or a production certification implementation.
++      const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
++      return db.begin(async (tx) => {
++        const machineId = randomUUID(),
++          designationId = randomUUID(),
++          turnId = randomUUID();
++        const selectionId = randomUUID(),
++          challengeId = randomUUID(),
++          receiptId = randomUUID(),
++          probeId = randomUUID();
++        const processInstanceId = randomUUID();
++        const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
++        const key = { machineId, runtime: 'api', providerId: 'fixture', modelId: 'no-inference' };
++        const context = {
++          deploymentId: String(config?.deployment_id),
++          machineId,
++          key,
++          binarySha256: 'a'.repeat(64),
++          policySha256: 'b'.repeat(64),
++          observerSha256: 'c'.repeat(64),
++          osVersion: 'fixture-only',
++        };
++        const contextHash = createHash('sha256').update(canonicalJson(context)).digest('hex');
++        await tx`insert into machines(id,name,token_hash) values(${machineId},'fixture-assistant',${createHash('sha256').update(machineId).digest('hex')})`;
++        await tx`insert into assistant_designations(id,owner_id,machine_id,revision) values(${designationId},'owner',${machineId},1)`;
++        await tx`update assistant_config set designation_id=${designationId} where singleton=true`;
++        await tx`insert into routing_certification_challenges(id,deployment_id,context,nonce_hash,expires_at,budgets,fixture_sha256,state)
++          values(${challengeId},${config?.deployment_id},${tx.json(context)},${'d'.repeat(64)},now()+interval '5 minutes',
++          ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},'failed')`;
++        await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
++          binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
++          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${machineId},${tx.json(key)},'fixture-only',
++          ${context.binarySha256},${context.policySha256},${contextHash},'UNVERIFIED','[]',now()+interval '5 minutes')`;
++        await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
++          values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',now(),now()+interval '4 minutes')`;
++        const generation = await allocateAssistantGeneration(tx);
++        await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,model_selection_id,state)
++          values(${turnId},${conversationId},${messageId},${designationId},1,${generation},${processInstanceId},${selectionId},'running')`;
++        await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
++          values(${selectionId},${turnId},${tx.json(key)},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
++        return { turnId, designationId, designationRevision: 1, generation, processInstanceId };
++      });
++    },
++    async submitMessage(text = 'Yêu cầu cần xử lý sau khi máy kết nối lại') {
++      const conversation = await attachments.mutation(randomUUID(), (tx) =>
++        messages.createConversation(tx, owner),
++      );
++      const selection = await attachments.readyCompose(
++        {
++          purpose: 'assistant_message',
++          projectId: null,
++          ticketId: null,
++          conversationId: conversation.id,
++        },
++        [],
++      );
++      const input: MessageSubmission = {
++        conversationId: conversation.id,
++        clientMessageId: randomUUID(),
++        text,
++        selection,
++        assistantRead: 'none',
++      };
++      const message = await attachments.mutation(randomUUID(), (tx) =>
++        messages.submitAssistantMessage(tx, input, owner),
++      );
++      const [event] = await db`
++        select cursor from events
++        where type='assistant.message.created' and data->>'messageId'=${message.id}
++      `;
++      if (!event) throw new Error('ASSISTANT_FIXTURE_MESSAGE_EVENT_MISSING');
++      return { conversation, input, message, cursor: String(event.cursor) };
++    },
++    async comment(ticketId: Id) {
++      const comment = await attachments.mutation(randomUUID(), (tx) =>
++        attachments.services.appendComment(tx, ticketId, 'Đầu vào cần được đọc lại', owner),
++      );
++      const [event] = await db`
++        select cursor from events where type='comment.created' and data->>'commentId'=${comment.id}
++      `;
++      if (!event) throw new Error('ASSISTANT_FIXTURE_COMMENT_EVENT_MISSING');
++      return { comment, cursor: String(event.cursor) };
++    },
++  };
++}
++
++export async function pendingCount(tx: Tx, eventId: string): Promise<number> {
++  const [row] = await tx`
++    select count(*)::integer as count from assistant_work_inbox
++    where logical_key like ${`event:${eventId}:%`} and state='pending'
++  `;
++  return Number(row?.count ?? 0);
++}
++
++export async function databaseContentsSha256(db: Db): Promise<string> {
++  const tables = await db`select tablename from pg_tables where schemaname='public' order by tablename`;
++  const contents: Record<string, unknown> = {};
++  for (const row of tables) {
++    const name = String(row.tablename);
++    if (!/^[a-z_]+$/.test(name)) throw new Error('UNSAFE_TABLE_NAME');
++    const [data] = await db.unsafe(
++      `select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) as rows from "${name}" t`,
++    );
++    contents[name] = data?.rows;
++  }
++  return createHash('sha256').update(canonicalJson(contents)).digest('hex');
++}
++
++async function pgCommand(container: string, args: string[], input: Buffer | null = null): Promise<Buffer> {
++  if (!/^[0-9a-f]{64}$/.test(container)) throw new Error('UNSAFE_TEST_DB_CONTAINER');
++  const command = ['exec', ...(input ? ['-i'] : []), container, ...args];
++  console.info('assistant backup child intended', JSON.stringify(command));
++  const child = spawn('docker', command, { stdio: ['pipe', 'pipe', 'pipe'] });
++  console.info('assistant backup child created', child.pid);
++  const stdout: Buffer[] = [],
++    stderr: Buffer[] = [];
++  let failure: Error | null = null;
++  child.stdout.on('data', (b: Buffer) => stdout.push(b));
++  child.stderr.on('data', (b: Buffer) => stderr.push(b));
++  child.on('error', (error) => {
++    failure = error;
++  });
++  child.stdin.on('error', (error) => {
++    failure = error;
++  });
++  child.stdin.end(input ?? undefined);
++  return new Promise((resolve, reject) =>
++    child.once('close', (code, signal) => {
++      console.info('assistant backup child closed', child.pid, code, signal);
++      if (failure || code !== 0 || signal)
++        reject(
++          failure ??
++            new Error(`PG_FIXTURE_COMMAND_FAILED ${Buffer.concat(stderr).toString().slice(0, 1024)}`),
++        );
++      else resolve(Buffer.concat(stdout));
++    }),
++  );
++}
++
++export async function verifyBackupRestore(db: Db, prefix: number): Promise<void> {
++  const container = process.env.CREW_V2_TEST_CONTAINER_ID;
++  const baseUrl = process.env.CREW_V2_TEST_DATABASE_URL;
++  if (!container || !baseUrl) throw new Error('PRIVATE_POSTGRES_REQUIRED');
++  const [source] = await db`select current_database() as name`;
++  if (!/^crew_v2_test_[0-9a-f]{32}$/.test(String(source?.name))) throw new Error('UNSAFE_BACKUP_DATABASE');
++  const original = await databaseContentsSha256(db);
++  const dump = await pgCommand(container, ['pg_dump', '-U', 'postgres', '-Fc', '-d', String(source.name)]);
++  if (dump.subarray(0, 5).toString() !== 'PGDMP') throw new Error('BACKUP_FORMAT_INVALID');
++  const restoredName = `crew_v2_test_${randomUUID().replaceAll('-', '')}`;
++  let restored: Db | null = null;
++  await db`create database ${db(restoredName)}`;
++  console.info('assistant restore database created', restoredName);
++  try {
++    await pgCommand(container, ['pg_restore', '-U', 'postgres', '--exit-on-error', '-d', restoredName], dump);
++    const url = new URL(baseUrl);
++    url.pathname = `/${restoredName}`;
++    restored = connectDb(url.toString());
++    const actual = await databaseContentsSha256(restored);
++    if (actual !== original) throw new Error('BACKUP_RESTORE_CONTENT_MISMATCH');
++    const migrations = await restored`select version,checksum from schema_migrations order by version`;
++    if (migrations.length !== prefix) throw new Error('BACKUP_RESTORE_PREFIX_MISMATCH');
++    console.info(
++      'assistant backup restore verified',
++      JSON.stringify({
++        prefix,
++        dumpSha256: createHash('sha256').update(dump).digest('hex'),
++        dumpBytes: dump.length,
++        sourceDataSha256: original,
++        restoredDataSha256: actual,
++        migrations,
++      }),
++    );
++  } finally {
++    if (restored) await restored.end();
++    await db`drop database ${db(restoredName)}`;
++    console.info('assistant restore database closed and removed', restoredName);
++  }
++}

@@ -1,0 +1,121 @@
+✖ workflow manifest binds Superpowers skills to official source and selected projection bytes (1400.102875ms)
+✖ workflow manifest rejects a projected skill hash that differs from its pinned source (1444.293166ms)
+✖ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (1484.210542ms)
+✖ workflow manifest rejects a projection bound to another source tree (1428.235416ms)
+✖ workflow manifest denies BMAD when no trusted renderer artifact reader is bound (1.101125ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5837.565791
+
+✖ failing tests:
+
+test at test/workflow-manifest.test.ts:74:1
+✖ workflow manifest binds Superpowers skills to official source and selected projection bytes (1400.102875ms)
+  Error: WORKFLOW_DEFINITION_UNAVAILABLE
+      at Object.loadDefinition (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/workflow-manifest.ts:13:13)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:77:33
+      at withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:11)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:75:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at test/workflow-manifest.test.ts:94:1
+✖ workflow manifest rejects a projected skill hash that differs from its pinned source (1444.293166ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /WORKFLOW_SKILL_MISMATCH/. Input:
+  
+  'Error: WORKFLOW_DEFINITION_UNAVAILABLE'
+  
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:111:5
+      at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:95:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: WORKFLOW_DEFINITION_UNAVAILABLE
+        at Object.loadDefinition (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/workflow-manifest.ts:13:13)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:112:43
+        at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:5)
+        at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:95:3)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /WORKFLOW_SKILL_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-manifest.test.ts:118:1
+✖ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (1484.210542ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /WORKFLOW_SKILL_MISMATCH/. Input:
+  
+  'Error: WORKFLOW_DEFINITION_UNAVAILABLE'
+  
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:122:5
+      at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:119:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: WORKFLOW_DEFINITION_UNAVAILABLE
+        at Object.loadDefinition (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/workflow-manifest.ts:13:13)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:123:40
+        at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:5)
+        at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:119:3)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /WORKFLOW_SKILL_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-manifest.test.ts:129:1
+✖ workflow manifest rejects a projection bound to another source tree (1428.235416ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /SOURCE_PROJECTION_MISMATCH/. Input:
+  
+  'Error: WORKFLOW_DEFINITION_UNAVAILABLE'
+  
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:133:5
+      at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:130:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: WORKFLOW_DEFINITION_UNAVAILABLE
+        at Object.loadDefinition (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/workflow-manifest.ts:13:13)
+        at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:134:40
+        at withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:68:11)
+        at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:130:3)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /SOURCE_PROJECTION_MISMATCH/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-manifest.test.ts:140:1
+✖ workflow manifest denies BMAD when no trusted renderer artifact reader is bound (1.101125ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /RENDER_ARTIFACT_REQUIRED/. Input:
+  
+  'Error: WORKFLOW_DEFINITION_UNAVAILABLE'
+  
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:150:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: WORKFLOW_DEFINITION_UNAVAILABLE
+        at Object.loadDefinition (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/assistant/workflow-manifest.ts:13:13)
+        at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:151:40)
+        at async Test.run (node:internal/test_runner/test:1125:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:787:7),
+    expected: /RENDER_ARTIFACT_REQUIRED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

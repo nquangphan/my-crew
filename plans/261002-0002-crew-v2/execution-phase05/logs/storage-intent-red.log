@@ -1,0 +1,55 @@
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (89.595708ms)
+✔ attachment storage rejects truncated and oversized streams without publishing original (68.629042ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.759167ms)
+✔ attachment storage derivative publication is separate from original (85.507125ms)
+✔ attachment storage leaves a published blob inspectable after injected failure (76.710083ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (1.026292ms)
+✔ attachment storage rejects a symlink owner marker before opening stage (38.502791ms)
+✔ attachment storage binds publication to exact attachment and generation (68.370708ms)
+✔ attachment storage never accepts a foreign existing destination even with equal digest (57.712792ms)
+✔ attachment storage prevents publication after abort at stage flush (66.952583ms)
+✔ attachment storage can reopen durable root and verify originals (103.42175ms)
+✖ attachment storage requires durable journal integration before derivative bytes (80.336125ms)
+✖ attachment storage publishes multiple derivatives in one extraction generation without collision (85.821084ms)
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (81.3205ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 12
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 971.747833
+
+✖ failing tests:
+
+test at v2/server/test/attachments-storage.test.ts:127:1
+✖ attachment storage requires durable journal integration before derivative bytes (80.336125ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:129:2
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /INTENT_NOT_CONFIGURED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/attachments-storage.test.ts:133:1
+✖ attachment storage publishes multiple derivatives in one extraction generation without collision (85.821084ms)
+  Error: EEXIST: file already exists, open '/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mn7pI3/derivatives/5d66324c-bcf6-46b8-b68d-aa6c60a42734/a6f559ed-0494-439e-8795-12081f1c20f4/.intent.stage.1.json'
+      at async open (node:internal/fs/promises:637:25)
+      at async writePrivateJson (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/storage.ts:38:13)
+      at async write (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/attachments/storage.ts:110:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:138:10
+      at async pureFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-storage.test.ts:82:7)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    errno: -17,
+    code: 'EEXIST',
+    syscall: 'open',
+    path: '/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mn7pI3/derivatives/5d66324c-bcf6-46b8-b68d-aa6c60a42734/a6f559ed-0494-439e-8795-12081f1c20f4/.intent.stage.1.json'
+  }

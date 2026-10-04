@@ -1,0 +1,137 @@
+[
+  {
+    "name": "pdfjs-dist",
+    "url": "https://registry.npmjs.org/pdfjs-dist/6.3.289",
+    "version": "6.3.289",
+    "license": "Apache-2.0",
+    "dist": {
+      "shasum": "9e46d89489782a479f58d674ae5ddde8481aaa17",
+      "tarball": "https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-6.3.289.tgz",
+      "fileCount": 554,
+      "integrity": "sha512-ZHjSVpDa3D6izMq8/04lvkhkATUmL9px6ChPaXc1k6nU2Mrhlg1/7F0bdUqCwUjw3NsPTfPZsMDUU6ZIcRaeQw==",
+      "signatures": [
+        {
+          "sig": "MEUCIHTrXOTUg3r52454XEhkfNnyT7mfHHNQz6FnOwEF1TUbAiEAyME7BuLwtYtiQHe8pKl0bJGhGBhhCJTBLXFqOGse1ng=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "sig": "MEQCIDCSD4pVFLa4IbwK5u9iJ7aWH+XTA0Dc0Y82SNgZseEJAiAX+WaxAHeYWH5fh1wKuJtO0lQ0fBBcaG9dCPht5o3Kpw==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/pdfjs-dist@6.3.289",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 34781083
+    },
+    "dependencies": null,
+    "optionalDependencies": {
+      "@napi-rs/canvas": "^1.0.0"
+    },
+    "engines": {
+      "node": ">=22.13.0 || >=24"
+    }
+  },
+  {
+    "name": "@napi-rs/canvas",
+    "url": "https://registry.npmjs.org/@napi-rs%2Fcanvas/1.0.3",
+    "version": "1.0.3",
+    "license": "MIT",
+    "dist": {
+      "shasum": "358c50317cfe3a1f9e44e3572a00cd9884f34635",
+      "tarball": "https://registry.npmjs.org/@napi-rs/canvas/-/canvas-1.0.3.tgz",
+      "fileCount": 10,
+      "integrity": "sha512-OlI657a5XXvKGFX7kNeIzJ8rO7IXt87Mqu2H8rXE46viAuOfum/JA7ysX7+eBhxNKznT+RCZh418mndlcFX3+w==",
+      "signatures": [
+        {
+          "sig": "MEQCIFlHbBVietlpUL37eSYzD+9fmil8BtGnB3QDnp8PbLDRAiAHBxY73IMxJ5b+H+BxqR8y628X1+KOb6wyIWub9LHxNQ==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "sig": "MEUCIAyVbebLij2rnnJLq9MBx0oBKreKgRe6eScwR30DOfifAiEAgYpkJzX/GFvRWiJ/wYM3lAEG3zaNhLswPedQX9LwVjg=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@napi-rs%2fcanvas@1.0.3",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 125306
+    },
+    "dependencies": null,
+    "optionalDependencies": {
+      "@napi-rs/canvas-darwin-x64": "1.0.3",
+      "@napi-rs/canvas-darwin-arm64": "1.0.3",
+      "@napi-rs/canvas-android-arm64": "1.0.3",
+      "@napi-rs/canvas-linux-x64-gnu": "1.0.3",
+      "@napi-rs/canvas-linux-x64-musl": "1.0.3",
+      "@napi-rs/canvas-win32-x64-msvc": "1.0.3",
+      "@napi-rs/canvas-linux-arm64-gnu": "1.0.3",
+      "@napi-rs/canvas-linux-arm64-musl": "1.0.3",
+      "@napi-rs/canvas-win32-arm64-msvc": "1.0.3",
+      "@napi-rs/canvas-linux-riscv64-gnu": "1.0.3",
+      "@napi-rs/canvas-linux-arm-gnueabihf": "1.0.3"
+    },
+    "engines": {
+      "node": ">= 10"
+    }
+  },
+  {
+    "name": "yauzl",
+    "url": "https://registry.npmjs.org/yauzl/3.4.0",
+    "version": "3.4.0",
+    "license": "MIT",
+    "dist": {
+      "shasum": "88b2a21455f37ca7dccf2eeb33bacb4392322719",
+      "tarball": "https://registry.npmjs.org/yauzl/-/yauzl-3.4.0.tgz",
+      "fileCount": 6,
+      "integrity": "sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw==",
+      "signatures": [
+        {
+          "sig": "MEQCIAryCA/YldNOUaI+uMPErdGkEtaa0WT8/jNaEdG/79Y0AiAsqjFoWFD/xiEZcaSUb8EwPqTtEYwi7NMaqbtdVMiI/Q==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "unpackedSize": 109901
+    },
+    "dependencies": {
+      "pend": "~1.2.0"
+    },
+    "optionalDependencies": null,
+    "engines": {
+      "node": ">=12"
+    }
+  },
+  {
+    "name": "saxes",
+    "url": "https://registry.npmjs.org/saxes/6.0.0",
+    "version": "6.0.0",
+    "license": "ISC",
+    "dist": {
+      "shasum": "fe5b4a4768df4f14a201b1ba6a65c1f3d9988cc5",
+      "tarball": "https://registry.npmjs.org/saxes/-/saxes-6.0.0.tgz",
+      "fileCount": 5,
+      "integrity": "sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==",
+      "signatures": [
+        {
+          "sig": "MEQCIEh9ie7kr9Lfo7fxKJxjPMxIn7WiBNPtBXMAX/DkUCnNAiAKaHKUSl26HoAV+VRW88hxl1Ikhfy8wL8YfzgrEbHu2g==",
+          "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA"
+        }
+      ],
+      "unpackedSize": 163774,
+      "npm-signature": "-----BEGIN PGP SIGNATURE-----\r\nVersion: OpenPGP.js v3.0.13\r\nComment: https://openpgpjs.org\r\n\r\nwsFcBAEBCAAQBQJh26Y0CRA9TVsSAnZWagAAohkP/RUOoFgRjj2DmMQCBCef\nw7iqt1qVkFSl1G1GZ8IKfreJKmQiHdtRnwxJtv03Bm//KVqkuwO+JHiojMJO\nPGDlHzCx/NJUo27Y+BL3hRUQtdCN1PMquQIlZP6bLkM8OPwLcrRj7xIyQ6Xp\nOQM4oeoXiwAKWmYPSelmFeXLO2gBBMEVZvfSjWSW8NuGgtBHN0XOFy/fExov\ngv9GD611RPZsZKyn05WLwNMyeB6jIssX1NcTEwWA1RlpVbBdkiEm6kypVwMx\nm5U5suKkUyKZ9kPtJxcNUhytzyzrUb74fec0QXozkIbvC4yrcf0oxSD/LXZU\n8bnD+qSmaI3+S+wEJiQHfO/MHjgPBSC+QCwR3Zn0cDmqlvfz5ShQ2Qs3CIqE\nNOwy7JXhIfzMMdlM8o0Jmv64OeBLus5ELM91Tt2T4ejm0y85UTGjkrXGhclY\nwP3O2vCzFzbEHR7CDB+SN1KcHt3Z7kK3TvFwH2F9ry3/QfkEzXitnvfOPHvR\n93BGG+8mhICYsrv2BHN+6UPrMAQDNJuazAECG5I0fzn7qDESnhUDSfyuCFBN\nHT2XveaSxBMSOy83Jzb5GS6mf5RtuSgaX0FaAbrfH+e+koN7MoC88OEoDv1X\nZgu2dVjwWdb2PD4bO9e+fnLql4h9Qt/PitVb0ISjwN5CYfqiMTskf214BsTe\nlKJn\r\n=cdou\r\n-----END PGP SIGNATURE-----\r\n"
+    },
+    "dependencies": {
+      "xmlchars": "^2.2.0"
+    },
+    "optionalDependencies": null,
+    "engines": {
+      "node": ">=v12.22.7"
+    }
+  }
+]

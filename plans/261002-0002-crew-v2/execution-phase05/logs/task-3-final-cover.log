@@ -1,0 +1,217 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server", "exec", "node", "--test", "--test-concurrency=1", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-api.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-access.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-grants.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-snapshots.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-messages.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-routing.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-worker.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-708c9b1e-65fb-4208-ba21-344c055daffb", "--label", "crew.phase05.task3=28179fbd-c01a-48dd-9978-cd81d7625f85", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a", "name": "crew-v2-test-708c9b1e-65fb-4208-ba21-344c055daffb", "mapping": "127.0.0.1:54380"}
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4e4U1V
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4e4U1V nonceSha256=58646f7b732c5a2ab8dac14f304cf36632003014e91db2770d64d0cb79b502b0
+attachment DB scratch identity dev=16777229 ino=64133574 uid=501 pid=91071
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4e4U1V
+✔ attachment access never follows a matching checksum across projects (935.956708ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SwjFfj
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SwjFfj nonceSha256=b293d5a0f881efeaa0062a3bcee42988c5fa3c4561e62474f5657b41851f008f
+attachment DB scratch identity dev=16777229 ino=64133602 uid=501 pid=91071
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SwjFfj
+✔ attachment references require a live ancestor in the exact tree and reuse original identity (608.683083ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WvHOmz
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WvHOmz nonceSha256=995fe4a2a3305e9174c34e5332f6997ee1e42647a0461088dbd389d7a541fcf7
+attachment DB scratch identity dev=16777229 ino=64133618 uid=501 pid=91071
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-WvHOmz
+✔ actual cancellation/reconcile and owner rebind invalidate old attachment fence; uncertain lease fails closed (577.321209ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7bCRWD
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7bCRWD nonceSha256=336d17d391adc46d87d108da226e814cb0bf3fd121a4e102521bdb5d3fb3b655
+attachment DB scratch identity dev=16777229 ino=64133633 uid=501 pid=91071
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7bCRWD
+✔ verified derivative identity belongs to its exact original even for matching bytes (890.60425ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VFEVw1
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VFEVw1 nonceSha256=f133462c201be042677343356664d4bdb92499113998d24b237ac369d868d9e9
+attachment DB scratch identity dev=16777229 ino=64133691 uid=501 pid=91364
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VFEVw1
+✔ attachment routes raw upload, CSRF, strict schema, metered replay and private responses (686.468917ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-gWsdGq
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-gWsdGq nonceSha256=a96e338c09d2c2cd41e2a35a294c01317668e9f3ab0e11c5a8accaacf9c82c93
+attachment DB scratch identity dev=16777229 ino=64133706 uid=501 pid=91364
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-gWsdGq
+✔ attachment routes authenticate again before conditional replies and current attempt downloads (617.065208ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OwhI3Y
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OwhI3Y nonceSha256=48152cd48bbbd7b22fdca2ebbaa59df379adf92c05728f2762f32ec1676e9436
+attachment DB scratch identity dev=16777229 ino=64133723 uid=501 pid=91364
+attachment access listener pid=91364 argv=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-cover-re5rxgfc/v2/server/test/attachments-api.test.ts"] url=http://127.0.0.1:54428
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-OwhI3Y
+✔ attachment routes revoke between real streamed chunks and reject next request (572.185958ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gn7mja
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gn7mja nonceSha256=7ed88722f619e4ea8c04117d8db7e38bef32c6e1f00daaf33260638da2f210bc
+attachment DB scratch identity dev=16777229 ino=64133738 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gn7mja
+✔ attachment grants default deny and owner authorization cannot include unsubmitted or foreign originals (734.959208ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-a7hd3A
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-a7hd3A nonceSha256=f41958e7de891d13ff6ed492e16767db75ab7eecf5fe6aa77c1aa5d3775f3cc4
+attachment DB scratch identity dev=16777229 ino=64133761 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-a7hd3A
+✔ attachment Assistant directly reads submitted inbox representation; OFF preserves exact admission and revocation cuts access (846.379375ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bt1Ivx
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bt1Ivx nonceSha256=54e44534b0eaa967784a05e46579ee570fa35052ac9aa4059fcef03bbae4f8b6
+attachment DB scratch identity dev=16777229 ino=64133795 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bt1Ivx
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SCkc2W
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SCkc2W nonceSha256=d265c469e24370dfaa1f3b676c777fb23e9103c02565d7968b61f1d855819085
+attachment DB scratch identity dev=16777229 ino=64133845 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-SCkc2W
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9HNw3c
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9HNw3c nonceSha256=37d43886b8145a4ab205f68817d10a48272f6851922109fb71aecad621ebbad6
+attachment DB scratch identity dev=16777229 ino=64133894 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9HNw3c
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTKsqI
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTKsqI nonceSha256=5b2bb61edaedba3314b2a753f0f677dd504906781323d52d97f12bf51002ad80
+attachment DB scratch identity dev=16777229 ino=64133929 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xTKsqI
+✔ direct accepted reply writer and publication/revocation serialize both winning orders without input-root inversion (3166.437917ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3KYEpj
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3KYEpj nonceSha256=8646a0b7d43c49dd3df8767c1a8f033adf9ce3fa3de2913b14329c810781171e
+attachment DB scratch identity dev=16777229 ino=64133962 uid=501 pid=91438
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3KYEpj
+✔ terminal assistant session denies identical idempotency cache replay before callback (724.588375ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jNo6yj
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jNo6yj nonceSha256=7bb0a880ecbc56aeef5d11595c708fd6b8872ab0ec5bd0b652d425d89d3de405
+attachment DB scratch identity dev=16777229 ino=64133997 uid=501 pid=91709
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jNo6yj
+✔ attachment inbox concurrent client UUID across two text-only composes returns one immutable receipt (210.678958ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y3wvy6
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y3wvy6 nonceSha256=05d11ce1075a264005ac9c5d702609225219fe17880b299998a7a264d6cb4495
+attachment DB scratch identity dev=16777229 ino=64134004 uid=501 pid=91709
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-y3wvy6
+✔ attachment message decisions default deny future scope reply and machine proof; stale owner route decision rejects (177.340416ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VKgD8q
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VKgD8q nonceSha256=c08f46abb28f24004924adc6daef4df663989622c42e3beda20b9ffc24497ab7
+attachment DB scratch identity dev=16777229 ino=64134011 uid=501 pid=91709
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VKgD8q
+✔ attachment inbox canonical retry creates one owner-only message with retained originals and no ticket (254.380208ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VWronL
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VWronL nonceSha256=57123fb82bc5a5e97260bf3dd8ae0efa0dce8aff8029b57166c9015aabac0c74
+attachment DB scratch identity dev=16777229 ino=64134026 uid=501 pid=91798
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-VWronL
+✔ attachment reroute actual ticket retirement retains original identity audit and invalidates old inputs once (290.524875ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bBJo1N
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bBJo1N nonceSha256=b1675fb2bf1c9bd423c689a575cb94ea21890a83c73fb0d94c64f1f1e5d2de8b
+attachment DB scratch identity dev=16777229 ino=64134041 uid=501 pid=91798
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bBJo1N
+✔ attachment reroute concurrent decisions CAS exactly one new route and one retirement (279.819625ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z48tVh
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z48tVh nonceSha256=e1dc681abb892b78a3b498ebecadbb5a33cf3f0ecb49efa8f54abd06f08f13ef
+attachment DB scratch identity dev=16777229 ino=64134056 uid=501 pid=91798
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-z48tVh
+✔ attachment reroute retirement failure rolls back actual workflow event route revision and original links (297.168875ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-flSpQ1
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-flSpQ1 nonceSha256=3b3c28423c3f596cb93f64924960a802921da199495d0b4c5a0a923cb5456bda
+attachment DB scratch identity dev=16777229 ino=64134071 uid=501 pid=91798
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-flSpQ1
+✔ attachment reroute actual claimed active attempt blocks despite expired lease and never fabricates stopped proof (297.804083ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-055auB
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-055auB nonceSha256=40da8b8113f0f11cf83eda2294bd69feb7c5f8374c0f1b2545aa349d6ecd895d
+attachment DB scratch identity dev=16777229 ino=64134086 uid=501 pid=91798
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-055auB
+✔ attachment routing digest target and current authority checked before per-route and mutator cache replay (289.217209ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9JRpH6
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9JRpH6 nonceSha256=43a9a73468ff8471c57559d5dca000c73fe48d521f780252aaffef01021ba516
+attachment DB scratch identity dev=16777229 ino=64134101 uid=501 pid=91798
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-9JRpH6
+✔ attachment routing configured owner decisions replay and correction default denies without retirement (281.581333ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CMBQ48
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CMBQ48 nonceSha256=6bb29823b4c3ca07b55935f554a5fc5ee0179f8908f2d7becf69cd821383daf4
+attachment DB scratch identity dev=16777229 ino=64134119 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-CMBQ48
+✔ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (687.892333ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mot7T8
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mot7T8 nonceSha256=8587901ef0faebbe421b3791ab7d2f407b72ddbc3dc24640d6ce1b5fd1981669
+attachment DB scratch identity dev=16777229 ino=64134134 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Mot7T8
+✔ attachment subset selection binds exact original identity when unit IDs repeat across files (900.123375ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uyKUry
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uyKUry nonceSha256=73fd948774358d47bad162575c28ee6c0907bacad8c2db9c7c9c764a2b9c3fb1
+attachment DB scratch identity dev=16777229 ino=64134195 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-uyKUry
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HMrGHD
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HMrGHD nonceSha256=9bd9b5de9869fe9763f14ad15b67ce8d6dc2a42370a9b27a0de16f08f5a35f24
+attachment DB scratch identity dev=16777229 ino=64134231 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-HMrGHD
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FINweh
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FINweh nonceSha256=7d4cdd3373bcdce545974c4ad92a152e394408d78a95098590df015211c19523
+attachment DB scratch identity dev=16777229 ino=64134264 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FINweh
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lfpnQp
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lfpnQp nonceSha256=2c83c8407eba2b784bcb4e5b61a495ed0a74c1defac2a0f12f3a1ef0a457d0dd
+attachment DB scratch identity dev=16777229 ino=64134279 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lfpnQp
+✔ actual publication/comment and persisted 005 claim serialize in both winning orders across two pools (2592.745542ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tV7wUY
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tV7wUY nonceSha256=98baf168fb751b18e8e19ca81efc53fce3edfe52b4c2c983c69b58b177481044
+attachment DB scratch identity dev=16777229 ino=64134295 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tV7wUY
+✔ preclaim compares actual latest extraction generation even before controlled version enqueue invalidates counter (646.486916ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kinHD9
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kinHD9 nonceSha256=891c5ecb8107643876986feabd133f2d7102381cb647c0f95bbbdd4077ee69c5
+attachment DB scratch identity dev=16777229 ino=64134328 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-kinHD9
+✔ failed final publication transaction rolls back manifest and revisions and retains published orphan journal (619.605792ms)
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vAGazc
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vAGazc nonceSha256=f62de64ef0aa668625547127b325345befc40e904e8e0c10af50d8218899d823
+attachment DB scratch identity dev=16777229 ino=64134361 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-vAGazc
+attachment DB container f9266bf4d5537875bb54e233cafb42872ade361aa3a232a93b3a669dd95e7a3a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3W76ij
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3W76ij nonceSha256=dbff6789605514bbb26ba7f104dbaff4901d4bb456ff1d4aeeeb6e5243380556
+attachment DB scratch identity dev=16777229 ino=64134395 uid=501 pid=92049
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3W76ij
+✔ initial owner route and fresh snapshot serialize on message before input across two pools (1428.575125ms)
+✔ attachment worker duplicate locator cannot bypass coverage by JSON key order (1.514625ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-d602e810-644b-413f-8351-0b01d45a957f nonce=d602e810-644b-413f-8351-0b01d45a957f pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-d602e810-644b-413f-8351-0b01d45a957f dev=16777229 ino=64134428 uid=501
+✔ attachment worker Docker inspect rejects foreign identity and pending created start (659.643167ms)
+✔ attachment worker rejects stale results before persisting derivatives (0.253041ms)
+✔ attachment worker accepts exact result and rejects identity changes (0.294875ms)
+✔ attachment worker rejects paths sizes hashes and false coverage (0.410583ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-a7f52c3d-81c4-4c7e-b199-a3029531ef4b nonce=a7f52c3d-81c4-4c7e-b199-a3029531ef4b pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-a7f52c3d-81c4-4c7e-b199-a3029531ef4b dev=16777229 ino=64134439 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-5b2ba718-d5c0-4aa1-9817-2ffa9ad5aa51 nonce=5b2ba718-d5c0-4aa1-9817-2ffa9ad5aa51 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-5b2ba718-d5c0-4aa1-9817-2ffa9ad5aa51 dev=16777229 ino=64134441 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-46cd3871-4682-4c9e-ae74-4a5b5ed40d5c nonce=46cd3871-4682-4c9e-ae74-4a5b5ed40d5c pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-46cd3871-4682-4c9e-ae74-4a5b5ed40d5c dev=16777229 ino=64134443 uid=501
+✔ attachment worker bounded frames verify actual bytes and refuse forged terminal (13.256625ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7fc566e1-5332-4303-8c89-c31540380507 nonce=7fc566e1-5332-4303-8c89-c31540380507 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7fc566e1-5332-4303-8c89-c31540380507 dev=16777229 ino=64134445 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-5b7320c7-008e-4392-b966-39fd7efebaf2 nonce=5b7320c7-008e-4392-b966-39fd7efebaf2 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-5b7320c7-008e-4392-b966-39fd7efebaf2 dev=16777229 ino=64134447 uid=501
+✔ attachment worker frames cannot follow output symlink or reuse a filename (5.019709ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-480ee867-2869-44f6-ad35-2e28e94f6630 nonce=480ee867-2869-44f6-ad35-2e28e94f6630 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-480ee867-2869-44f6-ad35-2e28e94f6630 dev=16777229 ino=64134449 uid=501
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-f85abec7-fc6a-4144-9f1b-bc83be80258d nonce=f85abec7-fc6a-4144-9f1b-bc83be80258d pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-f85abec7-fc6a-4144-9f1b-bc83be80258d dev=16777229 ino=64134451 uid=501
+✔ attachment worker detects truncated streams and bounds decoded chunk before write (79.628334ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-211fbbbd-5d66-4e42-8213-500e3b9b745a nonce=211fbbbd-5d66-4e42-8213-500e3b9b745a pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-211fbbbd-5d66-4e42-8213-500e3b9b745a dev=16777229 ino=64134453 uid=501
+✔ attachment worker creates exclusive owned job intent and preserves it on unknown (29.063667ms)
+✔ attachment worker extraction defaults denied before Task5 corpus receipt (0.259167ms)
+✔ attachment worker legacy entry refuses ambient root and configuration (0.08425ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-1f986705-4fcf-4190-8e4b-68fd4c43c950 nonce=1f986705-4fcf-4190-8e4b-68fd4c43c950 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-1f986705-4fcf-4190-8e4b-68fd4c43c950 dev=16777229 ino=64134460 uid=501
+✔ attachment worker stops unterminated nonterminal line before more stream reads (0.805167ms)
+✔ attachment worker problem codes are allowlisted and messages cannot expose content (0.396583ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0720fc1f-9bfd-41c0-983d-8f7b4103ce19 nonce=0720fc1f-9bfd-41c0-983d-8f7b4103ce19 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0720fc1f-9bfd-41c0-983d-8f7b4103ce19 dev=16777229 ino=64134461 uid=501
+✔ attachment worker DB generation CAS commits verified bytes once (299.207167ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-19d64a74-9dd2-465b-b695-fccc1435d958 nonce=19d64a74-9dd2-465b-b695-fccc1435d958 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-19d64a74-9dd2-465b-b695-fccc1435d958 dev=16777229 ino=64134491 uid=501
+✔ attachment worker DB refuses unavailable accepted configuration and stale result (264.480625ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0089adff-ff6d-4f7b-98b9-4d53494e333e nonce=0089adff-ff6d-4f7b-98b9-4d53494e333e pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-0089adff-ff6d-4f7b-98b9-4d53494e333e dev=16777229 ino=64134514 uid=501
+✔ attachment worker DB expired lease with unknown prior worker blocks replacement (196.1485ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7e597118-ab06-4058-bb20-4eac66f106f8 nonce=7e597118-ab06-4058-bb20-4eac66f106f8 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-7e597118-ab06-4058-bb20-4eac66f106f8 dev=16777229 ino=64134526 uid=501
+✔ attachment worker DB stopped container without publisher closure cannot retry expired generation (191.651958ms)
+worker fixture intent root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-105344aa-dc96-42dc-8440-b6ff909d5a61 nonce=105344aa-dc96-42dc-8440-b6ff909d5a61 pid=92486
+worker fixture removed root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-worker-105344aa-dc96-42dc-8440-b6ff909d5a61 dev=16777229 ino=64134538 uid=501
+✔ attachment worker DB concurrent call starts once and fencing forbids publication (274.534958ms)
+ℹ tests 44
+ℹ suites 0
+ℹ pass 44
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22569.303917

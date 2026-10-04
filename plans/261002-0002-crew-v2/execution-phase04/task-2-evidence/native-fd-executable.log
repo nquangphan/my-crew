@@ -1,0 +1,25 @@
+✔ credential broker scopes updates by machine/provider/operation and removes idempotently (0.901ms)
+✔ credential broker one-use channel rejects unpinned callbacks and suppresses secret errors/results (1.101834ms)
+✔ credential broker native bridge rejects unverified helper before any keychain access (0.184167ms)
+✔ credential broker serializes conflicting local writes and never returns bridge secret errors (0.176958ms)
+✖ credential broker native FD framing runs only against unsigned owned fake helper (67.532ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 139.658917
+
+✖ failing tests:
+
+test at test/credential-broker.test.ts:106:1
+✖ credential broker native FD framing runs only against unsigned owned fake helper (67.532ms)
+  Error: SECURITY_BRIDGE_FAILED
+      at finish (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/security-bridge.ts:81:29)
+      at ChildProcess.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/models/security-bridge.ts:91:33)
+      at ChildProcess.emit (node:events:508:28)
+      at ChildProcess._handle.onexit (node:internal/child_process:292:12)
+      at onErrorNT (node:internal/child_process:484:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)

@@ -1,0 +1,272 @@
+{
+  "kind": "bounded-offline-codex-acquisition-readback",
+  "at": "2026-10-03T12:09:05.909101+00:00",
+  "runtimeVersion": "codex-cli 0.159.3",
+  "binarySha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+  "commands": [
+    {
+      "stem": "codex-app-server-help",
+      "recordBytes": 3033,
+      "recordSha256": "2dae14fa9e2bcc6ef528d3ae4eeb6a9fa5f291293bcf9a683ab30e1f6c838c96",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "--help"
+      ],
+      "exitCode": 0,
+      "binaryIdentityUnchanged": true,
+      "resourceGateVerified": true,
+      "runtimeInitializationRequested": false,
+      "modelRequested": false
+    },
+    {
+      "stem": "codex-json-help",
+      "recordBytes": 3060,
+      "recordSha256": "5f88b8d8eb07f8eb7ed6faf943ea5b3abb5763d5714c6c74fcb344d82c052052",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-json-schema",
+        "--help"
+      ],
+      "exitCode": 0,
+      "binaryIdentityUnchanged": true,
+      "resourceGateVerified": true,
+      "runtimeInitializationRequested": false,
+      "modelRequested": false
+    },
+    {
+      "stem": "codex-ts-help",
+      "recordBytes": 3052,
+      "recordSha256": "95ba92ae8223c3275067dfddb8fe0a763a49e6df59a699d3f57d9d0907d6a212",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-ts",
+        "--help"
+      ],
+      "exitCode": 0,
+      "binaryIdentityUnchanged": true,
+      "resourceGateVerified": true,
+      "runtimeInitializationRequested": false,
+      "modelRequested": false
+    },
+    {
+      "stem": "codex-json",
+      "recordBytes": 84718,
+      "recordSha256": "40d71b0c47b0613cbacdcc1f896f4451442e2ec36acd3573d911ca7aef0c98eb",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-json-schema",
+        "--out",
+        "/private/tmp/crew-v2-task4-codex-help-8qdyn6gx/json"
+      ],
+      "exitCode": 0,
+      "binaryIdentityUnchanged": true,
+      "resourceGateVerified": true,
+      "runtimeInitializationRequested": false,
+      "modelRequested": false
+    },
+    {
+      "stem": "codex-ts",
+      "recordBytes": 189056,
+      "recordSha256": "1a956991563cd361e5073a1af9ccc6ff6bf611db652dc3e3c99324548ee6cef6",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "app-server",
+        "generate-ts",
+        "--out",
+        "/private/tmp/crew-v2-task4-codex-help-tj0dvhjf/ts"
+      ],
+      "exitCode": 0,
+      "binaryIdentityUnchanged": true,
+      "resourceGateVerified": true,
+      "runtimeInitializationRequested": false,
+      "modelRequested": false
+    }
+  ],
+  "bundles": [
+    {
+      "kind": "json",
+      "files": 314,
+      "bytes": 3540819,
+      "bundleSha256": "4fbf973e454ab8b8c313817e1367db90072104775e70ed53b0e2f8a38a3c4b6a",
+      "fullEvidenceReadbackVerified": true
+    },
+    {
+      "kind": "ts",
+      "files": 734,
+      "bytes": 428142,
+      "bundleSha256": "6fa0dd520dd954703fc242ce9e02153e055e06853a2b4b35ccb38d956840ca04",
+      "fullEvidenceReadbackVerified": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "protocol-method-map.json",
+      "bytes": 21890,
+      "sha256": "ae29e7596c88d1b0a25411df01d1a021f0cd936f1723dd0384f48122b6792ec7"
+    },
+    {
+      "path": "metadata-cleanup-intent.json",
+      "bytes": 2142,
+      "sha256": "a2593ab4d828f8eaf55bfc176665f78fbfe4507a979ad18fdaf1d2597ec0ee2c"
+    },
+    {
+      "path": "metadata-cleanup-receipt.json",
+      "bytes": 11442,
+      "sha256": "405928c38715aba4757291596953f9ec0b425ef2ad8e9aac89e8d50895fa2390"
+    },
+    {
+      "path": "acquisition-cleanup-intent.json",
+      "bytes": 3059,
+      "sha256": "3e93b700241e2ce96d5c36311c2caa0b670477d12ed0f79c1c88bea461dfabd0"
+    },
+    {
+      "path": "acquisition-cleanup-receipt.json",
+      "bytes": 261144,
+      "sha256": "b2d7d263fe6b86fc66c354274cbd5c9b1a3bda28ebfdccc966f490690415485d"
+    }
+  ],
+  "cleanup": [
+    {
+      "stem": "claude-version",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk",
+        "device": 16777229,
+        "inode": 64470735,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "deleted",
+      "reason": null,
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": true
+    },
+    {
+      "stem": "codex-version",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-version-vdftxo34",
+        "device": 16777229,
+        "inode": 64470806,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "retained",
+      "reason": "SYMLINK_TREE_RETAINED",
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": null
+    },
+    {
+      "stem": "claude-help",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie",
+        "device": 16777229,
+        "inode": 64470881,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "deleted",
+      "reason": null,
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": true
+    },
+    {
+      "stem": "codex-help",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-oxa3wnb2",
+        "device": 16777229,
+        "inode": 64470951,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "retained",
+      "reason": "SYMLINK_TREE_RETAINED",
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": null
+    },
+    {
+      "stem": "codex-app-server-help",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-e3pijnwg",
+        "device": 16777229,
+        "inode": 64475797,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "retained",
+      "reason": "SYMLINK_TREE_RETAINED",
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": null
+    },
+    {
+      "stem": "codex-json-help",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-0u3vs0mo",
+        "device": 16777229,
+        "inode": 64477810,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "retained",
+      "reason": "SYMLINK_TREE_RETAINED",
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": null
+    },
+    {
+      "stem": "codex-ts-help",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-52xhk4e2",
+        "device": 16777229,
+        "inode": 64477896,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "retained",
+      "reason": "SYMLINK_TREE_RETAINED",
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": null
+    },
+    {
+      "stem": "codex-json",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-8qdyn6gx",
+        "device": 16777229,
+        "inode": 64477935,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "deleted",
+      "reason": null,
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": true
+    },
+    {
+      "stem": "codex-ts",
+      "rootIdentity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-tj0dvhjf",
+        "device": 16777229,
+        "inode": 64478646,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "outcome": "deleted",
+      "reason": null,
+      "directWaitExitCode": 0,
+      "matchingOwnProcessesAtSnapshot": [],
+      "pathAbsentAfter": true
+    }
+  ],
+  "productionNativeProtocolAcceptance": "UNVERIFIED",
+  "productionWholeTreeStopProof": "UNVERIFIED",
+  "sourceOrTestsAuthorized": false
+}

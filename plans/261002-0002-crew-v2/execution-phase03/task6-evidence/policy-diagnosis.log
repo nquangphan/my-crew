@@ -1,0 +1,143 @@
+{
+  "nonce": "9920745f-9470-468c-b9da-81f99405b2fc",
+  "root": "/private/tmp/c6policy-532z7S",
+  "identity": {
+    "dev": 16777229,
+    "ino": 63895045,
+    "uid": 501
+  },
+  "commands": [
+    {
+      "id": "bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9",
+      "identity": {
+        "device": "16777229",
+        "inode": "63895178",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9",
+      "variant": "strict",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read*)\n(allow file-read-metadata)\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9\"))",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-532z7S/ops/stages/bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "bbfe5622-6c75-46f7-a2e0-4eea4d6c69c9",
+        "device": "16777229",
+        "inode": "63895178",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 134,
+        "timedOut": false
+      },
+      "output": "",
+      "cleanup": "deleted"
+    },
+    {
+      "id": "62e3bd6d-d643-4d83-99c9-3c357d66d1e9",
+      "identity": {
+        "device": "16777229",
+        "inode": "63895187",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9",
+      "variant": "data-only",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read-data)\n(allow file-read-metadata)\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9\"))",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-532z7S/ops/stages/62e3bd6d-d643-4d83-99c9-3c357d66d1e9/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "62e3bd6d-d643-4d83-99c9-3c357d66d1e9",
+        "device": "16777229",
+        "inode": "63895187",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 134,
+        "timedOut": false
+      },
+      "output": "",
+      "cleanup": "deleted"
+    },
+    {
+      "id": "ea1c21e3-a0b6-4bb7-b4d8-9266bd952110",
+      "identity": {
+        "device": "16777229",
+        "inode": "63895197",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110",
+      "variant": "data-and-exec",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read*)\n(allow file-read-metadata)\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110\"))\n(allow file-map-executable)",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-532z7S/ops/stages/ea1c21e3-a0b6-4bb7-b4d8-9266bd952110/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "ea1c21e3-a0b6-4bb7-b4d8-9266bd952110",
+        "device": "16777229",
+        "inode": "63895197",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 134,
+        "timedOut": false
+      },
+      "output": "",
+      "cleanup": "deleted"
+    },
+    {
+      "id": "2d5d735e-d464-4f02-ba1a-f036b3a4ae10",
+      "identity": {
+        "device": "16777229",
+        "inode": "63895205",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10",
+      "variant": "builder",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read* (subpath \"/Users\") (subpath \"/private/tmp\") (subpath \"/private/var/folders\"))\n(allow file-read-metadata)\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10/home\") (subpath \"/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10\"))",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-532z7S/ops/stages/2d5d735e-d464-4f02-ba1a-f036b3a4ae10/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "2d5d735e-d464-4f02-ba1a-f036b3a4ae10",
+        "device": "16777229",
+        "inode": "63895205",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "output": "OWNED_CANARY",
+      "cleanup": "deleted"
+    }
+  ]
+}

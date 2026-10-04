@@ -1,0 +1,63 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server/test/attachments-routing.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-bd8d0136-caef-4c75-a931-de48533add4a", "--label", "crew.phase05.task2b=7b33b40b-1f33-41dc-8a3d-a5cf49ca0c98", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d", "name": "crew-v2-test-bd8d0136-caef-4c75-a931-de48533add4a", "mapping": "127.0.0.1:59845"}
+attachment DB container 33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-h8nZ4E
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-h8nZ4E nonceSha256=44fc15b341b7a2a7801d70516abd5454cab86f2237063a2c6077f1117194b9a3
+attachment DB scratch identity dev=16777229 ino=63950252 uid=501 pid=35349
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-h8nZ4E
+✔ attachment reroute actual ticket retirement retains original identity audit and invalidates old inputs once (771.663583ms)
+attachment DB container 33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ljDOOx
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ljDOOx nonceSha256=ea2573fcb11cf7d85cd7c81bb28604c03ef561f617611242149ea6e0db4dac82
+attachment DB scratch identity dev=16777229 ino=63950299 uid=501 pid=35349
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ljDOOx
+✖ attachment reroute concurrent decisions CAS exactly one new route and one retirement (1170.790584ms)
+attachment DB container 33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YpDh7J
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YpDh7J nonceSha256=6f407210e2d47aa67f17bd9c0cbb4a2a6c169eb342eedef04d441b9cf94f484a
+attachment DB scratch identity dev=16777229 ino=63950371 uid=501 pid=35349
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YpDh7J
+✔ attachment reroute retirement failure rolls back actual workflow event route revision and original links (1385.18575ms)
+attachment DB container 33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zvpikX
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zvpikX nonceSha256=f94d3f948fae85c5cd25747533379551c0bf4696c02a0bd4aa45a4f3b32ffe95
+attachment DB scratch identity dev=16777229 ino=63950424 uid=501 pid=35349
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-zvpikX
+✔ attachment reroute actual claimed active attempt blocks despite expired lease and never fabricates stopped proof (866.613542ms)
+attachment DB container 33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-P7RVxj
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-P7RVxj nonceSha256=8c045a83131bc999035acdfdecfde0cdc95d684763c73cd88a232e678f14a919
+attachment DB scratch identity dev=16777229 ino=63950473 uid=501 pid=35349
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-P7RVxj
+✔ attachment routing digest target and current authority checked before per-route and mutator cache replay (656.282708ms)
+attachment DB container 33b7bb16d94124f35cb49e2cfda21e2c77e1b26f31b64b668fde48571f56e92d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y2f4DK
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y2f4DK nonceSha256=5f831ad12edef346f93379bcd4131bd4e149a8a9964fa46f39bf90e67601a350
+attachment DB scratch identity dev=16777229 ino=63950510 uid=501 pid=35349
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Y2f4DK
+✔ attachment routing configured owner decisions replay and correction default denies without retirement (440.639ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5400.153
+
+✖ failing tests:
+
+test at test/attachments-routing.test.ts:48:1
+✖ attachment reroute concurrent decisions CAS exactly one new route and one retirement (1170.790584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server/test/attachments-routing.test.ts:55:10
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server/test/attachments-routing.test.ts:29:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server/test/support/db.ts:51:9
+      at async routed (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-routing-lifecycle-ce_1ytke/v2/server/test/attachments-routing.test.ts:15:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

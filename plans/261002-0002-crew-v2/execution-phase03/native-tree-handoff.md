@@ -1,0 +1,9 @@
+# Native tree ownership handoff — draft, no runtime certificate
+
+Task03/2 current macOS helper cannot use NOTE_TRACK/NOTE_TRACKERR/NOTE_CHILD: installed Apple SDK declares unsupported since10.5. Pipe-gated initial spawn arms NOTE_FORK|NOTE_EXIT before exec. Exact initial process start identity, supervisor wait and original group-empty proof can establish stopped only without any observed fork. Any fork, tracking failure or lost supervisor receipt stays UNKNOWN and retains guard/resources through restart. Actual escaped-child regression required before Task2 review.
+
+Phase04 implementer/planner must propose measured, supported descendant ownership/confinement for each actual runtime before claiming full tree stopped. Broker ownership does not automatically cover runtime native child creation. Process group emptiness, lease/heartbeat expiry, PID scan snapshots and prompt promises do not certify escaped descendants. Keep default denied release/unknown retention until genuine mechanism and negative child tests pass. If an entitlement, permission or unsupported runtime prevents proof, report exact external dependency/UNVERIFIED; never substitute fabricated PASS. This is a producer limit, not a change to approved model/workflow selection or permission scope.
+
+Phase06 routing certificate canary must measure child/path/tool surfaces under the same actual process supervision. Unclaimed reservation reclamation needs no-launch proof or exact stopped proof; UNKNOWN keeps reservations. Phase09 package ships private signed prebuilt helper and Node; developer clang compiling isolated test helper does not authorize requiring clang on owner machines.
+
+PM will review actual Task2 report and carry verified contract into next plan/code integration. No Phase04 source or owner machine settings changed by this handoff.

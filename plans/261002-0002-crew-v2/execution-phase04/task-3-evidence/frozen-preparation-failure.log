@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase04/task-3-evidence/verify-frozen.py", line 7, in <module>
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tf: tf.extractall(root,filter='data')
+TypeError: extractall() got an unexpected keyword argument 'filter'

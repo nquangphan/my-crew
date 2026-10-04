@@ -1,0 +1,29 @@
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3EHcAD","device":"16777229","inode":"63517468","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-3EHcAD","device":"16777229","inode":"63517468","uid":501,"deleted":true}
+✔ execution bridge SIGKILL at reserved keeps exact launch and retains unproven pins (2848.719167ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LfGnJV","device":"16777229","inode":"63517641","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-LfGnJV","device":"16777229","inode":"63517641","uid":501,"stage":"spawned"}
+✔ execution bridge SIGKILL at spawned keeps exact launch and retains unproven pins (2460.540041ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l5oukc","device":"16777229","inode":"63517804","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-l5oukc","device":"16777229","inode":"63517804","uid":501,"stage":"ready"}
+✔ execution bridge SIGKILL at ready keeps exact launch and retains unproven pins (2966.566958ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-T542w4","device":"16777229","inode":"63517978","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-T542w4","device":"16777229","inode":"63517978","uid":501,"stage":"claim"}
+✔ execution bridge SIGKILL at claim keeps exact launch and retains unproven pins (2974.821791ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-6SKCML","device":"16777229","inode":"63518148","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-6SKCML","device":"16777229","inode":"63518148","uid":501,"stage":"companion"}
+✔ execution bridge SIGKILL at companion keeps exact launch and retains unproven pins (3035.400708ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Txuq9E","device":"16777229","inode":"63518318","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Txuq9E","device":"16777229","inode":"63518318","uid":501,"stage":"authorized"}
+✔ execution bridge SIGKILL at authorized keeps exact launch and retains unproven pins (3053.909917ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WE64H2","device":"16777229","inode":"63518495","uid":501}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-WE64H2","device":"16777229","inode":"63518495","uid":501,"stage":"released"}
+✔ execution bridge SIGKILL at released keeps exact launch and retains unproven pins (3080.219625ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20507.525875

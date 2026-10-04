@@ -1,0 +1,25 @@
+{
+  "ruling": "forward-only010 empty-comment constraint; future numbering shifted",
+  "files": [
+    {
+      "path": "plans/261002-0002-crew-v2/phase-06-assistant-workflows.md",
+      "beforeSha256": "547ce65c865dffd9fec9a7c71f0c38735566d314c007cb74a8f217f5f19795aa",
+      "afterSha256": "feb9d636f0f23d331a1440b756c02352c49877270fe27ccc649a6abf323ccf60"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/phase-08-integration-docs-gates.md",
+      "beforeSha256": "e2f7eb0fd370dc14821db708568da36b728aaab767cd292645d79a90b94ed1f8",
+      "afterSha256": "9a9914554431067157f004680e2c31fa6506f0324dacced08044b4816b5fcd06"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/phase-09-updates-operations.md",
+      "beforeSha256": "8767f1310762763a89113084d5f3f9f4987ee8b060b5a74ea3b75ed588bdf1e5",
+      "afterSha256": "fda91b91e798932afd764da4c40ec3c9e569aae91d28c4220c9665295473ee53"
+    },
+    {
+      "path": "plans/261002-0002-crew-v2/phase-05-attachments.md",
+      "beforeSha256": "6906ca1eafaefe7472c233053a89d6ff83135d6194cb669c58d9671825caf41a",
+      "afterSha256": "c4c562d30466499d884718989ed34210b3940a24cf64da5eff1898fbd926bbf1"
+    }
+  ]
+}

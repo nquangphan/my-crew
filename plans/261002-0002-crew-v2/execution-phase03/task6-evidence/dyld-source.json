@@ -1,0 +1,26 @@
+{
+  "path": "/System/Library/Sandbox/Profiles/dyld-support.sb",
+  "sha256": "06215a5d32689aefe395c29710e182eb54ba22162f50df8b4842290f8a19bf1c",
+  "relevantLines": [
+    {
+      "line": 53,
+      "text": ";;; libignition needs to be able to open \"/\" so it can use it as an openat(2)"
+    },
+    {
+      "line": 56,
+      "text": "       (literal \"/\"))"
+    },
+    {
+      "line": 59,
+      "text": "       (syscall-number SYS_openat))"
+    },
+    {
+      "line": 61,
+      "text": ";;; libignition calls fstatat on the Cryptex root directories."
+    },
+    {
+      "line": 65,
+      "text": ";;; libignition needs to be able to dup(2) file descriptors to manage"
+    }
+  ]
+}

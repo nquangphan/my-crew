@@ -1,0 +1,140 @@
+{
+  "rules": {
+    "lint/style/noNonNullAssertion": 14,
+    "lint/suspicious/noExplicitAny": 18
+  },
+  "groups": {
+    "production": 4,
+    "test": 28
+  },
+  "details": [
+    {
+      "path": "v2/gateway/src/execution/ticket-command-bridge.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/src/execution/ticket-command-bridge.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/src/execution/ticket-command-bridge.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/src/journal/process-journal.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/connection.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/pin-retirement.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/support/bridge-fixture.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/suspicious/noExplicitAny"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "rule": "lint/style/noNonNullAssertion"
+    }
+  ]
+}

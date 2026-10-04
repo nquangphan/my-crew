@@ -1,0 +1,82 @@
+{
+  "kind": "bounded-cli-public-metadata-only",
+  "startedAt": "2026-10-03T11:46:30.027777+00:00",
+  "finishedAt": "2026-10-03T11:46:30.161193+00:00",
+  "gate": {
+    "observedAt": "2026-10-03T11:46:30.024975+00:00",
+    "pressureLevel": "2",
+    "availableBytes": 4336320512,
+    "diskAvailableBytes": 31399198720,
+    "cpuSample": "             disk14              disk16              disk18       cpu    load average\n    KB/t  tps  MB/s     KB/t  tps  MB/s     KB/t  tps  MB/s  us sy id   1m   5m   15m\n  244.21    0  0.00     4.03    0  0.00    14.19    1  0.01   8  5 87  5.19 4.95 4.66\n    0.00    0  0.00     0.00    0  0.00     0.00    0  0.00  12 12 76  5.19 4.95 4.66\n",
+    "quota": {
+      "ordinaryUsageAllowed": true,
+      "usedPercent": 27,
+      "remainingPercent": 73,
+      "sampledAtEpoch": 1791027988.612
+    }
+  },
+  "argv": [
+    "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+    "--version"
+  ],
+  "cwd": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk/cwd",
+  "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk/home",
+    "TMPDIR": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk/tmp",
+    "CLAUDE_CONFIG_DIR": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk/claude-config",
+    "CODEX_HOME": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk/codex-config",
+    "LANG": "en_US.UTF-8"
+  },
+  "pid": 12444,
+  "exitCode": 0,
+  "failure": null,
+  "timeoutSeconds": 10,
+  "perStreamCapBytes": 4096,
+  "binaryBefore": {
+    "path": "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+    "sha256": "50a14c2f50f56668380fdda490167f1d3630d5cc18fb8aed3073c2c7ea7314fe",
+    "bytes": 226563088,
+    "device": 16777229,
+    "inode": 54699312,
+    "uid": 501,
+    "mode": "0o755",
+    "linkCount": 1,
+    "mtimeNs": 1790618729062538574,
+    "ctimeNs": 1790645850015104315
+  },
+  "binaryAfter": {
+    "path": "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+    "sha256": "50a14c2f50f56668380fdda490167f1d3630d5cc18fb8aed3073c2c7ea7314fe",
+    "bytes": 226563088,
+    "device": 16777229,
+    "inode": 54699312,
+    "uid": 501,
+    "mode": "0o755",
+    "linkCount": 1,
+    "mtimeNs": 1790618729062538574,
+    "ctimeNs": 1790645850015104315
+  },
+  "binaryIdentityUnchanged": true,
+  "output": {
+    "stdout": {
+      "bytes": 22,
+      "sha256": "3a5495706ad266f8675071284ae47afcf75aec014b4d93ad164de16cf4d01c42"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "scratchIdentity": {
+    "root": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk",
+    "device": 16777229,
+    "inode": 64470735,
+    "uid": 501,
+    "mode": "0o700"
+  },
+  "scratchRetained": true,
+  "nativeWholeTreeStopProof": "UNVERIFIED",
+  "runtimeInitializationRequested": false,
+  "modelRequested": false
+}

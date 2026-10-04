@@ -1,0 +1,6 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-types-ln6nnxez/v2/server", "typecheck"]
+privatePG {"command": [], "id": "", "name": "", "mapping": ""}
+
+> @crew-v2/server@ typecheck /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix2-types-ln6nnxez/v2/server
+> tsc --noEmit
+

@@ -1,0 +1,20 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-staging.test.ts '--test-name-pattern=migration restores reviewed'
+
+attachment restore created container=cf3aff0797f24d405fd4512d0104978517d87afaacd9de4d8260c4c34e9f85b1 database=crew_v2_test_86524e767a454f4c83210e7fe26cd4cf prefix=8
+attachment restore removed container=cf3aff0797f24d405fd4512d0104978517d87afaacd9de4d8260c4c34e9f85b1 database=crew_v2_test_86524e767a454f4c83210e7fe26cd4cf
+attachment DB container cf3aff0797f24d405fd4512d0104978517d87afaacd9de4d8260c4c34e9f85b1 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-elVO8E
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-elVO8E nonceSha256=44dc6bd4e553f7adfd4c1a2ae2d1a7ab84a39ee5aaa9b090f6bece6e1e3b3c9b
+attachment restore created container=cf3aff0797f24d405fd4512d0104978517d87afaacd9de4d8260c4c34e9f85b1 database=crew_v2_test_7500c4e379554b3381576094d88d50b1 prefix=9
+attachment restore removed container=cf3aff0797f24d405fd4512d0104978517d87afaacd9de4d8260c4c34e9f85b1 database=crew_v2_test_7500c4e379554b3381576094d88d50b1
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-elVO8E
+✔ attachment migration restores reviewed 008 through 009 and retains attachment checksum against drift (993.048333ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1085.600167

@@ -1,0 +1,355 @@
+TAP version 13
+# Subtest: attachment signatures outrank names and declared MIME
+ok 1 - attachment signatures outrank names and declared MIME
+  ---
+  duration_ms: 10.24275
+  type: 'test'
+  ...
+# Subtest: attachment OLE magic alone cannot prove encryption
+ok 2 - attachment OLE magic alone cannot prove encryption
+  ---
+  duration_ms: 0.372125
+  type: 'test'
+  ...
+# Subtest: attachment binary masquerading as text is unsupported
+ok 3 - attachment binary masquerading as text is unsupported
+  ---
+  duration_ms: 0.796166
+  type: 'test'
+  ...
+# Subtest: attachment OLE confirms named encryption streams only with finite valid FAT directory chain
+ok 4 - attachment OLE confirms named encryption streams only with finite valid FAT directory chain
+  ---
+  duration_ms: 27.910791
+  type: 'test'
+  ...
+# Subtest: attachment Vietnamese DOCX preserves actual part paragraph locator
+ok 5 - attachment Vietnamese DOCX preserves actual part paragraph locator
+  ---
+  duration_ms: 79.017875
+  type: 'test'
+  ...
+# Subtest: attachment XLSX includes veryHidden sheet and literal cached formula
+ok 6 - attachment XLSX includes veryHidden sheet and literal cached formula
+  ---
+  duration_ms: 20.358041
+  type: 'test'
+  ...
+# Subtest: attachment XLSX absent formula cache is missing coverage
+ok 7 - attachment XLSX absent formula cache is missing coverage
+  ---
+  duration_ms: 7.766208
+  type: 'test'
+  ...
+# Subtest: attachment XML rejects DTD and namespace alias is recognized
+ok 8 - attachment XML rejects DTD and namespace alias is recognized
+  ---
+  duration_ms: 2.441333
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["a","A"]
+ok 9 - attachment ZIP rejects paths ["a","A"]
+  ---
+  duration_ms: 0.879125
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["é","é"]
+ok 10 - attachment ZIP rejects paths ["é","é"]
+  ---
+  duration_ms: 1.395167
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["a/b","a\\\\b"]
+ok 11 - attachment ZIP rejects paths ["a/b","a\\\\b"]
+  ---
+  duration_ms: 0.618833
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["../a"]
+ok 12 - attachment ZIP rejects paths ["../a"]
+  ---
+  duration_ms: 0.501125
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects paths ["/a"]
+ok 13 - attachment ZIP rejects paths ["/a"]
+  ---
+  duration_ms: 0.835666
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects encryption
+ok 14 - attachment ZIP rejects encryption
+  ---
+  duration_ms: 1.025541
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects symlink
+ok 15 - attachment ZIP rejects symlink
+  ---
+  duration_ms: 0.438667
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects size mismatch
+ok 16 - attachment ZIP rejects size mismatch
+  ---
+  duration_ms: 48.098042
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects unknown compression
+ok 17 - attachment ZIP rejects unknown compression
+  ---
+  duration_ms: 0.668792
+  type: 'test'
+  ...
+# Subtest: attachment ZIP rejects CRC and invalid offsets
+ok 18 - attachment ZIP rejects CRC and invalid offsets
+  ---
+  duration_ms: 1.63
+  type: 'test'
+  ...
+# Subtest: attachment ZIP 2001 entries refused
+ok 19 - attachment ZIP 2001 entries refused
+  ---
+  duration_ms: 31.0735
+  type: 'test'
+  ...
+# Subtest: attachment office active content word/vbaProject.bin is blocked
+ok 20 - attachment office active content word/vbaProject.bin is blocked
+  ---
+  duration_ms: 85.977167
+  type: 'test'
+  ...
+# Subtest: attachment office active content word/embeddings/oleObject1.bin is blocked
+ok 21 - attachment office active content word/embeddings/oleObject1.bin is blocked
+  ---
+  duration_ms: 5.30875
+  type: 'test'
+  ...
+# Subtest: attachment DOCX image has real paragraph component and no fabricated cell
+ok 22 - attachment DOCX image has real paragraph component and no fabricated cell
+  ---
+  duration_ms: 89.7255
+  type: 'test'
+  ...
+# Subtest: attachment ZIP expansion bounds count actual streamed bytes
+ok 23 - attachment ZIP expansion bounds count actual streamed bytes
+  ---
+  duration_ms: 265.948167
+  type: 'test'
+  ...
+# Subtest: attachment ZIP overlapping local records and ZIP64 unsafe sizes are rejected
+ok 24 - attachment ZIP overlapping local records and ZIP64 unsafe sizes are rejected
+  ---
+  duration_ms: 0.798917
+  type: 'test'
+  ...
+# Subtest: attachment XML depth cap and undefined entity do not return useful text
+ok 25 - attachment XML depth cap and undefined entity do not return useful text
+  ---
+  duration_ms: 0.749
+  type: 'test'
+  ...
+# Subtest: attachment DOCX altChunk and external image are missing coverage without fetch
+ok 26 - attachment DOCX altChunk and external image are missing coverage without fetch
+  ---
+  duration_ms: 3.887875
+  type: 'test'
+  ...
+# Subtest: attachment renamed DOCM content type is blocked before paragraphs
+ok 27 - attachment renamed DOCM content type is blocked before paragraphs
+  ---
+  duration_ms: 1.451833
+  type: 'test'
+  ...
+# Subtest: attachment component locators retain old shape compatibility and reject malformed optional metadata
+ok 28 - attachment component locators retain old shape compatibility and reject malformed optional metadata
+  ---
+  duration_ms: 30.407667
+  type: 'test'
+  ...
+# Subtest: attachment image creates only normalized vision coverage
+ok 29 - attachment image creates only normalized vision coverage
+  ---
+  duration_ms: 122.227834
+  type: 'test'
+  ...
+# Subtest: attachment huge image is blocked before native allocation
+ok 30 - attachment huge image is blocked before native allocation
+  ---
+  duration_ms: 1.326375
+  type: 'test'
+  ...
+# Subtest: attachment truncated image is corrupt
+ok 31 - attachment truncated image is corrupt
+  ---
+  duration_ms: 1.676084
+  type: 'test'
+  ...
+# Subtest: attachment scan cannot become complete text coverage
+ok 32 - attachment scan cannot become complete text coverage
+  ---
+  duration_ms: 356.778292
+  type: 'test'
+  ...
+# Subtest: attachment PDF text supplements every page vision
+ok 33 - attachment PDF text supplements every page vision
+  ---
+  duration_ms: 32.966542
+  type: 'test'
+  ...
+# Subtest: attachment encrypted PDF and corrupt PDF never available
+ok 34 - attachment encrypted PDF and corrupt PDF never available
+  ---
+  duration_ms: 8.655667
+  type: 'test'
+  ...
+# Subtest: attachment PDF page limit has explicit missing page
+ok 35 - attachment PDF page limit has explicit missing page
+  ---
+  duration_ms: 46.139542
+  type: 'test'
+  ...
+# Subtest: attachment JPEG EXIF orientation records original and normalized geometry
+ok 36 - attachment JPEG EXIF orientation records original and normalized geometry
+  ---
+  duration_ms: 5.198917
+  type: 'test'
+  ...
+# Subtest: attachment PDF javascript.pdf is blocked without useful derivatives
+ok 37 - attachment PDF javascript.pdf is blocked without useful derivatives
+  ---
+  duration_ms: 3.806792
+  type: 'test'
+  ...
+# Subtest: attachment PDF embedded-executable.pdf is blocked without useful derivatives
+ok 38 - attachment PDF embedded-executable.pdf is blocked without useful derivatives
+  ---
+  duration_ms: 3.034166
+  type: 'test'
+  ...
+# Subtest: attachment text preserves UTF8 source byte spans and literal scripts
+ok 39 - attachment text preserves UTF8 source byte spans and literal scripts
+  ---
+  duration_ms: 11.909875
+  type: 'test'
+  ...
+# Subtest: attachment text UTF16 endian BOM and invalid UTF8
+ok 40 - attachment text UTF16 endian BOM and invalid UTF8
+  ---
+  duration_ms: 3.456666
+  type: 'test'
+  ...
+# Subtest: attachment text cap preserves missing original tail
+ok 41 - attachment text cap preserves missing original tail
+  ---
+  duration_ms: 0.403917
+  type: 'test'
+  ...
+# Subtest: attachment csv retains multiline quoted cells without evaluating formula
+ok 42 - attachment csv retains multiline quoted cells without evaluating formula
+  ---
+  duration_ms: 1.027917
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "a\\"b,c"
+ok 43 - attachment malformed CSV "a\\"b,c"
+  ---
+  duration_ms: 0.955042
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "\\"a\\"x,c"
+ok 44 - attachment malformed CSV "\\"a\\"x,c"
+  ---
+  duration_ms: 0.362375
+  type: 'test'
+  ...
+# Subtest: attachment malformed CSV "\\"unclosed"
+ok 45 - attachment malformed CSV "\\"unclosed"
+  ---
+  duration_ms: 0.228625
+  type: 'test'
+  ...
+# Subtest: attachment CSV cap reports missing rows
+ok 46 - attachment CSV cap reports missing rows
+  ---
+  duration_ms: 1.093041
+  type: 'test'
+  ...
+# Subtest: attachment verification binds bytes and rejects missing coverage
+ok 47 - attachment verification binds bytes and rejects missing coverage
+  ---
+  duration_ms: 18.833083
+  type: 'test'
+  ...
+# Subtest: attachment UTF16 capped tail uses real byte and line boundaries
+ok 48 - attachment UTF16 capped tail uses real byte and line boundaries
+  ---
+  duration_ms: 2.156792
+  type: 'test'
+  ...
+# Subtest: attachment complete text whitespace has explicit zero content coverage
+ok 49 - attachment complete text whitespace has explicit zero content coverage
+  ---
+  duration_ms: 0.635292
+  type: 'test'
+  ...
+# Subtest: attachment entire golden corpus verifies every available derivative and original identity
+ok 50 - attachment entire golden corpus verifies every available derivative and original identity
+  ---
+  duration_ms: 588.870875
+  type: 'test'
+  ...
+# Subtest: attachment corpus challenge cannot act as production admission
+ok 51 - attachment corpus challenge cannot act as production admission
+  ---
+  duration_ms: 58.942958
+  type: 'test'
+  ...
+# Subtest: attachment corpus verifier binds immutable challenge before any spawn
+ok 52 - attachment corpus verifier binds immutable challenge before any spawn
+  ---
+  duration_ms: 0.625875
+  type: 'test'
+  ...
+# Subtest: attachment framed extraction emits bounded chunks and matching terminal digest
+ok 53 - attachment framed extraction emits bounded chunks and matching terminal digest
+  ---
+  duration_ms: 23.983041
+  type: 'test'
+  ...
+# Subtest: attachment metadata overflow preserves prefix and declares missing tail
+not ok 54 - attachment metadata overflow preserves prefix and declares missing tail
+  ---
+  duration_ms: 75.233417
+  type: 'test'
+  location: '/fixture/v2/server/test/attachments-text-csv.unit.test.ts:211:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(last?.locator.kind==='text'&&last.locator.byteEnd===100001)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///fixture/v2/server/test/attachments-text-csv.unit.test.ts:211:720)
+    Test.runInAsyncScope (node:async_hooks:228:14)
+    Test.run (node:internal/test_runner/test:1118:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+    Test.postRun (node:internal/test_runner/test:1247:19)
+    Test.run (node:internal/test_runner/test:1175:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+1..54
+# tests 54
+# suites 0
+# pass 53
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5825.431544

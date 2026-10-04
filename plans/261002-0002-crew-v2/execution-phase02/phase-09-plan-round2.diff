@@ -1,0 +1,180 @@
+--- plans/261002-0002-crew-v2/execution-phase02/phase-08-plan-round2.before.md
++++ plans/261002-0002-crew-v2/phase-08-integration-docs-gates.md
+@@ -6,7 +6,7 @@
+ **Architecture:** Gateway tạo candidate commit trước kiểm chứng trên managed target được owner chọn; server011 giữ authorization/evidence/head authority. Git ref CAS + journal phục hồi qua DB, factual merge được ghi trước006 sync; snapshot006 giữ nguyên provenance,011 attestation/reader phân biệt merged docs với ticket-scoped docs-only.
+ **Tech Stack:** Node ≥24.12, TypeScript 7.0.2, pnpm 10.32.1, PostgreSQL 18.6/Fastify của02, Git CLI dùng argv/stdin; node:test. Không dependency runtime v1 hoặc custom role prompt.
+ **Spec:** `docs/superpowers/specs/2026-10-01-crew-v2-design.md` §6–9,12; roadmap `plan.md`; reviewed02–06; research `plans/reports/research-261002-crew-v2-integration.md`.
+-**Status:** phase08-r2 đã qua independent scoped re-review: F1–F4 closed, spec/quality READY YES ở mức kế hoạch (reviewed body SHA2565d486a5c3e975edec99049608809dd85c635c3567472c1667682b22e50aae870). Actual HEAD `832c9a3d015fd750a489f49ff48db36a1501ae62`,005 reviewed `9dca04e`,006 reviewed checksum `8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae`.06-r3 SHA256 `547ce65c865dffd9fec9a7c71f0c38735566d314c007cb74a8f217f5f19795aa`; native descendants chưa chứng minh vẫn UNKNOWN.
++**Status:** phase08-r2 đã qua independent scoped re-review: F1–F4 closed, spec/quality READY YES ở mức kế hoạch (reviewed body SHA2565d486a5c3e975edec99049608809dd85c635c3567472c1667682b22e50aae870). Actual HEAD `832c9a3d015fd750a489f49ff48db36a1501ae62`,005 reviewed `9dca04e`,006 reviewed checksum `8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae`.06-r3 SHA256 `547ce65c865dffd9fec9a7c71f0c38735566d314c007cb74a8f217f5f19795aa`; native descendants chưa chứng minh vẫn UNKNOWN. Approved final08 SHA `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec` là lịch sử; sửa hẹp EffectId cùng09 N1 ở round2 đang chờ joint scoped review, không mở lại F1–F4.
+ 
+ ## Global Constraints
+ 
+@@ -54,14 +54,14 @@
+ 
+ ## Exact typed ports, canonical identities và trust
+ 
+-T1 exports following types from server contracts; gateway contracts validates matching versioned JSON with contract tests, never imports server runtime. `Id=string(UUID)`, `Sha256=string(hex64)`, `GitOid=string(hex40|hex64)` validated per repo object format; `Tx,Actor,ServerOptions,Ticket,DocsCompletionReader,DocsFile` import exact actual02 exports. Type aliases are transport constraints, not capabilities.
++T1 exports following types from server contracts; gateway contracts validates matching versioned JSON with contract tests, never imports server runtime. `Id=string(UUID)`, `Sha256=string(hex64)`, `EffectId=Sha256` exact04 lowercase hex64 canonical logical-effect digest, `GitOid=string(hex40|hex64)` validated per repo object format; `Tx,Actor,ServerOptions,Ticket,DocsCompletionReader,DocsFile` import exact actual02 exports. Type aliases are transport constraints, not capabilities; operation/run/step/ticket/attempt/candidate/permit/receipt IDs stay UUID, effect parsers accept only lowercase hex64 without coercion to UUID.
+ 
+ ```ts
+ type Scope={projectId:Id;ticketId:Id;runId:Id;stepId:Id;attemptId:Id;fence:string;
+   processInstanceId:Id;machineId:Id;bindingRevision:number;inputSha256:Sha256};
+ type TargetPin={registrationId:Id;generation:string;bindingRevision:number};
+ type TargetSetupScope={projectId:Id;machineId:Id;bindingRevision:number;requestId:Id};
+-type Candidate={id:Id;scope:Scope;target:TargetPin;effectId:Id;wave:number;targetRef:string;sourceRef:string;targetOid:GitOid;
++type Candidate={id:Id;scope:Scope;target:TargetPin;effectId:EffectId;wave:number;targetRef:string;sourceRef:string;targetOid:GitOid;
+   sourceOid:GitOid;mergeOid:GitOid;treeOid:GitOid;parents:GitOid[];sourceManifestSha256:Sha256;
+   diffSha256:Sha256;docsSha256:Sha256;policySha256:Sha256;workflowSha256:Sha256;sha256:Sha256};
+ type SourceEntry={path:string;mode:'100644'|'100755';blobOid:GitOid;size:number;sha256:Sha256};
+@@ -80,9 +80,9 @@
+   {kind:'source';payload:SourceProof}|{kind:'check';payload:CheckProof}|{kind:'review';payload:ReviewProof}|
+   {kind:'merge';payload:MergeReceipt}|{kind:'target';payload:CurrentTargetProof}|{kind:'artifact';payload:ArtifactProof}|
+   {kind:'docs_snapshot';payload:DocsOnlyProof}|{kind:'docs_review';payload:DocsOnlyReview});
+-type MergePermit={id:Id;candidateId:Id;candidateSha256:Sha256;scope:Scope;effectId:Id;
++type MergePermit={id:Id;candidateId:Id;candidateSha256:Sha256;scope:Scope;effectId:EffectId;
+   receiptSetSha256:Sha256;generation:string;expiresAt:string};
+-type MergeReceipt={permitId:Id;candidateId:Id;effectId:Id;oldOid:GitOid;newOid:GitOid;
++type MergeReceipt={permitId:Id;candidateId:Id;effectId:EffectId;oldOid:GitOid;newOid:GitOid;
+   treeOid:GitOid;parents:GitOid[];targetRef:string;receiptRef:string;journalSha256:Sha256};
+ type MergedDocsAttestation={kind:'merged';id:Id;projectId:Id;target:TargetPin;snapshotId:Id;attemptId:Id;mergedCommit:GitOid;
+   inputSha256:Sha256;sourceTreeSha256:Sha256;sourceManifestSha256:Sha256;
+@@ -102,8 +102,8 @@
+   issue(tx:Tx,actor:Actor,candidateId:Id):Promise<MergePermit>;
+   acceptMerge(tx:Tx,actor:Actor,observation:Observation):Promise<Id>;
+ }
+-interface CandidateBuilder {prepare(scope:Scope,input:{effectId:Id;targetRef:string;sourceRef:string;sourceOid:GitOid}):Promise<Candidate>;}
+-interface IntegrationGit {apply(permit:MergePermit):Promise<MergeReceipt>;reconcile(effectId:Id):Promise<MergeReceipt|null>;}
++interface CandidateBuilder {prepare(scope:Scope,input:{effectId:EffectId;targetRef:string;sourceRef:string;sourceOid:GitOid}):Promise<Candidate>;}
++interface IntegrationGit {apply(permit:MergePermit):Promise<MergeReceipt>;reconcile(effectId:EffectId):Promise<MergeReceipt|null>;}
+ type DocsResultState={kind:'docs_only';ticketId:Id;snapshotId:Id;sourceCommit:GitOid|null;expectedCommit:GitOid|null;
+   storedAuditState:'unverified';verification:'unverified'|'verified';state:'current'|'stale'|'unverified';attestationId:Id|null};
+ interface TrustedDocsReader {state(tx:Tx,projectId:Id,snapshotId:Id):Promise<DocsState>;
+@@ -120,7 +120,7 @@
+ 
+ ## Persistence011 và wire
+ 
+-All IDs/FKs bind project/ticket/attempt with composite scope checks; append-only evidence rows reject UPDATE/DELETE. T1 owns complete migration, every later table consumer present before freeze.
++All IDs/FKs bind project/ticket/attempt with composite scope checks; append-only evidence rows reject UPDATE/DELETE. Every011 effect_id/effect field in candidate/permit/merge receipt/docs job and canonical JSON is EffectId stored text CHECK `^[0-9a-f]{64}$`, never UUID; ordinary ID/FK columns stay UUID. T1 owns complete migration, every later table consumer present before freeze. This is plan typing only; do not edit frozen SQL001–011.
+ 
+ | Table | Columns/constraints in addition to id/created_at |
+ |---|---|
+@@ -248,9 +248,10 @@
+ 
+ ## T4 — Fenced local merge và crash reconciliation
+ 
+-**Interfaces:** `createIntegrationGit({git,journal,resources,effects,http}):IntegrationGit`; authority issue/acceptMerge and F1 acceptVerifiedMergeFact above. Local011 journal keyed `(projectId,effectId)` persists candidate/permit/commit OID/apply state/receipt and fsyncs before external effect;04 logical effect ID is stable through fallback.
++**Interfaces:** `createIntegrationGit({git,journal,resources,effects,http}):IntegrationGit`; authority issue/acceptMerge and F1 acceptVerifiedMergeFact above. Local011 journal keyed `(projectId,effectId)` persists candidate/permit/commit OID/apply state/receipt and fsyncs before external effect;04 logical effect ID is stable through fallback. Journal keys, effect locks and `refs/crew/integration/<effectId>` use the exact lowercase hex64 digest, never UUID parsing/truncation/rehashing; target lock semantics unchanged. Server transactionally reads010 assistant_operation_ids by effect_id, matches id=stepOperationId/run/step/action/target/precondition and recomputes unchanged04 canonical digest, checks scope via workflow_steps/assistant_dispatches; local04 EffectLedger owns execution/reconcile, is not a SQL ledger.
+ - [ ] RED F1 actual HTTP with tickets.merged_commit initially null: trusted merge result transaction writes fact+verified evidence+same head projections+one job while status/guard/intent unchanged; failing last job insert rolls whole Tx back, retry after restart writes once. Cancel/pause/retry, historic/superseded wave and cached response cannot reset intent or overwrite current fact.
+ - [ ] RED target/source/policy advanced after permit, concurrent two permits, same effect other runtime, cancel before apply, lost apply response, wrong machine/stale fence. Crash immediately before/after commit-object creation, before/after target ref, before local/server receipt, before result response; restart real host/API/pool and inspect Git/rows.
++- [ ] RED EffectId conformance: actual04 canonical derive + actual010 operation producer mapping→real HTTP candidate/permit/apply/signed receipt→restart/reconcile preserves the same hex64 in011, journal and receipt ref. UUID-looking effect, changed digest/action/target/precondition or foreign run/ticket mapping deny before effect; no synthetic UUID fixture or parser bypass. Fact writer/reader/onboarding/head tests and authority stay unchanged.
+ ```ts
+ await fixture.crashAt('after-ref-update'); await fixture.restartHostAndApi();
+ await fixture.resumeEffect(effectId);
+--- plans/261002-0002-crew-v2/execution-phase02/phase-09-plan-round2.before.md
++++ plans/261002-0002-crew-v2/phase-09-updates-operations.md
+@@ -6,7 +6,7 @@
+ **Architecture:** Namespace012 quản lý release/desired/current/update operation; dùng lại auth/journal002, boot007, process/resource journal03 và admission06. Native coordinator đổi toàn bundle sau drain, giữ previous bundle và journal ngoài app; VPS deploy có artifact/backup/receipt riêng và dùng exact deploy authority004.
+ **Tech Stack:** Node floor≥24.12, private Node24.21.0, Electron44.5.1, TypeScript7.0.2/pnpm10.32.1; Swift/C + Security/ServiceManagement trên builder macOS, PostgreSQL18.6/Fastify theo02, node:test.
+ **Spec:** `docs/superpowers/specs/2026-10-01-crew-v2-design.md` §1–2,7–9,11–12; roadmap `plan.md`; reviewed02–06; research `plans/reports/research-261002-crew-v2-updates-operations.md`.
+-**Status:** Fix wave1 F1–F5, chờ scoped independent review, chưa freeze09. Phase08 APPROVED fe280b7, final SHA256 `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec`; actual implementation/certification vẫn cần gate. Native03 reviewed859d671;02 Task7 candidate4ae9ed9 còn search-deadline finding đang sửa, không giả đã closed. Chưa implementation012 hoặc live signing/update/deployment PASS;07 layout approval riêng.
++**Status:** Original F1–F5 CLOSED qua scoped review; round2 chỉ N1 EffectId và cùng encoding defect08, chờ joint scoped review, chưa freeze09. Phase08 historical APPROVED fe280b7/final SHA `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec`; thin correction08 SHA `1aa930e91b11c43d784eb89ffbf9a35d10a0f53e99d0f28a45c33eac1a7beb08` PROVISIONAL đến joint review, F1–F4 không mở lại. Native03 reviewed859d671;02 Task7 COMPLETE4ae9ed9+c6f9b60, F1/M1 closed, M2 minor ledger. Chưa implementation012 hoặc live signing/update/deployment PASS;07 layout approval riêng.
+ 
+ ## Global Constraints
+ 
+@@ -31,11 +31,11 @@
+ 
+ | Producer | Consume nguyên trạng / gate |
+ |---|---|
+-| Actual02 | Actor/Tx/Mutator + authorize-before-replay, readDeployAuthorization/deployTicketFingerprint, attempt active/uncertain/finalizing; Task7 actual HTTP composition qua review trước wiring |
++| Actual02 | Actor/Tx/Mutator + authorize-before-replay, readDeployAuthorization/deployTicketFingerprint, attempt active/uncertain/finalizing; Task7 actual HTTP composition COMPLETE4ae9ed9+c6f9b60, new012 wiring vẫn phải review |
+ | Actual03 Task1–2 | AtomicRecords formatVersion1, ProcessLock, ProcessJournal/Launcher, HttpOperationJournal, ResourceRegistry, GatewayStatus; NativeHelper.build đang dev-only; fork→UNKNOWN không được nâng thành stopped |
+ | Planned03 Task3–7 | gateway_boots generation + auth, workflow registry refs và command reconciliation thực; không dùng shell hiện tại làm bằng chứng production |
+ | Reviewed04/05/06 | runtime/model binary/policy certificate, original/derivative refs, AssistantDriver.checkpoint/stop, turn/dispatch reservation/retirement; actual008–010 + certified producers mới được mở admission |
+-| Phase08 approved plan | actual accepted merge receipt/merged_commit writer,011 head authority registration/generation/binding, docs-only/merged proof, FinalEvidencePort và observer enrollment; F1–F4 closed tại fe280b7; consume exact final hash, không tự sửa08 |
++| Phase08 plan dependency | accepted merge receipt/merged_commit writer,011 head authority registration/generation/binding, docs-only/merged proof, FinalEvidencePort và observer enrollment; F1–F4 closed tại fe280b7; consume thin EffectId correction SHA ở Status tạm PROVISIONAL, không đổi các authority seam đã duyệt |
+ 
+ | Task | Create ownership (repo-relative) | Reviewed modify/handoff |
+ |---|---|---|
+@@ -51,7 +51,7 @@
+ 
+ ## Typed contracts: T1 server, T3 matching strict JSON
+ 
+-`Id=string(UUID)`, `Sha256=string(hex64 lowercase)`, `GitOid=string(hex40|hex64)`, `Generation=string(unsigned decimal)`; byte lengths safe integers. Imports Actor/Tx from actual02; gateway uses JSON conformance tests, no server runtime import. Canonical JSON002 and SHA-256; signatures Ed25519 over canonical bytes excluding signature. Release key allowlist is trusted deployment config, never supplied by a machine.
++`Id=string(UUID)`, `Sha256=string(hex64 lowercase)`, `EffectId=Sha256` exact04 canonical logical-effect digest, `GitOid=string(hex40|hex64)`, `Generation=string(unsigned decimal)`; byte lengths safe integers. Imports Actor/Tx from actual02; gateway uses JSON conformance tests, no server runtime import. Operation/ticket/attempt/action IDs stay UUID; every logical-effect parser accepts only lowercase hex64 without UUID coercion. Canonical JSON002 and SHA-256; signatures Ed25519 over canonical bytes excluding signature. Release key allowlist is trusted deployment config, never supplied by a machine.
+ 
+ ```ts
+ type Component={name:'app'|'host'|'node'|'process-helper'|'resource-helper'|'bundle-helper'|'operation-supervisor'|'health-observer'|'coordinator';
+@@ -73,7 +73,7 @@
+ type UpdateResult={outcome:'succeeded'|'rolled_back'|'superseded'|'failed';
+   currentReleaseId:Id|null;healthReceiptId:Id|null;code:string};
+ type DrainSnapshot={commandId:Id;localSequence:Generation;processRecordIds:Id[];
+-  checkpointArtifactIds:Id[];httpOperationIds:Id[];unresolvedEffectIds:Id[];sha256:Sha256};
++  checkpointArtifactIds:Id[];httpOperationIds:Id[];unresolvedEffectIds:EffectId[];sha256:Sha256};
+ type ActivationGrant={id:Id;commandId:Id;target:UpdateTarget;generation:Generation;
+   releaseId:Id;manifestSha256:Sha256;previousReleaseId:Id;drainSha256:Sha256};
+ type UpdateReport={id:Id;commandId:Id;bootId:Id;bootGeneration:Generation;sequence:Generation;
+@@ -123,8 +123,8 @@
+ | operations_update_reports | report_id PK, command_id FK, boot/generation/sequence, body_sha256, exact_response JSONB, health_receipt_id nullable FK operations_health_receipts, received_at; immutable; UNIQUE(machine_id,boot_id,sequence) |
+ | operations_current | machine_id PK, release_id FK, manifest_sha256, activation_generation nullable (enrollment only), health_receipt_id FK operations_health_receipts, observed_at; server-derived only after accepted health or rollback proof |
+ | operations_vps_releases | id PK, canonical_manifest JSONB, manifest_sha256 UNIQUE, signature/key_id, source_commit, build_receipt; immutable, trusted verifier admission |
+-| operations_deployments | operation_id PK, ticket_id FK004/attempt_id FK005, action_id, UNIQUE(ticket_id,action_id), fence, process_instance_id, definition_hash, target_id, release_sha256, expected_previous_sha256, effect_id UNIQUE, definition_sha256, state prepared/applying/uncertain/succeeded/rolled_back/failed, immutable request_sha256 |
+-| operations_deploy_recovery_admissions | id PK, operation_id FK, attempt/fence/process, definition/effect hash; append-only, UNIQUE(operation_id,attempt_id); current005 authority, no deploy restart permission |
++| operations_deployments | operation_id PK, ticket_id FK004/attempt_id FK005, action_id, UNIQUE(ticket_id,action_id), fence, process_instance_id, definition_hash, target_id, release_sha256, expected_previous_sha256, effect_id text UNIQUE CHECK lowercase hex64 (EffectId), definition_sha256, state prepared/applying/uncertain/succeeded/rolled_back/failed, immutable request_sha256 |
++| operations_deploy_recovery_admissions | id PK, operation_id FK, attempt/fence/process, definition hash, effect_id text CHECK lowercase hex64 (EffectId); append-only, UNIQUE(operation_id,attempt_id); current005 authority, no deploy restart permission |
+ | operations_deploy_receipts | id PK, operation_id FK UNIQUE, recovery_admission_id nullable FK, observer_receipt_id, actual_release_sha256, backup_manifest_sha256, schema_checksum, health_trace_sha256, outcome, received_at; append-only |
+ 
+ Mutations use002 authorize-before-idempotency-replay with current auth/revocation/registration/binding checks; committed report replay is historical response only, cannot promote current. New report checks007 current boot under its machine lock, monotonic dedicated update sequence, exact command/hash/generation; changed same ID409. Keep007 boot protocol; no second heartbeat or ticket command enum. All writes follow reviewed02/06 lock order, then012; no network or Apple API inside Tx.
+@@ -295,7 +295,7 @@
+ `images` exactly api+web with OCI `sha256:<hex64>` digests; registry origin fixed operator allowlist. Target config keyed targetId is operator-owned signed deployment config (hostname/ports/services/volumes/secret refs), not request JSON; a configuration hash is included in `inputs.deployDefinition` and definition fingerprint. Backup SHA hashes canonical bytes excluding sha256; no credential bytes or secret download URL. Initial VPS deployment uses expectedPreviousSha256 of operator-approved empty-target record, never wildcard.
+ 
+ **Owner input before004 create:** `DeployDefinition={version:1,actionId:Id,targetId:string,targetConfigSha256:Sha256,releaseSha256:Sha256,sourceCommit:GitOid,expectedPreviousSha256:Sha256,schemaFrom:number,schemaTo:number,backupManifestSha256:Sha256}`; immutable at `CreateTicket.inputs.deployDefinition`, no ticketId, operationId, effectId or definitionHash.
+-**Server-derived after004 create:** `DeployPlan={operationId:Id,ticketId:Id,attemptId:Id,fence:string,processInstanceId:Id,effectId:Id,definitionHash:Sha256,definition:DeployDefinition}`; `DeployRequest=Pick<DeployPlan,'operationId'|'ticketId'|'attemptId'|'fence'|'processInstanceId'|'effectId'>`; `DeployRecoveryAdmission=DeployRequest & {id:Id;planSha256:Sha256;mode:'reconcile-only'}`. `DeployObservation={operationId:Id,attemptId:Id,fence:string,processInstanceId:Id,recoveryAdmissionId:Id|null,planSha256:Sha256,actualReleaseSha256:Sha256,backupManifestSha256:Sha256,schemaChecksum:Sha256,healthTraceSha256:Sha256,outcome:'succeeded'|'rolled_back'|'failed',keyId:string,signature:string}`. T6 exports `prepareDeploy(tx:Tx,actor:Actor,input:DeployRequest):Promise<DeployPlan>`, `authorizeDeployRecovery(tx:Tx,actor:Actor,input:DeployRequest):Promise<DeployRecoveryAdmission>`, `acceptDeployReceipt(tx:Tx,actor:Actor,proof:DeployObservation):Promise<Id>`, `verifyDeployResult(tx:Tx,input:Parameters<ServerOptions['verifyFinalResult']>[1]):Promise<void>`; trusted runner key config, default deny. A new attempt uses recovery route; old Plan credentials never authorize its effects.
++**Server-derived after004 create:** `DeployPlan={operationId:Id,ticketId:Id,attemptId:Id,fence:string,processInstanceId:Id,effectId:EffectId,definitionHash:Sha256,definition:DeployDefinition}`; `DeployRequest=Pick<DeployPlan,'operationId'|'ticketId'|'attemptId'|'fence'|'processInstanceId'|'effectId'>`; `DeployRecoveryAdmission=DeployRequest & {id:Id;planSha256:Sha256;mode:'reconcile-only'}`. `DeployObservation={operationId:Id,attemptId:Id,fence:string,processInstanceId:Id,recoveryAdmissionId:Id|null,planSha256:Sha256,actualReleaseSha256:Sha256,backupManifestSha256:Sha256,schemaChecksum:Sha256,healthTraceSha256:Sha256,outcome:'succeeded'|'rolled_back'|'failed',keyId:string,signature:string}`. T6 exports `prepareDeploy(tx:Tx,actor:Actor,input:DeployRequest):Promise<DeployPlan>`, `authorizeDeployRecovery(tx:Tx,actor:Actor,input:DeployRequest):Promise<DeployRecoveryAdmission>`, `acceptDeployReceipt(tx:Tx,actor:Actor,proof:DeployObservation):Promise<Id>`, `verifyDeployResult(tx:Tx,input:Parameters<ServerOptions['verifyFinalResult']>[1]):Promise<void>`; trusted runner key config, default deny. A new attempt uses recovery route; old Plan credentials never authorize its effects; request/recovery parsers preserve EffectId, receipt planSha256 binds that exact digest through the immutable plan.
+ - [ ] RED `deploy-operations.test.ts`: exact owner-created deploy root works only its own definition; same root's child without own fingerprint approval denies, machine-created root denies, changed release/target/argv/migration/backup denies. Approved merge/PM mandate not accepted. Lost apply response marks uncertain and reconciles deployed digest/schema/receipt before retry, no duplicate migration/release switch.
+ ```ts
+ await assert.rejects(()=>f.prepareDeploy(f.childWithoutApproval),/DEPLOY_OWNER_INTENT_REQUIRED/);
+@@ -303,7 +303,8 @@
+ assert.equal(plan.definitionHash,await f.storedDeployDefinitionHash(f.child.id));
+ ```
+ - [ ] F3 RED→GREEN create owner deploy root and preapproved child through actual004 HTTP/createTicket, no seeded ID/hash. Definition has explicit actionId and fixed target/release/config/schema/backup preconditions; child approval hashes full candidate with known rootId/inherited workflowPin using unchanged deployTicketFingerprint. Prepare after create reads stored ticket ID/hash; changing any definition field/actionId or replaying operation/effect under another ticket fails. Finalize successful trusted receipt through private08 deploy reader and005, not direct done mutation.
+-- [ ] T6 first prepare binds request operationId permanently to `(ticketId,definition.actionId,definitionSha256)`; unique tuple prevents a second operation. Supplied04 effectId must match server effect ledger run/step/actionKind=deploy/targetIdentity=targetId+actionId/preconditionSha256=definitionSha256; persist once, changed effect409. Exact replay rechecks current005 authority then returns original operation; fallback reads/reconciles same operation/effect, never rewrites original attempt/fence or launches second deployment. New attempt recovery uses append-only012 admission `(operationId,attemptId,fence,processInstanceId)` after004/005/04 checks; receipt binds original operation plus admission, verifier links current result through it. Recovery with unproven external effect stays uncertain, no re-execution.
++- [ ] T6 first prepare binds request operationId permanently to `(ticketId,definition.actionId,definitionSha256)`; unique tuple prevents a second operation. In the same Tx read010 assistant_operation_ids by supplied effect_id; join workflow_steps/assistant_dispatches to current ticket/attempt command, compare run_id/step_id, action_kind=deploy, target_identity=targetId+actionId and precondition_sha256=definitionSha256. Recompute unchanged04 SHA-256 canonical(runId,row.id=stepOperationId,actionKind,targetIdentity,preconditionSha256); exact digest only, persist once, changed effect409. Local04 EffectLedger owns execution/reconcile; it is not a SQL-readable server ledger. Exact replay rechecks current005 authority then returns original operation; fallback reads/reconciles same operation/effect, never rewrites original attempt/fence or launches second deployment. New attempt recovery uses append-only012 admission `(operationId,attemptId,fence,processInstanceId)` after004/005/010 mapping checks; receipt binds original operation plus admission, verifier links current result through it. Recovery with unproven external effect stays uncertain, no re-execution.
++- [ ] N1 RED→GREEN actual04 canonical effect derivation + actual010 producer-persisted mapping→real HTTP09 prepare→recovery→signed receipt path accepts unchanged hex64 and restores it after restart. UUID-looking effect, wrong digest/precondition/action/target or effect from foreign run/ticket deny before external effect; fixtures cannot invent UUID effects, SQL-seed mapping or bypass wire parser. No04 hash or SQL001–011 change.
+ - [ ] Run server focused test + `pnpm --dir v2/ops exec node --test test/recovery.test.ts` RED. GREEN store only DeployDefinition in immutable `CreateTicket.inputs.deployDefinition`; actual004 generates ticket ID and deploy_definition_hash normally. After create, prepareDeploy reads persisted ID/hash and exact definition, verifies readDeployAuthorization for that ticket under005 attempt/fence/binding, then derives Plan. Never compute a self-referential fingerprint or amend approved inputs. Operator prepares manifest before owner action; owner approval is final step before production invocation, never infer from planned ticket.
+ - [ ] GREEN isolated compose project `crew-v2-<environment>`, service names `crew-v2-api`, `crew-v2-web`, `crew-v2-db`, private attachment/original/derivative/release/backup volumes and credentials; API loopback18787, web18080 behind explicit v2 TLS hostname, DB container5432 unpublished in production; test DB random loopback !=5432/55432. Validate collision and forbid v1 paths/database/service/container IDs. Container image digests/build source/lock hashes in release manifest; no use of v1 deploy script/env. Config includes bound origins, port/health policy, retention and secret references; compose values rendered from reviewed exact target config.
+ - [ ] GREEN staging runner owns restricted target allowlist and serial deployment lock; prepare→backup proof→migrate additive012→start candidate separate service→health/readiness→atomic proxy target switch→receipt. Each effect operation saved before remote action; compare expected prior deployment. Health tests actual auth/DB/SSE/blob read checksums/migration version and denied dispatch by default, never marks model certification. Failed candidate rollback binaries only with verified compatible schema; destructive DB restore requires separate explicit recovery action.
+@@ -340,4 +341,4 @@
+ - [x] No duplicate heartbeat, ticket enum, model/workflow version authority, Assistant monitor or guard release; new012 update command namespace needed for non-ticket machine action, schema/config/boot revisions stay distinct.
+ - [x] Actual03 NativeHelper injection/IPC-only stop gap and06 admission hooks explicitly owned/reviewed; unchanged001–011, no compiler required on recipient, uncertain descendants keep barrier.
+ - [x] Reviewable plan/unsigned package/offline tests/staging and restore preview proceed before external asks. Genuine later gates: actual03–08 producer integration/certificates; stable authorized signing identity/notary access + test account/permission;07 prototype for UI; bounded live model allowance; final exact production deploy authorization.
+-- [ ] Phase08 approved hash recorded; freeze09 only after independent review of this F1–F5 diff. Self-review is not independent acceptance. Actual release, signing/notarization, service permission, runtime certification and deployment remain UNVERIFIED until measured.
++- [ ] Phase08 historical approved hash và thin correction hash recorded; freeze09 only after joint scoped review N1 encoding propagation08/09; original F1–F5 và08 F1–F4 closed. Self-review is not independent acceptance. Actual release, signing/notarization, service permission, runtime certification and deployment remain UNVERIFIED until measured.
+--- plans/261002-0002-crew-v2/execution-phase02/phase-08-research-round2.before.md
++++ plans/reports/research-261002-crew-v2-integration.md
+@@ -41,3 +41,7 @@
+ ## Kiểm chứng lượt planning
+ 
+ Chỉ static contract/coverage/placeholder/format/hash/diff checks; không application tests/migration/model/live calls/source edits. Exact before snapshots và unified diff cùng fix-report trong `execution-phase02/phase-08-plan-fix*`; self-review ban đầu giữ hash cũ đúng lịch sử.
++
++## Sửa hẹp EffectId cùng Phase09 N1, round2
++
++Đối chiếu04 `phase-04-runtime-models.md:162,168`: logical effect là SHA-256 canonical(runId,stepOperationId,actionKind,targetIdentity,preconditionSha256), khác operation UUID.010 `phase-06-assistant-workflows.md:136` có assistant_operation_ids mapping.08 nay dùng EffectId=Sha256 cho Candidate/MergePermit/MergeReceipt/ports/parser/011 effect text và exact journal-lock/ref key; server kiểm mapping trong Tx, local04 ledger vẫn execution/reconcile. Thêm actual04-derived hex64 qua actual010 mapping và HTTP positive/negative regression. Không đổi04 hashing, SQL001–011, public005/FinalEvidencePort hoặc F1–F4; approved08 SHA `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec` giữ làm before lịch sử, correction này chờ joint scoped review. Không có implementation PASS mới.
+--- plans/261002-0002-crew-v2/execution-phase02/phase-09-research-round2.before.md
++++ plans/reports/research-261002-crew-v2-updates-operations.md
+@@ -40,7 +40,7 @@
+ 
+ ## Gate thật còn mở
+ 
+-Identity/Team ID/bundle ID production và notary credential chưa được khảo sát, không ghi giả. T2 xuất unsigned test package/config/manifest preview trước khi cần owner cấp quyền ký và chọn stable identity. Kiểm ACL/permission trong tài khoản macOS test được cho phép; không dùng owner bundle/Keychain thật làm fixture. Production deployment chỉ sau artifact/backup/restore/health plan review và exact owner action hoặc owner-created deploy root chứa exact target/release. Phase08 approved fe280b7, final SHA256 `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec`; đây là plan approval, actual merge/head/docs/observer implementation/certification vẫn cần bằng chứng.
++Identity/Team ID/bundle ID production và notary credential chưa được khảo sát, không ghi giả. T2 xuất unsigned test package/config/manifest preview trước khi cần owner cấp quyền ký và chọn stable identity. Kiểm ACL/permission trong tài khoản macOS test được cho phép; không dùng owner bundle/Keychain thật làm fixture. Production deployment chỉ sau artifact/backup/restore/health plan review và exact owner action hoặc owner-created deploy root chứa exact target/release. Phase08 historical approved fe280b7/final SHA `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec`; thin EffectId correction SHA `1aa930e91b11c43d784eb89ffbf9a35d10a0f53e99d0f28a45c33eac1a7beb08` PROVISIONAL đến joint scoped review. Đây là plan evidence; actual merge/head/docs/observer implementation/certification vẫn cần bằng chứng.
+ 
+ ## Đối chiếu producer trong fix wave1 F1–F5
+ 
+@@ -48,3 +48,7 @@
+ - Actual03 native-resources.c từ chối mọi symlink; registerProcess cần workflow ProcessJournal READY; cleanup không có owner proof thì giữ. Updater dùng BundleResourceRegistry/manifest-bound native helper và OperationProcesses journal riêng với OS stop/never-spawned proof, không nới scratch policy hay bịa workflow pin.
+ - Initial install và update/rollback health dùng signed HealthObservation chung với tagged HealthScope, server challenge+issuer/build/boot/start bindings và immutable receipt; initial acceptance ghi install/current nguyên tử không cần update grant. Bearer JSON không tự có health trust.
+ - Các helper/policy mới là thiết kế cần implementation/native tests và measured key/process isolation; không coi nguồn Apple nói chúng đã tồn tại hoặc hiện có PASS.
++
++## N1 round2 — exact logical-effect encoding
++
++04 `phase-04-runtime-models.md:162,168` derive effectId bằng SHA-256 canonical(runId,stepOperationId,actionKind,targetIdentity,preconditionSha256);06 `phase-06-assistant-workflows.md:136` persist stable010 assistant_operation_ids mapping.09 đổi riêng logical-effect alias/DTO/parser/drain IDs/012 effect fields thành lowercase hex64, giữ UUID cho operation/ticket/attempt/action. Server đối chiếu010 mapping trong Tx; local04 EffectLedger giữ execution/reconcile. Actual04-derived +010 mapping qua HTTP09 prepare/recovery/receipt là positive regression; UUID/wrong digest/precondition/action/foreign run là negatives. Cùng encoding defect trong08 được sửa hẹp, chờ joint scoped review; không mở lại F1–F5 hoặc08 F1–F4, không sửa SQL001–011/public005/FinalEvidencePort. Task7 đã COMPLETE tại4ae9ed9+c6f9b60, F1/M1 closed, M2 minor ledger; không suy certification/live PASS từ kết quả đó.

@@ -1,0 +1,36 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-stream-subset-first-s__dyds_/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-stream-subset-first-s__dyds_/v2/server/test/attachments-api.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-stream-subset-first-s__dyds_/v2/server/test/attachments-snapshots.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-1ef12cc2-5aed-4db5-882e-975de0664204", "--label", "crew.phase05.task3=2eefec68-aa7e-4317-8813-fed5cecb9773", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8", "name": "crew-v2-test-1ef12cc2-5aed-4db5-882e-975de0664204", "mapping": "127.0.0.1:62224"}
+attachment DB container 099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGD3kB
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGD3kB nonceSha256=801a9002b342402dee0c7ec24b71ad115a2d83a768125f4bdf291f38ccf0b948
+attachment DB scratch identity dev=16777229 ino=64100758 uid=501 pid=24823
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bGD3kB
+✔ attachment routes raw upload, CSRF, strict schema, metered replay and private responses (1049.703166ms)
+attachment DB container 099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oGgihi
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oGgihi nonceSha256=82be7975c0bd22b17ec7def6063a496cd68f11f8c31ae50d618dc65efb2ebf76
+attachment DB scratch identity dev=16777229 ino=64100789 uid=501 pid=24823
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-oGgihi
+✔ attachment routes authenticate again before conditional replies and current attempt downloads (959.987458ms)
+attachment DB container 099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mQyZ8W
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mQyZ8W nonceSha256=c32aca150da4f2702a2fdb50029205339abeb7c491519031049d89417d9bb7f5
+attachment DB scratch identity dev=16777229 ino=64100865 uid=501 pid=24823
+attachment access listener pid=24823 argv=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-stream-subset-first-s__dyds_/v2/server/test/attachments-api.test.ts"] url=http://127.0.0.1:62256
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-mQyZ8W
+✔ attachment routes revoke between real streamed chunks and reject next request (622.416542ms)
+attachment DB container 099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tPjaUx
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tPjaUx nonceSha256=4fa3de37091087d8d453ac7d6c01305bd269a0d2fbb8ae6c6a25008a3fb7dab4
+attachment DB scratch identity dev=16777229 ino=64100759 uid=501 pid=24824
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-tPjaUx
+✔ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (1052.17925ms)
+attachment DB container 099de487d8f2cf266728555938f6c814d0ada5629a789278e0de0760087555f8 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FUsg50
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FUsg50 nonceSha256=18917d0cf6169bdd4f74b88993b27cf46fbbea54d1545cbac6f6ce97f02a37bd
+attachment DB scratch identity dev=16777229 ino=64100792 uid=501 pid=24824
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FUsg50
+✔ attachment subset selection binds exact original identity when unit IDs repeat across files (1268.344875ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2839.5835

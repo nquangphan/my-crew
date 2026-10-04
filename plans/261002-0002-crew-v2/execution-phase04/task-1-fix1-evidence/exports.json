@@ -1,0 +1,122 @@
+[
+  {
+    "path": "v2/server/src/models/catalog.ts",
+    "exports": [
+      "denyModelProof",
+      "latestInventory",
+      "reportModelInventory",
+      "reportModelApplied",
+      "modelKeyId",
+      "getPool",
+      "assertModelDispatch"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/certification.ts",
+    "exports": [
+      "requiredCertificationSurfaces",
+      "denyCertification",
+      "ChallengeInput",
+      "ChallengeIssuer",
+      "issueCertificationChallenge",
+      "verifyCertification"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/commands.ts",
+    "exports": [
+      "readModelCommands",
+      "ackModelCommand"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/config.ts",
+    "exports": [
+      "validateApiEndpoint",
+      "readSourceConfig",
+      "setSourceConfig",
+      "readModelApplied"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/contracts.ts",
+    "exports": [
+      "Source",
+      "Capability",
+      "ModelKey",
+      "ProbeContext",
+      "ProbeResult",
+      "PoolEntry",
+      "ModelDispatchChoice",
+      "ModelReportEnvelope",
+      "ModelInventoryBody",
+      "ModelAppliedBody",
+      "ApiProviderConfig",
+      "SourceConfig",
+      "SourceConfigInput",
+      "CertificationChallenge",
+      "CertificationEvidence",
+      "RuntimeAdmission",
+      "CredentialKeyRegistration",
+      "CredentialKeyConfirmation",
+      "SecretEnvelope",
+      "SecretAck",
+      "SecretInput",
+      "ModelCommand",
+      "ModelProofVerifier",
+      "CertificationVerifier",
+      "ModelRouteOptions",
+      "sources",
+      "capabilities",
+      "contextSchema",
+      "modelKeySchema",
+      "sourceConfigSchema",
+      "probeSchema",
+      "inventorySchema",
+      "appliedSchema",
+      "certificationSchema",
+      "registrationSchema",
+      "confirmationSchema",
+      "secretSchema",
+      "secretAckSchema"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/helpers.ts",
+    "exports": [
+      "same",
+      "hash",
+      "json",
+      "fail",
+      "contextHash",
+      "modelEvent",
+      "receiptExpiry"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/routes.ts",
+    "exports": [
+      "registerModelRoutes"
+    ],
+    "matchesCandidateNames": true
+  },
+  {
+    "path": "v2/server/src/models/secret-envelopes.ts",
+    "exports": [
+      "sealSecret",
+      "registerCredentialKey",
+      "confirmCredentialKey",
+      "provisionSecret",
+      "readSecretEnvelopes",
+      "ackSecret",
+      "markSecretKeyLost"
+    ],
+    "matchesCandidateNames": true
+  }
+]

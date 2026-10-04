@@ -1,0 +1,62 @@
+[
+  {
+    "path": "v2/server/migrations/007_gateway.sql",
+    "bytes": 6548,
+    "sha256": "9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"
+  },
+  {
+    "path": "v2/server/src/gateway/contracts.ts",
+    "bytes": 9232,
+    "sha256": "546ee14da64b367a95d70943bfb2394ca11ee643905391ab7fa53a0797fa38eb"
+  },
+  {
+    "path": "v2/server/src/gateway/service.ts",
+    "bytes": 24410,
+    "sha256": "07cfebeebc7ae0f57534cd4d9b478e0e45e363c094e8a2d2d6b11ae0cfe2f605"
+  },
+  {
+    "path": "v2/server/src/gateway/routes.ts",
+    "bytes": 6342,
+    "sha256": "27f551e751766b8a4ecba5f2c24f21170fd40b11076b4868d9439521af58f348"
+  },
+  {
+    "path": "v2/server/test/gateway.test.ts",
+    "bytes": 40301,
+    "sha256": "fbad7ca2ce5bc1b8db6867953968fb6ca798e4af41b8a996483124431f06451f"
+  },
+  {
+    "path": "v2/server/test/support/gateway.ts",
+    "bytes": 13272,
+    "sha256": "e76fa45ec525922c16e6d3351b1d15dfbd5300c2c7a260fe32df31bc3424d29a"
+  },
+  {
+    "path": "v2/server/src/app.ts",
+    "bytes": 3895,
+    "sha256": "8048ed50f60fc31a20186bfcea9a7bf5cc48a2d4adce1b7572964bda2a475bd3"
+  },
+  {
+    "path": "v2/server/src/journal/event-contracts.ts",
+    "bytes": 10626,
+    "sha256": "8057d49f0f07e6835f390c441e1595b25541837cfa31a7d029aec38ba20df155"
+  },
+  {
+    "path": "v2/docs/flows/server-gateway.md",
+    "bytes": 9286,
+    "sha256": "43560bcb0f088b0005223016072d1fadb38494e6d44cd99bbfc54bd9c7effa81"
+  },
+  {
+    "path": "v2/docs/flows/server-docs-view.md",
+    "bytes": 8967,
+    "sha256": "f050f77475a06f9e56bd791653edb60cb6d07d44f1e1f4001c9806ad44106a19"
+  },
+  {
+    "path": "v2/docs/flows/server-platform.md",
+    "bytes": 7249,
+    "sha256": "6e953c0715d8c5843b2075408304c787cde9ba303bd4e76aff0e532951a1c28a"
+  },
+  {
+    "path": "v2/docs/flows/server-journal.md",
+    "bytes": 7970,
+    "sha256": "b9b1284af8feeeccc4a7053836e63730ce9473c91bd0287866dfeedbd37c178f"
+  }
+]

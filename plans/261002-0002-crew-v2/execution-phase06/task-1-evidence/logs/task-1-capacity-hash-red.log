@@ -1,0 +1,41 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=capacity hashes", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-capacity-hash-red-6uw4_pn7/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-3f81ca37-37c4-4ffe-a8b5-5a9e155f4c0b", "--label", "crew.phase06.task1=4098fe78-fa61-4d05-b973-d49520667e8e", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "55a6ade9c01973ade5760215f2da9f4964c30f42cfa78ff81581eb3db286823a", "name": "crew-v2-test-3f81ca37-37c4-4ffe-a8b5-5a9e155f4c0b", "mapping": "127.0.0.1:50651"}
+attachment DB container 55a6ade9c01973ade5760215f2da9f4964c30f42cfa78ff81581eb3db286823a root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v5fX7J
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v5fX7J nonceSha256=e8519086b8af074d7bd27db2d3cc218cbfc56f1df570d99466a5eecaef9f9f86
+attachment DB scratch identity dev=16777229 ino=64420984 uid=501 pid=71696
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-v5fX7J
+✖ assistant store capacity hashes are required hex64 immutable values independent of the request receipt latch (323.332417ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 393.8655
+
+✖ failing tests:
+
+test at v2/server/.task-1-assistant-capacity-hash-red-6uw4_pn7/v2/server/test/assistant-store.test.ts:794:1
+✖ assistant store capacity hashes are required hex64 immutable values independent of the request receipt latch (323.332417ms)
+  PostgresError: column q.request_sha256 does not exist
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-capacity-hash-red-6uw4_pn7/v2/server/test/assistant-store.test.ts:799:29 {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42703',
+    position: '27',
+    file: 'parse_relation.c',
+    line: '3854',
+    routine: 'errorMissingColumn'
+  }

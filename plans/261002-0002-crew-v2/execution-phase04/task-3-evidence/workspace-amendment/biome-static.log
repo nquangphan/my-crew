@@ -1,0 +1,29 @@
+v2/gateway/src/runtime/isolation.ts:133:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    131 │   ): asserts record is IsolatedWorkspace {
+    132 │     if (
+  > 133 │       !record ||
+        │       ^^^^^^^^^^
+  > 134 │       record.state !== 'prepared' ||
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    135 │       record.attemptId !== pin.attemptId ||
+    136 │       record.ownerCommit !== pin.workspaceCommit ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    131 131 │     ): asserts record is IsolatedWorkspace {
+    132 132 │       if (
+    133     │ - ······!record·||
+    134     │ - ······record.state·!==·'prepared'·||
+        133 │ + ······record?.state·!==·'prepared'·||
+    135 134 │         record.attemptId !== pin.attemptId ||
+    136 135 │         record.ownerCommit !== pin.workspaceCommit ||
+  
+
+Skipped 1 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 8 files in 31ms. Fixed 6 files.
+Found 1 warning.

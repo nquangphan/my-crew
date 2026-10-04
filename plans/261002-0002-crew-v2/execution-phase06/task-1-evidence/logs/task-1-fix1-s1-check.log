@@ -1,0 +1,20 @@
+command ["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node", "--max-old-space-size=384", "--test", "--test-isolation=none", "--test-name-pattern=assistant FIX1 S1", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-1-assistant-fix1-s1-check-kstxyj0o/v2/server/test/assistant-store.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-86a21486-36ef-411d-a262-09fc724d9c88", "--label", "crew.phase06.task1=15b5ceb6-b80a-4b26-a9ff-4fbae79979b0", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "f9c2303d37f2e2407aad797018d439b487cd1d20b8bd4bf4e3cae8f5db1a317d", "name": "crew-v2-test-86a21486-36ef-411d-a262-09fc724d9c88", "mapping": "127.0.0.1:54575"}
+attachment DB container f9c2303d37f2e2407aad797018d439b487cd1d20b8bd4bf4e3cae8f5db1a317d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3qgd7Q
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3qgd7Q nonceSha256=dee8571ac097889af2ee3bbc27bf51dc1b0251eb7a4b13b7a032c8fe983d8104
+attachment DB scratch identity dev=16777229 ino=64464368 uid=501 pid=89985
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-3qgd7Q
+✔ assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay (377.943375ms)
+attachment DB container f9c2303d37f2e2407aad797018d439b487cd1d20b8bd4bf4e3cae8f5db1a317d root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4g4VoS
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4g4VoS nonceSha256=f76a4a20e628b31100cbd578d2b05394ca20fd92da2e931cfa09feb21b4ee499
+attachment DB scratch identity dev=16777229 ino=64464375 uid=501 pid=89985
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-4g4VoS
+✔ assistant FIX1 S1 monitor turn needs an unexpired explicit root scope for ticket work (234.916125ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 681.614458

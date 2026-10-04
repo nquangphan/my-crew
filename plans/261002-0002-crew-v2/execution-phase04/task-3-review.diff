@@ -1,0 +1,2394 @@
+# Review package: 0c838d2..d438ce1
+
+## Commits
+d438ce1 feat(v2): add fenced runtime boundary and effect receipts
+
+## Files changed
+ v2/docs/files.md                                  |  15 ++
+ v2/docs/flows.yaml                                |  21 ++
+ v2/docs/flows/gateway-host.md                     |  11 +
+ v2/docs/flows/gateway-runtime.md                  |  61 +++++
+ v2/docs/index.md                                  |   1 +
+ v2/gateway/src/execution/ticket-command-bridge.ts |  26 +-
+ v2/gateway/src/runtime/contracts.ts               |  92 +++++++
+ v2/gateway/src/runtime/effect-ledger.ts           | 190 ++++++++++++++
+ v2/gateway/src/runtime/isolation.ts               | 223 ++++++++++++++++
+ v2/gateway/src/runtime/launch.ts                  | 194 ++++++++++++++
+ v2/gateway/src/runtime/tool-policy.ts             |  50 ++++
+ v2/gateway/test/effect-ledger.test.ts             | 155 ++++++++++++
+ v2/gateway/test/isolation-runtime.test.ts         |  90 +++++++
+ v2/gateway/test/runtime-boundary.test.ts          | 294 ++++++++++++++++++++++
+ v2/gateway/test/runtime-crash.test.ts             | 118 +++++++++
+ v2/gateway/test/runtime-workspace.test.ts         | 109 ++++++++
+ v2/gateway/test/support/runtime-crash-worker.ts   | 131 ++++++++++
+ v2/gateway/test/support/runtime-fixture.ts        |  26 ++
+ v2/gateway/test/support/runtime-pins.ts           | 124 +++++++++
+ v2/gateway/test/support/runtime-typecheck.json    |  20 ++
+ v2/gateway/test/support/runtime-workspace.ts      | 107 ++++++++
+ 21 files changed, 2057 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 98de3a3..48101db 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -46,84 +46,99 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/src/models/credential-provisioning.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/current-credential-resolver.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/inventory.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/model-reporter.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/probe.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/provider-transport.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/security-bridge.ts` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/models/security-keychain.m` | [gateway-models](flows/gateway-models.md) (file) |
+ | `gateway/src/resources/native-resources.c` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/resources/registry.ts` | [gateway-host](flows/gateway-host.md) (file) |
++| `gateway/src/runtime/contracts.ts` | [gateway-runtime](flows/gateway-runtime.md) (file) |
++| `gateway/src/runtime/effect-ledger.ts` | [gateway-runtime](flows/gateway-runtime.md) (file) |
++| `gateway/src/runtime/isolation.ts` | [gateway-runtime](flows/gateway-runtime.md) (file) |
++| `gateway/src/runtime/launch.ts` | [gateway-runtime](flows/gateway-runtime.md) (file) |
++| `gateway/src/runtime/tool-policy.ts` | [gateway-runtime](flows/gateway-runtime.md) (file) |
+ | `gateway/src/sync/connection.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/sync/event-pump.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/sync/gateway-sync.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/telemetry/capacity.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/telemetry/macos-provider.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/workflows/api-policy.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/audit.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/builder.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/fetch.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/native-projection.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/operation-native.c` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/operations.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/pins.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/registry.ts` | [gateway-workflows](flows/gateway-workflows.md) (điểm vào) |
+ | `gateway/src/workflows/retention.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/test/connection.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/credential-broker.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/credential-provisioning.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/current-credential-resolver.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
++| `gateway/test/effect-ledger.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
+ | `gateway/test/event-pump.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/execution-bridge-db.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/execution-bridge.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/execution-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/fixtures/models/security-channel.c` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/dependencies.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/dependencies.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/independent-builds.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/package.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/pnpm-lock.yaml` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/provenance.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/real-projections.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflow-builder/verified-content.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflows/bmad-6.12.0.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflows/official-audits.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/fixtures/workflows/superpowers-6.4.2.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/host-failures.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
++| `gateway/test/isolation-runtime.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
+ | `gateway/test/isolation-workspace.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/isolation.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/journal.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/model-probe.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/model-reporter.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/pin-retirement.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/resources.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/retirement-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
++| `gateway/test/runtime-boundary.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
++| `gateway/test/runtime-crash.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
++| `gateway/test/runtime-workspace.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
+ | `gateway/test/stop-control.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/audit-dependency-content.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/audit-dependency-provenance.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/bridge-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/bridge-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/compare-real-builds.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/freeze-dependencies.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/freeze-real-projections.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/isolation-probe.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/isolation-typecheck.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/model-fixture.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/pin-retirement-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/probe-bmad-build.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/reclaim-proven-build-probes.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
++| `gateway/test/support/runtime-crash-worker.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
++| `gateway/test/support/runtime-fixture.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
++| `gateway/test/support/runtime-pins.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
++| `gateway/test/support/runtime-typecheck.json` | [gateway-runtime](flows/gateway-runtime.md) (test) |
++| `gateway/test/support/runtime-workspace.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
+ | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/support/workflow-admission-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/workflow-archives.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/support/workflow-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/sync.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/telemetry.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/workflow-admission.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-build.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-fix.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+ | `gateway/test/workflow-native-projection.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 71d00ad..18a60c3 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -379,12 +379,33 @@ flows:
+     files:
+       - server/src/attachments/jobs.ts
+       - server/src/attachments/worker-diagnostic.ts
+       - server/src/attachments/worker-protocol.ts
+       - server/src/attachments/worker-runner.ts
+       - server/extractor.Dockerfile
+       - server/extractor.dockerignore
+     tests:
+       - server/test/attachments-worker-live.test.ts
+       - server/test/attachments-worker.test.ts
++  gateway-runtime:
++    title: Boundary runtime và receipt logical effect Crew v2
++    doc: docs/flows/gateway-runtime.md
++    entrypoints: []
++    files:
++      - gateway/src/runtime/contracts.ts
++      - gateway/src/runtime/effect-ledger.ts
++      - gateway/src/runtime/isolation.ts
++      - gateway/src/runtime/launch.ts
++      - gateway/src/runtime/tool-policy.ts
++    tests:
++      - gateway/test/effect-ledger.test.ts
++      - gateway/test/isolation-runtime.test.ts
++      - gateway/test/runtime-boundary.test.ts
++      - gateway/test/runtime-crash.test.ts
++      - gateway/test/runtime-workspace.test.ts
++      - gateway/test/support/runtime-crash-worker.ts
++      - gateway/test/support/runtime-fixture.ts
++      - gateway/test/support/runtime-pins.ts
++      - gateway/test/support/runtime-typecheck.json
++      - gateway/test/support/runtime-workspace.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/gateway-host.md b/v2/docs/flows/gateway-host.md
+index 5e17844..7904a1c 100644
+--- a/v2/docs/flows/gateway-host.md
++++ b/v2/docs/flows/gateway-host.md
+@@ -136,10 +136,21 @@ production final pending và native pause/cancel/ACK replay. SIGKILL thật tạ
+ authorize/release không tạo launch thứ hai; root UNKNOWN được giữ cùng device/inode/UID. Gated/pending-startup/
+ repeated-TERM/completed helper và fork escaped process vẫn giữ ranh giới STOP. Gateway tsconfig include thêm
+ đúng hai ambient declaration đã review của server (`platform/thread-stream.d.ts`, `platform/picomatch.d.ts`)
+ cho actual integration imports; strict và library checking vẫn bật, build config chỉ compile gateway src.
+ 
+ GatewaySync gọi readonly `WorkflowRegistry.verifySource` trước báo source current, kể cả mọi projection null; healthy cache không fetch lại archive, source bị sửa báo error. Prefix8 coexistence test để sync_models queued/result null trong khi workflow cursor tiến và revision mới vẫn applied.
+ 
+ Task6 bổ sung script `pnpm --dir v2/gateway isolation:probe -- --runtime claude|codex --no-model` gọi fixture cách ly có chọn runtime và kiểm API inventory. Không gửi prompt/turn/auth hay gọi model. Kết quả test/CLI không là chứng nhận native Read/Skill/MCP/child; các bề mặt chưa đo vẫn UNVERIFIED và production disabled. Helper thuộc flow `gateway-workflows`; package script thuộc flow này.
+ 
+ Fixture `retirement-crash.test.ts` sau SIGKILL chờ lấy được khóa OS thật ở hai thư mục journal và workflow, rồi release trước khi mở fixture lại. Chỉ retry lỗi đúng `Host guard unavailable (75)`, deadline1500ms/backoff10–100ms; không xóa lockfile, force unlock hay suy STOP từ deadline/PID. Full cover126/127 còn lưu một lỗi timing baseline; whole file sau sửa3/3 PASS, không gộp thành127 PASS. Production ProcessLock/STOP proof giữ nguyên.
++
++### Phase04 runtime companion trước RELEASE
++
++`BridgeOptions.beforeRelease` là callback additive được capture lúc mở bridge; bridge truyền actual
++LaunchRecord, current active Attempt, accepted immutable companion007 và fresh scoped Command dưới
++clone deep-frozen. Callback hoàn tất sau companion và trước launcher.release hiện hữu. Throw hoặc
++non-void result chặn RELEASE; không thay process identity, không thả guard/pin. Runtime consumer ghi
++exclusive RuntimePin/input/entrypoint companion và fsync trước trả; launcher vẫn dùng check current
++companion/capacity cũ. Callback không được re-enter bridge hoặc journal transaction. Generic bridge
++không hook giữ producer protocol cũ; runtime production bắt buộc binding mới, mặc định fail closed.
++Chi tiết authority, threat model và chứng cứ chưa đo ở `gateway-runtime`.
+diff --git a/v2/docs/flows/gateway-runtime.md b/v2/docs/flows/gateway-runtime.md
+new file mode 100644
+index 0000000..9b3fd95
+--- /dev/null
++++ b/v2/docs/flows/gateway-runtime.md
+@@ -0,0 +1,61 @@
++# Ranh giới runtime và receipt của logical effect
++
++## Mục đích
++
++Phase04 Task3 cung cấp hợp đồng adapter chung, companion RuntimePin bền vững trước RELEASE và ledger chống chạy trùng logical effect qua fallback. Production vẫn mặc định từ chối: chưa có binding Phase06, catalogue entrypoint chính thức được host nối, observer admission/certificate và chứng cứ confinement toàn cây. Test protocol không chứng nhận runtime native.
++
++## Điểm vào
++
++- `gateway/src/runtime/launch.ts` → `RuntimeLaunch.open`, `beforeRelease`, `startReleased`.
++- `gateway/src/runtime/isolation.ts` → `RuntimeIsolation.withVerified`, `assert`.
++- `gateway/src/runtime/effect-ledger.ts` → `DurableEffectLedger.reserve`, `complete`, `reconcile`.
++- `gateway/src/runtime/tool-policy.ts` → `ToolPolicy.authorize`.
++
++## Các bước
++
++### Luồng RELEASE
++
++1. `TicketCommandBridge` hiện hữu giữ registry/journal đã bind, reserve exact source/projection và READY trước claim005. Companion007 accepted và current scoped read đi trước callback `beforeRelease` được capture lúc mở bridge; callback nhận clone deep-frozen của actual LaunchRecord, Attempt, companion và command đã đọc từ transport.
++2. `RuntimeLaunch.beforeRelease` chạy trong queue riêng, gọi trusted Phase06 binding để nhận RuntimePin/input. Mặc định thiếu binding từ chối. `startReleased` chỉ nhận thao tác trong hook này, không có launcher khác. Nó đối chiếu command/attempt/fence/process/machine, source/projection/selection/modelChoice và certificationAdmission thực tế trong command, cùng exact journal READY và registry.resolve.
++3. `skillPath` là projection-relative path; không nhận absolute/đoạn rỗng/`.`/`..`. Catalogue entrypoint trusted được capture riêng và mặc định chưa cấu hình. Catalogue phải bind đúng source tree, projection manifest/tree và derivation hash, ánh xạ `skillName` sang path/hash từ recipe/build mapping đã review. Manifest chứa file không tự cấp quyền entrypoint. Consumer so path, resolve canonical trong chosen projection, chấp nhận internal link chỉ khi đích canonical vẫn thuộc projection và là file có trong manifest, rồi mở no-follow và so size/link count/hash bytes. Receipt lưu canonical absolute path này; Codex adapter sau đó phải so chính xác với item absolute trả từ `skills/list`, không tạo alias hay suy authority từ tên `SKILL.md`.
++4. `RuntimeIsolation` mặc định `ISOLATION_NOT_BOUND`. Trusted local observer phải tiêu actual server admission/certificate và kiểm constrained descendants. Exact context gồm source/projection/derivation/binary bytes/policy/OS và fixed-field context hash từ server008. Preflight có FAIL hoặc thiếu full-tree evidence luôn từ chối. Certified cần accepted matching receipt, còn hạn và đủ positive selected/negative unselected init/invoke/native Read/Bash/MCP/child/absolute/dotdot/symlink/hardlink/common-dir/network/toàn cây. Bounded test chỉ nhận challenge `admitted` đúng attempt/command/process/fence/machine/context/nonce, chưa hết hạn, budget hợp lệ và preflight UNVERIFIED; không đổi synthetic PASS thành production authority.
++5. Captured concrete `IsolationWorkspace` là bắt buộc; thiếu service hoặc structural fake bị từ chối. Runtime so actual `get(attemptId)` prepared state/ownerCommit/source/projection/workspace/home với RuntimePin và observed preflight, rồi gọi actual `withPrepared` để reverify ownership, Git/config/workspace bytes, pin và closure. Returned record được so lại identity/operationId trong transaction. Observer chạy trước queue để không re-enter isolation; lock order runtime queue → isolation queue → registry read, và giữ qua fsync companion để cleanup không chen giữa verify và ghi pin. Receipt lưu actual operation/identity/workspace/home/ownerCommit/source/projection.
++6. Companion riêng `runtime-pins/<launch-hash>.json` ghi exclusive, fsync file và directory trước callback thành công. Nó giữ RuntimePin, input/checkpoint và entrypoint canonical; replay phải cùng bytes, thay credential/model/checkpoint/path bị conflict. Không sửa record journal005/007. Chỉ sau đó bridge gọi chính `Launcher.release` cũ, vẫn recheck companion/current/capacity. Callback throw hoặc trả giá trị không phải void giữ gate đóng, guard/pin retained. Generic bridge không gắn hook vẫn là API producer cũ; host runtime production bắt buộc gắn callback này.
++
++### Logical effect và tool policy
++
++`EffectId` là lowercase hex64 của SHA256 trên canonical JSON array `[runId,stepOperationId,actionKind,targetIdentity,preconditionSha256]`. UUID vẫn dùng cho run/step/attempt/operation; provider call ID và args hash không là logical identity. `RuntimeAdapter` giữ đúng bảy method inventory, prepareIsolation, start, sendInput, checkpoint, cancel, reconcile.
++
++`DurableEffectLedger` dùng AtomicRecords writer lock và queue riêng. Append-only transport binding `(attemptId,fence,toolCallId)` precedes immutable logical intent; intent fsync trước trả `execute`. Same call khác args hoặc same logical effect khác metadata/args trả conflict409. Phase06 operation authorizer mặc định thiếu→wait và không ghi intent. Hai operation khác nhau được phép có cùng args.
++
++Receipt phải được verifier kiểm actual result/artifact bytes trước complete và mỗi lần đọc lại. Receipt exclusive/fsync đi trước trả model; fallback call khác nhận cùng verified receipt. Pending sau crash không trả execute lần nữa: target-specific reconciler có thể cung cấp verified receipt; không có chứng cứ thì append uncertain và trả wait. Chưa có target adapter cho durable remote idempotency; không hỗ trợ tự replay side effect theo key khi chưa có target-specific proof. Không expire intent/uncertain theo TTL, không thả server guard.
++
++`ToolPolicy` là cổng broker: mặc định deny, trusted configuration sở hữu danh sách tool và tập readonly. Caller không được gắn nhãn write thành readonly để bypass ledger. Thiếu stepOperationId/target/precondition→wait, missing effectId→deny trước effect. Native Read/Skill/Bash/MCP/child bypass broker không được coi là đã chặn chỉ bằng policy này.
++
++### Threat model và giới hạn
++
++Same UID, chmod và HOME/config riêng chỉ tổ chức file, không phải security boundary. Current Phase03 preflight vẫn luôn UNVERIFIED khi các phép đo shell sạch vì native invoke/MCP/child/full-tree chưa được chứng minh. RuntimeIsolation không tự tạo certificate hay route GET giả. Server008 chưa có authenticated gateway read admission/certificate endpoint; host composition/Phase06/Task7 phải cung cấp observer trusted dựa trên actual authority. Chưa chạy paid model, owner credential, Keychain hay cập nhật global/native helper.
++
++Checkpoint giữ logical effect IDs/receipt IDs/artifacts/attachments; Task6 fallback và Phase06 chịu trách nhiệm nguồn logical operation, previous terminal/stop proof và chuyển checkpoint hợp lệ. Consumer hiện chỉ nhận checkpoint cùng source/projection đã ghim; không tự cấp quyền chuyển projection qua fallback.
++
++Lock order: bridge queue → runtime companion queue → isolation queue → registry read/own store reads. Callback không gọi lại bridge hoặc journal mutation/transaction, không đảo registry→journal producer order. Ledger queue độc lập; callback authority không được re-enter cùng ledger. Host crash mất observer vẫn UNKNOWN; group empty hoặc hết lease không chứng minh toàn cây dừng.
++
++## Files
++
++- `gateway/src/runtime/{contracts,launch,tool-policy,effect-ledger,isolation}.ts`.
++- Additive producer hook ở `gateway/src/execution/ticket-command-bridge.ts`.
++- `gateway/test/{runtime-boundary,runtime-crash,runtime-workspace,effect-ledger,isolation-runtime}.test.ts` và `gateway/test/support/runtime-{fixture,pins,crash-worker,workspace}.ts`, `runtime-typecheck.json`.
++
++## Dữ liệu
++
++`runtime-pins` giữ immutable launch identity, RuntimePin, input/checkpoint, entrypoint canonical và actual prepared workspace summary (attempt/operation/identity/root/home/ownerCommit/source/projection). `logical-effects` giữ append-only intent, transport binding, verified receipt và uncertain marker; tất cả records version1, file0600 trong directory0700. Source/record bytes được freeze riêng cho review, không chứa credential plaintext.
++
++## Flow liên quan
++
++`gateway-host` giữ journal/launcher/guard; `gateway-workflows` cung cấp registry và actual prepared workspace; `server-execution` cấp claim/fence; `server-models` sở hữu model choice/admission/certificate authority.
++
++## Tests
++
++Tests dùng actual journal/registry/launcher và protocol transports riêng. SIGKILL tại READY/claim/companion/RuntimePin/authorization/RELEASE giữ one launch, không effect trước RELEASE, thiếu full-tree stopped proof giữ resource/pin. Test-only observer/certificate fixtures không phải native PASS. Frozen verification và resource identities ở `plans/261002-0002-crew-v2/execution-phase04/task-3-evidence`; PM sở hữu manifest/generated mapping và independent review.
++
++`runtime-workspace.test.ts` dùng actual prepared API workspace và actual producer get/withPrepared để chặn wrong commit/attempt/source/projection, observed root/home, unprepared/stale state; cleanup race phải đợi callback ghi pin. Amendment ngày 2026-10-03: historical consumer RED vì thiếu rejection; current frozen six-file affected cover22/22, build/strict/Biome PASS. Historical105 thuộc candidate trước amendment, không cộng dồn hoặc dùng làm full-suite/native certification.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 982b412..6fa7a95 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -27,20 +27,21 @@
+ ## Danh sách flow
+ 
+ <!-- crew-docs:flows:start -->
+ | Flow | Id | Điểm vào |
+ |------|----|----------|
+ | [Worker trích xuất attachment có giới hạn](flows/attachment-extraction.md) | `attachment-extraction` | `server/src/attachments/worker-entry.ts` |
+ | [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
+ | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
+ | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
+ | [Inventory, credential broker và probe model trên gateway](flows/gateway-models.md) | `gateway-models` | — |
++| [Boundary runtime và receipt logical effect Crew v2](flows/gateway-runtime.md) | `gateway-runtime` | — |
+ | [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
+ | [Storage và staging attachment Crew v2](flows/server-attachments.md) | `server-attachments` | — |
+ | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |
+ | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
+ | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |
+ | [Control plane gateway và boot/config/report](flows/server-gateway.md) | `server-gateway` | `server/src/gateway/routes.ts` |
+ | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nguồn model, catalogue và provisioning credential Crew v2](flows/server-models.md) | `server-models` | `server/src/models/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+diff --git a/v2/gateway/src/execution/ticket-command-bridge.ts b/v2/gateway/src/execution/ticket-command-bridge.ts
+index ed64beb..dc47001 100644
+--- a/v2/gateway/src/execution/ticket-command-bridge.ts
++++ b/v2/gateway/src/execution/ticket-command-bridge.ts
+@@ -28,38 +28,54 @@ type BridgeRecord = {
+   command: Command;
+   selection: Selection;
+   permit: Permit;
+   input: LaunchInput;
+   attemptId: string | null;
+   released: boolean;
+   finalizeOp?: string | null;
+   runningOp?: string | null;
+   stopReason?: 'exit' | 'pause' | 'cancel';
+ };
++export type BeforeReleaseContext = Readonly<{
++  record: Readonly<LaunchRecord>;
++  attempt: Readonly<Attempt>;
++  companion: Readonly<AttemptProjectionPin>;
++  command: Readonly<Command>;
++}>;
++function immutable<T>(value: T): T {
++  if (value && typeof value === 'object') {
++    for (const child of Object.values(value)) immutable(child);
++    Object.freeze(value);
++  }
++  return value;
++}
+ export type BridgeOptions = {
+   machineId: string;
+   journal: ProcessJournal;
+   registry: WorkflowRegistry;
+   http: HttpOperationJournal;
+   read: ReadTransport;
+   permit?: (command: Command) => Promise<Permit>;
+   command?: string[];
+   recheckCapacity?: () => Promise<boolean>;
+   onDurableStage?: LauncherOptions['onDurableStage'];
++  beforeRelease?: (context: BeforeReleaseContext) => Promise<void>;
+ };
+ export class TicketCommandBridge {
+   private readonly store: AtomicRecords;
+   private readonly options: BridgeOptions;
+   private readonly launcher: Launcher;
++  private readonly beforeRelease: BridgeOptions['beforeRelease'];
+   private constructor(store: AtomicRecords, options: BridgeOptions) {
+     this.store = store;
+     this.options = options;
++    this.beforeRelease = options.beforeRelease;
+     this.launcher = new Launcher(options.journal, {
+       command: options.command,
+       recheckCapacity: options.recheckCapacity,
+       onDurableStage: options.onDurableStage,
+       verifyProjection: async (record, fence, attemptId) => {
+         const local = await this.store.get<BridgeRecord>(this.key(record.commandId));
+         if (!local || local.attemptId !== attemptId) throw new Error('ATTEMPT_MISMATCH');
+         const attempt = await this.current(local);
+         if (attempt.fence !== fence || attempt.state !== 'active') throw new Error('ATTEMPT_NOT_ACTIVE');
+         return this.companion(local, attempt);
+@@ -252,21 +268,29 @@ export class TicketCommandBridge {
+         `${this.key(command.id)}:claim`,
+         `/v2/machine/commands/${command.id}/claim`,
+         'claim',
+         { processInstanceId: record.processInstanceId, permit: local.permit },
+       );
+       this.validateAttempt(local, response);
+       local.attemptId = response.id;
+       await this.store.put(this.key(command.id), local);
+       const attempt = await this.current(local);
+       if (attempt.state !== 'active') throw new Error('ATTEMPT_NOT_ACTIVE');
+-      await this.companion(local, attempt);
++      const companion = await this.companion(local, attempt);
++      if (this.beforeRelease) {
++        const command = await this.storedCommand(local.command.id);
++        if (!same(command.payload.selection, local.selection)) throw new Error('SELECTION_MISMATCH');
++        const result = await this.beforeRelease(
++          immutable(structuredClone({ record, attempt, companion, command })),
++        );
++        if (result !== undefined) throw new Error('RUNTIME_RELEASE_DENIED');
++      }
+       await this.launcher.release(record, attempt.fence, attempt.id);
+       local.released = true;
+       await this.store.put(this.key(command.id), local);
+       await this.ackTicket(command.id, 'completed');
+     });
+   }
+   private async recordFailure(id: string, error: unknown) {
+     await this.store.put(`failure:${this.key(id)}`, {
+       formatVersion: 1,
+       commandId: id,
+diff --git a/v2/gateway/src/runtime/contracts.ts b/v2/gateway/src/runtime/contracts.ts
+new file mode 100644
+index 0000000..869c24b
+--- /dev/null
++++ b/v2/gateway/src/runtime/contracts.ts
+@@ -0,0 +1,92 @@
++import type { Selection } from '../commands/contracts.ts';
++import type { ProjectionPin, Runtime, SourcePin } from '../host/status.ts';
++import type { AttemptProjectionPin } from '../journal/process-journal.ts';
++import type { Capability, ModelKey, ProbeResult } from '../models/contracts.ts';
++export type EffectId = string;
++export type ModelDispatchChoice = {
++  model: ModelKey;
++  modelConfigRevision: number;
++  probeReceiptId: string;
++  probeContextSha256: string;
++  certificationReceiptId: string | null;
++  required: Capability[];
++};
++export type RuntimeAdmission =
++  | { kind: 'certified'; receiptId: string }
++  | { kind: 'test-certification'; challengeId: string; nonce: string };
++export type RuntimePin = {
++  runId: string;
++  attemptId: string;
++  commandId: string;
++  processInstanceId: string;
++  fence: string;
++  source: SourcePin;
++  projection: ProjectionPin;
++  attemptProjection: AttemptProjectionPin;
++  selection: Selection;
++  modelChoice: ModelDispatchChoice;
++  admission: RuntimeAdmission;
++  isolationPolicyHash: string;
++  workspaceCommit: string;
++  credentialRef: string | null;
++};
++export type RuntimeCheckpoint = {
++  sequence: string;
++  step: string;
++  artifactIds: string[];
++  commit: string | null;
++  processInstanceId: string;
++  sourceTreeSha256: string;
++  projectionTreeSha256: string;
++  toolReceiptIds: string[];
++  logicalEffectIds: EffectId[];
++  attachmentIds: string[];
++  runtimeSession: { runtime: Runtime; id: string } | null;
++};
++export type RuntimeInput = { skillName: string; skillPath: string; checkpoint: RuntimeCheckpoint | null };
++export type LogicalEffect = {
++  effectId: EffectId;
++  runId: string;
++  stepId: string;
++  stepOperationId: string;
++  actionKind: string;
++  targetIdentity: string;
++  preconditionSha256: string;
++  state: 'pending' | 'done' | 'uncertain';
++  receiptSha256: string | null;
++  artifactIds: string[];
++};
++export type ToolInvocation = {
++  attemptId: string;
++  fence: string;
++  toolCallId: string;
++  argsSha256: string;
++  effectId: EffectId;
++  stepOperationId: string;
++};
++export type EffectReceipt = { sha256: string; artifactIds: string[] };
++export interface EffectLedger {
++  reserve(
++    effect: LogicalEffect,
++    call: ToolInvocation,
++  ): Promise<'execute' | 'return-receipt' | 'reconcile' | 'wait'>;
++  complete(effectId: EffectId, call: ToolInvocation, receipt: EffectReceipt): Promise<void>;
++  reconcile(effectId: EffectId): Promise<'done' | 'pending' | 'uncertain'>;
++}
++export interface RuntimeAdapter {
++  readonly runtime: Runtime;
++  inventory(source: SourcePin, projection: ProjectionPin): Promise<ProbeResult[]>;
++  prepareIsolation(
++    pin: RuntimePin,
++  ): Promise<{ policyHash: string; evidenceDigest: string; certified: boolean }>;
++  start(pin: RuntimePin, input: RuntimeInput): Promise<{ sessionId: string; processIdentity: string }>;
++  sendInput(pin: RuntimePin, input: { text: string; attachmentIds: string[] }): Promise<void>;
++  checkpoint(pin: RuntimePin): Promise<RuntimeCheckpoint>;
++  cancel(
++    pin: RuntimePin,
++    reason: 'pause' | 'cancel' | 'timeout',
++  ): Promise<{ requested: boolean; stopped: boolean }>;
++  reconcile(
++    pin: RuntimePin,
++  ): Promise<{ observation: 'running' | 'stopped' | 'unknown'; checkpoint: RuntimeCheckpoint | null }>;
++}
+diff --git a/v2/gateway/src/runtime/effect-ledger.ts b/v2/gateway/src/runtime/effect-ledger.ts
+new file mode 100644
+index 0000000..71664ed
+--- /dev/null
++++ b/v2/gateway/src/runtime/effect-ledger.ts
+@@ -0,0 +1,190 @@
++import { join } from 'node:path';
++import { AtomicRecords, canonicalJson, hash, writeExclusiveRecord } from '../journal/atomic-records.ts';
++import type { EffectLedger, EffectReceipt, LogicalEffect, ToolInvocation } from './contracts.ts';
++
++const digest = /^[0-9a-f]{64}$/;
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
++type Identity = Pick<
++  LogicalEffect,
++  'runId' | 'stepOperationId' | 'actionKind' | 'targetIdentity' | 'preconditionSha256'
++>;
++const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
++function invalid(): never {
++  throw new Error('INVALID_EFFECT');
++}
++function conflict(): never {
++  throw Object.assign(new Error('EFFECT_CONFLICT'), { code: 'EFFECT_CONFLICT', statusCode: 409 });
++}
++export function deriveEffectId(e: Identity): string {
++  if (
++    !uuid.test(e.runId) ||
++    !uuid.test(e.stepOperationId) ||
++    !digest.test(e.preconditionSha256) ||
++    typeof e.actionKind !== 'string' ||
++    !e.actionKind.trim() ||
++    e.actionKind.length > 256 ||
++    typeof e.targetIdentity !== 'string' ||
++    !e.targetIdentity.trim() ||
++    e.targetIdentity.length > 8192
++  )
++    invalid();
++  return hash(
++    canonicalJson([e.runId, e.stepOperationId, e.actionKind, e.targetIdentity, e.preconditionSha256]),
++  );
++}
++function validateCall(call: ToolInvocation) {
++  if (
++    !uuid.test(call.attemptId) ||
++    !uuid.test(call.stepOperationId) ||
++    !/^[1-9][0-9]*$/.test(call.fence) ||
++    !digest.test(call.argsSha256) ||
++    !digest.test(call.effectId) ||
++    typeof call.toolCallId !== 'string' ||
++    !call.toolCallId.length ||
++    call.toolCallId.length > 1024
++  )
++    invalid();
++}
++function validateReceipt(receipt: EffectReceipt) {
++  if (
++    !digest.test(receipt.sha256) ||
++    !Array.isArray(receipt.artifactIds) ||
++    receipt.artifactIds.some((id) => !uuid.test(id)) ||
++    new Set(receipt.artifactIds).size !== receipt.artifactIds.length
++  )
++    invalid();
++}
++type Intent = { formatVersion: 1; effect: LogicalEffect; argsSha256: string };
++type Binding = { formatVersion: 1; call: ToolInvocation };
++type ReceiptRecord = { formatVersion: 1; effectId: string; receipt: EffectReceipt };
++export type EffectAuthority = {
++  /** Phase06 durable logical-operation authority; never inferred from provider IDs/arguments. */
++  authorizeOperation?: (effect: LogicalEffect, call: ToolInvocation) => Promise<boolean>;
++  /** Verify actual result bytes plus every artifact before recording AND returning a receipt. */
++  verifyReceipt?: (effect: LogicalEffect, receipt: EffectReceipt) => Promise<boolean>;
++  /** Target-specific durable observation. null cannot justify replaying the side effect. */
++  reconcileTarget?: (effect: LogicalEffect) => Promise<EffectReceipt | null>;
++};
++export class DurableEffectLedger implements EffectLedger {
++  private readonly store: AtomicRecords;
++  private readonly authority: Readonly<EffectAuthority>;
++  private constructor(store: AtomicRecords, authority: EffectAuthority) {
++    this.store = store;
++    this.authority = Object.freeze({ ...authority });
++  }
++  static async open(root: string, authority: EffectAuthority = {}) {
++    return new DurableEffectLedger(await AtomicRecords.open(join(root, 'logical-effects')), authority);
++  }
++  private callKey(call: ToolInvocation) {
++    return `call:${canonicalJson([call.attemptId, call.fence, call.toolCallId])}`;
++  }
++  private async append(key: string, value: unknown) {
++    await writeExclusiveRecord(this.store.path(key), value);
++  }
++  async reserve(effect: LogicalEffect, call: ToolInvocation): ReturnType<EffectLedger['reserve']> {
++    effect = structuredClone(effect);
++    call = structuredClone(call);
++    validateCall(call);
++    if (
++      deriveEffectId(effect) !== effect.effectId ||
++      !uuid.test(effect.stepId) ||
++      call.effectId !== effect.effectId ||
++      call.stepOperationId !== effect.stepOperationId ||
++      effect.state !== 'pending' ||
++      effect.receiptSha256 !== null ||
++      effect.artifactIds.length
++    )
++      invalid();
++    return this.store.transaction(async () => {
++      const binding = await this.store.get<Binding>(this.callKey(call));
++      if (binding && !same(binding.call, call)) conflict();
++      const key = `intent:${effect.effectId}`,
++        existing = await this.store.get<Intent>(key);
++      if (existing && (!same(existing.effect, effect) || existing.argsSha256 !== call.argsSha256)) conflict();
++      if (
++        !this.authority.authorizeOperation ||
++        !(await this.authority.authorizeOperation(structuredClone(effect), structuredClone(call)))
++      )
++        return 'wait';
++      if (!binding) await this.append(this.callKey(call), { formatVersion: 1, call });
++      if (!existing) {
++        await this.append(key, { formatVersion: 1, effect, argsSha256: call.argsSha256 });
++        return 'execute';
++      }
++      const receipt = await this.store.get<ReceiptRecord>(`receipt:${effect.effectId}`);
++      if (receipt) return (await this.verified(effect, receipt.receipt)) ? 'return-receipt' : 'wait';
++      return (await this.store.get(`uncertain:${effect.effectId}`)) ? 'wait' : 'reconcile';
++    });
++  }
++  private async verified(effect: LogicalEffect, receipt: EffectReceipt): Promise<boolean> {
++    validateReceipt(receipt);
++    return (
++      !!this.authority.verifyReceipt &&
++      this.authority.verifyReceipt(structuredClone(effect), structuredClone(receipt))
++    );
++  }
++  private async persistReceipt(effect: LogicalEffect, receipt: EffectReceipt) {
++    if (!(await this.verified(effect, receipt))) throw new Error('RECEIPT_UNVERIFIED');
++    const key = `receipt:${effect.effectId}`,
++      prior = await this.store.get<ReceiptRecord>(key);
++    if (prior) {
++      if (!same(prior.receipt, receipt)) conflict();
++      return;
++    }
++    await this.append(key, { formatVersion: 1, effectId: effect.effectId, receipt });
++  }
++  async complete(effectId: string, call: ToolInvocation, receipt: EffectReceipt): Promise<void> {
++    call = structuredClone(call);
++    receipt = structuredClone(receipt);
++    validateCall(call);
++    validateReceipt(receipt);
++    await this.store.transaction(async () => {
++      const intent = await this.store.get<Intent>(`intent:${effectId}`),
++        binding = await this.store.get<Binding>(this.callKey(call));
++      if (
++        !intent ||
++        call.effectId !== effectId ||
++        !binding ||
++        !same(binding.call, call) ||
++        intent.effect.stepOperationId !== call.stepOperationId
++      )
++        conflict();
++      if (
++        !this.authority.authorizeOperation ||
++        !(await this.authority.authorizeOperation(structuredClone(intent.effect), structuredClone(call)))
++      )
++        throw new Error('OPERATION_UNVERIFIED');
++      await this.persistReceipt(intent.effect, receipt);
++    });
++  }
++  async receipt(effectId: string): Promise<EffectReceipt | null> {
++    if (!digest.test(effectId)) invalid();
++    return this.store.transaction(async () => {
++      const intent = await this.store.get<Intent>(`intent:${effectId}`),
++        done = await this.store.get<ReceiptRecord>(`receipt:${effectId}`);
++      return intent && done && (await this.verified(intent.effect, done.receipt))
++        ? structuredClone(done.receipt)
++        : null;
++    });
++  }
++  async reconcile(effectId: string): ReturnType<EffectLedger['reconcile']> {
++    if (!digest.test(effectId)) invalid();
++    return this.store.transaction(async () => {
++      const intent = await this.store.get<Intent>(`intent:${effectId}`);
++      if (!intent) return 'uncertain';
++      const done = await this.store.get<ReceiptRecord>(`receipt:${effectId}`);
++      if (done) return (await this.verified(intent.effect, done.receipt)) ? 'done' : 'uncertain';
++      const recovered = await this.authority.reconcileTarget?.(structuredClone(intent.effect));
++      if (recovered) {
++        await this.persistReceipt(intent.effect, recovered);
++        return 'done';
++      }
++      if (!(await this.store.get(`uncertain:${effectId}`)))
++        await this.append(`uncertain:${effectId}`, { formatVersion: 1, effectId });
++      return 'uncertain';
++    });
++  }
++  close() {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/runtime/isolation.ts b/v2/gateway/src/runtime/isolation.ts
+new file mode 100644
+index 0000000..34636a0
+--- /dev/null
++++ b/v2/gateway/src/runtime/isolation.ts
+@@ -0,0 +1,223 @@
++import type { PreflightResult } from '../isolation/preflight.ts';
++import { type IsolatedWorkspace, IsolationWorkspace } from '../isolation/workspace.ts';
++import { canonicalJson, hash } from '../journal/atomic-records.ts';
++import type { ProbeContext } from '../models/contracts.ts';
++import type { RuntimePin } from './contracts.ts';
++export const requiredRuntimeSurfaces = [
++  'init',
++  'invocation',
++  'native-read',
++  'bash-script',
++  'mcp',
++  'child',
++  'absolute',
++  'dotdot',
++  'symlink',
++  'hardlink',
++  'common-dir',
++  'network',
++  'whole-process-tree',
++] as const;
++type AdmissionObservation = {
++  kind: 'test-certification';
++  state: 'issued' | 'admitted';
++  id: string;
++  nonceSha256: string;
++  attemptId: string;
++  commandId: string;
++  processInstanceId: string;
++  fence: string;
++  machineId: string;
++  context: ProbeContext;
++  expiresAt: string;
++  maxTurns: number;
++  maxTools: number;
++  maxCostUsd: number;
++};
++type CertificateObservation = {
++  id: string;
++  runtime: RuntimePin['projection']['runtime'];
++  machineId: string;
++  context: ProbeContext;
++  status: 'PASS' | 'FAIL' | 'UNVERIFIED';
++  expiresAt: string;
++  surfaces: { surface: string; selectedWorked: boolean; unselectedDenied: boolean; traceSha256: string }[];
++};
++export type IsolationObservation = {
++  context: ProbeContext;
++  preflight: PreflightResult;
++  confinement: { processInstanceId: string; policyHash: string; evidenceDigest: string } | null;
++  admission: AdmissionObservation | null;
++  certificate: CertificateObservation | null;
++};
++export type IsolationCertificate = {
++  runtime: RuntimePin['projection']['runtime'];
++  binaryHash: string;
++  sourceTreeSha256: string;
++  projectionManifestSha256: string;
++  projectionTreeSha256: string;
++  derivationHash: string;
++  policyHash: string;
++  osVersion: string;
++  surfaces: CertificateObservation['surfaces'];
++  observedAt: string;
++  status: 'PASS' | 'FAIL' | 'UNVERIFIED';
++};
++export function probeContextHash(c: ProbeContext): string {
++  return hash(
++    JSON.stringify({
++      sourceTreeSha256: c.sourceTreeSha256,
++      projectionManifestSha256: c.projectionManifestSha256,
++      projectionTreeSha256: c.projectionTreeSha256,
++      derivationSha256: c.derivationSha256,
++      binarySha256: c.binarySha256,
++      policySha256: c.policySha256,
++      osVersion: c.osVersion,
++    }),
++  );
++}
++const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
++const digest = /^[0-9a-f]{64}$/;
++function fresh(expiresAt: string) {
++  return Number.isFinite(Date.parse(expiresAt)) && Date.parse(expiresAt) > Date.now();
++}
++/** This trusted local observer must verify actual server admission and constrained descendants.
++ * No production observer exists yet. Raw model/client assertions are never an implementation. */
++export class RuntimeIsolation {
++  private readonly observe?: (pin: RuntimePin) => Promise<IsolationObservation>;
++  private readonly getWorkspace?: IsolationWorkspace['get'];
++  private readonly withPrepared?: IsolationWorkspace['withPrepared'];
++  constructor(
++    options: {
++      observe?: (pin: RuntimePin) => Promise<IsolationObservation>;
++      workspaces?: IsolationWorkspace;
++    } = {},
++  ) {
++    this.observe = options.observe;
++    if (options.workspaces) {
++      if (!(options.workspaces instanceof IsolationWorkspace)) throw new Error('TRUSTED_WORKSPACE_REQUIRED');
++      this.getWorkspace = options.workspaces.get.bind(options.workspaces);
++      this.withPrepared = options.workspaces.withPrepared.bind(options.workspaces);
++    }
++  }
++  async assert(pin: RuntimePin): Promise<void> {
++    await this.withVerified(pin, async () => {});
++  }
++  /** Observer runs before the producer queue; action only persists the runtime companion.
++   * Fixed order runtime queue -> isolation queue -> registry read. Never re-enter isolation here. */
++  async withVerified<T>(pin: RuntimePin, action: (record: IsolatedWorkspace) => Promise<T>): Promise<T> {
++    pin = structuredClone(pin);
++    const observed = await this.observation(pin);
++    if (!this.getWorkspace || !this.withPrepared) throw new Error('WORKSPACE_NOT_BOUND');
++    const expected = await this.getWorkspace(pin.attemptId);
++    this.matchWorkspace(expected, pin, observed);
++    return this.withPrepared(
++      expected.workspace,
++      expected.attemptHome,
++      pin.source,
++      pin.projection,
++      async ({ record }) => {
++        this.matchWorkspace(record, pin, observed);
++        if (record.operationId !== expected.operationId || !same(record.identity, expected.identity))
++          throw new Error('WORKSPACE_IDENTITY_MISMATCH');
++        return action(structuredClone(record));
++      },
++    );
++  }
++  private matchWorkspace(
++    record: IsolatedWorkspace | null,
++    pin: RuntimePin,
++    observed: IsolationObservation,
++  ): asserts record is IsolatedWorkspace {
++    if (
++      record?.state !== 'prepared' ||
++      record.attemptId !== pin.attemptId ||
++      record.ownerCommit !== pin.workspaceCommit ||
++      !same(record.source, pin.source) ||
++      !same(record.projection, pin.projection) ||
++      record.workspace !== observed.preflight.evidence.workspace ||
++      record.attemptHome !== observed.preflight.evidence.attemptHome
++    )
++      throw new Error('RUNTIME_WORKSPACE_MISMATCH');
++  }
++  private async observation(pin: RuntimePin): Promise<IsolationObservation> {
++    pin = structuredClone(pin);
++    if (!this.observe) throw new Error('ISOLATION_NOT_BOUND');
++    const observed = structuredClone(await this.observe(structuredClone(pin))),
++      c = observed.context;
++    if (
++      c.sourceTreeSha256 !== pin.source.sourceTreeSha256 ||
++      c.projectionManifestSha256 !== pin.projection.manifestSha256 ||
++      c.projectionTreeSha256 !== pin.projection.treeSha256 ||
++      c.derivationSha256 !== hash(canonicalJson(pin.projection.derivation)) ||
++      c.policySha256 !== pin.isolationPolicyHash ||
++      !digest.test(c.binarySha256) ||
++      c.binarySha256 === '0'.repeat(64) ||
++      !c.osVersion ||
++      probeContextHash(c) !== pin.modelChoice.probeContextSha256 ||
++      !same(observed.preflight.evidence.source, pin.source) ||
++      !same(observed.preflight.evidence.projection, pin.projection) ||
++      observed.preflight.evidence.runtime !== pin.projection.runtime
++    )
++      throw new Error('CONTEXT_MISMATCH');
++    if (
++      observed.preflight.status === 'FAIL' ||
++      observed.preflight.evidence.surfaces.some((s) => s.status === 'FAIL')
++    )
++      throw new Error('ISOLATION_FAILED');
++    const confinement = observed.confinement;
++    if (
++      !confinement ||
++      confinement.processInstanceId !== pin.processInstanceId ||
++      confinement.policyHash !== pin.isolationPolicyHash ||
++      !digest.test(confinement.evidenceDigest)
++    )
++      throw new Error('FULL_TREE_UNVERIFIED');
++    if (pin.admission.kind === 'certified') {
++      const cert = observed.certificate;
++      if (
++        !cert ||
++        cert.id !== pin.admission.receiptId ||
++        cert.id !== pin.modelChoice.certificationReceiptId ||
++        cert.status !== 'PASS' ||
++        cert.runtime !== pin.projection.runtime ||
++        cert.machineId !== pin.modelChoice.model.machineId ||
++        !same(cert.context, c) ||
++        !fresh(cert.expiresAt) ||
++        observed.preflight.status !== 'PASS' ||
++        new Set(cert.surfaces.map((s) => s.surface)).size !== cert.surfaces.length ||
++        !requiredRuntimeSurfaces.every((surface) =>
++          cert.surfaces.some(
++            (s) =>
++              s.surface === surface && s.selectedWorked && s.unselectedDenied && digest.test(s.traceSha256),
++          ),
++        )
++      )
++        throw new Error('CERTIFICATE_UNVERIFIED');
++      return observed;
++    }
++    if (pin.admission.kind !== 'test-certification') throw new Error('ADMISSION_MISMATCH');
++    const a = observed.admission;
++    if (
++      a?.state !== 'admitted' ||
++      a.id !== pin.admission.challengeId ||
++      a.nonceSha256 !== hash(pin.admission.nonce) ||
++      a.attemptId !== pin.attemptId ||
++      a.commandId !== pin.commandId ||
++      a.processInstanceId !== pin.processInstanceId ||
++      a.fence !== pin.fence ||
++      a.machineId !== pin.modelChoice.model.machineId ||
++      !same(a.context, c) ||
++      !Number.isInteger(a.maxTurns) ||
++      a.maxTurns < 1 ||
++      !Number.isInteger(a.maxTools) ||
++      a.maxTools < 1 ||
++      !Number.isFinite(a.maxCostUsd) ||
++      a.maxCostUsd < 0
++    )
++      throw new Error('ADMISSION_MISMATCH');
++    if (!fresh(a.expiresAt)) throw new Error('ADMISSION_EXPIRED');
++    if (observed.preflight.status !== 'UNVERIFIED') throw new Error('PREFLIGHT_UNVERIFIED_REQUIRED');
++    return observed;
++  }
++}
+diff --git a/v2/gateway/src/runtime/launch.ts b/v2/gateway/src/runtime/launch.ts
+new file mode 100644
+index 0000000..1d6b58a
+--- /dev/null
++++ b/v2/gateway/src/runtime/launch.ts
+@@ -0,0 +1,194 @@
++import { constants } from 'node:fs';
++import { open, realpath } from 'node:fs/promises';
++import { isAbsolute, join, relative } from 'node:path';
++import type { BeforeReleaseContext, BridgeOptions } from '../execution/ticket-command-bridge.ts';
++import type { IsolatedWorkspace } from '../isolation/workspace.ts';
++import { AtomicRecords, canonicalJson, hash, writeExclusiveRecord } from '../journal/atomic-records.ts';
++import type { ProcessJournal } from '../journal/process-journal.ts';
++import type { WorkflowRegistry } from '../workflows/registry.ts';
++import type { RuntimeInput, RuntimePin } from './contracts.ts';
++import { RuntimeIsolation } from './isolation.ts';
++
++const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
++type RuntimeRecord = {
++  formatVersion: 1;
++  launchId: string;
++  pin: RuntimePin;
++  input: RuntimeInput;
++  entrypoint: { absolutePath: string; sha256: string };
++  workspace: Pick<
++    IsolatedWorkspace,
++    | 'attemptId'
++    | 'operationId'
++    | 'identity'
++    | 'workspace'
++    | 'attemptHome'
++    | 'ownerCommit'
++    | 'source'
++    | 'projection'
++  >;
++};
++export type RuntimeEntrypoint = {
++  relativePath: string;
++  sha256: string;
++  sourceTreeSha256: string;
++  projectionManifestSha256: string;
++  projectionTreeSha256: string;
++  derivationSha256: string;
++};
++export type RuntimeLaunchOptions = {
++  journal: ProcessJournal;
++  registry: WorkflowRegistry;
++  isolation?: RuntimeIsolation;
++  /** Trusted reviewed source-to-projection mapping; registry manifests alone are not entrypoint authority. */
++  entrypoint?: (pin: RuntimePin, skillName: string) => Promise<RuntimeEntrypoint | null>;
++  /** Future Phase06 binding reads durable run/operation state; no production default. */
++  binding?: (context: BeforeReleaseContext) => Promise<{ pin: RuntimePin; input: RuntimeInput }>;
++};
++export class RuntimeLaunch {
++  private readonly store: AtomicRecords;
++  private readonly options: Readonly<RuntimeLaunchOptions>;
++  private active: BeforeReleaseContext | null = null;
++  private constructor(store: AtomicRecords, options: RuntimeLaunchOptions) {
++    this.store = store;
++    this.options = Object.freeze({ ...options });
++  }
++  static async open(root: string, options: RuntimeLaunchOptions) {
++    return new RuntimeLaunch(await AtomicRecords.open(join(root, 'runtime-pins')), options);
++  }
++  /** Pass this captured callback to the existing TicketCommandBridge. No process is launched here. */
++  readonly beforeRelease: NonNullable<BridgeOptions['beforeRelease']> = async (context) => {
++    await this.store.transaction(async () => {
++      if (!this.options.binding) throw new Error('RUNTIME_BINDING_NOT_CONFIGURED');
++      const candidate = await this.options.binding(context);
++      this.active = context;
++      try {
++        await this.startReleased(candidate.pin, candidate.input);
++      } finally {
++        this.active = null;
++      }
++    });
++  };
++  async startReleased(pin: RuntimePin, input: RuntimeInput): Promise<void> {
++    const context = this.active;
++    if (!context) throw new Error('BRIDGE_HOOK_REQUIRED');
++    pin = structuredClone(pin);
++    input = structuredClone(input);
++    const { record, attempt, companion, command } = context;
++    if (
++      pin.commandId !== record.commandId ||
++      pin.commandId !== command.id ||
++      pin.attemptId !== attempt.id ||
++      attempt.commandId !== command.id ||
++      attempt.machineId !== pin.modelChoice.model.machineId ||
++      attempt.state !== 'active' ||
++      pin.fence !== attempt.fence ||
++      pin.processInstanceId !== record.processInstanceId ||
++      pin.processInstanceId !== attempt.processInstanceId ||
++      !same(pin.attemptProjection, companion) ||
++      !same(pin.source, record.source) ||
++      !same(pin.projection, record.projection) ||
++      pin.projection.runtime !== pin.modelChoice.model.runtime ||
++      pin.projection.runtime !== pin.selection.runtime ||
++      !command.payload.modelChoice ||
++      !same(pin.modelChoice, command.payload.modelChoice) ||
++      !same(pin.selection, command.payload.selection) ||
++      pin.selection.sourceTreeSha256 !== pin.source.sourceTreeSha256 ||
++      pin.selection.projectionManifestSha256 !== pin.projection.manifestSha256 ||
++      pin.selection.projectionTreeSha256 !== pin.projection.treeSha256 ||
++      pin.selection.installReportId !== companion.installReportId ||
++      !/^[0-9a-f]{40}([0-9a-f]{24})?$/.test(pin.workspaceCommit) ||
++      !/^[0-9a-f-]{36}$/.test(pin.runId)
++    )
++      throw new Error('RUNTIME_PIN_MISMATCH');
++    if (
++      pin.admission.kind === 'test-certification' &&
++      (!command.payload.certificationAdmission ||
++        !same(command.payload.certificationAdmission, {
++          challengeId: pin.admission.challengeId,
++          nonce: pin.admission.nonce,
++        }))
++    )
++      throw new Error('ADMISSION_MISMATCH');
++    if (
++      !input.skillName ||
++      !input.skillPath ||
++      input.skillPath.startsWith('/') ||
++      input.skillPath.split('/').some((p) => !p || p === '.' || p === '..')
++    )
++      throw new Error('SKILL_PATH_INVALID');
++    if (
++      input.checkpoint &&
++      (input.checkpoint.sourceTreeSha256 !== pin.source.sourceTreeSha256 ||
++        input.checkpoint.projectionTreeSha256 !== pin.projection.treeSha256 ||
++        input.checkpoint.logicalEffectIds.some((id) => !/^[0-9a-f]{64}$/.test(id)))
++    )
++      throw new Error('CHECKPOINT_MISMATCH');
++    await this.options.journal.exact(record);
++    const ready = await this.options.journal.ready(record);
++    if (!ready || ready.processInstanceId !== pin.processInstanceId) throw new Error('READY_REQUIRED');
++    const pair = await this.options.registry.resolve(pin.source, pin.projection);
++    const catalog = await this.options.entrypoint?.(structuredClone(pin), input.skillName);
++    if (!catalog) throw new Error('ENTRYPOINT_AUTHORITY_NOT_BOUND');
++    if (
++      catalog.relativePath !== input.skillPath ||
++      catalog.sourceTreeSha256 !== pin.source.sourceTreeSha256 ||
++      catalog.projectionManifestSha256 !== pin.projection.manifestSha256 ||
++      catalog.projectionTreeSha256 !== pin.projection.treeSha256 ||
++      catalog.derivationSha256 !== hash(canonicalJson(pin.projection.derivation))
++    )
++      throw new Error('ENTRYPOINT_MISMATCH');
++    const absolutePath = await realpath(join(pair.projectionRoot, input.skillPath));
++    const canonicalRelative = relative(await realpath(pair.projectionRoot), absolutePath);
++    if (!canonicalRelative || isAbsolute(canonicalRelative) || canonicalRelative.split('/').includes('..'))
++      throw new Error('ENTRYPOINT_ESCAPE');
++    const entry = pair.manifest.projection.find(
++      (item) => item.path === canonicalRelative && item.type === 'file',
++    );
++    if (!entry || entry.sha256 !== catalog.sha256) throw new Error('ENTRYPOINT_MISMATCH');
++    const fd = await open(absolutePath, constants.O_RDONLY | constants.O_NOFOLLOW);
++    try {
++      const stat = await fd.stat();
++      if (
++        !stat.isFile() ||
++        stat.nlink !== 1 ||
++        stat.size !== entry.bytes ||
++        hash(await fd.readFile()) !== catalog.sha256
++      )
++        throw new Error('ENTRYPOINT_MISMATCH');
++    } finally {
++      await fd.close();
++    }
++    await (this.options.isolation ?? new RuntimeIsolation()).withVerified(pin, async (workspace) => {
++      const value: RuntimeRecord = {
++          formatVersion: 1,
++          launchId: record.launchId,
++          pin,
++          input,
++          entrypoint: { absolutePath, sha256: entry.sha256 },
++          workspace: {
++            attemptId: workspace.attemptId,
++            operationId: workspace.operationId,
++            identity: workspace.identity,
++            workspace: workspace.workspace,
++            attemptHome: workspace.attemptHome,
++            ownerCommit: workspace.ownerCommit,
++            source: workspace.source,
++            projection: workspace.projection,
++          },
++        },
++        prior = await this.read(record.launchId);
++      if (prior) {
++        if (!same(prior, value)) throw new Error('RUNTIME_PIN_CONFLICT');
++        return;
++      }
++      await writeExclusiveRecord(this.store.path(record.launchId), value);
++    });
++  }
++  read(launchId: string): Promise<RuntimeRecord | null> {
++    return this.store.get(launchId);
++  }
++  close() {
++    return this.store.close();
++  }
++}
+diff --git a/v2/gateway/src/runtime/tool-policy.ts b/v2/gateway/src/runtime/tool-policy.ts
+new file mode 100644
+index 0000000..827ecb7
+--- /dev/null
++++ b/v2/gateway/src/runtime/tool-policy.ts
+@@ -0,0 +1,50 @@
++import type { LogicalEffect, ToolInvocation } from './contracts.ts';
++import { type DurableEffectLedger, deriveEffectId } from './effect-ledger.ts';
++export type Decision =
++  | { kind: 'allow' }
++  | { kind: 'deny' | 'wait'; reason: string }
++  | { kind: 'execute' | 'return-receipt' | 'reconcile'; effectId: string };
++export type ToolCall = {
++  name: string;
++  effectful: boolean;
++  effect?: LogicalEffect;
++  invocation?: ToolInvocation;
++};
++/** Broker policy only. Native/child bypass remains the isolation observer's responsibility. */
++export class ToolPolicy {
++  private readonly allowed: ReadonlySet<string>;
++  private readonly readonlyTools: ReadonlySet<string>;
++  private readonly ledger?: DurableEffectLedger;
++  constructor(
++    options: { allowedTools?: string[]; readOnlyTools?: string[]; ledger?: DurableEffectLedger } = {},
++  ) {
++    this.allowed = new Set(options.allowedTools ?? []);
++    this.ledger = options.ledger;
++    this.readonlyTools = new Set(options.readOnlyTools ?? []);
++  }
++  async authorize(call: ToolCall): Promise<Decision> {
++    call = structuredClone(call);
++    if (!this.allowed.has(call.name)) return { kind: 'deny', reason: 'TOOL_NOT_ALLOWED' };
++    if (!call.effectful)
++      return this.readonlyTools.has(call.name)
++        ? { kind: 'allow' }
++        : { kind: 'deny', reason: 'TOOL_EFFECT_MISMATCH' };
++    if (
++      !call.effect ||
++      !call.invocation ||
++      !call.effect.stepOperationId ||
++      !call.effect.targetIdentity ||
++      !call.effect.preconditionSha256
++    )
++      return { kind: 'wait', reason: 'LOGICAL_OPERATION_REQUIRED' };
++    if (
++      !call.effect.effectId ||
++      deriveEffectId(call.effect) !== call.effect.effectId ||
++      call.invocation.effectId !== call.effect.effectId
++    )
++      return { kind: 'deny', reason: 'EFFECT_ID_REQUIRED' };
++    if (!this.ledger) return { kind: 'wait', reason: 'LOGICAL_AUTHORITY_NOT_BOUND' };
++    const kind = await this.ledger.reserve(call.effect, call.invocation);
++    return kind === 'wait' ? { kind, reason: 'EFFECT_UNCERTAIN' } : { kind, effectId: call.effect.effectId };
++  }
++}
+diff --git a/v2/gateway/test/effect-ledger.test.ts b/v2/gateway/test/effect-ledger.test.ts
+new file mode 100644
+index 0000000..335125e
+--- /dev/null
++++ b/v2/gateway/test/effect-ledger.test.ts
+@@ -0,0 +1,155 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { DurableEffectLedger, deriveEffectId } from '../src/runtime/effect-ledger.ts';
++import { runtimeRoot } from './support/runtime-fixture.ts';
++
++const digest = 'a'.repeat(64);
++function effect() {
++  const value = {
++    runId: randomUUID(),
++    stepId: randomUUID(),
++    stepOperationId: randomUUID(),
++    actionKind: 'write',
++    targetIdentity: 'scratch:file',
++    preconditionSha256: digest,
++  };
++  return {
++    ...value,
++    effectId: deriveEffectId(value),
++    state: 'pending' as const,
++    receiptSha256: null,
++    artifactIds: [],
++  };
++}
++const call = (e: ReturnType<typeof effect>) => ({
++  attemptId: randomUUID(),
++  fence: '1',
++  toolCallId: 'call-a',
++  argsSha256: digest,
++  effectId: e.effectId,
++  stepOperationId: e.stepOperationId,
++});
++const ports = { authorizeOperation: async () => true, verifyReceipt: async () => true };
++test('effect ledger default missing phase06 authority waits without durable intent', async () => {
++  const owned = await runtimeRoot();
++  const ledger = await DurableEffectLedger.open(owned.root);
++  try {
++    const e = effect();
++    assert.equal(await ledger.reserve(e, call(e)), 'wait');
++    assert.equal(await ledger.receipt(e.effectId), null);
++  } finally {
++    await ledger.close();
++    await owned.cleanup();
++  }
++});
++test('effect ledger durable receipt survives fallback with different transport identity', async () => {
++  const owned = await runtimeRoot();
++  let ledger = await DurableEffectLedger.open(owned.root, ports);
++  const e = effect(),
++    a = call(e),
++    receipt = { sha256: digest, artifactIds: [randomUUID()] };
++  try {
++    assert.match(e.effectId, /^[0-9a-f]{64}$/);
++    assert.equal(await ledger.reserve(e, a), 'execute');
++    await ledger.complete(e.effectId, a, receipt);
++    await ledger.close();
++    ledger = await DurableEffectLedger.open(owned.root, ports);
++    assert.equal(
++      await ledger.reserve(e, { ...call(e), toolCallId: 'fallback-provider-id' }),
++      'return-receipt',
++    );
++    assert.deepEqual(await ledger.receipt(e.effectId), receipt);
++    const other = { ...e, stepOperationId: randomUUID() };
++    other.effectId = deriveEffectId(other);
++    assert.equal(await ledger.reserve(other, call(other)), 'execute');
++  } finally {
++    await ledger.close();
++    await owned.cleanup();
++  }
++});
++test('effect ledger rejects transport or logical metadata conflict and unverified receipt', async () => {
++  const owned = await runtimeRoot();
++  let valid = false;
++  const ledger = await DurableEffectLedger.open(owned.root, { ...ports, verifyReceipt: async () => valid });
++  try {
++    const e = effect(),
++      a = call(e);
++    assert.equal(await ledger.reserve(e, a), 'execute');
++    await assert.rejects(ledger.reserve(e, { ...a, argsSha256: 'b'.repeat(64) }), {
++      code: 'EFFECT_CONFLICT',
++      statusCode: 409,
++    });
++    await assert.rejects(
++      ledger.reserve({ ...e, stepId: randomUUID() }, { ...a, toolCallId: 'new' }),
++      /EFFECT_CONFLICT/,
++    );
++    await assert.rejects(
++      ledger.complete(e.effectId, a, { sha256: digest, artifactIds: [] }),
++      /RECEIPT_UNVERIFIED/,
++    );
++    valid = true;
++    await ledger.complete(e.effectId, a, { sha256: digest, artifactIds: [] });
++    valid = false;
++    assert.equal(await ledger.reserve(e, { ...call(e), toolCallId: 'new' }), 'wait');
++  } finally {
++    await ledger.close();
++    await owned.cleanup();
++  }
++});
++test('effect ledger crash window pending never executes again without target proof', async () => {
++  const owned = await runtimeRoot();
++  let ledger = await DurableEffectLedger.open(owned.root, ports);
++  const e = effect(),
++    a = call(e);
++  try {
++    assert.equal(await ledger.reserve(e, a), 'execute');
++    await ledger.close();
++    ledger = await DurableEffectLedger.open(owned.root, ports);
++    assert.equal(await ledger.reserve(e, call(e)), 'reconcile');
++    assert.equal(await ledger.reconcile(e.effectId), 'uncertain');
++    assert.equal(await ledger.reserve(e, call(e)), 'wait');
++  } finally {
++    await ledger.close();
++    await owned.cleanup();
++  }
++});
++test('effect ledger canonical encoding separates fields and invalid inputs never reserve', () => {
++  const e = effect();
++  assert.notEqual(
++    deriveEffectId({ ...e, actionKind: 'ab', targetIdentity: 'c' }),
++    deriveEffectId({ ...e, actionKind: 'a', targetIdentity: 'bc' }),
++  );
++  assert.throws(() => deriveEffectId({ ...e, preconditionSha256: 'A'.repeat(64) }), /INVALID_EFFECT/);
++});
++
++test('effect ledger serializes concurrent reservation and target reconciliation verifies artifact bytes', async () => {
++  const { readFile, writeFile } = await import('node:fs/promises');
++  const { join } = await import('node:path');
++  const { hash } = await import('../src/journal/atomic-records.ts');
++  const owned = await runtimeRoot(),
++    artifact = join(owned.root, 'artifact');
++  const bytes = 'actual owned effect result',
++    receipt = { sha256: hash(bytes), artifactIds: [randomUUID()] };
++  const ledger = await DurableEffectLedger.open(owned.root, {
++    authorizeOperation: async () => true,
++    verifyReceipt: async (_effect, value) =>
++      value.sha256 === hash(await readFile(artifact)) && value.artifactIds[0] === receipt.artifactIds[0],
++    reconcileTarget: async () => receipt,
++  });
++  try {
++    const e = effect(),
++      a = call(e);
++    const result = await Promise.all([ledger.reserve(e, a), ledger.reserve(e, a)]);
++    assert.deepEqual(result, ['execute', 'reconcile']);
++    await writeFile(artifact, bytes, { flag: 'wx', mode: 0o600 });
++    assert.equal(await ledger.reconcile(e.effectId), 'done');
++    assert.deepEqual(await ledger.receipt(e.effectId), receipt);
++    await writeFile(artifact, 'tampered');
++    assert.equal(await ledger.receipt(e.effectId), null);
++    assert.equal(await ledger.reserve(e, call(e)), 'wait');
++  } finally {
++    await ledger.close();
++    await owned.cleanup();
++  }
++});
+diff --git a/v2/gateway/test/isolation-runtime.test.ts b/v2/gateway/test/isolation-runtime.test.ts
+new file mode 100644
+index 0000000..45500f3
+--- /dev/null
++++ b/v2/gateway/test/isolation-runtime.test.ts
+@@ -0,0 +1,90 @@
++import assert from 'node:assert/strict';
++import { createHash } from 'node:crypto';
++import test from 'node:test';
++import { probeContextHash, RuntimeIsolation } from '../src/runtime/isolation.ts';
++import { ToolPolicy } from '../src/runtime/tool-policy.ts';
++import { isolationObservation, runtimePinFixture } from './support/runtime-pins.ts';
++
++test('isolation runtime missing authority and incomplete full-tree evidence deny', async () => {
++  const pin = runtimePinFixture();
++  await assert.rejects(new RuntimeIsolation().assert(pin), /ISOLATION_NOT_BOUND/);
++  const observation = isolationObservation(pin);
++  observation.confinement = null;
++  await assert.rejects(
++    new RuntimeIsolation({ observe: async () => observation }).assert(pin),
++    /FULL_TREE_UNVERIFIED/,
++  );
++});
++test('isolation runtime test admission is exact admitted claim and never synthetic PASS', async () => {
++  const pin = runtimePinFixture();
++  const observation = isolationObservation(pin);
++  const isolation = new RuntimeIsolation({ observe: async () => structuredClone(observation) });
++  assert(observation.admission);
++  await assert.rejects(isolation.assert(pin), /WORKSPACE_NOT_BOUND/);
++  observation.admission.attemptId = 'foreign';
++  await assert.rejects(isolation.assert(pin), /ADMISSION_MISMATCH/);
++  observation.admission.attemptId = pin.attemptId;
++  observation.preflight.status = 'PASS';
++  await assert.rejects(isolation.assert(pin), /PREFLIGHT_UNVERIFIED_REQUIRED/);
++});
++test('isolation runtime context, expiry, measured failures and missing surfaces deny certified', async () => {
++  const pin = runtimePinFixture();
++  const observation = isolationObservation(pin);
++  const isolation = new RuntimeIsolation({ observe: async () => structuredClone(observation) });
++  assert(observation.admission);
++  observation.context.binarySha256 = 'b'.repeat(64);
++  await assert.rejects(isolation.assert(pin), /CONTEXT_MISMATCH/);
++  observation.context.binarySha256 = 'a'.repeat(64);
++  observation.preflight.evidence.surfaces.push({
++    surface: 'cross-source',
++    status: 'FAIL',
++    measured: true,
++    reason: 'escape',
++  });
++  await assert.rejects(isolation.assert(pin), /ISOLATION_FAILED/);
++  observation.preflight.evidence.surfaces = [];
++  observation.admission.expiresAt = new Date(0).toISOString();
++  await assert.rejects(isolation.assert(pin), /ADMISSION_EXPIRED/);
++  observation.admission.expiresAt = new Date(Date.now() + 60000).toISOString();
++  pin.admission = { kind: 'certified', receiptId: pin.modelChoice.probeReceiptId };
++  await assert.rejects(isolation.assert(pin), /CERTIFICATE_UNVERIFIED/);
++});
++test('runtime boundary tool policy denies before effects and waits without logical authority', async () => {
++  const policy = new ToolPolicy();
++  assert.deepEqual(await policy.authorize({ name: 'write', effectful: true }), {
++    kind: 'deny',
++    reason: 'TOOL_NOT_ALLOWED',
++  });
++  const allowed = new ToolPolicy({ allowedTools: ['write', 'read'], readOnlyTools: ['read'] });
++  assert.deepEqual(await allowed.authorize({ name: 'read', effectful: false }), { kind: 'allow' });
++  assert.deepEqual(await allowed.authorize({ name: 'write', effectful: true }), {
++    kind: 'wait',
++    reason: 'LOGICAL_OPERATION_REQUIRED',
++  });
++});
++test('isolation runtime context hash uses accepted server fixed field order', () => {
++  const pin = runtimePinFixture();
++  const observation = isolationObservation(pin);
++  const c = observation.context;
++  const expected = createHash('sha256')
++    .update(
++      JSON.stringify({
++        sourceTreeSha256: c.sourceTreeSha256,
++        projectionManifestSha256: c.projectionManifestSha256,
++        projectionTreeSha256: c.projectionTreeSha256,
++        derivationSha256: c.derivationSha256,
++        binarySha256: c.binarySha256,
++        policySha256: c.policySha256,
++        osVersion: c.osVersion,
++      }),
++    )
++    .digest('hex');
++  assert.equal(probeContextHash(c), expected);
++});
++test('runtime boundary tool cannot relabel allowed write as readonly', async () => {
++  const policy = new ToolPolicy({ allowedTools: ['write'] });
++  assert.deepEqual(await policy.authorize({ name: 'write', effectful: false }), {
++    kind: 'deny',
++    reason: 'TOOL_EFFECT_MISMATCH',
++  });
++});
+diff --git a/v2/gateway/test/runtime-boundary.test.ts b/v2/gateway/test/runtime-boundary.test.ts
+new file mode 100644
+index 0000000..72debd4
+--- /dev/null
++++ b/v2/gateway/test/runtime-boundary.test.ts
+@@ -0,0 +1,294 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { readFile, writeFile } from 'node:fs/promises';
++import { join } from 'node:path';
++import test from 'node:test';
++import type { Attempt } from '../src/commands/contracts.ts';
++import { type BridgeOptions, TicketCommandBridge } from '../src/execution/ticket-command-bridge.ts';
++import { HttpOperationJournal } from '../src/journal/http-operations.ts';
++import type { AttemptProjectionPin } from '../src/journal/process-journal.ts';
++import { commandFixture, workflowFixture } from './support/bridge-fixture.ts';
++import { runtimeRoot } from './support/runtime-fixture.ts';
++
++test('runtime boundary captured bridge hook denies before RELEASE after actual accepted companion', async () => {
++  const owned = await runtimeRoot(),
++    w = await workflowFixture(owned.root);
++  await w.install();
++  const { command, permit } = await commandFixture(w);
++  let attempt: Attempt | null = null,
++    companion: AttemptProjectionPin | null = null,
++    released = 0,
++    invoked = 0;
++  const read = async (route: string) =>
++    structuredClone(
++      route === '/v2/gateway/config'
++        ? { desired: w.desired }
++        : route.includes('/commands/')
++          ? command
++          : attempt,
++    );
++  const http = await HttpOperationJournal.open(owned.root, async (request) => {
++    const body = request.canonicalBody as Record<string, unknown>;
++    if (request.phase === 'claim')
++      attempt = {
++        id: randomUUID(),
++        commandId: command.id,
++        machineId: command.machineId,
++        ticketId: command.ticketId,
++        fence: '1',
++        processInstanceId: String(body.processInstanceId),
++        state: 'active',
++        workflowPin: permit.workflow,
++        finalizedAt: null,
++        stoppedAt: null,
++        terminalResult: null,
++      };
++    if (request.phase === 'projection') {
++      assert(attempt);
++      companion = { attemptId: attempt.id, ...body } as AttemptProjectionPin;
++    }
++    return { status: 200, body: request.phase === 'projection' ? companion : attempt };
++  });
++  const options: BridgeOptions = {
++    machineId: command.machineId,
++    journal: w.journal,
++    registry: w.registry,
++    read,
++    http,
++    permit: async () => permit,
++    command: ['/usr/bin/true'],
++    recheckCapacity: async () => true,
++    onDurableStage: async (stage) => {
++      if (stage === 'released') released++;
++    },
++    beforeRelease: async (context) => {
++      invoked++;
++      assert(companion);
++      assert.deepEqual(context.companion, companion);
++      assert.deepEqual(context.attempt, attempt);
++      assert(Object.isFrozen(context));
++      assert(Object.isFrozen(context.command.payload));
++      assert(Object.isFrozen(context.record.projection.derivation));
++      assert.equal(context.record.processInstanceId, attempt?.processInstanceId);
++      throw new Error('RUNTIME_DENIED');
++    },
++  };
++  const bridge = await TicketCommandBridge.open(owned.root, options);
++  options.beforeRelease = async () => {};
++  try {
++    await assert.rejects(bridge.handle(command), /RUNTIME_DENIED/);
++    assert.equal(invoked, 1);
++    assert.equal(released, 0);
++    const records = await w.journal.processes();
++    assert.equal(records.length, 1);
++    assert.equal(records[0].authorization, null);
++    await assert.rejects(bridge.handle(command), /RUNTIME_DENIED/);
++    assert.equal(invoked, 2);
++    assert.equal((await w.journal.processes()).length, 1);
++  } finally {
++    await bridge.close();
++    for (const record of await w.journal.processes())
++      assert.equal(await w.journal.observe(record), 'stopped');
++    await http.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
++
++import { canonicalJson, hash } from '../src/journal/atomic-records.ts';
++import { probeContextHash, RuntimeIsolation } from '../src/runtime/isolation.ts';
++import { RuntimeLaunch } from '../src/runtime/launch.ts';
++import { isolationObservation, runtimePinFixture } from './support/runtime-pins.ts';
++import { runtimeWorkspaceFixture } from './support/runtime-workspace.ts';
++
++test('runtime boundary RuntimePin durable before RELEASE and replay immutable across store reopen', async () => {
++  const owned = await runtimeRoot(),
++    w = await workflowFixture(owned.root);
++  await w.install();
++  const { command, permit } = await commandFixture(w);
++  const template = runtimePinFixture();
++  template.modelChoice.model.machineId = command.machineId;
++  const source = w.sources[1].source;
++  const audit = w.projections.find(
++    (p) => p.sourceTreeSha256 === source.sourceTreeSha256 && p.runtime === 'api',
++  );
++  assert(audit);
++  const projection = audit.expected;
++  template.source = source;
++  template.projection = projection;
++  template.modelChoice.model.runtime = 'api';
++  command.payload.selection = {
++    ...(command.payload.selection as object),
++    runtime: 'api',
++    projectionManifestSha256: projection.manifestSha256,
++    projectionTreeSha256: projection.treeSha256,
++  };
++  const prepared = await runtimeWorkspaceFixture(owned.root, w.registry, source, projection);
++  template.workspaceCommit = prepared.commit;
++  template.isolationPolicyHash = projection.derivation.policySha256;
++  template.modelChoice.probeContextSha256 = probeContextHash(isolationObservation(template).context);
++  command.payload.modelChoice = structuredClone(template.modelChoice);
++  command.payload.certificationAdmission =
++    template.admission.kind === 'test-certification'
++      ? { challengeId: template.admission.challengeId, nonce: template.admission.nonce }
++      : null;
++  let attempt: Attempt | null = null,
++    companion: AttemptProjectionPin | null = null,
++    released = 0,
++    failAfterPin = true,
++    mismatch = true;
++  const read = async (route: string) =>
++    structuredClone(
++      route === '/v2/gateway/config'
++        ? { desired: w.desired }
++        : route.includes('/commands/')
++          ? command
++          : attempt,
++    );
++  const http = await HttpOperationJournal.open(owned.root, async (request) => {
++    const body = request.canonicalBody as Record<string, unknown>;
++    if (request.phase === 'claim') {
++      attempt = {
++        id: randomUUID(),
++        commandId: command.id,
++        machineId: command.machineId,
++        ticketId: command.ticketId,
++        fence: '1',
++        processInstanceId: String(body.processInstanceId),
++        state: 'active',
++        workflowPin: permit.workflow,
++        finalizedAt: null,
++        stoppedAt: null,
++        terminalResult: null,
++      };
++      await prepared.prepare(attempt.id);
++    }
++    if (request.phase === 'projection') {
++      assert(attempt);
++      companion = { attemptId: attempt.id, ...body } as AttemptProjectionPin;
++    }
++    return { status: 200, body: request.phase === 'projection' ? companion : attempt };
++  });
++  let skillPath = 'skills/build/SKILL.md';
++  const pair = await w.registry.resolve(source, projection);
++  const skillEntry = pair.manifest.projection.find((entry) => entry.path === skillPath);
++  assert(skillEntry);
++  let entrypointHash = skillEntry.sha256;
++  let catalogEnabled = true;
++  const runtimeOptions = {
++    journal: w.journal,
++    registry: w.registry,
++    entrypoint: async () =>
++      catalogEnabled
++        ? {
++            relativePath: 'skills/build/SKILL.md',
++            sha256: entrypointHash,
++            sourceTreeSha256: source.sourceTreeSha256,
++            projectionManifestSha256: projection.manifestSha256,
++            projectionTreeSha256: projection.treeSha256,
++            derivationSha256: hash(canonicalJson(projection.derivation)),
++          }
++        : null,
++    isolation: new RuntimeIsolation({
++      observe: prepared.observe,
++      workspaces: prepared.service,
++    }),
++    binding: async (context: import('../src/execution/ticket-command-bridge.ts').BeforeReleaseContext) => ({
++      pin: {
++        ...template,
++        commandId: command.id,
++        attemptId: context.attempt.id,
++        processInstanceId: context.record.processInstanceId,
++        fence: mismatch ? '999' : context.attempt.fence,
++        attemptProjection: structuredClone(context.companion),
++        selection: structuredClone(
++          command.payload.selection,
++        ) as import('../src/commands/contracts.ts').Selection,
++      },
++      input: { skillName: 'fixture', skillPath, checkpoint: null },
++    }),
++  };
++  let runtime = await RuntimeLaunch.open(owned.root, runtimeOptions);
++  const bridge = await TicketCommandBridge.open(owned.root, {
++    machineId: command.machineId,
++    journal: w.journal,
++    registry: w.registry,
++    read,
++    http,
++    permit: async () => permit,
++    command: ['/usr/bin/true'],
++    recheckCapacity: async () => true,
++    beforeRelease: async (context) => {
++      await runtime.beforeRelease(context);
++      if (failAfterPin) throw new Error('AFTER_PIN_FSYNC');
++    },
++    onDurableStage: async (stage, record) => {
++      if (stage === 'released') {
++        assert(await runtime.read(record.launchId));
++        released++;
++      }
++    },
++  });
++  try {
++    await assert.rejects(
++      runtime.startReleased(template, { skillName: 'fake', skillPath: 'fake', checkpoint: null }),
++      /BRIDGE_HOOK_REQUIRED/,
++    );
++    await assert.rejects(bridge.handle(command), /RUNTIME_PIN_MISMATCH/);
++    mismatch = false;
++    template.modelChoice.model.machineId = randomUUID();
++    await assert.rejects(bridge.handle(command), /RUNTIME_PIN_MISMATCH/);
++    template.modelChoice.model.machineId = command.machineId;
++    catalogEnabled = false;
++    await assert.rejects(bridge.handle(command), /ENTRYPOINT_AUTHORITY_NOT_BOUND/);
++    catalogEnabled = true;
++    skillPath = '../escape';
++    await assert.rejects(bridge.handle(command), /SKILL_PATH_INVALID/);
++    skillPath = 'render.sh';
++    await assert.rejects(bridge.handle(command), /ENTRYPOINT_MISMATCH/);
++    skillPath = 'skills/build/SKILL.md';
++    entrypointHash = '0'.repeat(64);
++    await assert.rejects(bridge.handle(command), /ENTRYPOINT_MISMATCH/);
++    entrypointHash = skillEntry.sha256;
++    const selectedFile = join(pair.projectionRoot, skillPath);
++    const originalBytes = await readFile(selectedFile);
++    try {
++      await writeFile(selectedFile, 'tampered selected entrypoint');
++      await assert.rejects(bridge.handle(command), /CHECKSUM_MISMATCH/);
++    } finally {
++      await writeFile(selectedFile, originalBytes);
++    }
++    template.workspaceCommit = '0'.repeat(40);
++    await assert.rejects(bridge.handle(command), /RUNTIME_WORKSPACE_MISMATCH/);
++    template.workspaceCommit = prepared.commit;
++    await assert.rejects(bridge.handle(command), /AFTER_PIN_FSYNC/);
++    assert.equal(released, 0);
++    const record = (await w.journal.processes())[0],
++      stored = await runtime.read(record.launchId);
++    assert(stored);
++    assert.equal(stored.workspace.ownerCommit, prepared.commit);
++    assert.equal(stored.workspace.attemptId, (await prepared.service.get(stored.pin.attemptId))?.attemptId);
++    assert.deepEqual(stored.workspace.identity, (await prepared.service.get(stored.pin.attemptId))?.identity);
++    const original = hash(canonicalJson(stored));
++    await runtime.close();
++    runtime = await RuntimeLaunch.open(owned.root, runtimeOptions);
++    template.credentialRef = 'changed';
++    await assert.rejects(bridge.handle(command), /RUNTIME_PIN_CONFLICT/);
++    template.credentialRef = null;
++    failAfterPin = false;
++    await bridge.handle(command);
++    await bridge.wait(command.id);
++    assert.equal(released, 1);
++    assert.equal((await w.journal.processes()).length, 1);
++    assert.equal(hash(canonicalJson(await runtime.read(record.launchId))), original);
++  } finally {
++    await bridge.close();
++    for (const record of await w.journal.processes())
++      assert.equal(await w.journal.observe(record), 'stopped');
++    await runtime.close();
++    await http.close();
++    await prepared.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
+diff --git a/v2/gateway/test/runtime-crash.test.ts b/v2/gateway/test/runtime-crash.test.ts
+new file mode 100644
+index 0000000..50ac34e
+--- /dev/null
++++ b/v2/gateway/test/runtime-crash.test.ts
+@@ -0,0 +1,118 @@
++import assert from 'node:assert/strict';
++import { fork } from 'node:child_process';
++import { lstat, readFile } from 'node:fs/promises';
++import { join } from 'node:path';
++import test from 'node:test';
++import { setTimeout as delay } from 'node:timers/promises';
++import type { Attempt, Command, Permit } from '../src/commands/contracts.ts';
++import { TicketCommandBridge } from '../src/execution/ticket-command-bridge.ts';
++import { HttpOperationJournal } from '../src/journal/http-operations.ts';
++import { RuntimeLaunch } from '../src/runtime/launch.ts';
++import { workflowFixture } from './support/bridge-fixture.ts';
++import { runtimeRoot } from './support/runtime-fixture.ts';
++
++for (const stage of ['ready', 'claim', 'companion', 'runtime-pin', 'authorized', 'released'])
++  test(`runtime boundary SIGKILL at ${stage} keeps exact launch and retains unproven pins`, async () => {
++    const owned = await runtimeRoot();
++    const child = fork(new URL('./support/runtime-crash-worker.ts', import.meta.url), [owned.root, stage], {
++      stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
++    });
++    let stderr = '';
++    child.stderr?.on('data', (chunk) => {
++      stderr += chunk;
++    });
++    try {
++      await new Promise<void>((resolve, reject) => {
++        const timer = setTimeout(() => reject(new Error(`STAGE_TIMEOUT ${stage} ${stderr}`)), 15000);
++        child.once('message', (message: unknown) => {
++          const data = message as { identity: { pid: number; birth: string; uid: number }; argv: string[] };
++          assert.equal(data.identity.pid, child.pid);
++          assert.equal(data.identity.uid, process.getuid?.());
++          assert(data.identity.birth);
++          console.log(JSON.stringify({ action: 'owned-crash-child', root: owned.root, ...data }));
++          clearTimeout(timer);
++          resolve();
++        });
++        child.once('exit', () => {
++          clearTimeout(timer);
++          reject(new Error(`EARLY_EXIT ${stderr}`));
++        });
++      });
++      const ended = new Promise<void>((resolve) => child.once('exit', () => resolve()));
++      child.kill('SIGKILL');
++      await ended;
++      await delay(800);
++      const state = JSON.parse(await readFile(join(owned.root, 'fixture-server.json'), 'utf8')) as {
++        command: Command;
++        permit: Permit;
++        attempt: Attempt | null;
++      };
++      const w = await workflowFixture(owned.root);
++      const http = await HttpOperationJournal.open(owned.root, async (req) => {
++        if (req.phase === 'claim' && state.attempt) return { status: 200, body: state.attempt };
++        return { status: 200, body: state.command };
++      });
++      const bridge = await TicketCommandBridge.open(owned.root, {
++        machineId: state.command.machineId,
++        journal: w.journal,
++        registry: w.registry,
++        http,
++        read: async (route) =>
++          route === '/v2/gateway/config'
++            ? { desired: w.desired }
++            : route.includes('/commands/')
++              ? state.command
++              : state.attempt,
++        permit: async () => state.permit,
++      });
++      try {
++        const old = (await w.journal.processes())[0];
++        assert(old);
++        const replay = await bridge.reserve(state.command);
++        assert.equal(replay.processInstanceId, old.processInstanceId);
++        assert.equal((await w.journal.processes()).length, 1);
++        const runtime = await RuntimeLaunch.open(owned.root, { journal: w.journal, registry: w.registry });
++        try {
++          assert.equal(
++            !!(await runtime.read(old.launchId)),
++            ['runtime-pin', 'authorized', 'released'].includes(stage),
++          );
++        } finally {
++          await runtime.close();
++        }
++        if (stage !== 'released')
++          await assert.rejects(readFile(join(owned.root, 'side-effect')), { code: 'ENOENT' });
++        await assert.rejects(bridge.handle(state.command), /PROCESS_UNKNOWN|RECONCILE_REQUIRED/);
++        assert.equal(
++          (await w.registry.retained()).filter((r) => r.authority === 'process-journal').length,
++          1,
++        );
++        await assert.rejects(bridge.retire(state.command.id), /EXACT_EXIT_PROOF_REQUIRED|CLAIM_UNCONFIRMED/);
++        const ready = await w.journal.ready(old);
++        if (ready) assert.equal(await w.journal.identity.groupEmpty(ready.processGroupId), true);
++      } finally {
++        await bridge.close();
++        await http.close();
++        await w.close();
++      }
++      {
++        const identity = await lstat(owned.root);
++        console.log(
++          'Task3 retained UNKNOWN root',
++          JSON.stringify({
++            root: owned.root,
++            device: String(identity.dev),
++            inode: String(identity.ino),
++            uid: identity.uid,
++            stage,
++          }),
++        );
++      }
++    } finally {
++      if (child.exitCode === null && child.signalCode === null) {
++        const ended = new Promise<void>((resolve) => child.once('exit', () => resolve()));
++        child.kill('SIGKILL');
++        await ended;
++      }
++    }
++  });
+diff --git a/v2/gateway/test/runtime-workspace.test.ts b/v2/gateway/test/runtime-workspace.test.ts
+new file mode 100644
+index 0000000..ef9bec4
+--- /dev/null
++++ b/v2/gateway/test/runtime-workspace.test.ts
+@@ -0,0 +1,109 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import test from 'node:test';
++import { setImmediate as nextTurn } from 'node:timers/promises';
++import { atomicWrite, hash } from '../src/journal/atomic-records.ts';
++import { probeContextHash, RuntimeIsolation } from '../src/runtime/isolation.ts';
++import { workflowFixture } from './support/bridge-fixture.ts';
++import { runtimeRoot } from './support/runtime-fixture.ts';
++import { isolationObservation, runtimePinFixture } from './support/runtime-pins.ts';
++import { runtimeWorkspaceFixture } from './support/runtime-workspace.ts';
++
++test('runtime workspace actual prepared record rejects wrong commit attempt pins state and observed paths', async () => {
++  const owned = await runtimeRoot(),
++    w = await workflowFixture(owned.root);
++  await w.install();
++  const source = w.sources[1].source,
++    audit = w.projections.find((p) => p.sourceTreeSha256 === source.sourceTreeSha256 && p.runtime === 'api');
++  assert(audit);
++  const fixture = await runtimeWorkspaceFixture(owned.root, w.registry, source, audit.expected);
++  const pin = runtimePinFixture();
++  pin.source = source;
++  pin.projection = audit.expected;
++  pin.modelChoice.model.runtime = 'api';
++  pin.isolationPolicyHash = audit.expected.derivation.policySha256;
++  pin.workspaceCommit = fixture.commit;
++  pin.modelChoice.probeContextSha256 = probeContextHash(isolationObservation(pin).context);
++  const prepared = await fixture.prepare(pin.attemptId);
++  let wrongPath = false,
++    wrongHome = false;
++  const isolation = new RuntimeIsolation({
++    workspaces: fixture.service,
++    observe: async (value) => {
++      const observation = await fixture.observe(value);
++      if (wrongPath) observation.preflight.evidence.workspace = join(owned.root, 'unprepared');
++      if (wrongHome) observation.preflight.evidence.attemptHome = join(owned.root, 'wrong-home');
++      return observation;
++    },
++  });
++  try {
++    await isolation.assert(pin);
++    await assert.rejects(
++      isolation.assert({ ...pin, workspaceCommit: '0'.repeat(40) }),
++      /RUNTIME_WORKSPACE_MISMATCH/,
++    );
++    await assert.rejects(isolation.assert({ ...pin, attemptId: randomUUID() }), /RUNTIME_WORKSPACE_MISMATCH/);
++    await assert.rejects(
++      isolation.assert({ ...pin, source: { ...pin.source, version: 'different' } }),
++      /RUNTIME_WORKSPACE_MISMATCH/,
++    );
++    const wrongProjection = structuredClone(pin);
++    wrongProjection.projection.derivation.version = 'different';
++    wrongProjection.modelChoice.probeContextSha256 = probeContextHash(
++      isolationObservation(wrongProjection).context,
++    );
++    await assert.rejects(isolation.assert(wrongProjection), /RUNTIME_WORKSPACE_MISMATCH/);
++    wrongPath = true;
++    await assert.rejects(isolation.assert(pin), /RUNTIME_WORKSPACE_MISMATCH/);
++    wrongPath = false;
++    wrongHome = true;
++    await assert.rejects(isolation.assert(pin), /RUNTIME_WORKSPACE_MISMATCH/);
++    wrongHome = false;
++    // Corrupt only the owned fixture's durable state, then restore bytes before cleanup. The real producer reads it.
++    const recordPath = join(
++      fixture.service.root,
++      'journal',
++      `${hash(`isolation-workspace-${hash(pin.attemptId)}`)}.json`,
++    );
++    try {
++      for (const state of ['preparing', 'retained', 'deleted'] as const) {
++        await atomicWrite(recordPath, { ...prepared, state });
++        await assert.rejects(isolation.assert(pin), /RUNTIME_WORKSPACE_MISMATCH/);
++      }
++    } finally {
++      await atomicWrite(recordPath, prepared);
++    }
++    await isolation.assert(pin);
++    let enter: () => void = () => {},
++      release: () => void = () => {};
++    const entered = new Promise<void>((resolve) => {
++      enter = resolve;
++    });
++    const continueWrite = new Promise<void>((resolve) => {
++      release = resolve;
++    });
++    const write = isolation.withVerified(pin, async (actual) => {
++      assert.equal(actual.ownerCommit, fixture.commit);
++      assert.deepEqual(actual.identity, prepared.identity);
++      enter();
++      await continueWrite;
++    });
++    await entered;
++    let cleanupFinished = false;
++    const cleanup = fixture.service.cleanup(pin.attemptId).then((result) => {
++      cleanupFinished = true;
++      return result;
++    });
++    await nextTurn();
++    assert.equal(cleanupFinished, false);
++    release();
++    await write;
++    assert.equal(await cleanup, 'deleted');
++    await assert.rejects(isolation.assert(pin), /RUNTIME_WORKSPACE_MISMATCH/);
++  } finally {
++    await fixture.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
+diff --git a/v2/gateway/test/support/runtime-crash-worker.ts b/v2/gateway/test/support/runtime-crash-worker.ts
+new file mode 100644
+index 0000000..5233eef
+--- /dev/null
++++ b/v2/gateway/test/support/runtime-crash-worker.ts
+@@ -0,0 +1,131 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import type { Attempt } from '../../src/commands/contracts.ts';
++import { TicketCommandBridge } from '../../src/execution/ticket-command-bridge.ts';
++import { atomicWrite, canonicalJson, hash } from '../../src/journal/atomic-records.ts';
++import { HttpOperationJournal } from '../../src/journal/http-operations.ts';
++import { probeContextHash, RuntimeIsolation } from '../../src/runtime/isolation.ts';
++import { RuntimeLaunch } from '../../src/runtime/launch.ts';
++import { commandFixture, workflowFixture } from './bridge-fixture.ts';
++import { isolationObservation, runtimePinFixture } from './runtime-pins.ts';
++import { runtimeWorkspaceFixture } from './runtime-workspace.ts';
++
++const [root, target] = process.argv.slice(2);
++const w = await workflowFixture(root);
++await w.install();
++const { command, permit } = await commandFixture(w);
++const template = runtimePinFixture();
++template.modelChoice.model.machineId = command.machineId;
++template.source = w.sources[1].source;
++const audit = w.projections.find(
++  (p) => p.sourceTreeSha256 === template.source.sourceTreeSha256 && p.runtime === 'api',
++);
++assert(audit);
++template.projection = audit.expected;
++template.modelChoice.model.runtime = 'api';
++command.payload.selection = {
++  ...(command.payload.selection as object),
++  runtime: 'api',
++  projectionManifestSha256: template.projection.manifestSha256,
++  projectionTreeSha256: template.projection.treeSha256,
++};
++const prepared = await runtimeWorkspaceFixture(root, w.registry, template.source, template.projection);
++template.workspaceCommit = prepared.commit;
++template.isolationPolicyHash = template.projection.derivation.policySha256;
++template.modelChoice.probeContextSha256 = probeContextHash(isolationObservation(template).context);
++command.payload.modelChoice = template.modelChoice;
++command.payload.certificationAdmission =
++  template.admission.kind === 'test-certification'
++    ? { challengeId: template.admission.challengeId, nonce: template.admission.nonce }
++    : null;
++let attempt: Attempt | null = null;
++const pause = async (stage: string) => {
++  if (stage !== target) return;
++  await atomicWrite(join(root, 'fixture-server.json'), { formatVersion: 1, command, permit, attempt });
++  process.send?.({ stage, identity: await w.journal.identity.probe(process.pid), argv: process.argv });
++  await new Promise(() => {});
++};
++const http = await HttpOperationJournal.open(root, async (req) => {
++  if (req.phase === 'claim') {
++    attempt = {
++      id: randomUUID(),
++      commandId: command.id,
++      ticketId: command.ticketId,
++      machineId: command.machineId,
++      fence: '1',
++      processInstanceId: (req.canonicalBody as { processInstanceId: string }).processInstanceId,
++      state: 'active',
++      workflowPin: permit.workflow,
++      finalizedAt: null,
++      stoppedAt: null,
++      terminalResult: null,
++    };
++    await pause('claim');
++    await prepared.prepare(attempt.id);
++    return { status: 200, body: attempt };
++  }
++  if (req.phase === 'projection') {
++    await pause('companion');
++    return { status: 200, body: { attemptId: attempt?.id, ...(req.canonicalBody as object) } };
++  }
++  return { status: 200, body: command };
++});
++const skillPath = 'skills/build/SKILL.md';
++const pair = await w.registry.resolve(template.source, template.projection);
++const entry = pair.manifest.projection.find((item) => item.path === skillPath);
++assert(entry);
++const runtime = await RuntimeLaunch.open(root, {
++  journal: w.journal,
++  registry: w.registry,
++  entrypoint: async () => ({
++    relativePath: skillPath,
++    sha256: entry.sha256,
++    sourceTreeSha256: template.source.sourceTreeSha256,
++    projectionManifestSha256: template.projection.manifestSha256,
++    projectionTreeSha256: template.projection.treeSha256,
++    derivationSha256: hash(canonicalJson(template.projection.derivation)),
++  }),
++  isolation: new RuntimeIsolation({ observe: prepared.observe, workspaces: prepared.service }),
++  binding: async (context) => ({
++    pin: {
++      ...template,
++      commandId: command.id,
++      attemptId: context.attempt.id,
++      processInstanceId: context.record.processInstanceId,
++      fence: context.attempt.fence,
++      attemptProjection: structuredClone(context.companion),
++      selection: command.payload.selection as import('../../src/commands/contracts.ts').Selection,
++    },
++    input: { skillName: 'fixture', skillPath, checkpoint: null },
++  }),
++});
++const bridge = await TicketCommandBridge.open(root, {
++  machineId: command.machineId,
++  journal: w.journal,
++  registry: w.registry,
++  http,
++  read: async (route) =>
++    route === '/v2/gateway/config'
++      ? { desired: w.desired }
++      : route.includes('/commands/')
++        ? command
++        : attempt,
++  permit: async () => permit,
++  command: [
++    process.execPath,
++    '-e',
++    `require('node:fs').writeFileSync(${JSON.stringify(join(root, 'side-effect'))},'released');setTimeout(()=>{},500)`,
++  ],
++  recheckCapacity: async () => true,
++  onDurableStage: pause,
++  beforeRelease: async (context) => {
++    await runtime.beforeRelease(context);
++    await pause('runtime-pin');
++  },
++});
++await bridge.reserve(command);
++await pause('reserved');
++await bridge.handle(command);
++await bridge.wait(command.id);
++throw new Error('CRASH_STAGE_NOT_REACHED');
+diff --git a/v2/gateway/test/support/runtime-fixture.ts b/v2/gateway/test/support/runtime-fixture.ts
+new file mode 100644
+index 0000000..2cfca49
+--- /dev/null
++++ b/v2/gateway/test/support/runtime-fixture.ts
+@@ -0,0 +1,26 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { lstat, mkdtemp, realpath, rm } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++export async function runtimeRoot() {
++  const nonce = randomUUID();
++  const root = await mkdtemp(join(await realpath(tmpdir()), `crew-runtime-${nonce}-`));
++  const initial = await lstat(root);
++  const identity = { nonce, dev: initial.dev, ino: initial.ino, uid: initial.uid };
++  console.log(JSON.stringify({ action: 'created', root, ...identity }));
++  return {
++    root,
++    async cleanup() {
++      const stat = await lstat(root);
++      assert(stat.isDirectory() && !stat.isSymbolicLink());
++      assert.deepEqual(
++        { dev: stat.dev, ino: stat.ino, uid: stat.uid },
++        { dev: initial.dev, ino: initial.ino, uid: initial.uid },
++      );
++      await rm(root, { recursive: true });
++      await assert.rejects(lstat(root), { code: 'ENOENT' });
++      console.log(JSON.stringify({ action: 'removed-after-writer-close', root, ...identity }));
++    },
++  };
++}
+diff --git a/v2/gateway/test/support/runtime-pins.ts b/v2/gateway/test/support/runtime-pins.ts
+new file mode 100644
+index 0000000..0537d4f
+--- /dev/null
++++ b/v2/gateway/test/support/runtime-pins.ts
+@@ -0,0 +1,124 @@
++import { randomUUID } from 'node:crypto';
++import { canonicalJson, hash } from '../../src/journal/atomic-records.ts';
++import type { RuntimePin } from '../../src/runtime/contracts.ts';
++import { type IsolationObservation, probeContextHash } from '../../src/runtime/isolation.ts';
++
++const h = 'a'.repeat(64);
++export function runtimePinFixture(): RuntimePin {
++  const source = {
++    name: 'superpowers' as const,
++    version: 'fixture',
++    sourceRevision: 'a'.repeat(40),
++    sourceUrl: 'https://example.test/source',
++    payloadSha256: h,
++    packageIntegrity: 'sha512-fixture',
++    sourceManifestSha256: h,
++    sourceTreeSha256: h,
++  };
++  const projection = {
++    runtime: 'codex' as const,
++    sourceTreeSha256: h,
++    manifestSha256: h,
++    treeSha256: h,
++    derivation: { kind: 'fixture', policySha256: h },
++  } as unknown as RuntimePin['projection'];
++  const context = {
++    sourceTreeSha256: h,
++    projectionManifestSha256: h,
++    projectionTreeSha256: h,
++    derivationSha256: hash(canonicalJson(projection.derivation)),
++    binarySha256: h,
++    policySha256: h,
++    osVersion: 'fixture-os',
++  };
++  const attemptId = randomUUID(),
++    processInstanceId = randomUUID(),
++    installReportId = randomUUID();
++  return {
++    runId: randomUUID(),
++    attemptId,
++    commandId: randomUUID(),
++    processInstanceId,
++    fence: '1',
++    source,
++    projection,
++    attemptProjection: {
++      attemptId,
++      processInstanceId,
++      fence: '1',
++      sourceTreeSha256: h,
++      runtime: 'codex',
++      projectionManifestSha256: h,
++      projectionTreeSha256: h,
++      installReportId,
++    },
++    selection: {
++      runtime: 'codex',
++      sourceTreeSha256: h,
++      projectionManifestSha256: h,
++      projectionTreeSha256: h,
++      installReportId,
++      configRevision: 1,
++      decisionId: randomUUID(),
++    },
++    modelChoice: {
++      model: { machineId: randomUUID(), runtime: 'codex', providerId: 'fixture', modelId: 'no-model' },
++      modelConfigRevision: 1,
++      probeReceiptId: randomUUID(),
++      probeContextSha256: probeContextHash(context),
++      certificationReceiptId: null,
++      required: [],
++    },
++    admission: { kind: 'test-certification', challengeId: randomUUID(), nonce: randomUUID() },
++    isolationPolicyHash: h,
++    workspaceCommit: 'a'.repeat(40),
++    credentialRef: null,
++  };
++}
++/** Protocol observation ONLY; never passed to production composition or reported as native PASS. */
++export function isolationObservation(pin: RuntimePin): IsolationObservation {
++  const context = {
++    sourceTreeSha256: pin.source.sourceTreeSha256,
++    projectionManifestSha256: pin.projection.manifestSha256,
++    projectionTreeSha256: pin.projection.treeSha256,
++    derivationSha256: hash(canonicalJson(pin.projection.derivation)),
++    binarySha256: h,
++    policySha256: pin.isolationPolicyHash,
++    osVersion: 'fixture-os',
++  };
++  return {
++    context,
++    preflight: {
++      status: 'UNVERIFIED',
++      blockers: ['native-unmeasured'],
++      evidence: {
++        surfaces: [],
++        source: pin.source,
++        projection: pin.projection,
++        runtime: pin.projection.runtime,
++      } as unknown as IsolationObservation['preflight']['evidence'],
++    },
++    confinement: {
++      processInstanceId: pin.processInstanceId,
++      policyHash: pin.isolationPolicyHash,
++      evidenceDigest: h,
++    },
++    admission: {
++      kind: 'test-certification',
++      state: 'admitted',
++      id: pin.admission.kind === 'test-certification' ? pin.admission.challengeId : '',
++      nonceSha256: pin.admission.kind === 'test-certification' ? hash(pin.admission.nonce) : '',
++      attemptId: pin.attemptId,
++      commandId: pin.commandId,
++      processInstanceId: pin.processInstanceId,
++      fence: pin.fence,
++      machineId: pin.modelChoice.model.machineId,
++      context,
++      expiresAt: new Date(Date.now() + 60000).toISOString(),
++      maxTurns: 1,
++      maxTools: 1,
++      maxCostUsd: 0,
++    },
++    certificate: null,
++  };
++}
+diff --git a/v2/gateway/test/support/runtime-typecheck.json b/v2/gateway/test/support/runtime-typecheck.json
+new file mode 100644
+index 0000000..9255a69
+--- /dev/null
++++ b/v2/gateway/test/support/runtime-typecheck.json
+@@ -0,0 +1,20 @@
++{
++  "extends": "../../tsconfig.json",
++  "include": [
++    "../../src/runtime/contracts.ts",
++    "../../src/runtime/launch.ts",
++    "../../src/runtime/effect-ledger.ts",
++    "../../src/runtime/tool-policy.ts",
++    "../../src/runtime/isolation.ts",
++    "../../src/execution/ticket-command-bridge.ts",
++    "../runtime-boundary.test.ts",
++    "../effect-ledger.test.ts",
++    "../isolation-runtime.test.ts",
++    "./runtime-fixture.ts",
++    "./runtime-pins.ts",
++    "../runtime-crash.test.ts",
++    "./runtime-crash-worker.ts",
++    "../runtime-workspace.test.ts",
++    "./runtime-workspace.ts"
++  ]
++}
+diff --git a/v2/gateway/test/support/runtime-workspace.ts b/v2/gateway/test/support/runtime-workspace.ts
+new file mode 100644
+index 0000000..e80be37
+--- /dev/null
++++ b/v2/gateway/test/support/runtime-workspace.ts
+@@ -0,0 +1,107 @@
++import assert from 'node:assert/strict';
++import { mkdir, writeFile } from 'node:fs/promises';
++import { join } from 'node:path';
++import { IsolationWorkspace } from '../../src/isolation/workspace.ts';
++import type { RuntimePin } from '../../src/runtime/contracts.ts';
++import type { ProjectionPin, SourcePin } from '../../src/workflows/pins.ts';
++import type { WorkflowRegistry } from '../../src/workflows/registry.ts';
++import { isolationObservation } from './runtime-pins.ts';
++
++/** Actual owned Git preparation and actual producer verification. Only model admission remains protocol-only. */
++export async function runtimeWorkspaceFixture(
++  root: string,
++  registry: WorkflowRegistry,
++  source: SourcePin,
++  projection: ProjectionPin,
++) {
++  const service = await IsolationWorkspace.open(join(root, 'runtime-isolation'), registry);
++  const owner = join(root, 'owner'),
++    home = join(root, 'git-home');
++  for (const path of [owner, home, join(home, 'template'), join(home, 'hooks')])
++    await mkdir(path, { mode: 0o700 });
++  const projectionRoot = (await registry.resolve(source, projection)).projectionRoot;
++  const git = async (...args: string[]) => {
++    const result = await service.measure(
++      'owner-fixture',
++      owner,
++      '/Library/Developer/CommandLineTools/usr/bin/git',
++      [
++        '-c',
++        `core.hooksPath=${join(home, 'hooks')}`,
++        '-c',
++        'core.fsmonitor=false',
++        '-c',
++        'gc.auto=0',
++        '-c',
++        'maintenance.auto=false',
++        ...args,
++      ],
++      {
++        workspace: owner,
++        attemptHome: home,
++        projectionRoot,
++        extraRead: [owner, '/Library/Developer/CommandLineTools'],
++        extraWrite: [owner],
++        environment: [
++          'GIT_CONFIG_NOSYSTEM=1',
++          'GIT_CONFIG_GLOBAL=/dev/null',
++          `GIT_TEMPLATE_DIR=${join(home, 'template')}`,
++        ],
++      },
++    );
++    console.log(
++      JSON.stringify({
++        action: 'runtime-workspace-git',
++        argv: args,
++        receipt: result.receipt,
++        stageIdentity: result.stageIdentity,
++      }),
++    );
++    assert.equal(result.receipt?.exitCode, 0, result.error ?? result.output);
++    assert.equal(result.receipt?.forkObserved, false);
++    assert.equal(result.receipt?.treeEmpty, true);
++    return result.output.trim();
++  };
++  await git('init', owner);
++  await writeFile(join(owner, 'owned.txt'), 'actual prepared runtime workspace');
++  await git('-C', owner, 'add', '--all');
++  await git(
++    '-C',
++    owner,
++    '-c',
++    'user.name=RuntimeFixture',
++    '-c',
++    'user.email=runtime@example.invalid',
++    '-c',
++    'commit.gpgSign=false',
++    'commit',
++    '-m',
++    'fixture',
++  );
++  const commit = await git('-C', owner, 'rev-parse', 'HEAD');
++  const attempts = new Set<string>();
++  return {
++    service,
++    commit,
++    async prepare(attemptId: string) {
++      const record = await service.prepareWorkspace(owner, attemptId, source, projection);
++      assert.equal(record.ownerCommit, commit);
++      attempts.add(attemptId);
++      return record;
++    },
++    async observe(pin: RuntimePin) {
++      const observation = isolationObservation(pin),
++        record = await service.get(pin.attemptId);
++      observation.preflight.evidence.workspace = record?.workspace ?? '';
++      observation.preflight.evidence.attemptHome = record?.attemptHome ?? '';
++      return observation;
++    },
++    async close() {
++      for (const attemptId of attempts) {
++        if ((await service.get(attemptId))?.state !== 'deleted')
++          assert.equal(await service.cleanup(attemptId), 'deleted');
++      }
++      await service.close();
++    },
++  };
++}

@@ -1,0 +1,68 @@
+test/fixture-lifecycle.test.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Sort these imports.
+  
+   > 1 │ import assert from 'node:assert/strict';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   > 2 │ import { spawn, spawnSync } from 'node:child_process';
+   > 3 │ import { existsSync } from 'node:fs';
+   > 4 │ import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+        ...
+  > 15 │   withFixture,
+  > 16 │ } from '../e2e/support/fixture.ts';
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    17 │ 
+    18 │ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên', async () => {
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+      8   8 │   import test from 'node:test';
+      9   9 │   import { fileURLToPath } from 'node:url';
+     10     │ - import·{·createScratchRemoval·}·from·'../scripts/e2e-fixture.ts';
+     11     │ - import·{
+     12     │ - ··type·CleanupResult,
+     13     │ - ··closeOwnedResource,
+     14     │ - ··type·OwnedResource,
+     15     │ - ··withFixture,
+     16     │ - }·from·'../e2e/support/fixture.ts';
+         10 │ + import·{
+         11 │ + ··type·CleanupResult,
+         12 │ + ··closeOwnedResource,
+         13 │ + ··type·OwnedResource,
+         14 │ + ··withFixture,
+         15 │ + }·from·'../e2e/support/fixture.ts';
+         16 │ + import·{·createScratchRemoval·}·from·'../scripts/e2e-fixture.ts';
+     17  17 │   
+     18  18 │   test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên', async () => {
+  
+
+test/fixture-lifecycle.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    163 163 │       startIdentity: identity,
+    164 164 │     };
+    165     │ - ··console.log('scratch-timeout-ready='·+·JSON.stringify({·scratchPath,·registryPath,·startIdentity:·identity·}));
+        165 │ + ··console.log(
+        166 │ + ····'scratch-timeout-ready='·+·JSON.stringify({·scratchPath,·registryPath,·startIdentity:·identity·}),
+        167 │ + ··);
+    166 168 │     let releaseStat: () => void = () => undefined;
+    167 169 │     const delayed = new Promise<void>((resolve) => {
+    ······· │ 
+    224 226 │         }
+    225 227 │       }
+    226     │ - ····console.log('scratch-timeout-own-cleanup='·+·JSON.stringify({·scratchPath,·absent:·!existsSync(scratchPath)·}));
+        228 │ + ····console.log(
+        229 │ + ······'scratch-timeout-own-cleanup='·+·JSON.stringify({·scratchPath,·absent:·!existsSync(scratchPath)·}),
+        230 │ + ····);
+    227 231 │     }
+    228 232 │   });
+  
+
+Checked 2 files in 35ms. No fixes applied.
+Found 2 errors.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

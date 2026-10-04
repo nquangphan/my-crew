@@ -1,0 +1,50 @@
+attachment scratch created /tmp/crew-v2-attachments-BFtLpQ nonceSha256=becc8be12a759fa93f7b5153b2185d0d269c8c5b47da863c8f1d326df039c139
+attachment scratch removed /tmp/crew-v2-attachments-BFtLpQ
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (69.435ms)
+attachment scratch created /tmp/crew-v2-attachments-7rVEJe nonceSha256=e60d7881714fad9ca998d8624be5e6360bf65344119666d2fc529b4dfa0b493a
+attachment scratch removed /tmp/crew-v2-attachments-7rVEJe
+✔ attachment storage rejects truncated and oversized streams without publishing original (9.225708ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.567458ms)
+attachment scratch created /tmp/crew-v2-attachments-Z7aRwz nonceSha256=76db07052f8721ae998f8cb9f41c5bb187675dceb212bca957c1953f5e3ef739
+attachment scratch removed /tmp/crew-v2-attachments-Z7aRwz
+✔ attachment storage derivative publication is separate from original (11.233541ms)
+attachment scratch created /tmp/crew-v2-attachments-3IAAZ7 nonceSha256=9518928e5320bbe335c00a45d0108f8d1352a66b2d96d9e5f718143df57b4e42
+attachment scratch removed /tmp/crew-v2-attachments-3IAAZ7
+✔ attachment storage leaves a published blob inspectable after injected failure (7.618167ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (0.211584ms)
+attachment scratch created /tmp/crew-v2-attachments-78HvcK nonceSha256=2ce16b5adba7a18748ca8dc2ee148b6fabcf5ad7b10fde7bf2eb85dbd7cca606
+attachment scratch removed /tmp/crew-v2-attachments-78HvcK
+✔ attachment storage rejects a symlink owner marker before opening stage (4.712708ms)
+attachment scratch created /tmp/crew-v2-attachments-ACnHB9 nonceSha256=60f3045e1aac2a7aa59a64d069376db64469eb90e0658846d44d6ecbc6adcf7e
+attachment scratch removed /tmp/crew-v2-attachments-ACnHB9
+✔ attachment storage binds publication to exact attachment and generation (6.157208ms)
+attachment scratch created /tmp/crew-v2-attachments-U2AMt4 nonceSha256=17574bbe924afae5d79b35e9a2905305ddf6fde8a5e63d025eb799e5b64d4b5c
+attachment scratch removed /tmp/crew-v2-attachments-U2AMt4
+✔ attachment storage never accepts a foreign existing destination even with equal digest (6.36025ms)
+attachment scratch created /tmp/crew-v2-attachments-J9mwYo nonceSha256=29b7642320df5ba3f3017708ec4ce1d85cbf2342006ef41c53db798ac8ad4f7e
+attachment scratch removed /tmp/crew-v2-attachments-J9mwYo
+✔ attachment storage prevents publication after abort at stage flush (6.029084ms)
+attachment scratch created /tmp/crew-v2-attachments-aIbX6A nonceSha256=46d8be1e508ee85e49aace2d377224fd2a69974379f4a9dff20396c5c67811ac
+attachment scratch removed /tmp/crew-v2-attachments-aIbX6A
+✔ attachment storage can reopen durable root and verify originals (6.160375ms)
+attachment scratch created /tmp/crew-v2-attachments-nmJJcS nonceSha256=25e159761e1789be440d8add3ceef4541916e05ab35658b029a33632acce39c9
+attachment scratch removed /tmp/crew-v2-attachments-nmJJcS
+✔ attachment storage requires durable journal integration before derivative bytes (2.084458ms)
+attachment scratch created /tmp/crew-v2-attachments-xEyKOk nonceSha256=31201897ba11f036a4542057cb61e2252a3c8eaf7a7e54348605702d52072f58
+attachment scratch removed /tmp/crew-v2-attachments-xEyKOk
+✔ attachment storage publishes multiple derivatives in one extraction generation without collision (9.836834ms)
+attachment scratch created /tmp/crew-v2-attachments-M0opwV nonceSha256=18f9d29d3056e2c53f3e4c0f0c0036268a22d9de8190c5a690b716f3958a0c23
+attachment scratch removed /tmp/crew-v2-attachments-M0opwV
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (8.753416ms)
+✔ attachment receiver parses Linux comm containing spaces and parentheses without birth-field drift (0.206083ms)
+﹣ attachment receiver rejects native writer setup on unsupported host (0.016875ms) # SKIP
+✔ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (2.80575ms)
+✔ attachment staging private lease journal serializes SQL timestamps before receiver work (2.75725ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 223.148083

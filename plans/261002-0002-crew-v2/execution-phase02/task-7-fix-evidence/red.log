@@ -1,0 +1,45 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/docs-read.test.ts '--test-name-pattern=search SQL deadline|search cursor tuple'
+
+{"level":30,"time":1790913420487,"pid":98255,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53679"}
+✖ search SQL deadline cancels blocked query and returns reusable single-connection pool (5383.249791ms)
+{"level":30,"time":1790913425774,"pid":98255,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:53729"}
+✖ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (234.268666ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5785.987791
+
+✖ failing tests:
+
+test at test/docs-read.test.ts:281:1
+✖ search SQL deadline cancels blocked query and returns reusable single-connection pool (5383.249791ms)
+  Error: SEARCH_DID_NOT_TIMEOUT_WITHIN_FINITE_HARNESS
+      at Timeout.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/docs-read.test.ts:316:81)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7)
+
+test at test/docs-read.test.ts:333:1
+✖ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (234.268666ms)
+  AssertionError [ERR_ASSERTION]: {"items":[{"snapshotId":"a6eddec4-43f4-46c8-83ef-4c25707ac05a","projectId":"10aa97b3-1dee-49db-99e3-e48e29e15892","path":"docs/index.md","title":"CursorNeedle","snippet":"# CursorNeedle","sha256":"59ab0b51ab53742260d08fab664c31827a599b3aea25a7dc65c3781da07e61d0","sourceCommit":null,"auditState":"invalid","contentClass":"implemented","score":0.0607927106320858,"relatedTicketIds":[]}],"nextCursor":null}
+  
+  200 !== 400
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/docs-read.test.ts:343:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

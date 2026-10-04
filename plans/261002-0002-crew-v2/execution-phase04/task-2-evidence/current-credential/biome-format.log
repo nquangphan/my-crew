@@ -1,0 +1,158 @@
+v2/gateway/test/current-credential-resolver.test.ts:62:3 lint/style/noNonNullAssertion ━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    60 │   };
+    61 │   const broker = new CredentialBroker(machineId, bridge, []);
+  > 62 │   binding.providers[0]!.credentialRef = await broker.put(providerId, Buffer.from('fixture-only'));
+       │   ^^^^^^^^^^^^^^^^^^^^^
+    63 │   return {
+    64 │     machineId,
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:86:33 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    84 │     signal(),
+    85 │   );
+  > 86 │   assert.equal(a.credentialRef, f.binding.providers[0]!.credentialRef);
+       │                                 ^^^^^^^^^^^^^^^^^^^^^^^
+    87 │   await a.assertCurrent();
+    88 │   assert.deepEqual(f.requests, [
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     84  84 │       signal(),
+     85  85 │     );
+     86     │ - ··assert.equal(a.credentialRef,·f.binding.providers[0]!.credentialRef);
+         86 │ + ··assert.equal(a.credentialRef,·f.binding.providers[0]?.credentialRef);
+     87  87 │     await a.assertCurrent();
+     88  88 │     assert.deepEqual(f.requests, [
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:115:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    113 │     },
+    114 │     (f) => {
+  > 115 │       f.binding.providers[0]!.status = 'pending';
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    116 │     },
+    117 │     (f) => {
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:118:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    116 │     },
+    117 │     (f) => {
+  > 118 │       f.binding.providers[0]!.status = 'missing';
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    119 │     },
+    120 │     (f) => {
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:121:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    119 │     },
+    120 │     (f) => {
+  > 121 │       f.binding.providers[0]!.credentialRef = null;
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    122 │     },
+    123 │     (f) => {
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:133:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    131 │     },
+    132 │     (f) => {
+  > 133 │       f.binding.providers[0]!.endpoint = 'https://other.example/';
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    134 │     },
+    135 │     (f) => {
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:136:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    134 │     },
+    135 │     (f) => {
+  > 136 │       f.binding.providers[0]!.protocol = 'chat-completions';
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    137 │     },
+    138 │     (f) => {
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:139:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    137 │     },
+    138 │     (f) => {
+  > 139 │       f.binding.providers[0]!.credentialRef = `${f.machineId}_${randomUUID()}_${randomUUID()}`;
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    140 │     },
+    141 │     (f) => {
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:158:3 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    156 │     resolver = new CurrentCredentialResolver(f.machineId, f.read, f.broker),
+    157 │     current = await resolver.resolve(f.provider, 2, signal());
+  > 158 │   f.binding.providers[0]!.credentialRef = await f.broker.put(f.provider.id, Buffer.from('new-fixture'));
+        │   ^^^^^^^^^^^^^^^^^^^^^^^
+    159 │   await assert.rejects(current.assertCurrent(), /CREDENTIAL_BINDING_CHANGED/);
+    160 │ });
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:184:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    182 │     f.provider.endpoint = `${origin}/v1/`;
+    183 │     f.provider.localHttp = { enabled: true, allowedOrigin: origin };
+  > 184 │     f.binding.providers[0]!.endpoint = f.provider.endpoint;
+        │     ^^^^^^^^^^^^^^^^^^^^^^^
+    185 │     const transport = new PinnedProviderTransport(f.provider),
+    186 │       broker = new CredentialBroker(f.machineId, f.bridge, [transport.deliver]),
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:199:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    197 │     f.desired.enabled.api = true;
+    198 │     onRequest = () => {
+  > 199 │       f.binding.providers[0]!.status = 'pending';
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    200 │       f.binding.providers[0]!.credentialRef = null;
+    201 │     };
+  
+
+v2/gateway/test/current-credential-resolver.test.ts:200:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    198 │     onRequest = () => {
+    199 │       f.binding.providers[0]!.status = 'pending';
+  > 200 │       f.binding.providers[0]!.credentialRef = null;
+        │       ^^^^^^^^^^^^^^^^^^^^^^^
+    201 │     };
+    202 │     await assert.rejects(transport.callCurrent('chosen', broker, resolver, 2, signal()));
+  
+
+Skipped 1 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 8 files in 30ms. Fixed 5 files.
+Found 12 warnings.

@@ -1,0 +1,152 @@
+v2/server/test/support/attachments.ts:440:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    438 │     const bytes = Buffer.from('ab');
+    439 │     const compose = await f.mutation(randomUUID(), (tx) =>
+  > 440 │       f!.stage.createCompose(tx, { projectId: f!.project.id, ticketId: null, purpose: 'ticket' }, owner),
+        │       ^^
+    441 │     );
+    442 │     const reserved = await f.mutation(randomUUID(), (tx) =>
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    438 438 │       const bytes = Buffer.from('ab');
+    439 439 │       const compose = await f.mutation(randomUUID(), (tx) =>
+    440     │ - ······f!.stage.createCompose(tx,·{·projectId:·f!.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+        440 │ + ······f?.stage.createCompose(tx,·{·projectId:·f!.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+    441 441 │       );
+    442 442 │       const reserved = await f.mutation(randomUUID(), (tx) =>
+  
+
+v2/server/test/support/attachments.ts:440:47 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    438 │     const bytes = Buffer.from('ab');
+    439 │     const compose = await f.mutation(randomUUID(), (tx) =>
+  > 440 │       f!.stage.createCompose(tx, { projectId: f!.project.id, ticketId: null, purpose: 'ticket' }, owner),
+        │                                               ^^
+    441 │     );
+    442 │     const reserved = await f.mutation(randomUUID(), (tx) =>
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    438 438 │       const bytes = Buffer.from('ab');
+    439 439 │       const compose = await f.mutation(randomUUID(), (tx) =>
+    440     │ - ······f!.stage.createCompose(tx,·{·projectId:·f!.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+        440 │ + ······f!.stage.createCompose(tx,·{·projectId:·f?.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+    441 441 │       );
+    442 442 │       const reserved = await f.mutation(randomUUID(), (tx) =>
+  
+
+v2/server/test/support/attachments.ts:443:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    441 │     );
+    442 │     const reserved = await f.mutation(randomUUID(), (tx) =>
+  > 443 │       f!.stage.reserve(
+        │       ^^
+    444 │         tx,
+    445 │         {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    441 441 │       );
+    442 442 │       const reserved = await f.mutation(randomUUID(), (tx) =>
+    443     │ - ······f!.stage.reserve(
+        443 │ + ······f?.stage.reserve(
+    444 444 │           tx,
+    445 445 │           {
+  
+
+v2/server/test/support/attachments.ts:508:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    506 │     );
+    507 │     const cancelledCompose = await f.mutation(randomUUID(), (tx) =>
+  > 508 │       f!.stage.createCompose(tx, { projectId: f!.project.id, ticketId: null, purpose: 'ticket' }, owner),
+        │       ^^
+    509 │     );
+    510 │     const cancelled = await f.mutation(randomUUID(), (tx) =>
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    506 506 │       );
+    507 507 │       const cancelledCompose = await f.mutation(randomUUID(), (tx) =>
+    508     │ - ······f!.stage.createCompose(tx,·{·projectId:·f!.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+        508 │ + ······f?.stage.createCompose(tx,·{·projectId:·f!.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+    509 509 │       );
+    510 510 │       const cancelled = await f.mutation(randomUUID(), (tx) =>
+  
+
+v2/server/test/support/attachments.ts:508:47 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    506 │     );
+    507 │     const cancelledCompose = await f.mutation(randomUUID(), (tx) =>
+  > 508 │       f!.stage.createCompose(tx, { projectId: f!.project.id, ticketId: null, purpose: 'ticket' }, owner),
+        │                                               ^^
+    509 │     );
+    510 │     const cancelled = await f.mutation(randomUUID(), (tx) =>
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    506 506 │       );
+    507 507 │       const cancelledCompose = await f.mutation(randomUUID(), (tx) =>
+    508     │ - ······f!.stage.createCompose(tx,·{·projectId:·f!.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+        508 │ + ······f!.stage.createCompose(tx,·{·projectId:·f?.project.id,·ticketId:·null,·purpose:·'ticket'·},·owner),
+    509 509 │       );
+    510 510 │       const cancelled = await f.mutation(randomUUID(), (tx) =>
+  
+
+v2/server/test/support/attachments.ts:511:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    509 │     );
+    510 │     const cancelled = await f.mutation(randomUUID(), (tx) =>
+  > 511 │       f!.stage.reserve(
+        │       ^^
+    512 │         tx,
+    513 │         {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    509 509 │       );
+    510 510 │       const cancelled = await f.mutation(randomUUID(), (tx) =>
+    511     │ - ······f!.stage.reserve(
+        511 │ + ······f?.stage.reserve(
+    512 512 │           tx,
+    513 513 │           {
+  
+
+v2/server/test/support/attachments.ts:551:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    549 │     assert.equal(unchanged.receiver_id, active.receiver_id);
+    550 │     await f.mutation(randomUUID(), (tx) =>
+  > 551 │       f!.stage.abandonUpload(
+        │       ^^
+    552 │         tx,
+    553 │         { composeSessionId: cancelledCompose.id, attachmentId: abortedId, expectedRevision: 2 },
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    549 549 │       assert.equal(unchanged.receiver_id, active.receiver_id);
+    550 550 │       await f.mutation(randomUUID(), (tx) =>
+    551     │ - ······f!.stage.abandonUpload(
+        551 │ + ······f?.stage.abandonUpload(
+    552 552 │           tx,
+    553 553 │           { composeSessionId: cancelledCompose.id, attachmentId: abortedId, expectedRevision: 2 },
+  
+
+Skipped 14 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 10 files in 47ms. Fixed 4 files.
+Found 7 warnings.

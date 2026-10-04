@@ -1,0 +1,44 @@
+✔ attachment storage keeps exact bytes and separates equal digests by attachment (20.933167ms)
+✔ attachment storage rejects truncated and oversized streams without publishing original (44.424417ms)
+✔ attachment config requires absolute private root and bounds operator limits (0.502667ms)
+✔ attachment storage derivative publication is separate from original (19.212792ms)
+✔ attachment storage leaves a published blob inspectable after injected failure (7.727542ms)
+✔ attachment config freezes accepted policy including nested limits and extensions (0.200417ms)
+✔ attachment storage rejects a symlink owner marker before opening stage (4.199291ms)
+✔ attachment storage binds publication to exact attachment and generation (5.763916ms)
+✔ attachment storage never accepts a foreign existing destination even with equal digest (6.561583ms)
+✔ attachment storage prevents publication after abort at stage flush (3.823292ms)
+✔ attachment storage can reopen durable root and verify originals (5.133875ms)
+✔ attachment storage requires durable journal integration before derivative bytes (2.778417ms)
+✔ attachment storage publishes multiple derivatives in one extraction generation without collision (12.820333ms)
+✔ attachment storage cleanup rejects guessed nonce and leaves original intact (8.687625ms)
+✔ attachment receiver parses Linux comm containing spaces and parentheses without birth-field drift (0.160292ms)
+﹣ attachment receiver rejects native writer setup on unsupported host (0.023917ms) # SKIP
+✖ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (3.078625ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 15
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 198.755542
+
+✖ failing tests:
+
+test at v2/server/test/attachments-storage.test.ts:167:1
+✖ attachment receiver distinguishes exact native birth from pid reuse and unknown namespace (3.078625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///workspace/v2/server/test/attachments-storage.test.ts:175:10)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

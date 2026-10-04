@@ -1,0 +1,1 @@
+{"command": ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-final-types-l2jp5tar/v2/server", "typecheck"], "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew", "stage": "before child start"}

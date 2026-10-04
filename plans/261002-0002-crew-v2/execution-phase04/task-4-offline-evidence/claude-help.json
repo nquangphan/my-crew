@@ -1,0 +1,82 @@
+{
+  "kind": "bounded-cli-public-metadata-only",
+  "startedAt": "2026-10-03T11:46:54.249001+00:00",
+  "finishedAt": "2026-10-03T11:46:54.408730+00:00",
+  "gate": {
+    "observedAt": "2026-10-03T11:46:54.245541+00:00",
+    "pressureLevel": "2",
+    "availableBytes": 4563189760,
+    "diskAvailableBytes": 31386165248,
+    "cpuSample": "             disk14              disk16              disk18       cpu    load average\n    KB/t  tps  MB/s     KB/t  tps  MB/s     KB/t  tps  MB/s  us sy id   1m   5m   15m\n  244.21    0  0.00     4.03    0  0.00    14.19    1  0.01   8  5 87  4.29 4.76 4.60\n    0.00    0  0.00     0.00    0  0.00     0.00    0  0.00   7  5 88  4.29 4.76 4.60\n",
+    "quota": {
+      "ordinaryUsageAllowed": true,
+      "usedPercent": 27,
+      "remainingPercent": 73,
+      "sampledAtEpoch": 1791028012.895
+    }
+  },
+  "argv": [
+    "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+    "--help"
+  ],
+  "cwd": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie/cwd",
+  "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie/home",
+    "TMPDIR": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie/tmp",
+    "CLAUDE_CONFIG_DIR": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie/claude-config",
+    "CODEX_HOME": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie/codex-config",
+    "LANG": "en_US.UTF-8"
+  },
+  "pid": 13633,
+  "exitCode": 0,
+  "failure": null,
+  "timeoutSeconds": 10,
+  "perStreamCapBytes": 65536,
+  "binaryBefore": {
+    "path": "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+    "sha256": "50a14c2f50f56668380fdda490167f1d3630d5cc18fb8aed3073c2c7ea7314fe",
+    "bytes": 226563088,
+    "device": 16777229,
+    "inode": 54699312,
+    "uid": 501,
+    "mode": "0o755",
+    "linkCount": 1,
+    "mtimeNs": 1790618729062538574,
+    "ctimeNs": 1790645850015104315
+  },
+  "binaryAfter": {
+    "path": "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+    "sha256": "50a14c2f50f56668380fdda490167f1d3630d5cc18fb8aed3073c2c7ea7314fe",
+    "bytes": 226563088,
+    "device": 16777229,
+    "inode": 54699312,
+    "uid": 501,
+    "mode": "0o755",
+    "linkCount": 1,
+    "mtimeNs": 1790618729062538574,
+    "ctimeNs": 1790645850015104315
+  },
+  "binaryIdentityUnchanged": true,
+  "output": {
+    "stdout": {
+      "bytes": 22114,
+      "sha256": "f12192d0e60545166396125ff47163f89bcfe4ed0a976771e7fb9bbf7e1ca486"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "scratchIdentity": {
+    "root": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie",
+    "device": 16777229,
+    "inode": 64470881,
+    "uid": 501,
+    "mode": "0o700"
+  },
+  "scratchRetained": true,
+  "nativeWholeTreeStopProof": "UNVERIFIED",
+  "runtimeInitializationRequested": false,
+  "modelRequested": false
+}

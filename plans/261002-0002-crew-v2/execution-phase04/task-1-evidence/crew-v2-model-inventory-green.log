@@ -1,0 +1,41 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts
+
+✔ model pool migration creates separate config and immutable report authority (164.669458ms)
+model owned fixture e3553ba3d4c06a033ddfd51930cebf53d5500707b17d71c36f1d8914f3ca3b05 postgres://postgres@127.0.0.1:61289/crew_v2_test
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (424.890125ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (298.705917ms)
+✖ model report shared order historical immutable replay and production host PASS stays unverified (342.931375ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (316.154041ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1713.551166
+
+✖ failing tests:
+
+test at test/model-pool.test.ts:50:1
+✖ model report shared order historical immutable replay and production host PASS stays unverified (342.931375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts:63:142
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts:51:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.

@@ -1,0 +1,28 @@
+Admission boundary: snapshot CHECKSUM_MISMATCH
+✔ workflow admission GC-first at snapshot denies reserve or preserves its resolvable pair (1541.050875ms)
+Admission boundary: quarantine CHECKSUM_MISMATCH
+✔ workflow admission GC-first at quarantine denies reserve or preserves its resolvable pair (873.314792ms)
+Admission boundary: delete CHECKSUM_MISMATCH
+✔ workflow admission GC-first at delete denies reserve or preserves its resolvable pair (869.367334ms)
+✔ workflow admission reserve-first holds GC until real journal commit and survives cached replay (870.851084ms)
+✔ workflow admission managed unbound/reopened writers deny until bound and legacy records retain v1 shape (899.084042ms)
+✔ workflow admission bind waits for an in-flight standalone v1 reservation before GC (772.759584ms)
+Recovered admission checkpoint: admission source pair protected or reservation denied; no process launched
+✔ workflow admission crash at admission retains unknown intent or denies a deleted pair after restart (930.9345ms)
+Recovered admission checkpoint: committed source pair protected or reservation denied; no process launched
+✔ workflow admission crash at committed retains unknown intent or denies a deleted pair after restart (948.455ms)
+Recovered admission checkpoint: quarantine source pair protected or reservation denied; no process launched
+✔ workflow admission crash at quarantine retains unknown intent or denies a deleted pair after restart (971.24225ms)
+✔ workflow durable operation recovers killed reserve/create/rename/quarantine checkpoints (6399.893875ms)
+Retained genuine fork UNKNOWN fixtures: ["/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task4-lifetime-F37RMp"]
+✔ workflow operation native timeout yields real stop receipt and fork remains UNKNOWN (2508.244292ms)
+✔ workflow no-follow deletion unlinks symlink itself and rejects hardlink aliases (967.702625ms)
+✔ workflow published GC releases registry reference but preserves recovered unready process reference (1534.173ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11496.790208

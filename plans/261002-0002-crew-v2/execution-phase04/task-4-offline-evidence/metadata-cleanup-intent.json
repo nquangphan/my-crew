@@ -1,0 +1,76 @@
+{
+  "kind": "own-metadata-scratch-cleanup-intent",
+  "at": "2026-10-03T11:58:04.971910+00:00",
+  "scope": "four exact prior metadata roots only",
+  "productionStopCertificate": false,
+  "records": [
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-claude-version-asxcrhxk",
+        "device": 16777229,
+        "inode": 64470735,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 12444,
+      "startedAt": "2026-10-03T11:46:30.027777+00:00",
+      "argv": [
+        "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+        "--version"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-version-vdftxo34",
+        "device": 16777229,
+        "inode": 64470806,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 13121,
+      "startedAt": "2026-10-03T11:46:42.506736+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "--version"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-claude-help-iz_0wiie",
+        "device": 16777229,
+        "inode": 64470881,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 13633,
+      "startedAt": "2026-10-03T11:46:54.249001+00:00",
+      "argv": [
+        "/Users/phannhatquang/.local/share/claude/versions/2.1.284",
+        "--help"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    },
+    {
+      "identity": {
+        "root": "/private/tmp/crew-v2-task4-codex-help-oxa3wnb2",
+        "device": 16777229,
+        "inode": 64470951,
+        "uid": 501,
+        "mode": "0o700"
+      },
+      "pid": 13983,
+      "startedAt": "2026-10-03T11:47:07.244371+00:00",
+      "argv": [
+        "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+        "--help"
+      ],
+      "directWaitExitCode": 0,
+      "outputIntegrityVerified": true
+    }
+  ]
+}

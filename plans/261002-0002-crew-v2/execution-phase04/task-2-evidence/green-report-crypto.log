@@ -1,0 +1,11 @@
+✔ credential broker provisioning persists private key and exact ACK across lost reply; rejects stale/AAD/key loss (246.423959ms)
+✔ credential broker expiry needs bounded server receipt clock and ignores host wall clock (0.130417ms)
+✔ model reporter gets current desired before reconnect and restart replays exact shared sequence (243.852541ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 315.747333

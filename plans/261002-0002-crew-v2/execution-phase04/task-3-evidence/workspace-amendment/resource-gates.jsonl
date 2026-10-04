@@ -1,0 +1,5 @@
+{"stage": "snapshot-creation", "time": "2026-10-03T16:34:59.892057+07:00", "pressure": 2, "availableBytes": 4872306688, "idlePercent": 84.1, "diskBytes": 36734914560, "allowed": true}
+{"stage": "red-historical-consumer", "time": "2026-10-03T16:35:00.629650+07:00", "pressure": 2, "availableBytes": 4796612608, "idlePercent": 81.49, "diskBytes": 36725170176, "allowed": true}
+{"stage": "build", "time": "2026-10-03T16:35:05.495164+07:00", "pressure": 2, "availableBytes": 4782276608, "idlePercent": 87.17, "diskBytes": 36725915648, "allowed": true}
+{"stage": "strict", "time": "2026-10-03T16:35:06.647451+07:00", "pressure": 2, "availableBytes": 4832722944, "idlePercent": 82.0, "diskBytes": 36724965376, "allowed": true}
+{"stage": "affected-cover", "time": "2026-10-03T16:35:07.629581+07:00", "pressure": 2, "availableBytes": 4860166144, "idlePercent": 83.6, "diskBytes": 36724916224, "allowed": true}

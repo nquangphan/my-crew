@@ -1,0 +1,1 @@
+{"pid": 35981, "command": ["pnpm", "exec", "biome", "check", "v2/server/src/assistant/contracts.ts", "v2/server/src/assistant/store.ts", "v2/server/src/assistant/inbox.ts", "v2/server/test/assistant-store.test.ts", "v2/server/test/support/assistant.ts"], "exit": 0, "waitObserved": true}

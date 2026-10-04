@@ -1,0 +1,257 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts
+
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_95360bee1198409ab1624d44ca7b8417 pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YIvsZi
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YIvsZi nonceSha256=9fa886b2b9eb6a8f7925c473895db26bce2cd0381b11586f2ed1890f5987b09c
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YIvsZi dev=16777229 ino=63821242 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-YIvsZi
+✖ attachment comment producer default denies before INSERT and freezes absence at factory creation (239.046125ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_bb4745c6356c465495b9a41ea9940e1b pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7rytW7
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7rytW7 nonceSha256=de9a6d448d98b1a9aa4c3987562b2f816aa0d84802fe2e1a5a86dc78b1075a96
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7rytW7 dev=16777229 ino=63821249 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-7rytW7
+✔ attachment comment producer preserves legacy appendComment whitespace and empty rejection exactly (188.664792ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_058fdc58757540b79c0185435f382eaf pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-C4puUO
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-C4puUO nonceSha256=5ab87ed152ce01eb7d964a22e7596b40eee506a3dea1ed1fd15506ef7cb417f2
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-C4puUO dev=16777229 ino=63821258 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-C4puUO
+✖ attachment comment producer attachment-only actual ready originals emits one event and sole009 subtree fanout (327.685666ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_c4d1c40d5c584b158e9c0a76eeaa46b4 pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yVAqBE
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yVAqBE nonceSha256=f9f8bac65c258c5ece68939e2b108cc7469f458bc915e0b987720b7a5ff9dca8
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yVAqBE dev=16777229 ino=63821281 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yVAqBE
+✖ attachment comment producer mixed input and whitespace with actual originals preserve supplied text (185.099542ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_c6023b69ff6e42ddaf73e25147d008fd pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FNeGKU
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FNeGKU nonceSha256=5929c6462413d33e213a3b14f04a9e2575ac609d42f345bab36924bcde6f2dae
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FNeGKU dev=16777229 ino=63821288 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-FNeGKU
+✖ attachment comment producer rejects empty whitespace invalid type and over max without client allowEmpty authority (181.516875ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_c301d1f54a654f47a566ce3848a55651 pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jqxpAt
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jqxpAt nonceSha256=85e642406b59a434ad3f9da08b7a9742f87ca34788ceffcc5fd65238d9d71794
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jqxpAt dev=16777229 ino=63821295 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jqxpAt
+✖ attachment comment producer accepts exact max text with trusted empty selection (176.435ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_46aad2a83240408bbfe852adf0d66272 pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jGEUgB
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jGEUgB nonceSha256=76ab15d4b0fc36e587877abfcfa247ce71cabb0b7c31bfbdf3c96775d2dc6d4d
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jGEUgB dev=16777229 ino=63821302 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-jGEUgB
+✖ attachment comment producer fake IDs unavailable and reserved originals cannot authorize attachment-only text (182.649625ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_d90c11635e2f48838c77cc938cc6bafa pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bNbUnw
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bNbUnw nonceSha256=8a12340df4eb0d1a5218d12828b381a3d1303bedc4e2b7b95ce1f55b1040ee00
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bNbUnw dev=16777229 ino=63821309 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-bNbUnw
+✖ attachment comment producer callback failure rolls back inserted comment links event and existing009 fanout (249.331125ms)
+comment producer resource container=bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 port=50961 database=crew_v2_test_e605304371ca4626b4fe37f775ef4727 pid=917 command=["/Users/phannhatquang/.nvm/versions/node/v24.14.0/bin/node","/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts"]
+attachment DB container bd1c5338e29f02d2ba2e7bad78080995d481503b01c5e982eeb1bfa1801f5b29 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Qq986S
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Qq986S nonceSha256=6b5f61438b58c7b5789d98d29d2e036e70974ca1f3666699923ff880da8e0d89
+comment producer root identity /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Qq986S dev=16777229 ino=63821324 uid=501
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Qq986S
+✖ attachment comment producer captured linker cannot be replaced through caller dependency mutation (169.812042ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 1
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2002.775917
+
+✖ failing tests:
+
+test at test/attachments-comment-factory.test.ts:153:1
+✖ attachment comment producer default denies before INSERT and freezes absence at factory creation (239.046125ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:156:22
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:13
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:197:1
+✖ attachment comment producer attachment-only actual ready originals emits one event and sole009 subtree fanout (327.685666ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:206:22
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:226:1
+✖ attachment comment producer mixed input and whitespace with actual originals preserve supplied text (185.099542ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:228:22
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:13
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:239:1
+✖ attachment comment producer rejects empty whitespace invalid type and over max without client allowEmpty authority (181.516875ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:242:22
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:13
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:271:1
+✖ attachment comment producer accepts exact max text with trusted empty selection (176.435ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:274:22
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:283:1
+✖ attachment comment producer fake IDs unavailable and reserved originals cannot authorize attachment-only text (182.649625ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:285:22
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:13
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:343:1
+✖ attachment comment producer callback failure rolls back inserted comment links event and existing009 fanout (249.331125ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:349:22
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachments-comment-factory.test.ts:372:1
+✖ attachment comment producer captured linker cannot be replaced through caller dependency mutation (169.812042ms)
+  AssertionError [ERR_ASSERTION]: attachment comment producer method must exist
+  + actual - expected
+  
+  + 'undefined'
+  - 'function'
+  
+      at producer (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:145:10)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:375:22
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:43:13
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/support/db.ts:51:9
+      at async withFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/crew-v2-attachments-task2a-aqcdvrj1/v2/server/test/attachments-comment-factory.test.ts:27:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

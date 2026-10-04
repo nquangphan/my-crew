@@ -1,0 +1,18 @@
+[
+  {
+    "path": "v2/gateway/src/isolation/inventory.ts",
+    "sha256": "9be0b3107d60a7fb9771380c9a2b7504278794dab188f42bca14b001143c6ff5"
+  },
+  {
+    "path": "v2/gateway/src/isolation/policy.ts",
+    "sha256": "7cd8365ac5727c0832311a7f4fb19c0ed4334650ce576ccd3e48e989b77f3925"
+  },
+  {
+    "path": "v2/gateway/src/isolation/preflight.ts",
+    "sha256": "03e748d2599f1402df3f0f91f74d79adda35cd5e20346d60ca3d4f10bb8f80e4"
+  },
+  {
+    "path": "v2/gateway/src/isolation/workspace.ts",
+    "sha256": "81afd0cb1528e671b6e8c89254b46eb1f62d33ed12bcd80b2daefeece06afaf6"
+  }
+]

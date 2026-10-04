@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "root": "/private/tmp/c6-yndWzG",
+  "nonce": "ce2271df-2985-44ed-b7d3-12634ee2e11e",
+  "identity": {
+    "device": "16777229",
+    "inode": "63898854",
+    "ownerUid": 501,
+    "kind": "directory",
+    "linkCount": 2,
+    "bytes": 0
+  },
+  "messages": [],
+  "id": "49dd4510-3cb9-4094-8496-65f43ac7618f",
+  "stage": "/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f",
+  "socketPath": "/private/tmp/c6-yndWzG/discovery.sock",
+  "argv": [
+    "/usr/bin/env",
+    "CODEX_HOME=/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f/home/codex",
+    "/usr/bin/sandbox-exec",
+    "-f",
+    "/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f/policy.sb",
+    "/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex",
+    "app-server",
+    "--listen",
+    "unix:///private/tmp/c6-yndWzG/discovery.sock"
+  ],
+  "policy": "(version 1)(allow default)(deny process-fork)(deny network*)(allow network* (local unix-socket))(deny file-read*)(allow file-read-metadata)(allow file-read* (literal \"/\"))(allow file-read* (subpath \"/System\") (subpath \"/usr\") (subpath \"/Library/Apple\") (subpath \"/bin\") (subpath \"/sbin\") (subpath \"/private/etc\") (subpath \"/dev\") (literal \"/Users/phannhatquang/.codex/packages/standalone/releases/0.159.3-aarch64-apple-darwin/bin/codex\") (subpath \"/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f\"))(deny file-write*)(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6-yndWzG/ops/stages/49dd4510-3cb9-4094-8496-65f43ac7618f\") (literal \"/private/tmp/c6-yndWzG/discovery.sock\"))",
+  "executableSha256": "4d210f7c5a18fd0386434df23b5bdbb8c0e7257d3e8a2b30b0769c8bbe99a878",
+  "receipt": {
+    "formatVersion": 1,
+    "operationId": "49dd4510-3cb9-4094-8496-65f43ac7618f",
+    "device": "16777229",
+    "inode": "63898854",
+    "treeEmpty": true,
+    "forkObserved": false,
+    "exitCode": 1,
+    "timedOut": false
+  },
+  "discoveryError": "Error: SOCKET_NOT_READY",
+  "output": "Error: Operation not permitted (os error 1)\n",
+  "socketCleanup": "absent",
+  "cleanup": "deleted"
+}

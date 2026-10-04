@@ -1,0 +1,25 @@
+✖ workflow audited native Superpowers candidate has its independent artifact pin (2.567667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54.116209
+
+✖ failing tests:
+
+test at v2/gateway/test/workflow-native-projection.test.ts:4:1
+✖ workflow audited native Superpowers candidate has its independent artifact pin (2.567667ms)
+  AssertionError [ERR_ASSERTION]: NATIVE_ARTIFACT_CANDIDATE_MISSING
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-native-projection.test.ts:6:2)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

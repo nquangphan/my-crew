@@ -1,0 +1,593 @@
+diff --git a/v2/docs/flows/server-identity.md b/v2/docs/flows/server-identity.md
+index e6ca579..24b0b49 100644
+--- a/v2/docs/flows/server-identity.md
++++ b/v2/docs/flows/server-identity.md
+@@ -1,49 +1,49 @@
+ # Đăng nhập owner, cấp máy và gắn project
+ 
+ ## Mục đích
+ 
+ Flow này xác thực một owner đã bootstrap, cấp token mới cho máy macOS và gắn mỗi project với đúng một máy. Máy v1 và credential v1 không được nhập lại. Mọi project mới ở trạng thái chưa gắn máy; việc gắn lại bị chặn theo mặc định cho đến khi có guard đối chiếu tác vụ đang chạy ở phần sau.
+ 
+ ## Điểm vào
+ 
+ - `server/src/auth/bootstrap.ts` → `bootstrapOwner`: tạo duy nhất owner từ mật khẩu stdin.
+ - `server/src/auth/routes.ts` → `registerAuthRoutes`, `createAuthenticator`: route phiên, cấp máy và xác thực request.
+ - `server/src/projects/routes.ts` → `registerProjectRoutes`: route tạo, đọc và gắn project.
+ - `server/src/projects/service.ts` → `createProject`, `bindProject`, `projectEventScope`: nghiệp vụ và phạm vi event.
+ 
+ ## Các bước
+ 
+ 1. `server/src/auth/bootstrap.ts` → `bootstrapOwner`: băm mật khẩu bằng `scrypt` với salt ngẫu nhiên rồi ghi trong transaction có advisory lock. CLI chỉ nhận mật khẩu từ stdin và từ chối lần bootstrap thứ hai.
+-2. `server/src/auth/routes.ts` → `registerAuthRoutes`: `POST /v2/auth/session` kiểm tra Origin và mật khẩu, giới hạn năm lần sai mỗi năm phút theo IP đã băm; tạo session 12 giờ với cookie `HttpOnly`, `SameSite=Strict`, `Secure` ở môi trường HTTPS. `GET` trả owner và CSRF; `DELETE` cần Origin cùng CSRF rồi thu hồi session.
++2. `server/src/auth/routes.ts` → `registerAuthRoutes`: `POST /v2/auth/session` kiểm tra Origin và mật khẩu. Bộ giới hạn đặt chỗ tối đa năm lượt xác minh đồng thời cho mỗi IP đã băm trong cửa sổ năm phút, hoàn lại chỗ khi truy vấn lỗi hoặc đăng nhập đúng; đăng nhập đúng xóa các lần sai đã hoàn tất. Map IP dọn mục hết hạn định kỳ và chặn IP mới khi đã đạt giới hạn 10.000 mục. Sau thành công, tạo session 12 giờ với cookie `HttpOnly`, `SameSite=Strict`, `Secure` ở môi trường HTTPS. `GET` trả owner và CSRF; `DELETE` cần Origin cùng CSRF rồi thu hồi session.
+ 3. `server/src/auth/session.ts` → `createSession`, `credentialResponseCodec`: chỉ lưu SHA-256 của session và CSRF; CSRF dùng AES-256-GCM để đọc lại cho phiên hợp lệ. Response cấp máy được mã hóa AES-256-GCM theo phạm vi actor, route và idempotency key trước khi journal lưu để owner cùng phiên có thể replay token mà DB không chứa token gốc.
+-4. `server/src/auth/machine.ts` → `provisionMachine`: tạo UUID và token 32 byte ngẫu nhiên, lưu hash, phát `machine.provisioned` chỉ có machineId. Route máy chỉ trả metadata khi đọc danh sách; máy đã bị thu hồi không xác thực được.
++4. `server/src/auth/machine.ts` → `provisionMachine`: tạo UUID và token 32 byte ngẫu nhiên, lưu hash, phát `machine.provisioned` chỉ có machineId. Route danh sách máy trả metadata theo ID cursor, tối đa 100 mục/trang và mặc định 50; máy đã bị thu hồi không xác thực được.
+ 5. `server/src/projects/service.ts` → `createProject`: kiểm tra key, tên, URL HTTPS/SSH không có userinfo; tạo project chưa gắn máy và phát `project.created` chỉ có revision.
+ 6. `server/src/projects/service.ts` → `bindProject`: khóa dòng project, kiểm tra revision và máy còn hiệu lực, gọi guard trong cùng transaction nếu project đã gắn máy, cập nhật một machineId/checkoutPath, xóa commit checkout cũ và tăng bindingRevision; phát `project.bound` chỉ có machineId và bindingRevision. Chữ ký ba tham số mặc định từ chối gắn lại; tham số guard thứ tư tùy chọn cho Task5 kiểm tra attempt `active`, `uncertain`, `finalizing` sau khi các bảng đó có mặt.
+ 7. `server/src/projects/service.ts` → `projectEventScope`: nhận `Db | Tx` để journal đọc binding và event trong cùng transaction snapshot; máy chỉ đọc sự kiện của project gắn với máy tại snapshot đó, owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/003_identity.sql` | Owner, session, machine, project và liên kết legacy ID |
+ | `server/src/auth/password.ts` | `scrypt` và so sánh hash có thời gian cố định |
+ | `server/src/auth/session.ts` | Cookie, CSRF, mã hóa kết quả replay |
+ | `server/src/auth/machine.ts` | Cấp máy và event metadata |
+ | `server/src/auth/bootstrap.ts` | Bootstrap owner bằng stdin |
+ | `server/src/auth/routes.ts` | Route auth/machine và kiểm tra quyền |
+ | `server/src/projects/service.ts` | Project, binding và phạm vi event |
+ | `server/src/projects/routes.ts` | Route project với schema cấm trường dư |
+ | `server/test/support/identity-app.ts` | Fastify fixture với DB riêng, cookie và CSRF thật |
+ | `server/test/auth.test.ts`, `server/test/projects.test.ts` | Kiểm thử hành vi auth và binding |
+ 
+ ## Dữ liệu
+ 
+ DB lưu password salt/hash, hash của session/token/CSRF và ciphertext của CSRF/idempotent machine response. Token gốc chỉ có ở phản hồi cấp máy cho owner đã xác thực; không có trong event hoặc backup DB. `projects.machine_id` và `checkout_path` cùng null hoặc cùng có giá trị; bản nhập docs cũ có thể giữ project ở trạng thái chưa gắn. `docsState` hiện là `missing` cho project mới; flow docs nhập liệu cập nhật trạng thái khi có snapshot.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp PostgreSQL và fixture test riêng. `server-journal` giữ mutation, event và replay. Flow execution phần tiếp theo sẽ cung cấp guard đối chiếu attempt trước khi cho phép đổi binding.
+ 
+ ## Tests
+ 
+-`pnpm --dir v2/server test --test-name-pattern='auth|provision|binding|project'` kiểm tra quyền owner/machine, CSRF/Origin, throttle, session qua app restart, hết hạn và logout, credential không có trong `pg_dump`, replay idempotent mã hóa, giới hạn input, phân trang và binding đồng thời. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng cho source, test của flow.
++`pnpm --dir v2/server test --test-name-pattern='auth|provision|binding|project'` kiểm tra quyền owner/machine, CSRF/Origin, throttle tuần tự và đồng thời, cửa sổ hết hạn, session qua app restart, logout, credential không có trong `pg_dump`, replay idempotent mã hóa, giới hạn input, phân trang máy/project và binding đồng thời. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng cho source, test của flow.
+diff --git a/v2/server/src/auth/routes.ts b/v2/server/src/auth/routes.ts
+index be98c32..1ec4bff 100644
+--- a/v2/server/src/auth/routes.ts
++++ b/v2/server/src/auth/routes.ts
+@@ -2,40 +2,42 @@ import { createHash, timingSafeEqual } from 'node:crypto';
+ import type { FastifyInstance, FastifyRequest } from 'fastify';
+ import type { Actor, Db, RouteDependencies, ServerOptions } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import { provisionMachine } from './machine.ts';
+ import { verifyPassword } from './password.ts';
+ import {
+   clearSessionCookie,
+   createSession,
+   getSession,
+   makeSessionCookie,
+   readSessionCookie,
+   revealCsrf,
+   revokeSession,
+   sha256,
+ } from './session.ts';
+ 
+ const ownerActor: Actor = { kind: 'owner', id: 'owner' };
+ const sessionRegex = /^Bearer ([0-9a-f]{64})$/;
+ const machineIdSchema = { type: 'string', format: 'uuid' } as const;
+ const nameSchema = { type: 'string', minLength: 1, maxLength: 200 } as const;
++const loginWindowMs = 5 * 60_000;
++const maxTrackedIps = 10_000;
+ 
+ function sameSecret(a: string, b: string): boolean {
+   if (!/^[0-9a-f]{64}$/.test(a) || !/^[0-9a-f]{64}$/.test(b)) return false;
+   return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+ }
+ 
+ export function createAuthenticator(
+   db: Db,
+   options: { now: () => Date; publicOrigin: string },
+ ): {
+   authenticate: (request: FastifyRequest) => Promise<Actor>;
+   requireOwner: (request: FastifyRequest, input: { csrf: boolean }) => Promise<Actor>;
+ } {
+   const requireBootstrap = async (): Promise<void> => {
+     const rows = await db`select 1 from owners where id='owner'`;
+     if (!rows.length) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
+   };
+   const requireOwner = async (request: FastifyRequest, input: { csrf: boolean }): Promise<Actor> => {
+     await requireBootstrap();
+     if (request.headers.authorization) throw new ApiError('OWNER_REQUIRED', 403, 'Cần quyền chủ dự án');
+@@ -57,131 +59,170 @@ export function createAuthenticator(
+       if (!token) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
+       const [machine] =
+         await db`select id from machines where token_hash=${sha256(token)} and revoked_at is null`;
+       if (!machine) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
+       return { kind: 'machine', id: machine.id as string };
+     }
+     await getSession(db, request, options.now());
+     return ownerActor;
+   };
+   return { authenticate, requireOwner };
+ }
+ 
+ export function registerAuthRoutes(
+   app: FastifyInstance,
+   options: ServerOptions,
+   deps: RouteDependencies,
+ ): void {
+   if (!options.secureCookies && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(options.publicOrigin)) {
+     throw new Error('INSECURE_COOKIES_NONLOCAL');
+   }
+-  const failed = new Map<string, number[]>();
++  const attempts = new Map<string, { failures: number[]; pending: number }>();
++  let loginCalls = 0;
++  const sweepAttempts = (now: number): void => {
++    for (const [ipHash, bucket] of attempts) {
++      bucket.failures = bucket.failures.filter((time) => time > now - loginWindowMs);
++      if (!bucket.failures.length && bucket.pending === 0) attempts.delete(ipHash);
++    }
++  };
+   const checkOrigin = (request: FastifyRequest): void => {
+     if (request.headers.origin !== options.publicOrigin)
+       throw new ApiError('ORIGIN_INVALID', 403, 'Nguồn yêu cầu không hợp lệ');
+   };
+   app.post<{ Body: { password: string } }>(
+     '/v2/auth/session',
+     {
+       schema: {
+         body: {
+           type: 'object',
+           additionalProperties: false,
+           required: ['password'],
+           properties: { password: { type: 'string', minLength: 1, maxLength: 4096 } },
+         },
+       },
+     },
+     async (request, reply) => {
+       checkOrigin(request);
+       const ipHash = createHash('sha256').update(request.ip).digest('hex');
+       const now = options.now();
+-      const recent = (failed.get(ipHash) ?? []).filter((time) => time > now.getTime() - 5 * 60_000);
+-      if (recent.length >= 5) throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
+-      const [owner] = await options.db`select password_salt, password_hash from owners where id='owner'`;
+-      if (!owner) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
+-      if (
+-        !(await verifyPassword(
+-          request.body.password,
+-          owner.password_salt as string,
+-          owner.password_hash as string,
+-        ))
+-      ) {
+-        recent.push(now.getTime());
+-        failed.set(ipHash, recent);
+-        throw new ApiError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không hợp lệ');
++      if (++loginCalls % 64 === 0 || attempts.size >= maxTrackedIps) sweepAttempts(now.getTime());
++      let bucket = attempts.get(ipHash);
++      if (!bucket) {
++        if (attempts.size >= maxTrackedIps) throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
++        bucket = { failures: [], pending: 0 };
++        attempts.set(ipHash, bucket);
++      }
++      bucket.failures = bucket.failures.filter((time) => time > now.getTime() - loginWindowMs);
++      if (bucket.failures.length + bucket.pending >= 5)
++        throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
++      bucket.pending++;
++      try {
++        const [owner] = await options.db`select password_salt, password_hash from owners where id='owner'`;
++        if (!owner) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
++        if (
++          !(await verifyPassword(
++            request.body.password,
++            owner.password_salt as string,
++            owner.password_hash as string,
++          ))
++        ) {
++          bucket.failures.push(options.now().getTime());
++          throw new ApiError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không hợp lệ');
++        }
++        const session = await createSession(options.db, options.sessionEncryptionKey, now);
++        bucket.failures = [];
++        reply.header('set-cookie', makeSessionCookie(session.secret, options.secureCookies));
++        return { owner: { id: 'owner' }, csrfToken: session.csrfToken };
++      } finally {
++        bucket.pending--;
++        if (!bucket.failures.length && bucket.pending === 0) attempts.delete(ipHash);
+       }
+-      failed.delete(ipHash);
+-      const session = await createSession(options.db, options.sessionEncryptionKey, now);
+-      reply.header('set-cookie', makeSessionCookie(session.secret, options.secureCookies));
+-      return { owner: { id: 'owner' }, csrfToken: session.csrfToken };
+     },
+   );
+   app.get('/v2/auth/session', async (request) => {
+     await deps.auth.requireOwner(request, { csrf: false });
+     const session = await getSession(options.db, request, options.now());
+     return { owner: { id: 'owner' }, csrfToken: revealCsrf(options.sessionEncryptionKey, session) };
+   });
+   app.delete('/v2/auth/session', async (request, reply) => {
+     await deps.auth.requireOwner(request, { csrf: true });
+     await revokeSession(options.db, request, options.now());
+     reply.header('set-cookie', clearSessionCookie(options.secureCookies));
+     reply.status(204).send();
+   });
+   app.post<{ Body: { name: string } }>(
+     '/v2/machines',
+     {
+       schema: {
+         body: {
+           type: 'object',
+           additionalProperties: false,
+           required: ['name'],
+           properties: { name: nameSchema },
+         },
+       },
+     },
+     async (request, reply) => {
+       const actor = await deps.auth.requireOwner(request, { csrf: true });
+       const result = await deps.mutator(
+         {
+           actor,
+           route: 'POST:/v2/machines',
+           key: String(request.headers['idempotency-key'] ?? ''),
+           body: request.body,
+         },
+         async (tx) => ({ status: 201, body: await provisionMachine(tx, request.body.name) }),
+       );
+       reply.status(result.status);
+       return result.body;
+     },
+   );
+-  app.get('/v2/machines', async (request) => {
+-    await deps.auth.requireOwner(request, { csrf: false });
+-    const rows = await options.db`select id, name, revoked_at from machines order by created_at, id`;
+-    return {
+-      items: rows.map((row) => ({
+-        id: row.id,
++  app.get<{ Querystring: { limit?: string; cursor?: string } }>(
++    '/v2/machines',
++    {
++      schema: {
++        querystring: {
++          type: 'object',
++          additionalProperties: false,
++          properties: {
++            limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
++            cursor: machineIdSchema,
++          },
++        },
++      },
++    },
++    async (request) => {
++      await deps.auth.requireOwner(request, { csrf: false });
++      const limit = request.query.limit === undefined ? 50 : Number(request.query.limit);
++      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
++        throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn không hợp lệ');
++      const rows = request.query.cursor
++        ? await options.db`select id, name, revoked_at from machines where id > ${request.query.cursor} order by id limit ${limit + 1}`
++        : await options.db`select id, name, revoked_at from machines order by id limit ${limit + 1}`;
++      const items = rows.slice(0, limit).map((row) => ({
++        id: row.id as string,
+         name: row.name,
+         revokedAt: row.revoked_at ? (row.revoked_at as Date).toISOString() : null,
+-      })),
+-    };
+-  });
++      }));
++      return { items, nextCursor: rows.length > limit ? (items[items.length - 1]?.id ?? null) : null };
++    },
++  );
+   app.get('/v2/machines/self', async (request) => {
+     if (readSessionCookie(request) && !request.headers.authorization)
+       throw new ApiError('MACHINE_REQUIRED', 401, 'Cần xác thực máy');
+     const actor = await deps.auth.authenticate(request);
+     if (actor.kind !== 'machine') throw new ApiError('MACHINE_REQUIRED', 401, 'Cần xác thực máy');
+     return { machineId: actor.id };
+   });
+   app.get<{ Params: { id: string } }>(
+     '/v2/machines/:id',
+     {
+       schema: {
+         params: {
+           type: 'object',
+           additionalProperties: false,
+           required: ['id'],
+           properties: { id: machineIdSchema },
+         },
+       },
+     },
+     async (request) => {
+diff --git a/v2/server/test/auth.test.ts b/v2/server/test/auth.test.ts
+index 70356be..219a4ff 100644
+--- a/v2/server/test/auth.test.ts
++++ b/v2/server/test/auth.test.ts
+@@ -89,40 +89,170 @@ test('auth login khóa sau năm lần sai trong năm phút', async () =>
+         const wrong = await fixture.app.inject({
+           method: 'POST',
+           url: '/v2/auth/session',
+           payload: { password: `wrong-${i}` },
+           headers: { origin: 'http://localhost:5182' },
+         });
+         assert.equal(wrong.statusCode, 401);
+       }
+       const throttled = await fixture.app.inject({
+         method: 'POST',
+         url: '/v2/auth/session',
+         payload: { password: fixture.password },
+         headers: { origin: 'http://localhost:5182' },
+       });
+       assert.equal(throttled.statusCode, 429);
+     } finally {
+       await fixture.close();
+     }
+   }));
+ 
++test('auth login đồng thời chỉ cho tối đa năm lượt sai đi tới xác minh mật khẩu', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      fixture.armLoginBarrier(12);
++      const attempts = Array.from({ length: 12 }, (_, index) =>
++        fixture.app.inject({
++          method: 'POST',
++          url: '/v2/auth/session',
++          payload: { password: `wrong-parallel-${index}` },
++          headers: { origin: 'http://localhost:5182' },
++        }),
++      );
++      const results = await Promise.all(attempts);
++      assert.equal(results.filter((result) => result.statusCode === 401).length, 5);
++      assert.equal(results.filter((result) => result.statusCode === 429).length, 7);
++      const next = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: fixture.password },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      assert.equal(next.statusCode, 429);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('machine list phân trang ID ổn định, chặn query lạ và không lộ token', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      const tokens: string[] = [];
++      for (let index = 0; index < 3; index++) {
++        const response = await fixture.ownerPost('/v2/machines', { name: `Mac ${index}` }, `list-${index}`);
++        tokens.push(response.json().token);
++      }
++      const first = (await fixture.ownerGet('/v2/machines?limit=1')).json();
++      assert.equal(first.items.length, 1);
++      assert.equal(first.nextCursor, first.items[0].id);
++      const second = (await fixture.ownerGet(`/v2/machines?limit=1&cursor=${first.nextCursor}`)).json();
++      assert.equal(second.items.length, 1);
++      assert.notEqual(second.items[0].id, first.items[0].id);
++      const last = (await fixture.ownerGet(`/v2/machines?limit=1&cursor=${second.nextCursor}`)).json();
++      assert.equal(last.items.length, 1);
++      assert.equal(last.nextCursor, null);
++      const serialized = JSON.stringify([first, second, last]);
++      for (const token of tokens) assert.equal(serialized.includes(token), false);
++      assert.equal(serialized.includes('tokenHash'), false);
++      await db`insert into machines (id, name, token_hash)
++        select gen_random_uuid(), 'Mac ' || i, md5(i::text) || md5(i::text) from generate_series(1, 51) as i`;
++      const defaultPage = (await fixture.ownerGet('/v2/machines')).json();
++      assert.equal(defaultPage.items.length, 50);
++      assert.equal(typeof defaultPage.nextCursor, 'string');
++      assert.equal((await fixture.ownerGet('/v2/machines?limit=101')).statusCode, 400);
++      assert.equal((await fixture.ownerGet('/v2/machines?cursor=bad')).statusCode, 400);
++      assert.equal((await fixture.ownerGet('/v2/machines?unexpected=true')).statusCode, 400);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth login hết cửa sổ năm phút thì cho phép thử lại', async () =>
++  withDatabase(async (db) => {
++    let clock = Date.now();
++    const fixture = await buildIdentityTestApp(db, undefined, true, () => new Date(clock));
++    try {
++      for (let index = 0; index < 5; index++) {
++        const response = await fixture.app.inject({
++          method: 'POST',
++          url: '/v2/auth/session',
++          payload: { password: `wrong-window-${index}` },
++          headers: { origin: 'http://localhost:5182' },
++        });
++        assert.equal(response.statusCode, 401);
++      }
++      clock += 5 * 60_000 + 1;
++      const reopened = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: 'wrong-after-window' },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      assert.equal(reopened.statusCode, 401);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
++test('auth login đúng xóa số lần sai đã hoàn tất trong cửa sổ', async () =>
++  withDatabase(async (db) => {
++    const fixture = await buildIdentityTestApp(db);
++    try {
++      for (let index = 0; index < 4; index++) {
++        const wrong = await fixture.app.inject({
++          method: 'POST',
++          url: '/v2/auth/session',
++          payload: { password: `wrong-before-success-${index}` },
++          headers: { origin: 'http://localhost:5182' },
++        });
++        assert.equal(wrong.statusCode, 401);
++      }
++      const success = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: fixture.password },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      assert.equal(success.statusCode, 200);
++      for (let index = 0; index < 5; index++) {
++        const wrong = await fixture.app.inject({
++          method: 'POST',
++          url: '/v2/auth/session',
++          payload: { password: `wrong-after-success-${index}` },
++          headers: { origin: 'http://localhost:5182' },
++        });
++        assert.equal(wrong.statusCode, 401);
++      }
++      const throttled = await fixture.app.inject({
++        method: 'POST',
++        url: '/v2/auth/session',
++        payload: { password: 'wrong-throttled' },
++        headers: { origin: 'http://localhost:5182' },
++      });
++      assert.equal(throttled.statusCode, 429);
++    } finally {
++      await fixture.close();
++    }
++  }));
++
+ test('auth forbidden input bị từ chối thay vì xóa thầm', async () =>
+   withDatabase(async (db) => {
+     const fixture = await buildIdentityTestApp(db);
+     try {
+       const result = await fixture.ownerPost(
+         '/v2/machines',
+         { name: 'Mac test', admin: true },
+         'forbidden-field',
+       );
+       assert.equal(result.statusCode, 400);
+       assert.equal((await db`select count(*)::integer as n from machines`)[0]?.n, 0);
+     } finally {
+       await fixture.close();
+     }
+   }));
+ 
+ test('auth session sống qua app restart rồi hết hạn và logout thu hồi', async () =>
+   withDatabase(async (db) => {
+     const first = await buildIdentityTestApp(db);
+     await first.close();
+diff --git a/v2/server/test/support/identity-app.ts b/v2/server/test/support/identity-app.ts
+index 51ba55c..d0a38c1 100644
+--- a/v2/server/test/support/identity-app.ts
++++ b/v2/server/test/support/identity-app.ts
+@@ -3,64 +3,77 @@ import Fastify, { type FastifyInstance, type LightMyRequestResponse } from 'fast
+ import { bootstrapOwner } from '../../src/auth/bootstrap.ts';
+ import { createAuthenticator, registerAuthRoutes } from '../../src/auth/routes.ts';
+ import { credentialResponseCodec } from '../../src/auth/session.ts';
+ import { createMutator } from '../../src/journal/mutation.ts';
+ import { registerEventRoutes } from '../../src/journal/routes.ts';
+ import type { Db, ServerOptions } from '../../src/platform/contracts.ts';
+ import { ApiError } from '../../src/platform/errors.ts';
+ import { registerProjectRoutes } from '../../src/projects/routes.ts';
+ import { denyRebinding, projectEventScope } from '../../src/projects/service.ts';
+ 
+ export type IdentityTestFixture = {
+   app: FastifyInstance;
+   password: string;
+   cookie: string;
+   csrf: string;
+   sessionEncryptionKey: Buffer;
+   ownerPost: (path: string, body: unknown, key: string) => Promise<LightMyRequestResponse>;
+   ownerPut: (path: string, body: unknown, key: string) => Promise<LightMyRequestResponse>;
+   ownerGet: (path: string) => Promise<LightMyRequestResponse>;
+   machineGet: (path: string, token: string) => Promise<LightMyRequestResponse>;
++  armLoginBarrier: (target: number) => void;
+   close: () => Promise<void>;
+ };
+ 
+ export async function buildIdentityTestApp(
+   db: Db,
+   prior?: IdentityTestFixture,
+   bootstrap = true,
++  now: () => Date = () => new Date(),
+ ): Promise<IdentityTestFixture> {
+   const password = prior?.password ?? randomBytes(24).toString('hex');
+   if (!prior && bootstrap) await bootstrapOwner(db, password);
+   const options: ServerOptions = {
+     db,
+     publicOrigin: 'http://localhost:5182',
+     secureCookies: false,
+     sessionEncryptionKey: prior?.sessionEncryptionKey ?? randomBytes(32),
+-    now: () => new Date(),
++    now,
+     authorizeDispatch: async () => {
+       throw new Error('DISPATCH_NOT_CONFIGURED');
+     },
+     verifyFinalResult: async () => {
+       throw new Error('FINAL_NOT_CONFIGURED');
+     },
+   };
+   const app = Fastify({ logger: false, ajv: { customOptions: { removeAdditional: false } } });
++  let loginBarrier: { remaining: number; promise: Promise<void>; release: () => void } | null = null;
++  app.addHook('preHandler', async (request) => {
++    if (!loginBarrier || request.method !== 'POST' || request.url !== '/v2/auth/session') return;
++    const barrier = loginBarrier;
++    barrier.remaining--;
++    if (barrier.remaining === 0) {
++      loginBarrier = null;
++      barrier.release();
++    }
++    await barrier.promise;
++  });
+   app.setErrorHandler((error, _request, reply) => {
+     if (error instanceof ApiError) {
+       reply.status(error.status).send({ error: { code: error.code, message: error.message } });
+       return;
+     }
+     const validation = error instanceof Error && 'validation' in error;
+     reply
+       .status(validation ? 400 : 500)
+       .send({ error: { code: validation ? 'VALIDATION' : 'INTERNAL', message: 'Yêu cầu không hợp lệ' } });
+   });
+   const auth = createAuthenticator(db, { now: options.now, publicOrigin: options.publicOrigin });
+   const deps = { auth, mutator: createMutator(db, credentialResponseCodec(options.sessionEncryptionKey)) };
+   registerAuthRoutes(app, options, deps);
+   registerProjectRoutes(app, options, deps, denyRebinding);
+   registerEventRoutes(app, options, deps, projectEventScope);
+   await app.ready();
+   let cookie = prior?.cookie ?? '';
+   let csrf = prior?.csrf ?? '';
+   if (!prior && bootstrap) {
+     const login = await app.inject({
+@@ -91,23 +104,31 @@ export async function buildIdentityTestApp(
+           'idempotency-key': key,
+           'content-type': 'application/json',
+         },
+       }),
+     ownerPut: (path, body, key) =>
+       app.inject({
+         method: 'PUT',
+         url: path,
+         payload: JSON.stringify(body),
+         headers: {
+           cookie,
+           origin: options.publicOrigin,
+           'x-csrf-token': csrf,
+           'idempotency-key': key,
+           'content-type': 'application/json',
+         },
+       }),
+     ownerGet: (path) => app.inject({ method: 'GET', url: path, headers: { cookie } }),
+     machineGet: (path, token) =>
+       app.inject({ method: 'GET', url: path, headers: { authorization: `Bearer ${token}` } }),
++    armLoginBarrier: (target) => {
++      if (!Number.isSafeInteger(target) || target < 2) throw new Error('LOGIN_BARRIER_INVALID');
++      let release = () => {};
++      const promise = new Promise<void>((resolve) => {
++        release = resolve;
++      });
++      loginBarrier = { remaining: target, promise, release };
++    },
+     close: () => app.close(),
+   };
+ }

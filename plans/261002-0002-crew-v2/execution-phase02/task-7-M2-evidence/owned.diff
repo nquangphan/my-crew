@@ -1,0 +1,187 @@
+diff --git a/v2/docs/flows/server-docs-view.md b/v2/docs/flows/server-docs-view.md
+index 80824c7..17419ad 100644
+--- a/v2/docs/flows/server-docs-view.md
++++ b/v2/docs/flows/server-docs-view.md
+@@ -47,3 +47,5 @@ Test authority là callback và attestation do test tạo, có provenance `testA
+ ## Tests
+ 
+ `pnpm --dir v2/server test` chạy toàn bộ test gồm HTTP listener thật port 0, cookie/CSRF, graph/dependency/comment/decision, owner import replay, checkpoint/pause ACK/reconcile, token cũ, hai pool race trước cached replay, current credential/event snapshot, SSE revoke/expiry/shutdown, default dispatch 503 và reported→finalizing giữ guard. Restart đóng app/pool rồi mở lại cùng DB, so graph/docs/events/command results; `pg_dump -Fc`/`pg_restore` trong container riêng so counts, byte checksums, cursor và command result. `pnpm --dir v2/server typecheck`, `pnpm --dir v2 test`, `pnpm --dir v2 typecheck` là covering gates. Regression search deadline giữ ACCESS EXCLUSIVE trên docs_files trong DB riêng, chứng minh direct reader và HTTP cùng trả lỗi deadline 503; pool max1 dùng lại chính backend PID và statement_timeout được phục hồi sau rollback. Harness hữu hạn 5 giây luôn nhả lock/đóng pool trong finally, kể cả RED của code cũ. Cursor singleton UUID array và unsafe path trả CURSOR_INVALID400. Không có production Phase08 attestation trong bộ kiểm thử này.
++
++Fixture của `docs-read.test.ts` và `api-acceptance.test.ts` kiểm tra hiện diện rõ ràng trước khi dùng env DB/container, dòng tên database, body SSE, project import, attempt claim và item phân trang. Thiếu dữ liệu bắt buộc làm test lỗi ngay tại assertion; không dùng non-null assertion hoặc bỏ qua kiểm tra route/kết quả. Các kiểm thử deadline, cursor, current credential, restart/restore và SSE giữ nguyên phạm vi.
+diff --git a/v2/server/test/api-acceptance.test.ts b/v2/server/test/api-acceptance.test.ts
+index 5a13742..0c9a001 100644
+--- a/v2/server/test/api-acceptance.test.ts
++++ b/v2/server/test/api-acceptance.test.ts
+@@ -128,13 +128,16 @@ async function digest(db: Db) {
+   return { counts, files: [...files], results: [...results] };
+ }
+ async function backupRestore(db: Db) {
+-  const containerId = process.env.CREW_V2_TEST_CONTAINER_ID!;
++  const containerId = process.env.CREW_V2_TEST_CONTAINER_ID;
++  assert(containerId, 'Private test container ID is required');
+   assert.match(containerId, /^[0-9a-f]{64}$/);
+-  const base = process.env.CREW_V2_TEST_DATABASE_URL!;
++  const base = process.env.CREW_V2_TEST_DATABASE_URL;
++  assert(base, 'Private test database URL is required');
+   const [name] = await db`select current_database() name`;
++  assert(name && typeof name.name === 'string', 'Database must return its current name');
+   const dump = spawnSync(
+     'docker',
+-    ['exec', containerId, 'pg_dump', '-U', 'postgres', '-Fc', '-d', name!.name as string],
++    ['exec', containerId, 'pg_dump', '-U', 'postgres', '-Fc', '-d', name.name],
+     { maxBuffer: 24 * 1024 * 1024 },
+   );
+   assert.equal(dump.status, 0, dump.stderr.toString());
+@@ -198,13 +201,16 @@ test('HTTP persistence graph commands events docs reconnect restart and backup r
+       const first = await f.import(imported, 'import');
+       const replay = await f.import(imported, 'import');
+       assert.deepEqual(replay, first);
++      const importedProject = first.projects[0];
++      assert(importedProject, 'Import must return a project');
+       assert.equal(
+-        (await f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}`)).json().docsState,
++        (await f.ownerGet(`/v2/projects/${importedProject.projectId}`)).json().docsState,
+         'unverified',
+       );
+       const priorCursor = checked<{ cursor: string }>(await f.ownerGet('/v2/events?limit=100'), 200).cursor;
+       const launch = await start(f, x);
+-      const attempt = launch.attempt!;
++      const attempt = launch.attempt;
++      assert(attempt, 'Successful claim must return an attempt');
+       assert.equal((await f.machineGet(`/v2/machine/attempts/${attempt.id}`, x.b.token)).statusCode, 404);
+       const checkpoint = {
+         fence: attempt.fence,
+@@ -275,7 +281,7 @@ test('HTTP persistence graph commands events docs reconnect restart and backup r
+       assert.equal(new Set(events.map((event) => event.cursor)).size, events.length);
+       assert.equal(events.filter((event) => event.type === 'comment.created').length, 1);
+       const page = checked<{ sourceCommit: string | null }>(
+-        await f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}/docs/page?path=docs/index.md`),
++        await f.ownerGet(`/v2/projects/${importedProject.projectId}/docs/page?path=docs/index.md`),
+         200,
+       );
+       assert.equal(page.sourceCommit, null);
+@@ -385,7 +391,9 @@ test('HTTP ticket cached replay cannot race current binding or machine revocatio
+ async function stream(f: Api, headers: Record<string, string>) {
+   const response = await fetch(`${f.url}/v2/events/stream`, { headers, signal: AbortSignal.timeout(6000) });
+   assert.equal(response.status, 200);
+-  const reader = response.body!.getReader();
++  const body = response.body;
++  assert(body, 'Successful SSE response must provide a body');
++  const reader = body.getReader();
+   let content = '';
+   const finished = (async () => {
+     while (true) {
+@@ -543,7 +551,8 @@ test('HTTP all machine ticket mutation families reject cached replay after rebin
+     const f = await apiFixture(db, { authority: { authorizeDispatch: trustedDispatch } });
+     try {
+       const { a, b } = await machines(f);
+-      const p = (await f.import(legacyBundle(validDocs()))).projects[0]!;
++      const p = (await f.import(legacyBundle(validDocs()))).projects[0];
++      assert(p, 'Import must return a project');
+       checked(
+         await f.ownerPut(`/v2/projects/${p.projectId}/binding`, {
+           machineId: a.machineId,
+@@ -634,7 +643,8 @@ test('HTTP fifth repair result remains fenced until confirmed physical stop', as
+     try {
+       const x = await setup(f);
+       const launch = await start(f, x, x.step);
+-      const attempt = launch.attempt!;
++      const attempt = launch.attempt;
++      assert(attempt, 'Successful claim must return an attempt');
+       await db`update tickets set repair_cycles=4 where id=${x.step.id}`;
+       const body = {
+         attemptId: attempt.id,
+@@ -796,7 +806,9 @@ test('HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real
+       });
+       assert(JSON.stringify(bundle).length > 1024 * 1024);
+       const result = await f.import(bundle);
+-      assert.equal(result.projects[0]!.auditState, 'invalid');
++      const importedProject = result.projects[0];
++      assert(importedProject, 'Large bundle import must return a project');
++      assert.equal(importedProject.auditState, 'invalid');
+       assert.equal((await f.ownerPost('/v2/tickets', { blob: 'x'.repeat(1024 * 1024) })).statusCode, 413);
+       assert.equal(
+         (await f.ownerPost('/v2/docs/imports', { blob: 'x'.repeat(24 * 1024 * 1024) })).statusCode,
+diff --git a/v2/server/test/docs-read.test.ts b/v2/server/test/docs-read.test.ts
+index eb561ff..db32908 100644
+--- a/v2/server/test/docs-read.test.ts
++++ b/v2/server/test/docs-read.test.ts
+@@ -23,7 +23,8 @@ test('docs tìm kiếm Unicode original bytes audit labels and actor permissions
+           'docs/superpowers/plans/sample.md': Buffer.from('# Kết nối artifact'),
+         }),
+       );
+-      const p = imported.projects[0]!;
++      const p = imported.projects[0];
++      assert(p, 'Import must return a project');
+       const search = await f.ownerGet(
+         `/v2/docs/search?q=${encodeURIComponent('Kết nối')}&projectId=${p.projectId}`,
+       );
+@@ -77,7 +78,8 @@ test('search full literal fallback beyond GIN prefix, escaped wildcard and scope
+         'docs/flows/tied.md': Buffer.from(`${'z '.repeat(5000)}\nTailNeedle tied zero rank`),
+       };
+       const bundle = legacyBundle(files);
+-      const p = (await f.import(bundle)).projects[0]!;
++      const p = (await f.import(bundle)).projects[0];
++      assert(p, 'Import must return a project');
+       assert.equal(
+         (await f.ownerGet('/v2/docs/search?q=TailNeedle')).json<{ items: unknown[] }>().items.length,
+         3,
+@@ -96,13 +98,19 @@ test('search full literal fallback beyond GIN prefix, escaped wildcard and scope
+         await f.ownerGet(`/v2/docs/search?q=TailNeedle&limit=1&after=${first.nextCursor}`)
+       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+       assert.equal(second.items.length, 1);
+-      assert.notEqual(first.items[0]!.path, second.items[0]!.path);
++      const firstItem = first.items[0];
++      const secondItem = second.items[0];
++      assert(firstItem, 'First search page must contain an item');
++      assert(secondItem, 'Second search page must contain an item');
++      assert.notEqual(firstItem.path, secondItem.path);
+       assert(second.nextCursor);
+       const third = (
+         await f.ownerGet(`/v2/docs/search?q=TailNeedle&limit=1&after=${second.nextCursor}`)
+       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
+       assert.equal(third.items.length, 1);
+-      assert.equal(new Set([first.items[0]!.path, second.items[0]!.path, third.items[0]!.path]).size, 3);
++      const thirdItem = third.items[0];
++      assert(thirdItem, 'Third search page must contain an item');
++      assert.equal(new Set([firstItem.path, secondItem.path, thirdItem.path]).size, 3);
+       assert.equal(third.nextCursor, null);
+       assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
+       assert.equal(
+@@ -111,7 +119,9 @@ test('search full literal fallback beyond GIN prefix, escaped wildcard and scope
+         400,
+       );
+       const next = legacyBundle({ 'docs/index.md': Buffer.from('# New snapshot') });
+-      next.inventory[0]!.legacyProjectId = 'legacy-1';
++      const nextProject = next.inventory[0];
++      assert(nextProject, 'Bundle must contain a project');
++      nextProject.legacyProjectId = 'legacy-1';
+       await f.import(rehashBundle(next));
+       assert.equal(
+         (await f.ownerGet('/v2/docs/search?q=TailNeedle')).json<{ items: unknown[] }>().items.length,
+@@ -140,7 +150,8 @@ test('docs tree links composite ticket references and verified mixed standard-pa
+           'docs/superpowers/plans/design.md': Buffer.from('# Thiết kế\n[Index](../../index.md)'),
+         }),
+       );
+-      const p = imported.projects[0]!;
++      const p = imported.projects[0];
++      assert(p, 'Import must return a project');
+       const response = await f.ownerPost('/v2/tickets', {
+         projectId: p.projectId,
+         parentId: null,
+@@ -183,9 +194,12 @@ test('docs tree links composite ticket references and verified mixed standard-pa
+       );
+       assert.equal(tree.links.length > 0, true);
+       const second = legacyBundle(validDocs());
+-      second.inventory[0]!.legacyProjectId = 'legacy-2';
+-      second.inventory[0]!.key = 'OTHER';
+-      const foreign = (await f.import(rehashBundle(second))).projects[0]!;
++      const secondProject = second.inventory[0];
++      assert(secondProject, 'Bundle must contain a project');
++      secondProject.legacyProjectId = 'legacy-2';
++      secondProject.key = 'OTHER';
++      const foreign = (await f.import(rehashBundle(second))).projects[0];
++      assert(foreign, 'Import must return a foreign project');
+       assert.equal(
+         (await f.ownerGet(`/v2/projects/${p.projectId}/docs/tree?snapshotId=${foreign.snapshotId}`))
+           .statusCode,

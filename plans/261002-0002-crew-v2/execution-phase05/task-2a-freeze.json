@@ -1,0 +1,33 @@
+{
+  "time": "2026-10-02T10:09:42.149666+00:00",
+  "status": "SOURCE_FROZEN_FOR_INDEPENDENT_PRODUCER_AND_010_REVIEW",
+  "sourceVerified": true,
+  "consumerGate": "NOT_OPEN",
+  "artifacts": [
+    {
+      "path": "task-2a-report.md",
+      "sha256": "9783239e6c2912b2446a2130c6c6aed4a9b970ac09f7a3d85f865e7ceaac922a",
+      "bytes": 9788
+    },
+    {
+      "path": "task-2a-source-inventory.json",
+      "sha256": "846d2c91940e227115dc04117e5515cc69af9993d9ed946c5fa78482c1d8bf6a",
+      "bytes": 4609
+    },
+    {
+      "path": "task-2a-evidence-final.json",
+      "sha256": "e12d3afd22b1d825167751653eb8a40ea23c8d803520fa2a06b0889c59295d56",
+      "bytes": 9137
+    },
+    {
+      "path": "task-2a-cleanup-final.json",
+      "sha256": "c47950e18c71f137d1afe68877a30e1793538ffa8b8208a89e489b890040c1d3",
+      "bytes": 28560
+    },
+    {
+      "path": "task-2a-source-manifest-final.json",
+      "sha256": "b48a0cd4d5d42881da0210e5f57eee270a432882f4b14132301690c0d2e914ec",
+      "bytes": 40792
+    }
+  ]
+}

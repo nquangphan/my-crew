@@ -1,0 +1,47 @@
+worker live root intent /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-2b363e03-72ea-4d18-a69b-26bb8394a970 nonce=2b363e03-72ea-4d18-a69b-26bb8394a970 parentPid=86426
+worker live container intent crew-v2-extract-f4a40aaf-a257-43ec-a30d-5786ccead6fd-1 scenario=boundary root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-2b363e03-72ea-4d18-a69b-26bb8394a970/jobs/f4a40aaf-a257-43ec-a30d-5786ccead6fd/1
+worker live stopped c17cefb62accede041de00fa2d7d77f1d2e4c4df617ec643433dc7114f69b24e scenario=boundary status=exited pid=0 oom=false
+worker live container removed c17cefb62accede041de00fa2d7d77f1d2e4c4df617ec643433dc7114f69b24e
+worker live container intent crew-v2-extract-7e927473-a49a-485f-974d-1e69ee1e15b4-1 scenario=pids root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-2b363e03-72ea-4d18-a69b-26bb8394a970/jobs/7e927473-a49a-485f-974d-1e69ee1e15b4/1
+worker live stopped e194b11510c75f0e4adae77767b0d5174f5d914364da1fe2e1d8abd00e437515 scenario=pids status=exited pid=0 oom=false
+worker live container removed e194b11510c75f0e4adae77767b0d5174f5d914364da1fe2e1d8abd00e437515
+worker live container intent crew-v2-extract-8f7c8bd8-3ff0-4d6c-884f-056986052293-1 scenario=memory root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-2b363e03-72ea-4d18-a69b-26bb8394a970/jobs/8f7c8bd8-3ff0-4d6c-884f-056986052293/1
+worker live stopped f6f463ab36b754351cbf27e364ec0e08539334eeb5a40557427f4ecdff2f6edd scenario=memory status=exited pid=0 oom=true
+worker live container removed f6f463ab36b754351cbf27e364ec0e08539334eeb5a40557427f4ecdff2f6edd
+worker live container intent crew-v2-extract-040125b2-af03-4f2a-8e0a-e0db4442d713-1 scenario=stdout-bomb root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-2b363e03-72ea-4d18-a69b-26bb8394a970/jobs/040125b2-af03-4f2a-8e0a-e0db4442d713/1
+worker live stopped b32e5788969d38e760d45c385ccf81461509b26819dfdb7b389922cc777c00c2 scenario=stdout-bomb status=exited pid=0 oom=false
+worker live container removed b32e5788969d38e760d45c385ccf81461509b26819dfdb7b389922cc777c00c2
+worker live root removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-live-2b363e03-72ea-4d18-a69b-26bb8394a970
+✖ attachment diagnostic image has no Task5 import dependency (27285.055125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27356.861958
+
+✖ failing tests:
+
+test at v2/server/test/attachments-worker-live.test.ts:185:1
+✖ attachment diagnostic image has no Task5 import dependency (27285.055125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'WORKER_TIMEOUT'
+  - 'WORKER_OUTPUT_LIMIT'
+            ^
+  
+      at buildAndRunDiagnosticFixture (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-worker-live.test.ts:165:46)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/attachments-worker-live.test.ts:188:18)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'WORKER_TIMEOUT',
+    expected: 'WORKER_OUTPUT_LIMIT',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

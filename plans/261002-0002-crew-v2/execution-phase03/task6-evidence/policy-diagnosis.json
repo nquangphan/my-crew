@@ -1,0 +1,143 @@
+{
+  "nonce": "235c0029-d372-4aac-8c67-a07df8ed600a",
+  "root": "/private/tmp/c6policy-BlrV7J",
+  "identity": {
+    "dev": 16777229,
+    "ino": 63897241,
+    "uid": 501
+  },
+  "commands": [
+    {
+      "id": "964fe3f6-6282-4bb3-a03c-13ff5a281b37",
+      "identity": {
+        "device": "16777229",
+        "inode": "63897262",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37",
+      "variant": "strict",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read*)\n(allow file-read-metadata)\n(allow file-read* (literal \"/\"))\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37\"))",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/964fe3f6-6282-4bb3-a03c-13ff5a281b37/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "964fe3f6-6282-4bb3-a03c-13ff5a281b37",
+        "device": "16777229",
+        "inode": "63897262",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "output": "OWNED_CANARY",
+      "cleanup": "deleted"
+    },
+    {
+      "id": "1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09",
+      "identity": {
+        "device": "16777229",
+        "inode": "63897270",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09",
+      "variant": "data-only",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read-data)\n(allow file-read-metadata)\n(allow file-read* (literal \"/\"))\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09\"))",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "1a3c5c02-72de-45d0-89c7-e8d7d6cf8a09",
+        "device": "16777229",
+        "inode": "63897270",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 134,
+        "timedOut": false
+      },
+      "output": "",
+      "cleanup": "deleted"
+    },
+    {
+      "id": "d78fb3e8-9660-4d71-880d-64344daf2be8",
+      "identity": {
+        "device": "16777229",
+        "inode": "63897278",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8",
+      "variant": "data-and-exec",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read*)\n(allow file-read-metadata)\n(allow file-read* (literal \"/\"))\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8\"))\n(allow file-map-executable)",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/d78fb3e8-9660-4d71-880d-64344daf2be8/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "d78fb3e8-9660-4d71-880d-64344daf2be8",
+        "device": "16777229",
+        "inode": "63897278",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "output": "OWNED_CANARY",
+      "cleanup": "deleted"
+    },
+    {
+      "id": "b8dca00d-4c7b-4ab9-8930-5d4076c71818",
+      "identity": {
+        "device": "16777229",
+        "inode": "63897286",
+        "ownerUid": 501,
+        "kind": "directory",
+        "linkCount": 2,
+        "bytes": 0
+      },
+      "stage": "/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818",
+      "variant": "builder",
+      "policy": "(version 1)\n(allow default)\n(deny process-fork)\n(deny network*)\n(deny file-read* (subpath \"/Users\") (subpath \"/private/tmp\") (subpath \"/private/var/folders\"))\n(allow file-read-metadata)\n(allow file-read* (literal \"/\"))\n(allow file-read* (subpath \"/System\") (subpath \"/Library/Apple\") (subpath \"/private/var/db/dyld\") (subpath \"/usr/lib\") (subpath \"/usr/share\") (subpath \"/private/etc\") (subpath \"/dev\") (subpath \"/bin\") (subpath \"/usr/bin\") (literal \"/bin/cat\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818\"))\n(deny file-write*)\n(allow file-write* (literal \"/dev/null\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818/home\") (subpath \"/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818\"))",
+      "argv": [
+        "/usr/bin/sandbox-exec",
+        "-f",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818/policy.sb",
+        "/bin/cat",
+        "/private/tmp/c6policy-BlrV7J/ops/stages/b8dca00d-4c7b-4ab9-8930-5d4076c71818/canary"
+      ],
+      "receipt": {
+        "formatVersion": 1,
+        "operationId": "b8dca00d-4c7b-4ab9-8930-5d4076c71818",
+        "device": "16777229",
+        "inode": "63897286",
+        "treeEmpty": true,
+        "forkObserved": false,
+        "exitCode": 0,
+        "timedOut": false
+      },
+      "output": "OWNED_CANARY",
+      "cleanup": "deleted"
+    }
+  ]
+}

@@ -1,0 +1,345 @@
+src/assistant/render-artifacts.ts:330:11 lint/suspicious/noControlCharactersInRegex ━━━━━━━━━━━━━━━━
+
+  × Unexpected control character in a regular expression.
+  
+    329 │   const baseName = posix.basename(expected.projectRoot);
+  > 330 │   if (!/^[\x00-\x7f]*$/.test(baseName)) mismatch();
+        │           ^^^^
+    331 │   const cleaned = baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
+    332 │   const slug = cleaned.slice(0, 80).replace(/-$/g, '') || 'project';
+  
+  i Control characters are unusual and potentially incorrect inputs, so they are disallowed.
+  
+
+src/assistant/render-artifacts.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     94  94 │   }
+     95  95 │   
+     96     │ - function·hasExactKeys(value:·unknown,·wanted:·readonly·string[],·maximum·=·wanted.length):·asserts·value·is·Record<string,·unknown>·{
+         96 │ + function·hasExactKeys(
+         97 │ + ··value:·unknown,
+         98 │ + ··wanted:·readonly·string[],
+         99 │ + ··maximum·=·wanted.length,
+        100 │ + ):·asserts·value·is·Record<string,·unknown>·{
+     97 101 │     const actual = boundedKeys(value, maximum + 1);
+     98 102 │     if (actual.length !== wanted.length || actual.some((key) => !wanted.includes(key))) mismatch();
+    ······· │ 
+    115 119 │       value.includes('\\') ||
+    116 120 │       value.includes('\0')
+    117     │ - ··)·mismatch();
+        121 │ + ··)
+        122 │ + ····mismatch();
+    118 123 │     return value;
+    119 124 │   }
+    ······· │ 
+    178 183 │   function checkPinBounds(expected: CapturedRenderExpectation): void {
+    179 184 │     hasExactKeys(expected.source, [
+    180     │ - ····'name',·'version',·'sourceRevision',·'sourceUrl',·'payloadSha256',
+    181     │ - ····'packageIntegrity',·'sourceManifestSha256',·'sourceTreeSha256',
+        185 │ + ····'name',
+        186 │ + ····'version',
+        187 │ + ····'sourceRevision',
+        188 │ + ····'sourceUrl',
+        189 │ + ····'payloadSha256',
+        190 │ + ····'packageIntegrity',
+        191 │ + ····'sourceManifestSha256',
+        192 │ + ····'sourceTreeSha256',
+    182 193 │     ]);
+    183 194 │     for (const key of Object.keys(expected.source)) {
+    ······· │ 
+    185 196 │       if (typeof value === 'string' && value.length > 2048) tooLarge();
+    186 197 │     }
+    187     │ - ··hasExactKeys(expected.projection,·['runtime',·'sourceTreeSha256',·'manifestSha256',·'treeSha256',·'derivation']);
+    188     │ - ··hasExactKeys(expected.projection.derivation,·['tool',·'version',·'options',·'layoutSchema',·'policySha256']);
+        198 │ + ··hasExactKeys(expected.projection,·[
+        199 │ + ····'runtime',
+        200 │ + ····'sourceTreeSha256',
+        201 │ + ····'manifestSha256',
+        202 │ + ····'treeSha256',
+        203 │ + ····'derivation',
+        204 │ + ··]);
+        205 │ + ··hasExactKeys(expected.projection.derivation,·[
+        206 │ + ····'tool',
+        207 │ + ····'version',
+        208 │ + ····'options',
+        209 │ + ····'layoutSchema',
+        210 │ + ····'policySha256',
+        211 │ + ··]);
+    189 212 │     const options = expected.projection.derivation.options;
+    190 213 │     if (!Array.isArray(options) || options.length > 32) tooLarge();
+    ······· │ 
+    194 217 │   function capture(expected: CapturedRenderExpectation): CapturedRenderExpectation {
+    195 218 │     hasExactKeys(expected, [
+    196     │ - ····'projectRoot',·'generationRoot',·'source',·'projection',·'selectedProjectionSha256',·'layers',
+        219 │ + ····'projectRoot',
+        220 │ + ····'generationRoot',
+        221 │ + ····'source',
+        222 │ + ····'projection',
+        223 │ + ····'selectedProjectionSha256',
+        224 │ + ····'layers',
+    197 225 │     ]);
+    198 226 │     checkedAbsolutePath(expected.projectRoot);
+    ······· │ 
+    201 229 │     validateSourcePin(expected.source);
+    202 230 │     validateProjectionPin(expected.projection);
+    203     │ - ··if·(expected.source.name·!==·'bmad'·||·expected.source.sourceTreeSha256·!==·expected.projection.sourceTreeSha256)·mismatch();
+        231 │ + ··if·(
+        232 │ + ····expected.source.name·!==·'bmad'·||
+        233 │ + ····expected.source.sourceTreeSha256·!==·expected.projection.sourceTreeSha256
+        234 │ + ··)
+        235 │ + ····mismatch();
+    204 236 │   
+    205 237 │     const selected = boundedKeys(expected.selectedProjectionSha256, maxSelectedFiles);
+    ······· │ 
+    214 246 │     for (const path of layerPaths) {
+    215 247 │       const expectedHash = expected.layers[path];
+    216     │ - ····if·(requiredLayers.has(path)·?·!isDigest(expectedHash)·:·expectedHash·!==·null·&&·!isDigest(expectedHash))·mismatch();
+        248 │ + ····if·(requiredLayers.has(path)·?·!isDigest(expectedHash)·:·expectedHash·!==·null·&&·!isDigest(expectedHash))
+        249 │ + ······mismatch();
+    217 250 │     }
+    218 251 │     return structuredClone(expected);
+    ······· │ 
+    263 296 │   }
+    264 297 │   
+    265     │ - function·inspect(expected:·CapturedRenderExpectation,·supplied:·RenderArtifactByteSnapshot):·RenderArtifactInspection·{
+        298 │ + function·inspect(
+        299 │ + ··expected:·CapturedRenderExpectation,
+        300 │ + ··supplied:·RenderArtifactByteSnapshot,
+        301 │ + ):·RenderArtifactInspection·{
+    266 302 │     const snapshot = snapshotBytes(supplied);
+    267 303 │     const projectedNames = Object.keys(snapshot.projectedFiles);
+    ······· │ 
+    285 321 │     }
+    286 322 │     hasExactKeys(manifest, [
+    287     │ - ····'schema_version',·'skill',·'project_root',·'project_slug',·'root_hash',
+    288     │ - ····'generation_hash',·'inputs',·'outputs',
+        323 │ + ····'schema_version',
+        324 │ + ····'skill',
+        325 │ + ····'project_root',
+        326 │ + ····'project_slug',
+        327 │ + ····'root_hash',
+        328 │ + ····'generation_hash',
+        329 │ + ····'inputs',
+        330 │ + ····'outputs',
+    289 331 │     ]);
+    290     │ - ··if·(manifest.schema_version·!==·1·||·manifest.skill·!==·'bmad-build'·||·manifest.project_root·!==·expected.projectRoot)·mismatch();
+        332 │ + ··if·(
+        333 │ + ····manifest.schema_version·!==·1·||
+        334 │ + ····manifest.skill·!==·'bmad-build'·||
+        335 │ + ····manifest.project_root·!==·expected.projectRoot
+        336 │ + ··)
+        337 │ + ····mismatch();
+    291 338 │     hasExactKeys(manifest.inputs, ['project_root', 'renderer_sha256', 'resolved_values', 'source_sha256']);
+    292 339 │     const inputs = manifest.inputs;
+    ······· │ 
+    301 348 │       const source = decodeUtf8(snapshot.projectedFiles[path]);
+    302 349 │       for (const match of source.matchAll(snapshotPattern)) {
+    303     │ - ······if·(!projectedNames.includes(`${skillRoot}${match[1]}`)·||·selectedName(`${skillRoot}${match[1]}`)·!==·match[1])·mismatch();
+        350 │ + ······if·(
+        351 │ + ········!projectedNames.includes(`${skillRoot}${match[1]}`)·||
+        352 │ + ········selectedName(`${skillRoot}${match[1]}`)·!==·match[1]
+        353 │ + ······)
+        354 │ + ········mismatch();
+    304 355 │       }
+    305 356 │       sources[name] = sha256(snapshot.projectedFiles[path]);
+    ······· │ 
+    329 380 │     const baseName = posix.basename(expected.projectRoot);
+    330 381 │     if (!/^[\x00-\x7f]*$/.test(baseName)) mismatch();
+    331     │ - ··const·cleaned·=·baseName.toLowerCase().replace(/[^a-z0-9]+/g,·'-').replace(/^-|-$/g,·'')·||·'project';
+        382 │ + ··const·cleaned·=
+        383 │ + ····baseName
+        384 │ + ······.toLowerCase()
+        385 │ + ······.replace(/[^a-z0-9]+/g,·'-')
+        386 │ + ······.replace(/^-|-$/g,·'')·||·'project';
+    332 387 │     const slug = cleaned.slice(0, 80).replace(/-$/g, '') || 'project';
+    333 388 │     const rootHash = sha256(Buffer.from(expected.projectRoot, 'utf8')).slice(0, 12);
+    ······· │ 
+    341 396 │     const generationPath = `${expected.projectRoot}/_bmad/render/bmad-build/${slug}-${rootHash}/${generationHash}`;
+    342 397 │     if (
+    343     │ - ····manifest.project_slug·!==·slug·||·manifest.root_hash·!==·rootHash·||
+    344     │ - ····manifest.generation_hash·!==·generationHash·||·expected.generationRoot·!==·generationPath·||
+        398 │ + ····manifest.project_slug·!==·slug·||
+        399 │ + ····manifest.root_hash·!==·rootHash·||
+        400 │ + ····manifest.generation_hash·!==·generationHash·||
+        401 │ + ····expected.generationRoot·!==·generationPath·||
+    345 402 │       snapshot.generationPath !== generationPath
+    346     │ - ··)·mismatch();
+        403 │ + ··)
+        404 │ + ····mismatch();
+    347 405 │   
+    348 406 │     return {
+  
+
+test/render-artifacts.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     34  34 │     sourceUrl: 'https://registry.npmjs.org/bmad-method/-/bmad-method-6.12.0.tgz',
+     35  35 │     payloadSha256: 'ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2',
+     36     │ - ··packageIntegrity:·'sha512-gbbHo32TxCPwo4Yy70kqykFRwN5UdYqfnDKTsKAsF9m5qtLeoiCgEawj/LuzLBHLrYA0WTOyL/XWtXpgyDonMQ==',
+         36 │ + ··packageIntegrity:
+         37 │ + ····'sha512-gbbHo32TxCPwo4Yy70kqykFRwN5UdYqfnDKTsKAsF9m5qtLeoiCgEawj/LuzLBHLrYA0WTOyL/XWtXpgyDonMQ==',
+     37  38 │     sourceManifestSha256: 'bf966209b9abf05b2585a1225f6c176d1aaa9f0262248282adc5bad6b78bef68',
+     38  39 │     sourceTreeSha256: '45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317',
+    ······· │ 
+    151 152 │     const inspector = createBmadArtifactInspector(f.expected);
+    152 153 │     f.expected.projection.derivation.options[0] = 'changed-after-capture';
+    153     │ - ··(f.expected.selectedProjectionSha256·as·Record<string,·string>)['_bmad/scripts/render_skill.py']·=·'0'.repeat(64);
+        154 │ + ··(f.expected.selectedProjectionSha256·as·Record<string,·string>)['_bmad/scripts/render_skill.py']·=
+        155 │ + ····'0'.repeat(64);
+    154 156 │     (f.expected.layers as Record<string, string | null>)['_bmad/config.toml'] = '0'.repeat(64);
+    155 157 │     assert.equal(inspector.inspect(f.snapshot).kind, 'artifact-inspection');
+    ······· │ 
+    169 171 │       const f = fixture();
+    170 172 │       if (change === 'appeared')
+    171     │ - ······(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['_bmad/config.user.toml']·=·utf8('unused·=·"x"\n');
+        173 │ + ······(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['_bmad/config.user.toml']·=
+        174 │ + ········utf8('unused·=·"x"\n');
+    172 175 │       else {
+    173     │ - ······(f.expected.layers·as·Record<string,·string·|·null>)['_bmad/config.user.toml']·=·sha256(utf8('unused·=·"x"\n'));
+    174     │ - ······(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['_bmad/config.user.toml']·=·utf8('unused·=·"y"\n');
+        176 │ + ······(f.expected.layers·as·Record<string,·string·|·null>)['_bmad/config.user.toml']·=·sha256(
+        177 │ + ········utf8('unused·=·"x"\n'),
+        178 │ + ······);
+        179 │ + ······(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['_bmad/config.user.toml']·=
+        180 │ + ········utf8('unused·=·"y"\n');
+    175 181 │       }
+    176     │ - ····assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        182 │ + ····assert.throws(
+        183 │ + ······()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        184 │ + ······/RENDER_ARTIFACT_MISMATCH/,
+        185 │ + ····);
+    177 186 │     }
+    178 187 │   });
+    ······· │ 
+    181 190 │     const missing = fixture();
+    182 191 │     delete (missing.snapshot.layerFiles as Record<string, Uint8Array | null>)['_bmad/config.toml'];
+    183     │ - ··assert.throws(()·=>·createBmadArtifactInspector(missing.expected).inspect(missing.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        192 │ + ··assert.throws(
+        193 │ + ····()·=>·createBmadArtifactInspector(missing.expected).inspect(missing.snapshot),
+        194 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        195 │ + ··);
+    184 196 │   
+    185 197 │     const extra = fixture();
+    186 198 │     (extra.snapshot.layerFiles as Record<string, Uint8Array | null>)['_bmad/custom/other.toml'] = utf8('x\n');
+    187     │ - ··assert.throws(()·=>·createBmadArtifactInspector(extra.expected).inspect(extra.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        199 │ + ··assert.throws(
+        200 │ + ····()·=>·createBmadArtifactInspector(extra.expected).inspect(extra.snapshot),
+        201 │ + ····/RENDER_ARTIFACT_MISMATCH/,
+        202 │ + ··);
+    188 203 │   });
+    189 204 │   
+    190 205 │   test('render artifact inspection rejects source, renderer and output byte changes', () => {
+    191 206 │     const tamper = [
+    192     │ - ····(f:·Fixture)·=>·{·(f.snapshot.projectedFiles·as·Record<string,·Uint8Array>)['.claude/skills/bmad-build/workflow.md']·=·utf8('Changed\n');·},
+    193     │ - ····(f:·Fixture)·=>·{·(f.snapshot.projectedFiles·as·Record<string,·Uint8Array>)['_bmad/scripts/render_skill.py']·=·utf8('wrong·renderer\n');·},
+    194     │ - ····(f:·Fixture)·=>·{·(f.snapshot.outputBytes·as·Record<string,·Uint8Array>)['workflow.md']·=·utf8('wrong·output\n');·},
+        207 │ + ····(f:·Fixture)·=>·{
+        208 │ + ······(f.snapshot.projectedFiles·as·Record<string,·Uint8Array>)['.claude/skills/bmad-build/workflow.md']·=
+        209 │ + ········utf8('Changed\n');
+        210 │ + ····},
+        211 │ + ····(f:·Fixture)·=>·{
+        212 │ + ······(f.snapshot.projectedFiles·as·Record<string,·Uint8Array>)['_bmad/scripts/render_skill.py']·=
+        213 │ + ········utf8('wrong·renderer\n');
+        214 │ + ····},
+        215 │ + ····(f:·Fixture)·=>·{
+        216 │ + ······(f.snapshot.outputBytes·as·Record<string,·Uint8Array>)['workflow.md']·=·utf8('wrong·output\n');
+        217 │ + ····},
+    195 218 │     ];
+    196 219 │     for (const mutate of tamper) {
+    197 220 │       const f = fixture();
+    198 221 │       mutate(f);
+    199     │ - ····assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        222 │ + ····assert.throws(
+        223 │ + ······()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        224 │ + ······/RENDER_ARTIFACT_MISMATCH/,
+        225 │ + ····);
+    200 226 │     }
+    201 227 │   });
+    ······· │ 
+    203 229 │   test('render artifact inspection rejects false schema, path and generation claims', () => {
+    204 230 │     const mutations = [
+    205     │ - ····(f:·Fixture)·=>·{·f.manifest.schema_version·=·2;·},
+    206     │ - ····(f:·Fixture)·=>·{·f.manifest.root_hash·=·'0'.repeat(12);·},
+    207     │ - ····(f:·Fixture)·=>·{·f.manifest.generation_hash·=·'0'.repeat(20);·},
+    208     │ - ····(f:·Fixture)·=>·{·f.manifest.project_slug·=·'other-project';·},
+    209     │ - ····(f:·Fixture)·=>·{·f.manifest.project_root·=·'/tmp/other-project';·},
+    210     │ - ····(f:·Fixture)·=>·{·(f.manifest.inputs·as·Record<string,·unknown>).project_root·=·'/tmp/other-project';·},
+    211     │ - ····(f:·Fixture)·=>·{·f.manifest.unexpected·=·true;·},
+    212     │ - ····(f:·Fixture)·=>·{·f.snapshot.generationPath·=·'/tmp/other-generation';·},
+    213     │ - ····(f:·Fixture)·=>·{·f.manifest.outputs·=·{·'../escape.md':·digests.generated,·'step-01.md':·digests.step·};·},
+    214     │ - ····(f:·Fixture)·=>·{·f.manifest.outputs·=·{·'step-01.md':·digests.step·};·},
+        231 │ + ····(f:·Fixture)·=>·{
+        232 │ + ······f.manifest.schema_version·=·2;
+        233 │ + ····},
+        234 │ + ····(f:·Fixture)·=>·{
+        235 │ + ······f.manifest.root_hash·=·'0'.repeat(12);
+        236 │ + ····},
+        237 │ + ····(f:·Fixture)·=>·{
+        238 │ + ······f.manifest.generation_hash·=·'0'.repeat(20);
+        239 │ + ····},
+        240 │ + ····(f:·Fixture)·=>·{
+        241 │ + ······f.manifest.project_slug·=·'other-project';
+        242 │ + ····},
+        243 │ + ····(f:·Fixture)·=>·{
+        244 │ + ······f.manifest.project_root·=·'/tmp/other-project';
+        245 │ + ····},
+        246 │ + ····(f:·Fixture)·=>·{
+        247 │ + ······(f.manifest.inputs·as·Record<string,·unknown>).project_root·=·'/tmp/other-project';
+        248 │ + ····},
+        249 │ + ····(f:·Fixture)·=>·{
+        250 │ + ······f.manifest.unexpected·=·true;
+        251 │ + ····},
+        252 │ + ····(f:·Fixture)·=>·{
+        253 │ + ······f.snapshot.generationPath·=·'/tmp/other-generation';
+        254 │ + ····},
+        255 │ + ····(f:·Fixture)·=>·{
+        256 │ + ······f.manifest.outputs·=·{·'../escape.md':·digests.generated,·'step-01.md':·digests.step·};
+        257 │ + ····},
+        258 │ + ····(f:·Fixture)·=>·{
+        259 │ + ······f.manifest.outputs·=·{·'step-01.md':·digests.step·};
+        260 │ + ····},
+    215 261 │     ];
+    216 262 │     for (const mutate of mutations) {
+    ······· │ 
+    218 264 │       mutate(f);
+    219 265 │       replaceManifest(f);
+    220     │ - ····assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_MISMATCH/);
+        266 │ + ····assert.throws(
+        267 │ + ······()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        268 │ + ······/RENDER_ARTIFACT_MISMATCH/,
+        269 │ + ····);
+    221 270 │     }
+    222 271 │   });
+    ······· │ 
+    224 273 │   test('render artifact inspection bounds layer bytes as well as manifest and output bytes', () => {
+    225 274 │     const f = fixture();
+    226     │ - ··(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['_bmad/config.toml']·=·new·Uint8Array(32·*·1024·*·1024·+·1);
+    227     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_TOO_LARGE/);
+        275 │ + ··(f.snapshot.layerFiles·as·Record<string,·Uint8Array·|·null>)['_bmad/config.toml']·=·new·Uint8Array(
+        276 │ + ····32·*·1024·*·1024·+·1,
+        277 │ + ··);
+        278 │ + ··assert.throws(
+        279 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+        280 │ + ····/RENDER_ARTIFACT_TOO_LARGE/,
+        281 │ + ··);
+    228 282 │   });
+    229 283 │   
+    ······· │ 
+    232 286 │     const outputs = f.snapshot.outputBytes as Record<string, Uint8Array>;
+    233 287 │     for (let index = 0; index < 4_096; index++) outputs[`extra-${index}.md`] = utf8('x');
+    234     │ - ··assert.throws(()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),·/RENDER_ARTIFACT_TOO_LARGE/);
+        288 │ + ··assert.throws(
+        289 │ + ····()·=>·createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+  45 more lines truncated
+  
+
+Checked 2 files in 38ms. No fixes applied.
+Found 3 errors.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

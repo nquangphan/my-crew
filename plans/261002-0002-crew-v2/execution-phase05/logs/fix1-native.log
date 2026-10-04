@@ -1,0 +1,23 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase05/task-1-fix1-native.test.mjs
+
+FIX1 native created 6fe6e8c3a8c86ed647ba26ac854b24c9cb8dd47b3795869829670430e5831af8 pg=564dcc31bcad966938c9964c41792bcf4314a8d207b9b81bde5c7a8a2e470e78 database=crew_v2_test_68af09864d254b0eaddc9841637cbf81
+attachment DB container native-worker root /tmp/crew-v2-attachments-dU02wq
+attachment DB scratch created /tmp/crew-v2-attachments-dU02wq nonceSha256=221f3d509773c1ac8314d38c7219fedf924201e3e8b5991c4a742870bf45270e
+FIX1 native replay timeout/BUSY/actualclosure/retry verified attachment=42b866bb-8ed3-49a5-aa27-8f01225f6c19
+FIX1 native EOF reject exactACK verified receiver=31dd8c98-b701-4987-be26-9ec106d84610 bytes=01
+FIX1 native EOF reject exactACK verified receiver=5418465c-a494-4696-b89a-e0c5d061448d bytes=c3
+FIX1 native EOF reject exactACK verified receiver=d624b3d4-90fb-4ac8-a234-dce0927e991a bytes=fffe01
+FIX1 native empty/ASCII/tabLFCR/splitUTF16 verified
+attachment DB scratch removed /tmp/crew-v2-attachments-dU02wq
+FIX1 native removed 6fe6e8c3a8c86ed647ba26ac854b24c9cb8dd47b3795869829670430e5831af8
+✔ FIX1 actual Linux private PG replay and EOF regressions (1057.650667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1133.016792

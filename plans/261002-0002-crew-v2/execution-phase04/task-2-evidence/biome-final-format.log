@@ -1,0 +1,74 @@
+v2/gateway/test/credential-broker.test.ts:30:16 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    28 │   assert.equal(await broker.put(provider, Buffer.from('fixture-secret'), operation), a);
+    29 │   assert.equal(bridge.items.size, 1);
+  > 30 │   assert.match([...bridge.items.keys()][0]!, new RegExp(`^com.2pcrew.v2.${machine}.${provider}/`));
+       │                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    31 │   await assert.rejects(broker.put(provider, Buffer.from('different'), operation), /CONFLICT/);
+    32 │   await broker.remove(a);
+  
+
+v2/gateway/test/credential-provisioning.test.ts:124:19 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    122 │     await assert.rejects(provisioning.accept(envelope, 2, [providerId]), /lost ACK/);
+    123 │     assert.equal([...items.values()].filter((b) => b.toString() === 'crypto-fixture-secret').length, 1);
+  > 124 │     const first = sent.at(-1)!;
+        │                   ^^^^^^^^^^^^
+    125 │     assert.equal(JSON.stringify(sent).includes('crypto-fixture-secret'), false);
+    126 │     await provisioning.close();
+  
+
+v2/gateway/test/model-reporter.test.ts:80:30 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    78 │       observationDigest: hash(canonicalJson(inventory.body)),
+    79 │     });
+  > 80 │     assert.equal((sent.at(-1)?.canonicalBody as { sequence: string }).sequence, '3');
+       │                              ^^
+    81 │     assert.equal((sent.at(-1)?.canonicalBody as { configRevision: number }).configRevision, 3);
+    82 │   } finally {
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    78 │       observationDigest: hash(canonicalJson(inventory.body)),
+    79 │     });
+  > 80 │     assert.equal((sent.at(-1)?.canonicalBody as { sequence: string }).sequence, '3');
+       │                                                                       ^^^^^^^^
+    81 │     assert.equal((sent.at(-1)?.canonicalBody as { configRevision: number }).configRevision, 3);
+    82 │   } finally {
+  
+
+v2/gateway/test/model-reporter.test.ts:81:30 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    79 │     });
+    80 │     assert.equal((sent.at(-1)?.canonicalBody as { sequence: string }).sequence, '3');
+  > 81 │     assert.equal((sent.at(-1)?.canonicalBody as { configRevision: number }).configRevision, 3);
+       │                              ^^
+    82 │   } finally {
+    83 │     await reporter.close();
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    79 │     });
+    80 │     assert.equal((sent.at(-1)?.canonicalBody as { sequence: string }).sequence, '3');
+  > 81 │     assert.equal((sent.at(-1)?.canonicalBody as { configRevision: number }).configRevision, 3);
+       │                                                                             ^^^^^^^^^^^^^^
+    82 │   } finally {
+    83 │     await reporter.close();
+  
+
+Checked 12 files in 36ms. Fixed 6 files.
+Found 2 errors.
+Found 2 warnings.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

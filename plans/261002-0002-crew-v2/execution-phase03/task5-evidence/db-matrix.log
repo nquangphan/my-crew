@@ -1,0 +1,41 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/execution-bridge-db.test.ts
+
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gECrEk","device":"16777229","inode":"63515992","uid":501}
+{"level":30,"time":1790928179166,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50306"}
+{"level":30,"time":1790928181912,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50316"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gECrEk","device":"16777229","inode":"63515992","uid":501,"deleted":true}
+✔ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (3547.256541ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gWqW60","device":"16777229","inode":"63516200","uid":501}
+{"level":30,"time":1790928182494,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50322"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-gWqW60","device":"16777229","inode":"63516200","uid":501,"deleted":true}
+✔ execution bridge actual server denies old-report before RELEASE (2608.340709ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hqRosS","device":"16777229","inode":"63516382","uid":501}
+{"level":30,"time":1790928185112,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50336"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-hqRosS","device":"16777229","inode":"63516382","uid":501,"deleted":true}
+✔ execution bridge actual server denies disabled-runtime before RELEASE (1977.998333ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sQjYv8","device":"16777229","inode":"63516551","uid":501}
+{"level":30,"time":1790928187098,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50351"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-sQjYv8","device":"16777229","inode":"63516551","uid":501,"deleted":true}
+✔ execution bridge actual server denies missing-decision before RELEASE (2605.854083ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ggo3OH","device":"16777229","inode":"63516733","uid":501}
+{"level":30,"time":1790928189693,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50361"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ggo3OH","device":"16777229","inode":"63516733","uid":501,"deleted":true}
+✔ execution bridge actual server denies mismatched-decision before RELEASE (2613.31275ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-K7cbEF","device":"16777229","inode":"63516913","uid":501}
+{"level":30,"time":1790928192302,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50378"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-K7cbEF","device":"16777229","inode":"63516913","uid":501,"deleted":true}
+✔ execution bridge actual server denies client-only-selection before RELEASE (1942.845292ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-egxbyV","device":"16777229","inode":"63517081","uid":501}
+{"level":30,"time":1790928194223,"pid":27111,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:50387"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-egxbyV","device":"16777229","inode":"63517081","uid":501,"deleted":true}
+✔ execution bridge actual server denies default-deny before RELEASE (2565.97725ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18058.006375

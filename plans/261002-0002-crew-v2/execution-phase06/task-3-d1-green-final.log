@@ -1,0 +1,21 @@
+✔ render artifact inspection measures a supplied schema-1 artifact but returns no authority (1.7135ms)
+✔ render artifact inspection retains captured expectation after nested caller mutation (0.258541ms)
+✔ render artifact inspection keeps the measured result independent of later byte mutation (0.215667ms)
+✔ render artifact inspection rejects raw optional-layer drift even with equal resolved values (0.361583ms)
+✔ render artifact inspection rejects a missing required layer or undeclared layer key (0.161542ms)
+✔ render artifact inspection rejects source, renderer and output byte changes (0.672584ms)
+✔ render artifact inspection rejects false schema, path and generation claims (0.883208ms)
+✔ render artifact inspection bounds layer bytes as well as manifest and output bytes (0.109708ms)
+✔ render artifact inspection bounds metadata key counts before copying byte maps (2.866375ms)
+✔ render artifact inspection matches Python Unicode and control-character generation hashing (0.221458ms)
+✔ render artifact inspection rejects an undeclared source-authored snapshot target (0.148417ms)
+✔ render artifact inspection refuses unsupported numeric resolved values (0.152833ms)
+✔ render artifact inspection remains separate from the denied BMAD adapter (0.172625ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 86.595875

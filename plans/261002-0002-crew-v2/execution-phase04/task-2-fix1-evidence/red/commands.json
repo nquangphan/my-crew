@@ -1,0 +1,20 @@
+[
+  {
+    "label": "focused",
+    "argv": [
+      "pnpm",
+      "--dir",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-c60b6593-fa06-4cea-92d8-cdaccd2fb174/v2/gateway",
+      "exec",
+      "node",
+      "--test",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-c60b6593-fa06-4cea-92d8-cdaccd2fb174/v2/gateway/test/credential-provisioning.test.ts",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-c60b6593-fa06-4cea-92d8-cdaccd2fb174/v2/gateway/test/model-reporter.test.ts",
+      "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/.task2-current-c60b6593-fa06-4cea-92d8-cdaccd2fb174/v2/gateway/test/model-probe.test.ts"
+    ],
+    "cwd": "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew",
+    "started": 1790934077.3019478,
+    "exit": 1,
+    "finished": 1790934078.079839
+  }
+]

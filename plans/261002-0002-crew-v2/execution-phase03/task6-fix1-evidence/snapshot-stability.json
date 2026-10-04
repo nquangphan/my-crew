@@ -1,0 +1,22 @@
+[
+  {
+    "path": "v2/gateway/src/isolation/inventory.ts",
+    "sha256": "d03b854e52e1e925fb0b7e4ceb28d351a1069b57937e6a1e9d8423f758a337b0",
+    "liveAndSnapshotMatch": true
+  },
+  {
+    "path": "v2/gateway/src/isolation/workspace.ts",
+    "sha256": "12cea09dcb51978015e77bacf2e878d5d8355d73908e7baea633a5ae4bd78b87",
+    "liveAndSnapshotMatch": true
+  },
+  {
+    "path": "v2/gateway/test/isolation-workspace.test.ts",
+    "sha256": "af29bea1742254957a414d650511afd5414b319f3fa2988e3d63bda78681800b",
+    "liveAndSnapshotMatch": true
+  },
+  {
+    "path": "v2/docs/flows/gateway-workflows.md",
+    "sha256": "583b2e3624be35aad6b4fbbe01a9feada98336032fcd6d30367aca138e3aafd2",
+    "liveAndSnapshotMatch": true
+  }
+]

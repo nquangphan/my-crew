@@ -1,0 +1,64 @@
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-29ecb663-632b-4dc5-98f6-890f1b4b2310-1v6pfB","nonce":"29ecb663-632b-4dc5-98f6-890f1b4b2310","dev":16777229,"ino":64091700,"uid":501}
+✖ effect ledger default missing phase06 authority waits without durable intent (3.403167ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-b2fc8536-cdb2-4f6b-a14e-f227de713142-zRoqbM","nonce":"b2fc8536-cdb2-4f6b-a14e-f227de713142","dev":16777229,"ino":64091701,"uid":501}
+✖ effect ledger durable receipt survives fallback with different transport identity (3.824917ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-023da9d6-816d-49d4-8f7d-8c77b6902217-l9Ucbm","nonce":"023da9d6-816d-49d4-8f7d-8c77b6902217","dev":16777229,"ino":64091702,"uid":501}
+✖ effect ledger rejects transport or logical metadata conflict and unverified receipt (1.310583ms)
+{"action":"created","root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-runtime-12a594ba-b9c7-4c10-ae64-0e1dcaa2ead7-vEe7y3","nonce":"12a594ba-b9c7-4c10-ae64-0e1dcaa2ead7","dev":16777229,"ino":64091703,"uid":501}
+✖ effect ledger crash window pending never executes again without target proof (0.740666ms)
+✖ effect ledger canonical encoding separates fields and invalid inputs never reserve (0.128833ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.394334
+
+✖ failing tests:
+
+test at v2/gateway/test/effect-ledger.test.ts:13:1
+✖ effect ledger default missing phase06 authority waits without durable intent (3.403167ms)
+  Error: NOT_IMPLEMENTED
+      at DurableEffectLedger.open (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/effect-ledger.ts:3:76)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/effect-ledger.test.ts:14:79)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+
+test at v2/gateway/test/effect-ledger.test.ts:18:1
+✖ effect ledger durable receipt survives fallback with different transport identity (3.824917ms)
+  Error: NOT_IMPLEMENTED
+      at DurableEffectLedger.open (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/effect-ledger.ts:3:76)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/effect-ledger.test.ts:19:77)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at v2/gateway/test/effect-ledger.test.ts:30:1
+✖ effect ledger rejects transport or logical metadata conflict and unverified receipt (1.310583ms)
+  Error: NOT_IMPLEMENTED
+      at DurableEffectLedger.open (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/effect-ledger.ts:3:76)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/effect-ledger.test.ts:32:44)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at v2/gateway/test/effect-ledger.test.ts:42:1
+✖ effect ledger crash window pending never executes again without target proof (0.740666ms)
+  Error: NOT_IMPLEMENTED
+      at DurableEffectLedger.open (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/effect-ledger.ts:3:76)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/effect-ledger.test.ts:43:77)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at v2/gateway/test/effect-ledger.test.ts:50:1
+✖ effect ledger canonical encoding separates fields and invalid inputs never reserve (0.128833ms)
+  Error: NOT_IMPLEMENTED
+      at deriveEffectId (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/src/runtime/effect-ledger.ts:1:66)
+      at effect (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/effect-ledger.test.ts:9:32)
+      at TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/effect-ledger.test.ts:51:13)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)

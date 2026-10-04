@@ -1,0 +1,161 @@
+{
+  "base": "556cd8d",
+  "files": [
+    {
+      "path": "v2/docs/flows/gateway-host.md",
+      "bytes": 22985,
+      "mode": "0o644",
+      "sha256": "62dfe0cd60f50feab3187326ac9de365d8247094e657368f6dd66e1a01a3f2e8"
+    },
+    {
+      "path": "v2/docs/flows/gateway-workflows.md",
+      "bytes": 13255,
+      "mode": "0o644",
+      "sha256": "9aa98e811b34b74a876009890bcf8f996e813c7aafc1fc66879891fc0289a68c"
+    },
+    {
+      "path": "v2/docs/flows/server-gateway.md",
+      "bytes": 10079,
+      "mode": "0o644",
+      "sha256": "b54e4915fbd387067114af78db95e4a8e78bb539c0ef40ee9a64b352b474aa9b"
+    },
+    {
+      "path": "v2/gateway/src/commands/contracts.ts",
+      "bytes": 2202,
+      "mode": "0o644",
+      "sha256": "a5663fda5e3ce46da32f8ca74cba3ce17f8b64a4be74d3c9c644773eb1e2b13a"
+    },
+    {
+      "path": "v2/gateway/src/commands/http-client.ts",
+      "bytes": 3372,
+      "mode": "0o644",
+      "sha256": "3e50449cddca8d29e998d5e406de8f490c5e9bf62c05ae405d988e0be3a74596"
+    },
+    {
+      "path": "v2/gateway/src/execution/ticket-command-bridge.ts",
+      "bytes": 18903,
+      "mode": "0o644",
+      "sha256": "f66165d12207883043e813839e4fa6252f191118c6af3c8041e6a574aaf621f7"
+    },
+    {
+      "path": "v2/gateway/src/journal/gated-helper.ts",
+      "bytes": 4725,
+      "mode": "0o644",
+      "sha256": "cc3e7abd716ded39afef000472a35675d1bc79898ba0561f412c5e3c81f0f7ea"
+    },
+    {
+      "path": "v2/gateway/src/journal/native-identity.c",
+      "bytes": 4422,
+      "mode": "0o644",
+      "sha256": "2cae556ab83f5184db1b290aedc426d4c58cba89f2696f46a662a0d03d02b03a"
+    },
+    {
+      "path": "v2/gateway/src/journal/process-journal.ts",
+      "bytes": 24691,
+      "mode": "0o644",
+      "sha256": "d0213eda13bd5d93848aa3a10b537c91d6b4f2303ba19a8fec8b7badd5230655"
+    },
+    {
+      "path": "v2/gateway/src/sync/connection.ts",
+      "bytes": 3165,
+      "mode": "0o644",
+      "sha256": "da504d0424aac212e8b54fc9bce356b544084a9a90524d4634f99b7eed8b0feb"
+    },
+    {
+      "path": "v2/gateway/src/sync/event-pump.ts",
+      "bytes": 1866,
+      "mode": "0o644",
+      "sha256": "7fcaad8bef09628d5cf6af177e201c96ab8823bdac2d5f98cba6a7b1eb64ffb9"
+    },
+    {
+      "path": "v2/gateway/src/sync/gateway-sync.ts",
+      "bytes": 9435,
+      "mode": "0o644",
+      "sha256": "b46a39ffabefb50104d98fab04ff2e7c6372da48d302e1d5b2b3324e2574bcdc"
+    },
+    {
+      "path": "v2/gateway/src/workflows/registry.ts",
+      "bytes": 36765,
+      "mode": "0o644",
+      "sha256": "ecb4f9ce997e285b653bd754a7d5f60cef192efe51385604ddfcbb47ff0cbedf"
+    },
+    {
+      "path": "v2/gateway/test/connection.test.ts",
+      "bytes": 1782,
+      "mode": "0o644",
+      "sha256": "091f20f7c322ced22ea2e9ba3c80e2c35b7b6a6200e5ebb4ff083b2a92182958"
+    },
+    {
+      "path": "v2/gateway/test/event-pump.test.ts",
+      "bytes": 1302,
+      "mode": "0o644",
+      "sha256": "8e9957ebde423349ebed4ae2498190305e2444d6f6d0508b9bb55ff5e090f02f"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge-db.test.ts",
+      "bytes": 22194,
+      "mode": "0o644",
+      "sha256": "1a88c98bea3907aeb15ed70bd74351e22fa3cda71cbb46ac5dde31ff33c606c6"
+    },
+    {
+      "path": "v2/gateway/test/execution-bridge.test.ts",
+      "bytes": 9010,
+      "mode": "0o644",
+      "sha256": "ab7775c162aca1ff1fd3bc67f2c45cf53ccb61345d223df7c7c87fee53dee4d9"
+    },
+    {
+      "path": "v2/gateway/test/execution-crash.test.ts",
+      "bytes": 4277,
+      "mode": "0o644",
+      "sha256": "447169c7d1a69431e9d6a035dc156911d764a1dbf1549d64562053c73be07f6e"
+    },
+    {
+      "path": "v2/gateway/test/pin-retirement.test.ts",
+      "bytes": 4536,
+      "mode": "0o644",
+      "sha256": "b06cb249bca730af880266027ee0a4d826c26a922005f8264eca707aa8fce9fe"
+    },
+    {
+      "path": "v2/gateway/test/retirement-crash.test.ts",
+      "bytes": 3097,
+      "mode": "0o644",
+      "sha256": "07a52cc764ba07ea2cbf1f5fe3390778ea8183fc8f5726f95e10b94d0732d080"
+    },
+    {
+      "path": "v2/gateway/test/stop-control.test.ts",
+      "bytes": 4101,
+      "mode": "0o644",
+      "sha256": "cb367e4f03e8ad400b82da6f3055194d6235930424ffcfd053376f159b3086ba"
+    },
+    {
+      "path": "v2/gateway/test/support/bridge-crash-worker.ts",
+      "bytes": 2384,
+      "mode": "0o644",
+      "sha256": "6c562091dda0e5c88435ecd0ea0b0734dea54611ff0e2d7beaa77b5ad9a2709e"
+    },
+    {
+      "path": "v2/gateway/test/support/bridge-fixture.ts",
+      "bytes": 4856,
+      "mode": "0o644",
+      "sha256": "112aa322e30f6a0852e46af0939d6bcde5509e844f3d9e3d41d4398e3f9e75c6"
+    },
+    {
+      "path": "v2/gateway/test/support/pin-retirement-crash-worker.ts",
+      "bytes": 2140,
+      "mode": "0o644",
+      "sha256": "fbfb5bf1158b07574f07d1d443d9fd6ceabd87bc9c2220efc0e5dc2f6b1d2f16"
+    },
+    {
+      "path": "v2/gateway/test/sync.test.ts",
+      "bytes": 12244,
+      "mode": "0o644",
+      "sha256": "3718f330eb469540d338dd1dcbffaf88e7999da193486ba6d2d6f989a93c54db"
+    },
+    {
+      "path": "v2/gateway/tsconfig.json",
+      "bytes": 401,
+      "mode": "0o644",
+      "sha256": "af8e1568896d1d562b37d6d3dfacafcccf223a46ae634210157b0d8e89c12479"
+    }
+  ]
+}

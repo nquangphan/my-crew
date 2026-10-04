@@ -1,0 +1,61 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-reply-race-tl0p3hub/v2/server", "exec", "node", "--test", "--test-name-pattern=direct accepted|terminal assistant", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-reply-race-tl0p3hub/v2/server/test/attachments-grants.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-50c223cf-2d54-46eb-ab08-f1cfcf632817", "--label", "crew.phase05.task3=8cffbf40-2c7b-4387-a647-aed1d1243fe2", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca", "name": "crew-v2-test-50c223cf-2d54-46eb-ab08-f1cfcf632817", "mapping": "127.0.0.1:50152"}
+attachment DB container 5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yuqPLF
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yuqPLF nonceSha256=b6d1951c8a1c43f5e6dceca485206737de2d567ae08e02ead6c3a9e4e154002f
+attachment DB scratch identity dev=16777229 ino=64114258 uid=501 pid=56391
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yuqPLF
+attachment DB container 5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qfMvO8
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qfMvO8 nonceSha256=cd91922bd4d293a92623ab80a76f2904e79f2a501a87b032eeb462bfade7b8d5
+attachment DB scratch identity dev=16777229 ino=64114307 uid=501 pid=56391
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-qfMvO8
+attachment DB container 5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xWkqxy
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xWkqxy nonceSha256=1b470389f2a019dcc70b4fb5e32c0c986997de95fb95fd6157296ed7abf82a39
+attachment DB scratch identity dev=16777229 ino=64114357 uid=501 pid=56391
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-xWkqxy
+attachment DB container 5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-b4zH8n
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-b4zH8n nonceSha256=8dad0dfa8d245ff5930911636683c721b5289e96494fa2cffa20e8ea671ff7c6
+attachment DB scratch identity dev=16777229 ino=64114390 uid=501 pid=56391
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-b4zH8n
+✔ direct accepted reply writer and publication/revocation serialize both winning orders without input-root inversion (3425.890959ms)
+attachment DB container 5c83fdc39444e1b86a5b8dd754a2cacc30b20efdb5dfb1076aa114aa71ebdfca root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yDwKm3
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yDwKm3 nonceSha256=a77a0c99c8f4ec96febce82c24f012a72126c73250f3c065a67618dca0b9664f
+attachment DB scratch identity dev=16777229 ino=64114425 uid=501 pid=56391
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-yDwKm3
+✖ terminal assistant session denies identical idempotency cache replay before callback (721.10975ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4350.304667
+
+✖ failing tests:
+
+test at test/attachments-grants.test.ts:103:1
+✖ terminal assistant session denies identical idempotency cache replay before callback (721.10975ms)
+  Error [PostgresError]: new row for relation "attachment_assistant_sessions" violates check constraint "attachment_assistant_sessions_state_check"
+      at ErrorResponse (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:815:30)
+      at handle (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:489:6)
+      at Socket.data (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:324:9)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at cachedError (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:170:23)
+      at new Query (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/query.js:36:24)
+      at sql (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:112:11)
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-reply-race-tl0p3hub/v2/server/test/attachments-grants.test.ts:107:11 {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '23514',
+    detail: 'Failing row contains (de43f705-7fe0-412c-b8c6-e5217f1377e9, e1a7310f-da63-488d-bf83-4ef678b61092, 747a7305-3bbe-4da5-94d3-30627f6e4e88, 7f7c845ba37fc05da2104d6ae6640edbdb3a5e4460acf8687fb24ea7c7c9864d, 1, a9ab6dec-2a5a-4e1e-906f-7f9bb3dd2c37, codex, {"machineId":"a9ab6dec-2a5a-4e1e-906f-7f9bb3dd2c37","modelId":"v..., ec6782b3-dcd0-4184-8390-ce687e8903d1, 0c16a27b-a46a-4821-903e-83d0b534a80c, 0e2d0fc2-d5ff-42ca-9c0f-fb42c7421631, 9c6cdff3-d208-438b-baf3-b65a676aaa71, 2026-10-02 12:42:45.429+00, 1, t, closed, 2026-10-02 12:57:45+00).',
+    schema_name: 'public',
+    table_name: 'attachment_assistant_sessions',
+    constraint_name: 'attachment_assistant_sessions_state_check',
+    file: 'execMain.c',
+    line: '2076',
+    routine: 'ExecConstraints'
+  }

@@ -1,0 +1,10 @@
+{
+  "changed": [
+    "v2/gateway/test/retirement-crash.test.ts"
+  ],
+  "reason": "Exact PM18:18 test-only repair; no production source changed",
+  "addedConfigs": [
+    "v2/gateway/tsconfig.fixture.build.json",
+    "v2/gateway/tsconfig.fixture.json"
+  ]
+}

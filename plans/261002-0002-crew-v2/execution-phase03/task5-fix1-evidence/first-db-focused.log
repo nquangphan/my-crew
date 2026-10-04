@@ -1,0 +1,105 @@
+(node:26963) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server
+> node scripts/test-db.ts --test-concurrency=1 --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts
+
+(node:26982) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27133) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./")); register("/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/plans/261002-0002-crew-v2/execution-phase03/task5-fix1-evidence/external-loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+Task5 private database container db19fd1b08924e59b8692ef3029ddc7c046af54833ce14c7fab8c39d0780ca3f
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BY9aB2","device":"16777229","inode":"63730996","uid":501}
+{"level":30,"time":1790932884660,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58442"}
+{"level":30,"time":1790932887942,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58468"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-BY9aB2","device":"16777229","inode":"63730996","uid":501,"deleted":true}
+✔ execution bridge DB-backed selection, lost result/finalize and genuine retirement preserve guard (4905.256417ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-cPjesW","device":"16777229","inode":"63731275","uid":501}
+{"level":30,"time":1790932889051,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58488"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-cPjesW","device":"16777229","inode":"63731275","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: old-report (2849.592042ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2fG8Bk","device":"16777229","inode":"63731467","uid":501}
+{"level":30,"time":1790932891887,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58505"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-2fG8Bk","device":"16777229","inode":"63731467","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: disabled-runtime (1996.590167ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-UsoVbl","device":"16777229","inode":"63731660","uid":501}
+{"level":30,"time":1790932893877,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58523"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-UsoVbl","device":"16777229","inode":"63731660","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: missing-decision (2686.599333ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Tc88A3","device":"16777229","inode":"63731936","uid":501}
+{"level":30,"time":1790932896560,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58542"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-Tc88A3","device":"16777229","inode":"63731936","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: mismatched-decision (2698.489958ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-REffj0","device":"16777229","inode":"63732125","uid":501}
+{"level":30,"time":1790932899249,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58561"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-REffj0","device":"16777229","inode":"63732125","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: client-only-selection (2026.639291ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ER3rQp","device":"16777229","inode":"63732298","uid":501}
+{"level":30,"time":1790932901272,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58575"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-ER3rQp","device":"16777229","inode":"63732298","uid":501,"deleted":true}
+✔ execution bridge actual server selection and stop: default-deny (2813.98575ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mcMngx","device":"16777229","inode":"63732486","uid":501}
+{"level":30,"time":1790932904098,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58586"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-mcMngx","device":"16777229","inode":"63732486","uid":501,"stage":"pause"}
+✖ execution bridge actual server selection and stop: pause (3238.6955ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qDp7Vk","device":"16777229","inode":"63740613","uid":501}
+{"level":30,"time":1790932907399,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58611"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-qDp7Vk","device":"16777229","inode":"63740613","uid":501,"stage":"cancel"}
+✖ execution bridge actual server selection and stop: cancel (3467.705458ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-0tj5dg","device":"16777229","inode":"63740832","uid":501}
+{"level":30,"time":1790932910877,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58637"}
+Task5 owned escaped child {"pid":28898,"uid":501,"processGroupId":28898,"birth":"1790932913:68829"}
+Task5 retained UNKNOWN root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-0tj5dg","device":"16777229","inode":"63740832","uid":501,"stage":"fork-cancel"}
+✔ execution bridge actual server selection and stop: fork-cancel (3915.648458ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dhKUuh","device":"16777229","inode":"63741051","uid":501}
+{"level":30,"time":1790932914744,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58667"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-dhKUuh","device":"16777229","inode":"63741051","uid":501,"deleted":true}
+✖ actual prefix8 desired read barrier cannot supersede a newly committed workflow command (1963.062542ms)
+Task5 owned root {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-utVD26","device":"16777229","inode":"63741219","uid":501}
+{"level":30,"time":1790932916669,"pid":27133,"hostname":"Phans-MacBook-Pro.local","msg":"Server listening at http://127.0.0.1:58680"}
+Task5 owned cleanup {"root":"/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-task5-bridge-utVD26","device":"16777229","inode":"63741219","uid":501,"deleted":true}
+✔ actual prefix8 503 after committed boot heartbeat ACK and report recovers same server receipts across reopen (2615.075625ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 9
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 35447.34225
+
+✖ failing tests:
+
+test at ../gateway/test/execution-bridge-db.test.ts:296:3
+✖ execution bridge actual server selection and stop: pause (3238.6955ms)
+  Error: PIN_REFERENCE_RETIRED
+      at ProcessJournal.exact (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/src/journal/process-journal.ts:247:49)
+      at async ProcessJournal.observe (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/src/journal/process-journal.ts:270:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts:508:26
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at ../gateway/test/execution-bridge-db.test.ts:296:3
+✖ execution bridge actual server selection and stop: cancel (3467.705458ms)
+  Error: PIN_REFERENCE_RETIRED
+      at ProcessJournal.exact (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/src/journal/process-journal.ts:247:49)
+      at async ProcessJournal.observe (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/src/journal/process-journal.ts:270:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts:508:26
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+
+test at ../gateway/test/execution-bridge-db.test.ts:555:1
+✖ actual prefix8 desired read barrier cannot supersede a newly committed workflow command (1963.062542ms)
+  TypeError: Cannot read properties of undefined (reading 'state')
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/gateway/test/execution-bridge-db.test.ts:580:27
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task5-fix1-53e23c7f-e937-45d5-a5bc-667771c299c0/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+ ELIFECYCLE  Test failed. See above for more details.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?

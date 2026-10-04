@@ -1,0 +1,29 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-routed-race-ulwcdxwg/v2/server", "exec", "node", "--test", "--test-name-pattern=direct accepted", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-routed-race-ulwcdxwg/v2/server/test/attachments-grants.test.ts"]
+privatePG {"command": ["docker", "create", "--name", "crew-v2-test-dad30dc5-0a32-44a8-a7f2-d5e6ce5863ec", "--label", "crew.phase05.task3=7361e1b9-94dc-492d-96a9-e0c3c7cd8ac3", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "b2bfa2bb242d8040d52f44cd5aa221d536c686796fc66d6b6c5c633d993eb2db", "name": "crew-v2-test-dad30dc5-0a32-44a8-a7f2-d5e6ce5863ec", "mapping": "127.0.0.1:51272"}
+attachment DB container b2bfa2bb242d8040d52f44cd5aa221d536c686796fc66d6b6c5c633d993eb2db root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gmb2YU
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gmb2YU nonceSha256=e4b730749a471e43e9efd1ddbb8f9a0dba518c571ae73199e09de0cd1d79bebf
+attachment DB scratch identity dev=16777229 ino=64117583 uid=501 pid=65418
+✖ direct accepted reply writer and publication/revocation serialize both winning orders without input-root inversion (3774.260875ms)
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gmb2YU
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4011.698333
+
+✖ failing tests:
+
+test at test/attachments-grants.test.ts:290:1
+✖ direct accepted reply writer and publication/revocation serialize both winning orders without input-root inversion (3774.260875ms)
+  Error: ENOENT: no such file or directory, open '/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gmb2YU/jobs/4f5486a7-5643-468f-9a1a-94c45d0a375f/1/.publisher.closed.json'
+      at async open (node:internal/fs/promises:637:25)
+      at async readFile (node:internal/fs/promises:1269:14)
+      at async publishKnownRepresentation (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-3-routed-race-ulwcdxwg/v2/server/test/support/attachment-access-publication.ts:110:5) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Gmb2YU/jobs/4f5486a7-5643-468f-9a1a-94c45d0a375f/1/.publisher.closed.json'
+  }

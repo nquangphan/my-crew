@@ -54,10 +54,28 @@ export type Attachment = AttachmentRef & {
   problems: Problem[];
 };
 export type Selection = { composeSessionId: Id; selectionRevision: number; attachmentIds: Id[] };
+export type SourceComponent = {
+  kind: 'image' | 'unsupported-visual' | 'calculated-value' | 'comment' | 'external';
+  index: number;
+};
 export type SourceLocator =
   | { kind: 'text'; byteStart: number; byteEnd: number; lineStart: number; lineEnd: number }
   | { kind: 'pdf'; page: number; box: [number, number, number, number]; rotation: number }
-  | { kind: 'image'; width: number; height: number; box: [number, number, number, number] }
+  | {
+      kind: 'image';
+      width: number;
+      height: number;
+      box: [number, number, number, number];
+      transform?: {
+        originalWidth: number;
+        originalHeight: number;
+        orientation: number;
+        normalizedWidth: number;
+        normalizedHeight: number;
+        rotation: number;
+        reflected: boolean;
+      };
+    }
   | {
       kind: 'docx';
       part: string;
@@ -65,8 +83,16 @@ export type SourceLocator =
       table: number | null;
       row: number | null;
       cell: number | null;
+      component?: SourceComponent;
     }
-  | { kind: 'sheet'; part: string; sheet: string; range: string; hidden: boolean }
+  | {
+      kind: 'sheet';
+      part: string;
+      sheet: string;
+      range: string;
+      hidden: boolean;
+      component?: SourceComponent;
+    }
   | { kind: 'csv'; rowStart: number; rowEnd: number; columnStart: number; columnEnd: number };
 export type CoverageUnit = {
   id: string;

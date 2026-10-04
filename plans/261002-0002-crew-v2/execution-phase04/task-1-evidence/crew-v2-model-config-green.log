@@ -1,0 +1,16 @@
+
+> @crew-v2/server@ test /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server
+> node scripts/test-db.ts --test-file /Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/model-pool.test.ts
+
+✔ model pool migration creates separate config and immutable report authority (223.988292ms)
+model owned fixture ec79a54a1366eb679034ff1350b8589d32d1469a9684b54edc913d2296ba92ac postgres://postgres@127.0.0.1:60267/crew_v2_test
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (493.277542ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (348.437875ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1232.913792

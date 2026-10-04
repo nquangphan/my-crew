@@ -1,0 +1,8 @@
+COMMAND: docker inspect --format {{.Name}} b6ceb9de31ac3c6e73e10bade7491cec465e597c1b24959f1a6ef992681b90c3
+EXIT: 1
+
+error: no such object: b6ceb9de31ac3c6e73e10bade7491cec465e597c1b24959f1a6ef992681b90c3
+COMMAND: docker inspect --format {{.Name}} 0bfd5bffe5fa98bdf4fab3085270874af8bd7a78c3706e68cb4ff3f7906f819f
+EXIT: 1
+
+error: no such object: 0bfd5bffe5fa98bdf4fab3085270874af8bd7a78c3706e68cb4ff3f7906f819f

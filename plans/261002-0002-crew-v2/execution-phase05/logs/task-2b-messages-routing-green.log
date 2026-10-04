@@ -1,0 +1,55 @@
+command ["pnpm", "--dir", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server", "exec", "node", "--test", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/attachments-messages.test.ts", "/Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/attachments-routing.test.ts"]
+privatePG {"command": ["docker", "run", "--rm", "-d", "--name", "crew-v2-test-a7a8930f-056e-433b-8520-6ca9f87be161", "--label", "crew.phase05.task2b=cfcf9960-ce17-493b-b0f3-84faff0845a4", "--memory", "256m", "--cpus", "1", "--pids-limit", "64", "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=crew_v2_test", "-p", "127.0.0.1::5432", "postgres:18.6"], "id": "02d24e26ee2bf5ddb742fa1ae981497755f41a4e608cdf6050306efe70df261e", "name": "crew-v2-test-a7a8930f-056e-433b-8520-6ca9f87be161", "mapping": "127.0.0.1:53743"}
+attachment DB container 02d24e26ee2bf5ddb742fa1ae981497755f41a4e608cdf6050306efe70df261e root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Rq3wzw
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Rq3wzw nonceSha256=54dc266841653351679884c344f0b6ead3572f7333c4386f77acf314c8a6ec55
+attachment DB scratch identity dev=16777229 ino=63928268 uid=501 pid=80401
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-Rq3wzw
+✖ attachment inbox canonical retry creates one owner-only message with retained originals and no ticket (501.301416ms)
+attachment DB container 02d24e26ee2bf5ddb742fa1ae981497755f41a4e608cdf6050306efe70df261e root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NL5yye
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NL5yye nonceSha256=ae78b313ff296e71a10cd3ff7f5e15170be4331192d0a202ee4d616843dcbcbf
+attachment DB scratch identity dev=16777229 ino=63928270 uid=501 pid=80402
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-NL5yye
+✔ attachment routing configured owner decisions replay and correction default denies without retirement (503.24475ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 615.940917
+
+✖ failing tests:
+
+test at test/attachments-messages.test.ts:8:1
+✖ attachment inbox canonical retry creates one owner-only message with retained originals and no ticket (501.301416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'COMPOSE_ALREADY_SUBMITTED'
+  -   code: 'MESSAGE_ALREADY_SUBMITTED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/attachments-messages.test.ts:23:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Lượt gửi đã được sử dụng
+        at readSubmission (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/src/attachments/submissions.ts:105:69)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.submitAssistantMessage (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/src/attachments/messages.ts:29:19)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/support/tickets.ts:35:13
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/.task-2b-messages-routing-green-hcw0ywas/v2/server/test/attachments-messages.test.ts:23:5,
+    expected: { code: 'MESSAGE_ALREADY_SUBMITTED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
