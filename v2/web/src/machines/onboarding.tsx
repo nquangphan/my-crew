@@ -85,7 +85,8 @@ export function MachineOnboarding() {
   const [busy, setBusy] = useState(false);
   const [issued, setIssued] = useState<ProvisionedMachine | null>(null);
   const machines = useQuery(machinesQueryOptions(client));
-  const held = heldOperation(useUnresolved(pending, machineIntent));
+  const entry = useUnresolved(pending, machineIntent);
+  const held = heldOperation(entry);
   const heldName = held ? (JSON.parse(held.bodyJson) as { name: string }).name : null;
 
   // The credential never outlives the authenticated view that received it.
@@ -146,7 +147,7 @@ export function MachineOnboarding() {
         style={{ display: 'grid', gap: '0.75rem' }}
         onSubmit={(event) => {
           event.preventDefault();
-          if (!busy) void submit();
+          if (!busy && (issued === null || held !== null)) void submit();
         }}
       >
         <div style={fieldStyle}>
@@ -182,13 +183,13 @@ export function MachineOnboarding() {
           <button type="submit" style={buttonStyle} disabled={busy || (issued !== null && !held)}>
             {held ? 'Gửi lại đúng yêu cầu cũ' : 'Đăng ký máy'}
           </button>
-          {held && (
+          {entry && (
             <DiscardHeld
               disabled={busy}
               warning="Máy chủ có thể đã đăng ký máy này. Nếu bỏ yêu cầu cũ rồi gửi lại, có thể tạo máy trùng tên. Tên đã nhập được giữ lại."
               onDiscard={() => {
-                pending.reject(held.id);
-                setName(heldName ?? '');
+                pending.reject(entry.id);
+                if (heldName !== null) setName(heldName);
                 setError(null);
               }}
             />

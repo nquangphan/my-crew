@@ -43,3 +43,11 @@
 - **M3:** bỏ assertion body POST; kiểm IndexedDB, CacheStorage và cookie.
 - **M4:** response 2xx sai định dạng giờ báo rõ “máy đã được đăng ký nhưng token không hiển thị được, thu hồi rồi đăng ký lại” và đọc lại danh sách máy. Lưu ý: không thể “decode trước rồi mới accept” nếu không sửa `lib/api.ts` (mutate đã `accept` trước khi trả body), nên chỉ báo lỗi rõ chứ không giữ được khóa; cần PM quyết định nếu muốn đổi lib.
 - **M5:** cả ba test E2E tự dựng máy, dự án và binding, không còn phụ thuộc test 1.
+
+## Fix round 2/5
+
+**Kết quả: DONE.** RED semantic (3 test fail trên hành vi: thông báo còn nhắc thu hồi, submit trực tiếp vẫn gửi khi panel token mở, tombstone sau `IDEMPOTENCY_CONFLICT` không có lối thoát). GREEN: unit web 255/255, `tsc` và Biome sạch, E2E `onboarding.spec.ts` 3/3, `crew-docs` generate/check ok trên mirror. Không sửa `lib/api.ts`.
+
+- **I1:** `RESPONSE_SHAPE_INVALID` của form máy nay là “Máy đã được đăng ký nhưng không hiển thị được token. Hãy đăng ký một máy mới với tên khác.” (không nhắc thu hồi); test đối chiếu và khẳng định không có chữ “thu hồi”.
+- **Minor 1:** “Bỏ yêu cầu cũ” hiện cho mọi entry chưa xác nhận kể cả tombstone, gọi `reject` theo id và giữ trường đang nhập; test kèm FakeServer trả `IDEMPOTENCY_CONFLICT` khi cùng khóa khác body.
+- **Minor 2:** `onSubmit` của form máy bỏ qua khi `issued` còn mở (trừ khi đang giữ yêu cầu cũ để gửi lại).

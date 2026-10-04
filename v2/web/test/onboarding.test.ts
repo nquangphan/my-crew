@@ -44,7 +44,7 @@ class FakeServer {
   bindError: { status: number; code: string; message?: string } | null = null;
   /** The next POST /v2/projects or PUT binding never reaches the producer (transport failure). */
   failNext: 'project' | 'bind' | null = null;
-  #receipts = new Map<string, Response>();
+  #receipts = new Map<string, { body: string | null; response: Response }>();
   #next = 1;
 
   fetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
@@ -69,9 +69,9 @@ class FakeServer {
       return json(200, { items: this.projects, nextCursor: null });
     const key = call.headers.get('idempotency-key') ?? '';
     const prior = this.#receipts.get(`${method}:${path}:${key}`);
-    if (prior) return prior.clone();
+    if (prior) return prior.body === body ? prior.response.clone() : failure(409, 'IDEMPOTENCY_CONFLICT');
     const remember = (response: Response) => {
-      this.#receipts.set(`${method}:${path}:${key}`, response.clone());
+      this.#receipts.set(`${method}:${path}:${key}`, { body, response: response.clone() });
       return response;
     };
     if (method === 'POST' && path === '/v2/machines') {
@@ -508,7 +508,9 @@ test('response 2xx sai định dạng khi đăng ký máy: báo rõ máy đã đ
   fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
   const alert = await screen.findByRole('alert');
   assert.match(alert.textContent ?? '', /đã được đăng ký/);
-  assert.match(alert.textContent ?? '', /[Tt]hu hồi/);
+  assert.match(alert.textContent ?? '', /không hiển thị được token/);
+  assert.match(alert.textContent ?? '', /đăng ký một máy mới với tên khác/);
+  assert.doesNotMatch(alert.textContent ?? '', /[Tt]hu hồi/);
   assert.equal(screen.queryByRole('region', { name: 'Token máy vừa đăng ký' }), null);
 });
 
@@ -695,4 +697,49 @@ test('đường dẫn Windows hoặc UNC bị chặn ở client; 400 của serve
   await waitFor(() =>
     assert.match(within(section).getByRole('alert').textContent ?? '', /Thông tin gắn máy không hợp lệ/),
   );
+});
+
+test('đăng ký máy: khi panel token còn mở, submit trực tiếp không gửi thêm yêu cầu', async () => {
+  const server = new FakeServer();
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(MachineOnboarding));
+  await screen.findByText('Chưa có máy nào được đăng ký.');
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy một' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await screen.findByRole('region', { name: 'Token máy vừa đăng ký' });
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy hai' } });
+  fireEvent.submit(screen.getByRole('form', { name: 'Biểu mẫu đăng ký máy' }));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(mutations(server, 'POST', '/v2/machines').length, 1);
+});
+
+test('tombstone mất payload gốc: nhập lại khác bị IDEMPOTENCY_CONFLICT vẫn có “Bỏ yêu cầu cũ” và dùng khóa mới', async () => {
+  const server = new FakeServer();
+  server.dropNextMachineResponse = true;
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(MachineOnboarding));
+  await screen.findByText('Chưa có máy nào được đăng ký.');
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy gốc' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await screen.findByRole('alert');
+  const oldKey = env.pending.list()[0]?.id;
+  act(() => env.pending.tombstoneAll());
+  await waitFor(() => assert.equal((screen.getByLabelText('Tên máy') as HTMLInputElement).disabled, false));
+
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy khác' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await waitFor(() =>
+    assert.match(screen.getByRole('alert').textContent ?? '', /Nội dung khác với yêu cầu cũ/),
+  );
+  assert.equal(env.pending.tombstones().length, 1);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Bỏ yêu cầu cũ' }));
+  assert.match((await screen.findByRole('alertdialog')).textContent ?? '', /máy trùng/);
+  fireEvent.click(screen.getByRole('button', { name: 'Vẫn bỏ yêu cầu cũ' }));
+  await waitFor(() => assert.equal(env.pending.tombstones().length, 0));
+  assert.equal((screen.getByLabelText('Tên máy') as HTMLInputElement).value, 'Máy khác');
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await screen.findByRole('region', { name: 'Token máy vừa đăng ký' });
+  const posts = mutations(server, 'POST', '/v2/machines');
+  assert.notEqual(posts[posts.length - 1]?.headers.get('idempotency-key'), oldKey);
 });

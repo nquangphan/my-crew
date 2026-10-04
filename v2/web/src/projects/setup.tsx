@@ -59,7 +59,8 @@ function CreateProjectForm() {
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const held = heldOperation(useUnresolved(pending, createIntent));
+  const entry = useUnresolved(pending, createIntent);
+  const held = heldOperation(entry);
   const heldBody = held ? (JSON.parse(held.bodyJson) as CreateBody) : null;
   const shown = heldBody
     ? { key: heldBody.key, name: heldBody.name, repositoryUrl: heldBody.repositoryUrl ?? '' }
@@ -169,17 +170,18 @@ function CreateProjectForm() {
         <button type="submit" style={buttonStyle} disabled={busy}>
           {held ? 'Gửi lại đúng yêu cầu cũ' : 'Tạo dự án'}
         </button>
-        {held && heldBody && (
+        {entry && (
           <DiscardHeld
             disabled={busy}
             warning="Máy chủ có thể đã tạo dự án này. Nếu bỏ yêu cầu cũ rồi tạo lại, có thể tạo bản trùng. Các trường đã nhập được giữ lại."
             onDiscard={() => {
-              pending.reject(held.id);
-              setFields({
-                key: heldBody.key,
-                name: heldBody.name,
-                repositoryUrl: heldBody.repositoryUrl ?? '',
-              });
+              pending.reject(entry.id);
+              if (heldBody)
+                setFields({
+                  key: heldBody.key,
+                  name: heldBody.name,
+                  repositoryUrl: heldBody.repositoryUrl ?? '',
+                });
               setError(null);
             }}
           />
@@ -201,7 +203,8 @@ function BindingSection({ project, machines }: { project: Project; machines: Mac
   const [done, setDone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const intent = bindIntent(project.id);
-  const held = heldOperation(useUnresolved(pending, intent));
+  const entry = useUnresolved(pending, intent);
+  const held = heldOperation(entry);
   const heldBody = held ? (JSON.parse(held.bodyJson) as BindBody) : null;
 
   const live = machines.filter((machine) => !machine.revokedAt);
@@ -314,13 +317,14 @@ function BindingSection({ project, machines }: { project: Project; machines: Mac
           <button type="submit" style={buttonStyle} disabled={busy || (live.length === 0 && !held)}>
             {held ? 'Gửi lại đúng yêu cầu cũ' : rebinding ? 'Đổi máy' : 'Gắn máy'}
           </button>
-          {held && heldBody && (
+          {entry && (
             <DiscardHeld
               disabled={busy}
               warning="Máy chủ có thể đã áp dụng yêu cầu cũ. Nếu bỏ, các trường đã nhập được giữ lại và bạn áp dụng lại trên revision mới đọc từ máy chủ; kiểm tra kết quả trước khi áp dụng."
               onDiscard={async () => {
-                pending.reject(held.id);
-                setDraft({ machineId: heldBody.machineId, checkoutPath: heldBody.checkoutPath });
+                pending.reject(entry.id);
+                if (heldBody)
+                  setDraft({ machineId: heldBody.machineId, checkoutPath: heldBody.checkoutPath });
                 setError(null);
                 await cache.invalidateQueries({ queryKey: queryRoots.projects });
               }}

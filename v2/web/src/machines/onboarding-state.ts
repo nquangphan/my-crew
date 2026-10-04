@@ -114,7 +114,7 @@ export function onboardingFailureText(error: unknown, subject: FailureSubject): 
     return `Lỗi cấu hình máy chủ (${error.code}). Yêu cầu vẫn giữ khóa cũ; gửi lại sau khi máy chủ được cấu hình.`;
   if (error.code === 'RESPONSE_SHAPE_INVALID')
     return subject === 'machine'
-      ? 'Máy đã được đăng ký nhưng không đọc được token máy chủ trả về nên không hiển thị được. Thu hồi máy này rồi đăng ký lại.'
+      ? 'Máy đã được đăng ký nhưng không hiển thị được token. Hãy đăng ký một máy mới với tên khác.'
       : 'Yêu cầu đã được máy chủ nhận nhưng phản hồi không đọc được. Tải lại danh sách để xem kết quả trước khi gửi lại.';
   if (error.code === 'INTENT_UNRESOLVED')
     return 'Đang có yêu cầu cũ chưa xác nhận. Hãy gửi lại đúng yêu cầu cũ trước.';
