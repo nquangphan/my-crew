@@ -1,1 +1,425 @@
-Checked 2 files in 34ms. No fixes applied.
+scripts/e2e-fixture.ts:68:10 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    66 │   const started = await command('ps', ['-p', String(process.pid), '-o', 'lstart='], signal);
+    67 │   if (!started) throw new Error('PROCESS_IDENTITY_UNKNOWN');
+  > 68 │   return String(process.pid) + ':' + started;
+       │          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    69 │ }
+    70 │ 
+  
+  i Unsafe fix: Use a template literal.
+  
+     66  66 │     const started = await command('ps', ['-p', String(process.pid), '-o', 'lstart='], signal);
+     67  67 │     if (!started) throw new Error('PROCESS_IDENTITY_UNKNOWN');
+     68     │ - ··return·String(process.pid)·+·':'·+·started;
+         68 │ + ··return·`${String(process.pid)}:${started}`;
+     69  69 │   }
+     70  70 │   
+  
+
+scripts/e2e-fixture.ts:97:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    95 │     const entry = await port.stat(scratchPath);
+    96 │     if (signal.aborted) return false;
+  > 97 │     if (String(entry.dev) + ':' + String(entry.ino) !== scratchIdentity) return false;
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    98 │     await port.rm(scratchPath, { recursive: true });
+    99 │     return true;
+  
+  i Unsafe fix: Use a template literal.
+  
+     95  95 │       const entry = await port.stat(scratchPath);
+     96  96 │       if (signal.aborted) return false;
+     97     │ - ····if·(String(entry.dev)·+·':'·+·String(entry.ino)·!==·scratchIdentity)·return·false;
+         97 │ + ····if·(`${String(entry.dev)}:${String(entry.ino)}`·!==·scratchIdentity)·return·false;
+     98  98 │       await port.rm(scratchPath, { recursive: true });
+     99  99 │       return true;
+  
+
+scripts/e2e-fixture.ts:116:27 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    114 │   const scratchPath = await mkdtemp(join(tmpdir(), 'crew-v2-web-'));
+    115 │   const scratchStat = await stat(scratchPath);
+  > 116 │   const scratchIdentity = String(scratchStat.dev) + ':' + String(scratchStat.ino);
+        │                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    117 │   const registryPath = join(scratchPath, 'registry.json');
+    118 │   const containerName = 'crew-v2-web-' + ownershipNonce;
+  
+  i Unsafe fix: Use a template literal.
+  
+    114 114 │     const scratchPath = await mkdtemp(join(tmpdir(), 'crew-v2-web-'));
+    115 115 │     const scratchStat = await stat(scratchPath);
+    116     │ - ··const·scratchIdentity·=·String(scratchStat.dev)·+·':'·+·String(scratchStat.ino);
+        116 │ + ··const·scratchIdentity·=·`${String(scratchStat.dev)}:${String(scratchStat.ino)}`;
+    117 117 │     const registryPath = join(scratchPath, 'registry.json');
+    118 118 │     const containerName = 'crew-v2-web-' + ownershipNonce;
+  
+
+scripts/e2e-fixture.ts:118:25 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    116 │   const scratchIdentity = String(scratchStat.dev) + ':' + String(scratchStat.ino);
+    117 │   const registryPath = join(scratchPath, 'registry.json');
+  > 118 │   const containerName = 'crew-v2-web-' + ownershipNonce;
+        │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    119 │   const dbName = 'crew_v2_test_' + randomUUID().replaceAll('-', '');
+    120 │   const resources: OwnedResource[] = [];
+  
+  i Unsafe fix: Use a template literal.
+  
+    116 116 │     const scratchIdentity = String(scratchStat.dev) + ':' + String(scratchStat.ino);
+    117 117 │     const registryPath = join(scratchPath, 'registry.json');
+    118     │ - ··const·containerName·=·'crew-v2-web-'·+·ownershipNonce;
+        118 │ + ··const·containerName·=·`crew-v2-web-${ownershipNonce}`;
+    119 119 │     const dbName = 'crew_v2_test_' + randomUUID().replaceAll('-', '');
+    120 120 │     const resources: OwnedResource[] = [];
+  
+
+scripts/e2e-fixture.ts:119:18 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    117 │   const registryPath = join(scratchPath, 'registry.json');
+    118 │   const containerName = 'crew-v2-web-' + ownershipNonce;
+  > 119 │   const dbName = 'crew_v2_test_' + randomUUID().replaceAll('-', '');
+        │                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    120 │   const resources: OwnedResource[] = [];
+    121 │   const scratchResource: OwnedResource = {
+  
+  i Unsafe fix: Use a template literal.
+  
+    117 117 │     const registryPath = join(scratchPath, 'registry.json');
+    118 118 │     const containerName = 'crew-v2-web-' + ownershipNonce;
+    119     │ - ··const·dbName·=·'crew_v2_test_'·+·randomUUID().replaceAll('-',·'');
+        119 │ + ··const·dbName·=·`crew_v2_test_${randomUUID().replaceAll('-',·'')}`;
+    120 120 │     const resources: OwnedResource[] = [];
+    121 121 │     const scratchResource: OwnedResource = {
+  
+
+scripts/e2e-fixture.ts:158:37 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    157 │   async function persist(): Promise<void> {
+  > 158 │     const draft = join(scratchPath, 'registry-' + randomUUID() + '.tmp');
+        │                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    159 │     await writeFile(
+    160 │       draft,
+  
+  i Unsafe fix: Use a template literal.
+  
+    156 156 │   
+    157 157 │     async function persist(): Promise<void> {
+    158     │ - ····const·draft·=·join(scratchPath,·'registry-'·+·randomUUID()·+·'.tmp');
+        158 │ + ····const·draft·=·join(scratchPath,·`registry-${randomUUID()}.tmp`);
+    159 159 │       await writeFile(
+    160 160 │         draft,
+  
+
+scripts/e2e-fixture.ts:192:22 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    190 │       !entry ||
+    191 │       entry.Id !== containerId ||
+  > 192 │       entry.Name !== '/' + containerName ||
+        │                      ^^^^^^^^^^^^^^^^^^^
+    193 │       entry.Config.Labels['crew.v2.run'] !== ownershipNonce
+    194 │     )
+  
+  i Unsafe fix: Use a template literal.
+  
+    190 190 │         !entry ||
+    191 191 │         entry.Id !== containerId ||
+    192     │ - ······entry.Name·!==·'/'·+·containerName·||
+        192 │ + ······entry.Name·!==·`/${containerName}`·||
+    193 193 │         entry.Config.Labels['crew.v2.run'] !== ownershipNonce
+    194 194 │       )
+  
+
+scripts/e2e-fixture.ts:196:12 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    194 │     )
+    195 │       return null;
+  > 196 │     return containerId + ':' + entry.State.StartedAt;
+        │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    197 │   }
+    198 │   async function readDbIdentity(signal?: AbortSignal): Promise<string | null> {
+  
+  i Unsafe fix: Use a template literal.
+  
+    194 194 │       )
+    195 195 │         return null;
+    196     │ - ····return·containerId·+·':'·+·entry.State.StartedAt;
+        196 │ + ····return·`${containerId}:${entry.State.StartedAt}`;
+    197 197 │     }
+    198 198 │     async function readDbIdentity(signal?: AbortSignal): Promise<string | null> {
+  
+
+scripts/e2e-fixture.ts:212:34 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    210 │       if (signal?.aborted) return null;
+    211 │       const rows = await query;
+  > 212 │       return rows.length === 1 ? containerId + ':' + String(rows[0]?.oid) : null;
+        │                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    213 │     } finally {
+    214 │       signal?.removeEventListener('abort', cancel);
+  
+  i Unsafe fix: Use a template literal.
+  
+    210 210 │         if (signal?.aborted) return null;
+    211 211 │         const rows = await query;
+    212     │ - ······return·rows.length·===·1·?·containerId·+·':'·+·String(rows[0]?.oid)·:·null;
+        212 │ + ······return·rows.length·===·1·?·`${containerId}:${String(rows[0]?.oid)}`·:·null;
+    213 213 │       } finally {
+    214 214 │         signal?.removeEventListener('abort', cancel);
+  
+
+scripts/e2e-fixture.ts:226:12 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    224 │     const address = server?.address();
+    225 │     if (!server?.listening || !address || typeof address === 'string' || address.port !== port) return null;
+  > 226 │     return workerIdentity + ':' + kind + ':' + String(port) + ':' + ownershipNonce;
+        │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    227 │   }
+    228 │ 
+  
+  i Unsafe fix: Use a template literal.
+  
+    224 224 │       const address = server?.address();
+    225 225 │       if (!server?.listening || !address || typeof address === 'string' || address.port !== port) return null;
+    226     │ - ····return·workerIdentity·+·':'·+·kind·+·':'·+·String(port)·+·':'·+·ownershipNonce;
+        226 │ + ····return·`${workerIdentity}:${kind}:${String(port)}:${ownershipNonce}`;
+    227 227 │     }
+    228 228 │   
+  
+
+scripts/e2e-fixture.ts:264:17 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    262 │           error instanceof Error && error.message === 'CLEANUP_DEADLINE' ? 'CLOSE_DEADLINE' : 'CLOSE_ERROR';
+    263 │         results.push({ resourceId: id, state: 'unknown', reason });
+  > 264 │         phase = 'unknown:' + id;
+        │                 ^^^^^^^^^^^^^^^
+    265 │       }
+    266 │     };
+  
+  i Unsafe fix: Use a template literal.
+  
+    262 262 │             error instanceof Error && error.message === 'CLEANUP_DEADLINE' ? 'CLOSE_DEADLINE' : 'CLOSE_ERROR';
+    263 263 │           results.push({ resourceId: id, state: 'unknown', reason });
+    264     │ - ········phase·=·'unknown:'·+·id;
+        264 │ + ········phase·=·`unknown:${id}`;
+    265 265 │         }
+    266 266 │       };
+  
+
+scripts/e2e-fixture.ts:370:44 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    368 │           }
+    369 │           if (signal.aborted) return false;
+  > 370 │           const dropping = reserved.unsafe('drop database "' + dbName + '"');
+        │                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    371 │           const cancelDrop = () => {
+    372 │             try {
+  
+  i Unsafe fix: Use a template literal.
+  
+    368 368 │             }
+    369 369 │             if (signal.aborted) return false;
+    370     │ - ··········const·dropping·=·reserved.unsafe('drop·database·"'·+·dbName·+·'"');
+        370 │ + ··········const·dropping·=·reserved.unsafe(`drop·database·"${dbName}"`);
+    371 371 │             const cancelDrop = () => {
+    372 372 │               try {
+  
+
+test/fixture-lifecycle.test.ts:86:19 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    84 │       assert.ok(first.length >= handle.resources.length);
+    85 │       assert.ok(first.every((result) => result.state === 'stopped' || result.state === 'removed'));
+  > 86 │       console.log('fixture-cleanup=' + JSON.stringify(first));
+       │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    87 │     });
+    88 │   } catch (error) {
+  
+  i Unsafe fix: Use a template literal.
+  
+     84  84 │         assert.ok(first.length >= handle.resources.length);
+     85  85 │         assert.ok(first.every((result) => result.state === 'stopped' || result.state === 'removed'));
+     86     │ - ······console.log('fixture-cleanup='·+·JSON.stringify(first));
+         86 │ + ······console.log(`fixture-cleanup=${JSON.stringify(first)}`);
+     87  87 │       });
+     88  88 │     } catch (error) {
+  
+
+test/fixture-lifecycle.test.ts:158:20 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    156 │   await writeFile(registryPath, '{"phase":"unknown"}', { mode: 0o600 });
+    157 │   const original = await stat(scratchPath);
+  > 158 │   const identity = String(original.dev) + ':' + String(original.ino);
+        │                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    159 │   const resource: OwnedResource = {
+    160 │     kind: 'scratch',
+  
+  i Unsafe fix: Use a template literal.
+  
+    156 156 │     await writeFile(registryPath, '{"phase":"unknown"}', { mode: 0o600 });
+    157 157 │     const original = await stat(scratchPath);
+    158     │ - ··const·identity·=·String(original.dev)·+·':'·+·String(original.ino);
+        158 │ + ··const·identity·=·`${String(original.dev)}:${String(original.ino)}`;
+    159 159 │     const resource: OwnedResource = {
+    160 160 │       kind: 'scratch',
+  
+
+test/fixture-lifecycle.test.ts:166:5 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    164 │   };
+    165 │   console.log(
+  > 166 │     'scratch-timeout-ready=' + JSON.stringify({ scratchPath, registryPath, startIdentity: identity }),
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    167 │   );
+    168 │   let releaseStat: () => void = () => undefined;
+  
+  i Unsafe fix: Use a template literal.
+  
+    164 164 │     };
+    165 165 │     console.log(
+    166     │ - ····'scratch-timeout-ready='·+·JSON.stringify({·scratchPath,·registryPath,·startIdentity:·identity·}),
+        166 │ + ····`scratch-timeout-ready=${JSON.stringify({·scratchPath,·registryPath,·startIdentity:·identity·})}`,
+    167 167 │     );
+    168 168 │     let releaseStat: () => void = () => undefined;
+  
+
+test/fixture-lifecycle.test.ts:224:11 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    222 │     if (existsSync(scratchPath)) {
+    223 │       const current = await stat(scratchPath);
+  > 224 │       if (String(current.dev) + ':' + String(current.ino) === identity) {
+        │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    225 │         await rm(scratchPath, { recursive: true });
+    226 │       }
+  
+  i Unsafe fix: Use a template literal.
+  
+    222 222 │       if (existsSync(scratchPath)) {
+    223 223 │         const current = await stat(scratchPath);
+    224     │ - ······if·(String(current.dev)·+·':'·+·String(current.ino)·===·identity)·{
+        224 │ + ······if·(`${String(current.dev)}:${String(current.ino)}`·===·identity)·{
+    225 225 │           await rm(scratchPath, { recursive: true });
+    226 226 │         }
+  
+
+test/fixture-lifecycle.test.ts:229:7 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    227 │     }
+    228 │     console.log(
+  > 229 │       'scratch-timeout-own-cleanup=' + JSON.stringify({ scratchPath, absent: !existsSync(scratchPath) }),
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    230 │     );
+    231 │   }
+  
+  i Unsafe fix: Use a template literal.
+  
+    227 227 │       }
+    228 228 │       console.log(
+    229     │ - ······'scratch-timeout-own-cleanup='·+·JSON.stringify({·scratchPath,·absent:·!existsSync(scratchPath)·}),
+        229 │ + ······`scratch-timeout-own-cleanup=${JSON.stringify({·scratchPath,·absent:·!existsSync(scratchPath)·})}`,
+    230 230 │       );
+    231 231 │     }
+  
+
+test/fixture-lifecycle.test.ts:297:19 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    295 │         if (!results) await within(closing, 15_000, 'ACTIVE_REQUEST_RECOVERY_DEADLINE');
+    296 │       }
+  > 297 │       console.log('active-request-cleanup=' + JSON.stringify(results));
+        │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    298 │       cleanupUnknown = results.some((result) => result.state === 'unknown');
+    299 │       if (cleanupUnknown) {
+  
+  i Unsafe fix: Use a template literal.
+  
+    295 295 │           if (!results) await within(closing, 15_000, 'ACTIVE_REQUEST_RECOVERY_DEADLINE');
+    296 296 │         }
+    297     │ - ······console.log('active-request-cleanup='·+·JSON.stringify(results));
+        297 │ + ······console.log(`active-request-cleanup=${JSON.stringify(results)}`);
+    298 298 │         cleanupUnknown = results.some((result) => result.state === 'unknown');
+    299 299 │         if (cleanupUnknown) {
+  
+
+scripts/e2e-fixture.ts:318:64 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    316 │       true,
+    317 │     );
+  > 318 │     if (blocked && db) await closePhase('database:pool', () => db!.end({ timeout: 2 }), 3_000);
+        │                                                                ^^^
+    319 │     await closeOne(databaseResource, {
+    320 │       deadlineMs: 5_000,
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    316 316 │         true,
+    317 317 │       );
+    318     │ - ····if·(blocked·&&·db)·await·closePhase('database:pool',·()·=>·db!.end({·timeout:·2·}),·3_000);
+        318 │ + ····if·(blocked·&&·db)·await·closePhase('database:pool',·()·=>·db?.end({·timeout:·2·}),·3_000);
+    319 319 │       await closeOne(databaseResource, {
+    320 320 │         deadlineMs: 5_000,
+  
+
+scripts/e2e-fixture.ts:391:53 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    389 │       },
+    390 │     });
+  > 391 │     if (admin) await closePhase('admin:pool', () => admin!.end({ timeout: 2 }), 3_000);
+        │                                                     ^^^^^^
+    392 │     await closeOne(containerResource, {
+    393 │       deadlineMs: 8_000,
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    389 389 │         },
+    390 390 │       });
+    391     │ - ····if·(admin)·await·closePhase('admin:pool',·()·=>·admin!.end({·timeout:·2·}),·3_000);
+        391 │ + ····if·(admin)·await·closePhase('admin:pool',·()·=>·admin?.end({·timeout:·2·}),·3_000);
+    392 392 │       await closeOne(containerResource, {
+    393 393 │         deadlineMs: 8_000,
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 11.
+Checked 3 files in 15ms. No fixes applied.
+Found 2 warnings.
+Found 29 infos.
+raw_exit=0

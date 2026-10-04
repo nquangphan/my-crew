@@ -1,0 +1,5 @@
+
+> @crew-v2/web@ typecheck /Volumes/CORSAIR/Projects/my-crew-v2/v2/web
+> tsc --noEmit
+
+raw_exit=0

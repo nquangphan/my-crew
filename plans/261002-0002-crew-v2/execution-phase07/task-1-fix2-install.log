@@ -1,0 +1,28 @@
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +187
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 187, reused 161, downloaded 24, added 185
+Progress: resolved 187, reused 161, downloaded 26, added 187, done
+
+dependencies:
++ @radix-ui/react-dialog 1.1.23
++ @tanstack/react-query 5.104.1
++ @tanstack/react-router 1.170.41
++ @xyflow/react 12.12.0
++ react 19.3.0
++ react-dom 19.3.0
++ react-markdown 10.1.0
++ remark-gfm 4.0.1
+
+devDependencies:
++ @playwright/test 1.63.0
++ @types/node 26.6.3
++ @types/react 19.3.0
++ @types/react-dom 19.3.0
++ @vitejs/plugin-react 6.1.1
++ typescript 7.0.2
++ vite 8.3.2
+
+Done in 1.5s using pnpm v10.32.1
+raw_exit 0

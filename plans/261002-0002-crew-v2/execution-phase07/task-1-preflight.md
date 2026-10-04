@@ -292,3 +292,22 @@ Focused GREEN chỉ test scratch: raw exit0, tests1/pass1/fail0, TAP952,808292ms
 FIX2 scoped Biome đầu chỉ báo import order/format ở test, raw exit1, log `task-1-fix2-biome-before.log` SHA `37013611f71787f71989bfa3714b72ff7a81ed47a57e561bf2d3b62cab70a8d2`. Gate CPU lúc đó chỉ38,34% idle nên worker sửa đúng các dòng format bằng patch Node-free; sau telemetry mới hợp lệ, scoped Biome hai path exit0, `Checked 2 files. No fixes applied`, log `task-1-fix2-biome-final.log` SHA `585079f16552e5d2e0bc64392004127942a02ccd430c9375d907f9975272ceeb`. Không đổi hành vi sau focused GREEN.
 
 FIX2 source hiện tại sau format: `v2/web/scripts/e2e-fixture.ts` SHA `3788a4e1333b1b6990dfddc4f7634a4e87a1472c00472f614c3f708d0a7745a7`; `v2/web/test/fixture-lifecycle.test.ts` SHA `f0f11bef68ac18cca60968cb3dd8d4657f3d4e70ca7c8e9e75aa57ac2d0a48a1`; `v2/web/e2e/support/fixture.ts` không đổi, SHA `5701820d97284fd2c82c697406881d3cd87d47a2139289e8fcd4ee192c3f43bb`. 11 path UI/package không đổi. Slot heavy đã trả; full6/typecheck và independent FIX2 re-review còn chờ gate sau.
+
+## FIX2 final checks 04/10 (Claude)
+
+Môi trường: worktree `my-crew-v2`, HEAD `6040292`, Node v24.21.0, pnpm 10.32.1, Asia/Ho_Chi_Minh, heap 384 MiB, watchdog Python 120 giây. Ba file fixture không đổi so với freeze FIX2 (SHA khớp): `v2/web/scripts/e2e-fixture.ts` `3788a4e1333b1b6990dfddc4f7634a4e87a1472c00472f614c3f708d0a7745a7`; `v2/web/test/fixture-lifecycle.test.ts` `f0f11bef68ac18cca60968cb3dd8d4657f3d4e70ca7c8e9e75aa57ac2d0a48a1`; `v2/web/e2e/support/fixture.ts` `5701820d97284fd2c82c697406881d3cd87d47a2139289e8fcd4ee192c3f43bb`. Không sửa source, không chạm server/peer.
+
+Gate trước từng lượt (available GiB / pressure / CPU idle / disk GiB): install 5,207/1/82,41/754,1; lifecycle 4,881/1/81,96/754,1; typecheck+Biome 4,675/1/82,63/753,9. Đều đạt ngưỡng.
+
+| Lệnh (tại `v2/web`) | Kết quả | Log, SHA-256 |
+|---|---|---|
+| `pnpm install --frozen-lockfile --ignore-workspace` | exit0, 1,5 giây | `task-1-fix2-install.log` `2e113907cda6d5787bbf15667ae414e0102b4315b2e084b80f14dbab6b02d25f` |
+| `node --test test/fixture-lifecycle.test.ts` | raw exit0, timeout=false, tests6/pass6/fail0, duration 7,52 giây (wall 7,58) | `task-1-fix2-lifecycle-final.log` `d185988701e49ecd5966dcd4154556d782718914a40b0bb4efa87abe852c7173` |
+| `pnpm typecheck` (tsc --noEmit) | exit0 | `task-1-fix2-typecheck-final.log` `f9298a7c434333ec4b4350b047dff28c620bf765247f816f3b0f36a7cd8c9ca5` |
+| `pnpm exec biome check` 3 path fixture | exit0, Checked 3 files, 2 warnings/29 infos (lint/style/useTemplate, không chặn) | `task-1-fix2-biome-final.log` `f90d0cc0c7e570c0a8c82d22f2c9e23abaea8304f2e21848fb0a0abf0f4b66c1` |
+
+Sáu case PASS: withFixture positive, unit identity lạ, unit STOP chưa xác minh, unit scratch REMOVE hết hạn rồi stat trả trễ (252 ms, `rm` không gọi, registry còn), request gửi dở, SIGTERM preview child. Log trước đó giữ nguyên: RED `482aa14f…`, focused GREEN `4cc8c5a1…`, Biome-before `37013611…`.
+
+Identity run: runner PID8231, SIGTERM child PID8649; ví dụ nonce-container `crew-v2-web-198844d4-579a-46cb-8d4f-f324eb52bfbf`, DB port57830, web58213/API58214 và API58626; ba container exact `0f7346a0871731ed9a4d85ec469367fe13cf7dcb1a7f3719bdf1727a5a3e6ec6`, `62ef6b97c9622cc0abe496c1624a59433313e595293b6b2a910301a4805303b7`, `978e9ae89ccd9a90d58d97b6a8cb727d1edf42c396167b5c704c58a298050820`; image digest `4ef4dbc9…c2280` (postgres:18.6 local). Scratch (TMPDIR `/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T`): `crew-v2-web-fHUpFD`, `-jaquZS`, `-NYooz1`, `-fix2-tony8x`.
+
+Cleanup witness: log ghi 6 `stopped` và 9 `removed`, tất cả `reason:null`. Độc lập sau run: `docker container inspect` ba exact ID đều exit1 (không tồn tại); `docker ps -a --filter name=crew-v2-web` rỗng; `ps -p 8231,8649` rỗng; `lsof` LISTEN trên 57830/58213/58214/58626 rỗng; không còn thư mục `crew-v2-web*` trong TMPDIR. Container `magical_lehmann`, `modest_jemison`, `crew-dev-postgres`, `visinote-*` không do em tạo, không chạm. Docs R3: không có source đổi nên không cần sửa flow/manifest. Slot heavy trả PM.
