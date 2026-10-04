@@ -148,3 +148,28 @@ Tài nguyên: mọi lượt nặng đều giữ lock với owner `s5-gates` và 
 - Thứ tự "mới nhất" của artifact dựa vào `fence` rồi `created_at` (`now()` của Tx ghi). Vì evidence không có cột thứ tự riêng, các row cùng mốc được xử lý thận trọng: phải cùng SHA mới coi là hiện hành.
 - `WORKFLOW_RUN_SUPERSEDED` suy từ thứ tự journal vì schema không có quan hệ supersede. Lát superseding sau này nên ghi quan hệ tường minh, hoặc đóng các gate của run cũ.
 - W1–W6: chuyển ledger theo chỉ đạo, không làm trong lát này.
+
+## Vòng sửa 2 (follow-up của `task-3-s2-fix1-re-review.md`)
+
+Commit `cb02a7d`. Test viết trước source.
+
+| Mục | Sửa | Test |
+|---|---|---|
+| N3 | Trước đây `assertRunCurrent` coi run là hiện hành khi không xác định được thứ tự (fail-open). Giờ hàm đọc cursor `ticket.created` đầu tiên của từng run trên root và trả 409 `WORKFLOW_RUN_SUPERSEDED` khi run này không có cursor, khi một run khác của root không có cursor, hoặc khi có run mới hơn. | Một run và ticket bước được seed bằng SQL, không có event nào. Câu hỏi gắn run → 409, không ghi row nào. |
+| N2 | `assertRunCurrent` và `readRun` thêm điều kiện `e.project_id = <project của root>` để dùng index `events_project_cursor_idx` sẵn có. Không thêm index, không thêm migration. | Đây là thay đổi hiệu năng, không đổi hành vi. Các test thứ tự bước của S4 (DAG, chuỗi path) vẫn xanh. |
+| N4 | Chỉ khi so xung đột, key được so theo `decodeURIComponent(path).normalize('NFC').toLowerCase()`, áp cho cả trùng trong một unit lẫn path lồng nhau giữa các unit. `validPath` vẫn kiểm cả dạng đã decode. Giá trị lưu không đổi. | `Src/A.ts` với `src/a.ts`, NFD với NFC, `src%2Fdb` với `src/db/x.ts`, `src/%61.ts` với `src/a.ts` → 409, không ghi row nào. Duyệt hợp lệ lưu `scope.parallel` đúng như owner gửi (`Src/A.ts`, `web/B.tsx`). |
+| N1 | Theo ruling PM, không đổi code. Docs flow ghi: mỗi gate có đúng một artifact hiện hành; bước sinh nhiều file phải gói thành một artifact. | — |
+
+| Lượt | Kết quả | Log SHA (16) |
+|---|---|---|
+| RED | 31 test: 29 pass, 2 fail đúng ngữ nghĩa (N4, N3) | `ebc6801f00512fb7` |
+| GREEN (8 tệp S2/S4/S5) | 237/237 (235 cộng 2 mới) | `423fa10800b0ff81` |
+| Hồi quy | 102/102 | `761402c3b20648c3` |
+| Biome (4 file) | 0 lỗi, 0 warning | `3f4bb0fad1fdaf80` |
+| tsc strict scoped | exit 0, log rỗng | `e3b0c44298fc1c14` |
+
+Docs: `assistant-workflows.md` (bước 15 và 17, phần test). `crew-docs check --all` và `--staged` ok trên mirror; hook commit cũng ok. Tài nguyên giữ như các vòng trước: lock owner `s5-gates`, `heavyEligible=true`, sau mỗi lượt còn 0 DB, 0 container, 0 `node --test`.
+
+**Concerns vòng 2**
+- N5: `workflow_steps.ownership_keys` vẫn lưu key thô. Consumer T7 phải dùng cùng quy tắc so xung đột. Hàm `conflictKey` hiện là private trong `gates.ts`; nên export khi T7 nối, hoặc ghi vào checklist T7.
+- Một run được restore mà thiếu event `ticket.created` sẽ khóa mọi gate của root đó (đóng an toàn). Muốn gỡ thì phải khôi phục event hoặc tạo run mới.

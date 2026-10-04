@@ -1,0 +1,205 @@
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WlBsIJ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WlBsIJ nonceSha256=093987967ff9218844477d2805455452295ad1c90d33feb00573ee8cd9e3a8cf
+attachment DB scratch identity dev=16777231 ino=220571385 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WlBsIJ
+✔ assistant workflows: definition not proven on machine B is 422 without rows (372.521959ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9xel80
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9xel80 nonceSha256=a94187058bfed686347196b1e975f8821df295156c812c11881e06428cf2291a
+attachment DB scratch identity dev=16777231 ino=220571392 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9xel80
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DYiKXK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DYiKXK nonceSha256=5bd82544dad533b04e758229dbe2da84baeb57904e6fd8727542fc75c2b3bdad
+attachment DB scratch identity dev=16777231 ino=220571399 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DYiKXK
+✔ assistant workflows: resolver denial writes no run (480.5145ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vWYDJZ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vWYDJZ nonceSha256=bd4da5ef8301db205078d54b78c51143869a0d725499660b9f3c204cc36d94f9
+attachment DB scratch identity dev=16777231 ino=220571406 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vWYDJZ
+✔ assistant workflows: createRun accepts only the operation written for this exact run request (387.269167ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-85DggR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-85DggR nonceSha256=9bb1a9f1e30f14310542f847a92c384c6deec80c4606d7e03351a79448236c7a
+attachment DB scratch identity dev=16777231 ino=220571413 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-85DggR
+✔ assistant workflows: architectural path follows the pinned brainstorming → writing-plans → execution chain (349.828417ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Z3qP5r
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Z3qP5r nonceSha256=6383ab17a42c270bf9ee01b36d361bb5044c4cc758ac1e0a6cb9eea6153a91eb
+attachment DB scratch identity dev=16777231 ino=220571420 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Z3qP5r
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WSD8mK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WSD8mK nonceSha256=f55d1433940241f1e7cc528c9d17bc41c9a8d84c7ad18fa24f6beb4a8272b6d1
+attachment DB scratch identity dev=16777231 ino=220571427 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WSD8mK
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3X6ud9
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3X6ud9 nonceSha256=90c7a1b04c4511af63e4eff4a11e55b275028e72d60edbccbb4e34b708b0f820
+attachment DB scratch identity dev=16777231 ino=220571434 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3X6ud9
+✔ assistant workflows: bounded, bug and spike paths map their pinned sources (943.079583ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YRBRM9
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YRBRM9 nonceSha256=a02b76b44fbbf8c73b1cea26564a21e7df5a70af21c7de27214a633406c3c48c
+attachment DB scratch identity dev=16777231 ino=220571441 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YRBRM9
+✔ assistant workflows: bmad-dispatch run waits for a verified render latch (398.586ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tQVnLt
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tQVnLt nonceSha256=326a9229226a881c45e7b6c468356f1645b5989bc81b679f51ba2ad4595a2ef4
+attachment DB scratch identity dev=16777231 ino=220571448 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tQVnLt
+✔ assistant workflows: bmad-oneshot keeps the official oneshot route without an artifact (295.234ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GVOD8B
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GVOD8B nonceSha256=585cade03d5b5357bfaaf0bca74b97b7bcaddf93b9ff4a9b844be9b4e2d6836f
+attachment DB scratch identity dev=16777231 ino=220571455 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GVOD8B
+✔ assistant workflows: pinned run and step identity is immutable in SQL (296.256084ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KLM4ym
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KLM4ym nonceSha256=b51007cd1bc35f6b4cb6895f32aa2814bd9d1b745f2641d9e3549e29b7b1c2bc
+attachment DB scratch identity dev=16777231 ino=220571462 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KLM4ym
+✔ assistant workflows: createRun is all-or-nothing when a later write fails (378.795709ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-V54jXH
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-V54jXH nonceSha256=4323f3d602e4e8926033d5834910db2e39fcbe0257dd0152f11b7d61cc89536a
+attachment DB scratch identity dev=16777231 ino=220571469 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-V54jXH
+✔ assistant workflows: parallel needs an exact owner approval of this root, sequential otherwise (351.185041ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yDKboH
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yDKboH nonceSha256=f799a66e013ae5ca6d617d63dcf99a2bd404cdbcef4e9ec04cb439a0a374eb46
+attachment DB scratch identity dev=16777231 ino=220571476 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yDKboH
+✔ assistant workflows: owner approval of another root leaves this run sequential (303.628666ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KJdG6S
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KJdG6S nonceSha256=4e5a25cfc4e9850171f7858aa3f6a3132a08d8a932793120e7b5c6f2ffd4c0d4
+attachment DB scratch identity dev=16777231 ino=220571483 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KJdG6S
+✔ assistant gates: a gate without a verified artifact has no row; the artifact materializes the gate, then its question (403.942167ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zjeVxA
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zjeVxA nonceSha256=5243ad7263d05979c2a8fae48546aa18d83365cba9e27d98f2084c8730267420
+attachment DB scratch identity dev=16777231 ino=220571490 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zjeVxA
+✔ assistant gates: ask_owner needs its own pending operation for this exact proposal, turn and scope (368.707542ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NUkgbA
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NUkgbA nonceSha256=f12e1c18551ccdbf18f1bdde74fb2e62df9418030df6b1969cbec32fbaa86524
+attachment DB scratch identity dev=16777231 ino=220571497 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NUkgbA
+✔ assistant gates: only the owner answers; a machine self-answer or another decision cannot advance the gate (343.593458ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A57RrT
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A57RrT nonceSha256=091f62ce834965660c5455db084de55fc7244df0ddcf86480049ec9fe2f92f5a
+attachment DB scratch identity dev=16777231 ino=220571505 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A57RrT
+✔ assistant gates: the exact owner answer advances the gate once; stale inputs and replay are 409 (382.087166ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lhmPQP
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lhmPQP nonceSha256=a6d60cf72d372db01fc4933da9393d6628b1733017766770b4e2573435bbf9da
+attachment DB scratch identity dev=16777231 ino=220571512 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lhmPQP
+✔ assistant gates: a superseding question makes the earlier revision stale; the gate keeps its artifact (353.524708ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NA87QC
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NA87QC nonceSha256=acbf834a000162dd345e52879867326eed0533aa272c4211cd3590d7d1fefaae
+attachment DB scratch identity dev=16777231 ino=220571519 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NA87QC
+✔ assistant gates: a changed definition blocks the answer and a failed write leaves no answer behind (345.148459ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Yl8rrG
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Yl8rrG nonceSha256=2a2b3f10e5fd2b10d94b05f3f47c0568f18082eb8d80409eed8b46fffce28bca
+attachment DB scratch identity dev=16777231 ino=220571526 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Yl8rrG
+✔ assistant gates: the plan gate approval resolves one official execution choice against the run definition (373.691875ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HxIckQ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HxIckQ nonceSha256=2eb77837d99e43d249b28fe96b9813137351083dce176f15d1604e0cd2a58dfb
+attachment DB scratch identity dev=16777231 ino=220571533 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HxIckQ
+✔ assistant gates: the architecture discussion gate opens only after three failed fixes (352.018291ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XD4j2K
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XD4j2K nonceSha256=fc16eac7ad23853b2a4cf98b38b840d58ca3e80293d93a3ff6fe534dc9454c8b
+attachment DB scratch identity dev=16777231 ino=220571540 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XD4j2K
+✔ assistant gates: a ticket question without a gate takes one owner answer (249.240958ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rmgezN
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rmgezN nonceSha256=d46ad117fda32b67c7144ccf6268a994aff0cf54b8fc6e91d0fa6ea13d695ad3
+attachment DB scratch identity dev=16777231 ino=220571547 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rmgezN
+✔ assistant gates: a BMAD gate needs the latched render of its run (336.099875ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-q1CqVg
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-q1CqVg nonceSha256=cdcd3bee026acb8ddb2807e527f69f18398cc8b106bceab3d466db20f1f0ecd6
+attachment DB scratch identity dev=16777231 ino=220571554 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-q1CqVg
+✔ assistant gates: only the newest artifact of the step is asked or approved; a superseded one can still be rejected (365.396833ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-z18sNk
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-z18sNk nonceSha256=0d9264e76696a1ffd543d4fd7cf244579a74234ce2d4557b2004f2f50acf49fa
+attachment DB scratch identity dev=16777231 ino=220571561 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-z18sNk
+✔ assistant gates: a reject of the superseded artifact closes the gate without approving it (326.904ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ffOJtm
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ffOJtm nonceSha256=df953320b74ca8b0880f376f4f433eaf8f487cdc84559c920880b9679196b69d
+attachment DB scratch identity dev=16777231 ino=220571568 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ffOJtm
+✔ assistant gates: a gate of a run superseded by a newer run of the same root is closed (382.673ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QPB1yh
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QPB1yh nonceSha256=4fb424cd1ff47c2dfb2f9c5fea683bd60c1c28ccfb623231aa5834923392eabf
+attachment DB scratch identity dev=16777231 ino=220571580 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QPB1yh
+✔ assistant gates: recordGateAnswer holds the journal cursor before it waits for the root (374.656625ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lk1Co5
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lk1Co5 nonceSha256=c9ddb3a96b518d518cb40ea3c1954685de947ce8e4a95a86f0939ea1ac46779f
+attachment DB scratch identity dev=16777231 ino=220571587 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lk1Co5
+✔ assistant gates: parallel ownership is compared on normalized paths and directory nesting (375.374ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ACWlGm
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ACWlGm nonceSha256=8daaeeda2cede5753db11604a585a912d7e047f7141b0b1b0779d1b4f863fbdf
+attachment DB scratch identity dev=16777231 ino=220571594 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ACWlGm
+✔ assistant workflows: bounded parallel approval applies the shared unit rules (227.194125ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YBhTsu
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YBhTsu nonceSha256=9485d17b8ba0a7e75a39bad0a4f75cc4749100b5f8d759a89f660b2626fe4e76
+attachment DB scratch identity dev=16777231 ino=220571601 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YBhTsu
+✔ assistant gates: a decision of another gate or another root cannot advance this question (371.986625ms)
+✔ assistant gates: ask_owner is a member of the tagged operation request form (0.174792ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3CCJTy
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3CCJTy nonceSha256=9a1e3c67303afd6fc0bf453045ba4c349172b98a4ec592caba056128276cc47b
+attachment DB scratch identity dev=16777231 ino=220571608 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3CCJTy
+✖ assistant gates: parallel ownership conflicts ignore case, Unicode form and percent-encoding (333.635833ms)
+attachment DB container 00a75dbdc7b0fa57a103469665980292edd7578d9cf6ff8124d66dfd25747a12 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RmvuJD
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RmvuJD nonceSha256=9cca8935b0c378d1cce86e20c3a3adb5adb79b2658720cce2a73d5c81559040f
+attachment DB scratch identity dev=16777231 ino=220571615 uid=501 pid=64663
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RmvuJD
+✖ assistant gates: a run whose journal order is unknown fails closed (251.2245ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 29
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11209.07225
+
+✖ failing tests:
+
+test at v2/server/test/assistant-workflows.test.ts:2307:1
+✖ assistant gates: parallel ownership conflicts ignore case, Unicode form and percent-encoding (333.635833ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:2339:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:2357:1
+✖ assistant gates: a run whose journal order is unknown fails closed (251.2245ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:2377:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'WORKFLOW_RUN_SUPERSEDED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
