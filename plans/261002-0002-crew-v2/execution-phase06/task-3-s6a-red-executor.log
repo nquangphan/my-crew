@@ -1,0 +1,300 @@
+✖ render executor refuses a non-BMAD definition without reserving or spawning anything (93.87725ms)
+✖ render executor runs the official uv argv once and returns the exact workflow render receipt (65.09725ms)
+✖ render executor leaves an existing byte-identical generation untouched on a second render (69.025792ms)
+✖ render executor never runs one operation twice (70.656ms)
+✖ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (66.789375ms)
+✖ render executor halts when stdout does not name exactly the rendered workflow entry (67.749458ms)
+✖ render executor halts when the printed generation does not match its measured bytes (65.000959ms)
+✖ render executor refuses drifted workspace inputs before reserving or spawning (73.882625ms)
+✖ render executor binds the project root to the canonical workspace directory (68.018291ms)
+✖ render executor requires the recorded uv bytes before spawning (68.569166ms)
+✖ render executor refuses an inconsistent or unacceptable definition before spawning (69.338125ms)
+✖ render executor validates attempt and operation identifiers before any effect (64.836917ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 0
+ℹ fail 12
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 928.579125
+
+✖ failing tests:
+
+test at test/render-executor.test.ts:382:1
+✖ render executor refuses a non-BMAD definition without reserving or spawning anything (93.87725ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_NOT_BMAD'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:389:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:383:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_NOT_BMAD' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:394:1
+✖ render executor runs the official uv argv once and returns the exact workflow render receipt (65.09725ms)
+  AssertionError [ERR_ASSERTION]: {"halt":true,"reason":"NOT_IMPLEMENTED"}
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:397:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:395:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:460:1
+✖ render executor leaves an existing byte-identical generation untouched on a second render (69.025792ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert('receipt' in first)
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:463:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:461:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:487:1
+✖ render executor never runs one operation twice (70.656ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert('receipt' in (await h.render({ operationId: operationIds[2] })))
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:489:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:488:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:495:1
+✖ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (66.789375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_EXIT_NONZERO'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:507:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:505:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_EXIT_NONZERO' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:516:1
+✖ render executor halts when stdout does not name exactly the rendered workflow entry (67.749458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_STDOUT_MISMATCH'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:534:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:529:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_STDOUT_MISMATCH' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:539:1
+✖ render executor halts when the printed generation does not match its measured bytes (65.000959ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_ARTIFACT_MISMATCH'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:549:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:541:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_ARTIFACT_MISMATCH' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:591:1
+✖ render executor refuses drifted workspace inputs before reserving or spawning (73.882625ms)
+  AssertionError [ERR_ASSERTION]: optional layer appeared
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_INPUT_MISMATCH'
+    }
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:615:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:612:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_INPUT_MISMATCH' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:621:1
+✖ render executor binds the project root to the canonical workspace directory (68.018291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_PROJECT_ROOT_MISMATCH'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:625:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:622:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_PROJECT_ROOT_MISMATCH' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:639:1
+✖ render executor requires the recorded uv bytes before spawning (68.569166ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_UV_UNAVAILABLE'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:641:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:640:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_UV_UNAVAILABLE' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:651:1
+✖ render executor refuses an inconsistent or unacceptable definition before spawning (69.338125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_DEFINITION_MISMATCH'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:653:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:652:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_DEFINITION_MISMATCH' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:668:1
+✖ render executor validates attempt and operation identifiers before any effect (64.836917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      halt: true,
+  +   reason: 'NOT_IMPLEMENTED'
+  -   reason: 'RENDER_REQUEST_INVALID'
+    }
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:348:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:676:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:326:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:669:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { halt: true, reason: 'NOT_IMPLEMENTED' },
+    expected: { halt: true, reason: 'RENDER_REQUEST_INVALID' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
