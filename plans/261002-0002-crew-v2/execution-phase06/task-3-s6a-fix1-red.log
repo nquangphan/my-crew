@@ -1,0 +1,202 @@
+✔ render executor refuses a non-BMAD definition without reserving or spawning anything (104.739209ms)
+✔ render executor runs the official uv argv once and returns the exact workflow render receipt (78.03525ms)
+✔ render executor leaves an existing byte-identical generation untouched on a second render (81.438583ms)
+✔ render executor never runs one operation twice (74.459167ms)
+✖ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (71.027166ms)
+✖ render executor halts when stdout does not name exactly the rendered workflow entry (72.118208ms)
+✖ render executor halts when the printed generation does not match its measured bytes (88.372041ms)
+✔ render executor refuses drifted workspace inputs before reserving or spawning (476.010208ms)
+✔ render executor binds the project root to the canonical workspace directory (72.05525ms)
+✔ render executor requires the recorded uv bytes before spawning (219.468167ms)
+✔ render executor refuses an inconsistent or unacceptable definition before spawning (60.450458ms)
+✔ render executor validates attempt and operation identifiers before any effect (61.819208ms)
+✖ render executor refuses unpinned files beside the renderer, skill and config before spawning (70.706583ms)
+✖ render executor refuses unpinned files that appear beside the renderer during the render (68.515833ms)
+✖ render executor tells owned-operation lock contention apart from operation reuse (63.725167ms)
+✖ render executor returns the log digest and a sanitized first line when a run halts (62.697167ms)
+✖ render executor accepts a symlinked uv by hashing and running the resolved executable (64.0885ms)
+✖ render executor requires a canonical owned-operation root before reserving a stage (72.431708ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 9
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1963.804583
+
+✖ failing tests:
+
+test at test/render-executor.test.ts:539:1
+✖ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (71.027166ms)
+  AssertionError [ERR_ASSERTION]: RENDER_EXIT_NONZERO log diagnostics
+  
+  false !== true
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:380:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:551:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:549:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:560:1
+✖ render executor halts when stdout does not name exactly the rendered workflow entry (72.118208ms)
+  AssertionError [ERR_ASSERTION]: RENDER_STDOUT_MISMATCH log diagnostics
+  
+  false !== true
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:380:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:578:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:573:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:583:1
+✖ render executor halts when the printed generation does not match its measured bytes (88.372041ms)
+  AssertionError [ERR_ASSERTION]: RENDER_ARTIFACT_MISMATCH log diagnostics
+  
+  false !== true
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:380:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:593:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:585:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:751:1
+✖ render executor refuses unpinned files beside the renderer, skill and config before spawning (70.706583ms)
+  AssertionError [ERR_ASSERTION]: shadowing module in scripts
+  + actual - expected
+  
+  + false
+  - 'RENDER_INPUT_MISMATCH'
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:794:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:791:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: 'RENDER_INPUT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:800:1
+✖ render executor refuses unpinned files that appear beside the renderer during the render (68.515833ms)
+  AssertionError [ERR_ASSERTION]: {"receipt":{"kind":"workflow_render_receipt","attemptId":"0b8f3c62-5d1e-4a8f-9c3b-2f6d7e8a9b10","data":{"definitionSha256":"9f747a4353b96b11394beaf2634081908c9d4e0c4df547663bdbf9ab608f2fbd","customizationSha256":"1724c511cac29404a2604bee231d8d20fb306dc217dcf7062e2b6170ed589c9b","projectRoot":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/workspaces/Crew S6a Project","generationPath":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/workspaces/Crew S6a Project/_bmad/render/bmad-build/crew-s6a-project-ffe77c3e9c31/f0d6d77b74d7264f076a","inspection":{"kind":"artifact-inspection","manifestSha256":"24927fb379eb8c9abef49bad6484ba1144f4c89c42d045e9ad4254ed0280b2f5","sourceSha256":{"steps/step-01.md":"2180b52ca10cc4b097bf5a53fff4f18d58e5127100d4d198ad5b5eaf96b1258d","workflow.md":"129fb55a2a5a82ba7e92c28b3168cc438186020f5dc14b1ebf6d8287f70f6f06"},"outputSha256":{"steps/step-01.md":"2180b52ca10cc4b097bf5a53fff4f18d58e5127100d4d198ad5b5eaf96b1258d","workflow.md":"129fb55a2a5a82ba7e92c28b3168cc438186020f5dc14b1ebf6d8287f70f6f06"},"layerSha256":{"_bmad/config.toml":"4332099922e2f11616116e6331b4249a96591cefaab80d7db912e72c41507b05","_bmad/config.user.toml":null,"_bmad/custom/config.toml":null,"_bmad/custom/config.user.toml":null,"_bmad/custom/bmad-build.toml":null,"_bmad/custom/bmad-build.user.toml":null,".claude/skills/bmad-build/customize.toml":"0b95c3bfc689fed34a631472c5d97699dc916e1294cea992c937120f2be09f4e"}},"witness":{"uvPath":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/bin/uv","uvSha256":"a7ca28e0e1de28bf1df9d573084fca66a2c7c1488f1520c036b42f69bbd7ba38","uvVersion":"uv 0.9.0","argv":["/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/bin/uv","run","--no-cache","/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/workspaces/Crew S6a Project/_bmad/scripts/render_skill.py","--project-root","/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/workspaces/Crew S6a Project","--skill","/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/workspaces/Crew S6a Project/.claude/skills/bmad-build"],"exitCode":0,"stdoutPath":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-tDSTMW/workspaces/Crew S6a Project/_bmad/render/bmad-build/crew-s6a-project-ffe77c3e9c31/f0d6d77b74d7264f076a/workflow.md","startedAt":"2026-10-04T00:00:01.000Z","endedAt":"2026-10-04T00:00:02.000Z","operationId":"1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}}}}
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:377:3)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:808:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:802:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:813:1
+✖ render executor tells owned-operation lock contention apart from operation reuse (63.725167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_OPERATION_REUSED'
+  - 'RENDER_OPERATION_BUSY'
+                      ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:378:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:816:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:814:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_OPERATION_REUSED',
+    expected: 'RENDER_OPERATION_BUSY',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:824:1
+✖ render executor returns the log digest and a sanitized first line when a run halts (62.697167ms)
+  AssertionError [ERR_ASSERTION]: RENDER_EXIT_NONZERO log diagnostics
+  
+  false !== true
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:380:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:831:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:825:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:851:1
+✖ render executor accepts a symlinked uv by hashing and running the resolved executable (64.0885ms)
+  AssertionError [ERR_ASSERTION]: {"halt":true,"reason":"RENDER_UV_UNAVAILABLE"}
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:856:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:852:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:863:1
+✖ render executor requires a canonical owned-operation root before reserving a stage (72.431708ms)
+  AssertionError [ERR_ASSERTION]: {"receipt":{"kind":"workflow_render_receipt","attemptId":"0b8f3c62-5d1e-4a8f-9c3b-2f6d7e8a9b10","data":{"definitionSha256":"9f747a4353b96b11394beaf2634081908c9d4e0c4df547663bdbf9ab608f2fbd","customizationSha256":"1724c511cac29404a2604bee231d8d20fb306dc217dcf7062e2b6170ed589c9b","projectRoot":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/workspaces/Crew S6a Project","generationPath":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/workspaces/Crew S6a Project/_bmad/render/bmad-build/crew-s6a-project-43711557b741/cec9dd55fc2a4b7fd3f3","inspection":{"kind":"artifact-inspection","manifestSha256":"b674f9a660032884d4113b9e58d8ad7e22ecaf5279fdbe0cd212f8e851b6f3f7","sourceSha256":{"steps/step-01.md":"2180b52ca10cc4b097bf5a53fff4f18d58e5127100d4d198ad5b5eaf96b1258d","workflow.md":"129fb55a2a5a82ba7e92c28b3168cc438186020f5dc14b1ebf6d8287f70f6f06"},"outputSha256":{"steps/step-01.md":"2180b52ca10cc4b097bf5a53fff4f18d58e5127100d4d198ad5b5eaf96b1258d","workflow.md":"129fb55a2a5a82ba7e92c28b3168cc438186020f5dc14b1ebf6d8287f70f6f06"},"layerSha256":{"_bmad/config.toml":"4332099922e2f11616116e6331b4249a96591cefaab80d7db912e72c41507b05","_bmad/config.user.toml":null,"_bmad/custom/config.toml":null,"_bmad/custom/config.user.toml":null,"_bmad/custom/bmad-build.toml":null,"_bmad/custom/bmad-build.user.toml":null,".claude/skills/bmad-build/customize.toml":"0b95c3bfc689fed34a631472c5d97699dc916e1294cea992c937120f2be09f4e"}},"witness":{"uvPath":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/bin/uv","uvSha256":"a7ca28e0e1de28bf1df9d573084fca66a2c7c1488f1520c036b42f69bbd7ba38","uvVersion":"uv 0.9.0","argv":["/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/bin/uv","run","--no-cache","/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/workspaces/Crew S6a Project/_bmad/scripts/render_skill.py","--project-root","/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/workspaces/Crew S6a Project","--skill","/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/workspaces/Crew S6a Project/.claude/skills/bmad-build"],"exitCode":0,"stdoutPath":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-render-executor-zJIIZv/workspaces/Crew S6a Project/_bmad/render/bmad-build/crew-s6a-project-43711557b741/cec9dd55fc2a4b7fd3f3/workflow.md","startedAt":"2026-10-04T10:38:26.540Z","endedAt":"2026-10-04T10:38:26.542Z","operationId":"1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}}}}
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:377:3)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:874:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:864:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
