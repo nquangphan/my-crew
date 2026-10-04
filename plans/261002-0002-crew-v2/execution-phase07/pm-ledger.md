@@ -58,3 +58,9 @@ Ruling: ⚠️ listener-before-GET, focus refetch, login/expired vào router thu
 Ruling: nâng N2 (mutate song song nhả key) và N4 (replay sau abort) vào FIX2 dù reviewer xếp Minor — cùng bất biến chống mutation trùng, nằm trong delta đang sửa — sai thì tốn thêm một ít diff ở vòng này.
 Task 2: minor (deferred): N3 nhãn "Tạm dừng vì hết phiên" cho operation giữ vì 403 khi phiên còn sống (`session-boundary.tsx:96-100`).
 Ruling: concern "không có cách bỏ request ambiguous" là quyết định UX của owner (chấp nhận rủi ro trùng) — hỏi owner khi tới UI composer/Task5, không chặn Task2.
+
+12:00 04/10 Task2 FIX2 `6c35218` scoped re-review `task-2-fix2-re-review.md`: Approved; N1/N2/N4 ADDRESSED, N3 vẫn hoãn.
+Task 2: complete — 6c35218 (source 2b958b8 + FIX1 a69ea3b + FIX2 6c35218). S2 source và A2 (lost-response→expiry→reauth→replay trên API/PG thật) đạt.
+Task 2: minor (deferred, PHẢI triage trước merge): B1 cờ resumed chỉ ở memory — reload biến operation nhập lại thành thường, 400/413/415 nhả key (`pending-operation.ts:166,278-288`).
+Task 2: minor (deferred): B2 thông báo "Máy chủ từ chối yêu cầu" khi payload nhập lại về tombstone — gộp với N3.
+Kế tiếp web: controller wiring `main.tsx`/`router.tsx` (SessionBoundary/LoginScreen/wireSession, QueryClient retry off cho OwnerClient.get, focus refetch, listener trước initial GET) rồi theo source topo S3a/S5a/S6docs/S7basic.
