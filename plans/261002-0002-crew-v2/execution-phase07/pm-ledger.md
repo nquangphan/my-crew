@@ -167,3 +167,5 @@ Task 5 S5a: minor (deferred, lượt A5 cùng C1–C3): D1 #reserve mở compose
 21:05 S3b FIX2 `ab1bb3a` re-review `task-3-s3b-fix2-re-review.md`: Approved có điều kiện; B1/B2/B4/I3 ADDRESSED.
 Task 3 S3b: complete (source) — ab1bb3a (60f546e + f1cda08 + d9216cc + ab1bb3a), ĐIỀU KIỆN: controller bọc TicketDraftStorageProvider + gọi clearTicketDrafts trong onLogout (đang giao controller integration). A3 BLOCKED fixture attachments.
 Task 3 S3b: minor (deferred, lượt A3/A5): N1 re-entry tombstone (editing) bỏ thẳng không xác nhận trùng — cần S5a lộ needsPayload/discardable; N2 handle null coi như discarded (session/tệp còn); N3 nút bỏ bình luận luôn hiện; N4 confirming không reset khi accepted; N5 formDrafts gắn storage lần đầu (WeakMap). B3 vẫn mở.
+
+22:00 Controller integration `2b101ec`/`cf9c863` DONE (13 E2E, lifecycle 6, unit/tsc/build). PM dọn: xóa `perl`/`perl.resource` (rác do lệnh perl alarm sai cú pháp lúc 12:16, untracked); khôi phục `execution-phase06/task-2-c-biome-format.log` về bản commit (một worker append thêm dòng — log bằng chứng là bất biến). Nhắc: log mới phải đặt tên riêng, không ghi vào log của task đã nghiệm thu.
