@@ -208,3 +208,5 @@ Task 2 B3b: minor (deferred): N2 hai execute đồng thời cùng operation gử
 Task 2 Slice B3b: complete — 586da9c (97737a1 + 7ffa25b + 24dfc7b + 586da9c). Chưa mount production.
 Ruling (bắt buộc khi mở route_message/request_review): G3a xem lại danh sách loại trừ test chống trôi (MACHINE_REQUIRED, DEPLOY_OWNER_INTENT_REQUIRED sẽ tới được). G3c: quy tắc "4xx namespace ASSISTANT_ tất định" chỉ áp cho mã trên đường tool; mã trạng thái thời gian (ASSISTANT_WORK_HELD/NOT_DUE/TURN_IN_USE/CALIBRATION_ACTIVE/REASSIGNMENT_PENDING) không được đưa lên đường tool dưới 4xx — nếu cần thì dùng 5xx.
 Task 2 B3b: minor (deferred): G3b bộ quét bỏ sót fail('CODE',status) (docs/import.ts:379), mã dựng từ biến, journal/mutation.ts BODY_INVALID.
+
+07:00 Ruling: S6 cắt thành S6a (gateway render-executor.ts: OwnedOperations + D1 inspector + receipt builder, unit, không spawn thật trừ fake child; gộp D2 M2 export validator expectation từ D1) và S6b (workspace materialize transfer phase03, gọi executor trước launch, server registerRenderReceipt, integration uv thật). Lý do quota còn 10% — S6a nhỏ, khép được trước ngưỡng 5%. Dispatch S6a.
