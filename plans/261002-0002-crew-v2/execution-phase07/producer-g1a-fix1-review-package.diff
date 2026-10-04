@@ -1,0 +1,217 @@
+78bf6c3 fix(v2-server): giới hạn latest cursor cho owner và so khớp id comment/decision theo text
+ v2/docs/flows/server-journal.md     |  2 +-
+ v2/docs/flows/server-tickets.md     |  2 +-
+ v2/server/src/journal/routes.ts     |  2 +-
+ v2/server/src/tickets/history.ts    |  4 ++--
+ v2/server/test/ticket-reads.test.ts | 45 ++++++++++++++++++++++++++++++++++---
+ 5 files changed, 47 insertions(+), 8 deletions(-)
+diff --git a/v2/docs/flows/server-journal.md b/v2/docs/flows/server-journal.md
+index fe14f0f..4907cd0 100644
+--- a/v2/docs/flows/server-journal.md
++++ b/v2/docs/flows/server-journal.md
+@@ -15,21 +15,21 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
+ 1. `server/src/journal/canonical.ts` → `canonicalJson`: sắp xếp key JSON, từ chối giá trị không thể biểu diễn an toàn. `server/src/journal/mutation.ts` → `createMutator` băm body SHA-256, kiểm tra khóa ASCII in được, rồi khóa phạm vi `(actor, route, key)` bằng advisory lock trong transaction.
+ 2. `server/src/journal/mutation.ts` → `createMutator`: khóa `event_cursor`, rồi gọi callback `MutationContext.authorize(tx)` nếu route cung cấp. Callback kiểm tra scope và giữ khóa project trong cùng transaction trước cả khi đọc response idempotency đã lưu. Cùng hash trả response qua `ResponseCodec`; khác hash trả 409. Request mới chạy `work`, ghi response, rồi commit. Lỗi rollback cả công việc, event và response. Route không cung cấp callback giữ hành vi cũ; route máy execution bắt buộc cung cấp callback này để replay không vượt binding hiện hành.
+ 3. `server/src/journal/event-contracts.ts` → `validateEventInput`: từ chối key nhạy cảm lồng sâu, type và payload chưa khai báo. Các hợp đồng gồm `machine.provisioned`, `project.created`, `project.bound`, metadata ticket `ticket.created/changed`, `dependency.added`, `comment.created`, `decision.created`, `repair.recorded`, và metadata execution `command.created/acknowledged`, `attempt.claimed/checkpoint/stopped/finalized`; docs `docs.imported` chỉ có importId/projectCount (1–100), `docs.synced` chỉ có snapshotId/sourceCommit/auditState trong project scope; `probe` chỉ phục vụ test nội bộ. Event docs không chứa page bytes, text hoặc audit issues. Nội dung comment/quyết định/evidence/checkpoint/result không đi vào event. `server/src/journal/events.ts` → `appendEvent` tăng `event_cursor` và chèn event trong transaction của caller.
+ 4. `server/src/journal/events.ts` → `readEvents`: đọc scope và event trong cùng transaction `REPEATABLE READ READ ONLY`, tránh lấy binding cũ rồi thấy event mới sau một rebind. Event được trả sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
+ 5. `server/src/journal/routes.ts` → `registerEventRoutes`: xác thực trước khi đọc hoặc mở stream. `GET /v2/events` trả `{items,cursor}`; cursor là event cuối trang hoặc cursor đầu vào khi trang rỗng. SSE lấy `Last-Event-ID` khi nối lại, đọc hết backlog theo trang rồi poll mỗi giây; heartbeat 15 giây. Socket chậm vượt 64 KiB bị đóng để client phát lại từ cursor cuối; socket đóng hoặc app shutdown dừng vòng poll.
+ 
+ 8. `server/src/journal/routes.ts` → `registerEventRoutes`: Tham số currentCredential tùy chọn cho assembly recheck actual credential trong cùng repeatable-read snapshot với scope/events, mỗi backlog page/poll; stream owner hết hạn/machine thu hồi bị đóng. Hook preClose phá socket SSE trước server shutdown; log stream chỉ code, không ghi raw error. HTTP acceptance chứng minh revocation/expiry không phát event mới, race snapshot và shutdown.
+ 
+ 9. `server/src/journal/event-contracts.ts` whitelist thêm gateway.config.changed, gateway.booted, gateway.install.reported, gateway.command.created và gateway.command.acknowledged. Event chỉ chứa revision/UUID/generation/type/phase/accepted, audience đích danh máy, project/ticket null; từ chối raw inventory, URL, result, error hay secret. Gateway service append cùng transaction CAS/ACK/report; heartbeat receipt không phát event và không thay attempt. Authorization recheck actual credential chạy trước cached replay, máy chưa gắn project chỉ đọc event dành riêng mình theo scope hiện hành.
+ 
+-10. `server/src/journal/routes.ts` → `GET /v2/events/latest` (không nhận query) trả `{cursor}` là giá trị hiện tại của `event_cursor` dưới dạng chuỗi thập phân bigint (`"0"` khi journal trống). Cursor chỉ tăng khi transaction ghi event commit nên mọi event ≤ giá trị này đã hiển thị; tab mới đọc nó rồi dùng làm `after` hoặc `Last-Event-ID` thay vì đọc journal từ 0. Cần xác thực như `GET /v2/events`; không lộ nội dung event.
++10. `server/src/journal/routes.ts` → `GET /v2/events/latest` (không nhận query) trả `{cursor}` là giá trị hiện tại của `event_cursor` dưới dạng chuỗi thập phân bigint (`"0"` khi journal trống). Cursor chỉ tăng khi transaction ghi event commit nên mọi event ≤ giá trị này đã hiển thị; tab mới đọc nó rồi dùng làm `after` hoặc `Last-Event-ID` thay vì đọc journal từ 0. Chỉ owner (`requireOwner`, không CSRF vì là GET): máy gọi nhận 403 `OWNER_REQUIRED`, không phiên nhận 401, vì bộ đếm là toàn cục và sẽ để máy suy ra hoạt động của dự án khác. Không lộ nội dung event. Cursor journal là bigint thập phân, khác UUID của list ticket và cursor base64url của docs-links.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/002_journal.sql` | Bảng cursor, event và idempotency; index cho project và máy |
+ | `server/src/journal/canonical.ts` | JSON canonical cho hash và kiểm tra payload |
+ | `server/src/journal/mutation.ts` | Transaction, khóa gửi lại và response codec |
+ | `server/src/journal/event-contracts.ts` | Whitelist event metadata |
+ | `server/src/journal/events.ts` | Ghi và đọc event theo actor/scope |
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index b1cd216..8dbca52 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -20,21 +20,21 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d
+ 6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy root do owner tạo tự có quyền, mọi deploy child cần approval đúng ticket kể cả khi owner trực tiếp tạo child. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+ 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+ 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+ 
+ 9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Authority thật là `ProjectOrchestrationPort` của `server-assistant` (resolver persisted + membership/routing decision); app production chưa inject nên các entry này vẫn trả503.
+ 
+ Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project. Mọi lỗi lệch phạm vi trong prefix và persist dùng chung `invalidScope` (403 `ORCHESTRATION_SCOPE_INVALID`).
+ 
+-11. Đọc bổ sung (chỉ GET, cùng ACL scope ticket như các read hiện có, không migration): `GET /v2/tickets?level=request|step|task` lọc theo cấp, kết hợp `projectId/rootId/status/kind`; với `level=request` trang gốc request phân trang keyset theo `id` (`cursor` UUID, `limit` ≤100, `nextCursor` null ở trang cuối). `GET /v2/tickets/:id/history?cursor=<chuỗi thập phân>&limit=<1..100, mặc định 50>` trả `{items:[{cursor,type,occurredAt,actor|null,data}],nextCursor}` theo thứ tự tăng của journal cursor (`server/src/tickets/history.ts` → `readTicketHistory`), đọc trong transaction `REPEATABLE READ READ ONLY`. Nguồn là event của chính ticket; `actor` lấy từ bản ghi comment/decision tương ứng, còn nội dung comment/decision/rationale không được sao chép (chỉ `commentId`/`decisionId`/`kind` trong `data`). Owner thấy mọi event của ticket; máy chỉ thấy event không có audience hoặc gửi đích danh máy đó. `GET /v2/tickets/:id/docs-links?cursor=<opaque>&limit=<1..100, mặc định 20>` trả `{items:[{snapshotId,path}],nextCursor}` (`readTicketDocsLinks`), keyset theo `(snapshot_id, path)` với cursor base64url mờ. Tham số lạ hoặc cursor/limit sai bị 400; ticket ngoài scope hiện hành trả 404/403 như các read khác. Chưa có projection attempt/máy/model/assessment/evidence.
++11. Đọc bổ sung (chỉ GET, cùng ACL scope ticket như các read hiện có, không migration): `GET /v2/tickets?level=request|step|task` lọc theo cấp, kết hợp `projectId/rootId/status/kind`; với `level=request` trang gốc request phân trang keyset theo `id` (`cursor` UUID, `limit` ≤100, `nextCursor` null ở trang cuối). `GET /v2/tickets/:id/history?cursor=<chuỗi thập phân>&limit=<1..100, mặc định 50>` trả `{items:[{cursor,type,occurredAt,actor|null,data}],nextCursor}` theo thứ tự tăng của journal cursor (`server/src/tickets/history.ts` → `readTicketHistory`), đọc trong transaction `REPEATABLE READ READ ONLY`. Nguồn là event của chính ticket; `actor` lấy từ bản ghi comment/decision tương ứng, còn nội dung comment/decision/rationale không được sao chép (chỉ `commentId`/`decisionId`/`kind` trong `data`). Owner thấy mọi event của ticket; máy chỉ thấy event không có audience hoặc gửi đích danh máy đó. `GET /v2/tickets/:id/docs-links?cursor=<opaque>&limit=<1..100, mặc định 20>` trả `{items:[{snapshotId,path}],nextCursor}` (`readTicketDocsLinks`), keyset theo `(snapshot_id, path)` với cursor base64url mờ. Tham số lạ hoặc cursor/limit sai bị 400; ticket ngoài scope hiện hành trả 404/403 như các read khác. Ba kiểu cursor khác nhau, client không được trộn: danh sách ticket và comments/decisions dùng UUID của hàng cuối; history dùng journal cursor là chuỗi thập phân bigint (so sánh số, không so chuỗi); docs-links dùng cursor mờ base64url. Chưa có projection attempt/máy/model/assessment/evidence.
+ 
+ 10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi đi qua cùng prefix `access.prepare` của decision/dependency: không áp generic ACL máy (authority quyết định), khóa root → ticket → project và kiểm lại dưới khóa rằng ticket và root cùng gốc, cùng dự án (lệch thì 403 `ORCHESTRATION_SCOPE_INVALID` trước verify). Sau đó lõi `checkSignal` dùng chung với generic so revision và kiểm predecessor. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. `access.authorize` gọi verify một lần; `persistSignal` tiêu scope bằng `consumeAssistantScope` một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/004_tickets.sql` | Bảng ticket, DAG, timeline, evidence, repair và liên kết docs |
+ | `server/migrations/010_attachment_comment_text.sql` | Forward-only text0..32768 cho attachment-only comment; giữ NOT NULL và trigger009 |
+ | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
+diff --git a/v2/server/src/journal/routes.ts b/v2/server/src/journal/routes.ts
+index 7140cf2..fd1b824 100644
+--- a/v2/server/src/journal/routes.ts
++++ b/v2/server/src/journal/routes.ts
+@@ -71,21 +71,21 @@ export function registerEventRoutes(
+     const after = requestedCursor(request, false);
+     const limit = requestedLimit(request);
+     const items = await readEvents(options.db, actor, after, limit, requestScope(request, actor));
+     return { items, cursor: items.at(-1)?.cursor ?? after };
+   });
+ 
+   app.get(
+     '/v2/events/latest',
+     { schema: { querystring: { type: 'object', additionalProperties: false, properties: {} } } },
+     async (request) => {
+-      await deps.auth.authenticate(request);
++      await deps.auth.requireOwner(request, { csrf: false });
+       const [row] = await options.db`select value from event_cursor where singleton = true`;
+       if (!row) throw new Error('EVENT_CURSOR_MISSING');
+       return { cursor: parseCursor(String(row.value)) };
+     },
+   );
+ 
+   app.get('/v2/events/stream', async (request, reply) => {
+     const actor = await deps.auth.authenticate(request);
+     assertAllowedQuery(request, true);
+     let cursor = requestedCursor(request, true);
+diff --git a/v2/server/src/tickets/history.ts b/v2/server/src/tickets/history.ts
+index f26f42a..de34064 100644
+--- a/v2/server/src/tickets/history.ts
++++ b/v2/server/src/tickets/history.ts
+@@ -28,23 +28,23 @@ export async function readTicketHistory(
+   limit: number,
+ ): Promise<Paged<HistoryItem>> {
+   const cursor = parseCursor(after);
+   const ownerView = actor.kind === 'owner';
+   const machineId = ownerView ? null : actor.id;
+   return db.begin(readOnly, async (tx) => {
+     await requireTicket(tx, ticketId, actor);
+     const rows = await tx`select e.cursor, e.type, e.occurred_at, e.data,
+         coalesce(c.actor_kind, d.actor_kind) as actor_kind, coalesce(c.actor_id, d.actor_id) as actor_id
+       from events e
+-      left join comments c on e.type = 'comment.created' and c.id = (e.data->>'commentId')::uuid
++      left join comments c on e.type = 'comment.created' and c.id::text = lower(e.data->>'commentId')
+         and c.ticket_id = e.ticket_id
+-      left join decisions d on e.type = 'decision.created' and d.id = (e.data->>'decisionId')::uuid
++      left join decisions d on e.type = 'decision.created' and d.id::text = lower(e.data->>'decisionId')
+         and d.ticket_id = e.ticket_id
+       where e.ticket_id = ${ticketId} and e.cursor > ${cursor}::bigint
+         and (${ownerView} or e.audience_machine_id is null or e.audience_machine_id = ${machineId}::uuid)
+       order by e.cursor limit ${limit + 1}`;
+     const items = rows.slice(0, limit).map((row) => ({
+       cursor: String(row.cursor),
+       type: String(row.type),
+       occurredAt: (row.occurred_at as Date).toISOString(),
+       actor: row.actor_kind
+         ? { kind: row.actor_kind as 'owner' | 'machine', id: String(row.actor_id) }
+diff --git a/v2/server/test/ticket-reads.test.ts b/v2/server/test/ticket-reads.test.ts
+index 08e3359..29013c3 100644
+--- a/v2/server/test/ticket-reads.test.ts
++++ b/v2/server/test/ticket-reads.test.ts
+@@ -1,41 +1,51 @@
+ import assert from 'node:assert/strict';
+ import { randomUUID } from 'node:crypto';
+ import test from 'node:test';
+ import Fastify from 'fastify';
+ import { appendEvent } from '../src/journal/events.ts';
+ import { createMutator } from '../src/journal/mutation.ts';
+ import { registerEventRoutes } from '../src/journal/routes.ts';
+ import type { Actor, Db } from '../src/platform/contracts.ts';
++import { ApiError } from '../src/platform/errors.ts';
+ import { registerTicketRoutes } from '../src/tickets/routes.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
+ 
+ const withDatabase = databaseFixture(4);
+ 
+ async function appFor(db: Db, actorOf: (header: string | undefined) => Actor) {
+   const app = Fastify({ ajv: { customOptions: { removeAdditional: false } } });
+   const options = {
+     db,
+     publicOrigin: 'http://localhost',
+     secureCookies: false,
+     sessionEncryptionKey: Buffer.alloc(32),
+     now: () => new Date(),
+     authorizeDispatch: async () => {},
+     verifyFinalResult: async () => {},
+   };
+   const deps = {
+     mutator: createMutator(db),
+     auth: {
+-      authenticate: async (request: { headers: Record<string, unknown> }) =>
+-        actorOf(request.headers['x-actor'] as string | undefined),
+-      requireOwner: async () => owner,
++      authenticate: async (request: { headers: Record<string, unknown> }) => {
++        if (request.headers['x-actor'] === 'none')
++          throw new ApiError('UNAUTHENTICATED', 401, 'Chưa đăng nhập');
++        return actorOf(request.headers['x-actor'] as string | undefined);
++      },
++      requireOwner: async (request: { headers: Record<string, unknown> }) => {
++        if (request.headers['x-actor'] === 'none')
++          throw new ApiError('UNAUTHENTICATED', 401, 'Chưa đăng nhập');
++        const actor = actorOf(request.headers['x-actor'] as string | undefined);
++        if (actor.kind !== 'owner') throw new ApiError('OWNER_REQUIRED', 403, 'Cần quyền chủ dự án');
++        return actor;
++      },
+     },
+   };
+   registerTicketRoutes(app, options, deps as never);
+   registerEventRoutes(app, options, deps as never, async () => ({ projectIds: [], allowGlobal: true }));
+   return app;
+ }
+ const asOwner = () => owner;
+ 
+ test('GET /v2/tickets?level=request chỉ trả request root và phân trang ổn định theo id', async () =>
+   withDatabase(async (db) => {
+@@ -271,10 +281,39 @@ test('GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn v
+       assert.deepEqual(empty.json(), { cursor: '0' });
+       await db`update event_cursor set value = 9007199254740993 where singleton = true`;
+       const big = await app.inject({ method: 'GET', url: '/v2/events/latest' });
+       assert.equal(big.json().cursor, '9007199254740993');
+       assert.match(big.body, /"cursor":"9007199254740993"/);
+       assert.equal((await app.inject({ method: 'GET', url: '/v2/events/latest?after=1' })).statusCode, 400);
+     } finally {
+       await app.close();
+     }
+   }));
++
++test('GET /v2/events/latest chỉ dành cho owner: machine bị 403, không phiên bị 401', async () =>
++  withDatabase(async (db) => {
++    await db`update event_cursor set value = 41 where singleton = true`;
++    const machine: Actor = { kind: 'machine', id: randomUUID() };
++    const app = await appFor(db, (header) => (header === 'machine' ? machine : owner));
++    try {
++      const denied = await app.inject({
++        method: 'GET',
++        url: '/v2/events/latest',
++        headers: { 'x-actor': 'machine' },
++      });
++      assert.equal(denied.statusCode, 403);
++      assert.equal(denied.json().code, 'OWNER_REQUIRED');
++      assert.ok(!denied.body.includes('41'));
++      const anonymous = await app.inject({
++        method: 'GET',
++        url: '/v2/events/latest',
++        headers: { 'x-actor': 'none' },
++      });
++      assert.equal(anonymous.statusCode, 401);
++      assert.ok(!anonymous.body.includes('41'));
++      assert.deepEqual((await app.inject({ method: 'GET', url: '/v2/events/latest' })).json(), {
++        cursor: '41',
++      });
++    } finally {
++      await app.close();
++    }
++  }));
