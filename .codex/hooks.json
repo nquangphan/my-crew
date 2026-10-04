@@ -1,0 +1,245 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/descriptive-name.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/privacy-block.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/scout-block.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/secrets-inject.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/context-firewall.cjs'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/dev-rules-reminder.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/plan-format-kanban.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task|TodoWrite|TodoRead",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-state.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/usage-quota-cache-refresh.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/agent-behavior-linter.cjs'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/precompact-capture.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/agent-behavior-linter.cjs'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-init.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/secret-output-guardrail.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/simplify-gate.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/secret-output-guardrail.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/dev-rules-reminder.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/simplify-gate.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/usage-quota-cache-refresh.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/subagent-init.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/team-context-inject.cjs'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-state.cjs'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/cook-after-plan-reminder.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-state.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/usage-quota-cache-refresh.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/agent-behavior-linter.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/phannhatquang/Documents/projects/crew/.codex/hooks/session-heartbeat.cjs'"
+          }
+        ]
+      }
+    ]
+  }
+}
