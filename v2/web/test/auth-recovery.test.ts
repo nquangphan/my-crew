@@ -372,3 +372,18 @@ test('return route chỉ nhận path nội bộ /crew-v2/', () => {
     assert.equal(safeReturnPath(raw), '/crew-v2/', String(raw));
   }
 });
+
+test('logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên', async () => {
+  const server = scripted(
+    sessionOk(),
+    () => json(403, { error: { code: 'CSRF_INVALID', message: 'Mã bảo vệ không hợp lệ' } }),
+    sessionOk(nextCsrf),
+    () => new Response(null, { status: 204 }),
+  );
+  const session = new SessionController({ fetch: server.fetch });
+  await session.bootstrap();
+  await session.logout();
+  assert.equal(server.calls[3]?.init.method, 'DELETE');
+  assert.equal(server.calls[3]?.headers.get('x-csrf-token'), nextCsrf);
+  assert.deepEqual(session.snapshot(), { state: 'guest', ownerId: null, error: null, busy: false });
+});

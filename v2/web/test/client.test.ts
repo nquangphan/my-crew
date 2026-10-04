@@ -393,3 +393,165 @@ test('decoder từ chối thiếu field, sai primitive và field lạ chưa revi
   assert.deepEqual(additive({ id: 'x', reviewedNew: 1 }), { id: 'x' });
   assert.throws(() => obj({ n: int })({ n: 1.5 }), ContractError);
 });
+
+const csrfInvalid = () => json(403, { error: { code: 'CSRF_INVALID', message: 'Mã bảo vệ không hợp lệ' } });
+const freshCsrf = 'c'.repeat(64);
+
+test('403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body', async () => {
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    csrfInvalid,
+    () => json(200, { owner: { id: 'owner' }, csrfToken: freshCsrf }),
+    () => json(201, { id: 'p1' }),
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const operation = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  pending.markAmbiguous(operation.id);
+  assert.deepEqual(await client.mutate(operation), { id: 'p1' });
+  const [, stale, refresh, replay] = server.calls;
+  assert.equal(stale?.headers.get('x-csrf-token'), csrf);
+  assert.equal(refresh?.url, '/v2/auth/session');
+  assert.equal(refresh?.init.method, 'GET');
+  assert.equal(replay?.headers.get('x-csrf-token'), freshCsrf);
+  assert.equal(replay?.headers.get('idempotency-key'), operation.id);
+  assert.equal(replay?.init.body, operation.bodyJson);
+  assert.equal(session.csrf(), freshCsrf);
+  assert.equal(pending.get(operation.id), undefined, 'chỉ clear sau khi accepted');
+});
+
+test('403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key', async () => {
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    csrfInvalid,
+    () => json(401, { error: { code: 'UNAUTHENTICATED', message: 'Cần đăng nhập' } }),
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const operation = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  pending.markAmbiguous(operation.id);
+  await assert.rejects(
+    client.mutate(operation),
+    (error: unknown) => error instanceof ApiFailure && error.status === 401,
+  );
+  assert.equal(session.snapshot().state, 'expired');
+  assert.equal(pending.get(operation.id)?.state, 'suspended');
+  assert.equal(pending.get(operation.id)?.bodyJson, operation.bodyJson);
+  assert.throws(
+    () =>
+      pending.begin({
+        intentId: 'a',
+        method: 'POST',
+        path: '/v2/projects',
+        body: { key: 'AB' },
+        storage: 'tab',
+      }),
+    IntentUnresolvedError,
+  );
+});
+
+test('403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key', async () => {
+  const originInvalid = () =>
+    json(403, { error: { code: 'ORIGIN_INVALID', message: 'Nguồn yêu cầu không hợp lệ' } });
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    originInvalid,
+    () => json(200, { owner: { id: 'owner' }, csrfToken: freshCsrf }),
+    originInvalid,
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const operation = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  await assert.rejects(
+    client.mutate(operation),
+    (error: unknown) => error instanceof ApiFailure && error.code === 'ORIGIN_INVALID',
+  );
+  assert.equal(server.calls.length, 4, 'chỉ làm mới một lần, không vòng lặp');
+  assert.equal(pending.get(operation.id)?.state, 'suspended');
+  assert.equal(session.snapshot().state, 'authenticated');
+});
+
+test('4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal', async () => {
+  const notFound = () => json(404, { error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } });
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    notFound,
+    () => {
+      throw new TypeError('fetch failed');
+    },
+    () => json(409, { error: { code: 'REVISION_CONFLICT', message: 'Đã thay đổi' } }),
+    () => json(400, { error: { code: 'INVALID_INPUT', message: 'Dữ liệu không hợp lệ' } }),
+    notFound,
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const path = `/v2/projects/${'2'.repeat(8)}-2222-4222-8222-${'2'.repeat(12)}/binding`;
+  const ambiguous = pending.begin({
+    intentId: 'a',
+    method: 'PUT',
+    path,
+    body: { expectedRevision: 1 },
+    storage: 'tab',
+  });
+  pending.markAmbiguous(ambiguous.id);
+  await assert.rejects(
+    client.mutate(ambiguous),
+    (error: unknown) => error instanceof ApiFailure && error.code === 'NOT_FOUND',
+  );
+  assert.equal(
+    pending.get(ambiguous.id)?.state,
+    'ambiguous',
+    '404 từ authorize không chứng minh chưa commit',
+  );
+  const inCall = pending.begin({
+    intentId: 'b',
+    method: 'PUT',
+    path,
+    body: { expectedRevision: 2 },
+    storage: 'tab',
+  });
+  await assert.rejects(
+    client.mutate(inCall),
+    (error: unknown) => error instanceof ApiFailure && error.code === 'REVISION_CONFLICT',
+  );
+  assert.equal(pending.get(inCall.id)?.state, 'ambiguous', 'lần gửi trước trong cùng lượt có thể đã commit');
+  await assert.rejects(
+    client.mutate(pending.get(ambiguous.id) ?? ambiguous),
+    (error: unknown) => error instanceof ApiFailure && error.status === 400,
+  );
+  assert.equal(pending.get(ambiguous.id), undefined, '400 theo body là terminal');
+  const fresh = pending.begin({
+    intentId: 'c',
+    method: 'PUT',
+    path,
+    body: { expectedRevision: 3 },
+    storage: 'tab',
+  });
+  await assert.rejects(
+    client.mutate(fresh),
+    (error: unknown) => error instanceof ApiFailure && error.code === 'NOT_FOUND',
+  );
+  assert.equal(pending.get(fresh.id), undefined, 'operation chưa từng gửi được trả lời rõ ràng thì terminal');
+});

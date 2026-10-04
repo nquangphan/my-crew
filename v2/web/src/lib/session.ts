@@ -176,6 +176,7 @@ export class SessionController {
   #csrf: string | null = null;
   #epoch = new AbortController();
   #bootstrapping: Promise<void> | null = null;
+  #refreshing: Promise<void> | null = null;
 
   constructor(options: { fetch?: HttpFetch; client?: SessionClient } = {}) {
     this.#client = options.client ?? createSessionClient({ fetch: options.fetch, csrf: () => this.#csrf });
@@ -273,8 +274,19 @@ export class SessionController {
     if (this.#snapshot.state !== 'authenticated') return;
     this.#set({ ...this.#snapshot, state: 'logging_out', busy: true, error: null });
     let error: SessionError | null = null;
+    const revoke = () => this.#client.logout(AbortSignal.timeout(10_000));
     try {
-      await this.#client.logout(AbortSignal.timeout(10_000));
+      try {
+        await revoke();
+      } catch (caught) {
+        // Another tab's login rotated the cookie: re-read its CSRF so the server really revokes it.
+        if (
+          !(caught instanceof SessionRequestError && caught.status === 403 && caught.code === 'CSRF_INVALID')
+        )
+          throw caught;
+        this.#csrf = (await this.#client.restore(AbortSignal.timeout(10_000))).csrfToken;
+        await revoke();
+      }
     } catch (caught) {
       const status = caught instanceof SessionRequestError ? caught.status : null;
       error = status === 401 ? null : 'UNAVAILABLE';
@@ -282,6 +294,36 @@ export class SessionController {
     this.#endEpoch();
     for (const hook of this.#logoutHooks) hook();
     this.#set({ state: 'guest', ownerId: null, error, busy: false });
+  }
+
+  /**
+   * Re-read GET session for the same owner to replace a stale CSRF token (for example after a login in
+   * another tab rotated the cookie). 401 or a different owner ends the epoch as an expiry. Single-flight.
+   */
+  refresh(): Promise<void> {
+    if (this.#snapshot.state !== 'authenticated')
+      return Promise.reject(new SessionRequestError(null, 'SESSION_REQUIRED'));
+    this.#refreshing ??= this.#reload().finally(() => {
+      this.#refreshing = null;
+    });
+    return this.#refreshing;
+  }
+
+  async #reload(): Promise<void> {
+    const epoch = this.#epoch;
+    try {
+      const session = await this.#client.restore(
+        AbortSignal.any([epoch.signal, AbortSignal.timeout(15_000)]),
+      );
+      if (epoch !== this.#epoch || this.#snapshot.state !== 'authenticated')
+        throw new SessionRequestError(null, 'SESSION_REQUIRED');
+      this.#csrf = session.csrfToken;
+      this.#set({ ...this.#snapshot });
+    } catch (error) {
+      if (error instanceof SessionRequestError && (error.status === 401 || error.code === 'OWNER_MISMATCH'))
+        this.expire();
+      throw error;
+    }
   }
 
   #authenticate(session: SessionDto): void {

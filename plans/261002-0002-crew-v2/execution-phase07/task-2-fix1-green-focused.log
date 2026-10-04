@@ -1,0 +1,38 @@
+$ node --test test/client.test.ts test/auth-recovery.test.ts
+✔ bootstrapping → authenticated / guest / bootstrap-unavailable (10.985291ms)
+✔ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.63925ms)
+✔ owner khác sau reauth không được authenticated (0.384875ms)
+✔ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (1.439292ms)
+✔ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (0.542291ms)
+✔ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.337292ms)
+✔ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.185833ms)
+✔ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.077208ms)
+✔ serializer từ chối memory operation, secret, token và hash của secret (0.1425ms)
+✔ return route chỉ nhận path nội bộ /crew-v2/ (0.11075ms)
+✔ logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên (0.201125ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (11.129959ms)
+✔ không mutation hoặc upload trước khi có phiên (0.831167ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.471292ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.323459ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.468ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.263833ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.310666ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.191833ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.2655ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.3195ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.141375ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.606875ms)
+✔ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.297291ms)
+✔ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.20075ms)
+✔ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.190791ms)
+✔ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.32225ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 97.210292
+
+[watchdog] pid=84276 exit=0 timeout=False wall=0.14s

@@ -73,8 +73,10 @@ const buttonStyle: CSSProperties = {
   cursor: 'pointer',
 };
 
-function failureMessage(error: unknown): string {
+function failureMessage(error: unknown, kept: boolean): string {
   if (error instanceof ApiFailure) {
+    if (kept && (error.code === 'CSRF_INVALID' || error.code === 'ORIGIN_INVALID'))
+      return 'Máy chủ chưa nhận mã bảo vệ của tab này. Yêu cầu vẫn giữ nguyên khóa cũ; hãy thử gửi lại hoặc tải lại trang.';
     if (error.code === 'IDEMPOTENCY_CONFLICT')
       return 'Nội dung khác với yêu cầu cũ. Yêu cầu cũ vẫn được giữ; hãy nhập lại đúng nội dung ban đầu.';
     if (
@@ -85,6 +87,7 @@ function failureMessage(error: unknown): string {
       return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.';
     if (error.code === 'UNCONFIRMED' || error.kind === 'transport' || error.kind === 'aborted')
       return 'Chưa xác nhận kết quả. Yêu cầu vẫn giữ nguyên để gửi lại.';
+    if (kept) return `Chưa xác nhận kết quả (${error.code}). Yêu cầu vẫn giữ nguyên khóa cũ để gửi lại.`;
     return `Máy chủ từ chối yêu cầu (${error.code}).`;
   }
   return 'Chưa xác nhận kết quả. Yêu cầu vẫn giữ nguyên để gửi lại.';
@@ -122,7 +125,8 @@ export function RecoveryPanel({ pending, client }: { pending: PendingStore; clie
       await client.mutate(operation);
       setMessages((current) => ({ ...current, [operation.id]: 'Đã xác nhận.' }));
     } catch (error) {
-      setMessages((current) => ({ ...current, [operation.id]: failureMessage(error) }));
+      const kept = pending.get(operation.id) !== undefined;
+      setMessages((current) => ({ ...current, [operation.id]: failureMessage(error, kept) }));
     } finally {
       setBusy(null);
     }

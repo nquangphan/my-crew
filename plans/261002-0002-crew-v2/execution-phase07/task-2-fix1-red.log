@@ -1,0 +1,132 @@
+$ node --test test/client.test.ts test/auth-recovery.test.ts
+✔ bootstrapping → authenticated / guest / bootstrap-unavailable (11.150709ms)
+✔ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.700417ms)
+✔ owner khác sau reauth không được authenticated (0.399959ms)
+✔ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (1.4775ms)
+✔ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (0.541334ms)
+✔ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.383292ms)
+✔ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.192333ms)
+✔ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.073583ms)
+✔ serializer từ chối memory operation, secret, token và hash của secret (0.148292ms)
+✔ return route chỉ nhận path nội bộ /crew-v2/ (0.11725ms)
+✖ logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên (0.542209ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (11.545833ms)
+✔ không mutation hoặc upload trước khi có phiên (0.951208ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.458334ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.352125ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.479ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.267833ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.316875ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.198708ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.271583ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.316875ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.140375ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.667125ms)
+✖ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.316291ms)
+✖ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.406083ms)
+✖ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.3145ms)
+✖ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.23075ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 22
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.4555
+
+✖ failing tests:
+
+test at test/auth-recovery.test.ts:376:1
+✖ logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên (0.542209ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'DELETE'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:386:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'DELETE',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:400:1
+✖ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.316291ms)
+  ApiFailure: Mã bảo vệ không hợp lệ
+      at failureFrom (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:88:10)
+      at async Object.mutate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:210:23)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:412:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    status: 403,
+    code: 'CSRF_INVALID',
+    kind: 'http'
+  }
+
+test at test/client.test.ts:424:1
+✖ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.406083ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  ApiFailure: Mã bảo vệ không hợp lệ
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:435:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiFailure: Mã bảo vệ không hợp lệ
+        at failureFrom (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:88:10)
+        at async Object.mutate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:210:23)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:435:3)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:445:1
+✖ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.3145ms)
+  AssertionError [ERR_ASSERTION]: chỉ làm mới một lần, không vòng lặp
+  
+  2 !== 4
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:458:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 4,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:463:1
+✖ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.23075ms)
+  AssertionError [ERR_ASSERTION]: 404 từ authorize không chứng minh chưa commit
+  + actual - expected
+  
+  + undefined
+  - 'ambiguous'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:482:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'ambiguous',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+[watchdog] pid=82074 exit=1 timeout=False wall=0.14s

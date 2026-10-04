@@ -1,0 +1,4 @@
+$ node_modules/.bin/biome check v2/web/src/contracts v2/web/src/lib v2/web/src/auth v2/web/test/client.test.ts v2/web/test/events.test.ts v2/web/test/auth-recovery.test.ts v2/web/e2e/auth.spec.ts v2/web/e2e/events.spec.ts
+Checked 17 files in 14ms. No fixes applied.
+
+[watchdog] pid=84258 exit=0 timeout=False wall=0.09s

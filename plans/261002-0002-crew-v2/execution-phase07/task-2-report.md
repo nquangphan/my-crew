@@ -111,3 +111,48 @@ E2E chạy hai fixture tuần tự (mỗi spec một fixture worker-scope), API 
 - `RecoveryTombstone.targetId` là UUID đầu tiên trong path; `expectedRevision` lấy từ body nếu là số nguyên an toàn.
 - Gateway status chưa có decoder (G4). Decoder attachment phản ánh contract `cf68a68`, nhưng route chưa mount production (G2).
 - M1 trong fixture Task1 vẫn để nguyên như đã hoãn.
+
+## 7. Vòng sửa 1 (review `task-2-review.md`, Important #1)
+
+**Finding:** `mutate` coi mọi 4xx khác 409 là terminal và nhả key, kể cả 403 `CSRF_INVALID`/`ORIGIN_INVALID` do `requireOwner` ném trước bước tra idempotency. Tab cũng không có cách làm mới CSRF.
+
+**Rà mã server ném lỗi trước bước tra idempotency:**
+- `requireOwner` (`auth/routes.ts:36-50`) ném 401, 403 `OWNER_REQUIRED`/`ORIGIN_INVALID`/`CSRF_INVALID` và 503.
+- Schema Fastify, parser body, `IDEMPOTENCY_KEY_INVALID` và `BODY_INVALID` trả 400; parser còn có thể trả 413/415.
+- Các callback `MutationContext.authorize` chạy *trước* bước tra key (`journal/mutation.ts:33-36`) và ném lỗi phụ thuộc trạng thái server: `authorizeTicketMutation`, `authorizeCreateCommandMutation`, `authorizeAttemptMutation`, `authorizeCommandMutation` và `authorizeGatewayMutation` ném 404 (gateway còn ném 401); `authorizeDocsSync` ném 403/404/409/422; Assistant ném 403. Riêng `authorizeSubmission` chỉ ném 400 khi ID trong body sai định dạng, nên lỗi đó phụ thuộc bytes.
+
+Kết luận: chỉ 400/413/415 là lỗi do bytes quyết định, nên luôn là terminal. Mọi 4xx khác chỉ terminal khi khóa đó chưa từng có lần gửi có thể đã commit, nghĩa là operation đang `pending` lúc gọi và trong lượt gọi chưa có lần gửi nào ambiguous.
+
+**Thay đổi:**
+- `api.ts`: 403 CSRF/ORIGIN → `suspended` → `session.refresh()` → replay đúng key/body, tối đa một lần làm mới mỗi lượt gọi; vẫn lỗi thì dừng và giữ khóa. 4xx khác được phân loại như trên; trường hợp không terminal giữ `ambiguous`.
+- `upload` gặp 403 CSRF thì làm mới CSRF rồi báo lỗi.
+- `session.ts`: thêm `refresh()` (single-flight, giữ epoch; nhận 401 hoặc owner khác thì `expire()`). `logout` gặp 403 CSRF thì GET lại session lấy CSRF mới và DELETE lại một lần, để server thật sự thu hồi phiên.
+- `session-boundary.tsx`: panel nói rõ yêu cầu vẫn giữ khóa cũ khi operation còn.
+- Docs: `v2/docs/flows/web-data.md` bước 4/6 và mục Tests.
+
+**Test mới:** `client.test.ts` thêm 4 test: 403 CSRF trên operation ambiguous làm mới rồi replay cùng key/body; làm mới gặp 401 thì expired, `suspended`, `begin` cùng intent vẫn ném `IntentUnresolvedError`; ORIGIN lặp lại chỉ làm mới một lần; 404 sau ambiguous, hoặc 409 sau lỗi transport trong cùng lượt, giữ khóa, còn 400 và 404 trên operation mới thì terminal. `auth-recovery.test.ts` thêm 1 test logout với CSRF cũ.
+
+| Lệnh (heap 384 MiB, watchdog, sole heavy slot) | Kết quả | Log, SHA-256 |
+|---|---|---|
+| RED `node --test test/client.test.ts test/auth-recovery.test.ts` | exit 1, tests 27, fail 5, đều do assertion hành vi (ví dụ `2 !== 4`, `404 từ authorize không chứng minh chưa commit`) | `task-2-fix1-red.log` `6c111653fe578d623b9b9f4194d85c5198b9061fcb08d4559350dd5456a58cc7` |
+| GREEN cùng lệnh | exit 0, 27/27 | `task-2-fix1-green-focused.log` `dc0bf6b1ac6f024ba0537c822565836e660f4de89ca807528a7a6db814253026` |
+| `biome check` 17 file | exit 0, không còn diagnostic | `task-2-fix1-biome.log` `b8995304cf3bac13573cdf7f2e6e714a498b9b520956078a009d02a3802e4b81` |
+| `tsc --noEmit` | exit 0 | `task-2-fix1-typecheck.log` `96ea98a91f614e6e1badaaa6343519d8c046c83fd3425183ed23609245cb42f1` |
+| `node --test test/*.test.ts` | exit 0, 43/43 | `task-2-fix1-unit-full.log` `025b896dce19c809b0765da7424560dade03530d383bedbd02be3535d5afe9a5` |
+| `playwright test e2e/auth.spec.ts e2e/events.spec.ts` | exit 0, 3 passed (10,3 giây) | `task-2-fix1-e2e.log` `c56d35d08b2b0f05f0f969698397a4fadb5400c6e8860a3748fab8a757df28ee` |
+
+Telemetry (GiB khả dụng / pressure / CPU idle % / đĩa GiB): RED 4,933/1/85,9/753,6; GREEN 4,779/1/83,33/753,6. Slot đã trả.
+
+Cleanup: danh sách `docker ps -a` trước và sau run trùng nhau; TMPDIR không còn `crew-v2-web-*`; PID 85391/85407/85714 không còn; không còn listener trên 52111/52512; `test-results` đã xóa. Ba screenshot chạy lại có hash trùng bản cũ.
+
+Hash source sau vòng sửa:
+
+| File | SHA-256 |
+|---|---|
+| `v2/web/src/lib/api.ts` | `f19d03bf659f1a5aa3b1f505f07ae8d2a093bd27e14246b773e98af5f88536b3` |
+| `v2/web/src/lib/session.ts` | `8f300eb5f3b28b5a5b63f7a0e62632470614c627309fbfcd4d4729f1c3003303` |
+| `v2/web/src/auth/session-boundary.tsx` | `9ee1989345633bcd41cb1f19e2cf1ec1e16d274739cb8264dd419932f45091ae` |
+| `v2/web/test/client.test.ts` | `8717fa57641455a6ffcc5ee83b97e03e802566ee232c5bd6ac198b945dd207d1` |
+| `v2/web/test/auth-recovery.test.ts` | `26d885e13fb5377c5de4be30616bac742fc706ac4b54d9229d6f654235c4941a` |
+
+**Còn lại:** khi operation bị giữ `ambiguous` vì một 4xx phụ thuộc trạng thái (ví dụ ticket đã bị xóa), panel vẫn cho gửi lại nhưng chưa có cách để owner chủ động bỏ yêu cầu đó. Việc này cần quyết định UX (xác nhận bỏ, tức chấp nhận rủi ro trùng). Các Minor trong ledger chưa sửa trong vòng này.
