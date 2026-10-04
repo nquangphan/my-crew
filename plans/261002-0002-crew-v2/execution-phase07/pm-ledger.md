@@ -76,3 +76,7 @@ Ruling: workers không amend commit (concurrency) — tạo commit mới.
 Ruling: khi S3a/S5a gắn GET dữ liệu thật vào ProtectedLayout, controller phải thêm assert đích danh GET đó đứng sau catch-up `/v2/events` trong `e2e/app-router.spec.ts` — ghi checklist S3b/S5 acceptance.
 Wiring: minor (deferred): `app-router.spec.ts:132` phụ thuộc Chromium requestfailed khi abort stream — theo dõi flaky.
 Ruling 13:20: sửa `v2/docs/flows.yaml`/`files.md`/generated phải giữ lock riêng `$TMPDIR/crew-v2-manifest.lock` (mkdir) từ lúc đọc HEAD tới khi commit xong, rebase hunk lên HEAD mới nhất — wiring dbeb6da từng ghi đè entry S3a (đã khôi phục e2dd3e4, net 2 dòng đã PM kiểm) — sai thì mất entry manifest của worker khác.
+
+13:30 Wiring FIX2 re-review `task-2-wiring-fix2-re-review.md`: APPROVED, R2/M6/assert/docs ADDRESSED.
+Task 2 wiring: complete — e2dd3e4 (e901fd7 + b08a927 + dbeb6da/e2dd3e4).
+Task 2 wiring: pending check: PM chạy full web `tsc` khi S3a/S5a ổn định (wiring round2 chưa có full tsc do file worker khác dở).
