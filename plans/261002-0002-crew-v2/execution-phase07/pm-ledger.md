@@ -153,3 +153,6 @@ Ruling: "Bỏ bản nháp" của S3b = discard() S5a (owner đã duyệt) + xóa
 Task 3 S3b: minor (deferred): M4 tạo thành công không mở ticket khi trigger.current null (`create-request.tsx:246`); M5 root key `['v2','projects']` dùng chung shape riêng (`queries.ts:255`); focus sau tạo (Radix setTimeout vs focus trap) chưa test.
 
 19:50 S3b FIX1 `d9216cc`/`ed085e1`: I1/I2/M1/M2/M3/M6 sửa; I3 NEEDS_CONTEXT — cần API S5a. Ruling: chấp nhận API đề xuất `ComposerProps.onHandle?({discardDraft(): Promise<'discarded'|'blocked'|'unconfirmed'>})`, giao worker S5a; S3b dùng ở vòng sửa 2 — sai thì đổi tên API nhỏ. Scoped re-review phần đã sửa chạy song song.
+
+20:05 S3b FIX1 re-review `task-3-s3b-fix1-re-review.md`: I1/M1/M2/M3/M6 ADDRESSED, I2 một phần, I3 NOT (chờ S5a), mới B1 Important (draft sống qua logout: wipe chỉ chạy khi store tạo trong page load) + B2/B3/B4 Minor.
+Ruling: B1 chia ranh giới — S3b export `clearTicketDrafts(storage)` (xóa prefix crew-v2:form-draft:*) và dùng storage của runtime (B2); controller gọi trong session.onLogout ở createAppRuntime/wireSession + test hai đường sót. S3b FIX2 = I3 (sau API S5a) + B1 export + B2 + B4 (Thử lại không bị fieldset disable). B3 (key comment của ticket terminal không dọn) deferred.
