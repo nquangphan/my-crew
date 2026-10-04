@@ -1,0 +1,4 @@
+# TYPECHECK 2026-10-04T10:01:12+0700 cwd=v2/gateway NODE_OPTIONS=--max-old-space-size=384
+# telemetry {"at": "2026-10-04T03:01:12.706804+00:00", "pageSize": 16384, "pages": {"Pages free": 14944, "Pages inactive": 286299, "Pages speculative": 980}, "availableBytes": 4951621632, "availableGiB": 4.612, "pressure": 1, "cpuIdlePercent": 83.82, "cpu": "6.27% user, 9.90% sys, 83.82% idle", "diskFreeBytes": 809148780544, "diskFreeGiB": 753.579, "heavyEligible": true}
+# cmd: ./node_modules/.bin/tsc --noEmit -p tsconfig.json
+# exit=0 child=61718 watchdog=61719 reaped

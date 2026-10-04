@@ -567,11 +567,66 @@ test('render artifact inspection denies ambiguous resolved keys for one short co
   );
 });
 
-test('render artifact inspection remains separate from the denied BMAD adapter', async () => {
-  const adapter = createWorkflowManifest({
-    resolve: async () => {
-      throw new Error('resolver must not run');
-    },
-  });
-  await assert.rejects(adapter.loadDefinition(source, projection), /RENDER_ARTIFACT_REQUIRED/);
+test('render artifact inspection remains separate from the two-tier BMAD adapter', async () => {
+  const [{ default: childProcess }, fs, { syncBuiltinESMExports }, os, path, { mock }, stage] =
+    await Promise.all([
+      import('node:child_process'),
+      import('node:fs/promises'),
+      import('node:module'),
+      import('node:os'),
+      import('node:path'),
+      import('node:test'),
+      import('../src/workflows/stage.ts'),
+    ]);
+  const f = fixture();
+  const audits = JSON.parse(
+    await fs.readFile(new URL('./fixtures/workflows/official-audits.json', import.meta.url), 'utf8'),
+  );
+  const archive = await fs.readFile(new URL('./fixtures/workflows/bmad-6.12.0.tgz', import.meta.url));
+  const sourceManifest = stage.manifest(await stage.parseArchive(archive, audits.bmad.source.executables));
+  const files = stage.validateFiles(
+    Object.entries({
+      ...f.snapshot.projectedFiles,
+      '_bmad/config.toml': f.snapshot.layerFiles['_bmad/config.toml'],
+    }).map(([filePath, body]) => ({
+      path: filePath,
+      type: 'file' as const,
+      mode: 0o644 as const,
+      body: Buffer.from(body ?? []),
+    })),
+  );
+  // Unit-only projection identity over the synthetic D1 bytes; the official source pin is real.
+  const base = { ...projection, manifestSha256: stage.manifestHash(stage.manifest(files)) };
+  const bound: ProjectionPin = { ...base, treeSha256: projectionTreeHash(base) };
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'crew-d1-adapter-')));
+  const spies = ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork'].map((name) =>
+    mock.method(childProcess, name as 'spawn', () => {
+      throw new Error(`unexpected child_process.${name}`);
+    }),
+  );
+  syncBuiltinESMExports();
+  try {
+    await stage.writeTree(path.join(root, 'projection'), files);
+    const adapter = createWorkflowManifest({
+      resolve: async () => ({
+        sourceRoot: path.join(root, 'source-not-materialized'),
+        projectionRoot: path.join(root, 'projection'),
+        manifest: { source: sourceManifest, projection: stage.manifest(files) },
+      }),
+    });
+    const definition = await adapter.loadDefinition(source, bound);
+    const { projectRoot: _root, generationRoot: _generation, ...expected } = f.expected;
+    assert.deepEqual(definition.render, { ...expected, projection: bound });
+    // The adapter yields expectations only; inspection still needs a host-supplied byte snapshot.
+    const inspection = createBmadArtifactInspector({
+      ...structuredClone(f.expected),
+      projection: bound,
+    }).inspect(f.snapshot);
+    assert.equal(inspection.kind, 'artifact-inspection');
+  } finally {
+    mock.restoreAll();
+    syncBuiltinESMExports();
+    await fs.rm(root, { recursive: true, force: true });
+  }
+  for (const spy of spies) assert.equal(spy.mock.callCount(), 0);
 });

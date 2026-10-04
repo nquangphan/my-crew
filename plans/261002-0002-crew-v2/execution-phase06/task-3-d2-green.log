@@ -1,0 +1,54 @@
+# GREEN 2026-10-04T10:00:55+0700 cwd=v2/gateway NODE_OPTIONS=--max-old-space-size=384
+# telemetry {"at": "2026-10-04T03:00:55.188810+00:00", "pageSize": 16384, "pages": {"Pages free": 6818, "Pages inactive": 298855, "Pages speculative": 627}, "availableBytes": 5018419200, "availableGiB": 4.674, "pressure": 1, "cpuIdlePercent": 84.1, "cpu": "5.1% user, 10.97% sys, 84.1% idle", "diskFreeBytes": 809148784640, "diskFreeGiB": 753.579, "heavyEligible": true}
+# cmd: node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts
+✔ render artifact inspection measures a supplied schema-1 artifact but returns no authority (2.091041ms)
+✔ render artifact inspection retains captured expectation after nested caller mutation (0.304541ms)
+✔ render artifact inspection denies a self-consistent but unapproved BMAD source tree (0.618583ms)
+✔ render artifact inspection keeps the measured result independent of later byte mutation (0.28875ms)
+✔ render artifact inspection rejects raw optional-layer drift even with equal resolved values (0.322833ms)
+✔ render artifact inspection rejects a missing required layer or undeclared layer key (0.198042ms)
+✔ render artifact inspection rejects source, renderer and output byte changes (0.397208ms)
+✔ render artifact inspection rejects false schema, path and generation claims (1.068625ms)
+✔ render artifact inspection bounds layer bytes as well as manifest and output bytes (0.545916ms)
+✔ render artifact inspection bounds metadata key counts before copying byte maps (4.038709ms)
+✔ render artifact inspection matches Python Unicode and control-character generation hashing (0.246166ms)
+✔ render artifact inspection rejects an undeclared source-authored snapshot target (0.1625ms)
+✔ render artifact inspection refuses unsupported numeric resolved values (0.131292ms)
+✔ render artifact inspection rejects conflicting expected bytes for the one customize path (0.0825ms)
+✔ render artifact inspection rejects accessors before reading manifest or any byte map (0.271708ms)
+✔ render artifact inspection rejects a proxy byte map before triggering its traps (0.0865ms)
+✔ render artifact inspection rejects unpaired surrogates in captured path identities (0.079542ms)
+✔ render artifact inspection rejects a top-level resolved-values array with coherent generation identity (0.10925ms)
+✔ render artifact inspection rejects object and list values for a source-authored config token (0.223208ms)
+✔ render artifact inspection rejects a resolved key absent from installed source tokens (0.107541ms)
+✔ render artifact inspection accepts official string-list and normalized review-layer value categories (0.243042ms)
+✔ render artifact inspection rejects non-normalized review-layer table fields (0.117916ms)
+✔ render artifact inspection binds a short config token to one resolved terminal key (0.131125ms)
+✔ render artifact inspection denies ambiguous resolved keys for one short config token (0.12525ms)
+✔ render artifact inspection remains separate from the two-tier BMAD adapter (117.000458ms)
+✔ workflow manifest binds Superpowers skills to official source and selected projection bytes (1616.263333ms)
+✔ workflow manifest rejects a projected skill hash that differs from its pinned source (1804.382583ms)
+✔ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (1438.256875ms)
+✔ workflow manifest rejects a projection bound to another source tree (1380.542666ms)
+✔ workflow manifest keeps one validated snapshot across a deferred registry resolve (1405.201583ms)
+✔ workflow manifest rejects a FIFO skill drift within a bounded reader deadline (1529.498833ms)
+ℹ fifo scratch root=/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-workflow-manifest-5ir9oG
+ℹ mkfifo pid=61456 status=0 signal=none
+ℹ fifo child pid=61457 pgid=61457 reaped=close code=0 signal=none timedOut=false
+ℹ fifo child boundary=RESOLVED
+✔ customization context binds the Superpowers digest to the projection tree, not key order (1411.161542ms)
+✔ workflow definition resolves BMAD to a two-tier render expectation with seven measured layers (788.404042ms)
+✔ workflow definition re-reads BMAD layer bytes instead of trusting manifest claims (178.823083ms)
+✔ workflow definition digest changes when an optional BMAD layer appears with equal skill tokens (398.622625ms)
+✔ workflow definition selects exactly the bmad-build markdown skills except SKILL.md (547.098042ms)
+✔ workflow definition rejects a BMAD projection bound to another source tree (190.582916ms)
+✔ workflow definition never spawns uv, the renderer or any child process (201.091167ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12983.980708
+# exit=0 child=61104 watchdog=61105 reaped
