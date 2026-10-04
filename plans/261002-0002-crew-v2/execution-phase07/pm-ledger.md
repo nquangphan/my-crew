@@ -236,3 +236,5 @@ P-G4r: minor (deferred): N1 lease đo từ received_at lần đầu, không làm
 09:50 Task4 FIX2 `00aeace` re-review `task-4-fix2-re-review.md`: Approved, B1/B2/B3 ADDRESSED.
 Task 4: complete — 00aeace (da607c8 + a297d3d + 00aeace). S4 source + A4 (trừ dán ảnh/tệp chờ extractor) ĐẠT trên API/PG thật.
 Task 4: minor (deferred): M2 nhãn cạnh dày ở 801 node; N1 neo "tất cả" dùng focusedTicketId cũ; N2 chớp hình khi dịch viewport chưa đo; vị trí thẻ không lưu qua reload; task realtime có thể xa bước cha tới khi "Sắp xếp lại" (ruling); E2E repair_links ghi DB (route máy repair-results chưa end-to-end); IMG_6454 thiếu.
+
+10:00 OWNER: chạy tiếp tới khi quota tuần còn 1% (giữ 1% viết handover) — thay ngưỡng 5%. Owner gửi lại ảnh tham chiếu map, lưu `ui-evidence/reference-map-IMG_6454.png` (modal tối "Agent map": root trái, con phải, nối bằng ngoặc dọc, thẻ có chấm trạng thái + dòng phụ thời gian/token). Dispatch: đối chiếu visual Task4 với ảnh; G4w (ba switch Claude/Codex/API); kongming soạn ruling S6b Q1/Q2/N1.
