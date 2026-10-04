@@ -683,19 +683,28 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   await expectEdgesMatch(page, final);
   await shoot(page, 'map-after-concurrent-writes.png');
 
-  // Realtime while the owner drags: the view does not jump under the hand; the shift waits for release.
+  // Realtime while the owner drags: the watched card stays still while the pointer is held in place.
   const pane = await page.locator('.react-flow').boundingBox();
   if (!pane) throw new Error('MAP_BOX');
   await page.mouse.move(pane.x + 30, pane.y + pane.height - 30);
   await page.mouse.down();
   await page.mouse.move(pane.x + 60, pane.y + pane.height - 20, { steps: 4 });
   await page.waitForTimeout(200);
-  const held = await viewport(page);
+  const watchedBeforeDragUpdate = await node(page, watched).boundingBox();
   await create(owner, seeded.projectId, steps.A.id, 'task', 'Việc tạo khi đang kéo');
   await expect(map).toHaveAttribute('data-nodes', String(final.nodes.length + 1), { timeout: 15_000 });
   await page.waitForTimeout(300);
-  expectSameView(await viewport(page), held);
+  expectSameBox(
+    await node(page, watched).boundingBox(),
+    watchedBeforeDragUpdate,
+    'thẻ đang xem (neo) khi đang giữ chuột sau realtime',
+  );
   await page.mouse.up();
+  expectSameBox(
+    await node(page, watched).boundingBox(),
+    watchedBeforeDragUpdate,
+    'thẻ đang xem (neo) sau khi thả chuột',
+  );
   const latest = await graphOf(page, root.id);
 
   // Board and list read the same revisions.

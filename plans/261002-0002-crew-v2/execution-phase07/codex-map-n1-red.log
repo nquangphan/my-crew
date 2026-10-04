@@ -1,0 +1,36 @@
+
+Running 4 tests using 1 worker
+
+{"level":30,"time":1791124422645,"pid":88191,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:49561"}
+  ✓  1 [chromium] › e2e/ticket-map.spec.ts:393:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload (8.3s)
+  ✘  2 [chromium] › e2e/ticket-map.spec.ts:614:1 › G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối (5.8s)
+  -  3 [chromium] › e2e/ticket-map.spec.ts:734:1 › 390px và 640px (tương đương zoom 200%): danh sách tương đương, không tràn ngang, mở dialog chung
+  -  4 [chromium] › e2e/ticket-map.spec.ts:761:1 › hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đầu ≤ 2s trên máy fixture
+
+
+  1) [chromium] › e2e/ticket-map.spec.ts:614:1 › G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối 
+
+    Error: thẻ đang xem (neo) khi đang giữ chuột sau realtime
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    39.925537109375
+
+      252 |   expect(before, label).not.toBeNull();
+      253 |   expect(Math.abs((after?.x ?? 0) - (before?.x ?? 0)), label).toBeLessThanOrEqual(1);
+    > 254 |   expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0)), label).toBeLessThanOrEqual(1);
+          |                                                               ^
+      255 | }
+      256 |
+      257 | /** Every task card sits in its step's band: at most (tasks − 1) / 2 rows (pitch 136 × zoom) from the step. */
+        at expectSameBox (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/e2e/ticket-map.spec.ts:254:63)
+        at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/e2e/ticket-map.spec.ts:697:3
+
+    Error Context: test-results/ticket-map-G1-race-tạo-con-df364-ch-sơ-đồ-cùng-revision-cuối-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/ticket-map.spec.ts:614:1 › G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối 
+  2 did not run
+  1 passed (17.1s)
+pw_exit=1

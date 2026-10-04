@@ -341,11 +341,8 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
     setView((current) => moveMapViewport(current, viewport));
   }, []);
 
-  // Keep the anchor still on screen: shift the viewport by its displacement, once per layout. While the owner
-  // is dragging the shift is held back and applied when the gesture ends, so the map never jumps under the hand.
+  // Keep the anchor still on screen by shifting the viewport by its displacement once per layout, including during a drag.
   const anchoredSeq = useRef(0);
-  const dragging = useRef(false);
-  const heldShift = useRef<{ dx: number; dy: number } | null>(null);
   useLayoutEffect(() => {
     if (anchoredSeq.current === layout.seq || layout.reason === 'initial' || !layout.projection) return;
     anchoredSeq.current = layout.seq;
@@ -369,30 +366,11 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
     const from = anchor === null ? undefined : previous[anchor];
     const to = anchor === null ? undefined : next[anchor];
     if (!from || !to) return;
-    if (dragging.current) {
-      const held = heldShift.current ?? { dx: 0, dy: 0 };
-      heldShift.current = { dx: held.dx + (to.x - from.x), dy: held.dy + (to.y - from.y) };
-      return;
-    }
     void flow.setViewport(followAnchor(from, to, viewNow)).then(() => saveViewport(flow.getViewport()));
   }, [layout, flow, frame, view.focusedTicketId, saveViewport]);
-  const onMoveStart = useCallback((event: unknown) => {
-    if (event) dragging.current = true;
-  }, []);
   const onMoveEnd = useCallback(
-    (event: unknown, viewport: Viewport) => {
-      if (event) dragging.current = false;
-      const held = heldShift.current;
-      if (event && held) {
-        heldShift.current = null;
-        void flow
-          .setViewport(followAnchor({ x: 0, y: 0 }, { x: held.dx, y: held.dy }, viewport))
-          .then(() => saveViewport(flow.getViewport()));
-        return;
-      }
-      saveViewport(viewport);
-    },
-    [flow, saveViewport],
+    (_event: unknown, viewport: Viewport) => saveViewport(viewport),
+    [saveViewport],
   );
 
   const focusNode = useCallback(
@@ -698,7 +676,6 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
                   defaultViewport={view.viewport}
                   minZoom={minZoom}
                   maxZoom={maxZoom}
-                  onMoveStart={onMoveStart}
                   onMoveEnd={onMoveEnd}
                   nodesDraggable={false}
                   nodesConnectable={false}
