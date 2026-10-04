@@ -1,0 +1,1722 @@
+2b101ec feat(v2-web): nối route ticket, yêu cầu, tài liệu và storage attachment cho fixture
+ v2/docs/files.md                           |   7 ++
+ v2/docs/flows.yaml                         |   7 ++
+ v2/docs/flows/web-shell.md                 |  11 +-
+ v2/web/e2e/app-router.spec.ts              |  23 ++++
+ v2/web/e2e/docs-assistant.spec.ts          |  89 ++++++++++++++
+ v2/web/e2e/support/owner-seed.ts           | 118 ++++++++++++++++++
+ v2/web/e2e/ticket-routes.spec.ts           | 157 ++++++++++++++++++++++++
+ v2/web/scripts/e2e-attachment-receivers.ts | 121 +++++++++++++++++++
+ v2/web/scripts/e2e-fixture.ts              |  63 +++++++++-
+ v2/web/src/app-runtime.ts                  |  39 ++++++
+ v2/web/src/docs-route.tsx                  |  34 ++++++
+ v2/web/src/router.tsx                      |  40 +++++-
+ v2/web/src/shell.tsx                       |  45 ++++++-
+ v2/web/src/ticket-routes.tsx               | 135 +++++++++++++++++++++
+ v2/web/test/fixture-lifecycle.test.ts      |  12 ++
+ v2/web/test/ticket-routes.test.ts          | 187 +++++++++++++++++++++++++++++
+ 16 files changed, 1079 insertions(+), 9 deletions(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 143e67b..74aeb89 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -356,58 +356,64 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `web/e2e/app-router.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
++| `web/e2e/docs-assistant.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
++| `web/e2e/support/owner-seed.ts` | [web-shell](flows/web-shell.md) (file) |
++| `web/e2e/ticket-routes.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/tickets.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
+ | `web/package.json` | [web-shell](flows/web-shell.md) (file) |
+ | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
++| `web/scripts/e2e-attachment-receivers.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/app-runtime.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/attachments/preview.tsx` | [web-attachments](flows/web-attachments.md) (file) |
+ | `web/src/attachments/queries.ts` | [web-attachments](flows/web-attachments.md) (file) |
+ | `web/src/auth/login.tsx` | [web-data](flows/web-data.md) (file) |
+ | `web/src/auth/session-boundary.tsx` | [web-data](flows/web-data.md) (điểm vào) |
+ | `web/src/compose/composer.tsx` | [web-attachments](flows/web-attachments.md) (điểm vào) |
+ | `web/src/compose/controller.ts` | [web-attachments](flows/web-attachments.md) (file) |
+ | `web/src/compose/file-hash.ts` | [web-attachments](flows/web-attachments.md) (file) |
+ | `web/src/compose/file-hash.worker.ts` | [web-attachments](flows/web-attachments.md) (file) |
+ | `web/src/compose/state.ts` | [web-attachments](flows/web-attachments.md) (file) |
+ | `web/src/contracts/attachments.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/docs.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/http.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/machines.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/tickets.ts` | [web-data](flows/web-data.md) (file) |
++| `web/src/docs-route.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/docs/links.ts` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/page.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/queries.ts` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/search.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/space.tsx` | [web-docs](flows/web-docs.md) (điểm vào) |
+ | `web/src/docs/ticket-links.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+ | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
++| `web/src/ticket-routes.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/tickets/board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/create-request-state.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/create-request.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/detail.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/dialog.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+ | `web/src/tickets/history.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/list.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/queries.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/requests.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
+@@ -422,15 +428,16 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/test/docs-space-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/docs-ticket-links-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/ticket-detail-dom.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
++| `web/test/ticket-routes.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
+ | `web/vite.config.ts` | [web-shell](flows/web-shell.md) (file) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 07347d6..93cfccb 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -483,34 +483,41 @@ flows:
+       - server/test/assistant-workflows.test.ts
+   web-shell:
+     title: Khung web và fixture cô lập Crew v2
+     doc: docs/flows/web-shell.md
+     entrypoints:
+       - web/src/main.tsx
+     files:
+       - web/src/app-runtime.ts
+       - web/src/router.tsx
+       - web/src/shell.tsx
++      - web/src/ticket-routes.tsx
++      - web/src/docs-route.tsx
+       - web/src/styles.css
+       - web/scripts/e2e-fixture.ts
+       - web/e2e/support/fixture.ts
++      - web/e2e/support/owner-seed.ts
++      - web/scripts/e2e-attachment-receivers.ts
+       - web/package.json
+       - web/pnpm-lock.yaml
+       - web/tsconfig.json
+       - web/vite.config.ts
+       - web/index.html
+       - web/playwright.config.ts
+     tests:
+       - web/test/workspace.test.ts
+       - web/test/fixture-lifecycle.test.ts
+       - web/test/app-wiring.test.ts
+       - web/e2e/app-router.spec.ts
++      - web/test/ticket-routes.test.ts
++      - web/e2e/ticket-routes.spec.ts
++      - web/e2e/docs-assistant.spec.ts
+   web-data:
+     title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
+     doc: docs/flows/web-data.md
+     entrypoints:
+       - web/src/auth/session-boundary.tsx
+     files:
+       - web/src/auth/login.tsx
+       - web/src/contracts/attachments.ts
+       - web/src/contracts/docs.ts
+       - web/src/contracts/http.ts
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index 303848c..d2ff800 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -1,47 +1,52 @@
+ # Khung web Crew v2
+ 
+ ## Mục đích
+ 
+ `v2/web` là ứng dụng React độc lập dưới `/crew-v2/`. Task 1 dựng khung điều hướng, trạng thái tải/lỗi/trống và fixture cô lập để các trang nghiệp vụ kế tiếp dùng chung. Nội dung guest hiện là **Bản minh họa**; chưa đại diện cho project hoặc ticket thật.
+ 
+ ## Điểm vào
+ 
+ - `v2/web/src/main.tsx` tạo React root, một `AppRuntime` (QueryClient, phiên, `PendingStore`, `OwnerClient`, `EventSync`) và router trong một lần mount của browser app.
+ - `v2/web/src/app-runtime.ts` → `createAppRuntime`: dựng runtime và gọi `wireSession` ngay lúc dựng, trước mọi subscriber React.
+-- `v2/web/src/router.tsx` khai báo root `Shell`, route `/login` và nhóm route được bảo vệ (`/`, `/projects/$projectId`) bọc bởi `SessionBoundary`.
++- `v2/web/src/router.tsx` khai báo root `Shell`, route `/login` và nhóm route được bảo vệ (`/`, `/projects/$projectId`, `/projects/$projectId/tickets`, `/projects/$projectId/docs`, `/tickets/$ticketId`) bọc bởi `SessionBoundary`, `ComposeServicesProvider` (dịch vụ composer lấy từ `AppRuntime.composeServices`: chính client, `PendingStore`, phiên và `sessionStorage` của runtime) và `TicketDraftStorageProvider` (cùng storage đó cho bản nháp form/bình luận).
++- `v2/web/src/ticket-routes.tsx` → `ProjectTicketsPage`, `TicketPage`, `useTicketDialog`: view URL cho bảng/danh sách/yêu cầu và deep link `/tickets/<id>`; chi tiết ở bước 5. `v2/web/src/docs-route.tsx` → `ProjectDocsPage`: không gian tài liệu theo `?path=`.
+ - `v2/web/vite.config.ts` đặt base `/crew-v2/` và nhận API origin loopback qua `CREW_V2_WEB_API_ORIGIN` cho chế độ dev.
+ - `v2/web/e2e/support/fixture.ts` khai báo `withFixture`, resource và cleanup. Coordinator đã qua test lifecycle PostgreSQL/API, active request shutdown và SIGTERM child thật (5/5); lượt MCP cuối đã kiểm shell guest, UI không đổi trong FIX1.
+ - `v2/web/scripts/e2e-fixture.ts --preview` giữ cùng fixture vật lý trong process cho browser MCP và nhận lệnh `close` sau khi tab đã đóng. Origin, nonce và registry không chứa credential được in trước khi điều hướng.
+ 
+ ## Các bước
+ 
+ 0. Wiring phiên: `createAppRuntime` đăng ký `wireSession` trước khi React render nên khi phiên thành `authenticated`, `EventSync.start` chạy (và gửi request catch-up) trước khi view được bảo vệ kịp GET dữ liệu đầu tiên. Route được bảo vệ chạy `authorizeRoute` trong `beforeLoad`: đợi `bootstrap`, rồi guest/expired bị chuyển tới `/login?returnTo=<path nội bộ>`. `returnTo` đi qua `safeReturnPath`, chỉ nhận path `/crew-v2/` nên URL ngoài hay `..` về `/crew-v2/`. Đăng nhập thành công đẩy history tới path đã kiểm. Nếu phiên hết hạn khi đang ở route được bảo vệ, `SessionBoundary` hiện màn hình đăng nhập lại tại chỗ. Nút “Đăng xuất” ở toolbar gọi `SessionController.logout`, xóa cache và đóng stream. Query mặc định `retry: false` vì `OwnerClient.get` đã tự retry; `refetchOnWindowFocus` và `refetchOnReconnect` bật.
+ 
+ 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
+ 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
+ 3. Dev Vite chỉ proxy `/v2` khi caller cấp `CREW_V2_WEB_API_ORIGIN`; build production dự kiến dùng cùng origin. Khung Task1 không gọi API hay import app/schema/role runtime v1.
+-4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
++5. Route ticket (đều sau `authorizeRoute`): `/projects/$projectId/tickets?view=board|list|requests&status&kind&rootId` render `TicketBoard`, `TicketList` hoặc `RequestList` và đúng một `TicketDialog`; `view` mặc định `board`, chỉ bốn bộ lọc của producer được giữ (`parseTicketsSearch`), đổi bộ lọc hay view ghi lại vào URL nên reload giữ nguyên. `/tickets/$ticketId` render `TicketDetail presentation="page"` cho deep link và reload, kèm liên kết quay lại danh sách khi đã biết project của ticket. `projectId`/`ticketId` không phải UUID hiện view “Không tìm thấy” (không bao giờ bỏ bộ lọc project để liệt kê mọi project); UUID hợp lệ nhưng không tồn tại hiện thông báo 404 của `TicketDetail`. Guest mở deep link được chuyển tới login rồi quay về đúng path. `/projects/$projectId/docs?path=` render `DocsSpace` (đường dẫn trang nằm trên URL nên reload giữ trang; ticket liên kết mở bằng cùng `TicketDialog`). Sidebar “Dự án” đọc `GET /v2/projects` chỉ khi đã đăng nhập và liệt kê mỗi dự án với liên kết “Ticket” và “Tài liệu”. Đăng xuất gọi `clearTicketDrafts` trên storage của runtime (qua `session.onLogout`), nên bản nháp bị xóa cả khi trang vừa reload mà chưa mở ticket nào; hết phiên thì giữ nháp để đăng nhập lại.
++4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Fixture cũng truyền `AttachmentAssembly` cho `buildApp`: storage root riêng `crew-v2-web-attachments-*` (resource `scratch` trong registry, xóa trước scratch chính khi đóng), `storageHostId` UUID chữ thường, writer native trên Linux hoặc cổng closed-ACK trong process (`web/scripts/e2e-attachment-receivers.ts`, không có bằng chứng process-gone native) trên host khác. Không truyền `extractorVersion` nên submission có tệp vẫn 503 `EXTRACTION_NOT_CONFIGURED`; port chưa có producer vẫn vắng (409/503). Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
+ 
+ ## Files
+ 
+ | File | Vai trò |
+ |---|---|
+ | `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 được khai báo tường minh trong `devDependencies` |
+ | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
+ | `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
+ | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
+ | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
++| `v2/web/scripts/e2e-attachment-receivers.ts`, `v2/web/e2e/support/owner-seed.ts` | Cổng writer upload cho host không phải Linux; seed project/ticket và snapshot tài liệu qua API owner thật cho e2e |
++| `v2/web/src/ticket-routes.tsx`, `v2/web/src/docs-route.tsx` | View route ticket (bảng/danh sách/yêu cầu có URL state, dialog dùng chung, trang ticket deep link) và không gian tài liệu |
++| `v2/web/test/ticket-routes.test.ts`, `v2/web/e2e/ticket-routes.spec.ts`, `v2/web/e2e/docs-assistant.spec.ts` | Match route, search, compose services, xóa nháp khi logout; deep link/reload/404/URL state/nháp và không gian tài liệu trên API/PG thật (snapshot import qua `POST /v2/docs/imports`; phần Trợ lý chờ producer) |
+ 
+ ## Dữ liệu
+ 
+ Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+ 
+ `v2/docs/flows/server-platform.md` định nghĩa migration và DB v2; `v2/docs/flows/server-identity.md` định nghĩa bootstrap/login owner. Các trang nghiệp vụ Phase07 Task2–8 sẽ dùng shell này sau khi producer gate tương ứng mở.
+ 
+ ## Tests
+ 
+ Workspace RED đầu tiên exit 1 bằng assertion thiếu `package.json`, sau scaffold workspace 1/1 PASS. Lifecycle RED trên deny scaffold có 3 assertion thất bại đúng hành vi thiếu callback/identity/STOP. Preview SIGTERM child từng RED thực: tài nguyên cleanup nhưng process không tự exit; đã GREEN. Review FIX1 phát hiện request gửi dở có thể giữ `close()` chờ vô hạn; test HTTP thật RED với `ACTIVE_REQUEST_CLOSE_DEADLINE`, sau sửa hủy socket thuộc fixture và deadline cleanup thì GREEN. Lượt final sau format đạt lifecycle 5/5 trên PostgreSQL18.6/API/web listener thật: POST login, GET session trực tiếp và qua proxy `/v2`, close lặp, active request, SIGTERM child exit0/cleanup; hai case UNKNOWN là unit policy. Scoped Biome và strict typecheck sau FIX1 exit0; web build 150 modules và workspace 1/1 thuộc freeze UI trước FIX1, vì FIX1 chỉ đổi harness/test. Exact container ID, image digest, DB, cổng, process, scratch và STOP độc lập, cùng raw logs có hash của FIX1, được ghi trong báo cáo Phase07. Preview Playwright MCP cuối trên source UI đã xác nhận Enter skip link chuyển focus vào `MAIN#main-content`, error console 0, viewport thật 1280/390/640 px đều không tràn. Viewport 640px là kiểm tra bố cục tương đương; literal browser zoom 200% chưa đo được vì shortcut không đổi zoom metrics. Fixture preview đã đóng và exact resource biến mất. FIX2 bổ sung guard sau stat để không khởi chạy rm sau REMOVE timeout; focused unit RED/GREEN và scoped Biome đã có. Full lifecycle6 và strict typecheck trên freeze FIX2 chưa chạy do resource gate, independent scoped FIX2 review chưa hoàn tất. Đây là checkpoint source, chưa nghiệm thu đầy đủ Task1; các trang nghiệp vụ Task2–8 nằm ngoài nghiệm thu shell này.
+ 
+-`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. `web/e2e/app-router.spec.ts` chạy router thật qua fixture PostgreSQL/API/Vite: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, request `GET /v2/events` đi trước mọi GET khác sau bước xác minh phiên, `returnTo` là URL ngoài rơi về `/crew-v2/`, và đăng xuất làm request stream bị hủy; khi còn là guest (kể cả sau khi tải lại trang đăng nhập) không có request `/v2/events` nào được gửi.
++`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. `web/e2e/app-router.spec.ts` chạy router thật qua fixture PostgreSQL/API/Vite: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, request `GET /v2/events` đi trước mọi GET khác sau bước xác minh phiên, `returnTo` là URL ngoài rơi về `/crew-v2/`, và đăng xuất làm request stream bị hủy; test thứ hai của spec này mở deep link ticket và khẳng định `GET /v2/tickets/<id>` đứng sau `GET /v2/events` catch-up của phiên vừa xác minh; khi còn là guest (kể cả sau khi tải lại trang đăng nhập) không có request `/v2/events` nào được gửi.
+diff --git a/v2/web/e2e/app-router.spec.ts b/v2/web/e2e/app-router.spec.ts
+index c170f7d..d91a23d 100644
+--- a/v2/web/e2e/app-router.spec.ts
++++ b/v2/web/e2e/app-router.spec.ts
+@@ -1,17 +1,18 @@
+ /**
+  * Real app router on the Task1 fixture (PostgreSQL, API, Vite): guest redirect, login with a validated return
+  * route, event stream ordering on the real protected layout, and logout. No network mocking; requests are
+  * only observed.
+  */
+ import { test as base, expect } from '@playwright/test';
+ import { type FixtureHandle, withFixture } from './support/fixture.ts';
++import { seedOwnerTicket } from './support/owner-seed.ts';
+ 
+ const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
+   crew: [
+     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern for fixture deps.
+     async ({}, use) => {
+       await withFixture(async (handle) => {
+         await use(handle);
+       });
+     },
+     { scope: 'worker', timeout: 180_000 },
+@@ -66,10 +67,32 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
+   await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
+   await expect(heading).toBeVisible();
+   // As a guest, neither the logout nor the fresh page load opens any event request.
+   expect(calls.slice(afterLogout).filter((call) => call.startsWith('GET /v2/events'))).toEqual([]);
+   await password.fill(crew.ownerPassword);
+   await signIn.click();
+   await expect(page.getByRole('heading', { name: 'Không gian làm việc', level: 1 })).toBeVisible();
+   expect(new URL(page.url()).pathname).toBe('/crew-v2/');
+   expect(page.url()).not.toContain('evil.example');
+ });
++
++test('router thật: GET ticket của route deep link đứng sau catch-up /v2/events của phiên vừa xác minh', async ({
++  page,
++  crew,
++}) => {
++  const seeded = await seedOwnerTicket(crew, 'Ticket kiểm thứ tự GET');
++  const calls: string[] = [];
++  page.on('request', (request) => {
++    const { pathname } = new URL(request.url());
++    if (pathname.startsWith('/v2/')) calls.push(`${request.method()} ${pathname}`);
++  });
++  await page.goto(`${crew.webOrigin}/crew-v2/tickets/${seeded.ticketId}`);
++  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
++  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
++  await expect(page.getByRole('heading', { name: seeded.title, level: 1 })).toBeVisible();
++
++  const verified = calls.lastIndexOf('GET /v2/auth/session');
++  const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
++  const ticketGet = `GET /v2/tickets/${seeded.ticketId}`;
++  expect(afterLogin[0]).toBe('GET /v2/events');
++  expect(afterLogin.indexOf(ticketGet)).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
++});
+diff --git a/v2/web/e2e/docs-assistant.spec.ts b/v2/web/e2e/docs-assistant.spec.ts
+new file mode 100644
+index 0000000..15c25ac
+--- /dev/null
++++ b/v2/web/e2e/docs-assistant.spec.ts
+@@ -0,0 +1,89 @@
++/**
++ * Docs space on the real app router with the Task1 fixture (PostgreSQL, API, Vite). The snapshot is imported
++ * through the production route `POST /v2/docs/imports`; nothing is written to the database directly and no
++ * network is mocked. Covers the Unicode tree, opening a page by URL, an internal link, and the metadata block
++ * (commit, content class, audit state). The Assistant part of this surface waits for its producer routes.
++ */
++import { test as base, expect, type Page } from '@playwright/test';
++import { type FixtureHandle, withFixture } from './support/fixture.ts';
++import { type SeededDocs, seedDocsProject } from './support/owner-seed.ts';
++
++const files = {
++  'docs/index.md': '# Tổng quan dự án\n\nĐọc [hướng dẫn bắt đầu](hướng-dẫn/bắt-đầu.md) trước.\n',
++  'docs/hướng-dẫn/bắt-đầu.md': '# Bắt đầu nhanh\n\nNội dung tiếng Việt có dấu: ước lượng, đường dẫn.\n',
++  'docs/superpowers/specs/thiết-kế.md': '# Thiết kế dự kiến\n\nChưa triển khai.\n',
++};
++
++const test = base.extend<Record<never, never>, { crew: FixtureHandle; docs: SeededDocs }>({
++  crew: [
++    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern for fixture deps.
++    async ({}, use) => {
++      await withFixture(async (handle) => {
++        await use(handle);
++      });
++    },
++    { scope: 'worker', timeout: 180_000 },
++  ],
++  docs: [
++    async ({ crew }, use) => {
++      await use(await seedDocsProject(crew, files));
++    },
++    { scope: 'worker', timeout: 60_000 },
++  ],
++});
++test.describe.configure({ mode: 'serial', timeout: 120_000 });
++
++async function signIn(page: Page, crew: FixtureHandle): Promise<void> {
++  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
++  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
++}
++
++test('cây Unicode, mở trang theo URL, link nội bộ và metadata phiên bản', async ({ page, crew, docs }) => {
++  const base = `/crew-v2/projects/${docs.projectId}/docs`;
++  await page.goto(`${crew.webOrigin}${base}`);
++  await signIn(page, crew);
++  await expect(page.getByRole('heading', { name: 'Tài liệu', level: 1 })).toBeVisible();
++
++  const tree = page.getByRole('navigation', { name: 'Cây tài liệu' });
++  await expect(tree).toBeVisible();
++  // The tree lists pages by title (the first heading), nested by the links between them.
++  await expect(tree.getByRole('button', { name: 'Tổng quan dự án' })).toBeVisible();
++  await expect(tree.getByRole('button', { name: 'Bắt đầu nhanh' })).toBeVisible();
++  await expect(tree.getByRole('button', { name: /Thiết kế dự kiến/ })).toBeVisible();
++
++  // The page title and the markdown's own first heading both match, so the first one is enough.
++  const content = page.getByRole('main', { name: 'Nội dung tài liệu' });
++  await expect(content.getByRole('heading', { name: 'Tổng quan dự án' }).first()).toBeVisible();
++  const meta = content.getByRole('region', { name: 'Thông tin phiên bản tài liệu' });
++  await expect(meta.getByText('Không có commit')).toBeVisible();
++  // A legacy import has no source commit and only a structural audit: the page says so instead of hiding it.
++  await expect(meta.getByText('Không hợp lệ').first()).toBeVisible();
++  await expect(meta.getByText('Đã triển khai')).toBeVisible();
++  await expect(content.getByRole('alert')).toContainText('Tài liệu không hợp lệ theo kiểm tra');
++
++  await content.getByRole('link', { name: 'hướng dẫn bắt đầu' }).click();
++  await expect(content.getByRole('heading', { name: 'Bắt đầu nhanh' }).first()).toBeVisible();
++  expect(decodeURIComponent(new URL(page.url()).searchParams.get('path') ?? '')).toBe(
++    'docs/hướng-dẫn/bắt-đầu.md',
++  );
++
++  await page.reload();
++  await expect(content.getByRole('heading', { name: 'Bắt đầu nhanh' }).first()).toBeVisible();
++  await expect(content.getByText('ước lượng, đường dẫn')).toBeVisible();
++
++  await page.goto(
++    `${crew.webOrigin}${base}?path=${encodeURIComponent('docs/superpowers/specs/thiết-kế.md')}`,
++  );
++  await expect(content.getByRole('heading', { name: 'Thiết kế dự kiến' }).first()).toBeVisible();
++  await expect(meta.getByText('Thiết kế/kế hoạch')).toBeVisible();
++});
++
++test('mục điều hướng Tài liệu dẫn tới không gian tài liệu của dự án', async ({ page, crew, docs }) => {
++  await page.goto(`${crew.webOrigin}/crew-v2/`);
++  await signIn(page, crew);
++  const nav = page.getByRole('navigation', { name: 'Điều hướng dự án' });
++  await expect(nav.getByText(docs.projectName)).toBeVisible();
++  await nav.getByRole('link', { name: 'Tài liệu' }).click();
++  await expect(page.getByRole('navigation', { name: 'Cây tài liệu' })).toBeVisible();
++  expect(new URL(page.url()).pathname).toBe(`/crew-v2/projects/${docs.projectId}/docs`);
++});
+diff --git a/v2/web/e2e/support/owner-seed.ts b/v2/web/e2e/support/owner-seed.ts
+new file mode 100644
+index 0000000..193334a
+--- /dev/null
++++ b/v2/web/e2e/support/owner-seed.ts
+@@ -0,0 +1,118 @@
++import { randomUUID } from 'node:crypto';
++import { bundleHash, hashBytes, snapshotHash } from '../../../server/src/docs/checksum.ts';
++import type { DocsFile } from '../../../server/src/docs/contracts.ts';
++import type { FixtureHandle } from './fixture.ts';
++
++export type SeededTicket = { projectId: string; ticketId: string; title: string };
++
++/**
++ * Creates one project and one request ticket through the real owner API of the fixture (login, CSRF,
++ * idempotency key). Nothing is mocked; the data lives in the fixture's own PostgreSQL.
++ */
++type OwnerPost = <T>(path: string, body: unknown) => Promise<T>;
++
++/** Logs in as the fixture owner through the real API and returns a CSRF + idempotency-key aware POST. */
++async function ownerPost(crew: FixtureHandle): Promise<OwnerPost> {
++  const login = await fetch(`${crew.apiOrigin}/v2/auth/session`, {
++    method: 'POST',
++    headers: { origin: crew.webOrigin, 'content-type': 'application/json' },
++    body: JSON.stringify({ password: crew.ownerPassword }),
++    signal: AbortSignal.timeout(15_000),
++  });
++  if (login.status !== 200) throw new Error(`SEED_LOGIN_FAILED:${login.status}`);
++  const cookie = login.headers.get('set-cookie')?.split(';', 1)[0];
++  const { csrfToken } = (await login.json()) as { csrfToken?: string };
++  if (!cookie || !csrfToken) throw new Error('SEED_SESSION_INVALID');
++  return async <T>(path: string, body: unknown): Promise<T> => {
++    const response = await fetch(`${crew.apiOrigin}${path}`, {
++      method: 'POST',
++      headers: {
++        origin: crew.webOrigin,
++        cookie,
++        'x-csrf-token': csrfToken,
++        'idempotency-key': randomUUID(),
++        'content-type': 'application/json',
++      },
++      body: JSON.stringify(body),
++      signal: AbortSignal.timeout(15_000),
++    });
++    if (response.status !== 201 && response.status !== 200) {
++      throw new Error(`SEED_FAILED:${path}:${response.status}:${await response.text()}`);
++    }
++    return (await response.json()) as T;
++  };
++}
++
++/**
++ * Creates one project and one request ticket through the real owner API of the fixture (login, CSRF,
++ * idempotency key). Nothing is mocked; the data lives in the fixture's own PostgreSQL.
++ */
++export async function seedOwnerTicket(crew: FixtureHandle, title: string): Promise<SeededTicket> {
++  const post = await ownerPost(crew);
++  const project = await post<{ id: string }>('/v2/projects', {
++    key: 'ROUTE',
++    name: 'Dự án route ticket',
++    repositoryUrl: null,
++  });
++  const ticket = await post<{ id: string }>('/v2/tickets', {
++    projectId: project.id,
++    parentId: null,
++    level: 'request',
++    kind: 'code',
++    title,
++    description: 'Mô tả để kiểm tra deep link.',
++    mandatory: true,
++    criteria: { workflowChoice: 'superpowers' },
++    inputs: {},
++    outputs: {},
++    skill: null,
++    workflowPin: null,
++  });
++  return { projectId: project.id, ticketId: ticket.id, title };
++}
++
++export type SeededDocs = { projectId: string; projectName: string; files: Record<string, string> };
++
++/**
++ * Imports one docs snapshot through the production route `POST /v2/docs/imports` (legacy bundle: the server
++ * verifies every checksum, audits the files and creates the project). Source commit stays null, so the page
++ * shows the unverified state exactly as a real legacy import does.
++ */
++export async function seedDocsProject(
++  crew: FixtureHandle,
++  files: Record<string, string>,
++): Promise<SeededDocs> {
++  const post = await ownerPost(crew);
++  const entries: DocsFile[] = Object.entries(files).map(([path, text]) => {
++    const bytes = Buffer.from(text, 'utf8');
++    return {
++      path,
++      bytesBase64: bytes.toString('base64'),
++      sha256: hashBytes(bytes),
++      contentClass: path.startsWith('docs/superpowers/') ? 'workflow_artifact' : 'implemented',
++    };
++  });
++  const projectName = 'Dự án tài liệu';
++  const body = {
++    sourceSystem: 'crew-v1' as const,
++    backupManifestSha256: 'b'.repeat(64),
++    inventory: [
++      {
++        legacyProjectId: 'legacy-e2e',
++        key: 'DOCS',
++        name: projectName,
++        repositoryUrl: null,
++        sourceCommit: null,
++        snapshotSha256: snapshotHash(entries),
++        files: entries,
++      },
++    ],
++  };
++  const result = await post<{ projects: { projectId: string }[] }>('/v2/docs/imports', {
++    ...body,
++    bundleSha256: bundleHash(body),
++  });
++  const projectId = result.projects[0]?.projectId;
++  if (!projectId) throw new Error('SEED_DOCS_PROJECT_MISSING');
++  return { projectId, projectName, files };
++}
+diff --git a/v2/web/e2e/ticket-routes.spec.ts b/v2/web/e2e/ticket-routes.spec.ts
+new file mode 100644
+index 0000000..39de297
+--- /dev/null
++++ b/v2/web/e2e/ticket-routes.spec.ts
+@@ -0,0 +1,157 @@
++/**
++ * Ticket routes on the real app router with the Task1 fixture (PostgreSQL, API, Vite): deep link with login
++ * return, reload, unknown and malformed ids, the project board/list with its URL state, the shared dialog
++ * and the back link. Data is created through the owner API; no network is mocked.
++ */
++import { test as base, expect, type Page } from '@playwright/test';
++import { type FixtureHandle, withFixture } from './support/fixture.ts';
++import { type SeededTicket, seedOwnerTicket } from './support/owner-seed.ts';
++
++const test = base.extend<Record<never, never>, { crew: FixtureHandle; seeded: SeededTicket }>({
++  crew: [
++    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern for fixture deps.
++    async ({}, use) => {
++      await withFixture(async (handle) => {
++        await use(handle);
++      });
++    },
++    { scope: 'worker', timeout: 180_000 },
++  ],
++  seeded: [
++    async ({ crew }, use) => {
++      await use(await seedOwnerTicket(crew, 'Yêu cầu mở bằng đường dẫn'));
++    },
++    { scope: 'worker', timeout: 60_000 },
++  ],
++});
++test.describe.configure({ mode: 'serial', timeout: 120_000 });
++
++async function signIn(page: Page, crew: FixtureHandle): Promise<void> {
++  await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeVisible();
++  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
++  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
++}
++
++function here(page: Page): string {
++  const url = new URL(page.url());
++  return url.pathname + url.search;
++}
++
++test('deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up', async ({
++  page,
++  crew,
++  seeded,
++}) => {
++  const calls: string[] = [];
++  page.on('request', (request) => {
++    const { pathname } = new URL(request.url());
++    if (pathname.startsWith('/v2/')) calls.push(`${request.method()} ${pathname}`);
++  });
++  const path = `/crew-v2/tickets/${seeded.ticketId}`;
++  await page.goto(`${crew.webOrigin}${path}`);
++  await signIn(page, crew);
++  await expect(page.getByRole('heading', { name: seeded.title, level: 1 })).toBeVisible();
++  expect(here(page)).toBe(path);
++  await expect(page.getByTestId('ticket-detail')).toHaveAttribute('data-ticket-id', seeded.ticketId);
++
++  calls.length = 0;
++  await page.reload();
++  await expect(page.getByRole('heading', { name: seeded.title, level: 1 })).toBeVisible();
++  expect(here(page)).toBe(path);
++  const gets = calls.filter((call) => call.startsWith('GET '));
++  const catchUp = gets.indexOf('GET /v2/events');
++  const ticketGet = gets.indexOf(`GET /v2/tickets/${seeded.ticketId}`);
++  expect(catchUp).toBeGreaterThanOrEqual(0);
++  expect(ticketGet).toBeGreaterThan(catchUp);
++});
++
++test('id không tồn tại hoặc không phải UUID hiện view không tìm thấy, không lộ dữ liệu', async ({
++  page,
++  crew,
++}) => {
++  await page.goto(`${crew.webOrigin}/crew-v2/tickets/0197a3c2-7d1e-7a40-8b53-ffffffffffff`);
++  await signIn(page, crew);
++  await expect(page.getByText('Không tìm thấy ticket hoặc bạn không có quyền xem.')).toBeVisible();
++  await page.goto(`${crew.webOrigin}/crew-v2/tickets/khong-phai-uuid`);
++  await expect(page.getByRole('heading', { name: 'Không tìm thấy ticket' })).toBeVisible();
++  await page.goto(`${crew.webOrigin}/crew-v2/projects/khong-phai-uuid/tickets`);
++  await expect(page.getByRole('heading', { name: 'Không tìm thấy dự án' })).toBeVisible();
++});
++
++test('bảng/danh sách giữ view và bộ lọc trên URL, dialog dùng chung, nút quay lại từ trang ticket', async ({
++  page,
++  crew,
++  seeded,
++}) => {
++  const base = `/crew-v2/projects/${seeded.projectId}/tickets`;
++  await page.goto(`${crew.webOrigin}${base}?view=list`);
++  await signIn(page, crew);
++  const list = page.getByRole('region', { name: 'Danh sách ticket' });
++  const row = list.locator(`tr[data-ticket-id="${seeded.ticketId}"]`);
++  await expect(row).toBeVisible();
++  expect(here(page)).toBe(`${base}?view=list`);
++
++  await list.getByLabel('Loại').selectOption('research');
++  await expect(list.locator('tr[data-ticket-id]')).toHaveCount(0);
++  expect(here(page)).toBe(`${base}?view=list&kind=research`);
++  await page.reload();
++  await expect(list.getByLabel('Loại')).toHaveValue('research');
++  await list.getByLabel('Loại').selectOption('');
++  await expect(row).toBeVisible();
++
++  const dialog = page.getByRole('dialog', { name: seeded.title });
++  await row.getByRole('button', { name: seeded.title }).click();
++  await expect(dialog).toBeVisible();
++  await page.keyboard.press('Escape');
++  await expect(dialog).toBeHidden();
++  await expect(row.getByRole('button', { name: seeded.title })).toBeFocused();
++
++  await page.getByRole('button', { name: 'Dạng bảng' }).click();
++  await expect(page.getByRole('region', { name: 'Bảng ticket' })).toBeVisible();
++  expect(new URL(page.url()).searchParams.get('view')).toBe('board');
++
++  await page.getByRole('button', { name: 'Yêu cầu', exact: true }).click();
++  const requests = page.getByRole('region', { name: 'Danh sách yêu cầu' });
++  await expect(requests.locator(`li[data-ticket-id="${seeded.ticketId}"]`)).toBeVisible();
++  expect(new URL(page.url()).searchParams.get('view')).toBe('requests');
++
++  await page.goto(`${crew.webOrigin}/crew-v2/tickets/${seeded.ticketId}`);
++  await page.getByRole('link', { name: 'Quay lại danh sách ticket' }).click();
++  await expect(page.getByRole('region', { name: 'Bảng ticket' })).toBeVisible();
++  expect(here(page)).toBe(`${base}?view=board`);
++});
++
++const draftKeys = {
++  'crew-v2:form-draft:create-request': '{"title":"bản nháp dở"}',
++  'crew-v2:form-draft:comment:0197a3c2-7d1e-7a40-8b53-2f6a1c4d9e10': 'bình luận dở',
++};
++const draftsInTab = (page: Page) =>
++  page.evaluate(() =>
++    Object.keys(window.sessionStorage).filter((key) => key.startsWith('crew-v2:form-draft:')),
++  );
++
++test('đăng xuất xóa bản nháp: reload không mở ticket rồi logout; logout xong reload ở guest', async ({
++  page,
++  crew,
++  seeded,
++}) => {
++  await page.goto(`${crew.webOrigin}/crew-v2/tickets/${seeded.ticketId}`);
++  await signIn(page, crew);
++  await expect(page.getByRole('heading', { name: seeded.title, level: 1 })).toBeVisible();
++  await page.evaluate((entries) => {
++    for (const [key, value] of Object.entries(entries)) window.sessionStorage.setItem(key, value);
++  }, draftKeys);
++
++  // Reload onto a page that opens no ticket and no draft store, then log out.
++  await page.goto(`${crew.webOrigin}/crew-v2/`);
++  await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible();
++  expect(await draftsInTab(page)).toHaveLength(2);
++  await page.getByRole('button', { name: 'Đăng xuất' }).click();
++  await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeVisible();
++  expect(await draftsInTab(page)).toEqual([]);
++
++  // Reload as a guest: nothing comes back.
++  await page.reload();
++  await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeVisible();
++  expect(await draftsInTab(page)).toEqual([]);
++});
+diff --git a/v2/web/scripts/e2e-attachment-receivers.ts b/v2/web/scripts/e2e-attachment-receivers.ts
+new file mode 100644
+index 0000000..c26cae4
+--- /dev/null
++++ b/v2/web/scripts/e2e-attachment-receivers.ts
+@@ -0,0 +1,121 @@
++/**
++ * Upload writer port for the E2E fixture on hosts without the native Linux writer identity (`/proc`).
++ * It runs the same DB/storage terminal protocol as the native registry (register, write, closed-ACK) inside
++ * the fixture's single Node process, and deliberately has no native process-gone proof: it grants no
++ * authority in production and is used only when `buildApp` would otherwise refuse to start on this host.
++ */
++import { createHash, randomUUID } from 'node:crypto';
++import { join } from 'node:path';
++import type {
++  ReceiverRegistration,
++  ServerWriterIdentity,
++  WriterStopProof,
++} from '../../server/src/attachments/contracts.ts';
++import type { ManagedReceiverRegistry } from '../../server/src/attachments/receivers.ts';
++import { prepareOwnedUpload, writePrivateJson } from '../../server/src/attachments/storage.ts';
++import { canonicalJson } from '../../server/src/journal/canonical.ts';
++import type { Db } from '../../server/src/platform/contracts.ts';
++
++type Operation = {
++  registration: ReceiverRegistration;
++  terminal: boolean;
++  active: boolean;
++  abort: AbortController;
++};
++
++export function createFixtureReceivers(input: {
++  db: Db;
++  root: string;
++  storageHostId: string;
++  now: () => Date;
++}): ManagedReceiverRegistry {
++  const identity: ServerWriterIdentity = {
++    instanceId: randomUUID(),
++    storageHostId: input.storageHostId,
++    linuxBootId: 'fixture-only',
++    procNamespaceInode: 'fixture-only',
++    pid: process.pid,
++    startTicks: 'fixture-only',
++  };
++  const operations = new Map<string, Operation>();
++  const proofs = new Map<string, WriterStopProof>();
++  return {
++    control: {
++      async run(id, signal, work) {
++        const op = operations.get(id);
++        if (!op || op.active || op.terminal) throw new Error('FIXTURE_OPERATION_INVALID');
++        op.active = true;
++        await input.db`update attachment_receivers set state='writing' where id=${id} and abort_requested=false`;
++        try {
++          return await work(AbortSignal.any([signal, op.abort.signal]));
++        } finally {
++          op.active = false;
++          op.terminal = true;
++        }
++      },
++    },
++    async register(tx, attachmentId, generation) {
++      const [upload] = await tx`select ownership_nonce from attachment_uploads where id=${attachmentId}`;
++      await prepareOwnedUpload(input.root, attachmentId, String(upload?.ownership_nonce));
++      await tx`insert into attachment_server_writers(instance_id,storage_host_id,linux_boot_id,proc_namespace_inode,pid,start_ticks) values(${identity.instanceId},${identity.storageHostId},${identity.linuxBootId},${identity.procNamespaceInode},${identity.pid},${identity.startTicks}) on conflict(instance_id) do nothing`;
++      const id = randomUUID();
++      const operationNonce = randomUUID();
++      const stageKey = `uploads/${attachmentId}/stage.${generation}.${id}`;
++      const registration: ReceiverRegistration = {
++        id,
++        attachmentId,
++        generation,
++        identity,
++        stageKey,
++        operationNonce,
++        state: 'registered',
++        abortRequested: false,
++      };
++      await writePrivateJson(
++        input.root,
++        join(input.root, 'uploads', attachmentId, `.operation.${id}.json`),
++        registration,
++      );
++      await tx`insert into attachment_receivers(id,attachment_id,generation,instance_id,stage_key,operation_nonce,state) values(${id},${attachmentId},${generation},${identity.instanceId},${stageKey},${operationNonce},'registered')`;
++      operations.set(id, { registration, active: false, terminal: false, abort: new AbortController() });
++      return registration;
++    },
++    async requestAbort(tx, id) {
++      await tx`update attachment_receivers set abort_requested=true where id=${id}`;
++      operations.get(id)?.abort.abort(new Error('FIXTURE_ABORT'));
++    },
++    async closeAndAcknowledge(id) {
++      const existing = proofs.get(id);
++      if (existing) return existing;
++      const op = operations.get(id);
++      if (!op?.terminal || op.active) throw new Error('FIXTURE_WRITER_STILL_ACTIVE');
++      const data = {
++        receiverId: id,
++        generation: op.registration.generation,
++        operationNonce: op.registration.operationNonce,
++        identity,
++      };
++      const proof: WriterStopProof = {
++        receiverId: id,
++        generation: op.registration.generation,
++        kind: 'closed-ack',
++        identity,
++        proofSha256: createHash('sha256')
++          .update(Buffer.from(canonicalJson(data)))
++          .digest('hex'),
++        observedAt: input.now().toISOString(),
++      };
++      await writePrivateJson(
++        input.root,
++        join(input.root, 'uploads', op.registration.attachmentId, `.closed.${id}.json`),
++        data,
++      );
++      await input.db`update attachment_receivers set state='closed',closed_ack_sha256=${proof.proofSha256},closed_at=${input.now()},stop_proof=${input.db.json(JSON.parse(canonicalJson(proof)))} where id=${id}`;
++      proofs.set(id, proof);
++      return proof;
++    },
++    async proveStopped(id) {
++      return proofs.get(id) ?? null;
++    },
++  };
++}
+diff --git a/v2/web/scripts/e2e-fixture.ts b/v2/web/scripts/e2e-fixture.ts
+index 94b2cdb..44e644e 100644
+--- a/v2/web/scripts/e2e-fixture.ts
++++ b/v2/web/scripts/e2e-fixture.ts
+@@ -1,35 +1,37 @@
+ import { execFile } from 'node:child_process';
+ import { randomBytes, randomUUID } from 'node:crypto';
+-import { mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises';
++import { mkdtemp, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+ import { createServer } from 'node:http';
+ import type { Socket } from 'node:net';
+ import { tmpdir } from 'node:os';
+ import { join, resolve } from 'node:path';
+ import { createInterface } from 'node:readline';
+ import { setTimeout as delay } from 'node:timers/promises';
+ import { fileURLToPath } from 'node:url';
+ import { promisify } from 'node:util';
+ import react from '@vitejs/plugin-react';
+ import { createServer as createViteServer, type ViteDevServer } from 'vite';
+ import { buildApp } from '../../server/src/app.ts';
++import { loadAttachmentConfig } from '../../server/src/attachments/config.ts';
+ import { bootstrapOwner } from '../../server/src/auth/bootstrap.ts';
+ import { connectDb } from '../../server/src/db/client.ts';
+ import { captureMigrations, migrate } from '../../server/src/db/migrate.ts';
+ import {
+   boundedCleanupStep,
+   type CleanupResult,
+   closeOwnedResource,
+   type FixtureHandle,
+   type OwnedResource,
+   withFixture,
+ } from '../e2e/support/fixture.ts';
++import { createFixtureReceivers } from './e2e-attachment-receivers.ts';
+ 
+ const execFileAsync = promisify(execFile);
+ const webRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
+ const frozenHashes = [
+   'dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76',
+   '11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9',
+   '0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d',
+   '1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f',
+   'b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027',
+   '8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae',
+@@ -138,20 +140,23 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
+   let webListenAttempted = false;
+   let apiListenAttempted = false;
+   let admin: ReturnType<typeof connectDb> | undefined;
+   let db: ReturnType<typeof connectDb> | undefined;
+   let app: Awaited<ReturnType<typeof buildApp>> | undefined;
+   let vite: ViteDevServer | undefined;
+   let webServer: ReturnType<typeof createServer> | undefined;
+   let webReady = false;
+   let apiOrigin = '';
+   let webOrigin = '';
++  let attachmentScratchPath = '';
++  let attachmentScratchIdentity = '';
++  let attachmentScratchResource: OwnedResource | undefined;
+   let containerResource: OwnedResource | undefined;
+   let databaseResource: OwnedResource | undefined;
+   let webResource: OwnedResource | undefined;
+   let apiResource: OwnedResource | undefined;
+   let signalHandler: (() => void) | undefined;
+   let shuttingDown = false;
+   const webSockets = new Set<Socket>();
+   const apiSockets = new Set<Socket>();
+ 
+   async function persist(): Promise<void> {
+@@ -398,29 +403,54 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
+       },
+       confirmStopped: async (signal) =>
+         (await inspectContainer(containerId, signal))?.State.Running === false,
+       remove: async (signal) => {
+         if ((await readContainerIdentity(signal)) !== containerIdentity || signal.aborted) return false;
+         await command('docker', ['rm', containerId], signal);
+         return true;
+       },
+     });
+     if (blocked) {
++      if (attachmentScratchResource)
++        results.push(unknown(attachmentScratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+       results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+       phase = phase.startsWith('unknown:') ? phase : 'unknown';
+       await persist();
+       webServer?.unref();
+       app?.server.unref();
+       return results;
+     }
+     phase = 'stopped';
+     await persist();
++    // Attachment storage goes first: the registry that records it lives in the main scratch.
++    if (attachmentScratchResource) {
++      const storageResult = await closeOwnedResource(attachmentScratchResource, {
++        readStartIdentity: async () => {
++          try {
++            const entry = await stat(attachmentScratchPath);
++            return String(entry.dev) + ':' + String(entry.ino);
++          } catch {
++            return null;
++          }
++        },
++        stop: async () => true,
++        confirmStopped: async () => true,
++        remove: createScratchRemoval(attachmentScratchPath, attachmentScratchIdentity),
++      });
++      results.push(storageResult);
++      if (storageResult.state === 'unknown') {
++        results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
++        phase = 'unknown:ATTACHMENT_SCRATCH_REMOVE';
++        await persist();
++        return results;
++      }
++    }
+     const scratchResult = await closeOwnedResource(scratchResource, {
+       readStartIdentity: async () => {
+         try {
+           const entry = await stat(scratchPath);
+           return String(entry.dev) + ':' + String(entry.ino);
+         } catch {
+           return null;
+         }
+       },
+       stop: async () => true,
+@@ -541,22 +571,53 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
+     await persist();
+     const webPort = await listenLoopback(webServer);
+     webOrigin = 'http://127.0.0.1:' + String(webPort);
+     webResource = {
+       kind: 'listener',
+       id: 'web:' + String(webPort),
+       ownershipNonce,
+       startIdentity: workerIdentity + ':web:' + String(webPort) + ':' + ownershipNonce,
+     };
+     await record(webResource);
++    // Owned attachment storage root (private, resolved path); removed with the other scratch on close.
++    attachmentScratchPath = await realpath(await mkdtemp(join(tmpdir(), 'crew-v2-web-attachments-')));
++    const attachmentStat = await stat(attachmentScratchPath);
++    attachmentScratchIdentity = String(attachmentStat.dev) + ':' + String(attachmentStat.ino);
++    attachmentScratchResource = {
++      kind: 'scratch',
++      id: attachmentScratchPath,
++      ownershipNonce,
++      startIdentity: attachmentScratchIdentity,
++    };
++    await record(attachmentScratchResource);
++    const attachmentConfig = loadAttachmentConfig({
++      CREW_V2_ATTACHMENT_STORAGE_ROOT: attachmentScratchPath,
++    });
++    const storageHostId = randomUUID().toLowerCase();
+     app = await buildApp({
+       db,
++      attachments: {
++        config: attachmentConfig,
++        storageHostId,
++        // Native Linux writer on Linux; otherwise the in-process closed-ACK fixture port. No extractor
++        // version is certified, so submissions with files stay 503 EXTRACTION_NOT_CONFIGURED as designed.
++        ...(process.platform === 'linux'
++          ? {}
++          : {
++              receivers: createFixtureReceivers({
++                db,
++                root: attachmentScratchPath,
++                storageHostId,
++                now: () => new Date(),
++              }),
++            }),
++      },
+       publicOrigin: webOrigin,
+       secureCookies: false,
+       sessionEncryptionKey: randomBytes(32),
+       now: () => new Date(),
+     });
+     app.server.on('connection', (socket) => {
+       if (shuttingDown) {
+         socket.destroy();
+         return;
+       }
+diff --git a/v2/web/src/app-runtime.ts b/v2/web/src/app-runtime.ts
+index 5d4bd87..d2256fd 100644
+--- a/v2/web/src/app-runtime.ts
++++ b/v2/web/src/app-runtime.ts
+@@ -1,29 +1,35 @@
+ /**
+  * Composition root of one app mount: a single QueryClient, session, pending store, owner client and event
+  * stream. `wireSession` registers its listeners here, before any React subscriber exists, so the stream is
+  * started (and its catch-up request issued) before the first protected view can fetch data.
+  */
+ import { QueryClient } from '@tanstack/react-query';
+ import { createContext, useContext } from 'react';
+ import { wireSession } from './auth/session-boundary.tsx';
++import type { ComposeServices } from './compose/composer.tsx';
++import { isUuid } from './contracts/http.ts';
+ import { createOwnerClient, type OwnerClient } from './lib/api.ts';
+ import { EventSync, tabCursorStore } from './lib/events.ts';
+ import { PendingStore, type TabStorage } from './lib/pending-operation.ts';
+ import { appBasePath, type HttpFetch, SessionController, safeReturnPath } from './lib/session.ts';
++import { clearTicketDrafts } from './tickets/create-request-state.ts';
++import { parseTicketFilters, type TicketFilters } from './tickets/queries.ts';
+ 
+ export type AppRuntime = {
+   queryClient: QueryClient;
+   session: SessionController;
+   pending: PendingStore;
+   client: OwnerClient;
+   events: EventSync;
++  /** What `ComposeServicesProvider` needs; built once from this runtime's own client, pending store and session. */
++  composeServices: ComposeServices;
+   dispose(): void;
+ };
+ 
+ /**
+  * `retry` is off because `OwnerClient.get` already retries (up to 3 times with backoff); a second layer
+  * would multiply the attempts. Focus and reconnect refetch stale data after the user returns.
+  */
+ export function createQueryClient(): QueryClient {
+   return new QueryClient({
+     defaultOptions: {
+@@ -44,28 +50,34 @@ export function createAppRuntime(
+   const queryClient = createQueryClient();
+   const session = new SessionController({ fetch: options.fetch });
+   const pending = new PendingStore(storage);
+   const client = createOwnerClient({ session, pending, fetch: options.fetch });
+   const events = new EventSync({
+     fetch: options.fetch,
+     session,
+     cursorStore: tabCursorStore(storage),
+     invalidate: (keys) => Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey }))),
+   });
++  const composeServices: ComposeServices = { client, pending, session, storage };
+   const unwire = wireSession({ session, pending, cache: queryClient, events, window: options.window });
++  // Form and comment drafts live in tab storage and may belong to a page that never opened a draft store
++  // (reload without opening a ticket), so logout wipes them here rather than from a component.
++  const offLogout = session.onLogout(() => clearTicketDrafts(storage));
+   return {
+     queryClient,
+     session,
+     pending,
+     client,
+     events,
++    composeServices,
+     dispose() {
++      offLogout();
+       unwire();
+       events.stop();
+     },
+   };
+ }
+ 
+ /** Browser app path (`/crew-v2/...`) for a router location whose pathname has no base path. */
+ export function internalReturnPath(location: {
+   pathname: string;
+   searchStr?: string;
+@@ -86,17 +98,44 @@ export async function authorizeRoute(
+   await session.bootstrap();
+   if (session.snapshot().state === 'authenticated') return { allowed: true };
+   return { allowed: false, returnTo: internalReturnPath(location) };
+ }
+ 
+ /** Login route search: any `returnTo` that is not an internal `/crew-v2/` path becomes the app root. */
+ export function parseLoginSearch(search: Record<string, unknown>): { returnTo: string } {
+   return { returnTo: safeReturnPath(typeof search.returnTo === 'string' ? search.returnTo : null) };
+ }
+ 
++export const ticketViews = ['board', 'list', 'requests'] as const;
++export type TicketView = (typeof ticketViews)[number];
++export type TicketsSearch = { view: TicketView } & Omit<TicketFilters, 'projectId'>;
++
++/**
++ * Project tickets route search: `view` defaults to the board; only the producer's filters survive, with
++ * invalid values dropped. `projectId` comes from the path, never from the search.
++ */
++export function parseTicketsSearch(search: Record<string, unknown>): TicketsSearch {
++  const { projectId: _ignored, ...filters } = parseTicketFilters({ ...search, projectId: undefined });
++  const view = ticketViews.find((candidate) => candidate === search.view) ?? 'board';
++  return { view, ...filters };
++}
++
++export type DocsSearch = { path?: string };
++
++/** Docs route search: only a non-empty string `path` of sane length survives; the docs view validates it further. */
++export function parseDocsSearch(search: Record<string, unknown>): DocsSearch {
++  const { path } = search;
++  return typeof path === 'string' && path.length > 0 && path.length <= 1024 ? { path } : {};
++}
++
++/** Ticket and project ids in the path are UUIDs; anything else is a not-found view, never an unfiltered list. */
++export function routeUuid(value: string | undefined): string | null {
++  return isUuid(value) ? value.toLowerCase() : null;
++}
++
+ export const RuntimeContext = createContext<AppRuntime | null>(null);
+ 
+ export function useRuntime(): AppRuntime {
+   const runtime = useContext(RuntimeContext);
+   if (!runtime) throw new Error('APP_RUNTIME_MISSING');
+   return runtime;
+ }
+diff --git a/v2/web/src/docs-route.tsx b/v2/web/src/docs-route.tsx
+new file mode 100644
+index 0000000..2843f0a
+--- /dev/null
++++ b/v2/web/src/docs-route.tsx
+@@ -0,0 +1,34 @@
++/**
++ * Route view for a project's docs space: the path lives in the URL (`?path=`), so a page can be linked and
++ * survives reload; tickets linked from a page open in the shared ticket dialog.
++ */
++import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
++import { parseDocsSearch, routeUuid } from './app-runtime.ts';
++import { DocsSpace } from './docs/space.tsx';
++import { NotFoundView, useTicketDialog } from './ticket-routes.tsx';
++
++export function ProjectDocsPage() {
++  const params = useParams({ strict: false }) as { projectId?: string };
++  const projectId = routeUuid(params.projectId);
++  const { path } = parseDocsSearch(useSearch({ strict: false }) as Record<string, unknown>);
++  const navigate = useNavigate();
++  const { openTicket, dialog } = useTicketDialog();
++  if (!projectId) return <NotFoundView what="dự án" />;
++  return (
++    <>
++      <DocsSpace
++        projectId={projectId}
++        path={path ?? null}
++        onPathChange={(next) =>
++          void navigate({
++            to: '/projects/$projectId/docs',
++            params: { projectId },
++            search: next === null ? {} : { path: next },
++          })
++        }
++        onOpenTicket={openTicket}
++      />
++      {dialog}
++    </>
++  );
++}
+diff --git a/v2/web/src/router.tsx b/v2/web/src/router.tsx
+index ff6ce75..33ff402 100644
+--- a/v2/web/src/router.tsx
++++ b/v2/web/src/router.tsx
+@@ -1,25 +1,36 @@
+ import {
+   createRootRoute,
+   createRoute,
+   createRouter,
+   Outlet,
+   redirect,
+   useRouter,
+   useSearch,
+ } from '@tanstack/react-router';
+ import { useEffect, useSyncExternalStore } from 'react';
+-import { type AppRuntime, authorizeRoute, parseLoginSearch, useRuntime } from './app-runtime.ts';
++import {
++  type AppRuntime,
++  authorizeRoute,
++  parseDocsSearch,
++  parseLoginSearch,
++  parseTicketsSearch,
++  useRuntime,
++} from './app-runtime.ts';
+ import { LoginScreen } from './auth/login.tsx';
+ import { SessionBoundary } from './auth/session-boundary.tsx';
++import { ComposeServicesProvider } from './compose/composer.tsx';
++import { ProjectDocsPage } from './docs-route.tsx';
+ import { safeReturnPath } from './lib/session.ts';
+ import { EmptyPanel, ErrorPanel, LoadingPanel, Shell } from './shell.tsx';
++import { ProjectTicketsPage, TicketPage } from './ticket-routes.tsx';
++import { TicketDraftStorageProvider } from './tickets/create-request.tsx';
+ 
+ function GuestHome() {
+   return (
+     <section className="page-stack" aria-labelledby="guest-heading">
+       <div className="page-intro">
+         <span className="eyebrow">Bản minh họa</span>
+         <h1 id="guest-heading">Không gian làm việc</h1>
+         <p>Điều hướng dự án và các trạng thái giao diện của Crew v2.</p>
+       </div>
+       <section className="panel-grid" aria-label="Các trạng thái giao diện">
+@@ -38,24 +49,28 @@ function ProjectHome() {
+         <span className="eyebrow">Bản minh họa</span>
+         <h1 id="project-heading">Dự án</h1>
+         <p>Thông tin dự án sẽ xuất hiện sau khi đăng nhập.</p>
+       </div>
+       <EmptyPanel />
+     </section>
+   );
+ }
+ 
+ function ProtectedLayout() {
+-  const { session, pending, client } = useRuntime();
++  const { session, pending, client, composeServices } = useRuntime();
+   return (
+     <SessionBoundary session={session} pending={pending} client={client}>
+-      <Outlet />
++      <ComposeServicesProvider services={composeServices}>
++        <TicketDraftStorageProvider storage={composeServices.storage}>
++          <Outlet />
++        </TicketDraftStorageProvider>
++      </ComposeServicesProvider>
+     </SessionBoundary>
+   );
+ }
+ 
+ function LoginRoute() {
+   const { session } = useRuntime();
+   const router = useRouter();
+   const { returnTo } = useSearch({ from: '/login' });
+   const snapshot = useSyncExternalStore(
+     (listener) => session.subscribe(listener),
+@@ -100,22 +115,39 @@ export function createAppRouter(runtime: AppRuntime) {
+       if (!access.allowed) throw redirect({ to: '/login', search: { returnTo: access.returnTo } });
+     },
+     component: ProtectedLayout,
+   });
+   const homeRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/', component: GuestHome });
+   const projectRoute = createRoute({
+     getParentRoute: () => protectedRoute,
+     path: '/projects/$projectId',
+     component: ProjectHome,
+   });
++  const projectTicketsRoute = createRoute({
++    getParentRoute: () => protectedRoute,
++    path: '/projects/$projectId/tickets',
++    validateSearch: parseTicketsSearch,
++    component: ProjectTicketsPage,
++  });
++  const projectDocsRoute = createRoute({
++    getParentRoute: () => protectedRoute,
++    path: '/projects/$projectId/docs',
++    validateSearch: parseDocsSearch,
++    component: ProjectDocsPage,
++  });
++  const ticketRoute = createRoute({
++    getParentRoute: () => protectedRoute,
++    path: '/tickets/$ticketId',
++    component: TicketPage,
++  });
+   const routeTree = rootRoute.addChildren([
+     loginRoute,
+-    protectedRoute.addChildren([homeRoute, projectRoute]),
++    protectedRoute.addChildren([homeRoute, projectRoute, projectTicketsRoute, projectDocsRoute, ticketRoute]),
+   ]);
+   return createRouter({ routeTree, basepath: '/crew-v2/' });
+ }
+ 
+ declare module '@tanstack/react-router' {
+   interface Register {
+     router: ReturnType<typeof createAppRouter>;
+   }
+ }
+diff --git a/v2/web/src/shell.tsx b/v2/web/src/shell.tsx
+index c30c687..2ef8740 100644
+--- a/v2/web/src/shell.tsx
++++ b/v2/web/src/shell.tsx
+@@ -1,13 +1,15 @@
++import { useQuery } from '@tanstack/react-query';
+ import { Link, Outlet } from '@tanstack/react-router';
+ import { type ReactNode, useSyncExternalStore } from 'react';
+ import { useRuntime } from './app-runtime.ts';
++import { projectsQueryOptions } from './tickets/queries.ts';
+ 
+ type PanelProps = { title: string; children: ReactNode; symbol: string; tone: 'loading' | 'error' | 'empty' };
+ 
+ function StatePanel({ title, children, symbol, tone }: PanelProps) {
+   return (
+     <section className={`state-panel state-panel--${tone}`} aria-label={title}>
+       <span className="state-panel__symbol" aria-hidden="true">
+         {symbol}
+       </span>
+       <div>
+@@ -35,20 +37,61 @@ export function ErrorPanel() {
+ }
+ 
+ export function EmptyPanel() {
+   return (
+     <StatePanel title="Chưa có dữ liệu" symbol="◇" tone="empty">
+       Nội dung sẽ xuất hiện tại đây.
+     </StatePanel>
+   );
+ }
+ 
++function useAuthenticated(): boolean {
++  const { session } = useRuntime();
++  return (
++    useSyncExternalStore(
++      (listener) => session.subscribe(listener),
++      () => session.snapshot(),
++    ).state === 'authenticated'
++  );
++}
++
++function ProjectNav() {
++  const { client } = useRuntime();
++  const authenticated = useAuthenticated();
++  const projects = useQuery({ ...projectsQueryOptions(client), enabled: authenticated });
++  if (!authenticated) return <p className="nav-empty">Đăng nhập để xem dự án.</p>;
++  if (projects.isPending) return <p className="nav-empty">Đang tải dự án…</p>;
++  if (projects.error) return <p className="nav-empty">Không tải được danh sách dự án.</p>;
++  if (projects.data.length === 0) return <p className="nav-empty">Chưa có dự án để hiển thị.</p>;
++  const link = { className: 'nav-link', activeProps: { className: 'nav-link nav-link--active' } };
++  return (
++    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
++      {projects.data.map((project) => (
++        <li key={project.id}>
++          <p className="nav-heading">{project.name}</p>
++          <Link
++            {...link}
++            to="/projects/$projectId/tickets"
++            params={{ projectId: project.id }}
++            search={{ view: 'board' }}
++          >
++            Ticket
++          </Link>
++          <Link {...link} to="/projects/$projectId/docs" params={{ projectId: project.id }} search={{}}>
++            Tài liệu
++          </Link>
++        </li>
++      ))}
++    </ul>
++  );
++}
++
+ function LogoutButton() {
+   const { session } = useRuntime();
+   const snapshot = useSyncExternalStore(
+     (listener) => session.subscribe(listener),
+     () => session.snapshot(),
+   );
+   if (snapshot.state !== 'authenticated') return null;
+   return (
+     <button type="button" className="toolbar__action" onClick={() => void session.logout()}>
+       Đăng xuất
+@@ -74,21 +117,21 @@ export function Shell() {
+         </div>
+         <nav aria-label="Điều hướng chính">
+           <p className="nav-heading">Làm việc</p>
+           <Link className="nav-link" activeProps={{ className: 'nav-link nav-link--active' }} to="/">
+             <span aria-hidden="true">▦</span>
+             Tổng quan
+           </Link>
+         </nav>
+         <nav aria-label="Điều hướng dự án">
+           <p className="nav-heading">Dự án</p>
+-          <p className="nav-empty">Chưa có dự án để hiển thị.</p>
++          <ProjectNav />
+         </nav>
+       </aside>
+       <div className="workspace">
+         <header className="toolbar">
+           <div className="toolbar__title">Không gian làm việc</div>
+           <span className="preview-label">Bản minh họa</span>
+           <LogoutButton />
+         </header>
+         <main id="main-content" className="workspace__main" tabIndex={-1}>
+           <Outlet />
+diff --git a/v2/web/src/ticket-routes.tsx b/v2/web/src/ticket-routes.tsx
+new file mode 100644
+index 0000000..cb704a9
+--- /dev/null
++++ b/v2/web/src/ticket-routes.tsx
+@@ -0,0 +1,135 @@
++/**
++ * Route views for tickets: the project board/list with one shared dialog, and the ticket page used for deep
++ * links and reloads. Both render the existing ticket components; this module only owns URL state (view and
++ * producer filters in the search string), the dialog's open state and the not-found views.
++ */
++import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
++import { type CSSProperties, useState } from 'react';
++import { parseTicketsSearch, routeUuid, type TicketView, useRuntime } from './app-runtime.ts';
++import { TicketBoard } from './tickets/board.tsx';
++import { TicketDetail } from './tickets/detail.tsx';
++import { TicketDialog } from './tickets/dialog.tsx';
++import { TicketList } from './tickets/list.tsx';
++import { parseTicketFilters, type TicketFilters, useTicket } from './tickets/queries.ts';
++import { RequestList } from './tickets/requests.tsx';
++
++const toolbarStyle: CSSProperties = { display: 'flex', gap: '0.75rem', alignItems: 'center' };
++
++const viewLabels: Record<TicketView, string> = {
++  board: 'Dạng bảng',
++  list: 'Dạng danh sách',
++  requests: 'Yêu cầu',
++};
++
++/** One shared ticket dialog per page: open state plus the trigger that gets focus back on close. */
++export function useTicketDialog() {
++  const [open, setOpen] = useState<{ id: string | null; trigger: HTMLElement | null }>({
++    id: null,
++    trigger: null,
++  });
++  return {
++    openTicket: (id: string, trigger: HTMLElement) => setOpen({ id, trigger }),
++    dialog: (
++      <TicketDialog
++        ticketId={open.id}
++        returnFocus={open.trigger}
++        onClose={() => setOpen((current) => ({ id: null, trigger: current.trigger }))}
++      />
++    ),
++  };
++}
++
++export function NotFoundView({ what }: { what: string }) {
++  return (
++    <section className="page-stack" aria-labelledby="not-found-heading">
++      <div className="page-intro">
++        <h1 id="not-found-heading">Không tìm thấy {what}</h1>
++        <p>Đường dẫn không đúng hoặc bạn không có quyền xem.</p>
++      </div>
++      <Link className="nav-link" to="/">
++        Về tổng quan
++      </Link>
++    </section>
++  );
++}
++
++export function ProjectTicketsPage() {
++  const params = useParams({ strict: false }) as { projectId?: string };
++  const projectId = routeUuid(params.projectId);
++  const search = parseTicketsSearch(useSearch({ strict: false }) as Record<string, unknown>);
++  const navigate = useNavigate();
++  const { openTicket, dialog } = useTicketDialog();
++  // Without a valid project id the list query would drop its project filter and show every project.
++  if (!projectId) return <NotFoundView what="dự án" />;
++
++  const { view, ...filters } = search;
++  const go = (next: { view: TicketView } & Omit<TicketFilters, 'projectId'>) =>
++    navigate({
++      to: '/projects/$projectId/tickets',
++      params: { projectId },
++      search: next,
++    });
++  const viewProps = {
++    filters: { ...filters, projectId },
++    onFiltersChange: (next: TicketFilters) => {
++      const { projectId: _path, ...rest } = parseTicketFilters(next);
++      void go({ view, ...rest });
++    },
++    onOpenTicket: openTicket,
++  };
++  return (
++    <section className="page-stack" aria-labelledby="tickets-heading">
++      <div className="page-intro">
++        <h1 id="tickets-heading">Ticket của dự án</h1>
++      </div>
++      <nav style={toolbarStyle} aria-label="Cách xem ticket">
++        {(Object.keys(viewLabels) as TicketView[]).map((candidate) => (
++          <button
++            key={candidate}
++            type="button"
++            aria-pressed={view === candidate}
++            onClick={() => void go({ view: candidate, ...filters })}
++          >
++            {viewLabels[candidate]}
++          </button>
++        ))}
++      </nav>
++      {view === 'board' ? (
++        <TicketBoard {...viewProps} />
++      ) : view === 'list' ? (
++        <TicketList {...viewProps} />
++      ) : (
++        <RequestList {...viewProps} />
++      )}
++      {dialog}
++    </section>
++  );
++}
++
++function TicketPageView({ ticketId }: { ticketId: string }) {
++  const ticket = useTicket(useRuntime().client, ticketId);
++  // Same query key as TicketDetail, so this adds no request; the link appears once the ticket is known.
++  const projectId = ticket.data?.projectId;
++  return (
++    <section className="page-stack">
++      {projectId && (
++        <Link
++          className="nav-link"
++          to="/projects/$projectId/tickets"
++          params={{ projectId }}
++          search={{ view: 'board' }}
++        >
++          Quay lại danh sách ticket
++        </Link>
++      )}
++      <TicketDetail ticketId={ticketId} presentation="page" />
++    </section>
++  );
++}
++
++export function TicketPage() {
++  const params = useParams({ strict: false }) as { ticketId?: string };
++  const ticketId = routeUuid(params.ticketId);
++  if (!ticketId) return <NotFoundView what="ticket" />;
++  return <TicketPageView ticketId={ticketId} />;
++}
+diff --git a/v2/web/test/fixture-lifecycle.test.ts b/v2/web/test/fixture-lifecycle.test.ts
+index ed106b0..22ce852 100644
+--- a/v2/web/test/fixture-lifecycle.test.ts
++++ b/v2/web/test/fixture-lifecycle.test.ts
+@@ -43,20 +43,30 @@ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đú
+             containerImageDigest: handle.containerImageDigest,
+             dbPort: handle.dbPort,
+             dbName: handle.dbName,
+             apiOrigin: handle.apiOrigin,
+             webOrigin: handle.webOrigin,
+             registryPath: handle.registryPath,
+             resources: handle.resources,
+           }),
+       );
+ 
++      const storage = handle.resources.find(
++        (resource) => resource.kind === 'scratch' && resource.id.includes('crew-v2-web-attachments-'),
++      );
++      assert.ok(storage, 'Storage root của attachment phải nằm trong registry tài nguyên sở hữu');
++      assert.equal(existsSync(storage.id), true, 'Storage root phải tồn tại trong lúc fixture chạy');
++      const policy = await fetch(`${handle.apiOrigin}/v2/attachment-policy`, {
++        signal: AbortSignal.timeout(10_000),
++      });
++      assert.equal(policy.status, 401, 'Route attachment phải được mount (cần phiên owner), không phải 404');
++
+       const page = await fetch(`${handle.webOrigin}/crew-v2/`, { signal: AbortSignal.timeout(10_000) });
+       assert.equal(page.status, 200);
+       const login = await fetch(`${handle.apiOrigin}/v2/auth/session`, {
+         method: 'POST',
+         signal: AbortSignal.timeout(10_000),
+         headers: { origin: handle.webOrigin, 'content-type': 'application/json' },
+         body: JSON.stringify({ password: handle.ownerPassword }),
+       });
+       assert.equal(login.status, 200);
+       const loginBody = (await login.json()) as { owner?: { id?: string }; csrfToken?: string };
+@@ -76,20 +86,22 @@ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đú
+         headers: { cookie },
+         signal: AbortSignal.timeout(10_000),
+       });
+       assert.equal(proxied.status, 200, 'Vite phải proxy /v2 tới API thuộc cùng fixture');
+ 
+       const first = await handle.close();
+       const second = await handle.close();
+       assert.deepEqual(second, first, 'close lặp phải idempotent');
+       assert.ok(first.length >= handle.resources.length);
+       assert.ok(first.every((result) => result.state === 'stopped' || result.state === 'removed'));
++      assert.equal(existsSync(storage.id), false, 'Storage root attachment phải được dọn cùng fixture');
++      assert.ok(first.some((result) => result.resourceId === storage.id && result.state === 'removed'));
+       console.log('fixture-cleanup=' + JSON.stringify(first));
+     });
+   } catch (error) {
+     runError = error;
+   }
+   if (!entered && runError instanceof Error && runError.message !== 'FIXTURE_UNAVAILABLE') throw runError;
+   assert.equal(entered, true, 'withFixture phải gọi callback với run thật trước khi đóng tài nguyên');
+   if (runError) throw runError;
+ });
+ 
+diff --git a/v2/web/test/ticket-routes.test.ts b/v2/web/test/ticket-routes.test.ts
+new file mode 100644
+index 0000000..5f6cdde
+--- /dev/null
++++ b/v2/web/test/ticket-routes.test.ts
+@@ -0,0 +1,187 @@
++import assert from 'node:assert/strict';
++import { after, before, test } from 'node:test';
++import { fileURLToPath } from 'node:url';
++import { createServer, type ViteDevServer } from 'vite';
++
++// The router imports .tsx modules, so it is loaded through Vite's SSR transform like app-wiring.test.ts.
++type Runtime = typeof import('../src/app-runtime.ts');
++type RouterModule = typeof import('../src/router.tsx');
++let server: ViteDevServer;
++let runtime: Runtime;
++let routerModule: RouterModule;
++
++before(async () => {
++  server = await createServer({
++    root: fileURLToPath(new URL('..', import.meta.url)),
++    configFile: false,
++    appType: 'custom',
++    logLevel: 'silent',
++    server: { middlewareMode: true, watch: null, hmr: false },
++    optimizeDeps: { noDiscovery: true, include: [] },
++  });
++  runtime = (await server.ssrLoadModule('/src/app-runtime.ts')) as Runtime;
++  routerModule = (await server.ssrLoadModule('/src/router.tsx')) as RouterModule;
++});
++
++after(async () => {
++  await server.close();
++});
++
++const json = (body: unknown, status = 200) =>
++  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
++
++function fakeApi(authenticated: boolean) {
++  const fetch = async (url: string, init: RequestInit = {}) => {
++    if (url === '/v2/auth/session' && (init.method ?? 'GET') === 'GET')
++      return authenticated
++        ? json({ owner: { id: 'owner' }, csrfToken: 'a'.repeat(64) })
++        : json({ error: { code: 'UNAUTHENTICATED', message: 'x' } }, 401);
++    if (url === '/v2/auth/session' && init.method === 'DELETE') return new Response(null, { status: 204 });
++    if (url.startsWith('/v2/events/stream'))
++      return new Response(
++        new ReadableStream<Uint8Array>({
++          start(controller) {
++            init.signal?.addEventListener('abort', () => {
++              try {
++                controller.error(new DOMException('aborted', 'AbortError'));
++              } catch {
++                // already closed
++              }
++            });
++          },
++        }),
++        { status: 200, headers: { 'content-type': 'text/event-stream' } },
++      );
++    if (url.startsWith('/v2/events')) return json({ items: [], cursor: '0' });
++    return json({ ok: true });
++  };
++  return fetch;
++}
++
++const ticketId = '0197a3c2-7d1e-7a40-8b53-2f6a1c4d9e10';
++const projectId = '0197a3c2-7d1e-7a40-8b53-2f6a1c4d9e11';
++
++// `router.load()` takes the server path under Vite SSR, so route matching (path, params, validated search)
++// is checked through `matchRoutes`; the guest redirect and the real browser flow are covered by e2e.
++function match(pathname: string, search: Record<string, unknown> = {}) {
++  const app = runtime.createAppRuntime({ fetch: fakeApi(true) });
++  const router = routerModule.createAppRouter(app);
++  const matches = router.matchRoutes(pathname, search);
++  app.dispose();
++  return matches;
++}
++
++test('ticket deep link mounts the ticket page route for any id, so an unknown id reaches the 404 view', () => {
++  for (const id of [ticketId, '0197a3c2-7d1e-7a40-8b53-ffffffffffff', 'khong-phai-uuid']) {
++    const matches = match(`/tickets/${id}`);
++    const last = matches.at(-1);
++    assert.equal(last?.routeId, '/protected/tickets/$ticketId', id);
++    assert.deepEqual({ ...last?.params }, { ticketId: id });
++    assert.equal(
++      matches.some((entry) => entry.routeId === '/protected'),
++      true,
++      'the ticket page sits under the owner-protected layout',
++    );
++  }
++});
++
++test('the project tickets route sits under the owner layout and keeps its filters in the search', () => {
++  const matches = match(`/projects/${projectId}/tickets`, {
++    view: 'list',
++    status: 'ready',
++    kind: 'code',
++    rootId: ticketId,
++  });
++  const last = matches.at(-1);
++  assert.equal(last?.routeId, '/protected/projects/$projectId/tickets');
++  assert.deepEqual({ ...last?.params }, { projectId });
++  assert.deepEqual({ ...last?.search }, { view: 'list', status: 'ready', kind: 'code', rootId: ticketId });
++  assert.equal(match(`/projects/${projectId}`).at(-1)?.routeId, '/protected/projects/$projectId');
++});
++
++test('the project docs route sits under the owner layout and passes the path through', () => {
++  const last = match(`/projects/${projectId}/docs`, { path: 'docs/tài-liệu/index.md' }).at(-1);
++  assert.equal(last?.routeId, '/protected/projects/$projectId/docs');
++  assert.deepEqual({ ...last?.params }, { projectId });
++});
++
++test('parseDocsSearch keeps only a sane non-empty string path', () => {
++  assert.deepEqual(runtime.parseDocsSearch({ path: 'docs/a.md' }), { path: 'docs/a.md' });
++  for (const bad of [{}, { path: '' }, { path: 5 }, { path: 'x'.repeat(1025) }])
++    assert.deepEqual(runtime.parseDocsSearch(bad), {});
++});
++
++test('parseTicketsSearch defaults to the board and keeps only producer filters', () => {
++  assert.deepEqual(runtime.parseTicketsSearch({}), { view: 'board' });
++  assert.deepEqual(runtime.parseTicketsSearch({ view: 'grid', status: 'nope', kind: 'x', rootId: 'abc' }), {
++    view: 'board',
++  });
++  assert.deepEqual(
++    runtime.parseTicketsSearch({
++      view: 'list',
++      status: 'running',
++      kind: 'research',
++      rootId: ticketId.toUpperCase(),
++    }),
++    { view: 'list', status: 'running', kind: 'research', rootId: ticketId },
++  );
++  assert.deepEqual(runtime.parseTicketsSearch({ projectId, view: 'list' }), { view: 'list' });
++  assert.deepEqual(runtime.parseTicketsSearch({ view: 'requests' }), { view: 'requests' });
++});
++
++test('the runtime provides compose services built from its own client, pending store and session', () => {
++  const storage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
++  const app = runtime.createAppRuntime({ fetch: fakeApi(true), storage });
++  assert.equal(app.composeServices.client, app.client);
++  assert.equal(app.composeServices.pending, app.pending);
++  assert.equal(app.composeServices.session, app.session);
++  assert.equal(app.composeServices.storage, storage);
++  app.dispose();
++  const bare = runtime.createAppRuntime({ fetch: fakeApi(true) });
++  assert.equal(bare.composeServices.storage, null);
++  bare.dispose();
++});
++
++/** Tab storage with enumeration, like `sessionStorage`. */
++function tabStorage(initial: Record<string, string> = {}) {
++  const map = new Map(Object.entries(initial));
++  return {
++    map,
++    get length() {
++      return map.size;
++    },
++    key: (index: number) => [...map.keys()][index] ?? null,
++    getItem: (key: string) => map.get(key) ?? null,
++    setItem: (key: string, value: string) => void map.set(key, value),
++    removeItem: (key: string) => void map.delete(key),
++  };
++}
++
++const draftKeys = {
++  'crew-v2:form-draft:create-request': '{"title":"bản nháp"}',
++  [`crew-v2:form-draft:comment:${ticketId}`]: 'bình luận dở',
++};
++
++test('logout wipes form drafts of a reloaded page that never opened a ticket, and keeps unrelated keys', async () => {
++  // A reload creates a fresh runtime over the same tab storage; no draft store exists in this page.
++  const storage = tabStorage({ ...draftKeys, 'unrelated:key': 'giữ' });
++  const app = runtime.createAppRuntime({ fetch: fakeApi(true), storage });
++  await app.session.bootstrap();
++  assert.equal(storage.map.size, 3);
++  await app.session.logout();
++  assert.deepEqual([...storage.map.keys()], ['unrelated:key']);
++  app.dispose();
++});
++
++test('after logout, a reload as guest finds no draft and creates none', async () => {
++  const storage = tabStorage({ ...draftKeys });
++  const first = runtime.createAppRuntime({ fetch: fakeApi(true), storage });
++  await first.session.bootstrap();
++  await first.session.logout();
++  first.dispose();
++  const reloaded = runtime.createAppRuntime({ fetch: fakeApi(false), storage });
++  await reloaded.session.bootstrap();
++  assert.equal(reloaded.session.snapshot().state, 'guest');
++  assert.equal(storage.map.size, 0);
++  reloaded.dispose();
++});
