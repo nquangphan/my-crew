@@ -6,12 +6,13 @@
  * `repair_links` rows directly into the fixture database. Nothing on the network is mocked.
  */
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { arch, cpus, platform, release, totalmem } from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { test as base, expect, type Page } from '@playwright/test';
 import { connectDb } from '../../server/src/db/client.ts';
 import type { Ticket, TicketGraph } from '../src/contracts/tickets.ts';
+import { cardHeight, rowGap } from '../src/graph/layout.ts';
 import { type FixtureHandle, withFixture } from './support/fixture.ts';
 
 const evidenceDir = fileURLToPath(
@@ -261,7 +262,18 @@ async function expectTasksBesideSteps(page: Page, graph: TicketGraph): Promise<v
     const tasks = graph.nodes.filter((row) => row.parentId === step.id);
     if (tasks.length === 0) continue;
     const stepBox = await node(page, step.id).boundingBox();
-    const band = ((tasks.length - 1) / 2) * 136 * zoom + 1;
+    const band = ((tasks.length - 1) / 2) * (cardHeight + rowGap) * zoom + 1;
+    // The step sits exactly between its first and last task (parents centred, like the reference map).
+    const boxes = (await Promise.all(tasks.map((task) => node(page, task.id).boundingBox()))).filter(
+      (box): box is NonNullable<typeof box> => box !== null,
+    );
+    const ys = boxes.map((box) => box.y).sort((a, b) => a - b);
+    if (
+      stepBox &&
+      ys.length === tasks.length &&
+      Math.abs(stepBox.y - ((ys[0] ?? 0) + (ys[ys.length - 1] ?? 0)) / 2) > 1
+    )
+      far.push(`${step.title} không nằm giữa các việc`);
     for (const task of tasks) {
       const box = await node(page, task.id).boundingBox();
       if (!stepBox || !box || Math.abs(box.y - stepBox.y) > band) far.push(`${task.title} ↔ ${step.title}`);
@@ -270,7 +282,7 @@ async function expectTasksBesideSteps(page: Page, graph: TicketGraph): Promise<v
   expect(far).toEqual([]);
 }
 
-/** After “Vừa khung” the whole frame is inside the window and every card is inside the frame. */
+/** After “Vừa khung” the whole frame and the legend are inside the window and every card is inside the frame. */
 async function expectFittedInWindow(page: Page): Promise<void> {
   const result = await page.evaluate(() => {
     const frame = document.querySelector('.react-flow')?.getBoundingClientRect();
@@ -286,7 +298,8 @@ async function expectFittedInWindow(page: Page): Promise<void> {
         );
       })
       .map((element) => element.getAttribute('data-id') ?? '');
-    return { frame: true, outside, bottom: frame.bottom - window.innerHeight };
+    const legend = document.querySelector('[aria-label="Chú giải"]')?.getBoundingClientRect();
+    return { frame: true, outside, bottom: Math.max(frame.bottom, legend?.bottom ?? 0) - window.innerHeight };
   });
   expect(result.frame).toBe(true);
   expect(result.bottom).toBeLessThanOrEqual(0);
@@ -312,6 +325,40 @@ async function expectEdgesMatch(page: Page, graph: TicketGraph): Promise<void> {
     ...graph.repairLinks.map((row) => `repair:${row.cycleId}:${row.checkStepId}:${row.fixTicketId}`),
   ].sort();
   expect([...drawn].sort()).toEqual(expected);
+}
+
+const mockupPath = fileURLToPath(
+  new URL(
+    '../../../plans/261002-0002-crew-v2/execution-phase07/ui-evidence/design-map-mockup.html',
+    import.meta.url,
+  ),
+);
+
+/**
+ * Evidence: our screenshot next to the matching screen of the owner-approved mockup (screen 1 = map, screen 2 =
+ * dialog), both at 1440 px wide, composed into one image.
+ */
+async function sideBySide(page: Page, ours: string, screen: 1 | 2, name: string): Promise<void> {
+  const context = page.context();
+  const mock = await context.newPage();
+  try {
+    await mock.setViewportSize({ width: 1440, height: 1000 });
+    await mock.goto(pathToFileURL(mockupPath).href);
+    const label = mock.locator('.label').nth(screen - 1);
+    const section = label.locator('xpath=following-sibling::div[1]');
+    const mockShot = await section.screenshot();
+    const ourShot = await readFile(`${evidenceDir}${ours}`);
+    await mock.setViewportSize({ width: 2400, height: 900 });
+    await mock.setContent(
+      `<body style="margin:0;background:#08090a;color:#e8e9eb;font:14px sans-serif;display:flex;gap:16px;padding:16px">` +
+        `<figure style="margin:0;flex:1"><figcaption>Ứng dụng (${ours})</figcaption><img style="width:100%" src="data:image/png;base64,${ourShot.toString('base64')}"></figure>` +
+        `<figure style="margin:0;flex:1"><figcaption>Mockup owner duyệt — màn ${screen}</figcaption><img style="width:100%" src="data:image/png;base64,${mockShot.toString('base64')}"></figure>` +
+        `</body>`,
+    );
+    await mock.screenshot({ path: `${evidenceDir}${name}`, fullPage: true });
+  } finally {
+    await mock.close();
+  }
 }
 
 async function shoot(page: Page, name: string): Promise<void> {
@@ -340,10 +387,9 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/map?root=${root.id}`);
   await signIn(page, crew);
   await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
-  await expect(page.getByRole('link', { name: 'Dạng bảng' })).toHaveAttribute(
-    'href',
-    `/crew-v2/projects/${seeded.projectId}/tickets?view=board`,
-  );
+  await expect(
+    page.getByRole('navigation', { name: 'Chế độ xem' }).getByRole('link', { name: 'Bảng', exact: true }),
+  ).toHaveAttribute('href', `/crew-v2/projects/${seeded.projectId}/tickets?view=board`);
   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
   const fromChild = await graphOf(page, tasks.c1.id);
@@ -354,7 +400,9 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   // Default: root and steps visible, tasks collapsed with relation badges.
   for (const step of Object.values(steps)) await expect(node(page, step.id)).toBeVisible();
   await expect(node(page, tasks.a1.id)).toHaveCount(0);
-  await expect(map.getByText('quan hệ tới công việc thu gọn').first()).toBeVisible();
+  await expect(map.getByRole('img', { name: /quan hệ tới công việc thu gọn/ }).first()).toBeVisible();
+  await expect(map.getByRole('heading', { name: 'Sơ đồ ticket', level: 1 })).toBeVisible();
+  await expect(map.getByText('14 ticket · bấm vào thẻ để xem chi tiết')).toBeVisible();
   await expect(node(page, steps.A.id)).toHaveAttribute(
     'aria-label',
     `Bước: ${steps.A.title}. Trạng thái: Chờ thực hiện. Phiên bản ${(fromRoot.nodes.find((row) => row.id === steps.A.id) as Ticket).revision}`,
@@ -390,9 +438,10 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await expectFittedInWindow(page);
   await expectTasksBesideSteps(page, fromRoot);
   await shoot(page, 'map-root-fork-join-repair.png');
+  await sideBySide(page, 'map-root-fork-join-repair.png', 1, 'side-by-side-map-vs-mockup.png');
   await expectEdgesMatch(page, fromRoot);
   await expect(map.getByText('phải xong trước').first()).toBeVisible();
-  await expect(map.getByText(/^Vòng sửa /).first()).toBeVisible();
+  await expect(map.getByText(/^sửa vòng /).first()).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
 
   // Restore a stored view at zoom 1.7 that puts step A at (120, 60) of the pane (reload path), then pan by
@@ -446,6 +495,7 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
     timeout: 15_000,
   });
   await shoot(page, 'dialog-open-from-map.png');
+  await sideBySide(page, 'dialog-open-from-map.png', 2, 'side-by-side-dialog-vs-mockup.png');
 
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
@@ -460,11 +510,16 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
   await shoot(page, 'viewport-restored-after-close.png');
 
-  // Realtime: a new step created elsewhere appears without refitting the view.
+  // Realtime: a new step created elsewhere re-lays the tree out (parents centred) without refitting; the focused
+  // card (the one just closed) is the anchor and stays still on screen.
+  const focusedBefore = await node(page, target.id).boundingBox();
   const extra = await create(owner, seeded.projectId, root.id, 'step', 'Bước E — tạo khi đang xem');
   // The new card may sit outside the viewport (not mounted), so check the projected node count.
   await expect(map).toHaveAttribute('data-nodes', '15', { timeout: 15_000 });
-  expectSameView(await viewport(page), after);
+  await page.waitForTimeout(300);
+  expectSameBox(await node(page, target.id).boundingBox(), focusedBefore, 'thẻ đang focus khi có bước mới');
+  expect((await viewport(page)).zoom).toBeCloseTo(after.zoom, 3);
+  const afterRealtime = await viewport(page);
 
   // Closing an in-app dialog went back in history, so the dialog entry is forward and Back leaves the map
   // state as it is (it never reopens what was just closed).
@@ -474,7 +529,7 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await page.goBack();
   await expect(dialog).toBeHidden();
   expect(page.url()).toBe(mapEntry);
-  expectSameView(await viewport(page), after);
+  expectSameView(await viewport(page), afterRealtime);
   // Open again, then Back closes the dialog.
   await node(page, target.id).click();
   await expect(dialog).toBeVisible();
@@ -487,7 +542,7 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
-  expectSameView(await viewport(page), after);
+  expectSameView(await viewport(page), afterRealtime);
   await page.goBack();
   await expect(dialog).toBeHidden();
   await page.goForward();
@@ -540,6 +595,9 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
   await map.getByRole('button', { name: 'Mở tất cả' }).click();
+  await page.waitForTimeout(300);
+  // No card has focus: the root anchors every realtime relayout and must stay still on screen.
+  const rootBefore = await node(page, root.id).boundingBox();
 
   // Concurrent writers: new tasks under A and B, each depending on an existing task, all at once.
   const created = await Promise.all(
@@ -558,11 +616,14 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   const final = await graphOf(page, root.id);
   expect(final.nodes).toHaveLength(20);
   await expect(map).toHaveAttribute('data-nodes', String(final.nodes.length), { timeout: 20_000 });
+  await page.waitForTimeout(500);
+  expectSameBox(await node(page, root.id).boundingBox(), rootBefore, 'root (neo) sau ghi đồng thời');
   await map.getByRole('button', { name: 'Vừa khung' }).click();
   await page.waitForTimeout(400);
   await expect(page.locator('button[data-map-node]')).toHaveCount(final.nodes.length);
-  // Cards that arrived by realtime keep the old cards in place and never cover them.
+  // Realtime relayout: every parent is centred between its children and no card covers another.
   await expectNoOverlap(page);
+  await expectTasksBesideSteps(page, final);
   for (const row of final.nodes)
     await expect(node(page, row.id)).toHaveAttribute('data-revision', String(row.revision), {
       timeout: 20_000,

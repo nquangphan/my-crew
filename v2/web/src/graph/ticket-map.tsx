@@ -7,13 +7,13 @@
  * A new root is fitted once; realtime updates never refit. Torn or malformed data shows a diagnostic and falls
  * back to the equivalent list, which is also the narrow-screen view.
  */
+import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import {
   MarkerType,
   Position,
   ReactFlow,
   ReactFlowProvider,
-  useNodesInitialized,
   useReactFlow,
   type Viewport,
 } from '@xyflow/react';
@@ -31,17 +31,23 @@ import { routeUuid, useRuntime } from '../app-runtime.ts';
 import type { Ticket, TicketGraph } from '../contracts/tickets.ts';
 import { TicketDialog } from '../tickets/dialog.tsx';
 import { TicketPagination } from '../tickets/list.tsx';
-import { failureText, requestListFilters, useTicketGraph, useTicketList } from '../tickets/queries.ts';
+import {
+  failureText,
+  projectsQueryOptions,
+  requestListFilters,
+  useTicketGraph,
+  useTicketList,
+} from '../tickets/queries.ts';
 import { levelLabels, mergeTicketPages, requestRoots, statusIcons, statusLabels } from '../tickets/status.ts';
 import {
   cardHeight,
   cardWidth,
   followAnchor,
+  initialViewport,
   layoutHierarchy,
   type MapDirection,
   neighbourInDirection,
   type Point,
-  placeNewNodes,
 } from './layout.ts';
 import {
   expandableIds,
@@ -66,8 +72,8 @@ import {
   toggleMapExpanded,
   writeMapView,
 } from './state.ts';
-import { edgeLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
-import { type TicketFlowNode, TicketNode, type TicketNodeActions } from './ticket-node.tsx';
+import { edgeColors, edgeLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
+import { statusDotColors, type TicketFlowNode, TicketNode, type TicketNodeActions } from './ticket-node.tsx';
 
 export type TicketMapProps = {
   rootId: string;
@@ -75,6 +81,8 @@ export type TicketMapProps = {
   onSelectTicket: (ticketId: string | null) => void;
   /** Called when the graph shows that `rootId` is a descendant; the caller can switch to the real root. */
   onRootResolved?: (rootId: string) => void;
+  /** View switch (Bảng/Danh sách/Sơ đồ) rendered in the header; the page owns its links. */
+  viewSwitch?: ReactNode;
 };
 
 const nodeTypes = { ticket: TicketNode };
@@ -86,21 +94,83 @@ const cardHandles: NonNullable<TicketFlowNode['handles']> = [
   { type: 'source', position: Position.Right, x: cardWidth, y: cardHeight / 2, width: 1, height: 1 },
 ];
 const minFrameHeight = 352;
-const flowStyle: CSSProperties = {
-  border: '1px solid rgb(148 163 184 / 0.6)',
-  borderRadius: '0.75rem',
+/** Modal-like shell of the owner-approved mockup. */
+const frameShellStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  minWidth: 0,
+  background: '#17191c',
+  color: '#e8e9eb',
+  border: '1px solid #2b2f35',
+  borderRadius: 6,
+  overflow: 'hidden',
 };
+const headerStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '16px 20px',
+  borderBottom: '1px solid #2b2f35',
+};
+const innerStyle: CSSProperties = { margin: 0, padding: '12px 20px' };
+const flowStyle: CSSProperties = { background: '#17191c' };
 const barStyle: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' };
 const controlsStyle: CSSProperties = { ...barStyle, margin: 0, padding: 0, border: 'none', minWidth: 0 };
 const buttonStyle: CSSProperties = {
   font: 'inherit',
-  padding: '0.35rem 0.7rem',
-  borderRadius: '0.5rem',
-  border: '1px solid currentColor',
-  background: 'transparent',
-  color: 'inherit',
+  fontSize: 13,
+  padding: '8px 12px',
+  minHeight: 36,
+  borderRadius: 4,
+  border: '1px solid #2b2f35',
+  background: '#1c1f23',
+  color: '#e8e9eb',
   cursor: 'pointer',
 };
+const iconButtonStyle: CSSProperties = { ...buttonStyle, minWidth: 36, padding: '8px 0' };
+const legendStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '16px 24px',
+  margin: 0,
+  padding: '12px 20px',
+  listStyle: 'none',
+  borderTop: '1px solid #2b2f35',
+  fontSize: 12,
+  color: '#9aa0a6',
+};
+const legendItem: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6 };
+const legendDot = (color: string): CSSProperties => ({
+  width: 8,
+  height: 8,
+  borderRadius: '50%',
+  background: color,
+});
+
+/** Legend of the mockup: status dots (the status is also written on every card) and the three edge kinds. */
+function Legend() {
+  const items: [string, CSSProperties][] = [
+    ['Xong', legendDot(statusDotColors.done)],
+    ['Đang làm', legendDot(statusDotColors.running)],
+    ['Đang chờ', legendDot(statusDotColors.needs_input)],
+    ['Chưa bắt đầu', legendDot(statusDotColors.pending)],
+    ['Cha – con', { width: 18, height: 1, background: edgeColors.parent }],
+    ['Phụ thuộc', { width: 18, height: 0, borderTop: `1px dashed ${edgeColors.dependency}` }],
+    ['Sửa lỗi', { width: 18, height: 0, borderTop: `2px dotted ${edgeColors.repair}` }],
+  ];
+  return (
+    <ul aria-label="Chú giải" style={legendStyle}>
+      {items.map(([label, swatch]) => (
+        <li key={label} style={legendItem}>
+          <span aria-hidden="true" style={swatch} />
+          {label}
+        </li>
+      ))}
+    </ul>
+  );
+}
 const panelStyle: CSSProperties = {
   display: 'grid',
   gap: '0.35rem',
@@ -149,16 +219,20 @@ function narrowScreen(): boolean {
 }
 
 /**
- * Height that ends the map frame at the bottom of the window (page scrolled to the top), so “Vừa khung” shows
- * the whole tree without scrolling; never below `minFrameHeight`.
+ * Height that ends the map shell (frame plus legend) at the bottom of the window (page scrolled to the top), so
+ * “Vừa khung” shows the whole tree and the legend without scrolling; never below `minFrameHeight`.
  */
-function useFrameHeight(frame: HTMLElement | null): number {
-  const [height, setHeight] = useState(minFrameHeight);
+function useFrameHeight(frame: HTMLElement | null): number | null {
+  const [height, setHeight] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (!frame) return;
     const measure = () => {
-      const top = frame.getBoundingClientRect().top + window.scrollY;
-      setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - 16)));
+      const box = frame.getBoundingClientRect();
+      const top = box.top + window.scrollY;
+      // Leave room for what follows the frame inside the map shell (the legend), so it stays in the window.
+      const shell = frame.closest('[data-testid="ticket-map"]')?.getBoundingClientRect();
+      const below = shell ? Math.max(0, shell.bottom - box.bottom) : 0;
+      setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - below - 16)));
     };
     measure();
     // Content above the frame can change height after the first measure (picker paging, the current-step
@@ -184,12 +258,11 @@ export function TicketMap(props: TicketMapProps) {
   );
 }
 
-function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: TicketMapProps) {
+function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, viewSwitch }: TicketMapProps) {
   const { client, composeServices } = useRuntime();
   const storage = composeServices?.storage ?? null;
   const graph = useTicketGraph(client, rootId);
   const flow = useReactFlow<TicketFlowNode, TicketFlowEdge>();
-  const nodesReady = useNodesInitialized();
   const [restored] = useState(() => readMapView(storage, rootId));
   const [view, setView] = useState<MapViewState>(() => ({
     ...(restored ?? initialMapView(rootId)),
@@ -227,34 +300,38 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   }, [projection, rootId, onRootResolved]);
 
   // Positions follow the projection as derived state (updated during render, React's pattern for state that
-  // tracks inputs). The first projection is laid out; data changes (refetch, new child) keep every known card
-  // and only place new ones; an owner relayout request (expand/collapse, “Sắp xếp lại”) lays the whole tree
-  // out and, when it names an anchor, records the anchor's displacement so the viewport can follow it.
+  // tracks inputs). Every change of the visible tree is laid out again (parents always between their children,
+  // tasks beside their step), and the viewport then follows one anchor so it stays still on screen: the clicked
+  // step for expand/collapse, the focused card for “tất cả” and for realtime data, otherwise the root.
+  // “Sắp xếp lại” lays out without an anchor.
   const [layout, setLayout] = useState<{
     projection: MapProjection | null;
     run: number;
+    seq: number;
     positions: Record<string, Point>;
-    anchor: { run: number; id: string; from: Point } | null;
-  }>({ projection: null, run: 0, positions: {}, anchor: null });
+    anchor: { seq: number; id: string; from: Point } | null;
+  }>({ projection: null, run: 0, seq: 0, positions: {}, anchor: null });
   let positions = layout.positions;
   if (projection && (layout.projection !== projection || layout.run !== relayout.run)) {
     const requested = layout.run !== relayout.run;
-    positions =
-      layout.projection === null || requested
-        ? layoutHierarchy(projection)
-        : placeNewNodes(layout.positions, projection);
-    // The anchor must be on screen before and after; otherwise (e.g. a focused task hidden by “Thu gọn tất cả”)
-    // the root anchors the move.
-    const candidates = requested && relayout.anchor !== null ? [relayout.anchor, projection.rootId] : [];
-    const anchorId = candidates.find((id) => layout.positions[id] && positions[id]);
+    positions = layoutHierarchy(projection);
+    const wanted =
+      layout.projection === null
+        ? []
+        : requested
+          ? relayout.anchor === null
+            ? []
+            : [relayout.anchor, projection.rootId]
+          : [view.focusedTicketId, projection.rootId];
+    const anchorId = wanted.find((id): id is string => !!id && !!layout.positions[id] && !!positions[id]);
+    const seq = layout.seq + 1;
     setLayout({
       projection,
       run: relayout.run,
+      seq,
       positions,
       anchor:
-        anchorId === undefined
-          ? layout.anchor
-          : { run: relayout.run, id: anchorId, from: layout.positions[anchorId] as Point },
+        anchorId === undefined ? null : { seq, id: anchorId, from: layout.positions[anchorId] as Point },
     });
   }
   const positionsRef = useRef(positions);
@@ -266,12 +343,12 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
     setView((current) => moveMapViewport(current, viewport));
   }, []);
 
-  // Keep the anchor of an owner relayout still on screen: shift the viewport by its displacement, once per run.
-  const anchoredRun = useRef(0);
+  // Keep the anchor still on screen: shift the viewport by its displacement, once per layout.
+  const anchoredSeq = useRef(0);
   useLayoutEffect(() => {
     const anchor = layout.anchor;
-    if (!anchor || anchoredRun.current === anchor.run) return;
-    anchoredRun.current = anchor.run;
+    if (!anchor || anchoredSeq.current === anchor.seq) return;
+    anchoredSeq.current = anchor.seq;
     const to = layout.positions[anchor.id];
     if (!to) return;
     void flow
@@ -342,6 +419,10 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
     () => (graph.data && projection ? hiddenRelationCounts(graph.data, projection) : {}),
     [graph.data, projection],
   );
+  const fixIds = useMemo(
+    () => new Set((graph.data?.repairLinks ?? []).map((link) => link.fixTicketId)),
+    [graph.data],
+  );
   const titles = useMemo(
     () => new Map((graph.data?.nodes ?? []).map((row) => [row.id, row.title])),
     [graph.data],
@@ -370,13 +451,15 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
         data: {
           ticket,
           isRoot: ticket.id === projection?.rootId,
+          isFix: fixIds.has(ticket.id),
+          focused: ticket.id === view.focusedTicketId,
           childCount: childCounts[ticket.id] ?? 0,
           expanded: expanded.has(ticket.id),
           hiddenRelations: badges[ticket.id] ?? 0,
           actions,
         },
       })),
-    [projection, positions, childCounts, expanded, badges, actions],
+    [projection, positions, childCounts, expanded, badges, actions, fixIds, view.focusedTicketId],
   );
   const edges = useMemo<TicketFlowEdge[]>(
     () =>
@@ -386,7 +469,8 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
         target: edge.target,
         type: edge.kind,
         data: edge.cycleId ? { cycleId: edge.cycleId } : {},
-        markerEnd: edge.kind === 'parent' ? undefined : { type: MarkerType.ArrowClosed, color: '#e2e8f0' },
+        markerEnd:
+          edge.kind === 'parent' ? undefined : { type: MarkerType.ArrowClosed, color: edgeColors[edge.kind] },
         focusable: false,
         selectable: false,
         deletable: false,
@@ -395,12 +479,14 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
     [projection, titles],
   );
 
-  // A root seen for the first time in this tab is fitted once; later data changes never refit.
+  // A root seen for the first time in this tab opens 1:1 with the root at the left edge, centred vertically
+  // (the reference map scrolls instead of shrinking); “Vừa khung” stays available for the overview.
+  const rootAt = projection ? positions[projection.rootId] : undefined;
   useEffect(() => {
-    if (fitted.current || !nodesReady || nodes.length === 0) return;
+    if (fitted.current || !frame || !rootAt || frameHeight === null) return;
     fitted.current = true;
-    void flow.fitView({ padding: 0.15, maxZoom: 1 }).then(() => saveViewport(flow.getViewport()));
-  }, [nodesReady, nodes.length, flow, saveViewport]);
+    void flow.setViewport(initialViewport(rootAt, frameHeight)).then(() => saveViewport(flow.getViewport()));
+  }, [frame, rootAt, frameHeight, flow, saveViewport]);
 
   const explicit = (action: Promise<boolean>) => {
     void action.then(() => saveViewport(flow.getViewport()));
@@ -432,11 +518,78 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
       data-nodes={projection?.nodes.length}
       data-focus-fallback=""
       tabIndex={-1}
-      style={{ display: 'grid', gap: '0.75rem', minWidth: 0 }}
+      style={frameShellStyle}
     >
-      {graph.isPending && <p role="status">Đang tải sơ đồ…</p>}
+      <header style={headerStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Sơ đồ ticket</h1>
+          {graph.data && (
+            <p style={{ margin: 0, fontSize: 13, color: '#9aa0a6' }}>
+              {mergeTicketPages([graph.data.nodes]).length} ticket · bấm vào thẻ để xem chi tiết
+            </p>
+          )}
+        </div>
+        <fieldset aria-label="Điều khiển sơ đồ" style={controlsStyle}>
+          {viewSwitch}
+          {graph.data && projection && !showList && (
+            <>
+              <button
+                type="button"
+                style={buttonStyle}
+                onClick={() => explicit(flow.fitView({ padding: 0.15, maxZoom: 1 }))}
+              >
+                Vừa khung
+              </button>
+              <button type="button" style={buttonStyle} onClick={rearrange}>
+                Sắp xếp lại
+              </button>
+              <button
+                type="button"
+                style={buttonStyle}
+                onClick={() => setExpandedIds(expandableIds(graph.data))}
+              >
+                Mở tất cả
+              </button>
+              <button type="button" style={buttonStyle} onClick={() => setExpandedIds([])}>
+                Thu gọn tất cả
+              </button>
+              <button
+                type="button"
+                style={iconButtonStyle}
+                aria-label="Phóng to"
+                onClick={() => explicit(flow.zoomIn())}
+              >
+                +
+              </button>
+              <button
+                type="button"
+                style={iconButtonStyle}
+                aria-label="Thu nhỏ"
+                onClick={() => explicit(flow.zoomOut())}
+              >
+                −
+              </button>
+            </>
+          )}
+          {graph.data && projection && diagnostics.length === 0 && (
+            <button
+              type="button"
+              style={buttonStyle}
+              aria-pressed={listMode}
+              onClick={() => setListMode(!listMode)}
+            >
+              {listMode ? 'Xem dạng sơ đồ' : 'Xem dạng danh sách'}
+            </button>
+          )}
+        </fieldset>
+      </header>
+      {graph.isPending && (
+        <p role="status" style={innerStyle}>
+          Đang tải sơ đồ…
+        </p>
+      )}
       {graph.error && (
-        <p role="alert">
+        <p role="alert" style={innerStyle}>
           Không tải được sơ đồ: {failureText(graph.error)}{' '}
           <button type="button" style={buttonStyle} onClick={() => void graph.refetch()}>
             Thử lại
@@ -445,9 +598,8 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
       )}
       {graph.data && projection && (
         <>
-          <CurrentSteps nodes={graph.data.nodes} />
           {diagnostics.length > 0 && (
-            <div role="alert" style={panelStyle}>
+            <div role="alert" style={{ ...panelStyle, margin: '12px 20px 0' }}>
               <strong>
                 Dữ liệu sơ đồ chưa nhất quán — đang hiện dạng danh sách để không mất ticket nào.
               </strong>
@@ -463,82 +615,50 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
               </div>
             </div>
           )}
-          <fieldset aria-label="Điều khiển sơ đồ" style={controlsStyle}>
-            {!showList && (
-              <>
-                <button type="button" style={buttonStyle} onClick={() => explicit(flow.zoomIn())}>
-                  Phóng to
-                </button>
-                <button type="button" style={buttonStyle} onClick={() => explicit(flow.zoomOut())}>
-                  Thu nhỏ
-                </button>
-                <button
-                  type="button"
-                  style={buttonStyle}
-                  onClick={() => explicit(flow.fitView({ padding: 0.15, maxZoom: 1 }))}
-                >
-                  Vừa khung
-                </button>
-                <button type="button" style={buttonStyle} onClick={rearrange}>
-                  Sắp xếp lại
-                </button>
-                <button
-                  type="button"
-                  style={buttonStyle}
-                  onClick={() => setExpandedIds(expandableIds(graph.data))}
-                >
-                  Mở tất cả
-                </button>
-                <button type="button" style={buttonStyle} onClick={() => setExpandedIds([])}>
-                  Thu gọn tất cả
-                </button>
-              </>
-            )}
-            {diagnostics.length === 0 && (
-              <button
-                type="button"
-                style={buttonStyle}
-                aria-pressed={listMode}
-                onClick={() => setListMode(!listMode)}
-              >
-                {listMode ? 'Xem dạng sơ đồ' : 'Xem dạng danh sách'}
-              </button>
-            )}
-          </fieldset>
           {showList ? (
-            <TicketOutline
-              graph={graph.data}
-              rootId={projection.rootId}
-              onOpen={(id, element) => actionsRef.current?.open(id, element)}
-            />
-          ) : (
-            <div ref={setFrame} style={{ ...flowStyle, height: frameHeight }}>
-              <ReactFlow<TicketFlowNode, TicketFlowEdge>
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={ticketEdgeTypes}
-                defaultViewport={view.viewport}
-                minZoom={minZoom}
-                maxZoom={maxZoom}
-                onMoveEnd={(_, viewport) => saveViewport(viewport)}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                nodesFocusable={false}
-                edgesFocusable={false}
-                elementsSelectable={false}
-                deleteKeyCode={null}
-                selectionKeyCode={null}
-                multiSelectionKeyCode={null}
-                disableKeyboardA11y
-                zoomOnDoubleClick={false}
-                onlyRenderVisibleElements
-                colorMode="dark"
+            <div style={{ ...innerStyle, display: 'grid', gap: 12 }}>
+              <CurrentSteps nodes={graph.data.nodes} />
+              <TicketOutline
+                graph={graph.data}
+                rootId={projection.rootId}
+                onOpen={(id, element) => actionsRef.current?.open(id, element)}
               />
             </div>
+          ) : (
+            <>
+              <div ref={setFrame} style={{ ...flowStyle, height: frameHeight ?? minFrameHeight }}>
+                <ReactFlow<TicketFlowNode, TicketFlowEdge>
+                  nodes={nodes}
+                  edges={edges}
+                  nodeTypes={nodeTypes}
+                  edgeTypes={ticketEdgeTypes}
+                  defaultViewport={view.viewport}
+                  minZoom={minZoom}
+                  maxZoom={maxZoom}
+                  onMoveEnd={(_, viewport) => saveViewport(viewport)}
+                  nodesDraggable={false}
+                  nodesConnectable={false}
+                  nodesFocusable={false}
+                  edgesFocusable={false}
+                  elementsSelectable={false}
+                  deleteKeyCode={null}
+                  selectionKeyCode={null}
+                  multiSelectionKeyCode={null}
+                  disableKeyboardA11y
+                  zoomOnDoubleClick={false}
+                  panOnScroll
+                  onlyRenderVisibleElements
+                  colorMode="dark"
+                  style={{ background: '#17191c' }}
+                />
+              </div>
+              <Legend />
+            </>
           )}
           {focused !== null && titles.has(focused) && (
-            <RelationsPanel graph={graph.data} ticketId={focused} titleOf={(id) => titles.get(id) ?? id} />
+            <div style={{ ...innerStyle, paddingTop: 0 }}>
+              <RelationsPanel graph={graph.data} ticketId={focused} titleOf={(id) => titles.get(id) ?? id} />
+            </div>
           )}
         </>
       )}
@@ -724,6 +844,61 @@ function RootPicker({
   );
 }
 
+const crumbStyle: CSSProperties = {
+  fontSize: 13,
+  color: '#9aa0a6',
+  display: 'flex',
+  gap: 6,
+  flexWrap: 'wrap',
+};
+const switchStyle: CSSProperties = {
+  display: 'flex',
+  border: '1px solid #2b2f35',
+  borderRadius: 4,
+  overflow: 'hidden',
+};
+const switchItem: CSSProperties = {
+  fontSize: 13,
+  padding: '8px 14px',
+  minHeight: 36,
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  color: '#9aa0a6',
+  textDecoration: 'none',
+  borderRight: '1px solid #2b2f35',
+};
+
+/** Bảng/Danh sách/Sơ đồ of the mockup: links to the project's ticket views; the map is the current page. */
+function ViewSwitch({ projectId }: { projectId: string }) {
+  return (
+    <nav aria-label="Chế độ xem" style={switchStyle}>
+      <Link
+        style={switchItem}
+        to="/projects/$projectId/tickets"
+        params={{ projectId }}
+        search={{ view: 'board' }}
+      >
+        Bảng
+      </Link>
+      <Link
+        style={switchItem}
+        to="/projects/$projectId/tickets"
+        params={{ projectId }}
+        search={{ view: 'list' }}
+      >
+        Danh sách
+      </Link>
+      <span
+        aria-current="page"
+        style={{ ...switchItem, borderRight: 'none', background: '#262a30', color: '#e8e9eb' }}
+      >
+        Sơ đồ
+      </span>
+    </nav>
+  );
+}
+
 function MapPageFrame({ projectId, children }: { projectId: string | null; children: ReactNode }) {
   return (
     <section className="page-stack" aria-labelledby="map-heading">
@@ -775,7 +950,9 @@ export function RequestMapPage() {
   const rootId = routeUuid(params.rootId);
   const ticket = parseMapSearch(useSearch({ strict: false })).ticket ?? null;
   const navigate = useNavigate();
-  const graph = useTicketGraph(useRuntime().client, rootId ?? undefined);
+  const { client } = useRuntime();
+  const graph = useTicketGraph(client, rootId ?? undefined);
+  const projects = useQuery(projectsQueryOptions(client));
   const go = useCallback(
     (root: string, nextTicket: string | null, replace = false) =>
       void navigate({
@@ -807,22 +984,32 @@ export function RequestMapPage() {
   if (!rootId) return <MapNotFound what="yêu cầu" />;
   const root = graph.data?.nodes.find((row) => row.id === rootId);
   const projectId = root?.projectId ?? null;
+  const projectName = projects.data?.find((row) => row.id === projectId)?.name;
   return (
-    <MapPageFrame projectId={projectId}>
-      {projectId && (
-        <RootPicker
-          projectId={projectId}
-          rootId={root?.rootId ?? rootId}
-          onPick={(picked) => go(picked, null)}
-        />
-      )}
+    <section className="page-stack" aria-label="Sơ đồ yêu cầu" style={{ gap: 16 }}>
+      <nav aria-label="Đường dẫn" style={crumbStyle}>
+        {projectId ? (
+          <>
+            <Link to="/projects/$projectId/tickets" params={{ projectId }} search={{ view: 'board' }}>
+              {projectName ?? 'Dự án'}
+            </Link>
+            <span aria-hidden="true">›</span>
+            <Link to="/projects/$projectId/tickets" params={{ projectId }} search={{ view: 'requests' }}>
+              Yêu cầu
+            </Link>
+            <span aria-hidden="true">›</span>
+          </>
+        ) : null}
+        <span style={{ color: '#e8e9eb' }}>{root?.title ?? 'Yêu cầu'}</span>
+      </nav>
       <TicketMap
         rootId={rootId}
         selectedTicketId={ticket}
         onSelectTicket={selectTicket}
         onRootResolved={onRootResolved}
+        viewSwitch={projectId ? <ViewSwitch projectId={projectId} /> : null}
       />
-    </MapPageFrame>
+    </section>
   );
 }
 

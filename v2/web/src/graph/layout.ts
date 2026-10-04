@@ -1,6 +1,6 @@
 /**
  * Deterministic left→right hierarchy layout for the ticket map. Only parent edges shape the tree: columns follow
- * depth (card 320 + gap 100), leaves stack in sibling-ID order with a 24px row gap, and each parent sits in the
+ * depth (card 280 + gap 56), leaves stack in sibling-ID order with a 10px row gap, and each parent sits in the
  * middle of its children. Dependency and repair edges are overlays and never move a node. Traversal is
  * iterative, so a pathological parent chain cannot overflow the stack; nodes unreachable from the root
  * (orphans, parent cycles) are laid out below the tree instead of being dropped.
@@ -9,10 +9,11 @@ import type { Ticket } from '../contracts/tickets.ts';
 import type { MapProjection } from './project.ts';
 
 export type Point = { x: number; y: number };
-export const cardWidth = 320;
-export const cardHeight = 112;
-export const columnGap = 100;
-export const rowGap = 24;
+/** Density of the owner-approved mockup: 280×48 two-line cards, 10px rows, 56px between columns. */
+export const cardWidth = 280;
+export const cardHeight = 48;
+export const columnGap = 56;
+export const rowGap = 10;
 const column = cardWidth + columnGap;
 const pitch = cardHeight + rowGap;
 const levelDepth: Record<Ticket['level'], number> = { request: 0, step: 1, task: 2 };
@@ -90,102 +91,6 @@ export function layoutHierarchy(input: MapProjection): Record<string, Point> {
   return positions;
 }
 
-/**
- * Occupied card slots, indexed by column so a free slot is found without scanning every card. Two cards clash
- * when their columns are closer than a card width and their rows closer than one pitch.
- */
-class Occupancy {
-  readonly #columns = new Map<number, number[]>();
-
-  add(point: Point): void {
-    const rows = this.#columns.get(point.x);
-    if (!rows) {
-      this.#columns.set(point.x, [point.y]);
-      return;
-    }
-    let low = 0;
-    let high = rows.length;
-    while (low < high) {
-      const mid = (low + high) >> 1;
-      if ((rows[mid] as number) < point.y) low = mid + 1;
-      else high = mid;
-    }
-    rows.splice(low, 0, point.y);
-  }
-
-  /** Lowest row of a card that clashes with a card at `point`, or null when the slot is free. */
-  clash(point: Point): number | null {
-    let worst: number | null = null;
-    for (const [x, rows] of this.#columns) {
-      if (Math.abs(x - point.x) >= cardWidth) continue;
-      let low = 0;
-      let high = rows.length;
-      while (low < high) {
-        const mid = (low + high) >> 1;
-        if ((rows[mid] as number) <= point.y - pitch) low = mid + 1;
-        else high = mid;
-      }
-      for (let index = low; index < rows.length && (rows[index] as number) < point.y + pitch; index++)
-        worst = Math.max(worst ?? Number.NEGATIVE_INFINITY, rows[index] as number);
-    }
-    return worst;
-  }
-
-  /** First free slot at or below `point` in its column. */
-  free(point: Point): Point {
-    let y = point.y;
-    for (
-      let blocking = this.clash({ x: point.x, y });
-      blocking !== null;
-      blocking = this.clash({ x: point.x, y })
-    )
-      y = blocking + pitch;
-    return { x: point.x, y };
-  }
-}
-
-/**
- * Keeps every known position (realtime refetch, new child arriving while the map is open) and places only new
- * nodes: next
- * to their parent, below its lowest positioned child, or at their fresh layout position when the parent is
- * unknown; a slot taken by any visible card moves the new card down to the first free slot of its column.
- * Owner actions that change the structure use `relayoutAround`; “Sắp xếp lại” uses `layoutHierarchy`.
- */
-export function placeNewNodes(
-  previous: Readonly<Record<string, Point>>,
-  input: MapProjection,
-): Record<string, Point> {
-  const { parent, children } = tree(input);
-  const result: Record<string, Point> = {};
-  const occupied = new Occupancy();
-  for (const row of input.nodes) {
-    const known = previous[row.id];
-    if (!known) continue;
-    result[row.id] = known;
-    occupied.add(known);
-  }
-  const fresh = layoutHierarchy(input);
-  const added = input.nodes
-    .filter((row) => !result[row.id])
-    .map((row) => ({ id: row.id, at: fresh[row.id] ?? { x: 0, y: 0 } }))
-    .sort((a, b) => a.at.x - b.at.x || a.at.y - b.at.y || (a.id < b.id ? -1 : 1));
-  for (const { id, at } of added) {
-    const parentId = parent.get(id);
-    const anchor = parentId === undefined ? undefined : result[parentId];
-    let wanted = at;
-    if (parentId !== undefined && anchor) {
-      const siblings = (children.get(parentId) ?? [])
-        .filter((sibling) => sibling !== id && result[sibling])
-        .map((sibling) => (result[sibling] as Point).y);
-      wanted = { x: anchor.x + column, y: siblings.length > 0 ? Math.max(...siblings) + pitch : anchor.y };
-    }
-    const placed = occupied.free(wanted);
-    result[id] = placed;
-    occupied.add(placed);
-  }
-  return result;
-}
-
 export type MapDirection = 'left' | 'right' | 'up' | 'down';
 
 /** Arrow-key traversal: left = parent, right = first child (top-most), up/down = nearest node in the column. */
@@ -218,9 +123,10 @@ export function neighbourInDirection(
 export type Viewport = { x: number; y: number; zoom: number };
 
 /**
- * Structural change made by the owner (expand/collapse one step, expand/collapse all): lay the whole tree out
- * again, so every task sits beside its step, and move the viewport by the anchor's displacement so the anchor
- * stays exactly where it was on screen. Without an anchor present in both layouts the viewport is unchanged.
+ * Any change of the visible tree (owner expand/collapse, realtime data): lay the whole tree out again, so every
+ * parent sits between its children and every task beside its step, and move the viewport by the anchor's
+ * displacement so the anchor stays exactly where it was on screen. Without an anchor present in both layouts
+ * the viewport is unchanged.
  */
 export function relayoutAround(
   previous: Readonly<Record<string, Point>>,
@@ -242,4 +148,10 @@ export function followAnchor(from: Point, to: Point, viewport: Viewport): Viewpo
     y: viewport.y - (to.y - from.y) * viewport.zoom,
     zoom: viewport.zoom,
   };
+}
+
+/** Opening view of a root seen for the first time: 1:1, root 24px from the left edge, centred vertically. */
+export function initialViewport(root: Point | undefined, frameHeight: number): Viewport {
+  if (!root) return { x: 24, y: 24, zoom: 1 };
+  return { x: 24 - root.x, y: frameHeight / 2 - (root.y + cardHeight / 2), zoom: 1 };
 }

@@ -302,3 +302,21 @@ a {
     transition: top 0.15s ease;
   }
 }
+
+/* Shared ticket dialog (dark, owner-approved map mockup): native controls follow the dark scheme. */
+.ticket-dialog {
+  color-scheme: dark;
+}
+
+.ticket-dialog textarea,
+.ticket-dialog input:not([type="file"]),
+.ticket-dialog select {
+  color: #e8e9eb;
+  background: #0f1113;
+  border: 1px solid #2b2f35;
+  border-radius: 4px;
+}
+
+.ticket-dialog a {
+  color: #8ab4ff;
+}

@@ -1,8 +1,8 @@
 /**
- * The three relation kinds of the map, distinguishable without colour: parent links are solid neutral
- * step lines, dependencies are dashed with an arrow and the text “phải xong trước”, repair links are curved
- * dotted lines labelled with their cycle. A repair link usually joins the same check step and fix task as a
- * parent link, so it bends away from the straight parent line instead of hiding behind it.
+ * The three relation kinds of the map (owner-approved mockup), distinguishable without colour: parent links are
+ * square 1px grey brackets 28px from the parent, dependencies are dashed blue with an arrow and the text “phải
+ * xong trước”, repair links are dotted amber curves labelled “sửa vòng <cycle>”. A repair link usually joins the
+ * same check step and fix task as a parent link, so it bows away from the bracket instead of hiding behind it.
  */
 import {
   BaseEdge,
@@ -18,25 +18,24 @@ import type { MapEdge } from './project.ts';
 export type TicketEdgeData = { cycleId?: string };
 export type TicketFlowEdge = Edge<TicketEdgeData, MapEdge['kind']>;
 
-const neutral = '#94a3b8';
+export const edgeColors = { parent: '#3a3f46', dependency: '#8ab4ff', repair: '#d4a72c' } as const;
 const labelStyle: CSSProperties = {
   position: 'absolute',
   pointerEvents: 'none',
-  padding: '0.05rem 0.35rem',
-  borderRadius: '0.35rem',
-  fontSize: '0.75rem',
-  background: '#101827',
-  color: '#e7edf7',
-  border: `1px solid ${neutral}`,
+  padding: '0 3px',
+  fontSize: 11,
+  background: '#17191c',
   whiteSpace: 'nowrap',
 };
+/** Horizontal run from the parent to the vertical trunk of its bracket. */
+const bracketRun = 28;
 /** How far the repair curve bows below the straight line between its endpoints. */
 const repairBow = 56;
 
-function Label({ x, y, text }: { x: number; y: number; text: string }) {
+function Label({ x, y, text, color }: { x: number; y: number; text: string; color: string }) {
   return (
     <EdgeLabelRenderer>
-      <span style={{ ...labelStyle, transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}>
+      <span style={{ ...labelStyle, color, transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}>
         {text}
       </span>
     </EdgeLabelRenderer>
@@ -44,8 +43,8 @@ function Label({ x, y, text }: { x: number; y: number; text: string }) {
 }
 
 export function ParentEdge(props: EdgeProps<TicketFlowEdge>) {
-  const [path] = getSmoothStepPath(props);
-  return <BaseEdge path={path} style={{ stroke: neutral, strokeWidth: 1.5 }} />;
+  const [path] = getSmoothStepPath({ ...props, borderRadius: 0, centerX: props.sourceX + bracketRun });
+  return <BaseEdge path={path} style={{ stroke: edgeColors.parent, strokeWidth: 1 }} />;
 }
 
 export function DependencyEdge(props: EdgeProps<TicketFlowEdge>) {
@@ -55,9 +54,9 @@ export function DependencyEdge(props: EdgeProps<TicketFlowEdge>) {
       <BaseEdge
         path={path}
         markerEnd={props.markerEnd}
-        style={{ stroke: '#e2e8f0', strokeWidth: 1.5, strokeDasharray: '8 5' }}
+        style={{ stroke: edgeColors.dependency, strokeWidth: 1, strokeDasharray: '4 3' }}
       />
-      <Label x={labelX} y={labelY} text="phải xong trước" />
+      <Label x={labelX} y={labelY} text="phải xong trước" color={edgeColors.dependency} />
     </>
   );
 }
@@ -76,9 +75,9 @@ export function RepairEdge(props: EdgeProps<TicketFlowEdge>) {
       <BaseEdge
         path={path}
         markerEnd={props.markerEnd}
-        style={{ stroke: '#fcd34d', strokeWidth: 1.5, strokeDasharray: '2 4' }}
+        style={{ stroke: edgeColors.repair, strokeWidth: 2, strokeDasharray: '2 3' }}
       />
-      <Label x={labelX} y={labelY} text={`Vòng sửa ${cycle}`} />
+      <Label x={labelX} y={labelY} text={`sửa vòng ${cycle}`} color={edgeColors.repair} />
     </>
   );
 }

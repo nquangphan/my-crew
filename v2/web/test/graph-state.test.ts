@@ -397,7 +397,7 @@ test('sơ đồ: root và bước hiện mặc định, task ẩn có badge; nh�
     nodeButton(stepA)?.getAttribute('aria-label'),
     'Bước: Bước A. Trạng thái: Đang chạy. Phiên bản 1',
   );
-  assert.ok(screen.getAllByText('1 quan hệ tới công việc thu gọn').length >= 2);
+  assert.ok(screen.getAllByLabelText('1 quan hệ tới công việc thu gọn').length >= 2);
   assert.ok(screen.getAllByText('phải xong trước').length >= 1, 'cạnh dependency có nhãn chữ');
   const toggle = screen.getByRole('button', { name: 'Mở công việc của Bước A' });
   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
@@ -485,7 +485,7 @@ test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, exp
     selectedTicketId: null,
     focusedTicketId: null,
   });
-  await mountMap(source, storage);
+  await mountMap(source, storage, null, () => nodeButton(stepB) !== null);
   assert.equal(
     viewportTransform(),
     'translate(-480px,140px)scale(1.7)',
@@ -500,7 +500,7 @@ test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, exp
     'dialog open',
   );
   assert.ok(screen.getByRole('dialog', { name: 'Bước B' }));
-  assert.ok(nodeButton(mapRoot), 'sơ đồ vẫn mount khi dialog mở');
+  assert.ok(nodeButton(stepB), 'sơ đồ vẫn mount khi dialog mở');
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Đóng' })));
   await until(() => screen.queryByRole('dialog') === null, 'dialog closed');
   assert.equal(viewportTransform(), 'translate(-480px,140px)scale(1.7)');
@@ -512,12 +512,12 @@ test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, exp
   assertFocused(nodeButton(stepB), 'stepB');
 });
 
-test('realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà viewport và vị trí cũ không đổi', async () => {
+test('realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), root làm neo đứng yên, không fit', async () => {
   const source = graphServer(baseGraph());
   const storage = new MemoryStorage();
-  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 30, y: -20, zoom: 0.9 } });
+  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 30, y: 200, zoom: 0.9 } });
   const env = await mountMap(source, storage);
-  const before = nodeButton(stepA)?.closest<HTMLElement>('.react-flow__node')?.style.transform;
+  const rootBefore = screenOf(mapRoot);
   const reads = source.graphReads.length;
   source.hold(true);
   await act(async () => {
@@ -526,7 +526,7 @@ test('realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà v
   await until(() => source.graphReads.length === reads + 1, 'first refetch started');
   const grown = baseGraph();
   grown.nodes.push(row('0d0d0d0d-0000-4000-8000-000000000012', 'step', mapRoot, 'Bước C'));
-  grown.nodes[1] = row(stepA, 'step', mapRoot, 'Bước A', 2);
+  grown.nodes[2] = row(stepB, 'step', mapRoot, 'Bước B', 2);
   source.setGraph(grown);
   await act(async () => {
     void env.queryClient.invalidateQueries({ queryKey: queryRoots.graphs });
@@ -535,9 +535,59 @@ test('realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà v
   assert.equal(source.graphReads[reads]?.signal?.aborted, true, 'GET cũ bị hủy, không vá cạnh từng phần');
   source.hold(false);
   await until(() => nodeButton('0d0d0d0d-0000-4000-8000-000000000012') !== null, 'new step');
-  assert.equal(nodeButton(stepA)?.dataset.revision, '2');
-  assert.equal(viewportTransform(), 'translate(30px,-20px)scale(0.9)', 'realtime không tự fit');
-  assert.equal(nodeButton(stepA)?.closest<HTMLElement>('.react-flow__node')?.style.transform, before);
+  // The viewport follows the anchor right after the relayout; let ReactFlow settle before reading cards.
+  await settleQuietly(() => false);
+  assert.equal(nodeButton(stepB)?.dataset.revision, '2');
+  assert.match(viewportTransform(), /scale\(0\.9\)$/, 'realtime không tự fit (zoom giữ nguyên)');
+  assertStill(mapRoot, rootBefore, 'root (neo khi chưa focus thẻ nào)');
+  const stepC = '0d0d0d0d-0000-4000-8000-000000000012';
+  const ys = [stepA, stepB, stepC].map(cardY).sort((a, b) => a - b);
+  assert.ok(
+    Math.abs(cardY(mapRoot) - ((ys[0] as number) + (ys[2] as number)) / 2) <= 0.5,
+    'root nằm giữa con đầu và con cuối sau khi căn lại',
+  );
+  const cards = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
+    (el) => el.style.transform,
+  );
+  assert.equal(new Set(cards).size, cards.length, 'không có hai thẻ cùng chỗ');
+});
+
+test('realtime với thẻ đang focus: thẻ đó làm neo, đứng yên trên màn hình', async () => {
+  const source = graphServer(baseGraph());
+  const env = await mountMap(source);
+  await act(async () => fireEvent.focus(nodeButton(stepB) as HTMLElement));
+  const before = screenOf(stepB);
+  const grown = baseGraph();
+  grown.nodes.push(row('0d0d0d0d-0000-4000-8000-000000000009', 'step', mapRoot, 'Bước 0'));
+  source.setGraph(grown);
+  await act(async () => {
+    await env.queryClient.invalidateQueries({ queryKey: queryRoots.graphs });
+  });
+  await until(() => nodeButton('0d0d0d0d-0000-4000-8000-000000000009') !== null, 'new step');
+  await settleQuietly(() => false);
+  assertStill(stepB, before, 'bước B đang focus');
+});
+
+test('thẻ và khung theo mockup: tiêu đề + chấm trạng thái, dòng phụ “cấp · trạng thái”, viền focus, header kiểu modal, chú giải', async () => {
+  const source = graphServer(baseGraph());
+  await mountMap(source);
+  const card = nodeButton(stepA) as HTMLButtonElement;
+  const lines = [...card.querySelectorAll<HTMLElement>('[data-line]')].map((el) => el.textContent?.trim());
+  assert.deepEqual(lines, ['Bước A', 'Bước · Đang chạy'], 'tiêu đề trên, dòng phụ dưới; không bịa giờ/token');
+  const dot = card.querySelector<HTMLElement>('[data-status-dot]');
+  assert.equal(dot?.getAttribute('aria-hidden'), 'true');
+  assert.equal(dot?.dataset.statusDot, 'running');
+  assert.equal(screen.getByRole('heading', { name: 'Sơ đồ ticket' }).tagName, 'H1');
+  assert.ok(screen.getByText('5 ticket · bấm vào thẻ để xem chi tiết'));
+  const legend = screen.getByRole('list', { name: 'Chú giải' });
+  for (const text of ['Xong', 'Đang làm', 'Đang chờ', 'Chưa bắt đầu', 'Cha – con', 'Phụ thuộc', 'Sửa lỗi'])
+    assert.ok(legend.textContent?.includes(text), `chú giải thiếu ${text}`);
+  await act(async () => fireEvent.focus(card));
+  assert.equal(
+    card.closest<HTMLElement>('[data-level]')?.dataset.focused,
+    'true',
+    'thẻ focus có đánh dấu viền',
+  );
 });
 
 test('node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ', async () => {
@@ -617,4 +667,27 @@ test('khung sơ đồ đo lại chiều cao khi nội dung phía trên đổi c�
     for (const observer of observers) observer.trigger();
   });
   assert.equal(frame.style.height, `${window.innerHeight - 300 - 16}px`, `trước: ${first}`);
+});
+
+test('root mới (chưa có trạng thái): mở ở 1:1, root ở mép trái giữa khung, không dùng fitView; cuộn chuột là cuộn', async () => {
+  const source = graphServer(baseGraph());
+  const storage = new MemoryStorage();
+  await mountMap(source, storage);
+  await settleQuietly(() =>
+    /scale\(1\)/.test(document.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform ?? ''),
+  );
+  const view =
+    document.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform.replace(/\s+/g, '') ?? '';
+  const match = /translate\(([-\d.e]+)px,([-\d.e]+)px\)scale\(([-\d.e]+)\)/.exec(view);
+  assert.ok(match, view);
+  assert.equal(Number(match?.[3]), 1, 'zoom 1:1');
+  const rootScreen = screenOf(mapRoot);
+  assert.equal(rootScreen.x, 24, 'root cách mép trái 24px');
+  const frame = document.querySelector<HTMLElement>('.react-flow')?.parentElement as HTMLElement;
+  const height = Number.parseFloat(frame.style.height);
+  assert.ok(
+    Math.abs(rootScreen.y + 56 / 2 - height / 2) <= 4,
+    `root giữa khung: ${rootScreen.y} / ${height}`,
+  );
+  assert.deepEqual(storedView(storage)?.viewport, { x: Number(match?.[1]), y: Number(match?.[2]), zoom: 1 });
 });
