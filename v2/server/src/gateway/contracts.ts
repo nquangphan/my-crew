@@ -41,9 +41,17 @@ export type SlotStatus<T> = {
   lastError: { code: string; message: string } | null;
   observedAt: string | null;
 };
+/** Workflow definition the gateway derived from an installed projection (additive install-report field). */
+export type ProjectionDefinition = {
+  sha256: string;
+  skills: { path: string; sha256: string }[];
+  customizationSha256: string;
+  render?: Record<string, unknown>;
+};
+export type ProjectionSlotStatus = SlotStatus<ProjectionPin> & { definition?: ProjectionDefinition };
 export type WorkflowStatus = {
   source: SlotStatus<SourcePin>;
-  projections: Record<Runtime, SlotStatus<ProjectionPin>>;
+  projections: Record<Runtime, ProjectionSlotStatus>;
 };
 export type WorkflowInventory = Record<Workflow, WorkflowStatus>;
 export type GatewayHeartbeat = {
@@ -207,13 +215,35 @@ const slotSchema = (pin: unknown) =>
     ),
     observedAt: nullable(timestamp),
   });
-const statusSchema = objectSchema({
-  source: slotSchema(sourceSchema),
-  projections: objectSchema(
-    Object.fromEntries(runtimes.map((runtime) => [runtime, slotSchema(projectionSchema)])),
-  ),
-});
-const inventorySchema = objectSchema({ bmad: statusSchema, superpowers: statusSchema });
+const statusSchema = (projectionSlot: unknown) =>
+  objectSchema({
+    source: slotSchema(sourceSchema),
+    projections: objectSchema(Object.fromEntries(runtimes.map((runtime) => [runtime, projectionSlot]))),
+  });
+const inventorySchema = (projectionSlot: unknown) => {
+  const status = statusSchema(projectionSlot);
+  return objectSchema({ bmad: status, superpowers: status });
+};
+const definitionSchema = objectSchema(
+  {
+    sha256: digestSchema,
+    skills: {
+      type: 'array',
+      maxItems: 2000,
+      items: objectSchema({ path: { type: 'string', minLength: 1, maxLength: 1024 }, sha256: digestSchema }),
+    },
+    customizationSha256: digestSchema,
+    render: { type: 'object' },
+  },
+  ['sha256', 'skills', 'customizationSha256'],
+);
+const heartbeatInventorySchema = inventorySchema(slotSchema(projectionSchema));
+const reportInventorySchema = inventorySchema(
+  (() => {
+    const slot = slotSchema(projectionSchema);
+    return { ...slot, properties: { ...slot.properties, definition: definitionSchema } };
+  })(),
+);
 export const heartbeatSchema = objectSchema({
   bootId: uuidSchema,
   bootGeneration: counterSchema,
@@ -230,7 +260,7 @@ export const heartbeatSchema = objectSchema({
     activeJobs: { type: 'integer', minimum: 0, maximum: 10000 },
     configuredMaxJobs: { type: 'integer', minimum: 1, maximum: 64 },
   }),
-  inventory: inventorySchema,
+  inventory: heartbeatInventorySchema,
   processes: {
     type: 'array',
     maxItems: 1000,
@@ -248,7 +278,7 @@ export const installReportSchema = objectSchema({
   bootGeneration: counterSchema,
   configRevision: { type: 'integer', minimum: 1, maximum: 2147483647 },
   reportedAt: timestamp,
-  results: inventorySchema,
+  results: reportInventorySchema,
 });
 export const projectionInputSchema = objectSchema({
   fence: counterSchema,

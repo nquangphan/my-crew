@@ -47,7 +47,13 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
    bộ SourcePin (kể cả sourceUrl/provenance) và ProjectionPin/derivation; slot current lệch pin được
    ghi mismatch. Chỉ cả hai source và mọi desired projection khác null đúng mới advance applied.
    Partial/error giữ revision/appliedAt cũ, nhưng ghi per-slot status mới. Raw lastError được thay bằng
-   mã/thông báo cố định cả khi lưu report. `latest_report_id` là pointer nội bộ có FK cùng máy; không
+   mã/thông báo cố định cả khi lưu report. Slot projection của install report (không phải heartbeat) có
+   thể mang thêm `definition` `{sha256, skills, customizationSha256, render?}`: server chỉ nhận khi slot
+   `current` đúng pin mong muốn và `sha256` bằng SHA-256 canonical của `{source, projection, skills,
+   customizationSha256, render|null}` (render nếu có phải cùng source/projection). Hợp lệ thì lưu nguyên
+   bản vào `gateway_applied.workflow_status[...].projections[runtime].definition` và report; không hợp lệ
+   thì bỏ definition, slot thành `mismatch`, report không accepted. Thiếu `definition` vẫn như trước;
+   `body_hash` và so khớp pin không đổi. `latest_report_id` là pointer nội bộ có FK cùng máy; không
    chọn current report bằng timestamp/UUID. Receipt và report không TTL, DB chặn update/delete.
 7. `POST /v2/gateway/attempts/:id/projection` kiểm current binding, active guard, exact fence/process
    dưới khóa entity trước cached response. Row companion cùng attempt/cùng pin replay bất biến;
@@ -100,7 +106,8 @@ Host sync/launcher ở các task tiếp theo tiêu thụ DTO, không được bi
 container PostgreSQL18.6 riêng và logical DB prefix7. Tests chứng minh boot CAS race, retired immutable
 replay, receipt thứ tự/hash/server clock, config CAS/Origin/CSRF/URL/schema, command ACK/cursor,
 partial/failed slots, exact source/projection/derivation, report/config/boot cũ, default selection deny,
-DB-backed claim proof, null runtime, stale fence và giữ pair sau update. HTTP race giữ event_cursor,
+DB-backed claim proof, null runtime, stale fence và giữ pair sau update; definition cộng thêm được lưu
+nguyên bản, thiếu definition vẫn accepted, definition lệch pin/skills/customization/render bị từ chối. HTTP race giữ event_cursor,
 rotate token/expire session giữa prehandler và mutation, xác nhận cached response bị chặn ở cả năm
 machine family. Close/reopen pool và pg_dump/pg_restore xác nhận durable receipts. Diễn tập backup
 prefix6, restore6, migrate7, restore7 giữ receipt và checksum; fixture drop đúng logical DB trong finally,

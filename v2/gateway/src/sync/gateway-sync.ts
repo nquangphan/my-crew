@@ -1,15 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
+import type { WorkflowDefinition } from '../assistant/workflow-manifest.ts';
 import type {
   GatewayCommand,
   GatewayConfig,
   InstallReport,
   Inventory,
   ReadTransport,
+  ReportedInventory,
 } from '../commands/contracts.ts';
 import { mutate } from '../commands/http-client.ts';
-import type { SlotStatus, SourcePin } from '../host/status.ts';
+import type { ProjectionPin, SlotStatus, SourcePin } from '../host/status.ts';
 import { AtomicRecords, canonicalJson } from '../journal/atomic-records.ts';
 import type { HttpOperationJournal } from '../journal/http-operations.ts';
 import { fetchSource } from '../workflows/fetch.ts';
@@ -48,6 +50,10 @@ export type SyncOptions = {
   http: HttpOperationJournal;
   read: ReadTransport;
   recipes: ProjectionAudit[];
+  /** Derives the workflow definition of an installed projection; absent means reports carry none. */
+  definitions?: {
+    loadDefinition(source: SourcePin, projection: ProjectionPin): Promise<WorkflowDefinition>;
+  };
   archive?: (source: SourcePin) => Promise<Readable>;
   now?: () => number;
   random?: () => number;
@@ -120,6 +126,16 @@ export class GatewaySync {
     record.done = true;
     await this.store.put(this.key(record.command.id), record);
   }
+  // Definition lookup is additive: an unavailable definition (for example BMAD outside claude) must not
+  // fail an otherwise exact install, so the slot is reported without it.
+  private async definition(source: SourcePin, pin: ProjectionPin): Promise<WorkflowDefinition | null> {
+    if (!this.options.definitions) return null;
+    try {
+      return await this.options.definitions.loadDefinition(source, pin);
+    } catch {
+      return null;
+    }
+  }
   private async process(record: SyncRecord, config: GatewayConfig | null) {
     if (record.completion) return this.complete(record, record.completion);
     if ((this.options.now ?? Date.now)() < record.retryAt) return;
@@ -146,7 +162,7 @@ export class GatewaySync {
       if (!config || config.revision < requestedRevision) return;
       if (config.revision > requestedRevision)
         return this.complete(record, { ok: false, code: 'SUPERSEDED' });
-      const results = empty();
+      const results: ReportedInventory = empty();
       for (const name of names) {
         const desired = config.desired[name];
         try {
@@ -190,6 +206,8 @@ export class GatewaySync {
               if (!same(built, pin)) throw new Error('PROJECTION_MISMATCH');
             }
             results[name].projections[runtime] = slot(pin);
+            const definition = await this.definition(desired.source, pin);
+            if (definition) results[name].projections[runtime].definition = definition;
           } catch {
             results[name].projections[runtime] = {
               ...slot(),

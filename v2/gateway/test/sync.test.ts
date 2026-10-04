@@ -389,3 +389,100 @@ test('sync defers command ahead of desired snapshot, then applies after reopen w
     await owned.cleanup();
   }
 });
+
+test('sync carries the workflow definition on current projections only, and omits it when unavailable', async () => {
+  const owned = await bridgeRoot(),
+    w = await workflowFixture(owned.root);
+  await w.install();
+  const command = {
+    id: randomUUID(),
+    machineId: randomUUID(),
+    type: 'sync_workflows',
+    payload: { configRevision: 1 },
+    state: 'queued',
+    result: null,
+    cursor: '1',
+  };
+  const loaded: string[] = [];
+  const definitions = {
+    async loadDefinition(
+      source: import('../src/host/status.ts').SourcePin,
+      projection: import('../src/host/status.ts').ProjectionPin,
+    ) {
+      loaded.push(`${source.name}:${projection.runtime}`);
+      // BMAD definitions exist only for the claude projection.
+      if (source.name === 'bmad' && projection.runtime !== 'claude')
+        throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
+      return {
+        sha256: projection.treeSha256,
+        skills: [{ path: 'skills/x/SKILL.md', sha256: source.sourceTreeSha256 }],
+        customizationSha256: projection.manifestSha256,
+      };
+    },
+  };
+  const run = async (withDefinitions: boolean) => {
+    const reports: import('../src/commands/contracts.ts').InstallReport[] = [];
+    const home = await bridgeRoot();
+    const http = await HttpOperationJournal.open(home.root, async (req) => {
+      if (req.phase === 'install-report') {
+        reports.push(req.canonicalBody as (typeof reports)[number]);
+        return { status: 200, body: { accepted: true, appliedRevision: 1 } };
+      }
+      return { status: 200, body: command };
+    });
+    const sync = await GatewaySync.open(home.root, {
+      machineId: command.machineId,
+      bootId: randomUUID(),
+      bootGeneration: '1',
+      registry: w.registry,
+      http,
+      recipes: w.projections,
+      ...(withDefinitions ? { definitions } : {}),
+      read: async (route) =>
+        route === '/v2/gateway/config'
+          ? { revision: 1, desired: w.desired, maxJobs: 1, enabled: true }
+          : { items: [command], nextCursor: '1' },
+      archive: async () => {
+        throw new Error('HEALTHY_CACHE_MUST_NOT_DOWNLOAD');
+      },
+    });
+    try {
+      await sync.reconcile();
+    } finally {
+      await sync.close();
+      await http.close();
+      await home.cleanup();
+    }
+    assert.equal(reports.length, 1);
+    return reports[0].results as unknown as Record<
+      string,
+      { source: object; projections: Record<string, { state: string; definition?: unknown }> }
+    >;
+  };
+  try {
+    const plain = await run(false);
+    assert.deepEqual(loaded, []);
+    for (const name of ['bmad', 'superpowers'])
+      for (const slot of Object.values(plain[name].projections))
+        assert.equal('definition' in slot, false, 'no loader means no definition field');
+
+    const results = await run(true);
+    for (const runtime of ['claude', 'codex', 'api']) {
+      const pin = w.desired.superpowers.projections[runtime];
+      assert.deepEqual(results.superpowers.projections[runtime].definition, {
+        sha256: pin.treeSha256,
+        skills: [{ path: 'skills/x/SKILL.md', sha256: w.desired.superpowers.source.sourceTreeSha256 }],
+        customizationSha256: pin.manifestSha256,
+      });
+    }
+    assert.ok(results.bmad.projections.claude.definition);
+    for (const runtime of ['codex', 'api']) {
+      assert.equal(results.bmad.projections[runtime].state, 'current');
+      assert.equal('definition' in results.bmad.projections[runtime], false);
+    }
+    assert.equal('definition' in results.superpowers.source, false);
+  } finally {
+    await w.close();
+    await owned.cleanup();
+  }
+});

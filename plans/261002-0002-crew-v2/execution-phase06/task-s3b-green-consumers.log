@@ -1,0 +1,28 @@
+model-fixture-container {"containerId":"ef67d94fb21c250e27e1f0df610bc46f0396969495b14516f8fd9a7aa1033dc6","url":"postgres://postgres@127.0.0.1:52675/crew_v2_test"}
+{"level":30,"time":1791083463853,"pid":91627,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:53141"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (568.747625ms)
+✔ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (563.130417ms)
+✔ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (557.22175ms)
+✔ model pool migration creates separate config and immutable report authority (114.692917ms)
+model owned fixture ef67d94fb21c250e27e1f0df610bc46f0396969495b14516f8fd9a7aa1033dc6 postgres://postgres@127.0.0.1:52675/crew_v2_test
+model-fixture-container {"containerId":"ef67d94fb21c250e27e1f0df610bc46f0396969495b14516f8fd9a7aa1033dc6","url":"postgres://postgres@127.0.0.1:52675/crew_v2_test"}
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (417.132542ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (333.973542ms)
+✔ model report shared order historical immutable replay and production host PASS stays unverified (379.3255ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (347.780833ms)
+✔ sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK (350.529375ms)
+✔ model source events reject secret metadata and wrong audience without leaking inventory (0.429417ms)
+✔ model HTTP cached mutation rechecks actual token after authentication before journal cache (319.593208ms)
+✔ fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate (339.789083ms)
+model-backup-owned {"containerId":"ef67d94fb21c250e27e1f0df610bc46f0396969495b14516f8fd9a7aa1033dc6","port":"52675","sourceDb":"crew_v2_test_2531b461dd0344faa5822ffbd3511ba7","restoredName":"crew_v2_test_bf44698ab2de4ba9974d86883aef270a"}
+model-backup-cleaned {"sourceDb":"crew_v2_test_2531b461dd0344faa5822ffbd3511ba7","restoredName":"crew_v2_test_bf44698ab2de4ba9974d86883aef270a"}
+✔ model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift (962.6955ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5559.867584
+EXIT=0

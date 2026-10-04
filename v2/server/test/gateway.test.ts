@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
 import postgres from 'postgres';
 import { connectDb } from '../src/db/client.ts';
 import { captureMigrations, migrate } from '../src/db/migrate.ts';
+import { canonicalJson } from '../src/journal/canonical.ts';
 import { validateEventInput } from '../src/journal/event-contracts.ts';
 import { databaseFixture } from './support/db.ts';
 import { openPeerDb } from './support/execution.ts';
@@ -19,6 +20,7 @@ import {
   projection,
   report,
   selectionAuthorityFixture,
+  source,
 } from './support/gateway.ts';
 
 test('gateway migration 007 có prefix riêng và checksum replay', async () =>
@@ -212,6 +214,166 @@ test('gateway install report xác nhận exact source/projection và giữ appli
       );
       assert.deepEqual(await countExecutionRows(db), before);
       await assert.rejects(db`delete from gateway_install_reports`, /GATEWAY_IMMUTABLE/);
+    } finally {
+      await f.close();
+    }
+  }));
+
+const skills = [
+  { path: 'skills/brainstorming/SKILL.md', sha256: 'a1'.repeat(32) },
+  { path: 'skills/writing-plans/SKILL.md', sha256: 'b2'.repeat(32) },
+];
+// Mirrors the gateway definition identity: SHA-256 over the canonical pinned context.
+function definitionFor(workflow: 'bmad' | 'superpowers', render?: Record<string, unknown>) {
+  const customizationSha256 = 'c3'.repeat(32);
+  const pinned = { source: source(workflow), projection: projection(workflow) };
+  return {
+    sha256: createHash('sha256')
+      .update(canonicalJson({ ...pinned, skills, customizationSha256, render: render ?? null }))
+      .digest('hex'),
+    skills,
+    customizationSha256,
+    ...(render ? { render } : {}),
+  };
+}
+type ReportedSlot = { state: string; definition?: unknown };
+const slotOf = (inventory: unknown, workflow: string, runtime: string): ReportedSlot => {
+  const status = (inventory as Record<string, { projections: Record<string, ReportedSlot> }>)[workflow];
+  assert.ok(status, workflow);
+  const slot = status.projections[runtime];
+  assert.ok(slot, runtime);
+  return slot;
+};
+const withDefinition = (bootId: string, definition: unknown) => {
+  const next = report(bootId, '1');
+  (next.results.superpowers.projections.codex as { definition?: unknown }).definition = definition;
+  return next;
+};
+
+test('gateway install report lưu definition cộng thêm nguyên bản, thiếu definition vẫn được nhận', async () =>
+  databaseFixture(7)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const a = randomUUID();
+      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      const plain = await f.machine.post('/v2/gateway/install-reports', report(a, '1'));
+      assert.equal(plain.json().accepted, true, plain.text);
+      const [stored] = await db`select workflow_status from gateway_applied`;
+      assert.equal(
+        'definition' in slotOf(stored?.workflow_status, 'superpowers', 'codex'),
+        false,
+        'báo cáo không có definition không được thêm trường nào',
+      );
+
+      const definition = definitionFor('superpowers');
+      const withDef = withDefinition(a, definition);
+      const first = await f.machine.post('/v2/gateway/install-reports', withDef);
+      assert.equal(first.statusCode, 200, first.text);
+      assert.equal(first.json().accepted, true);
+      assert.equal(first.json().appliedRevision, 1);
+      const [applied] = await db`select workflow_status,inventory from gateway_applied`;
+      const slot = slotOf(applied?.workflow_status, 'superpowers', 'codex');
+      assert.deepEqual(slot.definition, definition);
+      assert.equal(slot.state, 'current');
+      assert.equal('definition' in slotOf(applied?.workflow_status, 'bmad', 'codex'), false);
+      const [row] = await db`select report from gateway_install_reports where id=${withDef.reportId}`;
+      assert.deepEqual(
+        slotOf((row?.report as { results: unknown } | undefined)?.results, 'superpowers', 'codex').definition,
+        definition,
+      );
+
+      // body_hash vẫn phủ toàn bộ body: cùng reportId nhưng thiếu definition là xung đột, replay đúng giữ response.
+      const stripped = structuredClone(withDef);
+      delete (stripped.results.superpowers.projections.codex as { definition?: unknown }).definition;
+      const conflict = await f.machine.post('/v2/gateway/install-reports', stripped);
+      assert.equal(conflict.json<{ error: { code: string } }>().error.code, 'INSTALL_REPORT_CONFLICT');
+      assert.deepEqual((await f.machine.post('/v2/gateway/install-reports', withDef)).json(), first.json());
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('gateway install report từ chối definition lệch pin đã cài và không lưu definition đó', async () =>
+  databaseFixture(7)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const a = randomUUID();
+      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      assert.equal(
+        (await f.machine.post('/v2/gateway/install-reports', report(a, '1'))).json().accepted,
+        true,
+      );
+      const good = definitionFor('superpowers');
+      const cases: Record<string, unknown> = {
+        'sha256 lệch': { ...good, sha256: '9'.repeat(64) },
+        'skills bị đổi sau khi băm': {
+          ...good,
+          skills: [{ ...skills[0], sha256: '8'.repeat(64) }, skills[1]],
+        },
+        'customization bị đổi sau khi băm': { ...good, customizationSha256: '7'.repeat(64) },
+        'render thuộc pin khác': (() => {
+          const render = {
+            source: source('bmad'),
+            projection: projection('superpowers'),
+            selectedProjectionSha256: {},
+            layers: {},
+          };
+          return definitionFor('superpowers', render);
+        })(),
+      };
+      for (const [name, definition] of Object.entries(cases)) {
+        const result = await f.machine.post('/v2/gateway/install-reports', withDefinition(a, definition));
+        assert.equal(result.statusCode, 200, `${name}: ${result.text}`);
+        const body = result.json<{ accepted: boolean; appliedRevision: number; workflows: unknown }>();
+        assert.equal(body.accepted, false, name);
+        assert.equal(body.appliedRevision, 1, name);
+        const slot = slotOf(body.workflows, 'superpowers', 'codex');
+        assert.equal(slot.state, 'mismatch', name);
+        assert.equal('definition' in slot, false, name);
+        const [applied] = await db`select workflow_status from gateway_applied`;
+        assert.equal('definition' in slotOf(applied?.workflow_status, 'superpowers', 'codex'), false, name);
+      }
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('gateway install report: definition không thay đổi so khớp pin và schema vẫn đóng', async () =>
+  databaseFixture(7)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const a = randomUUID();
+      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      // Definition hợp lệ không cứu được projection lệch pin.
+      const drift = withDefinition(a, definitionFor('superpowers'));
+      assert.ok(drift.results.superpowers.projections.codex.installed);
+      drift.results.superpowers.projections.codex.installed.treeSha256 = '9'.repeat(64);
+      const drifted = await f.machine.post('/v2/gateway/install-reports', drift);
+      const driftBody = drifted.json<{ accepted: boolean; workflows: unknown }>();
+      assert.equal(driftBody.accepted, false);
+      assert.equal(slotOf(driftBody.workflows, 'superpowers', 'codex').state, 'mismatch');
+      // Definition trên slot không có pin cài (installed=null) không được nhận.
+      const orphan = report(a, '1');
+      (orphan.results.superpowers.projections.api as { definition?: unknown }).definition =
+        definitionFor('superpowers');
+      assert.equal((await f.machine.post('/v2/gateway/install-reports', orphan)).json().accepted, false);
+      // Schema đóng: trường lạ hoặc digest sai là 400; heartbeat vẫn không nhận definition.
+      for (const bad of [
+        { ...definitionFor('superpowers'), extra: 1 },
+        { ...definitionFor('superpowers'), sha256: 'xyz' },
+        { sha256: '1'.repeat(64) },
+      ])
+        assert.equal(
+          (await f.machine.post('/v2/gateway/install-reports', withDefinition(a, bad))).statusCode,
+          400,
+        );
+      const beat = heartbeat(a, '1', '1');
+      (beat.inventory.superpowers.projections.codex as { definition?: unknown }).definition =
+        definitionFor('superpowers');
+      assert.equal((await f.machine.post('/v2/gateway/heartbeat', beat)).statusCode, 400);
     } finally {
       await f.close();
     }

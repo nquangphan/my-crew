@@ -1,0 +1,61 @@
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-cSeAS1","device":"16777231","inode":"220435401","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-cSeAS1","device":"16777231","inode":"220435401","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (1984.446458ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-wv1y1e","device":"16777231","inode":"220435582","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-wv1y1e","device":"16777231","inode":"220435582","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (1624.598958ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-f7HSue","device":"16777231","inode":"220435762","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-f7HSue","device":"16777231","inode":"220435762","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (1620.806375ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-u3S2wY","device":"16777231","inode":"220435949","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-u3S2wY","device":"16777231","inode":"220435949","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (1437.319083ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-ZOitln","device":"16777231","inode":"220436116","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-ZOitln","device":"16777231","inode":"220436116","uid":501,"deleted":true}
+✔ sync defers command ahead of desired snapshot, then applies after reopen without false supersession (1489.514792ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-gUFt87","device":"16777231","inode":"220436292","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-z6nqWo","device":"16777231","inode":"220436445","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-z6nqWo","device":"16777231","inode":"220436445","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-vh9doU","device":"16777231","inode":"220436467","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-vh9doU","device":"16777231","inode":"220436467","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-gUFt87","device":"16777231","inode":"220436292","uid":501,"deleted":true}
+✖ sync carries the workflow definition on current projections only, and omits it when unavailable (1661.549167ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9907.735625
+
+✖ failing tests:
+
+test at test/sync.test.ts:393:1
+✖ sync carries the workflow definition on current projections only, and omits it when unavailable (1661.549167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + undefined
+  - {
+  -   customizationSha256: '23ad1284d620f598417998fe579ff16268486ac58e991684869294e60c276093',
+  -   sha256: 'e22eb3b7686d9e077224fc5796226a00f72dfeddf10903f1bb20ea31740d84da',
+  -   skills: [
+  -     {
+  -       path: 'skills/x/SKILL.md',
+  -       sha256: '6fb5713214af7c944e8f91ba62f21e6c72955afd1904a1af292c502de1009244'
+  -     }
+  -   ]
+  - }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/sync.test.ts:472:14)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { sha256: 'e22eb3b7686d9e077224fc5796226a00f72dfeddf10903f1bb20ea31740d84da', skills: [ [Object] ], customizationSha256: '23ad1284d620f598417998fe579ff16268486ac58e991684869294e60c276093' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+EXIT=1

@@ -1,0 +1,121 @@
+✔ gateway migration 007 có prefix riêng và checksum replay (130.259333ms)
+{"level":30,"time":1791083413037,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52707"}
+✔ gateway boot và heartbeat dùng auth thật, giữ execution namespace bất biến (425.564375ms)
+{"level":30,"time":1791083413406,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52713"}
+✔ gateway config CAS, URL allowlist, CSRF và schema đóng (325.605666ms)
+{"level":30,"time":1791083413717,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52721"}
+✔ gateway boot CAS giữ lịch sử, receipt bất biến và trạng thái hiện tại (319.987125ms)
+{"level":30,"time":1791083414039,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52728"}
+✔ gateway install report xác nhận exact source/projection và giữ applied qua partial, retired replay (332.322667ms)
+{"level":30,"time":1791083414376,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52734"}
+✖ gateway install report lưu definition cộng thêm nguyên bản, thiếu definition vẫn được nhận (304.179ms)
+{"level":30,"time":1791083414680,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52740"}
+✖ gateway install report từ chối definition lệch pin đã cài và không lưu definition đó (300.2615ms)
+{"level":30,"time":1791083414966,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52745"}
+✖ gateway install report: definition không thay đổi so khớp pin và schema vẫn đóng (282.467875ms)
+{"level":30,"time":1791083415260,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52751"}
+✔ gateway management command cursor, ACK mất phản hồi/gửi lại không hạ trạng thái completed (310.550083ms)
+{"level":30,"time":1791083415562,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52757"}
+✔ gateway projection production fail-closed trước khi tạo companion (331.108375ms)
+{"level":30,"time":1791083415893,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52762"}
+✔ gateway projection server selection bắt buộc, row bất biến, replay cùng pin sau update (352.830708ms)
+{"level":30,"time":1791083416251,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52768"}
+✔ gateway fresh claim từ chối report cũ, config tắt, thiếu decision, payload đổi trước RELEASE (399.500834ms)
+{"level":30,"time":1791083416659,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52775"}
+{"level":30,"time":1791083416818,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52778"}
+✔ gateway receipt tồn tại qua close/reopen pool, auth revoked/rotated không đọc cached response (408.535375ms)
+{"level":30,"time":1791083417059,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52786"}
+✔ gateway machine scope không làm lỏng project ACL, status offline không nhả execution guard (351.616208ms)
+{"level":30,"time":1791083417409,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52791"}
+✔ gateway install report exact derivation/source payload, partial runtime, stale config và sanitization (339.968583ms)
+gateway-owned-fixture {"containerId":"ef67d94fb21c250e27e1f0df610bc46f0396969495b14516f8fd9a7aa1033dc6","port":"52675","source":"crew_v2_test_da2f86d609b848b88fbe67bd182066e9"}
+{"level":30,"time":1791083417934,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52799"}
+{"level":30,"time":1791083418307,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52804"}
+✔ gateway migration007 FK/CHECK/UNIQUE và backup6→restore→migrate7→restore receipts (832.845792ms)
+✔ gateway event metadata từ chối secrets, trường dư và audience sai (0.404917ms)
+{"level":30,"time":1791083418570,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52809"}
+✔ gateway inventory từ chối URL có credential trước khi lưu (272.330875ms)
+{"level":30,"time":1791083418856,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52814"}
+✔ gateway cùng transaction recheck actual token trước cached boots/heartbeat/report/ack/projection (383.70925ms)
+{"level":30,"time":1791083419220,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52829"}
+✔ gateway owner session expire giữa prehandler và cached config vẫn từ chối (287.230167ms)
+{"level":30,"time":1791083419526,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52837"}
+✔ gateway authorization tại claim giữ pair khi update xảy ra trước insert companion (335.071209ms)
+{"level":30,"time":1791083419837,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52842"}
+✔ gateway heartbeat ngoài thứ tự và replay đồng thời (267.602375ms)
+{"level":30,"time":1791083420124,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52851"}
+✔ gateway fresh claim từ chối projection null và report partial mới nhất dù có applied cũ (343.324ms)
+{"level":30,"time":1791083420450,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52856"}
+✔ gateway ACK nhận nested/string details, từ chối secret/path (271.5825ms)
+{"level":30,"time":1791083420738,"pid":88389,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52862"}
+✔ gateway mọi desired runtime khác null đều bắt buộc trước advance applied (294.875791ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 22
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8344.79925
+
+✖ failing tests:
+
+test at v2/server/test/gateway.test.ts:245:1
+✖ gateway install report lưu definition cộng thêm nguyên bản, thiếu definition vẫn được nhận (304.179ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"INVALID_INPUT","message":"Dữ liệu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/gateway.test.ts:264:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/gateway.test.ts:286:1
+✖ gateway install report từ chối definition lệch pin đã cài và không lưu definition đó (300.2615ms)
+  AssertionError [ERR_ASSERTION]: sha256 lệch: {"error":{"code":"INVALID_INPUT","message":"Dữ liệu không hợp lệ"}}
+  
+  400 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/gateway.test.ts:314:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/gateway.test.ts:332:1
+✖ gateway install report: definition không thay đổi so khớp pin và schema vẫn đóng (282.467875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - false
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/gateway.test.ts:344:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+EXIT=1

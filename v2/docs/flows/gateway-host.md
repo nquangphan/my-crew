@@ -37,7 +37,7 @@ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự 
 bắt buộc reconcile. `GatewayEventPump` dùng SSE làm tín hiệu thức dậy, fallback poll `/v2/events` và chỉ
 commit cursor sau reconcile thành công. `GatewaySync` đọc desired trước command, lưu từng command theo
 machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff có base tối đa 60 giây và jitter 0,75–1,25 (trần thực 75 giây).
-Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
+Khi `SyncOptions.definitions` được cấp (thường là `createWorkflowManifest(registry)`), mỗi projection vừa báo `current` được gắn thêm `definition` `{sha256, skills, customizationSha256}` (kèm `render` nếu BMAD claude có) do `loadDefinition` trả; definition không có sẵn (BMAD ngoài claude, lỗi đọc) thì slot vẫn `current` nhưng không có trường này, không làm hỏng report. Không cấp `definitions` thì report giữ nguyên hình dạng cũ. Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
 với SUPERSEDED; revision mới dùng command mới. Namespace sync_models thuộc consumer riêng.
 Config và command là hai GET riêng: command có revision cao hơn snapshot phải chờ pass mới;
 chỉ revision thấp hơn desired hiện hành mới được SUPERSEDED.

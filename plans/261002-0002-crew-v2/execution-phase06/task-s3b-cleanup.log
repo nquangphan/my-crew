@@ -1,0 +1,6 @@
+ef67d94fb21c250e27e1f0df610bc46f0396969495b14516f8fd9a7aa1033dc6
+stopped crew-v2-test-ca29849d-d786-449d-a436-fa5d27fb587c
+docker ps -a filter:
+(empty above = absent)
+no node leftovers
+Sun Oct  4 03:12:09 UTC 2026

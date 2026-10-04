@@ -1,4 +1,12 @@
-import type { ProjectionPin, Runtime, SourcePin, Workflow, WorkflowStatus } from '../host/status.ts';
+import type { WorkflowDefinition } from '../assistant/workflow-manifest.ts';
+import type {
+  ProjectionPin,
+  Runtime,
+  SlotStatus,
+  SourcePin,
+  Workflow,
+  WorkflowStatus,
+} from '../host/status.ts';
 export type DomainPin = { workflow: Workflow; version: string; revision: string; checksum: string };
 export const toDomainPin = (source: SourcePin): DomainPin => ({
   workflow: source.name,
@@ -13,13 +21,19 @@ export type GatewayConfig = {
   enabled: boolean;
 };
 export type Inventory = Record<Workflow, WorkflowStatus>;
+/** Install-report-only slot: a current projection may additionally carry its derived workflow definition. */
+export type ReportedProjectionSlot = SlotStatus<ProjectionPin> & { definition?: WorkflowDefinition };
+export type ReportedInventory = Record<
+  Workflow,
+  { source: WorkflowStatus['source']; projections: Record<Runtime, ReportedProjectionSlot> }
+>;
 export type InstallReport = {
   reportId: string;
   bootId: string;
   bootGeneration: string;
   configRevision: number;
   reportedAt: string;
-  results: Inventory;
+  results: ReportedInventory;
 };
 export type GatewayCommand = {
   id: string;

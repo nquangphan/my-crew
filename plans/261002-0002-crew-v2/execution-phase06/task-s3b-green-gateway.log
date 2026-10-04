@@ -1,0 +1,31 @@
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-yKHlPl","device":"16777231","inode":"220437716","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-yKHlPl","device":"16777231","inode":"220437716","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (1775.451ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Ymdj9a","device":"16777231","inode":"220437894","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Ymdj9a","device":"16777231","inode":"220437894","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (1625.959291ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-7bMd6w","device":"16777231","inode":"220438084","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-7bMd6w","device":"16777231","inode":"220438084","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (1604.340875ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-dyW7Y0","device":"16777231","inode":"220438258","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-dyW7Y0","device":"16777231","inode":"220438258","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (1466.825958ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-0Dbd0t","device":"16777231","inode":"220438423","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-0Dbd0t","device":"16777231","inode":"220438423","uid":501,"deleted":true}
+✔ sync defers command ahead of desired snapshot, then applies after reopen without false supersession (1524.875333ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-DfjZvs","device":"16777231","inode":"220438605","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-UlqROr","device":"16777231","inode":"220438775","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-UlqROr","device":"16777231","inode":"220438775","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-xv1v9s","device":"16777231","inode":"220438796","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-xv1v9s","device":"16777231","inode":"220438796","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-DfjZvs","device":"16777231","inode":"220438605","uid":501,"deleted":true}
+✔ sync carries the workflow definition on current projections only, and omits it when unavailable (1661.449875ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9746.962792
+EXIT=0

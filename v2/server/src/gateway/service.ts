@@ -21,6 +21,8 @@ import type {
   InstallReport,
   InstallReportResponse,
   ProjectionInput,
+  ProjectionPin,
+  ProjectionSlotStatus,
   SourcePin,
   WorkflowInventory,
 } from './contracts.ts';
@@ -246,6 +248,35 @@ export async function saveHeartbeat(tx: Tx, machineId: Id, input: GatewayHeartbe
   await tx`insert into gateway_heartbeat_receipts(machine_id,boot_generation,sequence,body_hash,response,received_at) values(${machineId},${input.bootGeneration},${input.sequence},${bodyHash},${tx.json(json(response))},${now})`;
   return response;
 }
+/**
+ * A projection definition is trusted only when the slot holds exactly the desired source and projection
+ * pins and the digest equals the gateway's canonical identity over those pins, skills and customization.
+ */
+function definitionMatches(
+  slot: ProjectionSlotStatus,
+  source: SourcePin,
+  projection: ProjectionPin | null,
+  installedSource: SourcePin | null,
+): boolean {
+  const definition = slot.definition;
+  if (!definition || !projection || slot.state !== 'current') return false;
+  if (!same(slot.installed, projection) || !same(installedSource, source)) return false;
+  if (
+    definition.render &&
+    (!same(definition.render.source, source) || !same(definition.render.projection, projection))
+  )
+    return false;
+  return (
+    definition.sha256 ===
+    hash({
+      source,
+      projection,
+      skills: definition.skills,
+      customizationSha256: definition.customizationSha256,
+      render: definition.render ?? null,
+    })
+  );
+}
 export async function saveInstallReport(
   tx: Tx,
   machineId: Id,
@@ -281,6 +312,12 @@ export async function saveInstallReport(
         if (slot.state === 'current') slot.state = 'mismatch';
       }
       if (!pin && slot.state === 'current') slot.state = 'mismatch';
+      if (slot.definition && !definitionMatches(slot, wanted.source, pin, reported.source.installed)) {
+        // An unprovable definition is never stored, so a lookup can only see one tied to the exact pin.
+        delete slot.definition;
+        accepted = false;
+        if (slot.state === 'current') slot.state = 'mismatch';
+      }
     }
   }
   const previous = await readGatewayApplied(tx, machineId);
