@@ -71,3 +71,7 @@ Kế tiếp web: controller wiring `main.tsx`/`router.tsx` (SessionBoundary/Logi
 Ruling: chấp nhận ngoại lệ ownership `v2/web/src/app-runtime.ts` (Node test import .ts), nút Đăng xuất trong shell.tsx, 4 locator scope `#task2-harness` ở auth/events spec — cần cho real app render login riêng — sai thì đổi lại locator.
 Wiring: minor (deferred): M3 `returnTo` thành required search của /login (`router.tsx:128`); M5 runtime không dispose khi HMR dev (`main.tsx`).
 Ruling: workers không amend commit (concurrency) — tạo commit mới.
+
+12:55 Wiring FIX1 `b08a927` re-review: I1/I2 ADDRESSED, mới Important R2 thiếu app-router.spec trong manifest; FIX2/5 resume (R2, M6 có tác dụng, assert vacuous, câu docs logout).
+Ruling: khi S3a/S5a gắn GET dữ liệu thật vào ProtectedLayout, controller phải thêm assert đích danh GET đó đứng sau catch-up `/v2/events` trong `e2e/app-router.spec.ts` — ghi checklist S3b/S5 acceptance.
+Wiring: minor (deferred): `app-router.spec.ts:132` phụ thuộc Chromium requestfailed khi abort stream — theo dõi flaky.
