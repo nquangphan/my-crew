@@ -247,3 +247,47 @@ Còn lệch so với màn 2:
 - Các mục cũ của S3a vẫn nằm dưới ô thông tin: Thông tin, Thực thi hiện tại, Ticket con. Chúng được giữ vì phạm vi chỉ là trình bày, và E2E `tickets.spec` có assert nội dung “Chưa có dữ liệu — máy chủ…”.
 - Lịch sử và liên kết tài liệu giữ markup của `history.tsx` và `docs/ticket-links.tsx`; hai file này nằm ngoài quyền.
 - Dòng phụ không có giờ, nhãn “sửa vòng” dùng `cycleId`: PM đã ghi vào backlog producer.
+
+## Sửa theo review polish (`task-4-polish-review.md`)
+
+Commit: `531892b` (source/test/docs). Báo cáo, log và ảnh nằm ở commit kế tiếp.
+
+RED semantic trước khi sửa (`task-4-review2-red.log` `ed70c4587e51`): 5 test fail bằng assertion.
+- I1: thẻ ở giữa vùng đang xem trượt từ (36,198) sang (36,212.5).
+- I1 unit: `chooseRealtimeAnchor` trên stub trả root.
+- M2 unit: `sideRoutes` và `placeEdgeLabels` trên stub trả rỗng.
+- Thân dialog: mục “Thực thi hiện tại” vẫn còn.
+
+| Mục | Đã làm |
+|---|---|
+| I1 | Hàm thuần `chooseRealtimeAnchor` trong `layout.ts`. Thứ tự: thẻ focus nếu tâm thẻ còn trong khung; không thì thẻ có tâm gần tâm khung nhất; không thì root. Chỉ xét thẻ có ở cả bố cục cũ lẫn mới. `MapView` chọn neo trong `useLayoutEffect` từ viewport và kích thước khung thật. Test DOM: thêm việc phía trên vùng đang xem, root ngoài khung, không focus thì thẻ giữa vùng lệch ≤ 1 px. E2E G1: thẻ gần tâm khung đứng yên sau ghi đồng thời |
+| M4 | Xóa `relayoutAround`; test của nó chuyển sang `layoutHierarchy` + `followAnchor`, đúng đường production đang chạy |
+| M5 | Owner đang kéo (`onMoveStart` có event) thì độ dời của neo được giữ lại, cộng dồn và áp khi thả tay (`onMoveEnd`). E2E: tạo việc trong lúc giữ chuột, viewport không đổi cho tới khi thả. `preventScrolling` để nguyên |
+| M2 | `sideRoutes`: các đoạn vuông góc. Cùng cột thì ra vào ở mép phải, chạy dọc trong khe bên phải; khác cột thì chạy dọc trong khe giữa hai cột. Đoạn dọc chồng khoảng được tách làn, mỗi làn 6 px. `placeEdgeLabels`: không nhãn nào đè nhãn nào; nhãn thiếu chỗ chỉ hiện khi thẻ của nó được focus (dời xuống tới chỗ trống). Không đổi bất biến không chồng thẻ. E2E: focus bước kiểm tra thì hiện đủ 5 nhãn “sửa vòng” và không nhãn nào đè nhau |
+| M1 | Tiêu đề dialog `#e8e9eb` |
+| Thân dialog | Quyền hẹp, chỉ trình bày. `detail.tsx`: bỏ mục “Thực thi hiện tại”, giữ ô Máy · model và một dòng “Độ khó, lượt chạy và bằng chứng: Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.” (vẫn khớp assert cũ của `tickets.spec`, không phải sửa spec đó); `TerminalDocsLinks` hiện dạng chip. `history.tsx`: cột giờ mono rồi tới mô tả, giữ `<time>`, `data-testid` và `data-source`. `docs/ticket-links.tsx`: trang hiện dạng chip có viền, trang đang chọn viền `#8ab4ff`. Logic và query không đổi |
+| M3 + docs | `web-ticket-map.md` mô tả đúng luồng neo; ghi bất biến mới “thẻ focus/đang xem đứng yên” thay cho “viewport lệch ≤ 1 px khi đóng dialog” khi có realtime; ghi trạng thái là chấm cộng chữ; bỏ nhắc `placeNewNodes`/`relayoutAround`. `web-tickets.md` và `web-docs.md` cập nhật phần trình bày (R3) |
+
+Kiểm chứng:
+
+| Lệnh | Kết quả | Log |
+|---|---|---|
+| Biome 14 file | exit 0 | `task-4-review2-biome.log` `3146c1dc1344` |
+| tsc | exit 0 | `task-4-review2-typecheck.log` `19eaf43821a7` |
+| Unit web đầy đủ | 295/295 | `task-4-review2-unit-full.log` `93b49ed205b2` |
+| Build (outDir scratch) | exit 0 | `task-4-review2-build.log` `3aac87eea41e` |
+| E2E `ticket-map`, `tickets`, `ticket-routes`, `compose` | 15/15 | `task-4-review2-e2e.log` `f9d446708de4` |
+| `crew-docs generate` + `check --all` | ok, generated không đổi | — |
+
+Ảnh chụp lại: `side-by-side-map-vs-mockup.png`, `side-by-side-dialog-vs-mockup.png` và các ảnh trong `ui-evidence/task-4/`.
+
+Ghi chú về test:
+- Assertion DOM so phần tử bằng `assert.equal` làm treo khi in diff jsdom; đã đổi sang so đồng nhất.
+- Test unit nhãn chuyển phần kiểm “có nhãn hiện” sang graph `forkJoin`, vì graph sửa lỗi không còn chỗ trống bên phải.
+- Kỳ vọng đầu mút của tuyến khác cột được chỉnh trước khi implement, vẫn fail trên stub.
+- Lặp lại: gate hoặc slot bận nhiều lần, em đợi tới khi trống mới chạy.
+
+Còn mở:
+- Nhãn sát mép phải khung có thể bị khung cắt khi viewport ở xa.
+- Header và ô thông tin mới hiện cả ở trang `/tickets/:id` (PM đã ghi).
+- Dòng phụ chưa có giờ, nhãn “sửa vòng” dùng `cycleId` (backlog producer).
