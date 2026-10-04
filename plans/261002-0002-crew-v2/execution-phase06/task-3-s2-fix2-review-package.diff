@@ -1,0 +1,351 @@
+cb02a7d fix(v2): đóng an toàn khi không rõ thứ tự run và so ownership theo dạng gấp
+ v2/docs/flows/assistant-workflows.md       |  6 +-
+ v2/server/src/assistant/gates.ts           | 41 ++++++++-----
+ v2/server/src/assistant/runs.ts            |  8 ++-
+ v2/server/test/assistant-workflows.test.ts | 95 ++++++++++++++++++++++++++++++
+ 4 files changed, 130 insertions(+), 20 deletions(-)
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 9def4f0..398199a 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -24,23 +24,23 @@ Gắn định nghĩa workflow với đúng source và projection bất biến tr
+ 6. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
+ 7. Adapter không còn trả `RENDER_ARTIFACT_REQUIRED`. Việc từ chối BMAD chưa có artifact thuộc server: run BMAD được tạo với `rendered_artifact_id = null` và admission từ chối dispatch khi giá trị này còn `null`. Không dùng hash/path do client khai báo làm bằng chứng renderer.
+ 8. `createRun` kiểm input, khóa root (phải là request) rồi project, rồi mới gọi resolver Actor persisted (turn chưa admit 503, admission lệch 403, không ghi row). Actor luôn là máy Trợ lý A do resolver trả, không lấy từ caller.
+ 9. Definition tra theo máy B đang gắn với project. Lookup chỉ đọc `gateway_applied.workflow_status` của máy đó: slot projection và slot source phải `current`, digest phải tính lại đúng trên pin của slot, skills, customization và render. Không suy definition từ applied revision. BMAD chỉ có ở runtime `claude` và luôn có `render`; Superpowers không có `render`. Hash không có, slot không current, digest lệch hoặc chỉ máy khác báo đều trả 422 `WORKFLOW_DEFINITION_UNKNOWN`. Definition khác workflow của path trả 422 `WORKFLOW_PATH_MISMATCH`; nguồn của một bước không có trong definition trả 422 `WORKFLOW_SKILL_MISSING`. Pin hoặc `workflowChoice` của root khác workflow trả 409; root đã có run trả 409 `WORKFLOW_RUN_EXISTS`.
+ 10. Graph là bảng ánh xạ cố định từ nguồn đã pin (bảng bên dưới). Mỗi bước là một ticket `step` con của root với `stepOperationId` cấp trước. Criteria của ticket ghi `workflowRun = {runId, path, stepKey, stepOperationId, sourcePath, citation, gates:[{id, kind, requiredActor, trigger, citation}]}`. `trigger` là `on_stage` (run nào cũng qua) hoặc `after_three_failed_fixes` (gate `architecture_discussion`, chỉ materialize sau ba lần sửa hỏng). Bước execution của architectural còn có `executionChoices` (skill, source path, SHA của từng lựa chọn) và `resolvedByGateId` = gate kế hoạch; bước này chưa dispatch được khi gate chưa chọn. UUID gate được giữ chỗ trong `workflow_steps.gate_ids`; không tạo `workflow_gates` khi chưa có artifact. Mặc định tuần tự: mỗi bước chỉ chờ bước liền trước.
+ 11. Chạy song song chỉ khi `assistant_config.policy.parallelApprovalId` trỏ tới quyết định `approval` của owner trong cùng root, với `scope.parallel = {rootTicketId, path, definitionSha256, units:[{key,title,ownershipKeys}]}` khớp chính yêu cầu. Quyết định của root khác không phải override cho root này: run chạy tuần tự, `parallel_approval_id` null. Trong cùng root, quyết định không phải `approval` của owner trả 403 `WORKFLOW_PARALLEL_APPROVAL_INVALID`. Scope lệch hoặc path khác `bounded` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` (duyệt song song cho architectural cần kế hoạch đã viết, thuộc gate kế hoạch); danh sách `units` (có thể kèm `dependsOn`) đi qua luật chung `parallelUnits` của `gates.ts` (bước 17), nên path trùng hoặc lồng nhau trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`, phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Khi hợp lệ, bước triển khai tách thành từng phần với `stepOperationId` và ownership riêng, cùng chờ bước trước; bước review chờ đủ mọi phần.
+ 12. Mọi ID của run (run, step, `stepOperationId`, gate, khóa cạnh) được dẫn xuất từ `operationId` của proof, nên graph là hàm thuần của operation, input và các row đã đọc. `runs.createRunRequest(tx, operationId, input)` trả đúng request `{action:'create_run', payload:{rootTicketId, path, definitionSha256, graphSha256}}` mà transport băm vào `request_hash`. `createRun` dựng lại graph, rồi trong một savepoint nội bộ gọi `port.authorizeGraph(sp, actor, proof, input, graph)` một lần; port tự tính lại digest và so `request_hash`. Lỗi bất kỳ sau lần ghi đầu (lỗi JS của port hay lỗi DB) rollback toàn bộ ghi của `createRun` và cả lần dùng operation, transaction của caller vẫn dùng được. Trong savepoint: insert `workflow_runs` (revision 1, `rendered_artifact_id` null). Mỗi ticket con đi qua session của port; sau khi ticket và step tồn tại thì ghi `assistant_operation_ids` (`action_kind='create_ticket'`, `target_identity` = ticket ID). Mỗi cạnh dependency cũng đi qua session rồi ghi operation riêng (`target_identity = ticketId:predecessorId`). `precondition_sha256` là hash của graph; `effect_id = sha256(canonicalJson([runId, stepOperationId, actionKind, targetIdentity, preconditionSha256]))`, cùng công thức `deriveEffectId` của gateway. Session phải được `close` với mọi phần tử đã dùng.
+ 13. `latchRenderedArtifact` chỉ cho run `bmad-*` chưa latch (409 `WORKFLOW_RENDER_NOT_REQUIRED` / `WORKFLOW_RENDER_ALREADY_LATCHED`). Evidence phải là `workflow_render_receipt` có attempt. Attempt phải thuộc ticket bước của chính run, đang `active`, cùng máy và `binding_revision` hiện hành của project. `definitionSha256` và `customizationSha256` trong `data` phải khớp run. `generationPath` phải đúng `{projectRoot}/_bmad/render/bmad-build/{slug}-{sha256(projectRoot)[:12]}/{20 hex}` như renderer chính thức. Lệch bất kỳ điều nào trả 409 `WORKFLOW_RENDER_RECEIPT_INVALID`. Đúng thì set `rendered_artifact_id` và tăng revision trong cùng một câu UPDATE có điều kiện. Server chưa có bản ghi workspace nên chưa đối chiếu được `projectRoot` với workspace thật; việc đó thuộc lát đăng ký receipt trên máy B.
+ 
+ 14. `createOwnerQuestion` là tool `ask_owner` của Trợ lý. Câu hỏi phải gắn một ticket (thiếu thì 422 `WORKFLOW_QUESTION_TICKET_REQUIRED`). Thứ tự khóa root → project → resolver Actor persisted, rồi scope của proof phải đúng root và có tool `ask_owner` (thiếu thì 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`). Row operation pending phải được ghi trong chính Tx, cùng turn và snapshot của scope, với `request_hash = operationRequestSha256({action:'ask_owner', payload: proposal})` trên đúng proposal đã gửi; lệch thì 403 `ORCHESTRATION_REQUEST_MISMATCH`, row từ Tx trước thì 404. ID câu hỏi dẫn xuất từ `operationId`, nên một operation chỉ hỏi được một lần (lần hai 409 `ASSISTANT_OPERATION_CONSUMED`). `conversationId` phải là hội thoại của turn đang hỏi.
+-15. Câu hỏi gắn gate chỉ hợp lệ khi gate ID nằm trong `workflow_steps.gate_ids` của bước, ticket là ticket của bước, và stage trong criteria khớp bảng nguồn đã pin cùng row bước bất biến (source, skill, số gate, kind); lệch trả 409 `WORKFLOW_GATE_UNKNOWN`. Thiếu `artifactSha256` trả 409 `WORKFLOW_ARTIFACT_REQUIRED`. Artifact được coi là đã xác minh khi có evidence `artifact` trên chính ticket bước với đúng `data.sha256`, do attempt của máy và `binding_revision` hiện hành của project ghi; nếu không thì 409 `WORKFLOW_ARTIFACT_UNVERIFIED`. Chỉ artifact mới nhất của bước (theo `fence` của attempt, rồi `created_at` của evidence; cùng mốc thì mọi row phải cùng SHA) được hỏi hoặc duyệt; bytes cũ hơn trả 409 `WORKFLOW_ARTIFACT_SUPERSEDED`. Run có run mới hơn trên cùng root (theo thứ tự journal `ticket.created` của ticket bước) trả 409 `WORKFLOW_RUN_SUPERSEDED` khi hỏi hoặc trả lời. Definition của run phải còn đúng thứ máy dự án đang chứng minh (cùng source, projection, customization), nếu không thì 409 `WORKFLOW_DEFINITION_STALE`. Run BMAD chưa latch render trả 409 `WORKFLOW_RENDER_REQUIRED`. Gate `on_stage` không nhận `cycleId` (400). Gate `after_three_failed_fixes` chỉ mở khi run có ít nhất ba kết quả review `initial_review`/`repair_review` thất bại và `cycleId` là một trong các cycle đó; review hạ tầng hoặc review đạt không tính (409 `WORKFLOW_GATE_NOT_TRIGGERED`).
++15. Câu hỏi gắn gate chỉ hợp lệ khi gate ID nằm trong `workflow_steps.gate_ids` của bước, ticket là ticket của bước, và stage trong criteria khớp bảng nguồn đã pin cùng row bước bất biến (source, skill, số gate, kind); lệch trả 409 `WORKFLOW_GATE_UNKNOWN`. Thiếu `artifactSha256` trả 409 `WORKFLOW_ARTIFACT_REQUIRED`. Artifact được coi là đã xác minh khi có evidence `artifact` trên chính ticket bước với đúng `data.sha256`, do attempt của máy và `binding_revision` hiện hành của project ghi; nếu không thì 409 `WORKFLOW_ARTIFACT_UNVERIFIED`. Chỉ artifact mới nhất của bước (theo `fence` của attempt, rồi `created_at` của evidence; cùng mốc thì mọi row phải cùng SHA) được hỏi hoặc duyệt; bytes cũ hơn trả 409 `WORKFLOW_ARTIFACT_SUPERSEDED`. Mỗi gate có đúng một artifact hiện hành; bước sinh nhiều file phải gói chúng thành một artifact. Run có run mới hơn trên cùng root (theo thứ tự journal `ticket.created` của ticket bước, đọc qua index `events(project_id, cursor)`) trả 409 `WORKFLOW_RUN_SUPERSEDED` khi hỏi hoặc trả lời; nếu run này hoặc một run khác của root không có event `ticket.created` thì thứ tự không xác định và cũng trả 409 (đóng an toàn). Definition của run phải còn đúng thứ máy dự án đang chứng minh (cùng source, projection, customization), nếu không thì 409 `WORKFLOW_DEFINITION_STALE`. Run BMAD chưa latch render trả 409 `WORKFLOW_RENDER_REQUIRED`. Gate `on_stage` không nhận `cycleId` (400). Gate `after_three_failed_fixes` chỉ mở khi run có ít nhất ba kết quả review `initial_review`/`repair_review` thất bại và `cycleId` là một trong các cycle đó; review hạ tầng hoặc review đạt không tính (409 `WORKFLOW_GATE_NOT_TRIGGERED`).
+ 16. Digest phạm vi do server tự tính: gate là `sha256(canonicalJson(['crew-v2:workflow-gate-scope:1', {rootTicketId, runId, stepId, gateId, kind, requiredActor, trigger, sourcePath, sourceSha256, artifactSha256, cycleId, definitionSha256, customizationSha256, renderedArtifactId}]))`; câu hỏi không gate là `['crew-v2:owner-question-scope:1', {conversationId, rootTicketId, ticketId, runId, stepId}]`. `scopeSha256` của proposal khác giá trị này trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`. Lần hỏi đầu materialize row `workflow_gates` bất biến (`pending`, `decision_id` null) rồi mới tạo câu hỏi revision 1. Câu hỏi mới cho cùng gate đánh dấu câu đang mở là `superseded` và lấy revision kế tiếp. Gate đã ghim artifact khác trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`: artifact mới cần run mới thay run cũ. Gate đã quyết định trả 409 `WORKFLOW_GATE_DECIDED`, nên duyệt đã có hiệu lực không bị hỏi lại. Câu hỏi không gate không mang artifact hay cycle.
+-17. `recordGateAnswer` chỉ nhận Actor owner; máy, kể cả Trợ lý, trả 403 `OWNER_REQUIRED` trước mọi truy vấn. Hàm tự khóa `event_cursor` trước (cùng thứ tự với `mutate()`, vì decision ghi event), rồi root → project → ticket câu hỏi → gate → câu hỏi; precondition cho caller (route sau này): không giữ các khóa đó theo thứ tự khác. Câu hỏi đã trả lời trả 409 `WORKFLOW_QUESTION_ANSWERED`; câu bị thay hoặc `expectedRevision` lệch trả 409 `WORKFLOW_QUESTION_STALE`; `scopeSha256` lệch trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`; `artifactSha256` lệch trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`. `answer = {verdict, option, executionMethod, parallel, text}`: câu hỏi gate nhận `approve`/`reject`, câu hỏi không gate nhận `answer`; `option` là `null` hoặc một lựa chọn của câu hỏi. Chỉ gate giải quyết bước execution (gate kế hoạch của architectural) nhận `executionMethod` và `parallel`. Khi duyệt, `executionMethod` phải là một `method` của `executionChoices`, và mỗi lựa chọn trong criteria phải khớp bảng nguồn lẫn SHA của definition hiện hành (409 `WORKFLOW_EXECUTION_CHOICE_INVALID`). `parallel = {units:[{key,title,ownershipKeys,dependsOn?}], sharedInputSha256}` chỉ được chấp nhận sau kế hoạch viết và cần hash input dùng chung. `units` theo luật chung `parallelUnits` (cũng áp cho duyệt song song của run `bounded`): 2–16 phần, key/title hợp lệ, không field lạ, ownership key là path tương đối theo quy ước path của server docs (phân biệt hoa thường; bỏ segment `./` và một `/` cuối; `..`, path tuyệt đối, `//`, dấu `\` bị từ chối), `dependsOn` chỉ trỏ phần khác. Hai phần sở hữu cùng path hoặc path lồng nhau (thư mục cha/con) trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`; có phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Lỗi shape trả 400 ở gate, 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` ở run. Ở gate khác, `parallel` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`. Trong một savepoint, server gọi `recordDecision` với Actor owner: `approval` cho gate, `owner_answer` cho câu hỏi; `scope = {questionId, questionRevision, gateId, runId, stepId, artifactSha256, scopeSha256, verdict}` cộng `executionChoice` và `parallel` khi có. Sau đó server ghi `assistant_answers` bất biến rồi gọi `answerGate`. Lỗi bất kỳ hoàn tác cả decision lẫn answer, còn Tx của caller vẫn dùng được.
++17. `recordGateAnswer` chỉ nhận Actor owner; máy, kể cả Trợ lý, trả 403 `OWNER_REQUIRED` trước mọi truy vấn. Hàm tự khóa `event_cursor` trước (cùng thứ tự với `mutate()`, vì decision ghi event), rồi root → project → ticket câu hỏi → gate → câu hỏi; precondition cho caller (route sau này): không giữ các khóa đó theo thứ tự khác. Câu hỏi đã trả lời trả 409 `WORKFLOW_QUESTION_ANSWERED`; câu bị thay hoặc `expectedRevision` lệch trả 409 `WORKFLOW_QUESTION_STALE`; `scopeSha256` lệch trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`; `artifactSha256` lệch trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`. `answer = {verdict, option, executionMethod, parallel, text}`: câu hỏi gate nhận `approve`/`reject`, câu hỏi không gate nhận `answer`; `option` là `null` hoặc một lựa chọn của câu hỏi. Chỉ gate giải quyết bước execution (gate kế hoạch của architectural) nhận `executionMethod` và `parallel`. Khi duyệt, `executionMethod` phải là một `method` của `executionChoices`, và mỗi lựa chọn trong criteria phải khớp bảng nguồn lẫn SHA của definition hiện hành (409 `WORKFLOW_EXECUTION_CHOICE_INVALID`). `parallel = {units:[{key,title,ownershipKeys,dependsOn?}], sharedInputSha256}` chỉ được chấp nhận sau kế hoạch viết và cần hash input dùng chung. `units` theo luật chung `parallelUnits` (cũng áp cho duyệt song song của run `bounded`): 2–16 phần, key/title hợp lệ, không field lạ, ownership key là path tương đối hợp lệ theo `validPath` của server docs (bỏ segment `./` và một `/` cuối; `..`, path tuyệt đối, `//`, dấu `\` bị từ chối). Khi so xung đột, key được so theo `decodeURIComponent(path).normalize('NFC').toLowerCase()` vì FS dự án có thể không phân biệt hoa thường hay dạng Unicode; giá trị lưu giữ nguyên như owner gửi, `dependsOn` chỉ trỏ phần khác. Hai phần sở hữu cùng path hoặc path lồng nhau (thư mục cha/con) trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`; có phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Lỗi shape trả 400 ở gate, 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` ở run. Ở gate khác, `parallel` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`. Trong một savepoint, server gọi `recordDecision` với Actor owner: `approval` cho gate, `owner_answer` cho câu hỏi; `scope = {questionId, questionRevision, gateId, runId, stepId, artifactSha256, scopeSha256, verdict}` cộng `executionChoice` và `parallel` khi có. Sau đó server ghi `assistant_answers` bất biến rồi gọi `answerGate`. Lỗi bất kỳ hoàn tác cả decision lẫn answer, còn Tx của caller vẫn dùng được.
+ 18. `answerGate(tx, questionId, decisionId)` khóa và đọc lại toàn bộ. Câu hỏi phải đang mở. Decision phải là của owner với kind đúng (`approval` cho gate owner bắt buộc, `owner_answer` cho câu hỏi); decision của máy, `delegated`, hay sai kind đều trả 403 `WORKFLOW_GATE_DECISION_INVALID`. Phải có row `assistant_answers` của owner cho đúng revision, trỏ tới decision này, nếu không thì 403 `WORKFLOW_ANSWER_REQUIRED`. `scope` của decision phải đúng bằng scope dựng lại từ câu hỏi và nội dung answer. Gate phải còn `pending`, artifact và digest phạm vi tính lại từ các row hiện hành phải khớp, artifact vẫn được máy hiện hành xác minh và còn là artifact mới nhất của bước khi duyệt (bytes đã bị thay chỉ được `reject`). Khi đủ điều kiện, server latch `decision_id`, đặt gate `approved`/`rejected` và câu hỏi `answered`, mỗi việc bằng UPDATE có điều kiện nên chỉ tiến một lần; gọi lại trả 409. Route HTTP `POST /v2/assistant/questions/:id/answers` là controller mỏng, chưa mở trong lát này.
+ 
+ ### Ánh xạ nguồn → bước/gate
+ 
+ Superpowers 6.4.2 (revision `8ca22dba…`); dòng trích từ archive đã pin. BMAD 6.12.0 `bmad-build` (revision `05bfbd46…`); source path là file projection Claude đã audit.
+ 
+ | Path | Bước (skill, source) | Gate (owner) |
+ |---|---|---|
+ | architectural | design (`skills/brainstorming/SKILL.md:81-84,129-134,171-176`) → spec (`:135-138,237-261`) → plan (`skills/writing-plans/SKILL.md:179-204`) → execute (source `skills/writing-plans/SKILL.md`, lựa chọn `skills/subagent-driven-development/SKILL.md` hoặc `skills/executing-plans/SKILL.md` theo `:200-204`) → finish (`skills/finishing-a-development-branch/SKILL.md`, handoff `subagent-driven-development:120,487`, `executing-plans:104,304`) | `design_approval` (brainstorming `:45-49,134,174-176`), `spec_approval` (`:46-49,256-261`), `plan_approval_execution_method` (writing-plans `:181-198`) |
+ | bounded | design (brainstorming `:71-80,122-127`) → implement (TDD, `brainstorming:127`, `skills/test-driven-development/SKILL.md:31-34`) → review (`skills/requesting-code-review/SKILL.md:12-18`) → verify (`skills/verification-before-completion/SKILL.md:14-36`); không spec/plan | `design_approval` (`:45,76-80,126`) |
+@@ -75,10 +75,12 @@ TDD và review là kỷ luật bên trong skill thực thi của architectural,
+ 
+ ## Tests
+ 
+ Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực; unit fixture không phải production acceptance.
+ 
+ Từ repo, `node --test v2/server/test/assistant-workflows.test.ts` cần PostgreSQL riêng (`CREW_V2_TEST_DATABASE_URL`, `CREW_V2_TEST_CONTAINER_ID`). Definition của máy B được seed bằng đúng vector chung `install-report-vector.json` của S3b. Turn đã admit dùng `seedAdmittedTurn` (receipt PASS của verifier fixture) và tool operation ghi trong cùng Tx; không có authority test-trust. Ánh xạ được đối chiếu với chính bytes archive đã pin: test đọc từng dòng trích dẫn bằng `tar`, kiểm marker của gate (`User approves design?`, `User Review Gate`, `Which execution approach`, `If 3+ Fixes Failed`, `CHECKPOINT 1`…), lấy lựa chọn execution từ các dòng `REQUIRED SUB-SKILL` của writing-plans, skill hoàn tất từ handoff `Final review clean` của hai skill thực thi, và chuỗi BMAD từ `FIRST STEP`/`NEXT`/`EARLY EXIT`. Các case: hash không chứng minh trên máy B (hash lạ, slot mismatch, digest lệch, chỉ máy khác có) trả 422 và không row; resolver 503/403 không row; ánh xạ đủ 6 path với source SHA khớp definition; ticket con do máy A tạo, DAG đúng predecessor, operation ID riêng và effect ID tính lại được, không có `workflow_gates`; operation không đúng request `create_run` này (tool khác, mutation đơn lẻ, path khác, digest do caller chọn, digest của operation khác) trả 403 không row; lỗi JS của port hoặc lỗi DB sau lần ghi đầu không để lại row và caller vẫn commit được; latch sai máy/binding revision/attempt không active/attempt ngoài run/definition/customization/project root/loại evidence trả 409, đúng thì revision 2, lần hai 409; UPDATE/DELETE identity bị trigger chặn; duyệt song song của máy hoặc không phải `approval` trong cùng root 403 (kiểm cả qua `createRunRequest` lẫn trong chính `createRun` với row operation ghi sẵn), của root khác thì chạy tuần tự, trùng ownership 409, owner hợp lệ thì tách phần và join review.
+ 
+ Gate (cùng file, nhóm `assistant gates:`) dùng cùng fixture với scope có tool `ask_owner`; artifact được seed như attempt đã dừng của máy B ghi. Digest phạm vi được tính lại độc lập trong test từ tag và context. Các case: gate chưa có artifact, artifact của máy khác, binding cũ, bước khác hoặc kind khác không tạo row; gate lạ/của bước khác, `cycleId` trên gate `on_stage`, scope lệch đều bị từ chối; hỏi đúng thì tạo đúng row gate rồi câu hỏi, và UPDATE/DELETE identity bị trigger chặn. Operation `ask_owner` phải đúng proposal, có tool trong scope, cùng hội thoại, cùng root, ghi trong chính Tx và chỉ dùng một lần. Máy (A hoặc B) trả lời trả 403; decision của máy, `delegated`, `owner_answer` trên gate, hoặc approval không có answer của owner không làm gate tiến. Revision, scope, artifact lệch và lựa chọn/verdict sai không ghi gì. Câu trả lời đúng ghi decision `approval` với scope chính xác và answer bất biến, latch gate một lần; replay 409 và gate đã duyệt không bị hỏi lại. Câu hỏi bị thay trả 409; artifact mới không duyệt qua gate đã ghim. Customization đổi chặn câu trả lời; lỗi DB sau khi có decision không để lại gì và caller vẫn commit được. Gate kế hoạch bắt chọn phương pháp chính thức, kiểm SHA lựa chọn với definition, từ chối phần song song trùng ownership hoặc phụ thuộc nhau. Gate `architecture_discussion` chỉ mở sau ba lần sửa thất bại. Câu hỏi không gate nhận `owner_answer`. Gate BMAD cần render đã latch, và render là một phần của scope.
+ 
+ Vòng sửa 1 thêm: duyệt artifact đã bị thay trả 409 và gate vẫn `pending`, còn `reject` vẫn được; hỏi lại bytes cũ cũng 409. Run có run mới hơn trên cùng root không hỏi, không trả lời được. `recordGateAnswer` trong Tx trần giữ `event_cursor` trước khi chờ root (kiểm bằng `NOWAIT` từ kết nối khác). Ownership song song so trên path đã chuẩn hóa và quan hệ thư mục, cho cả gate lẫn run `bounded`. Decision của gate khác hoặc của root khác không làm câu hỏi tiến. `ask_owner` là thành viên của union `OperationRequest`.
++
++Vòng sửa 2 thêm: ownership khác hoa thường, khác dạng NFC/NFD hoặc percent-encoding (`%2F`, `%61`) vẫn là xung đột và scope lưu giữ key gốc; run không có event `ticket.created` không được hỏi (409).
+diff --git a/v2/server/src/assistant/gates.ts b/v2/server/src/assistant/gates.ts
+index 828b146..6af3ede 100644
+--- a/v2/server/src/assistant/gates.ts
++++ b/v2/server/src/assistant/gates.ts
+@@ -230,20 +230,23 @@ function validateProposal(proposal: QuestionProposal): {
+ 
+ // Ownership key in the server docs path convention (case-sensitive, relative, no `.`/`..`
+ // segment); `./` segments and one trailing `/` are dropped first. Invalid keys give null.
+ function ownershipPath(key: unknown): string | null {
+   if (typeof key !== 'string' || key.length < 1 || key.length > 512) return null;
+   const parts = key.split('/').filter((part) => part !== '.');
+   if (parts.length > 1 && parts[parts.length - 1] === '') parts.pop();
+   const path = parts.join('/');
+   return validPath(path) ? path : null;
+ }
++// Conflict comparison only: percent-decoded, NFC and lower case, because the project file
++// system may fold case and Unicode form. Stored keys stay exactly as submitted.
++const conflictKey = (path: string) => decodeURIComponent(path).normalize('NFC').toLowerCase();
+ const nested = (left: string, right: string) =>
+   left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
+ 
+ /**
+  * Shared rule for owner-approved parallel units (gate answer and run policy): 2–16 units with
+  * unique keys and titles, valid ownership paths, optional `dependsOn` naming other units. Two
+  * units owning the same or a nested path, or any dependency between units, deny parallel
+  * even with the owner's approval. Shape errors use the caller's error.
+  */
+ export function parallelUnits(value: unknown, shapeError: () => ApiError): ParallelUnitApproval[] {
+@@ -257,29 +260,31 @@ export function parallelUnits(value: unknown, shapeError: () => ApiError): Paral
+       typeof unit.key !== 'string' ||
+       !unitKey.test(unit.key) ||
+       keys.has(unit.key) ||
+       !text(unit.title, 120) ||
+       !Array.isArray(unit.ownershipKeys) ||
+       unit.ownershipKeys.length < 1 ||
+       unit.ownershipKeys.length > 64 ||
+       (unit.dependsOn !== undefined && !Array.isArray(unit.dependsOn))
+     )
+       throw shapeError();
+-    const paths = unit.ownershipKeys.map(ownershipPath);
+-    if (paths.some((path) => path === null) || new Set(paths).size !== paths.length) throw shapeError();
++    const valid = unit.ownershipKeys.map(ownershipPath);
++    if (valid.some((path) => path === null)) throw shapeError();
++    const paths = (valid as string[]).map(conflictKey);
++    if (new Set(paths).size !== paths.length) throw shapeError();
+     keys.add(unit.key);
+     units.push({
+       key: unit.key,
+       title: unit.title as string,
+       ownershipKeys: [...(unit.ownershipKeys as string[])],
+       dependsOn: [...((unit.dependsOn as unknown[] | undefined) ?? [])] as string[],
+-      paths: paths as string[],
++      paths,
+     });
+   }
+   for (const unit of units)
+     if (
+       unit.dependsOn?.some((key) => typeof key !== 'string' || key === unit.key || !keys.has(key)) ||
+       new Set(unit.dependsOn).size !== unit.dependsOn?.length
+     )
+       throw shapeError();
+   for (const [index, unit] of units.entries())
+     for (const other of units.slice(index + 1))
+@@ -457,30 +462,36 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
+     artifactSha256: string,
+     allowSuperseded: boolean,
+   ): Promise<void> {
+     const state = await artifactState(tx, project, step, artifactSha256);
+     if (state === 'missing') throw artifactUnverified();
+     if (state === 'superseded' && !allowSuperseded)
+       throw new ApiError('WORKFLOW_ARTIFACT_SUPERSEDED', 409, 'Bước đã có artifact mới hơn');
+   }
+ 
+   // A run stays answerable only while no newer run of the same root exists (journal order
+-  // of the runs' step tickets).
+-  async function assertRunCurrent(tx: Tx, run: Row): Promise<void> {
+-    const [newer] = await tx`with first_created as (
+-        select s.run_id,min(e.cursor) as cursor from workflow_steps s
+-        join events e on e.ticket_id=s.ticket_id and e.type='ticket.created'
+-        join workflow_runs r on r.id=s.run_id
+-        where r.root_ticket_id=${String(run.root_ticket_id)} group by s.run_id)
+-      select other.run_id from first_created other, first_created own
+-      where own.run_id=${String(run.id)} and other.run_id<>own.run_id and other.cursor>own.cursor limit 1`;
+-    if (newer) throw new ApiError('WORKFLOW_RUN_SUPERSEDED', 409, 'Run đã có run mới hơn thay thế');
++  // of the runs' step tickets, read through the project's event index). An unknown order,
++  // for this run or any other run of the root, fails closed.
++  async function assertRunCurrent(tx: Tx, run: Row, projectId: unknown): Promise<void> {
++    const runs = await tx`select r.id,(select min(e.cursor) from workflow_steps s
++        join events e on e.project_id=${String(projectId)} and e.ticket_id=s.ticket_id and e.type='ticket.created'
++        where s.run_id=r.id) as cursor
++      from workflow_runs r where r.root_ticket_id=${String(run.root_ticket_id)}`;
++    const own = runs.find((row) => row.id === run.id);
++    if (
++      !own ||
++      own.cursor === null ||
++      runs.some(
++        (row) => row.id !== run.id && (row.cursor === null || BigInt(row.cursor) > BigInt(own.cursor)),
++      )
++    )
++      throw new ApiError('WORKFLOW_RUN_SUPERSEDED', 409, 'Run đã có run mới hơn thay thế');
+   }
+ 
+   // Only after three failed fixes, counted as failed initial or repair reviews of this run.
+   async function triggerMet(tx: Tx, run: Row, gateSpec: GateSpec, cycleId: Id | null): Promise<void> {
+     if (gateSpec.trigger === 'on_stage') {
+       if (cycleId !== null) throw invalid();
+       return;
+     }
+     const failed = await tx`select r.cycle_id from repair_results r
+       join workflow_steps s on s.ticket_id=r.check_step_id
+@@ -628,21 +639,21 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
+       ? await tx`select * from workflow_gates where id=${String(unlocked.gate_id)} for update`
+       : [];
+     const [question] = await tx`select * from assistant_questions where id=${questionId} for update`;
+     if (!question) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy câu hỏi');
+     if (root.status === 'done' || root.status === 'cancelled')
+       throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+     const [run] = question.run_id
+       ? await tx`select * from workflow_runs where id=${String(question.run_id)} for share`
+       : [];
+     if (question.run_id && (!run || run.root_ticket_id !== root.id)) throw notFound();
+-    if (run) await assertRunCurrent(tx, run);
++    if (run) await assertRunCurrent(tx, run, root.project_id);
+     if (!gate) return { root, project, question, gate: null };
+     const [step] = await tx`select * from workflow_steps where id=${String(gate.step_id)}`;
+     if (!run || !step || gate.run_id !== run.id) throw notFound();
+     const { spec, gateSpec } = gateSpecOf(run, step, await stepCriteria(tx, step.ticket_id), String(gate.id));
+     const record = await currentDefinition(tx, project, run);
+     return { root, project, question, gate: { gate, run, step, spec, gateSpec, record } };
+   }
+ 
+   async function answerGate(tx: Tx, questionId: Id, decisionId: Id): Promise<void> {
+     if (
+@@ -758,21 +769,21 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
+       const [asked] = await tx`select id from assistant_questions where id=${questionId}`;
+       if (asked) throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
+       const [turn] = await tx`select conversation_id from assistant_turns where id=${proof.fence.turnId}`;
+       if (turn?.conversation_id !== input.conversationId) throw scopeMismatch();
+       if (root.status === 'done' || root.status === 'cancelled')
+         throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+       const [run] = input.runId
+         ? await tx`select * from workflow_runs where id=${input.runId} for share`
+         : [];
+       if (input.runId && (!run || run.root_ticket_id !== root.id)) throw notFound();
+-      if (run) await assertRunCurrent(tx, run);
++      if (run) await assertRunCurrent(tx, run, root.project_id);
+       const [step] = input.stepId
+         ? await tx`select * from workflow_steps where id=${input.stepId} and run_id=${input.runId}`
+         : [];
+       if (input.stepId && (!step || step.ticket_id !== input.ticketId)) throw gateUnknown();
+       if (!input.gateId) {
+         const expected = questionScopeSha256({
+           conversationId: input.conversationId,
+           rootTicketId: String(root.id),
+           ticketId: input.ticketId,
+           runId: input.runId,
+diff --git a/v2/server/src/assistant/runs.ts b/v2/server/src/assistant/runs.ts
+index 22e78b0..ff2e79f 100644
+--- a/v2/server/src/assistant/runs.ts
++++ b/v2/server/src/assistant/runs.ts
+@@ -185,26 +185,28 @@ function mapRun(row: Record<string, unknown>, steps: SkillStep[]): WorkflowRun {
+     customizationSha256: String(row.customization_sha256),
+     renderedArtifactId: row.rendered_artifact_id === null ? null : String(row.rendered_artifact_id),
+     path: row.path as WorkflowRun['path'],
+     revision: Number(row.revision),
+     steps,
+     parallelApprovalId: row.parallel_approval_id === null ? null : String(row.parallel_approval_id),
+   };
+ }
+ 
+ async function readRun(tx: Tx, runId: Id): Promise<WorkflowRun> {
+-  const [row] = await tx`select * from workflow_runs where id=${runId}`;
++  const [row] = await tx`select r.*,t.project_id as root_project_id from workflow_runs r
++    join tickets t on t.id=r.root_ticket_id where r.id=${runId}`;
+   if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy run');
+-  // Creation order of the step tickets is their journal order.
++  // Creation order of the step tickets is their journal order (project event index).
+   const rows = await tx`select s.* from workflow_steps s
+     where s.run_id=${runId}
+-    order by (select min(e.cursor) from events e where e.type='ticket.created' and e.ticket_id=s.ticket_id),s.id`;
++    order by (select min(e.cursor) from events e where e.project_id=${String(row.root_project_id)}
++      and e.type='ticket.created' and e.ticket_id=s.ticket_id),s.id`;
+   const order = new Map<string, number>();
+   const pending = rows.map((step) => ({
+     id: String(step.id),
+     ticketId: String(step.ticket_id),
+     skill: String(step.skill),
+     sourcePath: String(step.source_path),
+     sourceSha256: String(step.source_sha256),
+     predecessorIds: step.predecessor_ids as Id[],
+     acceptance: step.acceptance as string[],
+     outputKinds: step.output_kinds as string[],
+diff --git a/v2/server/test/assistant-workflows.test.ts b/v2/server/test/assistant-workflows.test.ts
+index 10623aa..4b7649f 100644
+--- a/v2/server/test/assistant-workflows.test.ts
++++ b/v2/server/test/assistant-workflows.test.ts
+@@ -2296,10 +2296,105 @@ test('assistant gates: ask_owner is a member of the tagged operation request for
+     scopeSha256: 'a'.repeat(64),
+   };
+   const request: OperationRequest = { action: 'ask_owner', payload };
+   assert.equal(
+     operationRequestSha256(request),
+     createHash('sha256')
+       .update(canonicalJson({ schema: 'crew-v2:operation-request:1', action: 'ask_owner', payload }))
+       .digest('hex'),
+   );
+ });
++
++test('assistant gates: parallel ownership conflicts ignore case, Unicode form and percent-encoding', async () =>
++  withDatabase(async (db) => {
++    const f = await gateFixture(db);
++    try {
++      const run = await f.create();
++      const plan = run.steps[2];
++      assert.ok(plan);
++      const planSha = textSha('plan v1');
++      await f.artifact(plan.ticketId, planSha);
++      const question = await f.ask(
++        gateProposal(
++          f,
++          run,
++          { step: 2, kind: 'plan_approval_execution_method', artifactSha256: planSha },
++          { options: [] },
++        ),
++      );
++      const units = (api: string[], web: string[]) => {
++        const value = independentUnits();
++        (value.units[0] as { ownershipKeys: string[] }).ownershipKeys = api;
++        (value.units[1] as { ownershipKeys: string[] }).ownershipKeys = web;
++        return value;
++      };
++      const input = (parallel: ReturnType<typeof units>): RecordGateAnswerInput => ({
++        questionId: question.id,
++        expectedRevision: 1,
++        scopeSha256: question.scopeSha256,
++        artifactSha256: planSha,
++        answer: approve({ option: null, executionMethod: 'native', parallel }),
++      });
++      const conflict = { code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', status: 409 };
++      const before = await f.gateRows();
++      await assert.rejects(() => f.answer(owner, input(units(['Src/A.ts'], ['src/a.ts']))), conflict);
++      await assert.rejects(() => f.answer(owner, input(units(['docs/café.md'], ['docs/café.md']))), conflict);
++      await assert.rejects(() => f.answer(owner, input(units(['src%2Fdb'], ['src/db/x.ts']))), conflict);
++      await assert.rejects(() => f.answer(owner, input(units(['src/%61.ts'], ['src/a.ts']))), conflict);
++      assert.deepEqual(await f.gateRows(), before);
++      // The stored approval keeps the keys exactly as the owner wrote them.
++      const kept = units(['Src/A.ts'], ['web/B.tsx']);
++      const result = await f.answer(owner, input(kept));
++      const [decision] = await db`select scope from decisions where id=${result.decisionId}`;
++      assert.deepEqual(decision?.scope.parallel, kept);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant gates: a run whose journal order is unknown fails closed', async () =>
++  withDatabase(async (db) => {
++    const f = await gateFixture(db);
++    try {
++      // A step ticket and run restored without any `ticket.created` event.
++      const ticketId = randomUUID();
++      await db`insert into tickets select (jsonb_populate_record(null::tickets,
++        to_jsonb(t) || jsonb_build_object('id', ${ticketId}::text, 'parent_id', ${f.root.id}::text,
++          'root_id', ${f.root.id}::text, 'level', 'step'))).* from tickets t where t.id=${f.root.id}`;
++      const runId = randomUUID(),
++        stepId = randomUUID();
++      await db`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,path,revision)
++        values(${runId},${f.root.id},${db.json(vector.superpowers.source as never)},
++        ${db.json(vector.superpowers.projection as never)},${superpowersHash},
++        ${vector.superpowers.definition.customizationSha256},'bounded',1)`;
++      await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,
++        output_kinds,gate_ids,ownership_keys,role)
++        values(${stepId},${runId},${ticketId},'brainstorming','skills/brainstorming/SKILL.md',${'a'.repeat(64)},
++        '[]','[]','[]','[]','[]','research')`;
++      const before = await f.gateRows();
++      await assert.rejects(
++        () =>
++          f.ask({
++            conversationId: f.conversationId,
++            ticketId,
++            runId,
++            stepId,
++            gateId: null,
++            cycleId: null,
++            artifactSha256: null,
++            question: 'Run này còn hiện hành?',
++            options: [],
++            scopeSha256: questionScopeOracle({
++              conversationId: f.conversationId,
++              rootTicketId: f.root.id,
++              ticketId,
++              runId,
++              stepId,
++            }),
++          }),
++        { code: 'WORKFLOW_RUN_SUPERSEDED', status: 409 },
++      );
++      assert.deepEqual(await f.gateRows(), before);
++    } finally {
++      await f.close();
++    }
++  }));
