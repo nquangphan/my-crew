@@ -1,0 +1,33 @@
+✔ freezeSubmission ticket: đúng path/body, không gửi kind/target/draftKey, selection rỗng hợp lệ (1.035125ms)
+✔ freezeSubmission comment và assistant_message: đúng route/body, giữ clientMessageId (0.11675ms)
+✔ freezeSubmission chặn target sai, field sai giới hạn và text/file cùng rỗng (1.63875ms)
+✔ PendingStore.begin cho cùng intent/path/body ra đúng bytes của freezeSubmission (0.35675ms)
+✔ canSubmit: file lỗi chặn gửi dù có text; sending/accepted không gửi; ambiguous chỉ retry op cũ (0.114167ms)
+✔ mất phản hồi sau commit: khóa form, retry cùng key/body, một ticket; frozen body không đổi khi form đổi (11.777167ms)
+✔ hết phiên rồi đăng nhập lại cùng owner: retry giữ key gốc và clientMessageId, một message (2.198333ms)
+✔ reload tab: compose ID/revision và key gốc được giữ, không lưu text/File; gửi lại ra một comment (0.788625ms)
+✔ logout: chỉ còn tombstone; không cấp key mới, nhập lại đúng nội dung gửi bằng key cũ (1.576125ms)
+✔ comment chỉ có ảnh ready: selection đúng mọi upload active, receipt không nói “đã đọc” (3.221416ms)
+✔ tên ảnh clipboard không tên/tên chung có giờ Asia/Ho_Chi_Minh và đuôi theo MIME (0.543125ms)
+✔ một luồng nhận file: paste giữ cả text và ảnh; input/drop dùng FileList (0.591625ms)
+✔ policy kiểm trước hash theo giá trị được công bố, không gắn cứng 25MiB (0.150709ms)
+✔ digestFile: SHA-256 đúng, từ chối vượt ngân sách trước khi đọc (2.912084ms)
+✔ worker hasher: mỗi lượt một file, abort dừng worker và bỏ listener, dispose dừng worker (4.657ms)
+✔ reserve tuần tự theo revision hiện hành rồi PUT cùng upload ID; hai ảnh paste đều ready (13.801333ms)
+✔ file lỗi chặn gửi dù có text; bỏ file lỗi cục bộ thì gửi được (0.492167ms)
+✔ file trùng hash+size bị đánh dấu để owner bỏ, không reserve thêm (1.827875ms)
+✔ bỏ file: DELETE với revision hiện hành, 409 thì đọc lại compose và gửi lại theo revision mới (2.862917ms)
+✔ mất phản hồi reserve sau commit: GET compose nhận lại upload, không tạo reservation thứ hai (2.104584ms)
+✔ PUT bận/receiving: chờ rồi gửi lại cùng bytes cùng ID, ready thắng (0.847959ms)
+✔ lỗi transport thật khi PUT: file chưa sẵn sàng thì không gửi; retry dùng lại reservation (2.306458ms)
+✔ đổi project: bỏ compose cũ rõ ràng rồi chuyển file sang compose mới (3.410709ms)
+✔ reload mất bytes: chọn lại phải đúng size+SHA trước khi gửi bytes (3.693333ms)
+✔ dispose dừng hasher và không còn listener (0.154916ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 134.334459
