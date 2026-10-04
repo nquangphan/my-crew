@@ -214,3 +214,9 @@ S7basic: minor (deferred): test tombstone chỉ phủ form máy (dự án/gắn 
 05:10 OWNER: push 174 commit lên origin/codex/crew-v2-server (0c35a43..5e852b5, pre-push ok). Owner duyệt thứ tự quota còn lại: Task4 → G4 phần đọc → S6 hoặc T4; dừng dispatch ở quota còn 5%.
 
 05:45 Task4 `da607c8`/`0a5b94b` DONE_WITH_CONCERNS (unit 281/281, E2E ticket-map 4/4 x2, 801 node ~200ms). Sự cố gate lần 3: lượt unit ~35s khi heavyEligible=false do kiểm tra dùng `grep -o` luôn exit 0 — worker đã đổi script gate chặt. Ruling: mọi worker dùng kiểm tra gate parse JSON (`python3 -c` hoặc `node -e`) với exit code khác 0 khi false.
+
+06:00 Task4 review `task-4-review.md`: Spec ❌, Needs fixes, Important2 (I1 node mới chồng card; I2 đóng dialog push history, Back mở lại) /Minor6/⚠️6. FIX1/5 resume.
+Ruling route: theo plan `/requests/$rootId/map` (redirect từ /projects/$projectId/map?root= nếu cần).
+Ruling expand/collapse: chỉ "Sắp xếp lại" bố cục toàn bộ; nếu relayout thì giữ step vừa bấm cố định trên màn hình.
+Task4: minor (deferred): M2 label repair bị card che, 599 label "phải xong trước" quá dày ở 801 node.
+⚠️ Ảnh tham chiếu IMG_6454 KHÔNG còn trong repo hay ~/Downloads (phase-07-web.md:84) — cần owner gửi lại để đối chiếu visual; tạm đối chiếu theo mô tả. E2E ghi repair_links thẳng DB — đường POST /v2/tickets/:id/repair-results (máy) chưa chạy end-to-end (checklist A8). A4 dán ảnh/tệp trong dialog chờ extractor phase05.
