@@ -1,0 +1,798 @@
+fa8ccbc feat(v2-server): thêm read ticket cho web gồm level request, history, docs-links phân trang và latest cursor
+ v2/docs/files.md                    |   2 +
+ v2/docs/flows.yaml                  |   3 +
+ v2/docs/flows/server-journal.md     |   3 +
+ v2/docs/flows/server-tickets.md     |   4 +
+ v2/server/src/journal/routes.ts     |  11 ++
+ v2/server/src/tickets/history.ts    | 103 +++++++++++++
+ v2/server/src/tickets/routes.ts     |  50 ++++++-
+ v2/server/test/ticket-reads.test.ts | 280 ++++++++++++++++++++++++++++++++++++
+ 8 files changed, 455 insertions(+), 1 deletion(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 0089021..d40c9d0 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -251,20 +251,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+ | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+ | `server/src/tickets/assistant-access.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/authorization.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/completion.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/decisions.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/deploy.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
++| `server/src/tickets/history.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-orchestration-port.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+@@ -336,20 +337,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/execution.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/support/gateway.ts` | [server-gateway](flows/server-gateway.md) (test) |
+ | `server/test/support/http.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/model-certification.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/model-http.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/model-observer.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
++| `server/test/ticket-reads.test.ts` | [server-journal](flows/server-journal.md) (test), [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 512f533..4841912 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -54,20 +54,21 @@ flows:
+     files:
+       - server/src/journal/canonical.ts
+       - server/src/journal/event-contracts.ts
+       - server/src/journal/events.ts
+       - server/src/journal/mutation.ts
+       - server/migrations/002_journal.sql
+     tests:
+       - server/test/attachments-events.unit.test.ts
+       - server/test/journal-scope.test.ts
+       - server/test/journal.test.ts
++      - server/test/ticket-reads.test.ts
+   server-identity:
+     title: Xác thực owner và gắn dự án với máy Crew v2
+     doc: docs/flows/server-identity.md
+     entrypoints:
+       - server/src/auth/routes.ts
+       - server/src/projects/routes.ts
+     files:
+       - server/src/auth/bootstrap.ts
+       - server/src/auth/machine.ts
+       - server/src/auth/password.ts
+@@ -104,32 +105,34 @@ flows:
+     entrypoints:
+       - server/src/tickets/routes.ts
+     files:
+       - server/src/tickets/authorization.ts
+       - server/src/tickets/completion.ts
+       - server/src/tickets/contracts.ts
+       - server/src/tickets/decisions.ts
+       - server/src/tickets/dependencies.ts
+       - server/src/tickets/deploy.ts
+       - server/src/tickets/docs-links.ts
++      - server/src/tickets/history.ts
+       - server/src/tickets/repair.ts
+       - server/src/tickets/service.ts
+       - server/migrations/004_tickets.sql
+       - server/migrations/010_attachment_comment_text.sql
+       - server/src/tickets/assistant-access.ts
+     tests:
+       - server/test/tickets.test.ts
+       - server/test/dependencies.test.ts
+       - server/test/completion.test.ts
+       - server/test/repair.test.ts
+       - server/test/support/tickets.ts
+       - server/test/ticket-events.unit.test.ts
++      - server/test/ticket-reads.test.ts
+       - server/test/deploy.test.ts
+       - server/test/assistant-orchestration.test.ts
+       - server/test/attachments-comment-factory.test.ts
+       - server/test/assistant-mutations.test.ts
+   gateway-host:
+     title: Host cổng macOS Crew v2
+     doc: docs/flows/gateway-host.md
+     entrypoints:
+       - gateway/src/host/main.ts
+     files:
+diff --git a/v2/docs/flows/server-journal.md b/v2/docs/flows/server-journal.md
+index 2f14d7d..fe14f0f 100644
+--- a/v2/docs/flows/server-journal.md
++++ b/v2/docs/flows/server-journal.md
+@@ -15,34 +15,37 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
+ 1. `server/src/journal/canonical.ts` → `canonicalJson`: sắp xếp key JSON, từ chối giá trị không thể biểu diễn an toàn. `server/src/journal/mutation.ts` → `createMutator` băm body SHA-256, kiểm tra khóa ASCII in được, rồi khóa phạm vi `(actor, route, key)` bằng advisory lock trong transaction.
+ 2. `server/src/journal/mutation.ts` → `createMutator`: khóa `event_cursor`, rồi gọi callback `MutationContext.authorize(tx)` nếu route cung cấp. Callback kiểm tra scope và giữ khóa project trong cùng transaction trước cả khi đọc response idempotency đã lưu. Cùng hash trả response qua `ResponseCodec`; khác hash trả 409. Request mới chạy `work`, ghi response, rồi commit. Lỗi rollback cả công việc, event và response. Route không cung cấp callback giữ hành vi cũ; route máy execution bắt buộc cung cấp callback này để replay không vượt binding hiện hành.
+ 3. `server/src/journal/event-contracts.ts` → `validateEventInput`: từ chối key nhạy cảm lồng sâu, type và payload chưa khai báo. Các hợp đồng gồm `machine.provisioned`, `project.created`, `project.bound`, metadata ticket `ticket.created/changed`, `dependency.added`, `comment.created`, `decision.created`, `repair.recorded`, và metadata execution `command.created/acknowledged`, `attempt.claimed/checkpoint/stopped/finalized`; docs `docs.imported` chỉ có importId/projectCount (1–100), `docs.synced` chỉ có snapshotId/sourceCommit/auditState trong project scope; `probe` chỉ phục vụ test nội bộ. Event docs không chứa page bytes, text hoặc audit issues. Nội dung comment/quyết định/evidence/checkpoint/result không đi vào event. `server/src/journal/events.ts` → `appendEvent` tăng `event_cursor` và chèn event trong transaction của caller.
+ 4. `server/src/journal/events.ts` → `readEvents`: đọc scope và event trong cùng transaction `REPEATABLE READ READ ONLY`, tránh lấy binding cũ rồi thấy event mới sau một rebind. Event được trả sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
+ 5. `server/src/journal/routes.ts` → `registerEventRoutes`: xác thực trước khi đọc hoặc mở stream. `GET /v2/events` trả `{items,cursor}`; cursor là event cuối trang hoặc cursor đầu vào khi trang rỗng. SSE lấy `Last-Event-ID` khi nối lại, đọc hết backlog theo trang rồi poll mỗi giây; heartbeat 15 giây. Socket chậm vượt 64 KiB bị đóng để client phát lại từ cursor cuối; socket đóng hoặc app shutdown dừng vòng poll.
+ 
+ 8. `server/src/journal/routes.ts` → `registerEventRoutes`: Tham số currentCredential tùy chọn cho assembly recheck actual credential trong cùng repeatable-read snapshot với scope/events, mỗi backlog page/poll; stream owner hết hạn/machine thu hồi bị đóng. Hook preClose phá socket SSE trước server shutdown; log stream chỉ code, không ghi raw error. HTTP acceptance chứng minh revocation/expiry không phát event mới, race snapshot và shutdown.
+ 
+ 9. `server/src/journal/event-contracts.ts` whitelist thêm gateway.config.changed, gateway.booted, gateway.install.reported, gateway.command.created và gateway.command.acknowledged. Event chỉ chứa revision/UUID/generation/type/phase/accepted, audience đích danh máy, project/ticket null; từ chối raw inventory, URL, result, error hay secret. Gateway service append cùng transaction CAS/ACK/report; heartbeat receipt không phát event và không thay attempt. Authorization recheck actual credential chạy trước cached replay, máy chưa gắn project chỉ đọc event dành riêng mình theo scope hiện hành.
+ 
++10. `server/src/journal/routes.ts` → `GET /v2/events/latest` (không nhận query) trả `{cursor}` là giá trị hiện tại của `event_cursor` dưới dạng chuỗi thập phân bigint (`"0"` khi journal trống). Cursor chỉ tăng khi transaction ghi event commit nên mọi event ≤ giá trị này đã hiển thị; tab mới đọc nó rồi dùng làm `after` hoặc `Last-Event-ID` thay vì đọc journal từ 0. Cần xác thực như `GET /v2/events`; không lộ nội dung event.
++
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/002_journal.sql` | Bảng cursor, event và idempotency; index cho project và máy |
+ | `server/src/journal/canonical.ts` | JSON canonical cho hash và kiểm tra payload |
+ | `server/src/journal/mutation.ts` | Transaction, khóa gửi lại và response codec |
+ | `server/src/journal/event-contracts.ts` | Whitelist event metadata |
+ | `server/src/journal/events.ts` | Ghi và đọc event theo actor/scope |
+ | `server/src/journal/routes.ts` | Endpoint đọc event và SSE |
+ | `server/test/attachments-events.unit.test.ts` | Metadata inbox và input wake, scope/audience và revision bigint |
+ | `server/test/journal.test.ts` | Kiểm thử cạnh tranh, rollback, scope và reconnect |
+ | `server/test/journal-scope.test.ts` | Kiểm thử rebind commit giữa hai bước đọc scope/event |
+ | `server/test/ticket-events.unit.test.ts` | Kiểm thử whitelist metadata ticket và chặn nội dung dư |
++| `server/test/ticket-reads.test.ts` | Kiểm thử `GET /v2/events/latest` (chuỗi bigint, query lạ bị từ chối) cùng các read ticket |
+ | `server/test/execution-events.unit.test.ts` | Kiểm thử whitelist metadata execution và chặn dữ liệu nhạy cảm |
+ 
+ ## Dữ liệu
+ 
+ `event_cursor` có một hàng `singleton=true`, bắt đầu ở 0. `events.cursor` là bigint tăng trong transaction, không dùng sequence cấp trước commit. `idempotency` có khóa chính `(actor_kind, actor_id, route, key)` và giữ response thành công vô hạn trong giai đoạn này. `MutationContext.authorize` là callback bất biến theo mutation do route truyền, không được lưu như body hay cho client điều khiển. Response credential do `ResponseCodec` của module auth mã hóa trước khi lưu; journal không giải mã hoặc ghi token vào event. Cursor API là chuỗi thập phân không âm. Docs import/sync chuyển NUL trong audit/link metadata sang projection literal trước khi report vào JSONB/idempotency; journal giữ response đã biểu diễn an toàn, không sửa hay lưu byte nguồn trong event. Byte gốc và hash nguồn thuộc immutable docs_files; issue projection/FTS nằm trong audit report, không phát nội dung vào event.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp migration, fixture, hợp đồng `Actor`, `Tx`, `ResponseCodec`. Flow identity cung cấp authenticator, codec mã hóa credential và project scope; các flow ticket, execution và docs sau đó dùng mutation/event journal.
+ 
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index e8d4f92..b1cd216 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -20,48 +20,52 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d
+ 6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy root do owner tạo tự có quyền, mọi deploy child cần approval đúng ticket kể cả khi owner trực tiếp tạo child. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+ 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+ 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+ 
+ 9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Authority thật là `ProjectOrchestrationPort` của `server-assistant` (resolver persisted + membership/routing decision); app production chưa inject nên các entry này vẫn trả503.
+ 
+ Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project. Mọi lỗi lệch phạm vi trong prefix và persist dùng chung `invalidScope` (403 `ORCHESTRATION_SCOPE_INVALID`).
+ 
++11. Đọc bổ sung (chỉ GET, cùng ACL scope ticket như các read hiện có, không migration): `GET /v2/tickets?level=request|step|task` lọc theo cấp, kết hợp `projectId/rootId/status/kind`; với `level=request` trang gốc request phân trang keyset theo `id` (`cursor` UUID, `limit` ≤100, `nextCursor` null ở trang cuối). `GET /v2/tickets/:id/history?cursor=<chuỗi thập phân>&limit=<1..100, mặc định 50>` trả `{items:[{cursor,type,occurredAt,actor|null,data}],nextCursor}` theo thứ tự tăng của journal cursor (`server/src/tickets/history.ts` → `readTicketHistory`), đọc trong transaction `REPEATABLE READ READ ONLY`. Nguồn là event của chính ticket; `actor` lấy từ bản ghi comment/decision tương ứng, còn nội dung comment/decision/rationale không được sao chép (chỉ `commentId`/`decisionId`/`kind` trong `data`). Owner thấy mọi event của ticket; máy chỉ thấy event không có audience hoặc gửi đích danh máy đó. `GET /v2/tickets/:id/docs-links?cursor=<opaque>&limit=<1..100, mặc định 20>` trả `{items:[{snapshotId,path}],nextCursor}` (`readTicketDocsLinks`), keyset theo `(snapshot_id, path)` với cursor base64url mờ. Tham số lạ hoặc cursor/limit sai bị 400; ticket ngoài scope hiện hành trả 404/403 như các read khác. Chưa có projection attempt/máy/model/assessment/evidence.
++
+ 10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi đi qua cùng prefix `access.prepare` của decision/dependency: không áp generic ACL máy (authority quyết định), khóa root → ticket → project và kiểm lại dưới khóa rằng ticket và root cùng gốc, cùng dự án (lệch thì 403 `ORCHESTRATION_SCOPE_INVALID` trước verify). Sau đó lõi `checkSignal` dùng chung với generic so revision và kiểm predecessor. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. `access.authorize` gọi verify một lần; `persistSignal` tiêu scope bằng `consumeAssistantScope` một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/004_tickets.sql` | Bảng ticket, DAG, timeline, evidence, repair và liên kết docs |
+ | `server/migrations/010_attachment_comment_text.sql` | Forward-only text0..32768 cho attachment-only comment; giữ NOT NULL và trigger009 |
+ | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
+ | `server/src/tickets/service.ts` | Tạo ticket, scope, tín hiệu và factory |
+ | `server/src/tickets/dependencies.ts` | Cạnh phụ thuộc và sơ đồ |
+ | `server/src/tickets/deploy.ts` | Chứng minh owner intent và fingerprint deploy |
+ | `server/src/tickets/decisions.ts` | Bình luận, quyết định và kiểm tra nguồn |
+ | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
+ | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
+ | `server/src/tickets/docs-links.ts` | Liên kết ticket với snapshot đã xác minh |
++| `server/src/tickets/history.ts` | Đọc timeline ticket theo journal cursor và danh sách docs liên kết có phân trang |
+ | `server/src/tickets/authorization.ts` | Tx scope/current machine guard trước cached replay |
+ | `server/src/tickets/routes.ts` | HTTP validation, scope và idempotency |
+ | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
+ | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
+ | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
+ | `server/src/tickets/assistant-access.ts` | Snapshot và private prepared/verified capability cho scoped mutation |
+ | `server/test/assistant-mutations.test.ts` | Scoped decision/dependency/signal: authority chính xác, invariant, fail-closed running `wait_owner`, khóa root tuần tự |
+ | `server/test/assistant-orchestration.test.ts` | Scoped create: hash/snapshot/private token, actual machine audit, prefix locks, UUID case và array descriptor boundary |
+ | `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
+ | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
+ | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
+ | `server/test/ticket-events.unit.test.ts` | Payload event metadata hợp lệ |
++| `server/test/ticket-reads.test.ts` | Filter `level`, history theo cursor/ACL/audience không lộ nội dung, docs-links >20 và latest cursor |
+ | `server/test/attachments-comment-factory.test.ts` | Producer attachment comment: default deny, actual ready callback, atomic rollback, legacy whitespace và fanout009 |
+ 
+ ## Dữ liệu
+ 
+ `tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `created_actor_kind/id`, `deploy_definition_hash` và `deploy_approval_decision_id` là provenance bền vững cho cổng deploy. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `repair_limit_cycle_id`/`repair_limit_at` chỉ cycle mới nhất đang chờ; `repair_limit_consumed_decision_id` ghi quyết định đã dùng. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp DB và transaction; `server-journal` cấp mutation idempotent và event; `server-identity` cấp scope máy/dự án. Task 5 nối execution authority để kiểm chứng attempt/fence và hoàn tất ý định dừng; Task 7 nối reader snapshot docs đã xác minh. Hai dependency này mặc định chặn khi chưa được nối.
+ 
+diff --git a/v2/server/src/journal/routes.ts b/v2/server/src/journal/routes.ts
+index 8626e9d..7140cf2 100644
+--- a/v2/server/src/journal/routes.ts
++++ b/v2/server/src/journal/routes.ts
+@@ -67,20 +67,31 @@ export function registerEventRoutes(
+ 
+   app.get('/v2/events', async (request) => {
+     const actor = await deps.auth.authenticate(request);
+     assertAllowedQuery(request, false);
+     const after = requestedCursor(request, false);
+     const limit = requestedLimit(request);
+     const items = await readEvents(options.db, actor, after, limit, requestScope(request, actor));
+     return { items, cursor: items.at(-1)?.cursor ?? after };
+   });
+ 
++  app.get(
++    '/v2/events/latest',
++    { schema: { querystring: { type: 'object', additionalProperties: false, properties: {} } } },
++    async (request) => {
++      await deps.auth.authenticate(request);
++      const [row] = await options.db`select value from event_cursor where singleton = true`;
++      if (!row) throw new Error('EVENT_CURSOR_MISSING');
++      return { cursor: parseCursor(String(row.value)) };
++    },
++  );
++
+   app.get('/v2/events/stream', async (request, reply) => {
+     const actor = await deps.auth.authenticate(request);
+     assertAllowedQuery(request, true);
+     let cursor = requestedCursor(request, true);
+     reply.hijack();
+     reply.raw.writeHead(200, {
+       'Content-Type': 'text/event-stream; charset=utf-8',
+       'Cache-Control': 'no-cache, no-transform',
+       Connection: 'keep-alive',
+       'X-Accel-Buffering': 'no',
+diff --git a/v2/server/src/tickets/history.ts b/v2/server/src/tickets/history.ts
+new file mode 100644
+index 0000000..f26f42a
+--- /dev/null
++++ b/v2/server/src/tickets/history.ts
+@@ -0,0 +1,103 @@
++import { parseCursor } from '../journal/events.ts';
++import type { Actor, Db, Id } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { requireTicket } from './service.ts';
++
++export type HistoryItem = {
++  cursor: string;
++  type: string;
++  occurredAt: string;
++  actor: { kind: 'owner' | 'machine'; id: string } | null;
++  data: Record<string, unknown>;
++};
++export type DocsLinkItem = { snapshotId: Id; path: string };
++type Paged<T> = { items: T[]; nextCursor: string | null };
++
++const readOnly = 'isolation level repeatable read read only';
++
++/**
++ * Ordered timeline of the journal events attached to one ticket. The journal cursor is the
++ * chronology authority. Comment and decision bodies are not copied: only ids and the actor are
++ * exposed, so the page reveals nothing the per-resource reads and `/v2/events` do not already allow.
++ */
++export async function readTicketHistory(
++  db: Db,
++  ticketId: Id,
++  actor: Actor,
++  after: string,
++  limit: number,
++): Promise<Paged<HistoryItem>> {
++  const cursor = parseCursor(after);
++  const ownerView = actor.kind === 'owner';
++  const machineId = ownerView ? null : actor.id;
++  return db.begin(readOnly, async (tx) => {
++    await requireTicket(tx, ticketId, actor);
++    const rows = await tx`select e.cursor, e.type, e.occurred_at, e.data,
++        coalesce(c.actor_kind, d.actor_kind) as actor_kind, coalesce(c.actor_id, d.actor_id) as actor_id
++      from events e
++      left join comments c on e.type = 'comment.created' and c.id = (e.data->>'commentId')::uuid
++        and c.ticket_id = e.ticket_id
++      left join decisions d on e.type = 'decision.created' and d.id = (e.data->>'decisionId')::uuid
++        and d.ticket_id = e.ticket_id
++      where e.ticket_id = ${ticketId} and e.cursor > ${cursor}::bigint
++        and (${ownerView} or e.audience_machine_id is null or e.audience_machine_id = ${machineId}::uuid)
++      order by e.cursor limit ${limit + 1}`;
++    const items = rows.slice(0, limit).map((row) => ({
++      cursor: String(row.cursor),
++      type: String(row.type),
++      occurredAt: (row.occurred_at as Date).toISOString(),
++      actor: row.actor_kind
++        ? { kind: row.actor_kind as 'owner' | 'machine', id: String(row.actor_id) }
++        : null,
++      data: row.data as Record<string, unknown>,
++    }));
++    return { items, nextCursor: rows.length > limit ? (items.at(-1)?.cursor ?? null) : null };
++  });
++}
++
++function encodeDocsCursor(item: DocsLinkItem): string {
++  return Buffer.from(JSON.stringify([item.snapshotId, item.path]), 'utf8').toString('base64url');
++}
++function decodeDocsCursor(value: string): DocsLinkItem {
++  const invalid = () => new ApiError('CURSOR_INVALID', 400, 'Con trỏ docs không hợp lệ');
++  if (!/^[A-Za-z0-9_-]{1,8192}$/.test(value)) throw invalid();
++  try {
++    const parsed: unknown = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
++    if (
++      !Array.isArray(parsed) ||
++      parsed.length !== 2 ||
++      typeof parsed[0] !== 'string' ||
++      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed[0]) ||
++      typeof parsed[1] !== 'string' ||
++      !parsed[1] ||
++      parsed[1].length > 4096
++    )
++      throw invalid();
++    return { snapshotId: parsed[0].toLowerCase(), path: parsed[1] };
++  } catch (error) {
++    throw error instanceof ApiError ? error : invalid();
++  }
++}
++
++/** Docs pages linked to a ticket (the read side of PUT docs-links), keyset-paged by snapshot and path. */
++export async function readTicketDocsLinks(
++  db: Db,
++  ticketId: Id,
++  actor: Actor,
++  cursor: string | null,
++  limit: number,
++): Promise<Paged<DocsLinkItem>> {
++  const after = cursor === null ? null : decodeDocsCursor(cursor);
++  return db.begin(readOnly, async (tx) => {
++    await requireTicket(tx, ticketId, actor);
++    const rows = await tx`select snapshot_id, path from ticket_docs where ticket_id = ${ticketId}
++      and (${after === null} or (snapshot_id, path collate "C") > (${after?.snapshotId ?? null}::uuid, ${after?.path ?? null}::text collate "C"))
++      order by snapshot_id, path collate "C" limit ${limit + 1}`;
++    const items = rows.slice(0, limit).map((row) => ({
++      snapshotId: row.snapshot_id as Id,
++      path: String(row.path),
++    }));
++    const last = items.at(-1);
++    return { items, nextCursor: rows.length > limit && last ? encodeDocsCursor(last) : null };
++  });
++}
+diff --git a/v2/server/src/tickets/routes.ts b/v2/server/src/tickets/routes.ts
+index 17acfe3..20ef4a0 100644
+--- a/v2/server/src/tickets/routes.ts
++++ b/v2/server/src/tickets/routes.ts
+@@ -1,20 +1,21 @@
+ import type { FastifyInstance, FastifyRequest } from 'fastify';
+ import type { Actor, Id, RouteDependencies, ServerOptions } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import { authorizeTicketMutation } from './authorization.ts';
+ import type {
+   CreateTicket,
+   DecisionInput,
+   RepairResultInput,
+   TicketServiceDependencies,
+ } from './contracts.ts';
++import { readTicketDocsLinks, readTicketHistory } from './history.ts';
+ import { createTicketServices, requireProjectScope, requireTicket } from './service.ts';
+ 
+ const uuid = { type: 'string', format: 'uuid' } as const;
+ const obj = { type: 'object', additionalProperties: true } as const;
+ const nullableUuid = { anyOf: [uuid, { type: 'null' }] } as const;
+ const revision = { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER } as const;
+ const idParam = {
+   type: 'object',
+   additionalProperties: false,
+   required: ['id'],
+@@ -189,74 +190,121 @@ export function registerTicketRoutes(
+           body,
+           authorize: (tx) =>
+             authorizeTicketMutation(tx, actor, { projectId: body.projectId, parentId: body.parentId }),
+         },
+         async (tx) => ({ status: 201, body: await services.createTicket(tx, body, actor) }),
+       );
+       reply.status(result.status);
+       return result.body;
+     },
+   );
+-  app.get<{ Querystring: PageQuery & { projectId?: Id; status?: string; kind?: string; rootId?: Id } }>(
++  app.get<{
++    Querystring: PageQuery & { projectId?: Id; status?: string; kind?: string; rootId?: Id; level?: string };
++  }>(
+     '/v2/tickets',
+     {
+       schema: {
+         querystring: {
+           type: 'object',
+           additionalProperties: false,
+           properties: {
+             projectId: uuid,
+             rootId: uuid,
+             status: {
+               type: 'string',
+               enum: ['pending', 'ready', 'running', 'needs_input', 'paused', 'done', 'cancelled'],
+             },
+             kind: { type: 'string', enum: ['code', 'research', 'docs', 'deploy'] },
++            level: { type: 'string', enum: ['request', 'step', 'task'] },
+             cursor: uuid,
+             limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
+           },
+         },
+       },
+     },
+     async (request) => {
+       const actor = await deps.auth.authenticate(request);
+       const { limit, cursor } = page(request.query);
+       if (request.query.projectId)
+         await options.db.begin((tx) => requireProjectScope(tx, request.query.projectId as Id, actor));
+       const projectId = request.query.projectId ?? null;
+       const status = request.query.status ?? null;
+       const kind = request.query.kind ?? null;
+       const rootId = request.query.rootId ?? null;
++      const level = request.query.level ?? null;
+       const rows = await options.db`select t.* from tickets t join projects p on p.id=t.project_id
+         where (${projectId}::uuid is null or t.project_id=${projectId})
+           and (${status}::text is null or t.status=${status})
+           and (${kind}::text is null or t.kind=${kind})
+           and (${rootId}::uuid is null or t.root_id=${rootId})
++          and (${level}::text is null or t.level=${level})
+           and (${cursor}::uuid is null or t.id>${cursor})
+           and (${actor.kind === 'owner'} or p.machine_id=${actor.id === 'owner' ? null : actor.id}::uuid)
+         order by t.id limit ${limit + 1}`;
+       const items = rows.slice(0, limit).map(services.mapTicket);
+       return { items, nextCursor: rows.length > limit ? (items.at(-1)?.id ?? null) : null };
+     },
+   );
+   app.get<{ Params: { id: Id } }>('/v2/tickets/:id', { schema: { params: idParam } }, async (request) => {
+     const actor = await deps.auth.authenticate(request);
+     return options.db.begin((tx) => requireTicket(tx, request.params.id, actor));
+   });
+   app.get<{ Params: { id: Id } }>(
+     '/v2/tickets/:id/graph',
+     { schema: { params: idParam } },
+     async (request) => {
+       const actor = await deps.auth.authenticate(request);
+       return services.readGraph(options.db, request.params.id, actor);
+     },
+   );
++  app.get<{ Params: { id: Id }; Querystring: { cursor?: string; limit?: string } }>(
++    '/v2/tickets/:id/history',
++    {
++      schema: {
++        params: idParam,
++        querystring: {
++          type: 'object',
++          additionalProperties: false,
++          properties: {
++            cursor: { type: 'string', pattern: '^(0|[1-9][0-9]{0,18})$' },
++            limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
++          },
++        },
++      },
++    },
++    async (request) => {
++      const actor = await deps.auth.authenticate(request);
++      const { limit } = page({ limit: request.query.limit });
++      return readTicketHistory(options.db, request.params.id, actor, request.query.cursor ?? '0', limit);
++    },
++  );
++  app.get<{ Params: { id: Id }; Querystring: { cursor?: string; limit?: string } }>(
++    '/v2/tickets/:id/docs-links',
++    {
++      schema: {
++        params: idParam,
++        querystring: {
++          type: 'object',
++          additionalProperties: false,
++          properties: {
++            cursor: { type: 'string', minLength: 1, maxLength: 8192 },
++            limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
++          },
++        },
++      },
++    },
++    async (request) => {
++      const actor = await deps.auth.authenticate(request);
++      const { limit } = page({ limit: request.query.limit ?? '20' });
++      return readTicketDocsLinks(options.db, request.params.id, actor, request.query.cursor ?? null, limit);
++    },
++  );
+   app.post<{ Params: { id: Id }; Body: { predecessorId: Id; expectedRevision: number } }>(
+     '/v2/tickets/:id/dependencies',
+     { schema: { params: idParam, body: dependencyBody } },
+     async (request, reply) => {
+       const actor = await writeActor(request, deps);
+       const id = request.params.id;
+       const result = await deps.mutator(
+         {
+           actor,
+           route: route('POST', `/v2/tickets/${id}/dependencies`),
+diff --git a/v2/server/test/ticket-reads.test.ts b/v2/server/test/ticket-reads.test.ts
+new file mode 100644
+index 0000000..08e3359
+--- /dev/null
++++ b/v2/server/test/ticket-reads.test.ts
+@@ -0,0 +1,280 @@
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import test from 'node:test';
++import Fastify from 'fastify';
++import { appendEvent } from '../src/journal/events.ts';
++import { createMutator } from '../src/journal/mutation.ts';
++import { registerEventRoutes } from '../src/journal/routes.ts';
++import type { Actor, Db } from '../src/platform/contracts.ts';
++import { registerTicketRoutes } from '../src/tickets/routes.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
++
++const withDatabase = databaseFixture(4);
++
++async function appFor(db: Db, actorOf: (header: string | undefined) => Actor) {
++  const app = Fastify({ ajv: { customOptions: { removeAdditional: false } } });
++  const options = {
++    db,
++    publicOrigin: 'http://localhost',
++    secureCookies: false,
++    sessionEncryptionKey: Buffer.alloc(32),
++    now: () => new Date(),
++    authorizeDispatch: async () => {},
++    verifyFinalResult: async () => {},
++  };
++  const deps = {
++    mutator: createMutator(db),
++    auth: {
++      authenticate: async (request: { headers: Record<string, unknown> }) =>
++        actorOf(request.headers['x-actor'] as string | undefined),
++      requireOwner: async () => owner,
++    },
++  };
++  registerTicketRoutes(app, options, deps as never);
++  registerEventRoutes(app, options, deps as never, async () => ({ projectIds: [], allowGlobal: true }));
++  return app;
++}
++const asOwner = () => owner;
++
++test('GET /v2/tickets?level=request chỉ trả request root và phân trang ổn định theo id', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const extra = await f.mutation('request-2', (tx) =>
++      f.services.createTicket(tx, inputTicket(f.project.id, 'request'), owner),
++    );
++    const third = await f.mutation('request-3', (tx) =>
++      f.services.createTicket(tx, inputTicket(f.project.id, 'request'), owner),
++    );
++    const app = await appFor(db, asOwner);
++    try {
++      const expected = [f.request.id, extra.id, third.id].sort();
++      const first = await app.inject({ method: 'GET', url: '/v2/tickets?level=request&limit=2' });
++      assert.equal(first.statusCode, 200);
++      const firstBody = first.json();
++      assert.deepEqual(
++        firstBody.items.map((item: { id: string }) => item.id),
++        expected.slice(0, 2),
++      );
++      assert.equal(firstBody.nextCursor, expected[1]);
++      const second = await app.inject({
++        method: 'GET',
++        url: `/v2/tickets?level=request&limit=2&cursor=${firstBody.nextCursor}`,
++      });
++      const secondBody = second.json();
++      assert.deepEqual(
++        secondBody.items.map((item: { id: string }) => item.id),
++        [expected[2]],
++      );
++      assert.equal(secondBody.nextCursor, null);
++      const steps = await app.inject({ method: 'GET', url: '/v2/tickets?level=step' });
++      assert.deepEqual(
++        steps
++          .json()
++          .items.map((item: { id: string }) => item.id)
++          .sort(),
++        [f.a.id, f.b.id].sort(),
++      );
++      const bad = await app.inject({ method: 'GET', url: '/v2/tickets?level=epic' });
++      assert.equal(bad.statusCode, 400);
++    } finally {
++      await app.close();
++    }
++  }));
++
++test('GET /v2/tickets/:id/history trả timeline theo cursor, không lộ nội dung comment/decision', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const comment = await f.mutation('c1', (tx) =>
++      f.services.appendComment(tx, f.a.id, 'BÍ MẬT-comment', owner),
++    );
++    const decisionId = await f.mutation('d1', (tx) =>
++      f.services.recordDecision(
++        tx,
++        f.a.id,
++        { kind: 'assessment', content: 'BÍ MẬT-content', rationale: 'BÍ MẬT-why', sources: [], scope: {} },
++        owner,
++      ),
++    );
++    await f.mutation('other', (tx) => f.services.appendComment(tx, f.b.id, 'ticket khác', owner));
++    const app = await appFor(db, asOwner);
++    try {
++      const all = await app.inject({ method: 'GET', url: `/v2/tickets/${f.a.id}/history` });
++      assert.equal(all.statusCode, 200);
++      const body = all.json();
++      assert.equal(body.nextCursor, null);
++      const types = body.items.map((item: { type: string }) => item.type);
++      assert.deepEqual(types.slice(0, 1), ['ticket.created']);
++      assert.ok(types.includes('comment.created') && types.includes('decision.created'));
++      const cursors = body.items.map((item: { cursor: string }) => BigInt(item.cursor));
++      assert.deepEqual(
++        [...cursors].sort((x, y) => (x < y ? -1 : 1)),
++        cursors,
++      );
++      assert.ok(body.items.every((item: { cursor: unknown }) => typeof item.cursor === 'string'));
++      const commentItem = body.items.find((item: { type: string }) => item.type === 'comment.created');
++      assert.deepEqual(commentItem.actor, { kind: 'owner', id: 'owner' });
++      assert.equal(commentItem.data.commentId, comment.id);
++      const decisionItem = body.items.find((item: { type: string }) => item.type === 'decision.created');
++      assert.equal(decisionItem.data.decisionId, decisionId);
++      assert.ok(!all.body.includes('BÍ MẬT'), 'không được lộ nội dung comment/decision');
++      assert.ok(!all.body.includes('ticket khác'));
++
++      const page1 = (
++        await app.inject({ method: 'GET', url: `/v2/tickets/${f.a.id}/history?limit=2` })
++      ).json();
++      assert.equal(page1.items.length, 2);
++      assert.equal(page1.nextCursor, page1.items[1].cursor);
++      const page2 = (
++        await app.inject({
++          method: 'GET',
++          url: `/v2/tickets/${f.a.id}/history?limit=2&cursor=${page1.nextCursor}`,
++        })
++      ).json();
++      assert.deepEqual(
++        [...page1.items, ...page2.items]
++          .map((item: { cursor: string }) => item.cursor)
++          .slice(0, body.items.length),
++        body.items
++          .map((item: { cursor: string }) => item.cursor)
++          .slice(0, page1.items.length + page2.items.length),
++      );
++      for (const url of [
++        'cursor=-1',
++        'cursor=abc',
++        'cursor=9223372036854775808',
++        'limit=0',
++        'limit=101',
++        'x=1',
++      ])
++        assert.equal(
++          (await app.inject({ method: 'GET', url: `/v2/tickets/${f.a.id}/history?${url}` })).statusCode,
++          400,
++          url,
++        );
++      assert.equal(
++        (await app.inject({ method: 'GET', url: `/v2/tickets/${randomUUID()}/history` })).statusCode,
++        404,
++      );
++    } finally {
++      await app.close();
++    }
++  }));
++
++test('history áp dụng ACL của ticket và audience của event cho machine', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const machineId = randomUUID();
++    const otherId = randomUUID();
++    for (const id of [machineId, otherId])
++      await db`insert into machines(id,name,token_hash) values(${id},'Mac',${randomUUID().replaceAll('-', '').padEnd(64, '0')})`;
++    await db`update projects set machine_id=${machineId},checkout_path='/tmp/crew' where id=${f.project.id}`;
++    await f.mutation('targeted', (tx) =>
++      appendEvent(tx, {
++        type: 'ticket.changed',
++        projectId: f.project.id,
++        ticketId: f.a.id,
++        audienceMachineId: otherId,
++        data: { revision: 9 },
++      }),
++    );
++    const app = await appFor(db, (header) =>
++      header === 'bound'
++        ? { kind: 'machine', id: machineId }
++        : header === 'other'
++          ? { kind: 'machine', id: otherId }
++          : owner,
++    );
++    try {
++      const bound = await app.inject({
++        method: 'GET',
++        url: `/v2/tickets/${f.a.id}/history`,
++        headers: { 'x-actor': 'bound' },
++      });
++      assert.equal(bound.statusCode, 200);
++      assert.ok(
++        !bound.json().items.some((item: { data: { revision?: number } }) => item.data.revision === 9),
++      );
++      const ownerView = await app.inject({ method: 'GET', url: `/v2/tickets/${f.a.id}/history` });
++      assert.ok(
++        ownerView.json().items.some((item: { data: { revision?: number } }) => item.data.revision === 9),
++      );
++      for (const path of ['history', 'docs-links']) {
++        const denied = await app.inject({
++          method: 'GET',
++          url: `/v2/tickets/${f.a.id}/${path}`,
++          headers: { 'x-actor': 'other' },
++        });
++        assert.ok([403, 404].includes(denied.statusCode), `${path} ${denied.statusCode}`);
++      }
++    } finally {
++      await app.close();
++    }
++  }));
++
++test('GET /v2/tickets/:id/docs-links phân trang >20 theo keyset và không trùng/mất mục', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    const snapshots = [randomUUID(), randomUUID()];
++    const expected: { snapshotId: string; path: string }[] = [];
++    for (const snapshotId of snapshots)
++      for (let index = 0; index < 13; index++) {
++        const path = `docs/${index % 2 ? 'b' : 'a'}/trang-${String(index).padStart(2, '0')}.md`;
++        await db`insert into ticket_docs(ticket_id,snapshot_id,path) values(${f.request.id},${snapshotId},${path})`;
++        expected.push({ snapshotId, path });
++      }
++    await db`insert into ticket_docs(ticket_id,snapshot_id,path) values(${f.a.id},${snapshots[0]},'khac.md')`;
++    expected.sort((x, y) =>
++      x.snapshotId === y.snapshotId ? (x.path < y.path ? -1 : 1) : x.snapshotId < y.snapshotId ? -1 : 1,
++    );
++    const app = await appFor(db, asOwner);
++    try {
++      const seen: { snapshotId: string; path: string }[] = [];
++      let cursor: string | null = null;
++      let pages = 0;
++      do {
++        const url: string = `/v2/tickets/${f.request.id}/docs-links${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`;
++        const response = await app.inject({ method: 'GET', url });
++        assert.equal(response.statusCode, 200);
++        const body: { items: typeof seen; nextCursor: string | null } = response.json();
++        assert.ok(body.items.length <= 20);
++        seen.push(...body.items);
++        cursor = body.nextCursor;
++        pages++;
++      } while (cursor);
++      assert.equal(pages, 2);
++      assert.deepEqual(seen, expected);
++      const small = await app.inject({ method: 'GET', url: `/v2/tickets/${f.a.id}/docs-links` });
++      assert.deepEqual(small.json(), {
++        items: [{ snapshotId: snapshots[0], path: 'khac.md' }],
++        nextCursor: null,
++      });
++      const empty = await app.inject({ method: 'GET', url: `/v2/tickets/${f.b.id}/docs-links` });
++      assert.deepEqual(empty.json(), { items: [], nextCursor: null });
++      for (const query of ['cursor=!!', 'cursor=e30', 'limit=0', 'limit=101'])
++        assert.equal(
++          (await app.inject({ method: 'GET', url: `/v2/tickets/${f.a.id}/docs-links?${query}` })).statusCode,
++          400,
++          query,
++        );
++    } finally {
++      await app.close();
++    }
++  }));
++
++test('GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn với BigInt', async () =>
++  withDatabase(async (db) => {
++    const app = await appFor(db, asOwner);
++    try {
++      const empty = await app.inject({ method: 'GET', url: '/v2/events/latest' });
++      assert.equal(empty.statusCode, 200);
++      assert.deepEqual(empty.json(), { cursor: '0' });
++      await db`update event_cursor set value = 9007199254740993 where singleton = true`;
++      const big = await app.inject({ method: 'GET', url: '/v2/events/latest' });
++      assert.equal(big.json().cursor, '9007199254740993');
++      assert.match(big.body, /"cursor":"9007199254740993"/);
++      assert.equal((await app.inject({ method: 'GET', url: '/v2/events/latest?after=1' })).statusCode, 400);
++    } finally {
++      await app.close();
++    }
++  }));

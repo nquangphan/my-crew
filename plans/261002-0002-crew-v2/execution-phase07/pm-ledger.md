@@ -109,3 +109,5 @@ P-G2: minor (deferred): M1 uuidPattern chỉ nhận chữ thường cho storageH
 7 mismatch fake web ↔ server chuyển cho S5a FIX2 (server là chuẩn).
 
 15:55 S5a FIX2 `8c5ce41` DONE (N1–N5, I5 DOM test jsdom 30.1.1 + @testing-library/react 16.3.3, 7 mismatch G2; 102/102). Harness delta controller: fixture `e2e-fixture.ts:551` cần truyền AttachmentAssembly (+receivers port trên macOS) để mở A5 text-only — controller task sau review. Scoped re-review FIX2 dispatched.
+
+16:05 P-G1a `fa8ccbc`/`e074bc6` DONE (level filter, history, docs-links paginated, /v2/events/latest; 37/37). Ruling: coherent full-root graph (readGraph một snapshot, `tickets/dependencies.ts`) tách thành P-G1a2 sau khi S2 FIX1 khép (tránh đụng file assistant scoped); web dùng /v2/events/latest thuộc consumer Task2 follow-up — sai thì graph có thể torn tới lúc đó.
