@@ -38,6 +38,8 @@ test('graph read is one snapshot even when a write commits between its queries',
   withDatabase(async (db) => {
     const f = await ticketFixture(db);
     let added: Id | null = null;
+    // Coupled to how readGraph spells its nodes query: if that SQL changes the hook never fires and
+    // assert.ok(added) fails loudly.
     const hooked = interleaved(db, 'where root_id=', async () => {
       const step = await f.mutation('late-step', (tx) =>
         f.services.createTicket(tx, inputTicket(f.project.id, 'step', f.request.id), owner),

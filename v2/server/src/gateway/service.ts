@@ -184,6 +184,7 @@ export async function readGatewayApplied(tx: Tx, machineId: Id): Promise<Gateway
  * attempt that was already admitted; callers use this only for new admission.
  */
 export async function isSourceEnabled(tx: Tx, machineId: Id, runtime: Runtime): Promise<boolean> {
+  // Defensive: the route already validates the enum, but other callers may not.
   if (!runtimes.includes(runtime)) return false;
   const [row] =
     await tx`select g.enabled as master, (m.enabled->>${runtime}) as source from gateway_configs g left join model_source_configs m on m.machine_id=g.machine_id where g.machine_id=${machineId}`;
@@ -493,9 +494,9 @@ export async function listMachineCommands(
   return { items, nextBefore: rows.length > limit ? (items.at(-1)?.cursor ?? null) : null };
 }
 /**
- * A received command that never completed is treated as abandoned after this long. The gateway keeps
- * received commands in its local store and retries with backoff of at most 75s per attempt, so 5 minutes
- * covers a slow install while a lost local store cannot block retry forever.
+ * Server-side heuristic: a `received` command is treated as abandoned after 5 minutes. This is not a
+ * contract with the daemon, which has no matching lease or timeout; its backoff of at most 75s is only
+ * the pause between attempts.
  */
 export const RECEIVED_COMMAND_LEASE_MS = 5 * 60_000;
 /**
