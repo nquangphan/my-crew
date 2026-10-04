@@ -8,15 +8,19 @@ import { createPersistedAssistantActorResolver } from '../src/assistant/authorit
 import type {
   OrchestrationAction,
   OrchestrationProof,
+  QuestionProposal,
   TurnFence,
   WorkflowRun,
 } from '../src/assistant/contracts.ts';
+import type { GateAnswer, RecordGateAnswerInput } from '../src/assistant/gates.ts';
+import { createWorkflowGates } from '../src/assistant/gates.ts';
 import type { OperationRequest } from '../src/assistant/operation-request.ts';
 import type { WorkflowOrchestrationPort } from '../src/assistant/orchestration.ts';
 import { createProjectOrchestrationPort } from '../src/assistant/orchestration.ts';
 import type { CreateRunInput } from '../src/assistant/runs.ts';
 import { createWorkflowRuns, workflowEffectId } from '../src/assistant/runs.ts';
 import { provisionMachine } from '../src/auth/machine.ts';
+import { canonicalJson } from '../src/journal/canonical.ts';
 import { mutate } from '../src/journal/mutation.ts';
 import type { Actor, Db, Id, Tx } from '../src/platform/contracts.ts';
 import { ApiError } from '../src/platform/errors.ts';
@@ -98,6 +102,7 @@ type RunFixtureOptions = {
   workflow?: 'superpowers' | 'bmad';
   admission?: 'none' | { receiptStatus: 'FAIL' };
   actions?: OrchestrationAction[];
+  tools?: string[];
 };
 
 // Real persisted rows: admitted PASS turn of machine A, root scope with the create_run
@@ -163,7 +168,7 @@ async function runFixture(db: Db, options: RunFixtureOptions = {}) {
   await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
     scope_sha256,owner_authorization_id,expires_at)
     values(${scopeId},${fence.turnId},${root.id},null,${f.project.id},
-    ${db.json(options.actions ?? ['create_ticket', 'dependency'])},${db.json(['create_run'])},${snapshotId},
+    ${db.json(options.actions ?? ['create_ticket', 'dependency'])},${db.json(options.tools ?? ['create_run'])},${snapshotId},
     ${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
   const resolver = createPersistedAssistantActorResolver({ verifierBuildSha256: fixtureVerifierBuildSha256 });
   const port = createProjectOrchestrationPort({ resolver });
@@ -173,6 +178,7 @@ async function runFixture(db: Db, options: RunFixtureOptions = {}) {
   const inTurn = async <T>(
     request: RequestFor,
     work: (tx: Tx, proof: OrchestrationProof) => Promise<T>,
+    proofScopeId: Id = scopeId,
   ): Promise<T> => {
     const result = await mutate(
       db,
@@ -185,7 +191,10 @@ async function runFixture(db: Db, options: RunFixtureOptions = {}) {
           operationId,
           request: await request(tx, operationId),
         });
-        return { status: 201, body: { value: (await work(tx, { fence, scopeId, operationId })) as unknown } };
+        return {
+          status: 201,
+          body: { value: (await work(tx, { fence, scopeId: proofScopeId, operationId })) as unknown },
+        };
       },
     );
     return result.body.value as T;
@@ -1043,6 +1052,901 @@ test('assistant workflows: owner approval of another root leaves this run sequen
       assert.equal(run.parallelApprovalId, null);
       assert.ok(isChain(run));
       assert.equal(run.steps.length, 4);
+    } finally {
+      await f.close();
+    }
+  }));
+
+// Gates: owner questions on the reserved gates of a run and the owner's answers.
+
+const textSha = (text: string) => createHash('sha256').update(text).digest('hex');
+// The scope digests are a contract: domain tag plus the canonical context, recomputed here
+// independently of gates.ts.
+const gateScopeOracle = (context: Record<string, unknown>) =>
+  createHash('sha256')
+    .update(canonicalJson(['crew-v2:workflow-gate-scope:1', context]))
+    .digest('hex');
+const questionScopeOracle = (context: Record<string, unknown>) =>
+  createHash('sha256')
+    .update(canonicalJson(['crew-v2:owner-question-scope:1', context]))
+    .digest('hex');
+
+async function gateFixture(db: Db, options: RunFixtureOptions = {}) {
+  const f = await runFixture(db, { ...options, tools: ['create_run', 'ask_owner'] });
+  const gates = createWorkflowGates({ resolver: f.resolver });
+  const [turn] = await db`select conversation_id from assistant_turns where id=${f.fence.turnId}`;
+  const conversationId = String(turn?.conversation_id);
+  // The tools route stand-in writes the pending `ask_owner` row for this exact proposal.
+  const ask = (proposal: QuestionProposal, opts: { request?: RequestFor; scopeId?: Id } = {}) =>
+    f.inTurn(
+      opts.request ?? (async () => ({ action: 'ask_owner', payload: proposal })),
+      (tx, proof) => gates.createOwnerQuestion(tx, proof, proposal),
+      opts.scopeId,
+    );
+  const answer = (actor: Actor, input: RecordGateAnswerInput) =>
+    f.mutation(randomUUID(), (tx) => gates.recordGateAnswer(tx, actor, input));
+  const advance = (questionId: Id, decisionId: Id) =>
+    f.mutation(randomUUID(), async (tx) => {
+      await gates.answerGate(tx, questionId, decisionId);
+      return null;
+    });
+  // Artifact evidence as an attempt registers it: a finished attempt of `machineId` on the
+  // step ticket under the given binding revision (current binding: B, revision 2).
+  const artifact = async (
+    ticketId: Id,
+    sha256: string,
+    opts: { machineId?: Id; bindingRevision?: number; kind?: string } = {},
+  ) => {
+    const machineId = opts.machineId ?? f.boundB.id;
+    const bindingRevision = opts.bindingRevision ?? 2;
+    const commandId = randomUUID(),
+      attemptId = randomUUID(),
+      evidenceId = randomUUID();
+    await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state)
+      values(${commandId},${machineId},${ticketId},${bindingRevision},'start','{}','completed')`;
+    await db`insert into attempts(id,ticket_id,machine_id,command_id,fence,binding_revision,process_instance_id,state,
+      lease_expires_at,workflow_pin,stopped_at,stop_reason,finalized_at)
+      values(${attemptId},${ticketId},${machineId},${commandId},
+      (select coalesce(max(fence),0)+1 from attempts where ticket_id=${ticketId}),${bindingRevision},${randomUUID()},
+      'stopped',now(),'{}',now(),'exit',now())`;
+    await db`insert into evidence(id,ticket_id,attempt_id,kind,data)
+      values(${evidenceId},${ticketId},${attemptId},${opts.kind ?? 'artifact'},
+      ${db.json({ locator: 'docs/plans/artifact.md', sha256, sourceCommit: null, verification: 'reported' })})`;
+    return evidenceId;
+  };
+  const gateRows = async () => ({
+    gates: await db`select * from workflow_gates order by id`,
+    questions: await db`select * from assistant_questions order by id`,
+    answers: await db`select * from assistant_answers order by id`,
+    decisions: await db`select * from decisions order by id`,
+  });
+  return { ...f, gates, conversationId, ask, answer, advance, artifact, gateRows };
+}
+type GateFixture = Awaited<ReturnType<typeof gateFixture>>;
+type GateTarget = {
+  step: number;
+  gate?: number;
+  kind: string;
+  trigger?: 'on_stage' | 'after_three_failed_fixes';
+  artifactSha256: string;
+  cycleId?: Id | null;
+};
+
+/** Exact gate context the server must recompute from the persisted run, step and definition. */
+function gateContext(run: WorkflowRun, target: GateTarget) {
+  const step = run.steps[target.step];
+  assert.ok(step);
+  return {
+    rootTicketId: run.rootTicketId,
+    runId: run.id,
+    stepId: step.id,
+    gateId: step.gateIds[target.gate ?? 0],
+    kind: target.kind,
+    requiredActor: 'owner',
+    trigger: target.trigger ?? 'on_stage',
+    sourcePath: step.sourcePath,
+    sourceSha256: step.sourceSha256,
+    artifactSha256: target.artifactSha256,
+    cycleId: target.cycleId ?? null,
+    definitionSha256: run.definitionSha256,
+    customizationSha256: run.customizationSha256,
+    renderedArtifactId: run.renderedArtifactId,
+  };
+}
+function gateProposal(
+  f: GateFixture,
+  run: WorkflowRun,
+  target: GateTarget,
+  extra: Partial<QuestionProposal> = {},
+): QuestionProposal {
+  const context = gateContext(run, target);
+  return {
+    conversationId: f.conversationId,
+    ticketId: run.steps[target.step]?.ticketId as Id,
+    runId: run.id,
+    stepId: context.stepId,
+    gateId: context.gateId as Id,
+    cycleId: context.cycleId,
+    artifactSha256: target.artifactSha256,
+    question: 'Chủ dự án duyệt artifact này?',
+    options: ['Duyệt', 'Yêu cầu sửa'],
+    scopeSha256: gateScopeOracle(context),
+    ...extra,
+  };
+}
+const approve = (extra: Partial<GateAnswer> = {}): GateAnswer => ({
+  verdict: 'approve',
+  option: 'Duyệt',
+  executionMethod: null,
+  parallel: null,
+  text: 'Đồng ý với artifact này',
+  ...extra,
+});
+const independentUnits = () => ({
+  units: [
+    { key: 'api', title: 'API', ownershipKeys: ['v2/server/src/a.ts'], dependsOn: [] as string[] },
+    { key: 'web', title: 'Web', ownershipKeys: ['v2/web/src/b.tsx'], dependsOn: [] as string[] },
+  ],
+  sharedInputSha256: [textSha('plan v1')],
+});
+const designTarget = (artifactSha256: string): GateTarget => ({
+  step: 0,
+  kind: 'design_approval',
+  artifactSha256,
+});
+
+test('assistant gates: a gate without a verified artifact has no row; the artifact materializes the gate, then its question', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const [design, spec] = run.steps;
+      assert.ok(design && spec);
+      const designSha = textSha('design v1');
+      const proposal = gateProposal(f, run, designTarget(designSha));
+      const before = await f.gateRows();
+      await assert.rejects(() => f.ask({ ...proposal, artifactSha256: null }), {
+        code: 'WORKFLOW_ARTIFACT_REQUIRED',
+        status: 409,
+      });
+      await assert.rejects(() => f.ask(proposal), { code: 'WORKFLOW_ARTIFACT_UNVERIFIED', status: 409 });
+      // Same bytes reported by another machine, under an older binding, on another step, or
+      // as another evidence kind are no verified artifact of this gate.
+      await f.artifact(design.ticketId, designSha, { machineId: f.otherC.id });
+      await f.artifact(design.ticketId, designSha, { bindingRevision: 1 });
+      await f.artifact(spec.ticketId, designSha);
+      await f.artifact(design.ticketId, designSha, { kind: 'review_result' });
+      await assert.rejects(() => f.ask(proposal), { code: 'WORKFLOW_ARTIFACT_UNVERIFIED', status: 409 });
+      assert.deepEqual(await f.gateRows(), before);
+      await f.artifact(design.ticketId, designSha);
+      await assert.rejects(() => f.ask({ ...proposal, scopeSha256: 'f'.repeat(64) }), {
+        code: 'WORKFLOW_QUESTION_SCOPE_MISMATCH',
+        status: 409,
+      });
+      await assert.rejects(() => f.ask({ ...proposal, gateId: randomUUID() }), {
+        code: 'WORKFLOW_GATE_UNKNOWN',
+        status: 409,
+      });
+      // The spec gate is reserved on another step.
+      await assert.rejects(() => f.ask({ ...proposal, gateId: spec.gateIds[0] as Id }), {
+        code: 'WORKFLOW_GATE_UNKNOWN',
+        status: 409,
+      });
+      await assert.rejects(() => f.ask({ ...proposal, ticketId: spec.ticketId }), {
+        code: 'WORKFLOW_GATE_UNKNOWN',
+        status: 409,
+      });
+      // An on-stage gate has no repair cycle.
+      await assert.rejects(() => f.ask({ ...proposal, cycleId: randomUUID() }), {
+        code: 'VALIDATION',
+        status: 400,
+      });
+      assert.deepEqual(await f.gateRows(), before);
+      const question = await f.ask(proposal);
+      assert.deepEqual(question, { id: question.id, ...proposal, revision: 1, state: 'open' });
+      const gates = await db`select * from workflow_gates where run_id=${run.id}`;
+      assert.equal(gates.length, 1);
+      assert.deepEqual(
+        { ...gates[0] },
+        {
+          id: design.gateIds[0],
+          run_id: run.id,
+          step_id: design.id,
+          kind: 'design_approval',
+          source_path: design.sourcePath,
+          source_sha256: design.sourceSha256,
+          artifact_sha256: designSha,
+          scope_sha256: proposal.scopeSha256,
+          required_actor: 'owner',
+          decision_id: null,
+          state: 'pending',
+        },
+      );
+      const [stored] = await db`select * from assistant_questions where id=${question.id}`;
+      assert.deepEqual(
+        { ...stored },
+        {
+          id: question.id,
+          conversation_id: f.conversationId,
+          ticket_id: design.ticketId,
+          run_id: run.id,
+          step_id: design.id,
+          gate_id: design.gateIds[0],
+          cycle_id: null,
+          artifact_sha256: designSha,
+          question: proposal.question,
+          options: proposal.options,
+          scope_sha256: proposal.scopeSha256,
+          revision: 1,
+          state: 'open',
+        },
+      );
+      const updates = [
+        () =>
+          db`update workflow_gates set artifact_sha256=${'1'.repeat(64)} where id=${design.gateIds[0] as Id}`,
+        () =>
+          db`update workflow_gates set scope_sha256=${'1'.repeat(64)} where id=${design.gateIds[0] as Id}`,
+        () => db`update assistant_questions set revision=2 where id=${question.id}`,
+        () => db`update assistant_questions set scope_sha256=${'1'.repeat(64)} where id=${question.id}`,
+        () => db`delete from workflow_gates where id=${design.gateIds[0] as Id}`,
+      ];
+      for (const update of updates) await assert.rejects(update, /ASSISTANT_RECORD_IMMUTABLE/);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: ask_owner needs its own pending operation for this exact proposal, turn and scope', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const designSha = textSha('design v1');
+      await f.artifact(run.steps[0]?.ticketId as Id, designSha);
+      const proposal = gateProposal(f, run, designTarget(designSha));
+      const before = await f.gateRows();
+      await assert.rejects(
+        () =>
+          f.ask(proposal, {
+            request: async () => ({ action: 'ask_owner', payload: { ...proposal, question: 'Câu khác' } }),
+          }),
+        { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+      );
+      await assert.rejects(
+        () => f.ask(proposal, { request: async () => ({ action: 'create_run', payload: proposal }) }),
+        { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+      );
+      // A scope of the same turn without the ask_owner tool.
+      const narrow = randomUUID();
+      await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,
+        input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
+        values(${narrow},${f.fence.turnId},${f.root.id},null,${f.project.id},${db.json(['create_ticket'])},
+        ${db.json(['create_run'])},${f.snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
+      await assert.rejects(() => f.ask(proposal, { scopeId: narrow }), {
+        code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE',
+        status: 403,
+      });
+      // The question belongs to the conversation of the asking turn.
+      const other = await f.submitMessage('Hội thoại khác');
+      await assert.rejects(() => f.ask({ ...proposal, conversationId: other.conversation.id }), {
+        code: 'WORKFLOW_QUESTION_SCOPE_MISMATCH',
+        status: 409,
+      });
+      // A ticket under another root is outside the scope.
+      const elsewhere: QuestionProposal = {
+        conversationId: f.conversationId,
+        ticketId: f.a.id,
+        runId: null,
+        stepId: null,
+        gateId: null,
+        cycleId: null,
+        artifactSha256: null,
+        question: 'Câu hỏi ngoài phạm vi',
+        options: [],
+        scopeSha256: questionScopeOracle({
+          conversationId: f.conversationId,
+          rootTicketId: f.request.id,
+          ticketId: f.a.id,
+          runId: null,
+          stepId: null,
+        }),
+      };
+      await assert.rejects(() => f.ask(elsewhere), { code: 'NOT_FOUND', status: 404 });
+      // An operation committed by an earlier transaction is not this call's operation.
+      const committed = await f.seedToolOperation(db, {
+        turnId: f.fence.turnId,
+        snapshotId: f.snapshotId,
+        request: { action: 'ask_owner', payload: proposal },
+      });
+      await assert.rejects(
+        () =>
+          f.mutation(randomUUID(), (tx) =>
+            f.gates.createOwnerQuestion(
+              tx,
+              { fence: f.fence, scopeId: f.scopeId, operationId: committed },
+              proposal,
+            ),
+          ),
+        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+      );
+      // One operation asks once.
+      await assert.rejects(
+        () =>
+          f.inTurn(
+            async () => ({ action: 'ask_owner', payload: proposal }),
+            async (tx, proof) => {
+              await f.gates.createOwnerQuestion(tx, proof, proposal);
+              return f.gates.createOwnerQuestion(tx, proof, proposal);
+            },
+          ),
+        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
+      );
+      assert.deepEqual(await f.gateRows(), before);
+      assert.equal((await f.ask(proposal)).revision, 1);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: only the owner answers; a machine self-answer or another decision cannot advance the gate', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const question = await f.ask(gateProposal(f, run, designTarget(designSha)));
+      const input: RecordGateAnswerInput = {
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: designSha,
+        answer: approve(),
+      };
+      const before = await f.gateRows();
+      for (const actor of [f.assistantA, f.boundB])
+        await assert.rejects(() => f.answer(actor, input), { code: 'OWNER_REQUIRED', status: 403 });
+      assert.deepEqual(await f.gateRows(), before);
+      const scope = {
+        questionId: question.id,
+        questionRevision: 1,
+        gateId: question.gateId,
+        runId: run.id,
+        stepId: design.id,
+        artifactSha256: designSha,
+        scopeSha256: question.scopeSha256,
+        verdict: 'approve',
+      };
+      // Decisions that are not the owner's approval cannot advance a mandatory owner gate.
+      for (const [actor, kind] of [
+        [f.assistantA, 'approval'],
+        [f.assistantA, 'delegated'],
+        [owner, 'owner_answer'],
+      ] as const) {
+        const decisionId = await insertDecision(db, design.ticketId, actor, kind, scope);
+        await assert.rejects(() => f.advance(question.id, decisionId), {
+          code: 'WORKFLOW_GATE_DECISION_INVALID',
+          status: 403,
+        });
+      }
+      // The owner's approval with the exact scope but without the recorded owner answer.
+      const bare = await insertDecision(db, design.ticketId, owner, 'approval', scope);
+      await assert.rejects(() => f.advance(question.id, bare), {
+        code: 'WORKFLOW_ANSWER_REQUIRED',
+        status: 403,
+      });
+      const after = await f.gateRows();
+      assert.deepEqual(
+        { gates: after.gates, questions: after.questions, answers: after.answers },
+        { gates: before.gates, questions: before.questions, answers: before.answers },
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: the exact owner answer advances the gate once; stale inputs and replay are 409', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const proposal = gateProposal(f, run, designTarget(designSha));
+      const question = await f.ask(proposal);
+      const input: RecordGateAnswerInput = {
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: designSha,
+        answer: approve(),
+      };
+      const before = await f.gateRows();
+      await assert.rejects(() => f.answer(owner, { ...input, expectedRevision: 2 }), {
+        code: 'WORKFLOW_QUESTION_STALE',
+        status: 409,
+      });
+      await assert.rejects(() => f.answer(owner, { ...input, scopeSha256: 'e'.repeat(64) }), {
+        code: 'WORKFLOW_QUESTION_SCOPE_MISMATCH',
+        status: 409,
+      });
+      await assert.rejects(() => f.answer(owner, { ...input, artifactSha256: textSha('design v2') }), {
+        code: 'WORKFLOW_GATE_ARTIFACT_MISMATCH',
+        status: 409,
+      });
+      await assert.rejects(() => f.answer(owner, { ...input, answer: approve({ option: 'Không có' }) }), {
+        code: 'VALIDATION',
+        status: 400,
+      });
+      await assert.rejects(() => f.answer(owner, { ...input, answer: approve({ verdict: 'answer' }) }), {
+        code: 'VALIDATION',
+        status: 400,
+      });
+      // Execution method and parallel units belong to the plan gate only.
+      await assert.rejects(
+        () => f.answer(owner, { ...input, answer: approve({ executionMethod: 'native' }) }),
+        { code: 'VALIDATION', status: 400 },
+      );
+      await assert.rejects(
+        () => f.answer(owner, { ...input, answer: approve({ parallel: independentUnits() }) }),
+        { code: 'WORKFLOW_PARALLEL_SCOPE_MISMATCH', status: 409 },
+      );
+      assert.deepEqual(await f.gateRows(), before);
+      const result = await f.answer(owner, input);
+      assert.deepEqual(result, {
+        questionId: question.id,
+        revision: 1,
+        answerId: result.answerId,
+        decisionId: result.decisionId,
+        gateId: design.gateIds[0],
+        gateState: 'approved',
+      });
+      const [gate] =
+        await db`select state,decision_id from workflow_gates where id=${design.gateIds[0] as Id}`;
+      assert.deepEqual({ ...gate }, { state: 'approved', decision_id: result.decisionId });
+      const [asked] = await db`select state from assistant_questions where id=${question.id}`;
+      assert.equal(asked?.state, 'answered');
+      const [decision] =
+        await db`select ticket_id,actor_kind,actor_id,kind,content,sources,scope from decisions where id=${result.decisionId}`;
+      assert.deepEqual(
+        { ...decision },
+        {
+          ticket_id: design.ticketId,
+          actor_kind: 'owner',
+          actor_id: 'owner',
+          kind: 'approval',
+          content: 'Đồng ý với artifact này',
+          sources: [],
+          scope: {
+            questionId: question.id,
+            questionRevision: 1,
+            gateId: design.gateIds[0],
+            runId: run.id,
+            stepId: design.id,
+            artifactSha256: designSha,
+            scopeSha256: question.scopeSha256,
+            verdict: 'approve',
+          },
+        },
+      );
+      const [answer] =
+        await db`select question_id,question_revision,body,actor_kind,decision_id from assistant_answers where id=${result.answerId}`;
+      assert.deepEqual(
+        { ...answer },
+        {
+          question_id: question.id,
+          question_revision: 1,
+          body: approve(),
+          actor_kind: 'owner',
+          decision_id: result.decisionId,
+        },
+      );
+      // Replay of the answer or of the gate advance changes nothing.
+      const settled = await f.gateRows();
+      await assert.rejects(() => f.answer(owner, input), { code: 'WORKFLOW_QUESTION_ANSWERED', status: 409 });
+      await assert.rejects(() => f.advance(question.id, result.decisionId), {
+        code: 'WORKFLOW_QUESTION_ANSWERED',
+        status: 409,
+      });
+      assert.deepEqual(await f.gateRows(), settled);
+      const other = await insertDecision(db, design.ticketId, owner, 'approval', {});
+      await assert.rejects(
+        () => db`update workflow_gates set decision_id=${other} where id=${design.gateIds[0] as Id}`,
+        /ASSISTANT_RECORD_LATCHED/,
+      );
+      // An approved gate resumes at the next stage: the same gate is never asked again.
+      await assert.rejects(() => f.ask(proposal), { code: 'WORKFLOW_GATE_DECIDED', status: 409 });
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a superseding question makes the earlier revision stale; the gate keeps its artifact', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const proposal = gateProposal(f, run, designTarget(designSha));
+      const first = await f.ask(proposal);
+      const second = await f.ask({ ...proposal, question: 'Duyệt thiết kế đã giải thích thêm?' });
+      assert.equal(second.revision, 2);
+      assert.equal(second.state, 'open');
+      const [old] = await db`select state from assistant_questions where id=${first.id}`;
+      assert.equal(old?.state, 'superseded');
+      const input = (questionId: Id, expectedRevision: number): RecordGateAnswerInput => ({
+        questionId,
+        expectedRevision,
+        scopeSha256: proposal.scopeSha256,
+        artifactSha256: designSha,
+        answer: {
+          verdict: 'reject',
+          option: 'Yêu cầu sửa',
+          executionMethod: null,
+          parallel: null,
+          text: 'Cần tách phần dữ liệu',
+        },
+      });
+      await assert.rejects(() => f.answer(owner, input(first.id, 1)), {
+        code: 'WORKFLOW_QUESTION_STALE',
+        status: 409,
+      });
+      await assert.rejects(() => f.answer(owner, input(second.id, 1)), {
+        code: 'WORKFLOW_QUESTION_STALE',
+        status: 409,
+      });
+      // A newer artifact cannot be approved through a gate pinned to the first one.
+      const revisedSha = textSha('design v2');
+      await f.artifact(design.ticketId, revisedSha);
+      await assert.rejects(() => f.ask(gateProposal(f, run, designTarget(revisedSha))), {
+        code: 'WORKFLOW_GATE_ARTIFACT_MISMATCH',
+        status: 409,
+      });
+      const result = await f.answer(owner, input(second.id, 2));
+      assert.equal(result.gateState, 'rejected');
+      const [gate] =
+        await db`select state,artifact_sha256 from workflow_gates where id=${design.gateIds[0] as Id}`;
+      assert.deepEqual({ ...gate }, { state: 'rejected', artifact_sha256: designSha });
+      const states = await db`select id,state from assistant_questions order by revision`;
+      assert.deepEqual(
+        states.map((row) => row.state),
+        ['superseded', 'answered'],
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a changed definition blocks the answer and a failed write leaves no answer behind', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const question = await f.ask(gateProposal(f, run, designTarget(designSha)));
+      const input: RecordGateAnswerInput = {
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: designSha,
+        answer: approve(),
+      };
+      const before = await f.gateRows();
+      // Machine B now reports another customization for the same pins: the run's definition
+      // is no longer current.
+      await f.seedApplied(
+        f.boundB.id,
+        workflowStatus((status) => {
+          const definition = status.superpowers.projections.claude.definition;
+          assert.ok(definition);
+          definition.customizationSha256 = 'e'.repeat(64);
+        }),
+      );
+      await assert.rejects(() => f.answer(owner, input), { code: 'WORKFLOW_DEFINITION_STALE', status: 409 });
+      assert.deepEqual(await f.gateRows(), before);
+      await f.seedApplied(f.boundB.id, workflowStatus());
+      // A database failure after the decision exists: nothing of the answer remains and the
+      // caller's transaction stays usable.
+      await db`create function test_only_fail_answer() returns trigger language plpgsql as $$
+        begin raise exception 'TEST_ONLY_ANSWER_FAILURE'; end $$`;
+      await db`create trigger test_only_fail_answer before insert on assistant_answers for each row execute function test_only_fail_answer()`;
+      const marker = randomUUID();
+      try {
+        const code = await f.mutation(randomUUID(), async (tx) => {
+          let failure: string | null = null;
+          try {
+            await f.gates.recordGateAnswer(tx, owner, input);
+          } catch (error) {
+            failure = (error as Error).message;
+          }
+          await tx`insert into evidence(id,ticket_id,attempt_id,kind,data)
+            values(${randomUUID()},${f.root.id},null,'test_marker',${tx.json({ marker })})`;
+          return failure;
+        });
+        assert.match(String(code), /TEST_ONLY_ANSWER_FAILURE/);
+      } finally {
+        await db`drop trigger test_only_fail_answer on assistant_answers`;
+        await db`drop function test_only_fail_answer()`;
+      }
+      assert.equal(
+        (await db`select 1 from evidence where kind='test_marker' and data->>'marker'=${marker}`).length,
+        1,
+      );
+      assert.deepEqual(await f.gateRows(), before);
+      assert.equal((await f.answer(owner, input)).gateState, 'approved');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: the plan gate approval resolves one official execution choice against the run definition', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const plan = run.steps[2];
+      const execute = run.steps[3];
+      assert.ok(plan && execute);
+      const planSha = textSha('plan v1');
+      await f.artifact(plan.ticketId, planSha);
+      const question = await f.ask(
+        gateProposal(
+          f,
+          run,
+          { step: 2, kind: 'plan_approval_execution_method', artifactSha256: planSha },
+          { options: [] },
+        ),
+      );
+      const input = (answer: Partial<GateAnswer>): RecordGateAnswerInput => ({
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: planSha,
+        answer: approve({ option: null, text: 'Kế hoạch đã review', ...answer }),
+      });
+      const before = await f.gateRows();
+      await assert.rejects(() => f.answer(owner, input({})), { code: 'VALIDATION', status: 400 });
+      await assert.rejects(() => f.answer(owner, input({ executionMethod: 'turbo' })), {
+        code: 'VALIDATION',
+        status: 400,
+      });
+      // Parallel units after the written plan: disjoint, independent and with shared-input hashes.
+      const overlapping = independentUnits();
+      overlapping.units[1]?.ownershipKeys.push('v2/server/src/a.ts');
+      await assert.rejects(
+        () => f.answer(owner, input({ executionMethod: 'native', parallel: overlapping })),
+        { code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', status: 409 },
+      );
+      const dependent = independentUnits();
+      dependent.units[1]?.dependsOn.push('api');
+      await assert.rejects(() => f.answer(owner, input({ executionMethod: 'native', parallel: dependent })), {
+        code: 'WORKFLOW_PARALLEL_DEPENDENCY',
+        status: 409,
+      });
+      await assert.rejects(
+        () =>
+          f.answer(
+            owner,
+            input({ executionMethod: 'native', parallel: { ...independentUnits(), sharedInputSha256: [] } }),
+          ),
+        { code: 'VALIDATION', status: 400 },
+      );
+      // The choice's source hash must still be the run definition's bytes.
+      const [ticket] = await db`select criteria from tickets where id=${execute.ticketId}`;
+      const tampered = structuredClone(ticket?.criteria);
+      tampered.workflowRun.executionChoices[1].sourceSha256 = '0'.repeat(64);
+      await db`update tickets set criteria=${db.json(tampered)} where id=${execute.ticketId}`;
+      await assert.rejects(() => f.answer(owner, input({ executionMethod: 'native' })), {
+        code: 'WORKFLOW_EXECUTION_CHOICE_INVALID',
+        status: 409,
+      });
+      await db`update tickets set criteria=${db.json(ticket?.criteria)} where id=${execute.ticketId}`;
+      assert.deepEqual(await f.gateRows(), before);
+      const units = independentUnits();
+      const result = await f.answer(owner, input({ executionMethod: 'native', parallel: units }));
+      assert.equal(result.gateState, 'approved');
+      const [decision] = await db`select kind,scope from decisions where id=${result.decisionId}`;
+      assert.equal(decision?.kind, 'approval');
+      assert.deepEqual(decision?.scope, {
+        questionId: question.id,
+        questionRevision: 1,
+        gateId: plan.gateIds[0],
+        runId: run.id,
+        stepId: plan.id,
+        artifactSha256: planSha,
+        scopeSha256: question.scopeSha256,
+        verdict: 'approve',
+        executionChoice: {
+          method: 'native',
+          skill: 'executing-plans',
+          sourcePath: 'skills/executing-plans/SKILL.md',
+          sourceSha256: skillSha('superpowers', 'skills/executing-plans/SKILL.md'),
+        },
+        parallel: units,
+      });
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: the architecture discussion gate opens only after three failed fixes', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create({ path: 'bug' });
+      const fix = run.steps[3];
+      const review = run.steps[4];
+      assert.ok(fix && review);
+      const fixSha = textSha('three failed fixes');
+      await f.artifact(fix.ticketId, fixSha);
+      const result = async (classification: string, passed: boolean) => {
+        const cycleId = randomUUID(),
+          evidenceId = randomUUID();
+        await db`insert into evidence(id,ticket_id,attempt_id,kind,data)
+          values(${evidenceId},${review.ticketId},null,'review_result',${db.json({ cycleId })})`;
+        await db`insert into repair_results(check_step_id,cycle_id,classification,passed,evidence_id)
+          values(${review.ticketId},${cycleId},${classification},${passed},${evidenceId})`;
+        return cycleId;
+      };
+      const propose = (cycleId: Id | null) =>
+        gateProposal(f, run, {
+          step: 3,
+          kind: 'architecture_discussion',
+          trigger: 'after_three_failed_fixes',
+          artifactSha256: fixSha,
+          cycleId,
+        });
+      const notYet = { code: 'WORKFLOW_GATE_NOT_TRIGGERED', status: 409 };
+      await assert.rejects(() => f.ask(propose(null)), notYet);
+      await result('initial_review', false);
+      const second = await result('repair_review', false);
+      await assert.rejects(() => f.ask(propose(second)), notYet);
+      // Infrastructure failures and passed reviews are no failed fixes.
+      await result('infrastructure', false);
+      await result('repair_review', true);
+      await assert.rejects(() => f.ask(propose(second)), notYet);
+      const third = await result('repair_review', false);
+      // The cycle must be a failed fix of this run.
+      await assert.rejects(() => f.ask(propose(randomUUID())), notYet);
+      assert.equal((await db`select 1 from workflow_gates`).length, 0);
+      const question = await f.ask(propose(third));
+      assert.equal(question.cycleId, third);
+      const [gate] = await db`select kind,step_id from workflow_gates where id=${fix.gateIds[0] as Id}`;
+      assert.deepEqual({ ...gate }, { kind: 'architecture_discussion', step_id: fix.id });
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a ticket question without a gate takes one owner answer', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const scopeSha256 = questionScopeOracle({
+        conversationId: f.conversationId,
+        rootTicketId: f.root.id,
+        ticketId: f.root.id,
+        runId: null,
+        stepId: null,
+      });
+      const proposal: QuestionProposal = {
+        conversationId: f.conversationId,
+        ticketId: f.root.id,
+        runId: null,
+        stepId: null,
+        gateId: null,
+        cycleId: null,
+        artifactSha256: null,
+        question: 'Dùng cơ sở dữ liệu nào?',
+        options: ['PostgreSQL', 'SQLite'],
+        scopeSha256,
+      };
+      await assert.rejects(() => f.ask({ ...proposal, ticketId: null }), {
+        code: 'WORKFLOW_QUESTION_TICKET_REQUIRED',
+        status: 422,
+      });
+      await assert.rejects(() => f.ask({ ...proposal, artifactSha256: textSha('x') }), {
+        code: 'VALIDATION',
+        status: 400,
+      });
+      const question = await f.ask(proposal);
+      assert.deepEqual(question, { id: question.id, ...proposal, revision: 1, state: 'open' });
+      assert.equal((await db`select 1 from workflow_gates`).length, 0);
+      const input: RecordGateAnswerInput = {
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256,
+        artifactSha256: null,
+        answer: {
+          verdict: 'answer',
+          option: 'PostgreSQL',
+          executionMethod: null,
+          parallel: null,
+          text: 'Dùng PostgreSQL',
+        },
+      };
+      await assert.rejects(
+        () => f.answer(owner, { ...input, answer: { ...input.answer, verdict: 'approve' } }),
+        {
+          code: 'VALIDATION',
+          status: 400,
+        },
+      );
+      await assert.rejects(
+        () => f.answer(owner, { ...input, answer: { ...input.answer, option: 'MySQL' } }),
+        {
+          code: 'VALIDATION',
+          status: 400,
+        },
+      );
+      await assert.rejects(() => f.answer(f.assistantA, input), { code: 'OWNER_REQUIRED', status: 403 });
+      const result = await f.answer(owner, input);
+      assert.deepEqual(
+        { gateId: result.gateId, gateState: result.gateState },
+        { gateId: null, gateState: null },
+      );
+      const [decision] =
+        await db`select ticket_id,actor_kind,kind,scope from decisions where id=${result.decisionId}`;
+      assert.deepEqual(
+        { ...decision },
+        {
+          ticket_id: f.root.id,
+          actor_kind: 'owner',
+          kind: 'owner_answer',
+          scope: {
+            questionId: question.id,
+            questionRevision: 1,
+            gateId: null,
+            runId: null,
+            stepId: null,
+            artifactSha256: null,
+            scopeSha256,
+            verdict: 'answer',
+          },
+        },
+      );
+      await assert.rejects(() => f.answer(owner, input), { code: 'WORKFLOW_QUESTION_ANSWERED', status: 409 });
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a BMAD gate needs the latched render of its run', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db, { workflow: 'bmad' });
+    try {
+      const run = await f.create();
+      const [first, plan] = run.steps;
+      assert.ok(first && plan);
+      const specSha = textSha('bmad spec');
+      await f.artifact(plan.ticketId, specSha);
+      const target: GateTarget = { step: 1, kind: 'spec_approval', artifactSha256: specSha };
+      await assert.rejects(() => f.ask(gateProposal(f, run, target)), {
+        code: 'WORKFLOW_RENDER_REQUIRED',
+        status: 409,
+      });
+      assert.equal((await db`select 1 from workflow_gates`).length, 0);
+      const receipt = await seedReceipt(db, { ticketId: first.ticketId, machineId: f.boundB.id }, run);
+      const latched = await db.begin((tx) => f.runs.latchRenderedArtifact(tx, run.id, receipt));
+      // The render identity is part of the gate scope.
+      await assert.rejects(() => f.ask(gateProposal(f, run, target)), {
+        code: 'WORKFLOW_QUESTION_SCOPE_MISMATCH',
+        status: 409,
+      });
+      const question = await f.ask(gateProposal(f, latched, target));
+      assert.equal(question.scopeSha256, gateScopeOracle(gateContext(latched, target)));
+      const [gate] = await db`select kind,scope_sha256 from workflow_gates where id=${plan.gateIds[0] as Id}`;
+      assert.deepEqual({ ...gate }, { kind: 'spec_approval', scope_sha256: question.scopeSha256 });
     } finally {
       await f.close();
     }

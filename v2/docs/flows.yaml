@@ -475,6 +475,7 @@ flows:
       - gateway/src/assistant/workflow-manifest.ts
     files:
       - gateway/src/assistant/render-artifacts.ts
+      - server/src/assistant/gates.ts
       - server/src/assistant/runs.ts
       - server/src/assistant/workflows.ts
     tests:
