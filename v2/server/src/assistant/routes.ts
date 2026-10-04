@@ -10,6 +10,7 @@ import {
   setAssistantConfig,
 } from './authority.ts';
 import { assistantConfigSchema, assistantPolicySchema } from './contracts.ts';
+import { type AssistantTools, registerAssistantToolRoutes } from './tools.ts';
 
 const emptyQuery = { type: 'object', properties: {}, additionalProperties: false };
 const configChangeSchema = {
@@ -38,10 +39,14 @@ async function lockCurrentOwnerCredential(tx: Tx, request: FastifyRequest): Prom
   if (!current) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
 }
 
+/** Optional producers of the Assistant routes; an absent producer keeps its route 503. */
+export type AssistantRouteAssembly = { tools?: AssistantTools };
+
 export function registerAssistantRoutes(
   app: FastifyInstance,
   options: ServerOptions,
   deps: RouteDependencies,
+  assembly: AssistantRouteAssembly = {},
 ): void {
   app.get(
     '/v2/assistant/config',
@@ -84,4 +89,5 @@ export function registerAssistantRoutes(
       return result.body;
     },
   );
+  registerAssistantToolRoutes(app, options, deps, assembly.tools);
 }

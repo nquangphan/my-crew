@@ -462,11 +462,13 @@ flows:
       - server/src/assistant/orchestration.ts
       - server/src/assistant/routes.ts
       - server/src/assistant/store.ts
+      - server/src/assistant/tools.ts
       - server/migrations/011_assistant.sql
     tests:
       - server/test/assistant-authority.test.ts
       - server/test/assistant-orchestration-port.test.ts
       - server/test/assistant-store.test.ts
+      - server/test/assistant-tools-route.test.ts
       - server/test/support/assistant.ts
   assistant-workflows:
     title: Định nghĩa workflow chính thức và pin bất biến

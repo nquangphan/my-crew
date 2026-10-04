@@ -1,0 +1,38 @@
+telemetry {"at": "2026-10-04T07:05:37.687568+00:00", "pageSize": 16384, "pages": {"Pages free": 7601, "Pages inactive": 252862, "Pages speculative": 917}, "availableBytes": 4282449920, "availableGiB": 3.988, "pressure": 1, "cpuIdlePercent": 81.87, "cpu": "6.47% user, 11.65% sys, 81.87% idle", "diskFreeBytes": 803571642368, "diskFreeGiB": 748.384, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:05:58.070617+00:00", "pageSize": 16384, "pages": {"Pages free": 4807, "Pages inactive": 254852, "Pages speculative": 681}, "availableBytes": 4265410560, "availableGiB": 3.972, "pressure": 1, "cpuIdlePercent": 83.21, "cpu": "5.47% user, 11.30% sys, 83.21% idle", "diskFreeBytes": 803572203520, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:06:18.488958+00:00", "pageSize": 16384, "pages": {"Pages free": 3714, "Pages inactive": 253763, "Pages speculative": 461}, "availableBytes": 4226056192, "availableGiB": 3.936, "pressure": 1, "cpuIdlePercent": 81.5, "cpu": "7.53% user, 10.95% sys, 81.50% idle", "diskFreeBytes": 803572211712, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:06:38.887516+00:00", "pageSize": 16384, "pages": {"Pages free": 4464, "Pages inactive": 253616, "Pages speculative": 974}, "availableBytes": 4244340736, "availableGiB": 3.953, "pressure": 1, "cpuIdlePercent": 79.46, "cpu": "5.38% user, 15.15% sys, 79.46% idle", "diskFreeBytes": 803572203520, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:06:59.301586+00:00", "pageSize": 16384, "pages": {"Pages free": 4197, "Pages inactive": 243019, "Pages speculative": 1080}, "availableBytes": 4068081664, "availableGiB": 3.789, "pressure": 1, "cpuIdlePercent": 84.19, "cpu": "5.49% user, 10.30% sys, 84.19% idle", "diskFreeBytes": 803572211712, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:07:19.726763+00:00", "pageSize": 16384, "pages": {"Pages free": 4116, "Pages inactive": 246238, "Pages speculative": 378}, "availableBytes": 4107993088, "availableGiB": 3.826, "pressure": 1, "cpuIdlePercent": 79.72, "cpu": "8.93% user, 11.34% sys, 79.72% idle", "diskFreeBytes": 803572211712, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:07:40.120777+00:00", "pageSize": 16384, "pages": {"Pages free": 3976, "Pages inactive": 241765, "Pages speculative": 909}, "availableBytes": 4041113600, "availableGiB": 3.764, "pressure": 1, "cpuIdlePercent": 84.4, "cpu": "5.8% user, 10.50% sys, 84.40% idle", "diskFreeBytes": 803572146176, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:08:00.535198+00:00", "pageSize": 16384, "pages": {"Pages free": 3509, "Pages inactive": 243282, "Pages speculative": 1287}, "availableBytes": 4064509952, "availableGiB": 3.785, "pressure": 1, "cpuIdlePercent": 82.43, "cpu": "5.74% user, 11.82% sys, 82.43% idle", "diskFreeBytes": 803572170752, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:08:20.946512+00:00", "pageSize": 16384, "pages": {"Pages free": 4075, "Pages inactive": 235813, "Pages speculative": 493}, "availableBytes": 3938402304, "availableGiB": 3.668, "pressure": 1, "cpuIdlePercent": 80.8, "cpu": "6.73% user, 12.45% sys, 80.80% idle", "diskFreeBytes": 803572170752, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:08:41.340087+00:00", "pageSize": 16384, "pages": {"Pages free": 5689, "Pages inactive": 223202, "Pages speculative": 379}, "availableBytes": 3756359680, "availableGiB": 3.498, "pressure": 1, "cpuIdlePercent": 84.24, "cpu": "5.13% user, 10.61% sys, 84.24% idle", "diskFreeBytes": 803572166656, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:09:01.760081+00:00", "pageSize": 16384, "pages": {"Pages free": 3936, "Pages inactive": 219693, "Pages speculative": 540}, "availableBytes": 3672784896, "availableGiB": 3.421, "pressure": 1, "cpuIdlePercent": 82.53, "cpu": "5.47% user, 11.98% sys, 82.53% idle", "diskFreeBytes": 803572170752, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:09:22.149669+00:00", "pageSize": 16384, "pages": {"Pages free": 4465, "Pages inactive": 221924, "Pages speculative": 478}, "availableBytes": 3716988928, "availableGiB": 3.462, "pressure": 1, "cpuIdlePercent": 85.22, "cpu": "4.81% user, 9.96% sys, 85.22% idle", "diskFreeBytes": 803572133888, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:09:42.538031+00:00", "pageSize": 16384, "pages": {"Pages free": 39522, "Pages inactive": 212550, "Pages speculative": 553}, "availableBytes": 4139008000, "availableGiB": 3.855, "pressure": 2, "cpuIdlePercent": 84.82, "cpu": "5.17% user, 10.0% sys, 84.82% idle", "diskFreeBytes": 803572129792, "diskFreeGiB": 748.385, "heavyEligible": false}
+not eligible, waiting
+telemetry {"at": "2026-10-04T07:10:02.932352+00:00", "pageSize": 16384, "pages": {"Pages free": 111717, "Pages inactive": 216599, "Pages speculative": 1073}, "availableBytes": 5396709376, "availableGiB": 5.026, "pressure": 1, "cpuIdlePercent": 82.35, "cpu": "5.55% user, 12.9% sys, 82.35% idle", "diskFreeBytes": 803572113408, "diskFreeGiB": 748.385, "heavyEligible": true}
+lock acquired owner=b3a pid=3179 at=2026-10-04T07:10:02Z
+container crew-v2-test-0459b116-4fe0-4319-8367-5203de178f26 c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4
+inspect 268435456 1000000000 64
+port 50214 ready-after 2
+exit 0 elapsed 6s
+log-sha256 a600ec3f9b4e4d2d0fdc22f49a991fc03a06feb340cc6b74b000339643c173aa
+dbs-left: 0
+c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4
+ps-after:        1
+node-left:        0
+lock released 2026-10-04T07:10:11Z

@@ -1,0 +1,12 @@
+telemetry {"at": "2026-10-04T07:16:36.110039+00:00", "pageSize": 16384, "pages": {"Pages free": 39389, "Pages inactive": 272218, "Pages speculative": 4902}, "availableBytes": 5185683456, "availableGiB": 4.83, "pressure": 1, "cpuIdlePercent": 84.3, "cpu": "5.46% user, 10.23% sys, 84.30% idle", "diskFreeBytes": 803309469696, "diskFreeGiB": 748.14, "heavyEligible": true}
+lock acquired owner=b3a pid=26709 at=2026-10-04T07:16:35Z
+container crew-v2-test-e95c7613-942c-4e8f-b68f-81f3c7077757 0c223da20db2aefec7cb291f6ef847eac252dfc19a7e74246dc704973799c036
+inspect 268435456 1000000000 64
+port 54843 ready-after 2
+exit 0 elapsed 64s
+log-sha256 fc8d542cb6467befe878a60918b94315884d8336edda25990d5071f2fffd22a9
+dbs-left: 0
+0c223da20db2aefec7cb291f6ef847eac252dfc19a7e74246dc704973799c036
+ps-after:        1
+node-left:        0
+lock released 2026-10-04T07:17:41Z

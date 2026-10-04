@@ -503,7 +503,11 @@ type TurnRowsInput = {
   receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
   verifierBuildSha256?: string;
   receiptExpiresInSeconds?: number;
-  admission?: { target: { kind: 'ticket' | 'message'; id: Id }; sessionExpiresInSeconds: number };
+  admission?: {
+    target: { kind: 'ticket' | 'message'; id: Id };
+    sessionExpiresInSeconds: number;
+    snapshotCanonical?: Record<string, unknown>;
+  };
 };
 
 // Explicit test-only SQL rows. Defaults reproduce the unadmitted UNVERIFIED turn.
@@ -553,7 +557,7 @@ async function insertTurnRows(tx: Tx, input: TurnRowsInput) {
     now()-${input.admission ? 600 : 0}*interval '1 second',now()+${input.admission ? receiptSeconds : 240}*interval '1 second')`;
   let admission: { snapshotId: Id; sessionId: Id; admissionId: Id } | null = null;
   if (input.admission) {
-    const { target, sessionExpiresInSeconds } = input.admission;
+    const { target, sessionExpiresInSeconds, snapshotCanonical } = input.admission;
     const snapshotId = randomUUID(),
       authorizationId = randomUUID(),
       grantId = randomUUID(),
@@ -561,7 +565,7 @@ async function insertTurnRows(tx: Tx, input: TurnRowsInput) {
       admissionId = randomUUID();
     const snapshotSha256 = createHash('sha256').update(snapshotId).digest('hex');
     await tx`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
-      values(${snapshotId},${target.kind},${target.id},1,0,'{}',${snapshotSha256})`;
+      values(${snapshotId},${target.kind},${target.id},1,0,${tx.json((snapshotCanonical ?? {}) as never)},${snapshotSha256})`;
     await tx`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,expires_at)
       values(${authorizationId},${target.kind},${target.id},'[]',${'a'.repeat(64)},now()+interval '10 minutes')`;
     await tx`insert into attachment_assistant_grants(id,authorization_id,target_kind,target_id,originals,input_revision,route_revision,
@@ -759,6 +763,8 @@ export async function assistantFixture(db: Db) {
       verifierBuildSha256?: string;
       receiptExpiresInSeconds?: number;
       sessionExpiresInSeconds?: number;
+      /** Canonical body of the seeded input snapshot; default `{}` (no selection recorded). */
+      snapshotCanonical?: Record<string, unknown>;
     }) {
       return db.begin((tx) =>
         insertTurnRows(tx, {
@@ -771,6 +777,7 @@ export async function assistantFixture(db: Db) {
           admission: {
             target: input.target,
             sessionExpiresInSeconds: input.sessionExpiresInSeconds ?? 300,
+            ...(input.snapshotCanonical ? { snapshotCanonical: input.snapshotCanonical } : {}),
           },
         }),
       );

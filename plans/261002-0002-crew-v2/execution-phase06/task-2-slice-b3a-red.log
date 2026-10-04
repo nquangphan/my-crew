@@ -1,0 +1,291 @@
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dF5iFS
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dF5iFS nonceSha256=a02d1f47351815d7d05cd5e4a38c5f836bc0ed6b03079bc17506b505c8bfa6ef
+attachment DB scratch identity dev=16777231 ino=220576972 uid=501 pid=95740
+✖ assistant tools: production assembly without tools is 503 and writes nothing (491.335458ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DGWCFI
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DGWCFI nonceSha256=bbfdc59dbf5bef708da0d8aeb4537b80774d8eca31ce3af343d7f6d3fc151239
+attachment DB scratch identity dev=16777231 ino=220576979 uid=501 pid=95740
+✖ assistant tools: authentication and provider call ID come before any authority (307.757667ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mG6OKg
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mG6OKg nonceSha256=0e5cd8c06dd398edef18862980c19fd820f1d3bf71186fa893ce570ab9079f53
+attachment DB scratch identity dev=16777231 ino=220576986 uid=501 pid=95740
+✖ assistant tools: every failure before proof → scope resolution has one shape (309.999125ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tyOMDK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tyOMDK nonceSha256=d6377bb0d815f94d718a5a986ee684d666bb1e2d0c20c0db850bc5a499aadc9a
+attachment DB scratch identity dev=16777231 ino=220576993 uid=501 pid=95740
+✖ assistant tools: unknown tool, extra fields and forged results are rejected without rows (287.567417ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fAzVTj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fAzVTj nonceSha256=6e816395c7ee7f26265508a87bd07580347385a55340fdfdf3237e7cdf7e2b32
+attachment DB scratch identity dev=16777231 ino=220577000 uid=501 pid=95740
+✖ assistant tools: stale input pin is 409 after scope resolution and writes nothing (309.533792ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vUzrai
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vUzrai nonceSha256=ee4f1eafc5b025269d5b76decfaac1d278f2bacd50325874de9f810b8c4151d4
+attachment DB scratch identity dev=16777231 ino=220577007 uid=501 pid=95740
+✖ assistant tools: a tool outside the scope tool_names is 403 without rows (290.895542ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mK1pld
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mK1pld nonceSha256=eb84a8bab5979270010d0336176bb3b4212d2556bf670f6ea3e650733a91efc8
+attachment DB scratch identity dev=16777231 ino=220577014 uid=501 pid=95740
+✖ assistant tools: the per-turn tool budget denies the next call but not the replay (301.85825ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qceWTc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qceWTc nonceSha256=e0f2e41e97f30244ae3c06d0335822af7d8d784689c7ad9d374937af0e8b892a
+attachment DB scratch identity dev=16777231 ino=220577021 uid=501 pid=95740
+✖ assistant tools: read_catalog returns the scoped catalog and stores the bound result (288.965125ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6sgJGv
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6sgJGv nonceSha256=d2e28217840a50cba2396db9be9c0994f891bdc9a23a8f74a8da293ee4b0f7fe
+attachment DB scratch identity dev=16777231 ino=220577035 uid=501 pid=95740
+✖ assistant tools: read_docs returns the page with a read receipt; foreign and unknown are one 404 (320.155084ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yHqtEo
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yHqtEo nonceSha256=b4117c7863b0d5bd2d7481d3bda06e107f372d13a7f29eb0038d3ef2f26e09b2
+attachment DB scratch identity dev=16777231 ino=220577042 uid=501 pid=95740
+✖ assistant tools: create_run through the real route creates the graph as machine A once (305.938084ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-E3FYwo
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-E3FYwo nonceSha256=c003435cf3ca6139f3f8cc136f7126dd56ca1a840a2210e607dadcc6aafc6e39
+attachment DB scratch identity dev=16777231 ino=220577055 uid=501 pid=95740
+✖ assistant tools: create_run on a root outside the scope is one 404 without ticket probing (292.794875ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SFC6aq
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SFC6aq nonceSha256=3b189fad116b7a9c04c74cd4f70b719f05189dd9865697b937f78aa65aefeb8f
+attachment DB scratch identity dev=16777231 ino=220577062 uid=501 pid=95740
+✖ assistant tools: ask_owner through the real route opens the question bound to its operation (287.437208ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-miut0d
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-miut0d nonceSha256=8821d2adfd453872cd7131a6e22b8ac66e65dc492e56bbc580df0988796e35d0
+attachment DB scratch identity dev=16777231 ino=220577069 uid=501 pid=95740
+✖ assistant tools: ask_owner without a ticket is 422 and a late failure rolls the row back (290.311625ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sKcSjC
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sKcSjC nonceSha256=650e47018078cdd509f5ff52fae84aa78b0a28dfb13dcf379b00904487ba4959
+attachment DB scratch identity dev=16777231 ino=220577078 uid=501 pid=95740
+✖ assistant tools: unreleased tools are rejected with a bound row and no effect (278.70725ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XqUH6s
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XqUH6s nonceSha256=0b6d0cfdc26d70873fbae21dda31fcb4a738c941dce06436bc47896a4a101f6d
+attachment DB scratch identity dev=16777231 ino=220577085 uid=501 pid=95740
+✖ assistant tools: replay returns the stored result without writing; conflicting IDs are 409 (285.656708ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yPFXJw
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yPFXJw nonceSha256=6c2d0d5b4269e959ed0a5e8eb0180a888c4e185c6d50fb0a7d24b41cce403bf3
+attachment DB scratch identity dev=16777231 ino=220577093 uid=501 pid=95740
+✖ assistant tools: a response lost before commit leaves no effect and the retry applies once (293.433917ms)
+attachment DB container fe3e6f3a76925fa8c9f8b5dc127ef03bfc5c1fc3778de922df94309aeec3f27a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DBXzQp
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DBXzQp nonceSha256=33d99833b351508836441a3fdbbf6d1833e1411948ddd8b7dec9b6633a64f18a
+attachment DB scratch identity dev=16777231 ino=220577100 uid=501 pid=95740
+✖ assistant tools: concurrent duplicates of one operation apply exactly once (277.272542ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 0
+ℹ fail 17
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5406.232583
+
+✖ failing tests:
+
+test at test/assistant-tools-route.test.ts:349:1
+✖ assistant tools: production assembly without tools is 503 and writes nothing (491.335458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  500 !== 503
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:353:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:339:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 500,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tools-route.test.ts:358:1
+✖ assistant tools: authentication and provider call ID come before any authority (307.757667ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:374:1
+✖ assistant tools: every failure before proof → scope resolution has one shape (309.999125ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:414:1
+✖ assistant tools: unknown tool, extra fields and forged results are rejected without rows (287.567417ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:430:1
+✖ assistant tools: stale input pin is 409 after scope resolution and writes nothing (309.533792ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:447:1
+✖ assistant tools: a tool outside the scope tool_names is 403 without rows (290.895542ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:462:1
+✖ assistant tools: the per-turn tool budget denies the next call but not the replay (301.85825ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:477:1
+✖ assistant tools: read_catalog returns the scoped catalog and stores the bound result (288.965125ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:511:1
+✖ assistant tools: read_docs returns the page with a read receipt; foreign and unknown are one 404 (320.155084ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:566:1
+✖ assistant tools: create_run through the real route creates the graph as machine A once (305.938084ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:600:1
+✖ assistant tools: create_run on a root outside the scope is one 404 without ticket probing (292.794875ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:610:1
+✖ assistant tools: ask_owner through the real route opens the question bound to its operation (287.437208ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:631:1
+✖ assistant tools: ask_owner without a ticket is 422 and a late failure rolls the row back (290.311625ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:644:1
+✖ assistant tools: unreleased tools are rejected with a bound row and no effect (278.70725ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:674:1
+✖ assistant tools: replay returns the stored result without writing; conflicting IDs are 409 (285.656708ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:709:1
+✖ assistant tools: a response lost before commit leaves no effect and the retry applies once (293.433917ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/assistant-tools-route.test.ts:727:1
+✖ assistant tools: concurrent duplicates of one operation apply exactly once (277.272542ms)
+  Error: NOT_IMPLEMENTED
+      at createAssistantTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/tools.ts:10:9)
+      at toolsFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:200:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:337:15
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:336:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

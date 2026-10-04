@@ -1,0 +1,6 @@
+telemetry {"at": "2026-10-04T07:16:30.687729+00:00", "pageSize": 16384, "pages": {"Pages free": 50353, "Pages inactive": 266653, "Pages speculative": 3979}, "availableBytes": 5259018240, "availableGiB": 4.898, "pressure": 1, "cpuIdlePercent": 81.22, "cpu": "7.16% user, 11.60% sys, 81.22% idle", "diskFreeBytes": 803309494272, "diskFreeGiB": 748.14, "heavyEligible": true}
+lock acquired owner=b3a pid=22694 at=2026-10-04T07:16:30Z
+exit 0 elapsed 1s
+log-sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+node-left:        0
+lock released 2026-10-04T07:16:31Z

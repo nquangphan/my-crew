@@ -1,0 +1,76 @@
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t0xnNe
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t0xnNe nonceSha256=ef93eac503d9c40d4d8aa57105c9795ecd3e643f69c6f42a2a4fa74d95909317
+attachment DB scratch identity dev=16777231 ino=220578081 uid=501 pid=9400
+✔ assistant tools: production assembly without tools is 503 and writes nothing (486.792375ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iYfb1J
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iYfb1J nonceSha256=5578a230a98f3754ce82e8f9c291b5eba304b00f63334ae5e595ade270070581
+attachment DB scratch identity dev=16777231 ino=220578088 uid=501 pid=9400
+✔ assistant tools: authentication and provider call ID come before any authority (327.019ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5KfGXF
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5KfGXF nonceSha256=4252ed6e52ec2a120b57b4200d3366e048c2ff5903f4197caa0576105e67e5ce
+attachment DB scratch identity dev=16777231 ino=220578095 uid=501 pid=9400
+✔ assistant tools: every failure before proof → scope resolution has one shape (364.570625ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VR6Dxd
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VR6Dxd nonceSha256=d0b02755609ebeb8dcd2732662e49af31d816daa2199d39091515fa86f4da0dd
+attachment DB scratch identity dev=16777231 ino=220578102 uid=501 pid=9400
+✔ assistant tools: unknown tool, extra fields and forged results are rejected without rows (316.315209ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Wqe3ar
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Wqe3ar nonceSha256=2719120aa3d81c245662904ded5db1e39a891044ff7b0eb395219bfd9f601216
+attachment DB scratch identity dev=16777231 ino=220578109 uid=501 pid=9400
+✔ assistant tools: stale input pin is 409 after scope resolution and writes nothing (343.616291ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-BE3Zxz
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-BE3Zxz nonceSha256=27dcd7f11f8807eb0b4793ca9208a550700062d853a4d5dae790ba8901ad4ca4
+attachment DB scratch identity dev=16777231 ino=220578116 uid=501 pid=9400
+✔ assistant tools: a tool outside the scope tool_names is 403 without rows (335.393083ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8C60pd
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8C60pd nonceSha256=b0d95a5731d411003291814ed66e2a9b20f25d7d5d12974b2084056360906e25
+attachment DB scratch identity dev=16777231 ino=220578123 uid=501 pid=9400
+✔ assistant tools: the per-turn tool budget denies the next call but not the replay (339.584ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hasBvx
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hasBvx nonceSha256=609464c441e33f59274985953f5af6692230ec14dec4230e2d48cb5e3fa50675
+attachment DB scratch identity dev=16777231 ino=220578130 uid=501 pid=9400
+✔ assistant tools: read_catalog returns the scoped catalog and stores the bound result (322.155ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GyPCvs
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GyPCvs nonceSha256=1086d1c89f1c00aec72caf8610ba15dfcb1a6f2a4181deed0214bef54c73a658
+attachment DB scratch identity dev=16777231 ino=220578137 uid=501 pid=9400
+✔ assistant tools: read_docs returns the page with a read receipt; foreign and unknown are one 404 (354.756875ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-TJXVyK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-TJXVyK nonceSha256=a5e92cb8f0de88177d64bfff89dc3c901b4c2583bf7fa6c5edd52f8120a6258d
+attachment DB scratch identity dev=16777231 ino=220578144 uid=501 pid=9400
+✔ assistant tools: create_run through the real route creates the graph as machine A once (403.716709ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-D7Xbpj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-D7Xbpj nonceSha256=d583d175f8df14c9603b8c2870bcba0d8ad81a3a6edd5da680cf9ceada762d60
+attachment DB scratch identity dev=16777231 ino=220578151 uid=501 pid=9400
+✔ assistant tools: create_run on a root outside the scope is one 404 without ticket probing (315.798916ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ih2zoo
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ih2zoo nonceSha256=445ce00a516f28f3c12ce3a38ab839ef918122f190755bd7e87237114473e43f
+attachment DB scratch identity dev=16777231 ino=220578158 uid=501 pid=9400
+✔ assistant tools: ask_owner through the real route opens the question bound to its operation (320.603333ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-N6tgVS
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-N6tgVS nonceSha256=d90528502f46f39a3299fb728a4ac6a8b862687af70100c96a4a0568fe6f1aa3
+attachment DB scratch identity dev=16777231 ino=220578165 uid=501 pid=9400
+✔ assistant tools: ask_owner without a ticket is 422 and a late failure rolls the row back (326.212ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yKiVum
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yKiVum nonceSha256=7d6aef70d9b06ba86aaeccaae48c1b7afa091697afa338c047754bd251ac502f
+attachment DB scratch identity dev=16777231 ino=220578172 uid=501 pid=9400
+✔ assistant tools: unreleased tools are rejected with a bound row and no effect (319.717417ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7nvWbv
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7nvWbv nonceSha256=48035aa403b75685e8a467e88345f7a189ea43e133fe84fe5eb5a05b986c7f06
+attachment DB scratch identity dev=16777231 ino=220578179 uid=501 pid=9400
+✔ assistant tools: replay returns the stored result without writing; conflicting IDs are 409 (440.90025ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QAOih4
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QAOih4 nonceSha256=6d619385339e7f8da8ff0d5996f3daaf857279cf838cdede79efc4e148fcb4fa
+attachment DB scratch identity dev=16777231 ino=220578187 uid=501 pid=9400
+✔ assistant tools: a response lost before commit leaves no effect and the retry applies once (492.101375ms)
+attachment DB container c6e1617c545d3169e19d0ac6cec9513b2c8c3297aa2ff0c1a1fb77ec28b6e9b4 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-92WMGk
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-92WMGk nonceSha256=2b8dfb7d20c28a6fc30e72e04b89ff44d25a1e5b5c8630bd97699acf33715a23
+attachment DB scratch identity dev=16777231 ino=220578194 uid=501 pid=9400
+✔ assistant tools: concurrent duplicates of one operation apply exactly once (431.329042ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6436.164542
