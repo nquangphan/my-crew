@@ -1,0 +1,535 @@
+c54efb5 fix(v2): operation Trợ lý chỉ dùng một lần trong Tx ghi nó và resolver kiểm grant còn hiệu lực
+ v2/docs/flows/server-assistant.md                  |   4 +-
+ v2/server/src/assistant/authority.ts               |  28 +++-
+ v2/server/src/assistant/orchestration.ts           |  17 ++-
+ .../test/assistant-orchestration-port.test.ts      | 149 +++++++++++++++++----
+ v2/server/test/support/assistant.ts                |   4 +-
+ 5 files changed, 165 insertions(+), 37 deletions(-)
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+index 8843bb7..b76f110 100644
+--- a/v2/docs/flows/server-assistant.md
++++ b/v2/docs/flows/server-assistant.md
+@@ -16,22 +16,22 @@ Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant
+ 
+ 1. Ingestion khóa `event_cursor` rồi monitor, đọc event đã commit theo trang 200, chèn work và tiến cursor trong cùng transaction. Rollback giữ cả work và cursor ở trạng thái trước đó. Event duplicate vẫn cho cursor tiến; work đã claim/ACK không bị ghi đè.
+ 2. `assistant.message.created` và message `attachment.input.changed` đọc revision từ message009. Ticket `attachment.input.changed`, `attachment.changed` đọc counter009 của đích. `comment.created` đọc cây con hiện tại và revision của từng descendant; không tăng counter thêm lần nữa. Ticket lifecycle `ticket.created/changed`, `dependency.added`, `decision.created`, `repair.recorded`, command và attempt events tạo work cursor riêng với `input_revision=null`. Event khác chỉ tiến cursor.
+ 3. Input wake khử trùng trên `(target_kind,target_id,input_revision)` khi revision khác null. `reconcileWork` quét revision message/ticket thực để bù wake mất, dùng cùng khóa dedup và giữ logical key/source cursor ban đầu. Các hàm này không tạo turn hay quyền inference.
+ 4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Trước cả replay, message work phải cùng message/conversation của turn; ticket work cần scope của chính turn còn hạn, đúng root/project, kể cả descendant. Message turn chỉ nhận root scope khi có route chưa revoke tới cùng root/project; monitor turn không message cần explicit root scope. Discovery toàn hệ thống không cấp turn quyền toàn hệ thống. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
+ 5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
+ 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
+ 7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
+ 8. Owner chọn machine còn hiệu lực bằng cookie, Origin, CSRF và Idempotency-Key. PUT dùng machine UUID chuẩn chữ thường cho identity nội bộ, giữ nguyên request body để journal hash/replay. Thứ tự khóa: journal/event cursor → calibration guard → machines theo thứ tự → config → designation → live turns khi đổi máy → exact owner session FOR SHARE. Sau mọi lần chờ, statement riêng kiểm revoke/expiry bằng `clock_timestamp()`, trước cached reply hoặc mutation. Session lock giữ tới commit để serialize revocation.
+ 9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Direct input/doc reads, G2 và retirement runtime vẫn chờ producer tiếp theo.
+-10. Resolver: kiểm fence/scope như cũ (scope thiếu404, fence lệch409, scope hết hạn409 đo bằng `clock_timestamp()`). Turn chưa có `admission_id` giữ503 `ASSISTANT_ADMISSION_NOT_CONFIGURED`. Turn đã admit phải có read session của chính admission (`read_session_id`), session `reserved/running`, cùng máy designation, process instance, designation revision, selection, policy receipt và snapshot input của scope. Selection dẫn tới policy receipt `PASS`, chưa revoke, cùng `deployment_id` của config và đúng verifier đã ghim, cùng máy; capability receipt của selection còn hiệu lực. Session, selection và receipt khóa FOR SHARE rồi mới đo hạn bằng `clock_timestamp()`. Mọi lệch trả403 `ASSISTANT_ADMISSION_DENIED`, không fallback. Thành công trả `{kind:'machine', id: designation.machine_id}` đóng băng.
+-11. Port chụp actor/proof/payload đồng bộ trước mọi await rồi gọi entry scoped; entry khóa root → ticket theo thứ tự → project trước verify. Authority: resolver; actor gọi phải đúng máy designation (403 `ORCHESTRATION_ACTOR_MISMATCH`); action phải nằm trong `scope.actions` (403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`); `operationId` phải là row `assistant_tool_operations` `pending` của cùng turn (404 `ASSISTANT_OPERATION_NOT_FOUND`) trên snapshot input của scope (409 `ASSISTANT_OPERATION_STALE`), row này khóa FOR UPDATE. Ticket đích, cha hoặc predecessor phải thuộc đúng `scope.root_ticket_id` và project; ngoài gốc hoặc scope message không có root trả404. Tạo request mới chỉ với scope message và quyết định `routing` của message ghi trong chính Tx (`xmin` = transaction hiện hành) với body đúng `{operationId,scopeId,ticketSha256}` bằng hash CreateTicket, cùng snapshot, input revision hiện hành, actor máy A và `sha256` khớp; thiếu hoặc lệch trả403 `ORCHESTRATION_ROUTING_DECISION_REQUIRED`. Dependency không có cột actor: provenance là row tool operation (turn → designation → máy A) cộng journal actor A của mutation. Transport tương lai phải resolve proof → scope trước mọi truy vấn ticket để không lộ sự tồn tại.
++10. Resolver: kiểm fence/scope như cũ (scope thiếu404, fence lệch409, scope hết hạn409 đo bằng `clock_timestamp()`). Turn chưa có `admission_id` giữ503 `ASSISTANT_ADMISSION_NOT_CONFIGURED`. Turn đã admit phải có read session của chính admission (tra thẳng theo `read_session_id` và `admission_id`). Grant của session khóa FOR SHARE trước session: chưa revoke, còn hạn, cùng máy designation, cùng snapshot với session, đúng designation và revision của fence; re-route thu hồi grant nên session `reserved` còn lại cũng bị từ chối. Session `reserved/running`, cùng máy designation, process instance, designation revision, selection, policy receipt và snapshot input của scope. Selection dẫn tới policy receipt `PASS`, chưa revoke, cùng `deployment_id` của config và đúng verifier đã ghim, cùng máy; capability receipt của selection còn hiệu lực. Grant, session, selection và receipt khóa FOR SHARE rồi mới đo hạn bằng `clock_timestamp()`. Mọi lệch trả403 `ASSISTANT_ADMISSION_DENIED`, không fallback. Thành công trả `{kind:'machine', id: designation.machine_id}` đóng băng.
++11. Port chụp actor/proof/payload đồng bộ trước mọi await rồi gọi entry scoped; entry khóa root → ticket theo thứ tự → project trước verify. Authority: resolver; actor gọi phải đúng máy designation (403 `ORCHESTRATION_ACTOR_MISMATCH`); action phải nằm trong `scope.actions` (403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`); `operationId` phải là row `assistant_tool_operations` `pending` của cùng turn, được ghi trong chính Tx (`xmin` = transaction hiện hành; row đã commit từ Tx trước bị 404 `ASSISTANT_OPERATION_NOT_FOUND`), trên snapshot input của scope (409 `ASSISTANT_OPERATION_STALE`), row này khóa FOR UPDATE. Mỗi operation chỉ authorize một mutation trong Tx của nó; dùng lại trả 409 `ASSISTANT_OPERATION_CONSUMED`. Ticket đích, cha hoặc predecessor phải thuộc đúng `scope.root_ticket_id` và project; ngoài gốc hoặc scope message không có root trả404. Tạo request mới chỉ với scope message và quyết định `routing` của message ghi trong chính Tx (`xmin` = transaction hiện hành) với body đúng `{operationId,scopeId,ticketSha256}` bằng hash CreateTicket, cùng snapshot, input revision hiện hành (message khóa FOR SHARE khi đọc), actor máy A và `sha256` khớp; thiếu hoặc lệch trả403 `ORCHESTRATION_ROUTING_DECISION_REQUIRED`. Dependency không có cột actor: provenance là row tool operation (turn → designation → máy A) cộng journal actor A của mutation. Precondition cho caller: gọi port bên trong `mutate()` (hoặc khóa `event_cursor` trước root) để giữ thứ tự khóa với ingestion; router ghi tool operation và routing decision trực tiếp trong Tx (không qua savepoint) và ghi decision trước khi tăng `input_revision` của message; transport phải resolve proof → scope trước mọi truy vấn ticket để không lộ sự tồn tại.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/011_assistant.sql` | Persistence Assistant và ràng buộc R1–R4 |
+ | `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
+ | `server/src/assistant/store.ts` | Fence và generation persistence |
+ | `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
+ | `server/src/assistant/authority.ts` | Designation/CAS và resolver Actor từ admission/receipt persisted |
+diff --git a/v2/server/src/assistant/authority.ts b/v2/server/src/assistant/authority.ts
+index 20dad1a..ade6e8e 100644
+--- a/v2/server/src/assistant/authority.ts
++++ b/v2/server/src/assistant/authority.ts
+@@ -109,21 +109,21 @@ export type PersistedAssistantActorResolver = (tx: Tx, proof: OrchestrationProof
+ export type PersistedAssistantActorResolverDependencies = {
+   /** Build hash of the routing verifier pinned at assembly; receipts from any other verifier deny. */
+   verifierBuildSha256: Sha256;
+ };
+ 
+ const admissionDenied = () =>
+   new ApiError('ASSISTANT_ADMISSION_DENIED', 403, 'Admission Trợ lý không hợp lệ');
+ 
+ /**
+  * Positive Actor only from persisted rows in this deployment: current fence and
+- * scope, the turn's admitted read session, and a current PASS policy receipt
++ * scope, the turn's admitted read session and its live input grant, and a current PASS policy receipt
+  * issued by the pinned verifier. A turn without admission stays 503; every
+  * mismatch is 403 with no fallback. Expiry is measured by `clock_timestamp()`
+  * after the authority rows are locked, never by the transaction start time.
+  */
+ export function createPersistedAssistantActorResolver(
+   deps: PersistedAssistantActorResolverDependencies,
+ ): PersistedAssistantActorResolver {
+   const verifierBuildSha256: unknown = deps?.verifierBuildSha256;
+   if (typeof verifierBuildSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(verifierBuildSha256))
+     throw new Error('ASSISTANT_VERIFIER_PIN_INVALID');
+@@ -139,50 +139,70 @@ export function createPersistedAssistantActorResolver(
+     // Locks guard, machine, config, designation, turn and monitor, then rechecks the exact fence.
+     await assertCurrentTurnFence(tx, fence, 'claim');
+     const [current] = await tx`select input_snapshot_id from assistant_scopes where id=${scopeId}
+       and turn_id=${fence.turnId} and expires_at>clock_timestamp()`;
+     if (!current) throw new ApiError('ASSISTANT_SCOPE_STALE', 409, 'Phạm vi Trợ lý đã hết hạn');
+     const [turn] = await tx`select t.admission_id,t.read_session_id,t.model_selection_id,d.machine_id
+       from assistant_turns t join assistant_designations d on d.id=t.designation_id where t.id=${fence.turnId}`;
+     if (!turn) throw new ApiError('ASSISTANT_TURN_STALE', 409, 'Lượt Trợ lý không còn quyền hiện hành');
+     if (turn.admission_id === null)
+       throw new ApiError('ASSISTANT_ADMISSION_NOT_CONFIGURED', 503, 'Chưa cấu hình admission Trợ lý');
+-    const [session] =
+-      await tx`select id,state,machine_id,process_instance_id,designation_revision,model_selection_id,
+-      policy_receipt_id,snapshot_id from attachment_assistant_sessions where admission_id=${turn.admission_id} for share`;
++    // The turn's own read session, then its grant before the session (plan order grant → session).
++    const [link] = turn.read_session_id
++      ? await tx`select grant_id from attachment_assistant_sessions
++        where id=${turn.read_session_id} and admission_id=${turn.admission_id}`
++      : [];
++    const [grant] = link
++      ? await tx`select id,revoked_at,machine_id,snapshot_id,designation_id,designation_revision
++        from attachment_assistant_grants where id=${link.grant_id} for share`
++      : [];
++    const [session] = grant
++      ? await tx`select id,grant_id,state,machine_id,process_instance_id,designation_revision,model_selection_id,
++        policy_receipt_id,snapshot_id from attachment_assistant_sessions
++        where id=${turn.read_session_id} and admission_id=${turn.admission_id} for share`
++      : [];
+     const [selection] = session
+       ? await tx`select id,policy_receipt_id,probe_receipt_id from assistant_model_selections
+         where id=${turn.model_selection_id} and turn_id=${fence.turnId} for share`
+       : [];
+     const [receipt] = selection
+       ? await tx`select status,revoked_at,deployment_id,verifier_build_sha256,machine_id
+         from assistant_policy_receipts where id=${selection.policy_receipt_id} for share`
+       : [];
+     const [capability] = receipt
+       ? await tx`select id from routing_capability_receipts where id=${selection?.probe_receipt_id}
+         and certification_receipt_id=${selection?.policy_receipt_id} for share`
+       : [];
+     // Every expiry is measured after the rows above are locked.
+     const [clock] = session
+       ? await tx`select
+           (select expires_at>clock_timestamp() from attachment_assistant_sessions where id=${session.id}) as session_current,
++          (select expires_at>clock_timestamp() from attachment_assistant_grants where id=${grant?.id ?? null}) as grant_current,
+           (select expires_at>clock_timestamp() from assistant_policy_receipts where id=${selection?.policy_receipt_id ?? null}) as receipt_current,
+           (select expires_at>clock_timestamp() from routing_capability_receipts where id=${capability?.id ?? null}) as capability_current,
+           (select deployment_id from assistant_config where singleton=true) as deployment_id`
+       : [];
+     if (
++      !grant ||
+       !session ||
+       !selection ||
+       !receipt ||
+       !capability ||
+       !clock ||
+       session.id !== turn.read_session_id ||
++      session.grant_id !== grant.id ||
++      grant.revoked_at !== null ||
++      clock.grant_current !== true ||
++      grant.machine_id !== turn.machine_id ||
++      grant.snapshot_id !== session.snapshot_id ||
++      grant.designation_id !== fence.designationId ||
++      Number(grant.designation_revision) !== fence.designationRevision ||
+       !['reserved', 'running'].includes(String(session.state)) ||
+       clock.session_current !== true ||
+       session.machine_id !== turn.machine_id ||
+       session.process_instance_id !== fence.processInstanceId ||
+       Number(session.designation_revision) !== fence.designationRevision ||
+       session.model_selection_id !== selection.id ||
+       session.policy_receipt_id !== selection.policy_receipt_id ||
+       session.snapshot_id !== current.input_snapshot_id ||
+       receipt.status !== 'PASS' ||
+       receipt.revoked_at !== null ||
+diff --git a/v2/server/src/assistant/orchestration.ts b/v2/server/src/assistant/orchestration.ts
+index bc1064f..898e74a 100644
+--- a/v2/server/src/assistant/orchestration.ts
++++ b/v2/server/src/assistant/orchestration.ts
+@@ -44,32 +44,33 @@ function sameIdentity(binding: Binding, actor: Actor, proof: OrchestrationProof)
+       canonicalJson(actor) === canonicalJson(binding.actor) &&
+       canonicalJson(proof) === canonicalJson(binding.proof)
+     );
+   } catch {
+     return false;
+   }
+ }
+ 
+ // A new root exists only through the router's persisted routing decision written
+ // in this same transaction for this exact operation, scope and CreateTicket hash.
++// The message row is share-locked so its input revision cannot move under the check.
+ async function verifyNewRoot(
+   tx: Tx,
+   scope: ScopeRow,
+   proof: OrchestrationProof,
+   actor: Actor,
+   targetSha256: string,
+ ): Promise<void> {
+   if (!scope.messageId) throw routingRequired();
+   const decisions = await tx`select d.*,m.input_revision as current_revision
+     from attachment_message_decisions d join attachment_messages m on m.id=d.message_id
+     where d.message_id=${scope.messageId} and d.kind='routing' and d.xmin=pg_current_xact_id()::xid
+-    order by d.id`;
++    order by d.id for share of m`;
+   const body = canonicalJson({
+     operationId: proof.operationId,
+     scopeId: proof.scopeId,
+     ticketSha256: targetSha256,
+   });
+   const matched = decisions.some((row) => {
+     const stored = {
+       messageId: String(row.message_id),
+       inputRevision: String(row.input_revision),
+       snapshotId: nullableId(row.snapshot_id),
+@@ -123,20 +124,22 @@ async function verifyTarget(
+     return verifyMembership(tx, scope, [input.parentId]);
+   }
+   if (target.action === 'dependency')
+     return verifyMembership(tx, scope, [target.payload.ticketId, target.payload.predecessorId]);
+   return verifyMembership(tx, scope, [target.payload.ticketId]);
+ }
+ 
+ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
+   const resolve = resolver;
+   const bindings = new WeakMap<Tx, Binding>();
++  // Each operation row authorizes exactly one mutation in its own Tx.
++  const consumed = new WeakMap<Tx, Set<string>>();
+   const authority: ProjectOrchestrationAuthority = Object.freeze({
+     async verify(
+       tx: Tx,
+       actor: Actor,
+       proof: OrchestrationProof,
+       action: OrchestrationAction,
+       targetSha256: string,
+     ): Promise<void> {
+       const binding = bindings.get(tx);
+       if (
+@@ -149,26 +152,34 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
+         throw invalidScope();
+       binding.used = true;
+       const resolved = await resolve(tx, binding.proof);
+       if (binding.actor.kind !== 'machine' || binding.actor.id !== resolved.id)
+         throw new ApiError('ORCHESTRATION_ACTOR_MISMATCH', 403, 'Máy gọi không phải máy Trợ lý hiện hành');
+       const [scope] = await tx`select root_ticket_id,message_id,project_id,actions,input_snapshot_id
+         from assistant_scopes where id=${binding.proof.scopeId}`;
+       if (!scope) throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
+       if (!Array.isArray(scope.actions) || !scope.actions.includes(action))
+         throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
+-      const [operation] = await tx`select turn_id,state,input_snapshot_id from assistant_tool_operations
+-        where operation_id=${binding.proof.operationId} for update`;
++      // The tools route writes the pending row in this same Tx before calling the port.
++      const [operation] =
++        await tx`select operation_id,turn_id,state,input_snapshot_id from assistant_tool_operations
++        where operation_id=${binding.proof.operationId} and xmin=pg_current_xact_id()::xid for update`;
+       if (!operation || operation.turn_id !== binding.proof.fence.turnId || operation.state !== 'pending')
+         throw new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
+       if (operation.input_snapshot_id !== scope.input_snapshot_id)
+         throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
++      const used = consumed.get(tx) ?? new Set<string>();
++      consumed.set(tx, used);
++      const operationKey = String(operation.operation_id);
++      if (used.has(operationKey))
++        throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
++      used.add(operationKey);
+       await verifyTarget(
+         tx,
+         {
+           rootTicketId: nullableId(scope.root_ticket_id),
+           messageId: nullableId(scope.message_id),
+           projectId: nullableId(scope.project_id),
+           inputSnapshotId: String(scope.input_snapshot_id),
+         },
+         binding,
+         resolved,
+diff --git a/v2/server/test/assistant-orchestration-port.test.ts b/v2/server/test/assistant-orchestration-port.test.ts
+index 58003d7..6fc4e0c 100644
+--- a/v2/server/test/assistant-orchestration-port.test.ts
++++ b/v2/server/test/assistant-orchestration-port.test.ts
+@@ -94,32 +94,34 @@ async function portFixture(
+     values(${scopeId},${fence.turnId},${kind === 'root' ? f.request.id : null},${messageId},${kind === 'root' ? f.project.id : null},
+     ${db.json(options.actions ?? allActions)},'[]',${snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
+   const resolver = createPersistedAssistantActorResolver({
+     verifierBuildSha256: options.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
+   });
+   const port = createProjectOrchestrationPort({ resolver });
+   const run = async <T>(
+     call: (tx: Tx, proof: OrchestrationProof, actor: Actor) => Promise<T>,
+     opts: {
+       actor?: Actor;
+-      operationId?: Id;
++      operationId?: Id | ((tx: Tx) => Promise<Id>);
+       before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>;
+     } = {},
+   ) => {
+     const actor = opts.actor ?? a;
+     const key = randomUUID();
+     const result = await mutate(
+       db,
+       { actor, route: 'test-only:assistant-port', key, body: {} },
+       async (tx) => {
+         const operationId =
+-          opts.operationId ?? (await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId }));
++          typeof opts.operationId === 'function'
++            ? await opts.operationId(tx)
++            : (opts.operationId ?? (await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId })));
+         const proof: OrchestrationProof = { fence, scopeId, operationId };
+         await opts.before?.(tx, proof);
+         const value = await call(tx, proof, actor);
+         // Journal responses must be JSON objects; the frozen dependency port returns void.
+         return { status: 201, body: { value: (value ?? null) as unknown } };
+       },
+     );
+     return { value: result.body.value, key };
+   };
+   // Stand-in for the B4 router: the routing decision row it writes in the same Tx.
+@@ -288,20 +290,85 @@ const admissionDenials: Record<
+   'session other process instance': {
+     tamper: async (db) => {
+       await db`update attachment_assistant_sessions set process_instance_id=${randomUUID()}`;
+     },
+   },
+   'session other designation revision': {
+     tamper: async (db) => {
+       await db`update attachment_assistant_sessions set designation_revision=2`;
+     },
+   },
++  // Re-route revokes grants without touching a reserved session (attachments/routing.ts).
++  'grant revoked by re-route while session stays reserved': {
++    tamper: async (db, f) => {
++      await db`update attachment_assistant_sessions set state='reserved'`;
++      await db`update attachment_assistant_grants set revoked_at=now() where revoked_at is null
++        and target_kind='ticket' and target_id=${f.request.id}`;
++    },
++  },
++  'grant expired': {
++    tamper: async (db) => {
++      await db`update attachment_assistant_grants set expires_at=clock_timestamp()-interval '1 second'`;
++    },
++  },
++  'grant for another machine': {
++    tamper: async (db, f) => {
++      await db`update attachment_assistant_grants set machine_id=${f.boundB.id}`;
++    },
++  },
++  'capability receipt expired': {
++    // Simulates an expired imported capability; the identity trigger keeps live rows immutable.
++    tamper: async (db) => {
++      await db.begin(async (tx) => {
++        await tx`set local session_replication_role = replica`;
++        await tx`update routing_capability_receipts set received_at=now()-interval '20 minutes',
++          expires_at=clock_timestamp()-interval '1 second'`;
++      });
++    },
++  },
++  'receipt for another machine': {
++    tamper: async (db, f) => {
++      await db.begin(async (tx) => {
++        await tx`set local session_replication_role = replica`;
++        await tx`update assistant_policy_receipts set machine_id=${f.boundB.id} where id=${f.policyReceiptId}`;
++      });
++    },
++  },
++  'session for another machine': {
++    tamper: async (db, f) => {
++      await db`update attachment_assistant_sessions set machine_id=${f.boundB.id}`;
++    },
++  },
++  'session on another snapshot': {
++    tamper: async (db, f) => {
++      const other = randomUUID();
++      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++        values(${other},'ticket',${f.request.id},1,0,'{}',${'e'.repeat(64)})`;
++      await db`update attachment_assistant_sessions set snapshot_id=${other}`;
++    },
++  },
++  'turn read session is another session': {
++    tamper: async (db, f) => {
++      const [session] = await db`select * from attachment_assistant_sessions`;
++      const otherId = randomUUID();
++      await db`insert into attachment_assistant_sessions(id,grant_id,snapshot_id,snapshot_sha256,designation_revision,machine_id,
++        runtime,model_key,model_selection_id,policy_receipt_id,process_instance_id,admission_id,admitted_at,model_config_revision,
++        source_enabled_at_admission,state,expires_at)
++        values(${otherId},${session?.grant_id},${session?.snapshot_id},${session?.snapshot_sha256},1,${session?.machine_id},'api',
++        ${session?.model_key},${session?.model_selection_id},${session?.policy_receipt_id},${randomUUID()},${randomUUID()},now(),1,
++        true,'running',clock_timestamp()+interval '5 minutes')`;
++      await db.begin(async (tx) => {
++        await tx`set local session_replication_role = replica`;
++        await tx`update assistant_turns set read_session_id=${otherId} where id=${f.fence.turnId}`;
++      });
++    },
++  },
+   'session no longer live': {
+     tamper: async (db) => {
+       await db`update attachment_assistant_sessions set state='unknown'`;
+     },
+   },
+ };
+ 
+ for (const [name, variant] of Object.entries(admissionDenials)) {
+   test(`S2 admission denies ${name} with 403 and preserves state`, async () =>
+     withDatabase(async (db) => {
+@@ -319,48 +386,73 @@ for (const [name, variant] of Object.entries(admissionDenials)) {
+             ),
+           { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+         );
+         assert.deepEqual(await f.state(), before);
+       } finally {
+         await f.close();
+       }
+     }));
+ }
+ 
+-test('S2 operation must be a pending row of this turn on the scope input', async () =>
++test('S2 operation must be a pending row written in this Tx on the scope input', async () =>
+   withDatabase(async (db) => {
+     const f = await portFixture(db);
+     try {
+       const before = await f.state();
+-      const decide = (operationId: Id) =>
++      const decide = (operationId: Id | ((tx: Tx) => Promise<Id>)) =>
+         f.run((tx, proof, actor) => f.port.decision(tx, actor, proof, f.a.id, decisionInput()), {
+           operationId,
+         });
+       await assert.rejects(() => decide(randomUUID()), {
+         code: 'ASSISTANT_OPERATION_NOT_FOUND',
+         status: 404,
+       });
+-      const completed = await f.seedToolOperation(db, {
+-        turnId: f.fence.turnId,
+-        snapshotId: f.snapshotId,
+-        state: 'completed',
+-      });
+-      await assert.rejects(() => decide(completed), { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 });
++      await assert.rejects(
++        () =>
++          decide((tx) =>
++            f.seedToolOperation(tx, { turnId: f.fence.turnId, snapshotId: f.snapshotId, state: 'completed' }),
++          ),
++        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
++      );
+       const otherSnapshot = randomUUID();
+       await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+         values(${otherSnapshot},'ticket',${f.request.id},1,0,'{}',${'e'.repeat(64)})`;
+-      const stale = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: otherSnapshot });
+-      await assert.rejects(() => decide(stale), { code: 'ASSISTANT_OPERATION_STALE', status: 409 });
++      await assert.rejects(
++        () => decide((tx) => f.seedToolOperation(tx, { turnId: f.fence.turnId, snapshotId: otherSnapshot })),
++        { code: 'ASSISTANT_OPERATION_STALE', status: 409 },
++      );
++      // A pending row committed by an earlier Tx is not this call's operation.
++      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
++      await assert.rejects(() => decide(committed), { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 });
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 one operation authorizes exactly one mutation in its Tx', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const before = await f.state();
++      let first: Id | null = null;
++      await assert.rejects(
++        () =>
++          f.run(async (tx, proof, actor) => {
++            first = await f.port.decision(tx, actor, proof, f.a.id, decisionInput());
++            // Same proof, different payload: the operation is already consumed.
++            return f.port.signal(tx, actor, proof, f.a.id, 'wait_owner', 1);
++          }),
++        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
++      );
++      assert.ok(first);
+       assert.deepEqual(await f.state(), before);
+-      // A pending operation committed earlier on the scope input still authorizes.
+-      const pending = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
+-      await decide(pending);
+     } finally {
+       await f.close();
+     }
+   }));
+ 
+ test('S2 action outside the persisted scope actions is denied', async () =>
+   withDatabase(async (db) => {
+     const f = await portFixture(db, { actions: ['decision'] });
+     try {
+       const before = await f.state();
+@@ -379,38 +471,43 @@ test('S2 action outside the persisted scope actions is denied', async () =>
+     } finally {
+       await f.close();
+     }
+   }));
+ 
+ test('S2 new root requires the same-Tx routing decision for the exact CreateTicket hash', async () =>
+   withDatabase(async (db) => {
+     const f = await portFixture(db, { scope: 'message' });
+     try {
+       const input = inputTicket(f.project.id, 'request');
+-      const create = (before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>, operationId?: Id) =>
+-        f.run((tx, proof, actor) => f.port.createTicket(tx, actor, proof, input), { before, operationId });
++      const create = (
++        before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>,
++        operationId?: (tx: Tx) => Promise<Id>,
++      ) => f.run((tx, proof, actor) => f.port.createTicket(tx, actor, proof, input), { before, operationId });
+       const before = await f.state();
+       await assert.rejects(() => create(), { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 });
+       await assert.rejects(
+         () => create((tx, proof) => f.routingDecision(tx, proof, createHashFor({ ...input, title: 'Khác' }))),
+         { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 },
+       );
+-      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
+-      await f.routingDecision(
+-        db,
+-        { fence: f.fence, scopeId: f.scopeId, operationId: committed },
+-        createHashFor(input),
++      // The decision for this operation exists but was committed by an earlier Tx.
++      const operationId = randomUUID();
++      await f.routingDecision(db, { fence: f.fence, scopeId: f.scopeId, operationId }, createHashFor(input));
++      await assert.rejects(
++        () =>
++          create(undefined, (tx) =>
++            f.seedToolOperation(tx, { turnId: f.fence.turnId, snapshotId: f.snapshotId, operationId }),
++          ),
++        {
++          code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
++          status: 403,
++        },
+       );
+-      await assert.rejects(() => create(undefined, committed), {
+-        code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
+-        status: 403,
+-      });
+       const after = await f.state();
+       assert.deepEqual(after, before);
+       const { value } = await create((tx, proof) => f.routingDecision(tx, proof, createHashFor(input)));
+       const created = value as { id: Id; rootId: Id; level: string };
+       assert.deepEqual([created.rootId, created.level], [created.id, 'request']);
+       const [row] = await db`select created_actor_kind,created_actor_id from tickets where id=${created.id}`;
+       assert.deepEqual({ ...row }, { created_actor_kind: 'machine', created_actor_id: f.assistantA.id });
+     } finally {
+       await f.close();
+     }
+diff --git a/v2/server/test/support/assistant.ts b/v2/server/test/support/assistant.ts
+index ffd3d6a..e74984e 100644
+--- a/v2/server/test/support/assistant.ts
++++ b/v2/server/test/support/assistant.ts
+@@ -769,23 +769,23 @@ export async function assistantFixture(db: Db) {
+           admission: {
+             target: input.target,
+             sessionExpiresInSeconds: input.sessionExpiresInSeconds ?? 300,
+           },
+         }),
+       );
+     },
+     /** Test-only stand-in for the tools route row written before the port call. */
+     async seedToolOperation(
+       sql: Db | Tx,
+-      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected' },
++      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected'; operationId?: Id },
+     ): Promise<Id> {
+-      const operationId = randomUUID();
++      const operationId = input.operationId ?? randomUUID();
+       const state = input.state ?? 'pending';
+       await sql`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state,response)
+         values(${operationId},${input.turnId},
+           (select coalesce(max(client_sequence),0)+1 from assistant_tool_operations where turn_id=${input.turnId}),
+           ${`fixture-${operationId}`},${createHash('sha256').update(operationId).digest('hex')},${input.snapshotId},${state},
+           ${state === 'pending' ? null : sql.json({ fixture: true })})`;
+       return operationId;
+     },
+     async submitMessage(text = 'Yêu cầu cần xử lý sau khi máy kết nối lại') {
+       const conversation = await attachments.mutation(randomUUID(), (tx) =>
