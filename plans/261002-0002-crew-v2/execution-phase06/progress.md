@@ -95,3 +95,8 @@ Task 2 B2a: minor (deferred): M4 kiểm kind/shape decision có thể chuyển t
 Task 2 B2a: minor (deferred): M5 flow `v2/docs/flows/server-tickets.md:25,47` chứa trạng thái tạm GREEN118/review pending.
 Task 2 B2a: minor (deferred): M6 `prepareDecision` với input null/sources chứa null ném TypeError → 500 thay vì 400 VALIDATION.
 Ruling: hai ⚠️ (dependency không ghi actor; lỗi 404/409/422 trước verify cho phép dò tồn tại) chuyển thành yêu cầu bắt buộc của brief B3 khi mở port ra transport — nằm ngoài phạm vi B2a — sai thì B3 có thể bỏ sót audit actor.
+
+10:10 04/10 PM nhận memo kongming `pm-next-slices-memo-261004.md` (fable). Quota tuần77used/23remaining.
+Ruling: chấp nhận A1–A7 của memo làm ruling PM (B2b tách i/ii, `commands.ts` chỉ T4 sửa; linkage B3/B4 không SQL mới; B5 resolver thuần persisted-row; render root = execution workspace; BMAD definition hai tầng, receipt qua attempt evidence 004; Superpowers digest đo từ canonical context; `recordGateAnswer` thuộc gates.ts) — đều trong phạm vi owner đã duyệt, có trích spec/plan trong memo — sai thì tốn rework slice tương ứng, production vẫn default deny.
+Ruling: thứ tự slice S1 → S3 (song song S1) → S2 → S3b → S4 → S5 → S6 theo memo mục B. Owner chỉ cần được thông báo: máy dự án cần `uv`; S6 chạy uv thật cần slot nặng.
+Dispatch song song: S1 (T2-B2b-i, server tickets) và S3 (T3-D2, gateway) — ownership tách biệt, slot nặng điều phối bằng `$TMPDIR/crew-v2-heavy-slot.lock`.
