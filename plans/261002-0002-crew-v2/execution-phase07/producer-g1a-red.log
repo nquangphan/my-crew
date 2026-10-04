@@ -1,0 +1,110 @@
+✖ GET /v2/tickets?level=request chỉ trả request root và phân trang ổn định theo id (255.976416ms)
+✖ GET /v2/tickets/:id/history trả timeline theo cursor, không lộ nội dung comment/decision (120.083875ms)
+✖ history áp dụng ACL của ticket và audience của event cho machine (93.014333ms)
+✖ GET /v2/tickets/:id/docs-links phân trang >20 theo keyset và không trùng/mất mục (99.345375ms)
+✖ GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn với BigInt (82.527833ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 786.614708
+
+✖ failing tests:
+
+test at v2/server/test/ticket-reads.test.ts:40:1
+✖ GET /v2/tickets?level=request chỉ trả request root và phân trang ổn định theo id (255.976416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/ticket-reads.test.ts:53:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/ticket-reads.test.ts:85:1
+✖ GET /v2/tickets/:id/history trả timeline theo cursor, không lộ nội dung comment/decision (120.083875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/ticket-reads.test.ts:103:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/ticket-reads.test.ts:164:1
+✖ history áp dụng ACL của ticket và audience của event cho machine (93.014333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/ticket-reads.test.ts:194:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/ticket-reads.test.ts:215:1
+✖ GET /v2/tickets/:id/docs-links phân trang >20 theo keyset và không trùng/mất mục (99.345375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/ticket-reads.test.ts:238:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/ticket-reads.test.ts:265:1
+✖ GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn với BigInt (82.527833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/ticket-reads.test.ts:270:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
