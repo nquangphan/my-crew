@@ -226,3 +226,7 @@ Ruling M1: retry khi nguồn/runtime enabled=false → 409 CONFIG_DISABLED, khô
 P-G4r: minor (deferred): M2 route đọc không từ chối máy revoked (nhất quán status cũ); M3 pattern limit tới 999 rồi service 400 >100. Pending: credential key read (phase04), pin digest chuẩn phía server (quyết định riêng), command ticket/attempt read thuộc G5.
 
 06:35 P-G4r follow-up `f100caf` (35/35): received lease 5 phút; enabled=false → 409 CONFIG_DISABLED. Lưu ý producer gap cho S7full: config gateway chỉ có MỘT cờ enabled cho cả máy, trong khi spec/S7full cần BA switch độc lập (Claude, Codex, OpenAI-compatible API) — cần slice producer G4w (desired switches theo nguồn) trước S7full.
+
+06:50 P-G4r follow-up `f100caf` re-review `producer-g4r-fix1-re-review.md`: Approved, I1/M1 ADDRESSED.
+Producer P-G4r: complete — f100caf (947ffb5 + f100caf).
+P-G4r: minor (deferred): N1 lease đo từ received_at lần đầu, không làm mới khi ack received lặp — có thể sinh command trùng chạy tuần tự (vô hại); N2 sửa lời "5 phút đủ cho cài chậm" — là heuristic server, không phải hợp đồng daemon.
