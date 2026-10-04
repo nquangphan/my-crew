@@ -16,7 +16,7 @@ Trên máy mới, fetch và checkout nhánh triển khai trong checkout sạch. 
 
 ## Quota và cách làm bắt buộc
 
-Lần đọc trực tiếp cuối khi bàn giao: quota tuần đã dùng **75%, còn 25%**. Owner yêu cầu dừng giao việc mới ở mức còn 25% hoặc thấp hơn; chỉ khép việc đã chạy, lưu checkpoint và dọn tài nguyên. **Không tự tiếp tục dispatch bằng cùng quota này**; kiểm tra quota mới và sự cho phép của owner trước khi bắt đầu lượt triển khai tiếp. Nếu không đọc được quota, giữ dispatch mới.
+Lần đọc trực tiếp cuối khi bàn giao: quota tuần đã dùng **75%, còn 25%**. Owner đã sửa ngưỡng ngày 04/10/2026: được tiếp tục dispatch cho tới khi quota tuần **còn 5%**; ở mức còn 5% hoặc thấp hơn thì dừng giao việc mới, chỉ khép việc đã chạy, lưu checkpoint và dọn tài nguyên. Kiểm tra quota mới trước mỗi lượt dispatch; nếu không đọc được quota, giữ dispatch mới.
 
 Owner yêu cầu PM chia task cho subagent, review từng task, cho chạy song song khi độc lập và tự đánh giá tài nguyên. Dùng skill chính thức trong `.agents/skills/`, đặc biệt `using-superpowers`, `subagent-driven-development`, `requesting-code-review` và `verification-before-completion`. Full review cho task mới; sau sửa dùng reviewer cũ kiểm finding và delta, không lặp toàn review. Tối đa 5 vòng sửa, sau đó hỏi owner nếu vẫn không đạt.
 
