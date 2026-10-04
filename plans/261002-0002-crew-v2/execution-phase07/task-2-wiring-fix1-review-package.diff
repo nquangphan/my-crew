@@ -1,0 +1,232 @@
+b08a927 test(v2/web): E2E router thật và thứ tự stream trước GET, truyền returnTo cho SessionBoundary
+ .../execution-phase07/task-2-wiring-fix1-build.log |  10 ++
+ .../execution-phase07/task-2-wiring-fix1-e2e.log   |  13 +++
+ .../task-2-wiring-fix1-telemetry.log               |   1 +
+ .../task-2-wiring-fix1-typecheck.log               |   4 +
+ .../task-2-wiring-fix1-unit-full.log               | 118 +++++++++++++++++++++
+ .../execution-phase07/task-2-wiring-report.md      |   8 ++
+ v2/docs/flows/web-shell.md                         |   4 +-
+ v2/web/e2e/app-router.spec.ts                      |  72 +++++++++++++
+ v2/web/src/router.tsx                              |  17 ++-
+ v2/web/test/app-wiring.test.ts                     |   2 -
+ 10 files changed, 243 insertions(+), 6 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-2-wiring-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-2-wiring-report.md
+index a25dbe7..de31793 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-2-wiring-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-2-wiring-report.md
+@@ -34,10 +34,18 @@ BASE `43792f1`, nhánh `codex/crew-v2-server`, Node v24.21.0, pnpm 10.32.1. Work
+ 
+ ## Cleanup
+ 
+ Danh sách `docker ps -a` trước/sau trùng nhau, không còn `crew-v2-web-*` trong TMPDIR, `test-results` đã xóa, lock đã `rm -rf`. Process playwright-mcp còn lại thuộc người khác.
+ 
+ ## Còn lại
+ 
+ - `/` và `/projects/$projectId` vẫn là nội dung minh họa phía sau đăng nhập; S3a/S5a gắn route thật vào `protectedRoute` trong `router.tsx`.
+ - Chưa có E2E router thật giữ trong repo (spec Task2 mount harness); đề xuất Task sau thêm spec thật dựa trên bản scratch.
+ - Tab mới đọc journal từ 0 (backlog producer G) và các minor Task2 còn hoãn không đổi.
++
++## Vòng sửa 1 (review `task-2-wiring-review.md`)
++
++- **I1/I2:** thêm `v2/web/e2e/app-router.spec.ts` (fixture Task1, không mock mạng, chỉ quan sát request). Bao: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=%2Fcrew-v2%2Fprojects%2Fabc%3Fx%3D1`; đăng nhập quay về đúng path; sau GET session xác minh, GET đầu tiên là `/v2/events` và chỉ có một `/v2/events/stream` (thứ tự trên `ProtectedLayout` thật; hiện layout chưa có GET dữ liệu nên assertion là "không GET nào khác đi trước catch-up", S3a/S5a gắn dữ liệu thật thì vẫn đúng); `returnTo=https://evil.example/` rơi về `/crew-v2/`; đăng xuất làm request stream bị hủy. Xóa cache khi logout chỉ được chứng minh ở unit test (E2E không với tới QueryClient).
++- **M2:** xóa nhánh `/v2/projects/flaky`. **M4:** viết lại mục "Dữ liệu" và đoạn tests của `web-shell.md`. **M6:** `ProtectedLayout` truyền `returnTo = internalReturnPath(useLocation())` cho `SessionBoundary`.
++- M3 và M5 để PM ghi ledger.
++
++Kết quả (heap 384 MiB, giữ lock owner=web-wiring; telemetry 4.832 GiB / pressure 1 / idle 72.35% / đĩa 751.8 GiB): E2E `app-router` + `auth` + `events` 4/4; `vite build` exit 0; Biome ba file sạch. Web unit 83/84 và `tsc` đỏ chỉ ở `test/compose-submit.test.ts` (`receiptSummary`, `draftKey`, `conversationId`, `clientMessageId` chưa có trong `src/compose/state.ts`), file của worker S5a đang viết dở, không phải của wiring; `app-wiring.test.ts` xanh. `docker ps -a` trước/sau trùng nhau, `test-results` đã xóa, lock đã nhả. Log: `task-2-wiring-fix1-*.log`.
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index 4051261..6899e15 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -27,21 +27,21 @@
+ | File | Vai trò |
+ |---|---|
+ | `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web` |
+ | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
+ | `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
+ | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
+ | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
+ 
+ ## Dữ liệu
+ 
+-Từ bước wiring, `QueryClient` có một instance cho mỗi runtime của app; `/` và `/projects/$projectId` vẫn là nội dung minh họa phía sau đăng nhập. Phần dưới là ghi chú lịch sử của Task 1. Task 1 chưa đọc project/ticket/Assistant thật. `QueryClient` có một instance cho mỗi lần mount browser app; dữ liệu nhạy cảm không vào module-global state. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
++Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+ 
+ `v2/docs/flows/server-platform.md` định nghĩa migration và DB v2; `v2/docs/flows/server-identity.md` định nghĩa bootstrap/login owner. Các trang nghiệp vụ Phase07 Task2–8 sẽ dùng shell này sau khi producer gate tương ứng mở.
+ 
+ ## Tests
+ 
+ Workspace RED đầu tiên exit 1 bằng assertion thiếu `package.json`, sau scaffold workspace 1/1 PASS. Lifecycle RED trên deny scaffold có 3 assertion thất bại đúng hành vi thiếu callback/identity/STOP. Preview SIGTERM child từng RED thực: tài nguyên cleanup nhưng process không tự exit; đã GREEN. Review FIX1 phát hiện request gửi dở có thể giữ `close()` chờ vô hạn; test HTTP thật RED với `ACTIVE_REQUEST_CLOSE_DEADLINE`, sau sửa hủy socket thuộc fixture và deadline cleanup thì GREEN. Lượt final sau format đạt lifecycle 5/5 trên PostgreSQL18.6/API/web listener thật: POST login, GET session trực tiếp và qua proxy `/v2`, close lặp, active request, SIGTERM child exit0/cleanup; hai case UNKNOWN là unit policy. Scoped Biome và strict typecheck sau FIX1 exit0; web build 150 modules và workspace 1/1 thuộc freeze UI trước FIX1, vì FIX1 chỉ đổi harness/test. Exact container ID, image digest, DB, cổng, process, scratch và STOP độc lập, cùng raw logs có hash của FIX1, được ghi trong báo cáo Phase07. Preview Playwright MCP cuối trên source UI đã xác nhận Enter skip link chuyển focus vào `MAIN#main-content`, error console 0, viewport thật 1280/390/640 px đều không tràn. Viewport 640px là kiểm tra bố cục tương đương; literal browser zoom 200% chưa đo được vì shortcut không đổi zoom metrics. Fixture preview đã đóng và exact resource biến mất. FIX2 bổ sung guard sau stat để không khởi chạy rm sau REMOVE timeout; focused unit RED/GREEN và scoped Biome đã có. Full lifecycle6 và strict typecheck trên freeze FIX2 chưa chạy do resource gate, independent scoped FIX2 review chưa hoàn tất. Đây là checkpoint source, chưa nghiệm thu đầy đủ Task1; các trang nghiệp vụ Task2–8 nằm ngoài nghiệm thu shell này.
+ 
+-`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. Một lượt E2E tạm trên router thật (không giữ trong repo) đã kiểm guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, stream khởi động, đăng xuất, và `returnTo` là URL ngoài rơi về `/crew-v2/`.
++`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. `web/e2e/app-router.spec.ts` chạy router thật qua fixture PostgreSQL/API/Vite: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, request `GET /v2/events` đi trước mọi GET khác sau bước xác minh phiên, `returnTo` là URL ngoài rơi về `/crew-v2/`, và đăng xuất đóng stream (request stream bị hủy, không có request sự kiện mới).
+diff --git a/v2/web/e2e/app-router.spec.ts b/v2/web/e2e/app-router.spec.ts
+new file mode 100644
+index 0000000..4c42e33
+--- /dev/null
++++ b/v2/web/e2e/app-router.spec.ts
+@@ -0,0 +1,72 @@
++/**
++ * Real app router on the Task1 fixture (PostgreSQL, API, Vite): guest redirect, login with a validated return
++ * route, event stream ordering on the real protected layout, and logout. No network mocking; requests are
++ * only observed.
++ */
++import { test as base, expect } from '@playwright/test';
++import { type FixtureHandle, withFixture } from './support/fixture.ts';
++
++const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
++  crew: [
++    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern for fixture deps.
++    async ({}, use) => {
++      await withFixture(async (handle) => {
++        await use(handle);
++      });
++    },
++    { scope: 'worker', timeout: 180_000 },
++  ],
++});
++test.describe.configure({ timeout: 120_000 });
++
++test('router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream', async ({
++  page,
++  crew,
++}) => {
++  const calls: string[] = [];
++  const streamsClosed: string[] = [];
++  page.on('request', (request) => {
++    const { pathname } = new URL(request.url());
++    if (pathname.startsWith('/v2/')) calls.push(`${request.method()} ${pathname}`);
++  });
++  page.on('requestfailed', (request) => {
++    const { pathname } = new URL(request.url());
++    if (pathname === '/v2/events/stream') streamsClosed.push(pathname);
++  });
++  const here = () => {
++    const url = new URL(page.url());
++    return url.pathname + url.search;
++  };
++  const heading = page.getByRole('heading', { name: 'Đăng nhập Crew' });
++  const password = page.getByLabel('Mật khẩu');
++  const signIn = page.getByRole('button', { name: 'Đăng nhập', exact: true });
++
++  await page.goto(`${crew.webOrigin}/crew-v2/projects/abc?x=1`);
++  await expect(heading).toBeVisible();
++  expect(here()).toBe('/crew-v2/login?returnTo=%2Fcrew-v2%2Fprojects%2Fabc%3Fx%3D1');
++  expect(calls.some((call) => call.startsWith('GET /v2/events'))).toBe(false);
++
++  await password.fill(crew.ownerPassword);
++  await signIn.click();
++  await expect(page.getByRole('heading', { name: 'Dự án' })).toBeVisible();
++  expect(here()).toBe('/crew-v2/projects/abc?x=1');
++  await expect.poll(() => calls.some((call) => call === 'GET /v2/events/stream')).toBe(true);
++
++  // After the session is verified, the first owner GET must be the event catch-up, before any view data.
++  const verified = calls.lastIndexOf('GET /v2/auth/session');
++  const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
++  expect(afterLogin[0]).toBe('GET /v2/events');
++  expect(afterLogin.filter((call) => call === 'GET /v2/events/stream')).toHaveLength(1);
++
++  await page.getByRole('button', { name: 'Đăng xuất' }).click();
++  await expect(heading).toBeVisible();
++  await expect.poll(() => streamsClosed.length).toBe(1);
++  const afterLogout = calls.length;
++
++  await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
++  await password.fill(crew.ownerPassword);
++  await signIn.click();
++  await expect(page.getByRole('heading', { name: 'Không gian làm việc', level: 1 })).toBeVisible();
++  expect(new URL(page.url()).pathname).toBe('/crew-v2/');
++  expect(calls.slice(afterLogout).some((call) => call.includes('evil'))).toBe(false);
++});
+diff --git a/v2/web/src/router.tsx b/v2/web/src/router.tsx
+index ff6ce75..c424943 100644
+--- a/v2/web/src/router.tsx
++++ b/v2/web/src/router.tsx
+@@ -1,21 +1,28 @@
+ import {
+   createRootRoute,
+   createRoute,
+   createRouter,
+   Outlet,
+   redirect,
++  useLocation,
+   useRouter,
+   useSearch,
+ } from '@tanstack/react-router';
+ import { useEffect, useSyncExternalStore } from 'react';
+-import { type AppRuntime, authorizeRoute, parseLoginSearch, useRuntime } from './app-runtime.ts';
++import {
++  type AppRuntime,
++  authorizeRoute,
++  internalReturnPath,
++  parseLoginSearch,
++  useRuntime,
++} from './app-runtime.ts';
+ import { LoginScreen } from './auth/login.tsx';
+ import { SessionBoundary } from './auth/session-boundary.tsx';
+ import { safeReturnPath } from './lib/session.ts';
+ import { EmptyPanel, ErrorPanel, LoadingPanel, Shell } from './shell.tsx';
+ 
+ function GuestHome() {
+   return (
+     <section className="page-stack" aria-labelledby="guest-heading">
+       <div className="page-intro">
+         <span className="eyebrow">Bản minh họa</span>
+@@ -39,22 +46,28 @@ function ProjectHome() {
+         <h1 id="project-heading">Dự án</h1>
+         <p>Thông tin dự án sẽ xuất hiện sau khi đăng nhập.</p>
+       </div>
+       <EmptyPanel />
+     </section>
+   );
+ }
+ 
+ function ProtectedLayout() {
+   const { session, pending, client } = useRuntime();
++  const location = useLocation();
+   return (
+-    <SessionBoundary session={session} pending={pending} client={client}>
++    <SessionBoundary
++      session={session}
++      pending={pending}
++      client={client}
++      returnTo={internalReturnPath(location)}
++    >
+       <Outlet />
+     </SessionBoundary>
+   );
+ }
+ 
+ function LoginRoute() {
+   const { session } = useRuntime();
+   const router = useRouter();
+   const { returnTo } = useSearch({ from: '/login' });
+   const snapshot = useSyncExternalStore(
+diff --git a/v2/web/test/app-wiring.test.ts b/v2/web/test/app-wiring.test.ts
+index ccb902c..d5c4a47 100644
+--- a/v2/web/test/app-wiring.test.ts
++++ b/v2/web/test/app-wiring.test.ts
+@@ -48,22 +48,20 @@ function fakeApi(authenticated = true) {
+               controller.error(new DOMException('aborted', 'AbortError'));
+             } catch {
+               // already closed
+             }
+           });
+         },
+       });
+       return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+     }
+     if (url.startsWith('/v2/events')) return json({ items: [], cursor: '0' });
+-    if (url === '/v2/projects/flaky')
+-      return json({ error: { code: 'SERVICE_UNAVAILABLE', message: 'x' } }, 503);
+     return json({ ok: true });
+   };
+   return { fetch, log };
+ }
+ 
+ test('the event stream starts before the first protected GET', async () => {
+   const api = fakeApi();
+   const app = runtime.createAppRuntime({ fetch: api.fetch });
+   // A protected view mounts after the runtime and fetches as soon as the session is authenticated.
+   app.session.subscribe(() => {
