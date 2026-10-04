@@ -163,3 +163,7 @@ Ruling (brief T4 bắt buộc): N1 bước execute không dispatch khi gate chư
 Follow-up nhỏ giao worker S4 ngay: N3 thêm tag phiên bản `crew-v2:operation-request:1` vào hash (trước khi có giá trị persisted); N4 thêm ca deny của chính createRun với request cố định.
 
 21:45 S4 follow-up `01367a9` re-review `task-3-s1-fix2-re-review.md`: Approved, N3/N4 ADDRESSED. Task 3 S1 (S4): complete — 01367a9 (0d4f984 + e4b8cd3 + 01367a9). S5 (T3-S2 gates) đã dispatch trên BASE bbfebaf.
+
+22:35 S5 `2bdc332` security review `task-3-s2-review.md`: gần đạt, Needs fixes, Important1 (approve artifact đã bị thay thế) /Minor5/⚠️7; không có đường giả owner/chéo gate/replay/execution ngoài danh sách/deadlock qua mutate(). FIX1/5 resume: I1, nâng W7 (gate của run bị supersede → 409), M1–M5; re-release hẹp runs.ts (gộp validator parallel) và operation-request.ts (union ask_owner).
+Ruling chờ: W1 DTO route answer (phase-06:155 answer:string/decisionId nullable vs GateAnswer) — quyết ở slice route controller.
+Task 3 S2: ⚠️ ghi checklist: W2 ask_owner + wait intent (phase-06:226) chưa làm → T4/T5; W3 sharedInputSha256 chưa đối chiếu, architectural parallel chưa hiện thực được vì steps bất biến → S5b/T4; W4 actor resolve bị bỏ qua, binding máy phụ thuộc B3, 404 trước resolver; W5 câu hỏi không ticket 422, chưa có event question/answer → B3/T6; W6 UI phải cho owner xem đúng bytes SHA (phase07 A6full).
