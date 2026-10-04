@@ -477,12 +477,14 @@ flows:
       - gateway/src/assistant/workflow-manifest.ts
     files:
       - gateway/src/assistant/render-artifacts.ts
+      - gateway/src/assistant/tool-client.ts
       - server/src/assistant/gates.ts
       - server/src/assistant/runs.ts
       - server/src/assistant/workflows.ts
     tests:
       - gateway/test/workflow-manifest.test.ts
       - gateway/test/render-artifacts.test.ts
+      - gateway/test/assistant-tool-client.test.ts
       - server/test/assistant-workflows.test.ts
   web-shell:
     title: Khung web và fixture cô lập Crew v2

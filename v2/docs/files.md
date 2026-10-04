@@ -24,6 +24,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/assistant/render-artifacts.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+| `gateway/src/assistant/tool-client.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
 | `gateway/src/assistant/workflow-manifest.ts` | [assistant-workflows](flows/assistant-workflows.md) (điểm vào) |
 | `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/commands/http-client.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -76,6 +77,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/workflows/registry.ts` | [gateway-workflows](flows/gateway-workflows.md) (điểm vào) |
 | `gateway/src/workflows/retention.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
 | `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/test/assistant-tool-client.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/connection.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/credential-broker.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/credential-provisioning.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
