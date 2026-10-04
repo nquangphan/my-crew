@@ -393,7 +393,8 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
       },
       true,
     );
-    if (blocked && db) await closePhase('database:pool', () => db!.end({ timeout: 2 }), 3_000);
+    const pool = db;
+    if (blocked && pool) await closePhase('database:pool', () => pool.end({ timeout: 2 }), 3_000);
     await closeOne(databaseResource, {
       deadlineMs: 5_000,
       readStartIdentity: readDbIdentity,
@@ -466,7 +467,8 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
         }
       },
     });
-    if (admin) await closePhase('admin:pool', () => admin!.end({ timeout: 2 }), 3_000);
+    const currentAdmin = admin;
+    if (currentAdmin) await closePhase('admin:pool', () => currentAdmin.end({ timeout: 2 }), 3_000);
     await closeOne(containerResource, {
       deadlineMs: 8_000,
       readStartIdentity: readContainerIdentity,
