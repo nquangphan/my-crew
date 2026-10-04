@@ -1,0 +1,672 @@
+30a1d54 fix(v2-web): kiểm port receiver fixture, dọn scratch attachment và assert GET dự án sau catch-up
+ v2/docs/files.md                           |   2 +
+ v2/docs/flows.yaml                         |   2 +
+ v2/docs/flows/web-shell.md                 |   6 +-
+ v2/web/e2e/app-router.spec.ts              |   8 ++
+ v2/web/scripts/e2e-attachment-receivers.ts |   8 +-
+ v2/web/scripts/e2e-fixture.ts              | 129 ++++++++++++++++++++---------
+ v2/web/test/attachment-receivers.test.ts   | 102 +++++++++++++++++++++++
+ v2/web/test/fixture-scratch.test.ts        | 124 +++++++++++++++++++++++++++
+ v2/web/test/ticket-routes.test.ts          |  14 +---
+ 9 files changed, 336 insertions(+), 59 deletions(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index d3cf0f8..95fa667 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -412,31 +412,33 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/src/tickets/create-request-state.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/create-request.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/detail.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/dialog.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+ | `web/src/tickets/history.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/list.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/queries.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/requests.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
++| `web/test/attachment-receivers.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/compose.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/composer-dom.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/create-request.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/docs-links.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/docs-space-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/docs-ticket-links-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
++| `web/test/fixture-scratch.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/ticket-detail-dom.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/ticket-routes.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 22705df..e5e30b7 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -503,20 +503,22 @@ flows:
+       - web/tsconfig.json
+       - web/vite.config.ts
+       - web/index.html
+       - web/playwright.config.ts
+     tests:
+       - web/test/workspace.test.ts
+       - web/test/fixture-lifecycle.test.ts
+       - web/test/app-wiring.test.ts
+       - web/e2e/app-router.spec.ts
+       - web/test/ticket-routes.test.ts
++      - web/test/attachment-receivers.test.ts
++      - web/test/fixture-scratch.test.ts
+       - web/e2e/ticket-routes.spec.ts
+       - web/e2e/docs-assistant.spec.ts
+   web-data:
+     title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
+     doc: docs/flows/web-data.md
+     entrypoints:
+       - web/src/auth/session-boundary.tsx
+     files:
+       - web/src/auth/login.tsx
+       - web/src/contracts/attachments.ts
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index d2ff800..59ff67a 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -14,33 +14,33 @@
+ - `v2/web/e2e/support/fixture.ts` khai báo `withFixture`, resource và cleanup. Coordinator đã qua test lifecycle PostgreSQL/API, active request shutdown và SIGTERM child thật (5/5); lượt MCP cuối đã kiểm shell guest, UI không đổi trong FIX1.
+ - `v2/web/scripts/e2e-fixture.ts --preview` giữ cùng fixture vật lý trong process cho browser MCP và nhận lệnh `close` sau khi tab đã đóng. Origin, nonce và registry không chứa credential được in trước khi điều hướng.
+ 
+ ## Các bước
+ 
+ 0. Wiring phiên: `createAppRuntime` đăng ký `wireSession` trước khi React render nên khi phiên thành `authenticated`, `EventSync.start` chạy (và gửi request catch-up) trước khi view được bảo vệ kịp GET dữ liệu đầu tiên. Route được bảo vệ chạy `authorizeRoute` trong `beforeLoad`: đợi `bootstrap`, rồi guest/expired bị chuyển tới `/login?returnTo=<path nội bộ>`. `returnTo` đi qua `safeReturnPath`, chỉ nhận path `/crew-v2/` nên URL ngoài hay `..` về `/crew-v2/`. Đăng nhập thành công đẩy history tới path đã kiểm. Nếu phiên hết hạn khi đang ở route được bảo vệ, `SessionBoundary` hiện màn hình đăng nhập lại tại chỗ. Nút “Đăng xuất” ở toolbar gọi `SessionController.logout`, xóa cache và đóng stream. Query mặc định `retry: false` vì `OwnerClient.get` đã tự retry; `refetchOnWindowFocus` và `refetchOnReconnect` bật.
+ 
+ 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
+ 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
+ 3. Dev Vite chỉ proxy `/v2` khi caller cấp `CREW_V2_WEB_API_ORIGIN`; build production dự kiến dùng cùng origin. Khung Task1 không gọi API hay import app/schema/role runtime v1.
+-5. Route ticket (đều sau `authorizeRoute`): `/projects/$projectId/tickets?view=board|list|requests&status&kind&rootId` render `TicketBoard`, `TicketList` hoặc `RequestList` và đúng một `TicketDialog`; `view` mặc định `board`, chỉ bốn bộ lọc của producer được giữ (`parseTicketsSearch`), đổi bộ lọc hay view ghi lại vào URL nên reload giữ nguyên. `/tickets/$ticketId` render `TicketDetail presentation="page"` cho deep link và reload, kèm liên kết quay lại danh sách khi đã biết project của ticket. `projectId`/`ticketId` không phải UUID hiện view “Không tìm thấy” (không bao giờ bỏ bộ lọc project để liệt kê mọi project); UUID hợp lệ nhưng không tồn tại hiện thông báo 404 của `TicketDetail`. Guest mở deep link được chuyển tới login rồi quay về đúng path. `/projects/$projectId/docs?path=` render `DocsSpace` (đường dẫn trang nằm trên URL nên reload giữ trang; ticket liên kết mở bằng cùng `TicketDialog`). Sidebar “Dự án” đọc `GET /v2/projects` chỉ khi đã đăng nhập và liệt kê mỗi dự án với liên kết “Ticket” và “Tài liệu”. Đăng xuất gọi `clearTicketDrafts` trên storage của runtime (qua `session.onLogout`), nên bản nháp bị xóa cả khi trang vừa reload mà chưa mở ticket nào; hết phiên thì giữ nháp để đăng nhập lại.
+-4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Fixture cũng truyền `AttachmentAssembly` cho `buildApp`: storage root riêng `crew-v2-web-attachments-*` (resource `scratch` trong registry, xóa trước scratch chính khi đóng), `storageHostId` UUID chữ thường, writer native trên Linux hoặc cổng closed-ACK trong process (`web/scripts/e2e-attachment-receivers.ts`, không có bằng chứng process-gone native) trên host khác. Không truyền `extractorVersion` nên submission có tệp vẫn 503 `EXTRACTION_NOT_CONFIGURED`; port chưa có producer vẫn vắng (409/503). Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
++5. Route ticket (đều sau `authorizeRoute`): `/projects/$projectId/tickets?view=board|list|requests&status&kind&rootId` render `TicketBoard`, `TicketList` hoặc `RequestList` và đúng một `TicketDialog`; `view` mặc định `board`, chỉ bốn bộ lọc của producer được giữ (`parseTicketsSearch`), đổi bộ lọc hay view ghi lại vào URL nên reload giữ nguyên. `/tickets/$ticketId` render `TicketDetail presentation="page"` cho deep link và reload, kèm liên kết quay lại danh sách khi đã biết project của ticket. `projectId`/`ticketId` không phải UUID hiện view “Không tìm thấy” (không bao giờ bỏ bộ lọc project để liệt kê mọi project); UUID hợp lệ nhưng không tồn tại hiện thông báo 404 của `TicketDetail`. Guest mở deep link được chuyển tới login rồi quay về đúng path. `/projects/$projectId/docs?path=` render `DocsSpace` (đường dẫn trang nằm trên URL nên reload giữ trang; ticket liên kết mở bằng cùng `TicketDialog`). Sidebar “Dự án” đọc `GET /v2/projects` chỉ khi đã đăng nhập và liệt kê mỗi dự án với liên kết “Ticket” và “Tài liệu”. Đăng xuất gọi `clearTicketDrafts` trên storage của runtime (qua `session.onLogout`), nên bản nháp bị xóa cả khi trang vừa reload mà chưa mở ticket nào; hết phiên (`session.expire()`) giữ nháp để đăng nhập lại và chỉ `logout()` mới xóa (ruling PM, khớp brief Task2). Đường “đăng xuất xong rồi reload ở guest” chỉ được kiểm trong trình duyệt (`ticket-routes.spec.ts`): trang guest không ghi nháp nên unit test của nó đúng cả khi thiếu logic xóa.
++4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Fixture cũng truyền `AttachmentAssembly` cho `buildApp`: storage root riêng `crew-v2-web-attachments-*` (resource `scratch` trong registry, xóa trước scratch chính khi đóng), `storageHostId` UUID chữ thường, writer native trên Linux hoặc cổng closed-ACK trong process (`web/scripts/e2e-attachment-receivers.ts`, không có bằng chứng process-gone native) trên host khác. Port đó không có bằng chứng native process-gone (định danh `fixture-only`), chỉ import từ `e2e-fixture.ts` (không entrypoint production nào import) và được `test/attachment-receivers.test.ts` chạy trọn giao thức register → run → closeAndAcknowledge → proveStopped trên DB fixture. Việc đóng scratch nằm ở `closeScratches` (attachment trước, UNKNOWN/deadline giữ cả scratch chính) và `createAttachmentScratch` (lỗi giữa `mkdtemp` và đăng ký thì xóa đúng thư mục vừa tạo), cả hai có test trong `test/fixture-scratch.test.ts`. Không truyền `extractorVersion` nên submission có tệp vẫn 503 `EXTRACTION_NOT_CONFIGURED`; port chưa có producer vẫn vắng (409/503). Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
+ 
+ ## Files
+ 
+ | File | Vai trò |
+ |---|---|
+ | `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 được khai báo tường minh trong `devDependencies` |
+ | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
+ | `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
+ | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
+ | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
+-| `v2/web/scripts/e2e-attachment-receivers.ts`, `v2/web/e2e/support/owner-seed.ts` | Cổng writer upload cho host không phải Linux; seed project/ticket và snapshot tài liệu qua API owner thật cho e2e |
++| `v2/web/scripts/e2e-attachment-receivers.ts`, `v2/web/e2e/support/owner-seed.ts`, `v2/web/test/attachment-receivers.test.ts`, `v2/web/test/fixture-scratch.test.ts` | Cổng writer upload cho host không phải Linux; seed project/ticket và snapshot tài liệu qua API owner thật cho e2e |
+ | `v2/web/src/ticket-routes.tsx`, `v2/web/src/docs-route.tsx` | View route ticket (bảng/danh sách/yêu cầu có URL state, dialog dùng chung, trang ticket deep link) và không gian tài liệu |
+ | `v2/web/test/ticket-routes.test.ts`, `v2/web/e2e/ticket-routes.spec.ts`, `v2/web/e2e/docs-assistant.spec.ts` | Match route, search, compose services, xóa nháp khi logout; deep link/reload/404/URL state/nháp và không gian tài liệu trên API/PG thật (snapshot import qua `POST /v2/docs/imports`; phần Trợ lý chờ producer) |
+ 
+ ## Dữ liệu
+ 
+ Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+ 
+ `v2/docs/flows/server-platform.md` định nghĩa migration và DB v2; `v2/docs/flows/server-identity.md` định nghĩa bootstrap/login owner. Các trang nghiệp vụ Phase07 Task2–8 sẽ dùng shell này sau khi producer gate tương ứng mở.
+diff --git a/v2/web/e2e/app-router.spec.ts b/v2/web/e2e/app-router.spec.ts
+index d91a23d..d379342 100644
+--- a/v2/web/e2e/app-router.spec.ts
++++ b/v2/web/e2e/app-router.spec.ts
+@@ -51,20 +51,28 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
+   await signIn.click();
+   await expect(page.getByRole('heading', { name: 'Dự án' })).toBeVisible();
+   expect(here()).toBe('/crew-v2/projects/abc?x=1');
+   await expect.poll(() => calls.some((call) => call === 'GET /v2/events/stream')).toBe(true);
+ 
+   // After the session is verified, the first owner GET must be the event catch-up, before any view data.
+   const verified = calls.lastIndexOf('GET /v2/auth/session');
+   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
+   expect(afterLogin[0]).toBe('GET /v2/events');
+   expect(afterLogin.filter((call) => call === 'GET /v2/events/stream')).toHaveLength(1);
++  // The sidebar's project list is real data: it must be requested after the catch-up, never before it.
++  await expect.poll(() => calls.includes('GET /v2/projects')).toBe(true);
++  const projectsAfterLogin = calls
++    .slice(verified + 1)
++    .filter((call) => call.startsWith('GET '))
++    .indexOf('GET /v2/projects');
++  expect(projectsAfterLogin).toBeGreaterThan(0);
++  expect(projectsAfterLogin).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
+ 
+   await page.getByRole('button', { name: 'Đăng xuất' }).click();
+   await expect(heading).toBeVisible();
+   await expect.poll(() => streamsClosed.length).toBe(1);
+   const afterLogout = calls.length;
+ 
+   await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
+   await expect(heading).toBeVisible();
+   // As a guest, neither the logout nor the fresh page load opens any event request.
+   expect(calls.slice(afterLogout).filter((call) => call.startsWith('GET /v2/events'))).toEqual([]);
+diff --git a/v2/web/scripts/e2e-attachment-receivers.ts b/v2/web/scripts/e2e-attachment-receivers.ts
+index c26cae4..bfc1df5 100644
+--- a/v2/web/scripts/e2e-attachment-receivers.ts
++++ b/v2/web/scripts/e2e-attachment-receivers.ts
+@@ -1,15 +1,16 @@
+ /**
+  * Upload writer port for the E2E fixture on hosts without the native Linux writer identity (`/proc`).
+  * It runs the same DB/storage terminal protocol as the native registry (register, write, closed-ACK) inside
+- * the fixture's single Node process, and deliberately has no native process-gone proof: it grants no
+- * authority in production and is used only when `buildApp` would otherwise refuse to start on this host.
++ * the fixture's single Node process, and deliberately has no native process-gone proof (its identity says
++ * `fixture-only`). It is reachable only from `e2e-fixture.ts`, which no production entrypoint imports, and
++ * `test/attachment-receivers.test.ts` drives its whole protocol against the fixture database.
+  */
+ import { createHash, randomUUID } from 'node:crypto';
+ import { join } from 'node:path';
+ import type {
+   ReceiverRegistration,
+   ServerWriterIdentity,
+   WriterStopProof,
+ } from '../../server/src/attachments/contracts.ts';
+ import type { ManagedReceiverRegistry } from '../../server/src/attachments/receivers.ts';
+ import { prepareOwnedUpload, writePrivateJson } from '../../server/src/attachments/storage.ts';
+@@ -49,21 +50,22 @@ export function createFixtureReceivers(input: {
+         try {
+           return await work(AbortSignal.any([signal, op.abort.signal]));
+         } finally {
+           op.active = false;
+           op.terminal = true;
+         }
+       },
+     },
+     async register(tx, attachmentId, generation) {
+       const [upload] = await tx`select ownership_nonce from attachment_uploads where id=${attachmentId}`;
+-      await prepareOwnedUpload(input.root, attachmentId, String(upload?.ownership_nonce));
++      if (typeof upload?.ownership_nonce !== 'string') throw new Error('FIXTURE_UPLOAD_NOT_FOUND');
++      await prepareOwnedUpload(input.root, attachmentId, upload.ownership_nonce);
+       await tx`insert into attachment_server_writers(instance_id,storage_host_id,linux_boot_id,proc_namespace_inode,pid,start_ticks) values(${identity.instanceId},${identity.storageHostId},${identity.linuxBootId},${identity.procNamespaceInode},${identity.pid},${identity.startTicks}) on conflict(instance_id) do nothing`;
+       const id = randomUUID();
+       const operationNonce = randomUUID();
+       const stageKey = `uploads/${attachmentId}/stage.${generation}.${id}`;
+       const registration: ReceiverRegistration = {
+         id,
+         attachmentId,
+         generation,
+         identity,
+         stageKey,
+diff --git a/v2/web/scripts/e2e-fixture.ts b/v2/web/scripts/e2e-fixture.ts
+index 44e644e..90c0c5a 100644
+--- a/v2/web/scripts/e2e-fixture.ts
++++ b/v2/web/scripts/e2e-fixture.ts
+@@ -95,20 +95,93 @@ export function createScratchRemoval(
+ ): (signal: AbortSignal) => Promise<boolean> {
+   return async (signal) => {
+     const entry = await port.stat(scratchPath);
+     if (signal.aborted) return false;
+     if (String(entry.dev) + ':' + String(entry.ino) !== scratchIdentity) return false;
+     await port.rm(scratchPath, { recursive: true });
+     return true;
+   };
+ }
+ 
++type ScratchTarget = { resource: OwnedResource; path: string; identity: string };
++
++async function closeScratch(target: ScratchTarget, removal: ScratchRemovalPort, deadlineMs?: number) {
++  return closeOwnedResource(target.resource, {
++    deadlineMs,
++    readStartIdentity: async () => {
++      try {
++        const entry = await stat(target.path);
++        return String(entry.dev) + ':' + String(entry.ino);
++      } catch {
++        return null;
++      }
++    },
++    stop: async () => true,
++    confirmStopped: async () => true,
++    remove: createScratchRemoval(target.path, target.identity, removal),
++  });
++}
++
++/**
++ * Removes the attachment storage root first (the registry that records it lives in the main scratch), then
++ * the main scratch. Any UNKNOWN keeps the main scratch, and with it the registry, for reconciliation.
++ */
++export async function closeScratches(input: {
++  main: ScratchTarget;
++  attachment?: ScratchTarget;
++  removal?: ScratchRemovalPort;
++  deadlineMs?: number;
++}): Promise<{ results: CleanupResult[]; phase: string }> {
++  const removal = input.removal ?? { stat, rm };
++  const results: CleanupResult[] = [];
++  if (input.attachment) {
++    const storage = await closeScratch(input.attachment, removal, input.deadlineMs);
++    results.push(storage);
++    if (storage.state === 'unknown') {
++      results.push({
++        resourceId: input.main.resource.id,
++        state: 'unknown',
++        reason: 'PREVIOUS_CLEANUP_UNKNOWN',
++      });
++      return { results, phase: 'unknown:ATTACHMENT_SCRATCH_REMOVE' };
++    }
++  }
++  const main = await closeScratch(input.main, removal, input.deadlineMs);
++  results.push(main);
++  return { results, phase: main.state === 'unknown' ? 'unknown:SCRATCH_REMOVE' : 'stopped' };
++}
++
++type AttachmentScratchPort = {
++  mkdtemp(prefix: string): Promise<string>;
++  realpath(path: string): Promise<string>;
++  stat(path: string): Promise<{ dev: number; ino: number }>;
++  rm(path: string, options: { recursive: true; force: true }): Promise<void>;
++};
++
++/**
++ * Creates the private attachment storage root. If anything between `mkdtemp` and the caller registering
++ * the resource fails, the directory just created is removed here, so no unregistered directory is leaked.
++ */
++export async function createAttachmentScratch(
++  port: AttachmentScratchPort = { mkdtemp, realpath, stat, rm },
++): Promise<{ path: string; identity: string }> {
++  const made = await port.mkdtemp(join(tmpdir(), 'crew-v2-web-attachments-'));
++  try {
++    const path = await port.realpath(made);
++    const entry = await port.stat(path);
++    return { path, identity: String(entry.dev) + ':' + String(entry.ino) };
++  } catch (error) {
++    await port.rm(made, { recursive: true, force: true }).catch(() => undefined);
++    throw error;
++  }
++}
++
+ export async function startOwnedFixture(): Promise<FixtureHandle> {
+   const migrations = await captureMigrations(11);
+   if (
+     migrations.files.length !== frozenHashes.length ||
+     migrations.files.some((file, index) => file.sha256 !== frozenHashes[index])
+   ) {
+     throw new Error('WEB_FIXTURE_MIGRATION_PREFIX_DRIFT');
+   }
+ 
+   const ownershipNonce = randomUUID();
+@@ -414,59 +487,33 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
+         results.push(unknown(attachmentScratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+       results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+       phase = phase.startsWith('unknown:') ? phase : 'unknown';
+       await persist();
+       webServer?.unref();
+       app?.server.unref();
+       return results;
+     }
+     phase = 'stopped';
+     await persist();
+-    // Attachment storage goes first: the registry that records it lives in the main scratch.
+-    if (attachmentScratchResource) {
+-      const storageResult = await closeOwnedResource(attachmentScratchResource, {
+-        readStartIdentity: async () => {
+-          try {
+-            const entry = await stat(attachmentScratchPath);
+-            return String(entry.dev) + ':' + String(entry.ino);
+-          } catch {
+-            return null;
++    const closed = await closeScratches({
++      main: { resource: scratchResource, path: scratchPath, identity: scratchIdentity },
++      attachment: attachmentScratchResource
++        ? {
++            resource: attachmentScratchResource,
++            path: attachmentScratchPath,
++            identity: attachmentScratchIdentity,
+           }
+-        },
+-        stop: async () => true,
+-        confirmStopped: async () => true,
+-        remove: createScratchRemoval(attachmentScratchPath, attachmentScratchIdentity),
+-      });
+-      results.push(storageResult);
+-      if (storageResult.state === 'unknown') {
+-        results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+-        phase = 'unknown:ATTACHMENT_SCRATCH_REMOVE';
+-        await persist();
+-        return results;
+-      }
+-    }
+-    const scratchResult = await closeOwnedResource(scratchResource, {
+-      readStartIdentity: async () => {
+-        try {
+-          const entry = await stat(scratchPath);
+-          return String(entry.dev) + ':' + String(entry.ino);
+-        } catch {
+-          return null;
+-        }
+-      },
+-      stop: async () => true,
+-      confirmStopped: async () => true,
+-      remove: createScratchRemoval(scratchPath, scratchIdentity),
++        : undefined,
+     });
+-    results.push(scratchResult);
+-    if (scratchResult.state === 'unknown') {
+-      phase = 'unknown:SCRATCH_REMOVE';
++    results.push(...closed.results);
++    if (closed.phase !== 'stopped') {
++      phase = closed.phase;
+       await persist();
+     }
+     return results;
+   }
+ 
+   try {
+     await persist();
+     workerIdentity = await processIdentity();
+     phase = 'container-starting';
+     await persist();
+@@ -572,34 +619,34 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
+     const webPort = await listenLoopback(webServer);
+     webOrigin = 'http://127.0.0.1:' + String(webPort);
+     webResource = {
+       kind: 'listener',
+       id: 'web:' + String(webPort),
+       ownershipNonce,
+       startIdentity: workerIdentity + ':web:' + String(webPort) + ':' + ownershipNonce,
+     };
+     await record(webResource);
+     // Owned attachment storage root (private, resolved path); removed with the other scratch on close.
+-    attachmentScratchPath = await realpath(await mkdtemp(join(tmpdir(), 'crew-v2-web-attachments-')));
+-    const attachmentStat = await stat(attachmentScratchPath);
+-    attachmentScratchIdentity = String(attachmentStat.dev) + ':' + String(attachmentStat.ino);
++    const attachmentScratch = await createAttachmentScratch();
++    attachmentScratchPath = attachmentScratch.path;
++    attachmentScratchIdentity = attachmentScratch.identity;
+     attachmentScratchResource = {
+       kind: 'scratch',
+       id: attachmentScratchPath,
+       ownershipNonce,
+       startIdentity: attachmentScratchIdentity,
+     };
+     await record(attachmentScratchResource);
+     const attachmentConfig = loadAttachmentConfig({
+       CREW_V2_ATTACHMENT_STORAGE_ROOT: attachmentScratchPath,
+     });
+-    const storageHostId = randomUUID().toLowerCase();
++    const storageHostId = randomUUID();
+     app = await buildApp({
+       db,
+       attachments: {
+         config: attachmentConfig,
+         storageHostId,
+         // Native Linux writer on Linux; otherwise the in-process closed-ACK fixture port. No extractor
+         // version is certified, so submissions with files stay 503 EXTRACTION_NOT_CONFIGURED as designed.
+         ...(process.platform === 'linux'
+           ? {}
+           : {
+diff --git a/v2/web/test/attachment-receivers.test.ts b/v2/web/test/attachment-receivers.test.ts
+new file mode 100644
+index 0000000..aa05ba5
+--- /dev/null
++++ b/v2/web/test/attachment-receivers.test.ts
+@@ -0,0 +1,102 @@
++import assert from 'node:assert/strict';
++import { createHash, randomUUID } from 'node:crypto';
++import test from 'node:test';
++import { loadAttachmentConfig } from '../../server/src/attachments/config.ts';
++import { connectDb } from '../../server/src/db/client.ts';
++import { withFixture } from '../e2e/support/fixture.ts';
++import { seedOwnerTicket } from '../e2e/support/owner-seed.ts';
++import { createFixtureReceivers } from '../scripts/e2e-attachment-receivers.ts';
++
++// Real API + PostgreSQL of the fixture. On a non-Linux host the fixture serves uploads through the in-process
++// closed-ACK port, so this run proves its register → run → closeAndAcknowledge → proveStopped protocol; on
++// Linux the same run goes through the native registry, and the port is exercised directly below.
++test('upload qua API thật đóng receiver bằng closed-ACK, và port fixture chạy trọn giao thức', async () => {
++  await withFixture(async (crew) => {
++    const seeded = await seedOwnerTicket(crew, 'Ticket kiểm upload');
++    const login = await fetch(`${crew.apiOrigin}/v2/auth/session`, {
++      method: 'POST',
++      headers: { origin: crew.webOrigin, 'content-type': 'application/json' },
++      body: JSON.stringify({ password: crew.ownerPassword }),
++    });
++    const cookie = login.headers.get('set-cookie')?.split(';', 1)[0] ?? '';
++    const { csrfToken } = (await login.json()) as { csrfToken: string };
++    const headers = { origin: crew.webOrigin, cookie, 'x-csrf-token': csrfToken };
++    const json = async (method: string, path: string, body: unknown) => {
++      const response = await fetch(`${crew.apiOrigin}${path}`, {
++        method,
++        headers: { ...headers, 'content-type': 'application/json', 'idempotency-key': randomUUID() },
++        body: JSON.stringify(body),
++      });
++      return { status: response.status, body: (await response.json()) as Record<string, any> };
++    };
++    const reserve = async (bytes: Buffer, name: string) => {
++      const compose = await json('POST', '/v2/attachment-compose', {
++        purpose: 'comment',
++        projectId: seeded.projectId,
++        ticketId: seeded.ticketId,
++      });
++      assert.equal(compose.status, 201, JSON.stringify(compose.body));
++      const reserved = await json('POST', `/v2/attachment-compose/${compose.body.id}/uploads`, {
++        expectedRevision: compose.body.revision,
++        fileName: name,
++        declaredMime: 'text/plain',
++        byteLength: bytes.length,
++        sha256: createHash('sha256').update(bytes).digest('hex'),
++      });
++      assert.equal(reserved.status, 201, JSON.stringify(reserved.body));
++      return reserved.body.attachment.attachmentId as string;
++    };
++
++    const db = connectDb(`postgres://postgres@127.0.0.1:${crew.dbPort}/${crew.dbName}`);
++    try {
++      const bytes = Buffer.from('nội dung tệp thử');
++      const attachmentId = await reserve(bytes, 'thử.txt');
++      const put = await fetch(`${crew.apiOrigin}/v2/attachment-uploads/${attachmentId}/content`, {
++        method: 'PUT',
++        headers: { ...headers, 'content-type': 'application/octet-stream' },
++        body: bytes,
++      });
++      assert.equal(put.status, 201, await put.text());
++      const [receiver] =
++        await db`select r.state, r.stop_proof, w.linux_boot_id from attachment_receivers r join attachment_server_writers w on w.instance_id=r.instance_id where r.attachment_id=${attachmentId}`;
++      assert.equal(receiver?.state, 'closed');
++      assert.ok(receiver?.stop_proof, 'Receiver phải có proof closed-ACK');
++      assert.equal(
++        receiver?.linux_boot_id === 'fixture-only',
++        process.platform !== 'linux',
++        'Non-Linux phải đi qua port fixture; Linux phải dùng writer native',
++      );
++
++      // The port itself, driven directly on the fixture database.
++      const root = loadAttachmentConfig({
++        CREW_V2_ATTACHMENT_STORAGE_ROOT:
++          crew.resources.find(
++            (resource) => resource.kind === 'scratch' && resource.id.includes('crew-v2-web-attachments-'),
++          )?.id ?? '',
++      }).storageRoot;
++      const port = createFixtureReceivers({ db, root, storageHostId: randomUUID(), now: () => new Date() });
++      const second = await reserve(Buffer.from('tệp thứ hai'), 'hai.txt');
++      const registration = await db.begin((tx) => port.register(tx, second, '1'));
++      assert.equal(await port.proveStopped(registration.id), null, 'Chưa đóng thì chưa có proof');
++      await assert.rejects(port.closeAndAcknowledge(registration.id), /FIXTURE_WRITER_STILL_ACTIVE/);
++      const ran = await port.control.run(registration.id, new AbortController().signal, async () => 'done');
++      assert.equal(ran, 'done');
++      const proof = await port.closeAndAcknowledge(registration.id);
++      assert.equal(proof.kind, 'closed-ack');
++      assert.equal(proof.receiverId, registration.id);
++      assert.deepEqual(await port.proveStopped(registration.id), proof);
++      assert.deepEqual(await port.closeAndAcknowledge(registration.id), proof, 'Đóng lặp trả đúng proof cũ');
++      const [row] =
++        await db`select state, closed_ack_sha256 from attachment_receivers where id=${registration.id}`;
++      assert.equal(row?.state, 'closed');
++      assert.equal(row?.closed_ack_sha256, proof.proofSha256);
++      await assert.rejects(
++        port.control.run(registration.id, new AbortController().signal, async () => 'again'),
++        /FIXTURE_OPERATION_INVALID/,
++      );
++      assert.equal(await port.proveStopped(randomUUID()), null);
++    } finally {
++      await db.end({ timeout: 2 });
++    }
++  });
++});
+diff --git a/v2/web/test/fixture-scratch.test.ts b/v2/web/test/fixture-scratch.test.ts
+new file mode 100644
+index 0000000..5f6a11c
+--- /dev/null
++++ b/v2/web/test/fixture-scratch.test.ts
+@@ -0,0 +1,124 @@
++import assert from 'node:assert/strict';
++import { existsSync } from 'node:fs';
++import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import test from 'node:test';
++import type { OwnedResource } from '../e2e/support/fixture.ts';
++import { closeScratches, createAttachmentScratch } from '../scripts/e2e-fixture.ts';
++
++async function scratch(label: string) {
++  const path = await mkdtemp(join(tmpdir(), `crew-v2-web-${label}-`));
++  const entry = await stat(path);
++  const identity = `${entry.dev}:${entry.ino}`;
++  const resource: OwnedResource = {
++    kind: 'scratch',
++    id: path,
++    ownershipNonce: `unit-${label}`,
++    startIdentity: identity,
++  };
++  return { path, identity, resource, entry };
++}
++
++test('attachment scratch REMOVE hết hạn giữ nguyên cả scratch của attachment lẫn registry chính', async () => {
++  const main = await scratch('main');
++  const storage = await scratch('storage');
++  const registryPath = join(main.path, 'registry.json');
++  await writeFile(registryPath, '{"phase":"stopped"}', { mode: 0o600 });
++  let release: () => void = () => undefined;
++  const delayed = new Promise<void>((resolve) => {
++    release = resolve;
++  });
++  let rmCalls = 0;
++  try {
++    const outcome = await closeScratches({
++      main: { resource: main.resource, path: main.path, identity: main.identity },
++      attachment: { resource: storage.resource, path: storage.path, identity: storage.identity },
++      deadlineMs: 200,
++      removal: {
++        stat: async (path) => {
++          if (path === storage.path) await delayed;
++          return path === storage.path
++            ? { dev: storage.entry.dev, ino: storage.entry.ino }
++            : { dev: main.entry.dev, ino: main.entry.ino };
++        },
++        rm: async (path, options) => {
++          rmCalls++;
++          await rm(path, options);
++        },
++      },
++    });
++    assert.deepEqual(
++      outcome.results.map((result) => [result.resourceId, result.state, result.reason]),
++      [
++        [storage.path, 'unknown', 'REMOVE_DEADLINE'],
++        [main.path, 'unknown', 'PREVIOUS_CLEANUP_UNKNOWN'],
++      ],
++    );
++    assert.equal(outcome.phase, 'unknown:ATTACHMENT_SCRATCH_REMOVE');
++    release();
++    await new Promise<void>((resolve) => setImmediate(resolve));
++    assert.equal(rmCalls, 0, 'Callback đã abort không được khởi chạy rm');
++    assert.equal(existsSync(storage.path), true);
++    assert.equal(existsSync(registryPath), true, 'Registry UNKNOWN phải còn để đối chiếu');
++  } finally {
++    release();
++    await rm(storage.path, { recursive: true, force: true });
++    await rm(main.path, { recursive: true, force: true });
++  }
++});
++
++test('scratch attachment được xóa trước scratch chính khi mọi thứ đã dừng', async () => {
++  const main = await scratch('main-ok');
++  const storage = await scratch('storage-ok');
++  const outcome = await closeScratches({
++    main: { resource: main.resource, path: main.path, identity: main.identity },
++    attachment: { resource: storage.resource, path: storage.path, identity: storage.identity },
++  });
++  assert.deepEqual(
++    outcome.results.map((result) => [result.resourceId, result.state]),
++    [
++      [storage.path, 'removed'],
++      [main.path, 'removed'],
++    ],
++  );
++  assert.equal(outcome.phase, 'stopped');
++  assert.equal(existsSync(storage.path) || existsSync(main.path), false);
++});
++
++test('tạo attachment scratch lỗi giữa mkdtemp và đăng ký thì xóa đúng thư mục vừa tạo', async () => {
++  const created: string[] = [];
++  const removed: string[] = [];
++  await assert.rejects(
++    createAttachmentScratch({
++      mkdtemp: async (prefix) => {
++        const path = await mkdtemp(prefix);
++        created.push(path);
++        return path;
++      },
++      realpath: async (path) => path,
++      stat: async () => {
++        throw new Error('STAT_FAILED');
++      },
++      rm: async (path, options) => {
++        removed.push(path);
++        await rm(path, options);
++      },
++    }),
++    /STAT_FAILED/,
++  );
++  assert.equal(created.length, 1);
++  assert.deepEqual(removed, created);
++  assert.equal(existsSync(created[0] ?? ''), false);
++});
++
++test('tạo attachment scratch thành công trả path đã resolve và identity dev:ino', async () => {
++  const made = await createAttachmentScratch();
++  try {
++    assert.match(made.path, /crew-v2-web-attachments-/);
++    const entry = await stat(made.path);
++    assert.equal(made.identity, `${entry.dev}:${entry.ino}`);
++  } finally {
++    await rm(made.path, { recursive: true, force: true });
++  }
++});
+diff --git a/v2/web/test/ticket-routes.test.ts b/v2/web/test/ticket-routes.test.ts
+index 5f6cdde..142173d 100644
+--- a/v2/web/test/ticket-routes.test.ts
++++ b/v2/web/test/ticket-routes.test.ts
+@@ -166,22 +166,12 @@ test('logout wipes form drafts of a reloaded page that never opened a ticket, an
+   // A reload creates a fresh runtime over the same tab storage; no draft store exists in this page.
+   const storage = tabStorage({ ...draftKeys, 'unrelated:key': 'giữ' });
+   const app = runtime.createAppRuntime({ fetch: fakeApi(true), storage });
+   await app.session.bootstrap();
+   assert.equal(storage.map.size, 3);
+   await app.session.logout();
+   assert.deepEqual([...storage.map.keys()], ['unrelated:key']);
+   app.dispose();
+ });
+ 
+-test('after logout, a reload as guest finds no draft and creates none', async () => {
+-  const storage = tabStorage({ ...draftKeys });
+-  const first = runtime.createAppRuntime({ fetch: fakeApi(true), storage });
+-  await first.session.bootstrap();
+-  await first.session.logout();
+-  first.dispose();
+-  const reloaded = runtime.createAppRuntime({ fetch: fakeApi(false), storage });
+-  await reloaded.session.bootstrap();
+-  assert.equal(reloaded.session.snapshot().state, 'guest');
+-  assert.equal(storage.map.size, 0);
+-  reloaded.dispose();
+-});
++// The "logout, then reload as guest" path is covered only in the browser (e2e/ticket-routes.spec.ts): a guest
++// page never writes drafts, so a unit test of it would pass with or without the logout wipe above.
