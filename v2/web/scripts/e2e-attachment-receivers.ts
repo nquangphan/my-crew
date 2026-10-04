@@ -1,8 +1,9 @@
 /**
  * Upload writer port for the E2E fixture on hosts without the native Linux writer identity (`/proc`).
  * It runs the same DB/storage terminal protocol as the native registry (register, write, closed-ACK) inside
- * the fixture's single Node process, and deliberately has no native process-gone proof: it grants no
- * authority in production and is used only when `buildApp` would otherwise refuse to start on this host.
+ * the fixture's single Node process, and deliberately has no native process-gone proof (its identity says
+ * `fixture-only`). It is reachable only from `e2e-fixture.ts`, which no production entrypoint imports, and
+ * `test/attachment-receivers.test.ts` drives its whole protocol against the fixture database.
  */
 import { createHash, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
@@ -56,7 +57,8 @@ export function createFixtureReceivers(input: {
     },
     async register(tx, attachmentId, generation) {
       const [upload] = await tx`select ownership_nonce from attachment_uploads where id=${attachmentId}`;
-      await prepareOwnedUpload(input.root, attachmentId, String(upload?.ownership_nonce));
+      if (typeof upload?.ownership_nonce !== 'string') throw new Error('FIXTURE_UPLOAD_NOT_FOUND');
+      await prepareOwnedUpload(input.root, attachmentId, upload.ownership_nonce);
       await tx`insert into attachment_server_writers(instance_id,storage_host_id,linux_boot_id,proc_namespace_inode,pid,start_ticks) values(${identity.instanceId},${identity.storageHostId},${identity.linuxBootId},${identity.procNamespaceInode},${identity.pid},${identity.startTicks}) on conflict(instance_id) do nothing`;
       const id = randomUUID();
       const operationNonce = randomUUID();

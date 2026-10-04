@@ -419,6 +419,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/tickets/requests.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/test/attachment-receivers.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
@@ -430,6 +431,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/docs-ticket-links-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/test/fixture-scratch.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |

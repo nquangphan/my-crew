@@ -102,6 +102,79 @@ export function createScratchRemoval(
   };
 }
 
+type ScratchTarget = { resource: OwnedResource; path: string; identity: string };
+
+async function closeScratch(target: ScratchTarget, removal: ScratchRemovalPort, deadlineMs?: number) {
+  return closeOwnedResource(target.resource, {
+    deadlineMs,
+    readStartIdentity: async () => {
+      try {
+        const entry = await stat(target.path);
+        return String(entry.dev) + ':' + String(entry.ino);
+      } catch {
+        return null;
+      }
+    },
+    stop: async () => true,
+    confirmStopped: async () => true,
+    remove: createScratchRemoval(target.path, target.identity, removal),
+  });
+}
+
+/**
+ * Removes the attachment storage root first (the registry that records it lives in the main scratch), then
+ * the main scratch. Any UNKNOWN keeps the main scratch, and with it the registry, for reconciliation.
+ */
+export async function closeScratches(input: {
+  main: ScratchTarget;
+  attachment?: ScratchTarget;
+  removal?: ScratchRemovalPort;
+  deadlineMs?: number;
+}): Promise<{ results: CleanupResult[]; phase: string }> {
+  const removal = input.removal ?? { stat, rm };
+  const results: CleanupResult[] = [];
+  if (input.attachment) {
+    const storage = await closeScratch(input.attachment, removal, input.deadlineMs);
+    results.push(storage);
+    if (storage.state === 'unknown') {
+      results.push({
+        resourceId: input.main.resource.id,
+        state: 'unknown',
+        reason: 'PREVIOUS_CLEANUP_UNKNOWN',
+      });
+      return { results, phase: 'unknown:ATTACHMENT_SCRATCH_REMOVE' };
+    }
+  }
+  const main = await closeScratch(input.main, removal, input.deadlineMs);
+  results.push(main);
+  return { results, phase: main.state === 'unknown' ? 'unknown:SCRATCH_REMOVE' : 'stopped' };
+}
+
+type AttachmentScratchPort = {
+  mkdtemp(prefix: string): Promise<string>;
+  realpath(path: string): Promise<string>;
+  stat(path: string): Promise<{ dev: number; ino: number }>;
+  rm(path: string, options: { recursive: true; force: true }): Promise<void>;
+};
+
+/**
+ * Creates the private attachment storage root. If anything between `mkdtemp` and the caller registering
+ * the resource fails, the directory just created is removed here, so no unregistered directory is leaked.
+ */
+export async function createAttachmentScratch(
+  port: AttachmentScratchPort = { mkdtemp, realpath, stat, rm },
+): Promise<{ path: string; identity: string }> {
+  const made = await port.mkdtemp(join(tmpdir(), 'crew-v2-web-attachments-'));
+  try {
+    const path = await port.realpath(made);
+    const entry = await port.stat(path);
+    return { path, identity: String(entry.dev) + ':' + String(entry.ino) };
+  } catch (error) {
+    await port.rm(made, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
+  }
+}
+
 export async function startOwnedFixture(): Promise<FixtureHandle> {
   const migrations = await captureMigrations(11);
   if (
@@ -421,45 +494,19 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
     }
     phase = 'stopped';
     await persist();
-    // Attachment storage goes first: the registry that records it lives in the main scratch.
-    if (attachmentScratchResource) {
-      const storageResult = await closeOwnedResource(attachmentScratchResource, {
-        readStartIdentity: async () => {
-          try {
-            const entry = await stat(attachmentScratchPath);
-            return String(entry.dev) + ':' + String(entry.ino);
-          } catch {
-            return null;
+    const closed = await closeScratches({
+      main: { resource: scratchResource, path: scratchPath, identity: scratchIdentity },
+      attachment: attachmentScratchResource
+        ? {
+            resource: attachmentScratchResource,
+            path: attachmentScratchPath,
+            identity: attachmentScratchIdentity,
           }
-        },
-        stop: async () => true,
-        confirmStopped: async () => true,
-        remove: createScratchRemoval(attachmentScratchPath, attachmentScratchIdentity),
-      });
-      results.push(storageResult);
-      if (storageResult.state === 'unknown') {
-        results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
-        phase = 'unknown:ATTACHMENT_SCRATCH_REMOVE';
-        await persist();
-        return results;
-      }
-    }
-    const scratchResult = await closeOwnedResource(scratchResource, {
-      readStartIdentity: async () => {
-        try {
-          const entry = await stat(scratchPath);
-          return String(entry.dev) + ':' + String(entry.ino);
-        } catch {
-          return null;
-        }
-      },
-      stop: async () => true,
-      confirmStopped: async () => true,
-      remove: createScratchRemoval(scratchPath, scratchIdentity),
+        : undefined,
     });
-    results.push(scratchResult);
-    if (scratchResult.state === 'unknown') {
-      phase = 'unknown:SCRATCH_REMOVE';
+    results.push(...closed.results);
+    if (closed.phase !== 'stopped') {
+      phase = closed.phase;
       await persist();
     }
     return results;
@@ -579,9 +626,9 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
     };
     await record(webResource);
     // Owned attachment storage root (private, resolved path); removed with the other scratch on close.
-    attachmentScratchPath = await realpath(await mkdtemp(join(tmpdir(), 'crew-v2-web-attachments-')));
-    const attachmentStat = await stat(attachmentScratchPath);
-    attachmentScratchIdentity = String(attachmentStat.dev) + ':' + String(attachmentStat.ino);
+    const attachmentScratch = await createAttachmentScratch();
+    attachmentScratchPath = attachmentScratch.path;
+    attachmentScratchIdentity = attachmentScratch.identity;
     attachmentScratchResource = {
       kind: 'scratch',
       id: attachmentScratchPath,
@@ -592,7 +639,7 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
     const attachmentConfig = loadAttachmentConfig({
       CREW_V2_ATTACHMENT_STORAGE_ROOT: attachmentScratchPath,
     });
-    const storageHostId = randomUUID().toLowerCase();
+    const storageHostId = randomUUID();
     app = await buildApp({
       db,
       attachments: {

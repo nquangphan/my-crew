@@ -510,6 +510,8 @@ flows:
       - web/test/app-wiring.test.ts
       - web/e2e/app-router.spec.ts
       - web/test/ticket-routes.test.ts
+      - web/test/attachment-receivers.test.ts
+      - web/test/fixture-scratch.test.ts
       - web/e2e/ticket-routes.spec.ts
       - web/e2e/docs-assistant.spec.ts
   web-data:

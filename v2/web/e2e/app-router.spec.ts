@@ -58,6 +58,14 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
   expect(afterLogin[0]).toBe('GET /v2/events');
   expect(afterLogin.filter((call) => call === 'GET /v2/events/stream')).toHaveLength(1);
+  // The sidebar's project list is real data: it must be requested after the catch-up, never before it.
+  await expect.poll(() => calls.includes('GET /v2/projects')).toBe(true);
+  const projectsAfterLogin = calls
+    .slice(verified + 1)
+    .filter((call) => call.startsWith('GET '))
+    .indexOf('GET /v2/projects');
+  expect(projectsAfterLogin).toBeGreaterThan(0);
+  expect(projectsAfterLogin).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
 
   await page.getByRole('button', { name: 'Đăng xuất' }).click();
   await expect(heading).toBeVisible();
