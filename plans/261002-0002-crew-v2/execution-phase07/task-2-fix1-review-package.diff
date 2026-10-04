@@ -1,0 +1,751 @@
+a69ea3b fix(v2): giữ khóa gửi lại khi 403 CSRF và 4xx chưa chứng minh từ chối
+e9cdd37 feat(v2): thêm tín hiệu scoped cho Trợ lý (dependencies_ready, wait_owner chưa chạy)
+57601b9 feat(v2): định nghĩa workflow hai tầng cho BMAD và digest customization chung
+ v2/docs/flows/assistant-workflows.md |  21 +++--
+ v2/docs/flows/server-tickets.md      |   8 +-
+ v2/docs/flows/web-data.md            |   6 +-
+ v2/web/src/auth/session-boundary.tsx |   8 +-
+ v2/web/src/lib/api.ts                |  60 ++++++++++++-
+ v2/web/src/lib/session.ts            |  44 +++++++++-
+ v2/web/test/auth-recovery.test.ts    |  15 ++++
+ v2/web/test/client.test.ts           | 162 +++++++++++++++++++++++++++++++++++
+ 8 files changed, 303 insertions(+), 21 deletions(-)
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 0c191a7..0150234 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -1,41 +1,44 @@
+ # Workflow chính thức của Trợ lý — bản nháp phase06/T3
+ 
+ ## Mục đích
+ 
+-Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Bản hiện tại có adapter manifest Superpowers và bộ kiểm tra byte artifact BMAD trong gateway. Run graph, gate, reader và renderer BMAD ở server/host chưa có producer được chứng thực.
++Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Gateway trả định nghĩa cho Superpowers và BMAD cùng một digest customization chung, và có bộ kiểm tra byte artifact BMAD. BMAD là định nghĩa hai tầng: tầng định nghĩa đến từ registry, render receipt được latch sau ở server. Run graph, gate, renderer và receipt BMAD ở server/host chưa có producer được chứng thực.
+ 
+ ## Điểm vào
+ 
+-- `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)`.
++- `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)` trả `WorkflowDefinition = {sha256, skills, customizationSha256, render?}`; `customizationContext(source, projection, layers)` là hàm thuần tính digest customization dùng chung.
+ - `gateway/src/workflows/registry.ts` → `WorkflowRegistry.resolve` kiểm cached source/projection và trả root cùng manifest.
+ - `gateway/src/assistant/render-artifacts.ts` → factory chụp expectation và kiểm artifact byte được cung cấp, trả loại `artifact-inspection` không có authority.
+-- `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch và BMAD mặc định từ chối.
++- `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch, digest customization và định nghĩa BMAD hai tầng.
+ 
+ ## Các bước
+ 
+ 1. Chụp sâu `SourcePin` và `ProjectionPin`, kể cả `derivation.options`, trước mọi lần chờ. Kiểm hai snapshot và dùng chính chúng cho `WorkflowRegistry.resolve`, so manifest và tính digest. Caller sửa object sau lời gọi không thể đổi identity đã xác thực.
+ 2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin. File được mở với `O_NOFOLLOW | O_NONBLOCK`; `fstat` loại FIFO và file không regular trước khi đọc; FD được đóng trong `finally`.
+-3. Định nghĩa trả SHA-256 của canonical `{source,projection,skills}` từ các snapshot và danh sách path/hash skill đã chọn. Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation.
+-4. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
+-5. BMAD trả `RENDER_ARTIFACT_REQUIRED` khi chưa có reader được host tin cậy, gắn project root và current render generation. Không dùng hash/path do client khai báo làm bằng chứng renderer.
++3. `customizationSha256` là SHA-256 của canonical `{schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}`. Superpowers có `layers = {}`: projection đã pin không chứa layer tùy biến nào, và phát biểu đó gắn vào `projectionTreeSha256`, nên đổi projection thì đổi digest; thứ tự key không ảnh hưởng. BMAD có đủ 7 layer path (SHA-256 hoặc `null`) đo từ projection. Hàm kiểm lại pin, từ chối source/projection lệch nhau, layer thừa/thiếu và layer bắt buộc bằng `null`.
++4. BMAD chỉ nhận runtime `claude`. Từ manifest projection, adapter chọn mọi file `.md` dưới `.claude/skills/bmad-build/` (kể cả thư mục con, không lấy `bmad-build-auto`), `customize.toml` và `_bmad/scripts/{render_skill,config_utils}.py`. Thiếu `SKILL.md`, `workflow.md`, `customize.toml`, một trong hai script, layer bắt buộc `_bmad/config.toml`, hoặc gặp symlink/không phải file ở cây skill hay layer path đều trả `WORKFLOW_SKILL_MISMATCH`. Mọi file được chọn và mọi layer có mặt được đọc lại bytes thật trong projection root. `skills` là các `.md` được chọn trừ `SKILL.md`. `render = {source, projection, selectedProjectionSha256, layers}` đúng bằng expectation của bộ kiểm tra artifact khi bỏ `projectRoot`/`generationRoot` do host gắn sau.
++5. `sha256` của định nghĩa là SHA-256 của canonical `{source, projection, skills, customizationSha256, render}` (Superpowers: `render = null`). Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation. Adapter không chạy renderer, `uv` hay process con nào.
++6. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
++7. Adapter không còn trả `RENDER_ARTIFACT_REQUIRED`. Việc từ chối BMAD chưa có artifact thuộc server: run BMAD được tạo với `rendered_artifact_id = null` và admission từ chối dispatch khi giá trị này còn `null`. Không dùng hash/path do client khai báo làm bằng chứng renderer.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+-| `gateway/src/assistant/workflow-manifest.ts` | Adapter manifest Superpowers, BMAD deny khi thiếu renderer reader |
++| `gateway/src/assistant/workflow-manifest.ts` | Adapter định nghĩa Superpowers/BMAD hai tầng và digest customization chung |
+ | `gateway/src/assistant/render-artifacts.ts` | Bộ kiểm tra thuần byte của artifact BMAD, không đọc host hoặc chạy renderer |
+ | `gateway/test/render-artifacts.test.ts` | Kiểm consistency, cap, descriptor, category và Unicode trên byte fixture |
+-| `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection và các điều kiện từ chối |
++| `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection, digest customization, định nghĩa BMAD và các điều kiện từ chối |
++| `gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json` | Tập con layout projection BMAD claude: bytes chính thức lấy từ archive đã pin, config layer tổng hợp |
+ 
+ ## Dữ liệu
+ 
+ Server `createRun` và `answerGate` cần persisted Actor A, TurnFence/scope hiện hành và orchestration port thật. Definition/render receipt phải đi từ host producer đã review sang server với exact source, projection, customization/config, project root và rendered bytes. SQL fixture chỉ kiểm quan hệ; không chứng nhận producer hoặc authority. Gate chỉ materialize khi artifact thật đã được xác minh; UUID đặt trước không thay cho `workflow_gates.artifact_sha256` bắt buộc.
+ 
+ ## Flow liên quan
+ 
+ `gateway-workflows` giữ registry và pin source/projection; `server-assistant` giữ scope/TurnFence; `server-tickets` giữ root ticket và owner decisions. Phase06/T3 chưa nối adapter manifest với authority và run graph. Native workflow runtime/admission vẫn cần chứng cứ riêng, không suy ra từ unit fixture này.
+ 
+ ## Tests
+ 
+-Focused `node --test --test-name-pattern='workflow manifest' test/workflow-manifest.test.ts` từ `v2/gateway`: 7/7 pass trên fixture official đã audit. Regression dùng resolver chờ để phát hiện caller đổi pin/nested derivation sau lời gọi; FIFO trong scratch được kiểm bằng child Node giới hạn 3 giây, có dấu `RESOLVED`, PID/reap và cleanup. `tsc --noEmit -p tsconfig.json` và Biome hai file pass. D1 sau full review và một vòng sửa/re-review đạt 25/25 test, gateway strict typecheck và Biome hai file trên freeze cuối; bốn finding đã được xử lý. Các positive fixture gồm string-list và normalized review-layer đúng nguồn chính thức. Đây chỉ là kiểm byte được cung cấp, không chứng minh filesystem confinement, lệnh render chính thức, receipt hoặc BMAD admission. Chưa có test renderer thực hoặc server run/gate; không coi unit fixture là production acceptance.
++Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực hoặc server run/gate; unit fixture không phải production acceptance.
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index 3707ba6..03f5026 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -8,31 +8,33 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d
+ 
+ - `server/src/tickets/routes.ts` → `registerTicketRoutes`: tạo, đọc, nối phụ thuộc, gửi tín hiệu hợp lệ, bình luận, quyết định, repair result và liên kết docs.
+ - `server/src/tickets/service.ts` → `createTicketServices`: gắn các reader/authority bất biến theo ứng dụng; mặc định từ chối cổng chưa được tích hợp.
+ - `server/src/tickets/dependencies.ts` → `addDependency`, `readGraph`: lưu DAG và trả dữ liệu sơ đồ thực tế.
+ 
+ ## Các bước
+ 
+ 1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Sau khi khóa root, service đọc lại root/cha và từ chối tạo con nếu một trong hai đã hoàn tất hoặc hủy. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
+ 2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
+ 3. `server/src/tickets/decisions.ts` → `appendComment`, `recordDecision` lưu nội dung trong bảng riêng và phát event chỉ chứa ID metadata. Legacy appendComment giữ nguyên: chấp nhận whitespace, từ chối chuỗi rỗng. Factory bổ sung appendAttachmentComment với callback commentAttachments do controller inject và giữ bất biến lúc tạo factory; thiếu callback từ chối trước INSERT. Method mới yêu cầu text tối đa32768 và text.trim có nội dung hoặc requested attachmentIds không rỗng. Callback xác minh actual ready set sau INSERT, trước một comment.created event trong cùng caller Tx; callback lỗi rollback comment/links/event và fanout009. Không dùng allowEmpty/count/dummy space, không nối consumer qua generic route. Nguồn quyết định phải là ticket/owner decision/artifact đã ghi nhận trong cùng gốc, hoặc trang docs được reader xác minh. Máy không thể ghi owner answer hoặc approval.
+-4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
++4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Lõi chung `prepareSignal` khóa root rồi ticket, so revision, kiểm predecessor `done` cho `dependencies_ready` và tra quyết định tiếp tục vòng sửa cho `resume`; `persistSignal` cập nhật row và phát event. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
+ 5. `server/src/tickets/deploy.ts` → `deployTicketFingerprint`, `readDeployAuthorization` chứng minh provenance của từng hành động deploy. Owner tạo request deploy chỉ cấp quyền cho chính request đó, không cấp quyền thừa kế cho hậu duệ. Máy không tạo request deploy gốc và mọi deploy child do máy tạo phải có approval owner khớp SHA-256 canonical của toàn bộ input có ý nghĩa, gắn đúng root; đổi title, target hoặc body đều bị từ chối. Quyết định được gắn vào một ticket. Gate thực thi Task 5 phải đọc cùng hàm này trước khi chạy deploy.
+ 6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy root do owner tạo tự có quyền, mọi deploy child cần approval đúng ticket kể cả khi owner trực tiếp tạo child. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+ 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+ 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+ 
+ 9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Production resolver vẫn deny, chưa nối current input/fence/routing decision; thành công test qua trust port riêng không chứng nhận production admission.
+ 
+-B2a checkpoint bổ sung `assistantRecordDecision` và `assistantAddDependency` trong factory. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh (không dùng non-null assertion) trước khi đọc root/project. GREEN118 (5 file test), strict có phạm vi và Biome đã pass; independent review còn chờ, không coi đây là quyền production đã nghiệm thu.
++Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project.
++
++10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi dùng lõi `prepareSignal` không áp generic ACL máy (authority quyết định), khóa root → ticket → project trước verify. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. Sau verify, token private chỉ cho `persistSignal` ghi một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/004_tickets.sql` | Bảng ticket, DAG, timeline, evidence, repair và liên kết docs |
+ | `server/migrations/010_attachment_comment_text.sql` | Forward-only text0..32768 cho attachment-only comment; giữ NOT NULL và trigger009 |
+ | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
+ | `server/src/tickets/service.ts` | Tạo ticket, scope, tín hiệu và factory |
+ | `server/src/tickets/dependencies.ts` | Cạnh phụ thuộc và sơ đồ |
+@@ -40,21 +42,21 @@ B2a checkpoint bổ sung `assistantRecordDecision` và `assistantAddDependency`
+ | `server/src/tickets/decisions.ts` | Bình luận, quyết định và kiểm tra nguồn |
+ | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
+ | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
+ | `server/src/tickets/docs-links.ts` | Liên kết ticket với snapshot đã xác minh |
+ | `server/src/tickets/authorization.ts` | Tx scope/current machine guard trước cached replay |
+ | `server/src/tickets/routes.ts` | HTTP validation, scope và idempotency |
+ | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
+ | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
+ | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
+ | `server/src/tickets/assistant-access.ts` | Snapshot và private prepared/verified capability cho scoped mutation |
+-| `server/test/assistant-mutations.test.ts` | B2a decision/dependency regression matrix, GREEN đã pass, review còn chờ |
++| `server/test/assistant-mutations.test.ts` | Scoped decision/dependency/signal: authority chính xác, invariant, fail-closed running `wait_owner`, khóa root tuần tự |
+ | `server/test/assistant-orchestration.test.ts` | Scoped create: hash/snapshot/private token, actual machine audit, prefix locks, UUID case và array descriptor boundary |
+ | `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
+ | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
+ | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
+ | `server/test/ticket-events.unit.test.ts` | Payload event metadata hợp lệ |
+ | `server/test/attachments-comment-factory.test.ts` | Producer attachment comment: default deny, actual ready callback, atomic rollback, legacy whitespace và fanout009 |
+ 
+ ## Dữ liệu
+ 
+ `tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `created_actor_kind/id`, `deploy_definition_hash` và `deploy_approval_decision_id` là provenance bền vững cho cổng deploy. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `repair_limit_cycle_id`/`repair_limit_at` chỉ cycle mới nhất đang chờ; `repair_limit_consumed_decision_id` ghi quyết định đã dùng. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
+diff --git a/v2/docs/flows/web-data.md b/v2/docs/flows/web-data.md
+index 03b01f8..60623b4 100644
+--- a/v2/docs/flows/web-data.md
++++ b/v2/docs/flows/web-data.md
+@@ -7,32 +7,32 @@ Lớp dữ liệu của `v2/web` gửi mọi request owner tới `/v2/` cùng or
+ ## Điểm vào
+ 
+ - `web/src/auth/session-boundary.tsx` → `SessionBoundary`: chặn route được bảo vệ. Guest thấy đăng nhập, phiên hết hạn thấy đăng nhập lại, owner đã xác thực thấy `RecoveryPanel` và nội dung.
+ - `web/src/auth/session-boundary.tsx` → `wireSession`: nối vòng đời phiên với `PendingStore`, cache và `EventSync` cho mỗi lần mount app.
+ 
+ ## Các bước
+ 
+ 1. `web/src/lib/session.ts` → `SessionController.bootstrap`: GET `/v2/auth/session` đúng một lần, kể cả khi StrictMode gọi hai lần. Nếu được 200 thì phiên `authenticated`. Nếu được 401 thì `guest`. Nếu được 503 `OWNER_NOT_BOOTSTRAPPED` thì `guest` kèm thông báo máy chủ chưa khởi tạo owner.
+ 2. `web/src/auth/login.tsx` → `LoginScreen`: mật khẩu 1–4096 ký tự, chỉ nằm trong state của form và bị xóa sau mỗi request hoặc khi đóng form. `SessionController.login` gửi POST `{password}`; trình duyệt tự gắn Origin, request không có CSRF hay Idempotency-Key. Sau đó web GET lại session để xác minh đúng `owner`. Lỗi 401, 429, 503 hoặc mất kết nối hiện thành thông báo, và 429 không tự gửi lại. `safeReturnPath` chỉ chấp nhận path nội bộ `/crew-v2/`.
+ 3. `web/src/lib/pending-operation.ts` → `PendingStore.begin`: `bodyJson` được serialize một lần và đóng băng. `id` vừa là Idempotency-Key vừa giữ `intentId`/`ownerId`. Mỗi intent chỉ có một khóa chưa giải quyết. Khóa mới chỉ được cấp sau khi khóa cũ đã được xác nhận hoặc bị từ chối hẳn. Payload thường dùng `storage: 'tab'` và lưu trong sessionStorage `crew-v2:pending` version 1. Payload có key dạng password/secret/token/credential/apiKey bắt buộc dùng `memory`. `serializePending` từ chối operation memory, secret, token và hash của secret.
+-4. `web/src/lib/api.ts` → `createOwnerClient`: GET chỉ nhận path `/v2/...` mà URL parser giữ nguyên byte; request gửi kèm cookie same-origin và signal của epoch phiên. Mutation gửi đúng `bodyJson`, `X-CSRF-Token` và `Idempotency-Key = id`. Lỗi transport, abort, 5xx hoặc 2xx không đọc được đưa operation về `ambiguous` và giữ khóa. Client gửi lại cùng key/body tối đa 3 lần với backoff 1/2/4 giây, rồi báo “Chưa xác nhận”. 4xx là từ chối cuối và giải phóng khóa. `IDEMPOTENCY_CONFLICT` giữ operation, hoặc trả nó về tombstone nếu payload vừa được nhập lại. Upload bytes dùng PUT octet-stream kèm CSRF, không có Idempotency-Key.
++4. `web/src/lib/api.ts` → `createOwnerClient`: GET chỉ nhận path `/v2/...` mà URL parser giữ nguyên byte; request gửi kèm cookie same-origin và signal của epoch phiên. Mutation gửi đúng `bodyJson`, `X-CSRF-Token` và `Idempotency-Key = id`. Lỗi transport, abort, 5xx hoặc 2xx không đọc được đưa operation về `ambiguous` và giữ khóa. Client gửi lại cùng key/body tối đa 3 lần với backoff 1/2/4 giây, rồi báo “Chưa xác nhận”. 403 `CSRF_INVALID`/`ORIGIN_INVALID` do `requireOwner` ném trước bước tra idempotency nên không chứng minh gì về các lần gửi trước. Khi gặp lỗi này, operation chuyển sang `suspended`, `SessionController.refresh` GET lại session của cùng owner để lấy CSRF mới (nếu nhận 401 hoặc owner khác thì phiên thành expired), rồi web replay đúng key/body một lần. Nếu vẫn 403, web dừng và giữ khóa. Lỗi 4xx chỉ giải phóng khóa khi nó chứng minh request bị từ chối: 400, 413 và 415 phụ thuộc hoàn toàn vào bytes của request nên luôn là terminal. Các 4xx khác (403/404/409/422…) có thể đến từ callback `authorize` chạy trước bước tra idempotency, nên chỉ là terminal khi chưa từng có lần gửi nào của khóa này có thể đã commit; trường hợp còn lại giữ operation `ambiguous`. `IDEMPOTENCY_CONFLICT` giữ operation, hoặc trả nó về tombstone nếu payload vừa được nhập lại. Upload gặp 403 CSRF thì làm mới CSRF rồi báo lỗi để lần thử sau dùng token mới. Upload bytes dùng PUT octet-stream kèm CSRF, không có Idempotency-Key.
+ 5. Mọi phản hồi 401 gọi `SessionController.expire`. Bước này hủy GET và stream của epoch, xóa CSRF, xóa cache owner, chặn write và chuyển operation chưa giải quyết sang `suspended` mà vẫn giữ key/body. Payload secret chỉ nằm trong bộ nhớ của tab. Màn hình đăng nhập lại không hiển thị payload. Sau khi owner đăng nhập lại đúng owner, panel “Tiếp tục yêu cầu chưa xác nhận” cho owner chủ động gửi lại cùng key/body với CSRF mới; server vẫn authorize route trước khi replay.
+-6. `SessionController.logout`: gửi DELETE kèm CSRF, rồi hủy request/stream và xóa cache, kể cả khi DELETE thất bại. `PendingStore.tombstoneAll` chỉ giữ `RecoveryTombstone` gồm key, intent, owner, method, path, target UUID trong path và `expectedRevision`. Tombstone không chứa title, text, file, secret hay response. Reload tab hoặc đóng form secret (`discardMemory`) cũng biến operation memory thành tombstone. Owner phải nhập lại đúng nội dung (`PendingStore.resume`) để gửi bằng khóa cũ. Nếu không nhập lại được, panel giữ dòng “Chưa thể xác nhận yêu cầu cũ”; web không tự tra receipt.
++6. `SessionController.logout`: gửi DELETE kèm CSRF (gặp 403 `CSRF_INVALID` thì GET session lấy CSRF mới và DELETE lại một lần), rồi hủy request/stream và xóa cache, kể cả khi DELETE thất bại. `PendingStore.tombstoneAll` chỉ giữ `RecoveryTombstone` gồm key, intent, owner, method, path, target UUID trong path và `expectedRevision`. Tombstone không chứa title, text, file, secret hay response. Reload tab hoặc đóng form secret (`discardMemory`) cũng biến operation memory thành tombstone. Owner phải nhập lại đúng nội dung (`PendingStore.resume`) để gửi bằng khóa cũ. Nếu không nhập lại được, panel giữ dòng “Chưa thể xác nhận yêu cầu cũ”; web không tự tra receipt.
+ 7. `web/src/lib/events.ts` → `EventSync.start`: mỗi app/phiên chỉ có một vòng đồng bộ, và vòng này phải chạy trước GET dữ liệu đầu tiên. Bước catch-up đọc `/v2/events?after=<applied>&limit=100` tới khi trang rỗng. Sau đó web mở stream `/v2/events/stream` bằng fetch, gửi `Last-Event-ID`. `SseParser` giải mã UTF-8 strict theo từng chunk, nhận CRLF/CR/LF và comment, và giới hạn mỗi frame 1 MiB. Frame hỏng (JSON sai, `event:` khác `type`, `id` khác `cursor`, vượt giới hạn) làm đóng stream rồi resync. Backoff tăng tới 30 giây; sau `maxFailures` lần lỗi, trạng thái thành `failed` để owner thử lại.
+ 8. `compareCursor` so sánh cursor bằng BigInt nên cursor lớn hơn `Number.MAX_SAFE_INTEGER` vẫn chính xác. Event trùng hoặc đến sai thứ tự bị bỏ qua. `invalidations` ánh xạ type đã review sang prefix query (`queryRoots`). Type lạ được invalidate rộng theo thứ tự ticket → project → máy → toàn bộ cache, không bị bỏ qua. Cursor chỉ được ghi sau khi invalidation đã vào hàng đợi. Nếu invalidation lỗi, nó ở lại hàng đợi và được thử lại. Mỗi lần nối lại, web invalidate `['v2']` để refetch view hiện tại.
+ 9. `web/src/lib/api.ts` → `LatestRequest` hủy GET cũ khi view bắt đầu GET mới. `web/src/contracts/tickets.ts` → `newerTicket` từ chối row có revision cũ hơn. Graph luôn được refetch nguyên root; client không vá một phần cạnh.
+ 
+ ## Dữ liệu
+ 
+ `web/src/contracts/*.ts` mirror DTO producer tại HEAD: Session/Event (`server/src/platform/contracts.ts:13`, `auth/routes.ts:141`), Ticket/Dependency/RepairLink/graph/comment/decision (`tickets/contracts.ts:8-47`, `service.ts:28`), docs tree/page/search (`docs/read.ts:9,21`, `search.ts:8`), Machine/Project/model sources desired+applied/pool (`auth/machine.ts:7`, `projects/service.ts:13`, `models/config.ts:108`, `models/contracts.ts:40`) và attachment (`attachments/contracts.ts:28-56`, chưa mount production tới G2). Decoder runtime từ chối field thiếu, sai primitive và field lạ; field bổ sung chỉ được nhận khi khai báo `additive` sau review. Gateway status chưa có decoder vì DTO còn chờ G4.
+ 
+ Lifetime: mỗi app có một `SessionController` và một `EventSync`; cache bị xóa khi phiên kết thúc; `PendingStore` sống theo tab; mỗi request có `AbortController` riêng. Password, CSRF, token máy và secret API không vào query cache, logger hay storage. Query key luôn bắt đầu bằng `'v2'`. Khi nối wiring, controller nên tắt retry mặc định của TanStack Query cho các query dùng `OwnerClient.get`, vì client đã tự retry tối đa 3 lần.
+ 
+ ## Flow liên quan
+ 
+ `web-shell.md` sở hữu shell, router và fixture. `server-identity.md` định nghĩa route session. `server-journal.md` định nghĩa idempotency, event và SSE.
+ 
+ ## Tests
+ 
+-- `web/test/client.test.ts`, `web/test/events.test.ts`, `web/test/auth-recovery.test.ts`: RED đầu tiên trên deny scaffold có 30/31 test thất bại theo hành vi, ví dụ cursor `9007199254740993` so với `…992` trả 0 thay vì 1. Sau triển khai, 31/31 PASS; toàn bộ web unit 38/38.
++- `web/test/client.test.ts`, `web/test/events.test.ts`, `web/test/auth-recovery.test.ts`: RED đầu tiên trên deny scaffold có 30/31 test thất bại theo hành vi, ví dụ cursor `9007199254740993` so với `…992` trả 0 thay vì 1. Sau triển khai, 31/31 PASS; toàn bộ web unit 38/38. Vòng sửa 1 thêm 5 test (403 CSRF trên operation ambiguous làm mới rồi replay cùng key/body; làm mới gặp 401 thì expired và vẫn giữ khóa; ORIGIN lặp lại chỉ làm mới một lần; 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn giữ khóa còn 400 vẫn terminal; logout với CSRF cũ). RED 5/27 fail, GREEN 27/27, toàn web unit 43/43.
+ - `web/e2e/auth.spec.ts` chạy trên PostgreSQL 18.6, API và Vite thật của fixture Task1. Kịch bản đầu: server commit rồi response bị cắt; phiên bị hết hạn qua DB fixture; owner đăng nhập lại cùng owner; panel gửi lại cùng key/body với CSRF mới. Kết quả có đúng một project, một receipt idempotency và một event `project.created`; write bị chặn khi hết phiên; screenshot login/expired/recovery được lưu. Kịch bản thứ hai kiểm logout chỉ để lại tombstone, nhập payload khác với cùng key bị 409 mà tombstone vẫn giữ, nhập lại đúng thì được chấp nhận, và secret không vào sessionStorage.
+ - `web/e2e/events.spec.ts` chạy SSE thật qua proxy `/v2`: catch-up `after=0` rồi stream; event `project.created` invalidate query project; cursor khớp DB; phiên hết hạn trong DB thì server đóng stream, client dừng ở `expired`; sau khi đăng nhập lại, web catch-up từ cursor đã áp dụng và gửi `Last-Event-ID` đúng cursor đó.
+diff --git a/v2/web/src/auth/session-boundary.tsx b/v2/web/src/auth/session-boundary.tsx
+index dac24cc..41dc1ce 100644
+--- a/v2/web/src/auth/session-boundary.tsx
++++ b/v2/web/src/auth/session-boundary.tsx
+@@ -66,32 +66,35 @@ const panelStyle: CSSProperties = {
+ const buttonStyle: CSSProperties = {
+   font: 'inherit',
+   padding: '0.4rem 0.75rem',
+   borderRadius: '0.5rem',
+   border: '1px solid currentColor',
+   background: 'transparent',
+   color: 'inherit',
+   cursor: 'pointer',
+ };
+ 
+-function failureMessage(error: unknown): string {
++function failureMessage(error: unknown, kept: boolean): string {
+   if (error instanceof ApiFailure) {
++    if (kept && (error.code === 'CSRF_INVALID' || error.code === 'ORIGIN_INVALID'))
++      return 'Máy chủ chưa nhận mã bảo vệ của tab này. Yêu cầu vẫn giữ nguyên khóa cũ; hãy thử gửi lại hoặc tải lại trang.';
+     if (error.code === 'IDEMPOTENCY_CONFLICT')
+       return 'Nội dung khác với yêu cầu cũ. Yêu cầu cũ vẫn được giữ; hãy nhập lại đúng nội dung ban đầu.';
+     if (
+       error.code === 'UNAUTHENTICATED' ||
+       error.code === 'SESSION_REQUIRED' ||
+       error.code === 'SESSION_ENDED'
+     )
+       return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.';
+     if (error.code === 'UNCONFIRMED' || error.kind === 'transport' || error.kind === 'aborted')
+       return 'Chưa xác nhận kết quả. Yêu cầu vẫn giữ nguyên để gửi lại.';
++    if (kept) return `Chưa xác nhận kết quả (${error.code}). Yêu cầu vẫn giữ nguyên khóa cũ để gửi lại.`;
+     return `Máy chủ từ chối yêu cầu (${error.code}).`;
+   }
+   return 'Chưa xác nhận kết quả. Yêu cầu vẫn giữ nguyên để gửi lại.';
+ }
+ 
+ const stateLabel: Record<PendingOperation['state'], string> = {
+   pending: 'Đang gửi',
+   ambiguous: 'Chưa xác nhận',
+   suspended: 'Tạm dừng vì hết phiên',
+   accepted: 'Đã xác nhận',
+@@ -115,21 +118,22 @@ export function RecoveryPanel({ pending, client }: { pending: PendingStore; clie
+   const [messages, setMessages] = useState<Record<string, string>>({});
+   const unresolved = operations.filter((operation) => operation.state !== 'pending' || busy === operation.id);
+   if (unresolved.length === 0 && tombstones.length === 0) return null;
+ 
+   const replay = async (operation: PendingOperation) => {
+     setBusy(operation.id);
+     try {
+       await client.mutate(operation);
+       setMessages((current) => ({ ...current, [operation.id]: 'Đã xác nhận.' }));
+     } catch (error) {
+-      setMessages((current) => ({ ...current, [operation.id]: failureMessage(error) }));
++      const kept = pending.get(operation.id) !== undefined;
++      setMessages((current) => ({ ...current, [operation.id]: failureMessage(error, kept) }));
+     } finally {
+       setBusy(null);
+     }
+   };
+ 
+   return (
+     <section style={panelStyle} aria-labelledby="recovery-heading" data-testid="recovery-panel">
+       <h2 id="recovery-heading">Tiếp tục yêu cầu chưa xác nhận</h2>
+       <ul style={{ display: 'grid', gap: '0.75rem', margin: 0, paddingLeft: '1.25rem' }}>
+         {unresolved.map((operation) => (
+diff --git a/v2/web/src/lib/api.ts b/v2/web/src/lib/api.ts
+index a3c66aa..26e17ed 100644
+--- a/v2/web/src/lib/api.ts
++++ b/v2/web/src/lib/api.ts
+@@ -1,15 +1,17 @@
+ /**
+  * Same-origin owner transport for `/v2/`. GETs carry the cookie and an AbortSignal tied to the session epoch;
+  * JSON mutations send the frozen `PendingOperation` bytes with `X-CSRF-Token` and `Idempotency-Key = id`.
+  * Unconfirmed outcomes (transport error, abort, 5xx, unreadable 2xx) keep the operation ambiguous with the
+- * same key; only a terminal 4xx releases the key, only a confirmed 2xx clears the draft.
++ * same key. A stale CSRF/Origin 403 suspends it, refreshes the session once and replays the same bytes.
++ * A 4xx releases the key only when it proves rejection: always for body-deterministic errors, otherwise only
++ * when no earlier send of this key could have committed. Only a confirmed 2xx clears the draft.
+  */
+ import { type Decoder, decodeApiErrorBody, isUuid } from '../contracts/http.ts';
+ import type { PendingOperation, PendingStore } from './pending-operation.ts';
+ import type { HttpFetch, SessionController } from './session.ts';
+ 
+ export type FailureKind = 'http' | 'transport' | 'aborted' | 'local' | 'shape';
+ 
+ export class ApiFailure extends Error {
+   readonly status: number | null;
+   readonly code: string;
+@@ -81,20 +83,34 @@ async function failureFrom(response: Response): Promise<ApiFailure> {
+   try {
+     const body = decodeApiErrorBody(await response.json());
+     code = body.error.code;
+     message = body.error.message;
+   } catch {
+     // Non-JSON or unknown error body (for example a proxy 503 page) keeps the status-derived code.
+   }
+   return new ApiFailure(response.status, code, 'http', message);
+ }
+ 
++/** 403 from `requireOwner` (`v2/server/src/auth/routes.ts:41-50`): stale CSRF or wrong Origin. */
++function staleCredential(failure: ApiFailure): boolean {
++  return failure.status === 403 && (failure.code === 'CSRF_INVALID' || failure.code === 'ORIGIN_INVALID');
++}
++
++/**
++ * Errors decided by the request bytes alone (schema, body validation, key format, size, media type). The
++ * same bytes failed the earlier sends too, so the key never committed. Other 4xx (403/404/409/422...) can
++ * come from route `authorize` callbacks that run before the idempotency lookup and depend on current state.
++ */
++function bodyDeterministic(failure: ApiFailure): boolean {
++  return failure.status === 400 || failure.status === 413 || failure.status === 415;
++}
++
+ function combined(...signals: (AbortSignal | undefined)[]): AbortSignal {
+   return AbortSignal.any(signals.filter((signal): signal is AbortSignal => signal !== undefined));
+ }
+ 
+ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+   const { session, pending } = options;
+   const send: HttpFetch = options.fetch ?? ((input, init) => fetch(input, init));
+   const sleep = options.sleep ?? delay;
+   const maxRetries = Math.max(0, Math.min(options.maxRetries ?? 3, backoff.length));
+   const requireSession = (): string => {
+@@ -133,26 +149,42 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+       }
+       if (!response.ok) throw await failureFrom(response);
+       try {
+         return (await response.json()) as T;
+       } catch {
+         throw new ApiFailure(response.status, 'RESPONSE_INVALID', 'shape');
+       }
+     }
+   }
+ 
++  /**
++   * Refresh a stale CSRF token once per call. Failures keep the operation suspended with its key; a 401 or
++   * owner change during the refresh is an expiry.
++   */
++  async function refreshCsrf(): Promise<void> {
++    try {
++      await session.refresh();
++    } catch {
++      if (!session.isAuthenticated()) throw new ApiFailure(401, 'UNAUTHENTICATED', 'http');
++      throw new ApiFailure(null, 'SESSION_REFRESH_FAILED', 'transport');
++    }
++  }
++
+   async function mutate<T>(operation: PendingOperation, request: RequestOptions = {}): Promise<T> {
+     assertOwnerPath(operation.path);
+     const current = pending.get(operation.id);
+     if (!current || current.bodyJson !== operation.bodyJson)
+       throw new ApiFailure(null, 'OPERATION_UNKNOWN', 'local');
+     requireSession();
++    // Any earlier send of this key may have committed; only body-deterministic 4xx then prove rejection.
++    let uncertain = current.state !== 'pending';
++    let refreshed = false;
+     pending.markPending(current.id);
+     for (let attempt = 0; ; attempt++) {
+       let csrf: string;
+       try {
+         csrf = requireSession();
+       } catch (error) {
+         pending.markSuspended(current.id);
+         throw error;
+       }
+       const signal = combined(session.signal(), request.signal);
+@@ -164,58 +196,75 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+           headers: {
+             accept: 'application/json',
+             'content-type': 'application/json',
+             'x-csrf-token': csrf,
+             'idempotency-key': current.id,
+           },
+           body: current.bodyJson,
+           signal,
+         });
+       } catch {
++        uncertain = true;
+         if (session.signal().aborted) {
+           pending.markSuspended(current.id);
+           throw new ApiFailure(null, 'SESSION_ENDED', 'aborted');
+         }
+         pending.markAmbiguous(current.id);
+         if (request.signal?.aborted) throw new ApiFailure(null, 'ABORTED', 'aborted');
+         if (attempt >= maxRetries) throw new ApiFailure(null, 'UNCONFIRMED', 'transport');
+         await sleep(backoff[attempt] ?? 4000, request.signal);
+         continue;
+       }
+       if (response.ok) {
+         let body: T;
+         try {
+           body = (response.status === 204 ? undefined : await response.json()) as T;
+         } catch {
++          uncertain = true;
+           pending.markAmbiguous(current.id);
+           if (attempt >= maxRetries) throw new ApiFailure(response.status, 'UNCONFIRMED', 'shape');
+           await sleep(backoff[attempt] ?? 4000, request.signal);
+           continue;
+         }
+         pending.accept(current.id);
+         return body;
+       }
+       if (response.status === 401) {
+         pending.markSuspended(current.id);
+         throw unauthorized(401);
+       }
+       if (response.status >= 500) {
++        uncertain = true;
+         pending.markAmbiguous(current.id);
+         if (attempt >= maxRetries) {
+           const failure = await failureFrom(response);
+           throw new ApiFailure(failure.status, 'UNCONFIRMED', 'http', failure.message);
+         }
+         await sleep(backoff[attempt] ?? 4000, request.signal);
+         continue;
+       }
+       const failure = await failureFrom(response);
+-      if (failure.code === 'IDEMPOTENCY_CONFLICT') pending.conflict(current.id);
++      if (failure.code === 'IDEMPOTENCY_CONFLICT') {
++        pending.conflict(current.id);
++        throw failure;
++      }
++      if (staleCredential(failure)) {
++        // `requireOwner` rejects before the idempotency lookup: say nothing about earlier commits.
++        pending.markSuspended(current.id);
++        if (refreshed) throw failure;
++        refreshed = true;
++        await refreshCsrf();
++        pending.markPending(current.id);
++        attempt--;
++        continue;
++      }
++      if (uncertain && !bodyDeterministic(failure)) pending.markAmbiguous(current.id);
+       else pending.reject(current.id);
+       throw failure;
+     }
+   }
+ 
+   async function upload<T>(uploadId: string, file: File, signal: AbortSignal): Promise<T> {
+     if (!isUuid(uploadId)) throw new ApiFailure(null, 'UPLOAD_ID_INVALID', 'local');
+     const csrf = requireSession();
+     const combinedSignal = combined(session.signal(), signal);
+     let response: Response;
+@@ -232,21 +281,26 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+         signal: combinedSignal,
+       });
+     } catch {
+       throw new ApiFailure(
+         null,
+         combinedSignal.aborted ? 'ABORTED' : 'UNCONFIRMED',
+         combinedSignal.aborted ? 'aborted' : 'transport',
+       );
+     }
+     if (response.status === 401) throw unauthorized(401);
+-    if (!response.ok) throw await failureFrom(response);
++    if (!response.ok) {
++      const failure = await failureFrom(response);
++      // Bytes replay is safe per upload ID; refresh the token so the caller's next attempt can succeed.
++      if (staleCredential(failure)) await refreshCsrf();
++      throw failure;
++    }
+     try {
+       return (await response.json()) as T;
+     } catch {
+       throw new ApiFailure(response.status, 'UNCONFIRMED', 'shape');
+     }
+   }
+ 
+   return { get, mutate, upload };
+ }
+ 
+diff --git a/v2/web/src/lib/session.ts b/v2/web/src/lib/session.ts
+index 3111042..2b74b8d 100644
+--- a/v2/web/src/lib/session.ts
++++ b/v2/web/src/lib/session.ts
+@@ -169,20 +169,21 @@ function loginError(error: unknown): SessionError {
+ 
+ export class SessionController {
+   readonly #client: SessionClient;
+   readonly #listeners = new Set<() => void>();
+   readonly #expireHooks = new Set<() => void>();
+   readonly #logoutHooks = new Set<() => void>();
+   #snapshot: SessionSnapshot = { state: 'bootstrapping', ownerId: null, error: null, busy: false };
+   #csrf: string | null = null;
+   #epoch = new AbortController();
+   #bootstrapping: Promise<void> | null = null;
++  #refreshing: Promise<void> | null = null;
+ 
+   constructor(options: { fetch?: HttpFetch; client?: SessionClient } = {}) {
+     this.#client = options.client ?? createSessionClient({ fetch: options.fetch, csrf: () => this.#csrf });
+   }
+ 
+   snapshot(): SessionSnapshot {
+     return this.#snapshot;
+   }
+ 
+   subscribe(listener: () => void): () => void {
+@@ -266,31 +267,72 @@ export class SessionController {
+     this.#endEpoch();
+     this.#set({ state: 'expired', ownerId: null, error: null, busy: false });
+     for (const hook of this.#expireHooks) hook();
+   }
+ 
+   /** Explicit logout: DELETE with CSRF, then abort requests/stream and run wipe hooks even if DELETE failed. */
+   async logout(): Promise<void> {
+     if (this.#snapshot.state !== 'authenticated') return;
+     this.#set({ ...this.#snapshot, state: 'logging_out', busy: true, error: null });
+     let error: SessionError | null = null;
++    const revoke = () => this.#client.logout(AbortSignal.timeout(10_000));
+     try {
+-      await this.#client.logout(AbortSignal.timeout(10_000));
++      try {
++        await revoke();
++      } catch (caught) {
++        // Another tab's login rotated the cookie: re-read its CSRF so the server really revokes it.
++        if (
++          !(caught instanceof SessionRequestError && caught.status === 403 && caught.code === 'CSRF_INVALID')
++        )
++          throw caught;
++        this.#csrf = (await this.#client.restore(AbortSignal.timeout(10_000))).csrfToken;
++        await revoke();
++      }
+     } catch (caught) {
+       const status = caught instanceof SessionRequestError ? caught.status : null;
+       error = status === 401 ? null : 'UNAVAILABLE';
+     }
+     this.#endEpoch();
+     for (const hook of this.#logoutHooks) hook();
+     this.#set({ state: 'guest', ownerId: null, error, busy: false });
+   }
+ 
++  /**
++   * Re-read GET session for the same owner to replace a stale CSRF token (for example after a login in
++   * another tab rotated the cookie). 401 or a different owner ends the epoch as an expiry. Single-flight.
++   */
++  refresh(): Promise<void> {
++    if (this.#snapshot.state !== 'authenticated')
++      return Promise.reject(new SessionRequestError(null, 'SESSION_REQUIRED'));
++    this.#refreshing ??= this.#reload().finally(() => {
++      this.#refreshing = null;
++    });
++    return this.#refreshing;
++  }
++
++  async #reload(): Promise<void> {
++    const epoch = this.#epoch;
++    try {
++      const session = await this.#client.restore(
++        AbortSignal.any([epoch.signal, AbortSignal.timeout(15_000)]),
++      );
++      if (epoch !== this.#epoch || this.#snapshot.state !== 'authenticated')
++        throw new SessionRequestError(null, 'SESSION_REQUIRED');
++      this.#csrf = session.csrfToken;
++      this.#set({ ...this.#snapshot });
++    } catch (error) {
++      if (error instanceof SessionRequestError && (error.status === 401 || error.code === 'OWNER_MISMATCH'))
++        this.expire();
++      throw error;
++    }
++  }
++
+   #authenticate(session: SessionDto): void {
+     if (session.owner.id !== 'owner') throw new SessionRequestError(null, 'OWNER_MISMATCH');
+     this.#csrf = session.csrfToken;
+     if (this.#epoch.signal.aborted) this.#epoch = new AbortController();
+     this.#set({ state: 'authenticated', ownerId: session.owner.id, error: null, busy: false });
+   }
+ 
+   #endEpoch(): void {
+     this.#csrf = null;
+     this.#epoch.abort(new DOMException('Phiên đăng nhập đã kết thúc', 'AbortError'));
+diff --git a/v2/web/test/auth-recovery.test.ts b/v2/web/test/auth-recovery.test.ts
+index 27a2800..0a34948 100644
+--- a/v2/web/test/auth-recovery.test.ts
++++ b/v2/web/test/auth-recovery.test.ts
+@@ -365,10 +365,25 @@ test('return route chỉ nhận path nội bộ /crew-v2/', () => {
+     '/crew-v2/../v2/auth/session',
+     '/crew-v2\\evil',
+     '/v2/projects',
+     'javascript:alert(1)',
+     null,
+     '',
+   ]) {
+     assert.equal(safeReturnPath(raw), '/crew-v2/', String(raw));
+   }
+ });
++
++test('logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên', async () => {
++  const server = scripted(
++    sessionOk(),
++    () => json(403, { error: { code: 'CSRF_INVALID', message: 'Mã bảo vệ không hợp lệ' } }),
++    sessionOk(nextCsrf),
++    () => new Response(null, { status: 204 }),
++  );
++  const session = new SessionController({ fetch: server.fetch });
++  await session.bootstrap();
++  await session.logout();
++  assert.equal(server.calls[3]?.init.method, 'DELETE');
++  assert.equal(server.calls[3]?.headers.get('x-csrf-token'), nextCsrf);
++  assert.deepEqual(session.snapshot(), { state: 'guest', ownerId: null, error: null, busy: false });
++});
+diff --git a/v2/web/test/client.test.ts b/v2/web/test/client.test.ts
+index 1f175a5..cf84266 100644
+--- a/v2/web/test/client.test.ts
++++ b/v2/web/test/client.test.ts
+@@ -386,10 +386,172 @@ test('GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ
+ 
+ test('decoder từ chối thiếu field, sai primitive và field lạ chưa review', () => {
+   assert.throws(() => decodeSession({ owner: { id: 'owner' } }), ContractError);
+   assert.throws(() => decodeSession({ owner: { id: 'owner' }, csrfToken: 1 }), ContractError);
+   assert.throws(() => decodeSession({ owner: { id: 'other' }, csrfToken: csrf }), ContractError);
+   assert.throws(() => decodeSession({ owner: { id: 'owner' }, csrfToken: csrf, extra: true }), ContractError);
+   const additive = obj({ id: str }, { additive: ['reviewedNew'] });
+   assert.deepEqual(additive({ id: 'x', reviewedNew: 1 }), { id: 'x' });
+   assert.throws(() => obj({ n: int })({ n: 1.5 }), ContractError);
+ });
++
++const csrfInvalid = () => json(403, { error: { code: 'CSRF_INVALID', message: 'Mã bảo vệ không hợp lệ' } });
++const freshCsrf = 'c'.repeat(64);
++
++test('403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body', async () => {
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    csrfInvalid,
++    () => json(200, { owner: { id: 'owner' }, csrfToken: freshCsrf }),
++    () => json(201, { id: 'p1' }),
++  );
++  const session = await authenticated(server.fetch);
++  const pending = new PendingStore(null);
++  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
++  const operation = pending.begin({
++    intentId: 'a',
++    method: 'POST',
++    path: '/v2/projects',
++    body: { key: 'AB' },
++    storage: 'tab',
++  });
++  pending.markAmbiguous(operation.id);
++  assert.deepEqual(await client.mutate(operation), { id: 'p1' });
++  const [, stale, refresh, replay] = server.calls;
++  assert.equal(stale?.headers.get('x-csrf-token'), csrf);
++  assert.equal(refresh?.url, '/v2/auth/session');
++  assert.equal(refresh?.init.method, 'GET');
++  assert.equal(replay?.headers.get('x-csrf-token'), freshCsrf);
++  assert.equal(replay?.headers.get('idempotency-key'), operation.id);
++  assert.equal(replay?.init.body, operation.bodyJson);
++  assert.equal(session.csrf(), freshCsrf);
++  assert.equal(pending.get(operation.id), undefined, 'chỉ clear sau khi accepted');
++});
++
++test('403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key', async () => {
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    csrfInvalid,
++    () => json(401, { error: { code: 'UNAUTHENTICATED', message: 'Cần đăng nhập' } }),
++  );
++  const session = await authenticated(server.fetch);
++  const pending = new PendingStore(null);
++  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
++  const operation = pending.begin({
++    intentId: 'a',
++    method: 'POST',
++    path: '/v2/projects',
++    body: { key: 'AB' },
++    storage: 'tab',
++  });
++  pending.markAmbiguous(operation.id);
++  await assert.rejects(
++    client.mutate(operation),
++    (error: unknown) => error instanceof ApiFailure && error.status === 401,
++  );
++  assert.equal(session.snapshot().state, 'expired');
++  assert.equal(pending.get(operation.id)?.state, 'suspended');
++  assert.equal(pending.get(operation.id)?.bodyJson, operation.bodyJson);
++  assert.throws(
++    () =>
++      pending.begin({
++        intentId: 'a',
++        method: 'POST',
++        path: '/v2/projects',
++        body: { key: 'AB' },
++        storage: 'tab',
++      }),
++    IntentUnresolvedError,
++  );
++});
++
++test('403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key', async () => {
++  const originInvalid = () =>
++    json(403, { error: { code: 'ORIGIN_INVALID', message: 'Nguồn yêu cầu không hợp lệ' } });
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    originInvalid,
++    () => json(200, { owner: { id: 'owner' }, csrfToken: freshCsrf }),
++    originInvalid,
++  );
++  const session = await authenticated(server.fetch);
++  const pending = new PendingStore(null);
++  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
++  const operation = pending.begin({
++    intentId: 'a',
++    method: 'POST',
++    path: '/v2/projects',
++    body: { key: 'AB' },
++    storage: 'tab',
++  });
++  await assert.rejects(
++    client.mutate(operation),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'ORIGIN_INVALID',
++  );
++  assert.equal(server.calls.length, 4, 'chỉ làm mới một lần, không vòng lặp');
++  assert.equal(pending.get(operation.id)?.state, 'suspended');
++  assert.equal(session.snapshot().state, 'authenticated');
++});
++
++test('4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal', async () => {
++  const notFound = () => json(404, { error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } });
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    notFound,
++    () => {
++      throw new TypeError('fetch failed');
++    },
++    () => json(409, { error: { code: 'REVISION_CONFLICT', message: 'Đã thay đổi' } }),
++    () => json(400, { error: { code: 'INVALID_INPUT', message: 'Dữ liệu không hợp lệ' } }),
++    notFound,
++  );
++  const session = await authenticated(server.fetch);
++  const pending = new PendingStore(null);
++  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
++  const path = `/v2/projects/${'2'.repeat(8)}-2222-4222-8222-${'2'.repeat(12)}/binding`;
++  const ambiguous = pending.begin({
++    intentId: 'a',
++    method: 'PUT',
++    path,
++    body: { expectedRevision: 1 },
++    storage: 'tab',
++  });
++  pending.markAmbiguous(ambiguous.id);
++  await assert.rejects(
++    client.mutate(ambiguous),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'NOT_FOUND',
++  );
++  assert.equal(
++    pending.get(ambiguous.id)?.state,
++    'ambiguous',
++    '404 từ authorize không chứng minh chưa commit',
++  );
++  const inCall = pending.begin({
++    intentId: 'b',
++    method: 'PUT',
++    path,
++    body: { expectedRevision: 2 },
++    storage: 'tab',
++  });
++  await assert.rejects(
++    client.mutate(inCall),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'REVISION_CONFLICT',
++  );
++  assert.equal(pending.get(inCall.id)?.state, 'ambiguous', 'lần gửi trước trong cùng lượt có thể đã commit');
++  await assert.rejects(
++    client.mutate(pending.get(ambiguous.id) ?? ambiguous),
++    (error: unknown) => error instanceof ApiFailure && error.status === 400,
++  );
++  assert.equal(pending.get(ambiguous.id), undefined, '400 theo body là terminal');
++  const fresh = pending.begin({
++    intentId: 'c',
++    method: 'PUT',
++    path,
++    body: { expectedRevision: 3 },
++    storage: 'tab',
++  });
++  await assert.rejects(
++    client.mutate(fresh),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'NOT_FOUND',
++  );
++  assert.equal(pending.get(fresh.id), undefined, 'operation chưa từng gửi được trả lời rõ ràng thì terminal');
++});
