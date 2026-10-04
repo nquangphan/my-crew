@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { samePin } from '../../../src/workflow-policy.ts';
 import { toDomainPin } from '../gateway/contracts.ts';
@@ -9,6 +9,7 @@ import { uuid } from '../tickets/assistant-access.ts';
 import type { CreateTicket, Ticket } from '../tickets/contracts.ts';
 import type { PersistedAssistantActorResolver } from './authority.ts';
 import type { OrchestrationProof, Sha256, SkillStep, WorkflowRun } from './contracts.ts';
+import type { OperationRequest } from './operation-request.ts';
 import type { RunGraph, WorkflowOrchestrationPort } from './orchestration.ts';
 import { runGraphSha256 } from './orchestration.ts';
 import type { DefinitionLookup, StepSpec, WorkflowPath } from './workflows.ts';
@@ -27,6 +28,15 @@ export type WorkflowRunDependencies = {
   lookup?: DefinitionLookup;
 };
 export type WorkflowRuns = {
+  /**
+   * Exact request the tools transport must hash into the pending `create_run` operation:
+   * the run input plus the digest of the graph this operation would create. Pure read.
+   */
+  createRunRequest(
+    tx: Tx,
+    operationId: Id,
+    input: CreateRunInput,
+  ): Promise<Extract<OperationRequest, { action: 'create_run' }>>;
   createRun(tx: Tx, proof: OrchestrationProof, input: CreateRunInput): Promise<WorkflowRun>;
   latchRenderedArtifact(tx: Tx, runId: Id, evidenceId: Id): Promise<WorkflowRun>;
 };
@@ -48,6 +58,14 @@ const sha256Text = (text: string) => createHash('sha256').update(text, 'utf8').d
 const renderConflict = (message: string) => new ApiError('WORKFLOW_RENDER_RECEIPT_INVALID', 409, message);
 const plainObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
+
+// Every ID of a run is derived from its operation, so the graph (and its digest) is a
+// pure function of the operation, the request and the persisted rows it reads.
+function derivedId(operationId: Id, ...parts: (string | number)[]): Id {
+  const hex = sha256(['crew-v2:workflow-run-id:1', operationId.toLowerCase(), ...parts]);
+  const variant = ((Number.parseInt(hex[16] as string, 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
 
 /** Phase04 logical effect identity, recomputed from the persisted operation fields. */
 export function workflowEffectId(input: {
@@ -126,8 +144,9 @@ function units(scope: unknown, input: CreateRunInput): ParallelUnit[] {
 }
 
 /**
- * Owner parallel approval from the Assistant policy. It must be an owner `approval`
- * decision inside this root naming this exact run request; anything else denies.
+ * Owner parallel approval from the Assistant policy. A decision of another root is no
+ * override for this root (sequential). Inside this root it must be an owner `approval`
+ * naming this exact run request; anything else denies.
  */
 async function parallelApproval(
   tx: Tx,
@@ -142,32 +161,30 @@ async function parallelApproval(
   const [decision] = await tx`select d.id,d.actor_kind,d.actor_id,d.kind,d.scope,t.root_id
     from decisions d join tickets t on t.id=d.ticket_id where d.id=${id.toLowerCase()} for share of d`;
   if (!decision) throw denied();
-  if (
-    decision.actor_kind !== 'owner' ||
-    decision.actor_id !== 'owner' ||
-    decision.kind !== 'approval' ||
-    decision.root_id !== input.rootTicketId
-  )
+  if (decision.root_id !== input.rootTicketId) return null;
+  if (decision.actor_kind !== 'owner' || decision.actor_id !== 'owner' || decision.kind !== 'approval')
     throw denied();
-  if (input.path !== 'architectural' && input.path !== 'bounded')
+  // Architectural units need the written plan first; that approval belongs to the plan gate.
+  if (input.path !== 'bounded')
     throw new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Đường workflow này chạy tuần tự');
   return { id: String(decision.id), units: units(decision.scope, input) };
 }
 
 // Ordered official stages; with an exact owner approval the implementation stage
 // splits into disjoint units that the review stage joins.
-function plan(path: WorkflowPath, parallel: ParallelUnit[] | null): PlannedStep[] {
+function plan(operationId: Id, path: WorkflowPath, parallel: ParallelUnit[] | null): PlannedStep[] {
   const steps: PlannedStep[] = [];
   let previous: number[] = [];
   for (const spec of workflowSteps(path)) {
     const expand = parallel && spec.key === 'implement' ? parallel : [null];
     const added: number[] = [];
     for (const unit of expand) {
+      const index = steps.length;
       steps.push({
         spec,
-        stepId: randomUUID(),
-        operationId: randomUUID(),
-        gateIds: spec.gates.map(() => randomUUID()),
+        stepId: derivedId(operationId, 'step', index),
+        operationId: derivedId(operationId, 'step-operation', index),
+        gateIds: spec.gates.map((_, gate) => derivedId(operationId, 'gate', index, gate)),
         predecessors: previous,
         ownershipKeys: unit ? unit.ownershipKeys : [],
         title: unit ? `${spec.title}: ${unit.title}` : spec.title,
@@ -240,129 +257,178 @@ export function createWorkflowRuns(deps: WorkflowRunDependencies): WorkflowRuns 
   if (!port || typeof port.authorizeGraph !== 'function' || typeof resolver !== 'function')
     throw new Error('WORKFLOW_RUN_DEPENDENCIES_INVALID');
   const lookup = deps.lookup ?? createDefinitionLookup();
+  // Deterministic plan of one run for one operation: the same rows give the same graph.
+  async function planRun(
+    tx: Tx,
+    operationId: Id,
+    input: CreateRunInput,
+    root: Record<string, unknown> | undefined,
+    project: Record<string, unknown> | undefined,
+  ) {
+    if (!root || !project || root.root_id !== root.id || root.level !== 'request')
+      throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+    if (root.status === 'done' || root.status === 'cancelled')
+      throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+    if (project.machine_id === null)
+      throw new ApiError('PROJECT_NOT_BOUND', 409, 'Dự án chưa gắn máy thực thi');
+    const record = await lookup(tx, String(project.machine_id), input.definitionSha256);
+    if (!record) throw new ApiError('WORKFLOW_DEFINITION_UNKNOWN', 422, 'Máy dự án chưa báo definition này');
+    if (record.source.name !== workflowOfPath(input.path))
+      throw new ApiError('WORKFLOW_PATH_MISMATCH', 422, 'Đường workflow không thuộc definition');
+    const sources = stepSources(input.path, record.definition.skills);
+    const rootPin = root.workflow_pin as Ticket['workflowPin'];
+    const choice = plainObject(root.criteria) ? root.criteria.workflowChoice : undefined;
+    if (
+      (rootPin && !samePin(rootPin, toDomainPin(record.source))) ||
+      (choice !== undefined && choice !== record.source.name)
+    )
+      throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Workflow khác yêu cầu gốc');
+    const [existing] = await tx`select id from workflow_runs where root_ticket_id=${input.rootTicketId}`;
+    if (existing) throw new ApiError('WORKFLOW_RUN_EXISTS', 409, 'Yêu cầu đã có run');
+    const parallel = await parallelApproval(tx, input);
+    const runId = derivedId(operationId, 'run');
+    const steps = plan(operationId, input.path, parallel?.units ?? null);
+    const gateOf = (stepKey: string, gateKind: string) => {
+      const owner = steps.find((step) => step.spec.key === stepKey);
+      const index = owner?.spec.gates.findIndex((gate) => gate.kind === gateKind) ?? -1;
+      return owner?.gateIds[index] ?? null;
+    };
+    const inputs: CreateTicket[] = steps.map((step) => ({
+      projectId: String(root.project_id),
+      parentId: input.rootTicketId,
+      level: 'step',
+      kind: step.spec.kind,
+      title: step.title,
+      description: `Nguồn chính thức: ${step.spec.citation}`,
+      mandatory: true,
+      criteria: {
+        workflowRun: {
+          runId,
+          path: input.path,
+          stepKey: step.spec.key,
+          stepOperationId: step.operationId,
+          sourcePath: step.spec.sourcePath,
+          citation: step.spec.citation,
+          gates: step.spec.gates.map((gate, index) => ({
+            id: step.gateIds[index],
+            kind: gate.kind,
+            requiredActor: gate.requiredActor,
+            trigger: gate.trigger,
+            citation: gate.citation,
+          })),
+          ...(step.spec.executionChoices
+            ? {
+                executionChoices: step.spec.executionChoices.map((option) => ({
+                  ...option,
+                  sourceSha256: sources.get(option.sourcePath) as string,
+                })),
+                resolvedByGateId: step.spec.resolvedBy
+                  ? gateOf(step.spec.resolvedBy.stepKey, step.spec.resolvedBy.gateKind)
+                  : null,
+              }
+            : {}),
+        },
+      },
+      inputs: {},
+      outputs: { kinds: step.spec.outputKinds },
+      skill: step.spec.skill,
+      workflowPin: null,
+    }));
+    const edges = steps.flatMap((step, index) =>
+      step.predecessors.map((predecessor) => ({
+        key: derivedId(operationId, 'edge', index, predecessor),
+        ticketKey: step.operationId,
+        predecessorKey: steps[predecessor]?.operationId as Id,
+        index,
+        predecessor,
+      })),
+    );
+    const graph: RunGraph = {
+      runId,
+      rootTicketId: input.rootTicketId,
+      tickets: steps.map((step, index) => ({ key: step.operationId, input: inputs[index] as CreateTicket })),
+      edges: edges.map(({ key, ticketKey, predecessorKey }) => ({ key, ticketKey, predecessorKey })),
+    };
+    const graphSha256 = runGraphSha256(graph);
+    const request = {
+      action: 'create_run' as const,
+      payload: {
+        rootTicketId: input.rootTicketId,
+        path: input.path,
+        definitionSha256: input.definitionSha256,
+        graphSha256,
+      },
+    };
+    return { runId, steps, inputs, edges, graph, graphSha256, record, sources, parallel, request };
+  }
   return Object.freeze({
+    async createRunRequest(tx: Tx, operationId: Id, request: CreateRunInput) {
+      const input = validateInput(request);
+      if (typeof operationId !== 'string' || !uuid.test(operationId))
+        throw new ApiError('VALIDATION', 400, 'Định danh thao tác không hợp lệ');
+      const [root] = await tx`select * from tickets where id=${input.rootTicketId}`;
+      const [project] = root ? await tx`select id,machine_id from projects where id=${root.project_id}` : [];
+      return (await planRun(tx, operationId, input, root, project)).request;
+    },
     async createRun(tx: Tx, proof: OrchestrationProof, request: CreateRunInput): Promise<WorkflowRun> {
       const input = validateInput(request);
       // Lock order matches the scoped ticket writers: root → project → persisted Actor.
       const [root] = await tx`select * from tickets where id=${input.rootTicketId} for update`;
-      if (!root || root.root_id !== root.id || root.level !== 'request')
-        throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
-      const [project] = await tx`select id,machine_id from projects where id=${root.project_id} for update`;
-      if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
+      const [project] = root
+        ? await tx`select id,machine_id from projects where id=${root.project_id} for update`
+        : [];
+      if (!root || !project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
       const actor: Actor = await resolver(tx, proof);
-      if (root.status === 'done' || root.status === 'cancelled')
-        throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
-      if (project.machine_id === null)
-        throw new ApiError('PROJECT_NOT_BOUND', 409, 'Dự án chưa gắn máy thực thi');
-      const record = await lookup(tx, String(project.machine_id), input.definitionSha256);
-      if (!record)
-        throw new ApiError('WORKFLOW_DEFINITION_UNKNOWN', 422, 'Máy dự án chưa báo definition này');
-      if (record.source.name !== workflowOfPath(input.path))
-        throw new ApiError('WORKFLOW_PATH_MISMATCH', 422, 'Đường workflow không thuộc definition');
-      const sources = stepSources(input.path, record.definition.skills);
-      const rootPin = root.workflow_pin as Ticket['workflowPin'];
-      const choice = plainObject(root.criteria) ? root.criteria.workflowChoice : undefined;
-      if (
-        (rootPin && !samePin(rootPin, toDomainPin(record.source))) ||
-        (choice !== undefined && choice !== record.source.name)
-      )
-        throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Workflow khác yêu cầu gốc');
-      const [existing] = await tx`select id from workflow_runs where root_ticket_id=${input.rootTicketId}`;
-      if (existing) throw new ApiError('WORKFLOW_RUN_EXISTS', 409, 'Yêu cầu đã có run');
-      const parallel = await parallelApproval(tx, input);
-      const runId = randomUUID();
-      const steps = plan(input.path, parallel?.units ?? null);
-      const inputs: CreateTicket[] = steps.map((step) => ({
-        projectId: String(root.project_id),
-        parentId: input.rootTicketId,
-        level: 'step',
-        kind: step.spec.kind,
-        title: step.title,
-        description: `Nguồn chính thức: ${step.spec.citation}`,
-        mandatory: true,
-        criteria: {
-          workflowRun: {
+      const planned = await planRun(tx, proof.operationId, input, root, project);
+      const { runId, steps, inputs, edges, graph, graphSha256, record, sources, parallel } = planned;
+      // All-or-nothing: any failure after the first write rolls back every write of this
+      // call (and the operation's single use) while the caller's transaction stays usable.
+      return tx.savepoint(async (sp) => {
+        const session = await port.authorizeGraph(sp, actor, proof, input, graph);
+        await sp`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,
+          rendered_artifact_id,path,revision,parallel_approval_id)
+          values(${runId},${input.rootTicketId},${sp.json(record.source)},${sp.json(record.projection)},
+          ${record.definition.sha256},${record.definition.customizationSha256},null,${input.path},1,${parallel?.id ?? null})`;
+        const tickets: Ticket[] = [];
+        for (const [index, step] of steps.entries()) {
+          const ticket = await session.createTicket(sp, step.operationId, inputs[index] as CreateTicket);
+          tickets.push(ticket);
+          await sp`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,
+            acceptance,output_kinds,gate_ids,ownership_keys,role)
+            values(${step.stepId},${runId},${ticket.id},${step.spec.skill},${step.spec.sourcePath},
+            ${sources.get(step.spec.sourcePath) as string},${sp.json(step.predecessors.map((p) => steps[p]?.stepId as Id))},
+            ${sp.json(step.spec.acceptance)},${sp.json(step.spec.outputKinds)},${sp.json(step.gateIds)},
+            ${sp.json(step.ownershipKeys)},${step.spec.role})`;
+          await insertOperation(
+            sp,
             runId,
-            path: input.path,
-            stepKey: step.spec.key,
-            stepOperationId: step.operationId,
-            sourcePath: step.spec.sourcePath,
-            gates: step.spec.gates.map((gate, index) => ({
-              id: step.gateIds[index],
-              kind: gate.kind,
-              requiredActor: gate.requiredActor,
-              citation: gate.citation,
-            })),
-          },
-        },
-        inputs: {},
-        outputs: { kinds: step.spec.outputKinds },
-        skill: step.spec.skill,
-        workflowPin: null,
-      }));
-      const edges = steps.flatMap((step, index) =>
-        step.predecessors.map((predecessor) => ({
-          key: randomUUID(),
-          ticketKey: step.operationId,
-          predecessorKey: steps[predecessor]?.operationId as Id,
-          index,
-          predecessor,
-        })),
-      );
-      const graph: RunGraph = {
-        runId,
-        rootTicketId: input.rootTicketId,
-        tickets: steps.map((step, index) => ({
-          key: step.operationId,
-          input: inputs[index] as CreateTicket,
-        })),
-        edges: edges.map(({ key, ticketKey, predecessorKey }) => ({ key, ticketKey, predecessorKey })),
-      };
-      const graphSha256 = runGraphSha256(graph);
-      const session = await port.authorizeGraph(tx, actor, proof, graph, graphSha256);
-      await tx`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,
-        rendered_artifact_id,path,revision,parallel_approval_id)
-        values(${runId},${input.rootTicketId},${tx.json(record.source)},${tx.json(record.projection)},
-        ${record.definition.sha256},${record.definition.customizationSha256},null,${input.path},1,${parallel?.id ?? null})`;
-      const tickets: Ticket[] = [];
-      for (const [index, step] of steps.entries()) {
-        const ticket = await session.createTicket(tx, step.operationId, inputs[index] as CreateTicket);
-        tickets.push(ticket);
-        await tx`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,
-          acceptance,output_kinds,gate_ids,ownership_keys,role)
-          values(${step.stepId},${runId},${ticket.id},${step.spec.skill},${step.spec.sourcePath},
-          ${sources.get(step.spec.sourcePath) as string},${tx.json(step.predecessors.map((p) => steps[p]?.stepId as Id))},
-          ${tx.json(step.spec.acceptance)},${tx.json(step.spec.outputKinds)},${tx.json(step.gateIds)},
-          ${tx.json(step.ownershipKeys)},${step.spec.role})`;
-        await insertOperation(
-          tx,
-          runId,
-          step.stepId,
-          step.operationId,
-          'create_ticket',
-          ticket.id,
-          graphSha256,
-        );
-      }
-      const revisions = new Map(tickets.map((ticket) => [ticket.id, ticket.revision]));
-      for (const edge of edges) {
-        const ticket = tickets[edge.index] as Ticket;
-        const predecessor = tickets[edge.predecessor] as Ticket;
-        const revision = revisions.get(ticket.id) as number;
-        await session.dependency(tx, ticket.id, predecessor.id, revision);
-        revisions.set(ticket.id, revision + 1);
-        await insertOperation(
-          tx,
-          runId,
-          (steps[edge.index] as PlannedStep).stepId,
-          edge.key,
-          'dependency',
-          `${ticket.id}:${predecessor.id}`,
-          graphSha256,
-        );
-      }
-      session.close(tx);
-      return readRun(tx, runId);
+            step.stepId,
+            step.operationId,
+            'create_ticket',
+            ticket.id,
+            graphSha256,
+          );
+        }
+        const revisions = new Map(tickets.map((ticket) => [ticket.id, ticket.revision]));
+        for (const edge of edges) {
+          const ticket = tickets[edge.index] as Ticket;
+          const predecessor = tickets[edge.predecessor] as Ticket;
+          const revision = revisions.get(ticket.id) as number;
+          await session.dependency(sp, ticket.id, predecessor.id, revision);
+          revisions.set(ticket.id, revision + 1);
+          await insertOperation(
+            sp,
+            runId,
+            (steps[edge.index] as PlannedStep).stepId,
+            edge.key,
+            'dependency',
+            `${ticket.id}:${predecessor.id}`,
+            graphSha256,
+          );
+        }
+        session.close(sp);
+        return readRun(sp, runId);
+      });
     },
 
     /**
@@ -394,11 +460,14 @@ export function createWorkflowRuns(deps: WorkflowRunDependencies): WorkflowRuns 
       if (!evidence) throw renderConflict('Receipt render không hợp lệ');
       if (evidence.kind !== 'workflow_render_receipt' || evidence.attempt_id === null)
         throw renderConflict('Receipt render không hợp lệ');
-      const [attempt] = await tx`select a.id,a.ticket_id,a.machine_id,a.binding_revision from attempts a
+      const [attempt] =
+        await tx`select a.id,a.ticket_id,a.machine_id,a.binding_revision,a.state from attempts a
         join workflow_steps s on s.ticket_id=a.ticket_id and s.run_id=${run.id}
         where a.id=${evidence.attempt_id} for share of a`;
       if (!attempt || attempt.ticket_id !== evidence.ticket_id)
         throw renderConflict('Receipt không thuộc attempt của run');
+      // The receipt is registered while its attempt holds the workspace, before the runtime starts.
+      if (attempt.state !== 'active') throw renderConflict('Attempt của receipt không còn hoạt động');
       if (
         !project ||
         project.machine_id === null ||

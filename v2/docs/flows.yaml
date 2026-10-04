@@ -458,6 +458,7 @@ flows:
       - server/src/assistant/authority.ts
       - server/src/assistant/contracts.ts
       - server/src/assistant/inbox.ts
+      - server/src/assistant/operation-request.ts
       - server/src/assistant/orchestration.ts
       - server/src/assistant/routes.ts
       - server/src/assistant/store.ts

@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import type { CapacityReceipt, CapacityRequest, TurnFence } from '../../src/assistant/contracts.ts';
+import type { OperationRequest } from '../../src/assistant/operation-request.ts';
+import { operationRequestSha256 } from '../../src/assistant/operation-request.ts';
 import type { MessageSubmission } from '../../src/attachments/contracts.ts';
 import { createMessageServices } from '../../src/attachments/messages.ts';
 import { connectDb } from '../../src/db/client.ts';
@@ -773,17 +775,29 @@ export async function assistantFixture(db: Db) {
         }),
       );
     },
-    /** Test-only stand-in for the tools route row written before the port call. */
+    /**
+     * Test-only stand-in for the tools route row written before the port call. With a
+     * `request` the row carries its exact request hash; without one the hash binds no request.
+     */
     async seedToolOperation(
       sql: Db | Tx,
-      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected'; operationId?: Id },
+      input: {
+        turnId: Id;
+        snapshotId: Id;
+        state?: 'pending' | 'completed' | 'rejected';
+        operationId?: Id;
+        request?: OperationRequest | { action: string; payload: unknown };
+      },
     ): Promise<Id> {
       const operationId = input.operationId ?? randomUUID();
       const state = input.state ?? 'pending';
+      const requestHash = input.request
+        ? operationRequestSha256(input.request as OperationRequest)
+        : createHash('sha256').update(operationId).digest('hex');
       await sql`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state,response)
         values(${operationId},${input.turnId},
           (select coalesce(max(client_sequence),0)+1 from assistant_tool_operations where turn_id=${input.turnId}),
-          ${`fixture-${operationId}`},${createHash('sha256').update(operationId).digest('hex')},${input.snapshotId},${state},
+          ${`fixture-${operationId}`},${requestHash},${input.snapshotId},${state},
           ${state === 'pending' ? null : sql.json({ fixture: true })})`;
       return operationId;
     },

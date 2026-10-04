@@ -171,6 +171,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/assistant/authority.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
+| `server/src/assistant/operation-request.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/orchestration.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/runs.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |

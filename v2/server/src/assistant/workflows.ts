@@ -123,6 +123,8 @@ export function createDefinitionLookup(): DefinitionLookup {
 export type GateSpec = {
   kind: string;
   requiredActor: 'owner' | 'delegated';
+  /** `on_stage`: every run passes it; `after_three_failed_fixes`: only materialized after three failed fixes. */
+  trigger: 'on_stage' | 'after_three_failed_fixes';
   /** Exact lines of the pinned source that define the gate. */
   citation: string;
 };
@@ -137,6 +139,12 @@ export type StepSpec = {
   acceptance: string[];
   outputKinds: string[];
   gates: GateSpec[];
+  /**
+   * Official execution skills the owner chooses between at the gate of `resolvedBy`;
+   * the step is not dispatchable until that gate resolves to one of them.
+   */
+  executionChoices?: { method: string; skill: string; sourcePath: string }[];
+  resolvedBy?: { stepKey: string; gateKind: string };
 };
 
 const sp = (skill: string) => `skills/${skill}/SKILL.md`;
@@ -144,19 +152,16 @@ const bmad = (file: string) => `.claude/skills/bmad-build/${file}`;
 
 // Superpowers 6.4.2 (source revision 8ca22dba…, payload 29714b2c…). Citations are
 // lines of the pinned archive files; the graph is ordered and sequential by default.
+// `implement` (TDD) belongs to the bounded path only (brainstorming:127).
 const implement: StepSpec = {
   key: 'implement',
   skill: 'test-driven-development',
   sourcePath: sp('test-driven-development'),
-  citation:
-    'skills/test-driven-development/SKILL.md:31-34; skills/brainstorming/SKILL.md:127; skills/writing-plans/SKILL.md:200-204',
+  citation: 'skills/brainstorming/SKILL.md:127; skills/test-driven-development/SKILL.md:31-34',
   role: 'implement',
   kind: 'code',
   title: 'Triển khai theo TDD',
-  acceptance: [
-    'Mỗi thay đổi mã sản phẩm có test đỏ trước, rồi xanh',
-    'Phương pháp thực thi theo lựa chọn đã duyệt ở cổng kế hoạch (nếu có)',
-  ],
+  acceptance: ['Mỗi thay đổi mã sản phẩm có test đỏ trước, rồi xanh; không có tài liệu kế hoạch'],
   outputKinds: ['code', 'test'],
   gates: [],
 };
@@ -219,6 +224,7 @@ const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', St
         {
           kind: 'design_approval',
           requiredActor: 'owner',
+          trigger: 'on_stage',
           citation: 'skills/brainstorming/SKILL.md:45-49,134,174-176',
         },
       ],
@@ -237,6 +243,7 @@ const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', St
         {
           kind: 'spec_approval',
           requiredActor: 'owner',
+          trigger: 'on_stage',
           citation: 'skills/brainstorming/SKILL.md:46-49,256-261',
         },
       ],
@@ -255,13 +262,50 @@ const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', St
         {
           kind: 'plan_approval_execution_method',
           requiredActor: 'owner',
+          trigger: 'on_stage',
           citation: 'skills/brainstorming/SKILL.md:46-48; skills/writing-plans/SKILL.md:181-198',
         },
       ],
     },
-    implement,
-    review,
-    verify,
+    {
+      key: 'execute',
+      skill: 'plan-execution',
+      sourcePath: sp('writing-plans'),
+      citation: 'skills/writing-plans/SKILL.md:179-204',
+      role: 'implement',
+      kind: 'code',
+      title: 'Thực thi kế hoạch theo phương pháp đã chọn',
+      acceptance: [
+        'Chỉ dispatch sau khi cổng kế hoạch chọn một phương pháp thực thi chính thức',
+        'TDD và review từng phần là kỷ luật bên trong skill thực thi đã chọn',
+      ],
+      outputKinds: ['code', 'test', 'review'],
+      gates: [],
+      executionChoices: [
+        {
+          method: 'subagent-driven',
+          skill: 'subagent-driven-development',
+          sourcePath: sp('subagent-driven-development'),
+        },
+        { method: 'native', skill: 'executing-plans', sourcePath: sp('executing-plans') },
+      ],
+      resolvedBy: { stepKey: 'plan', gateKind: 'plan_approval_execution_method' },
+    },
+    {
+      key: 'finish',
+      skill: 'finishing-a-development-branch',
+      sourcePath: sp('finishing-a-development-branch'),
+      citation:
+        'skills/subagent-driven-development/SKILL.md:120,487; skills/executing-plans/SKILL.md:104,304',
+      role: 'implement',
+      kind: 'code',
+      title: 'Hoàn tất nhánh phát triển',
+      acceptance: [
+        'Chỉ sau review cuối sạch của skill thực thi; trình bày các lựa chọn hoàn tất cho chủ dự án',
+      ],
+      outputKinds: ['summary'],
+      gates: [],
+    },
   ],
   bounded: [
     {
@@ -278,6 +322,7 @@ const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', St
         {
           kind: 'design_approval',
           requiredActor: 'owner',
+          trigger: 'on_stage',
           citation: 'skills/brainstorming/SKILL.md:45,76-80,126',
         },
       ],
@@ -325,6 +370,7 @@ const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', St
         {
           kind: 'architecture_discussion',
           requiredActor: 'owner',
+          trigger: 'after_three_failed_fixes',
           citation: 'skills/systematic-debugging/SKILL.md:190-212',
         },
       ],
@@ -347,6 +393,7 @@ const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', St
         {
           kind: 'probe_approval',
           requiredActor: 'owner',
+          trigger: 'on_stage',
           citation: 'skills/brainstorming/SKILL.md:44,118',
         },
       ],
@@ -374,7 +421,8 @@ const bmadClarify: StepSpec = {
   key: 'step-01',
   skill: 'bmad-build',
   sourcePath: bmad('step-01-clarify-and-route.md'),
-  citation: 'src/bmm-skills/ship/bmad-build/workflow.md:82-84; step-01-clarify-and-route.md:15-100',
+  citation:
+    'src/bmm-skills/ship/bmad-build/workflow.md:82-84; src/bmm-skills/ship/bmad-build/step-01-clarify-and-route.md:15-100',
   role: 'research',
   kind: 'research',
   title: 'BMAD bước 1: làm rõ và định tuyến',
@@ -402,6 +450,7 @@ const bmadPaths: Record<'bmad-dispatch' | 'bmad-oneshot', StepSpec[]> = {
         {
           kind: 'spec_approval',
           requiredActor: 'owner',
+          trigger: 'on_stage',
           citation: 'src/bmm-skills/ship/bmad-build/step-02-plan.md:36-58',
         },
       ],
@@ -490,15 +539,19 @@ export function workflowSteps(path: WorkflowPath): readonly StepSpec[] {
 export function stepSources(path: WorkflowPath, skills: readonly DefinitionSkill[]): Map<string, string> {
   const byPath = new Map(skills.map((skill) => [skill.path, skill.sha256]));
   const result = new Map<string, string>();
-  for (const step of workflowSteps(path)) {
-    const sha = byPath.get(step.sourcePath);
-    if (!sha)
-      throw new ApiError(
-        'WORKFLOW_SKILL_MISSING',
-        422,
-        'Definition thiếu nguồn chính thức của bước workflow',
-      );
-    result.set(step.sourcePath, sha);
-  }
+  for (const step of workflowSteps(path))
+    for (const sourcePath of [
+      step.sourcePath,
+      ...(step.executionChoices ?? []).map((choice) => choice.sourcePath),
+    ]) {
+      const sha = byPath.get(sourcePath);
+      if (!sha)
+        throw new ApiError(
+          'WORKFLOW_SKILL_MISSING',
+          422,
+          'Definition thiếu nguồn chính thức của bước workflow',
+        );
+      result.set(sourcePath, sha);
+    }
   return result;
 }

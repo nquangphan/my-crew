@@ -18,7 +18,10 @@ import type {
   ProjectOrchestrationAuthority,
   ProjectOrchestrationPort,
   Sha256,
+  WorkflowRun,
 } from './contracts.ts';
+import type { OperationRequest } from './operation-request.ts';
+import { operationRequestSha256 } from './operation-request.ts';
 
 type AssistantSignal = 'dependencies_ready' | 'wait_owner';
 type Target =
@@ -39,6 +42,8 @@ type Binding = {
 export type RunGraphTicket = { key: Id; input: CreateTicket };
 /** Dependency edge between two graph tickets, keyed by its own operation ID. */
 export type RunGraphEdge = { key: Id; ticketKey: Id; predecessorKey: Id };
+/** Input of the `create_run` tool; the graph digest is always derived by the server. */
+export type CreateRunRequest = { rootTicketId: Id; path: WorkflowRun['path']; definitionSha256: Sha256 };
 /** Exact set of mutations one pending `create_run` operation may authorize. */
 export type RunGraph = { runId: Id; rootTicketId: Id; tickets: RunGraphTicket[]; edges: RunGraphEdge[] };
 export interface RunGraphSession {
@@ -52,8 +57,8 @@ export interface WorkflowOrchestrationPort extends ProjectOrchestrationPort {
     tx: Tx,
     actor: Actor,
     proof: OrchestrationProof,
+    request: CreateRunRequest,
     graph: RunGraph,
-    graphSha256: Sha256,
   ): Promise<RunGraphSession>;
 }
 type GraphEntry = {
@@ -77,6 +82,34 @@ const notFound = () => new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket
 const routingRequired = () =>
   new ApiError('ORCHESTRATION_ROUTING_DECISION_REQUIRED', 403, 'Thiếu quyết định định tuyến cho yêu cầu mới');
 const nullableId = (value: unknown): Id | null => (value === null ? null : String(value));
+const requestMismatch = () =>
+  new ApiError('ORCHESTRATION_REQUEST_MISMATCH', 403, 'Thao tác Trợ lý không được ghi cho yêu cầu này');
+const runPaths: readonly string[] = [
+  'architectural',
+  'bounded',
+  'bug',
+  'spike',
+  'bmad-dispatch',
+  'bmad-oneshot',
+];
+const consumedSetting = 'crew.assistant_consumed_operations';
+
+// Single use is tracked in a transaction-local setting, so every handle of the same
+// transaction (savepoints included) sees it, and a rolled-back savepoint releases it
+// together with the writes it undid.
+async function operationConsumed(tx: Tx, operationId: string): Promise<string[]> {
+  const [row] = await tx`select coalesce(current_setting(${consumedSetting}, true), '') as used`;
+  const used = String(row?.used ?? '')
+    .split(',')
+    .filter(Boolean);
+  if (used.includes(operationId))
+    throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
+  return used;
+}
+async function consumeOperation(tx: Tx, used: string[], operationId: string): Promise<void> {
+  await tx`select set_config(${consumedSetting}, ${[...used, operationId].join(',')}, true)`;
+}
+
 const operationNotFound = () =>
   new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
 const targetNotAuthorized = () =>
@@ -239,8 +272,6 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
   const resolve = resolver;
   const bindings = new WeakMap<Tx, Binding>();
   const graphs = new WeakMap<Tx, GraphEntry>();
-  // Each operation row authorizes exactly one mutation in its own Tx.
-  const consumed = new WeakMap<Tx, Set<string>>();
   const authority: ProjectOrchestrationAuthority = Object.freeze({
     async verify(
       tx: Tx,
@@ -270,18 +301,18 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
         throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
       // The tools route writes the pending row in this same Tx before calling the port.
       const [operation] =
-        await tx`select operation_id,turn_id,state,input_snapshot_id from assistant_tool_operations
+        await tx`select operation_id,turn_id,state,input_snapshot_id,request_hash from assistant_tool_operations
         where operation_id=${binding.proof.operationId} and xmin=pg_current_xact_id()::xid for update`;
       if (!operation || operation.turn_id !== binding.proof.fence.turnId || operation.state !== 'pending')
         throw new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
       if (operation.input_snapshot_id !== scope.input_snapshot_id)
         throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
-      const used = consumed.get(tx) ?? new Set<string>();
-      consumed.set(tx, used);
       const operationKey = String(operation.operation_id);
-      if (used.has(operationKey))
-        throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
-      used.add(operationKey);
+      const used = await operationConsumed(tx, operationKey);
+      // The row must have been written for exactly this action and submitted payload.
+      if (operation.request_hash !== operationRequestSha256(binding.target as OperationRequest))
+        throw requestMismatch();
+      await consumeOperation(tx, used, operationKey);
       await verifyTarget(
         tx,
         {
@@ -367,11 +398,25 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
     tx: Tx,
     actor: Actor,
     proof: OrchestrationProof,
+    request: CreateRunRequest,
     graph: RunGraph,
-    graphSha256: string,
   ): Promise<GraphEntry> {
     assertGraphShape(graph);
-    if (graphSha256 !== runGraphSha256(graph)) throw invalidScope();
+    if (
+      !request ||
+      typeof request !== 'object' ||
+      Object.keys(request).length !== 3 ||
+      request.rootTicketId !== graph.rootTicketId ||
+      !runPaths.includes(request.path) ||
+      typeof request.definitionSha256 !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(request.definitionSha256)
+    )
+      throw graphInvalid();
+    // The digest is recomputed here over the exact graph; no caller value is trusted.
+    const expectedRequest = operationRequestSha256({
+      action: 'create_run',
+      payload: { ...request, graphSha256: runGraphSha256(graph) },
+    });
     if (graphs.has(tx) || bindings.has(tx)) throw invalidScope();
     if (actor.kind !== 'machine' || !uuid.test(actor.id))
       throw new ApiError('ORCHESTRATION_MACHINE_REQUIRED', 403, 'Chỉ máy trợ lý được điều phối');
@@ -397,18 +442,16 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
     )
       throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
     const [operation] =
-      await tx`select operation_id,turn_id,state,input_snapshot_id from assistant_tool_operations
+      await tx`select operation_id,turn_id,state,input_snapshot_id,request_hash from assistant_tool_operations
       where operation_id=${proof.operationId} and xmin=pg_current_xact_id()::xid for update`;
     if (!operation || operation.turn_id !== proof.fence.turnId || operation.state !== 'pending')
       throw operationNotFound();
     if (operation.input_snapshot_id !== scope.input_snapshot_id)
       throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
-    const used = consumed.get(tx) ?? new Set<string>();
-    consumed.set(tx, used);
     const operationKey = String(operation.operation_id);
-    if (used.has(operationKey))
-      throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
-    used.add(operationKey);
+    const used = await operationConsumed(tx, operationKey);
+    if (operation.request_hash !== expectedRequest) throw requestMismatch();
+    await consumeOperation(tx, used, operationKey);
     const entry: GraphEntry = {
       tx,
       actor,
@@ -557,11 +600,11 @@ export function createProjectOrchestrationPort(
       tx: Tx,
       actor: Actor,
       proof: OrchestrationProof,
+      request: CreateRunRequest,
       graph: RunGraph,
-      graphSha256: Sha256,
     ) {
-      const call = immutableSnapshot({ actor, proof, graph, graphSha256 });
-      return session(await authorizeGraph(tx, call.actor, call.proof, call.graph, call.graphSha256));
+      const call = immutableSnapshot({ actor, proof, request, graph });
+      return session(await authorizeGraph(tx, call.actor, call.proof, call.request, call.graph));
     },
     async createTicket(tx: Tx, actor: Actor, proof: OrchestrationProof, input: CreateTicket) {
       const call = immutableSnapshot({ actor, proof, input });

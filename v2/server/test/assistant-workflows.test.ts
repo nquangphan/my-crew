@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
 import type {
   OrchestrationAction,
@@ -9,12 +11,15 @@ import type {
   TurnFence,
   WorkflowRun,
 } from '../src/assistant/contracts.ts';
+import type { OperationRequest } from '../src/assistant/operation-request.ts';
+import type { WorkflowOrchestrationPort } from '../src/assistant/orchestration.ts';
 import { createProjectOrchestrationPort } from '../src/assistant/orchestration.ts';
 import type { CreateRunInput } from '../src/assistant/runs.ts';
 import { createWorkflowRuns, workflowEffectId } from '../src/assistant/runs.ts';
 import { provisionMachine } from '../src/auth/machine.ts';
 import { mutate } from '../src/journal/mutation.ts';
 import type { Actor, Db, Id, Tx } from '../src/platform/contracts.ts';
+import { ApiError } from '../src/platform/errors.ts';
 import { assistantFixture, fixtureVerifierBuildSha256 } from './support/assistant.ts';
 import { databaseFixture } from './support/db.ts';
 import { inputTicket, owner } from './support/tickets.ts';
@@ -85,6 +90,10 @@ function workflowStatus(change?: (status: Status) => void): Record<string, unkno
   return status;
 }
 
+type RequestFor = (
+  tx: Tx,
+  operationId: Id,
+) => Promise<OperationRequest | { action: string; payload: unknown }>;
 type RunFixtureOptions = {
   workflow?: 'superpowers' | 'bmad';
   admission?: 'none' | { receiptStatus: 'FAIL' };
@@ -159,26 +168,41 @@ async function runFixture(db: Db, options: RunFixtureOptions = {}) {
   const resolver = createPersistedAssistantActorResolver({ verifierBuildSha256: fixtureVerifierBuildSha256 });
   const port = createProjectOrchestrationPort({ resolver });
   const runs = createWorkflowRuns({ port, resolver });
-  // The tools route stand-in: a pending operation row written in the same Tx as the call.
-  const inTurn = async <T>(work: (tx: Tx, proof: OrchestrationProof) => Promise<T>): Promise<T> => {
+  // The tools route stand-in: a pending operation row written in the same Tx as the call,
+  // carrying the request hash the transport computes for it.
+  const inTurn = async <T>(
+    request: RequestFor,
+    work: (tx: Tx, proof: OrchestrationProof) => Promise<T>,
+  ): Promise<T> => {
     const result = await mutate(
       db,
       { actor: a, route: 'test-only:assistant-create-run', key: randomUUID(), body: {} },
       async (tx) => {
-        const operationId = await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId });
+        const operationId = randomUUID();
+        await f.seedToolOperation(tx, {
+          turnId: fence.turnId,
+          snapshotId,
+          operationId,
+          request: await request(tx, operationId),
+        });
         return { status: 201, body: { value: (await work(tx, { fence, scopeId, operationId })) as unknown } };
       },
     );
     return result.body.value as T;
   };
-  const create = (input: Partial<CreateRunInput> = {}) =>
-    inTurn((tx, proof) =>
-      runs.createRun(tx, proof, {
-        rootTicketId: root.id,
-        path: options.workflow === 'bmad' ? 'bmad-dispatch' : 'architectural',
-        definitionSha256: options.workflow === 'bmad' ? bmadHash : superpowersHash,
-        ...input,
-      }),
+  const runInput = (input: Partial<CreateRunInput> = {}): CreateRunInput => ({
+    rootTicketId: root.id,
+    path: options.workflow === 'bmad' ? 'bmad-dispatch' : 'architectural',
+    definitionSha256: options.workflow === 'bmad' ? bmadHash : superpowersHash,
+    ...input,
+  });
+  const create = (
+    input: Partial<CreateRunInput> = {},
+    opts: { request?: RequestFor; runs?: typeof runs } = {},
+  ) =>
+    inTurn(
+      opts.request ?? ((tx, operationId) => runs.createRunRequest(tx, operationId, runInput(input))),
+      (tx, proof) => (opts.runs ?? runs).createRun(tx, proof, runInput(input)),
     );
   const rows = async () => ({
     runs: await db`select * from workflow_runs order by id`,
@@ -198,7 +222,10 @@ async function runFixture(db: Db, options: RunFixtureOptions = {}) {
     snapshotId,
     scopeId,
     runs,
+    resolver,
+    port,
     inTurn,
+    runInput,
     create,
     rows,
     seedApplied,
@@ -277,30 +304,114 @@ async function assertGraph(db: Db, f: RunFixture, run: WorkflowRun) {
   return criteria;
 }
 
-const outline = (run: WorkflowRun, criteria: { stepKey: string; gates: { kind: string }[] }[]) =>
-  run.steps.map((step, index) => ({
-    key: criteria[index]?.stepKey,
-    skill: step.skill,
-    sourcePath: step.sourcePath,
-    role: step.role,
-    gates: criteria[index]?.gates.map((gate) => gate.kind),
-  }));
+// Independent oracle: the pinned archives themselves. Cited lines are read from the exact
+// fixture bytes the definition was built from, never from the mapping under test.
+const archives = {
+  superpowers: {
+    file: fileURLToPath(
+      new URL('../../gateway/test/fixtures/workflows/superpowers-6.4.2.tgz', import.meta.url),
+    ),
+    prefix: 'superpowers-8ca22dba9a94f28898bbce59f2537ff4d87c747d/',
+  },
+  bmad: {
+    file: fileURLToPath(new URL('../../gateway/test/fixtures/workflows/bmad-6.12.0.tgz', import.meta.url)),
+    prefix: 'package/',
+  },
+};
+const sourceCache = new Map<string, string[]>();
+function sourceLines(path: string): string[] {
+  const cached = sourceCache.get(path);
+  if (cached) return cached;
+  const archive = path.startsWith('skills/') ? archives.superpowers : archives.bmad;
+  const text = execFileSync('tar', ['-xzOf', archive.file, `${archive.prefix}${path}`], { encoding: 'utf8' });
+  const lines = text.split('\n');
+  sourceCache.set(path, lines);
+  return lines;
+}
+/** Text of every cited range; each range must exist in the pinned file. */
+function cited(citation: string): string {
+  const parts: string[] = [];
+  for (const reference of citation.split('; ')) {
+    const match = /^([^:]+):([0-9,-]+)$/.exec(reference);
+    assert.ok(match, `citation ${reference}`);
+    const lines = sourceLines(match[1] as string);
+    for (const range of (match[2] as string).split(',')) {
+      const [from, to = from] = range.split('-').map(Number) as [number, number?];
+      assert.ok(
+        from >= 1 && (to as number) >= from && (to as number) <= lines.length,
+        `${reference} out of range`,
+      );
+      parts.push(lines.slice(from - 1, to).join('\n'));
+    }
+  }
+  return parts.join('\n');
+}
+// What each gate kind must literally be in its cited source lines.
+const gateMarkers: Record<string, RegExp> = {
+  design_approval: /User approves design\?|approves the short in-chat design/,
+  spec_approval: /User Review Gate|CHECKPOINT 1/,
+  plan_approval_execution_method: /Which execution approach/,
+  architecture_discussion: /If 3\+ Fixes Failed/,
+  probe_approval: /approves the question and probe/,
+};
+type StepCriteria = {
+  stepKey: string;
+  citation: string;
+  sourcePath: string;
+  gates: { id: Id; kind: string; requiredActor: string; trigger: string; citation: string }[];
+  executionChoices?: { method: string; skill: string; sourcePath: string; sourceSha256: string }[];
+  resolvedByGateId?: Id;
+};
+function assertCitations(run: WorkflowRun, criteria: StepCriteria[]) {
+  for (const [index, step] of run.steps.entries()) {
+    const item = criteria[index] as StepCriteria;
+    assert.equal(item.sourcePath, step.sourcePath);
+    assert.ok(cited(item.citation).length > 0);
+    for (const gate of item.gates) {
+      const marker = gateMarkers[gate.kind];
+      assert.ok(marker, `gate ${gate.kind} has no source marker`);
+      assert.match(cited(gate.citation), marker, `${gate.kind} citation`);
+      assert.equal(gate.requiredActor, 'owner');
+    }
+  }
+}
 const isChain = (run: WorkflowRun) =>
   run.steps.every((step, index) =>
     index === 0
       ? step.predecessorIds.length === 0
       : step.predecessorIds.length === 1 && step.predecessorIds[0] === run.steps[index - 1]?.id,
   );
+const skillsIn = (text: string) => [...text.matchAll(/superpowers:([a-z-]+)/g)].map((match) => match[1]);
+const requiredSubSkills = (path: string) =>
+  sourceLines(path)
+    .filter((line) => line.includes('REQUIRED SUB-SKILL'))
+    .flatMap(skillsIn);
 
 test('assistant workflows: definition not proven on machine B is 422 without rows', async () =>
   withDatabase(async (db) => {
     const f = await runFixture(db);
     try {
       const before = await f.rows();
-      await assert.rejects(() => f.create({ definitionSha256: 'f'.repeat(64) }), {
-        code: 'WORKFLOW_DEFINITION_UNKNOWN',
-        status: 422,
-      });
+      const unknown = f.runInput({ definitionSha256: 'f'.repeat(64) });
+      await assert.rejects(
+        () =>
+          f.create(
+            { definitionSha256: 'f'.repeat(64) },
+            {
+              request: async () => ({
+                action: 'create_run',
+                payload: { ...unknown, graphSha256: '0'.repeat(64) },
+              }),
+            },
+          ),
+        { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 },
+      );
+      const fixed = {
+        request: async () => ({
+          action: 'create_run',
+          payload: { ...f.runInput(), graphSha256: '0'.repeat(64) },
+        }),
+      };
       // Same hash reported by another machine only.
       await f.seedApplied(
         f.boundB.id,
@@ -309,7 +420,7 @@ test('assistant workflows: definition not proven on machine B is 422 without row
         }),
       );
       await f.seedApplied(f.otherC.id, workflowStatus());
-      await assert.rejects(() => f.create(), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
+      await assert.rejects(() => f.create({}, fixed), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
       // Slot not current, even though the definition bytes are present.
       await f.seedApplied(
         f.boundB.id,
@@ -317,7 +428,7 @@ test('assistant workflows: definition not proven on machine B is 422 without row
           status.superpowers.projections.claude.state = 'mismatch';
         }),
       );
-      await assert.rejects(() => f.create(), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
+      await assert.rejects(() => f.create({}, fixed), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
       // Stored digest no longer recomputes over the slot pins and skills.
       await f.seedApplied(
         f.boundB.id,
@@ -325,13 +436,22 @@ test('assistant workflows: definition not proven on machine B is 422 without row
           status.superpowers.projections.claude.definition?.skills.pop();
         }),
       );
-      await assert.rejects(() => f.create(), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
+      await assert.rejects(() => f.create({}, fixed), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
       // A BMAD definition cannot drive a Superpowers path.
       await f.seedApplied(f.boundB.id, workflowStatus());
-      await assert.rejects(() => f.create({ definitionSha256: bmadHash }), {
-        code: 'WORKFLOW_PATH_MISMATCH',
-        status: 422,
-      });
+      await assert.rejects(
+        () =>
+          f.create(
+            { definitionSha256: bmadHash },
+            {
+              request: async () => ({
+                action: 'create_run',
+                payload: { ...f.runInput({ definitionSha256: bmadHash }), graphSha256: '0'.repeat(64) },
+              }),
+            },
+          ),
+        { code: 'WORKFLOW_PATH_MISMATCH', status: 422 },
+      );
       assert.deepEqual(await f.rows(), before);
     } finally {
       await f.close();
@@ -355,7 +475,62 @@ test('assistant workflows: resolver denial writes no run', async () => {
     });
 });
 
-test('assistant workflows: architectural path follows the pinned brainstorming → plan chain', async () =>
+test('assistant workflows: createRun accepts only the operation written for this exact run request', async () =>
+  withDatabase(async (db) => {
+    const f = await runFixture(db);
+    try {
+      const before = await f.rows();
+      const denied = { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 };
+      const input = inputTicket(f.project.id, 'step', f.root.id);
+      // An operation written for another tool or for a single mutation.
+      await assert.rejects(
+        () =>
+          f.create({}, { request: async () => ({ action: 'read_docs', payload: { path: 'README.md' } }) }),
+        denied,
+      );
+      await assert.rejects(
+        () => f.create({}, { request: async () => ({ action: 'create_ticket', payload: input }) }),
+        denied,
+      );
+      // A create_run operation for another path, or carrying a caller-chosen graph digest.
+      await assert.rejects(
+        () =>
+          f.create(
+            {},
+            {
+              request: (tx, operationId) =>
+                f.runs.createRunRequest(tx, operationId, f.runInput({ path: 'bounded' })),
+            },
+          ),
+        denied,
+      );
+      await assert.rejects(
+        () =>
+          f.create(
+            {},
+            {
+              request: async () => ({
+                action: 'create_run',
+                payload: { ...f.runInput(), graphSha256: 'a'.repeat(64) },
+              }),
+            },
+          ),
+        denied,
+      );
+      // The digest is derived from this operation: another operation's request does not fit.
+      await assert.rejects(
+        () => f.create({}, { request: (tx) => f.runs.createRunRequest(tx, randomUUID(), f.runInput()) }),
+        denied,
+      );
+      assert.deepEqual(await f.rows(), before);
+      const run = await f.create();
+      assert.equal(run.path, 'architectural');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant workflows: architectural path follows the pinned brainstorming → writing-plans → execution chain', async () =>
   withDatabase(async (db) => {
     const f = await runFixture(db);
     try {
@@ -369,54 +544,48 @@ test('assistant workflows: architectural path follows the pinned brainstorming �
       assert.equal(run.customizationSha256, vector.superpowers.definition.customizationSha256);
       assert.deepEqual(run.source, vector.superpowers.source);
       assert.deepEqual(run.projection, vector.superpowers.projection);
-      const criteria = await assertGraph(db, f, run);
-      assert.deepEqual(outline(run, criteria), [
-        {
-          key: 'design',
-          skill: 'brainstorming',
-          sourcePath: 'skills/brainstorming/SKILL.md',
-          role: 'research',
-          gates: ['design_approval'],
-        },
-        {
-          key: 'spec',
-          skill: 'brainstorming',
-          sourcePath: 'skills/brainstorming/SKILL.md',
-          role: 'research',
-          gates: ['spec_approval'],
-        },
-        {
-          key: 'plan',
-          skill: 'writing-plans',
-          sourcePath: 'skills/writing-plans/SKILL.md',
-          role: 'research',
-          gates: ['plan_approval_execution_method'],
-        },
-        {
-          key: 'implement',
-          skill: 'test-driven-development',
-          sourcePath: 'skills/test-driven-development/SKILL.md',
-          role: 'implement',
-          gates: [],
-        },
-        {
-          key: 'review',
-          skill: 'requesting-code-review',
-          sourcePath: 'skills/requesting-code-review/SKILL.md',
-          role: 'review',
-          gates: [],
-        },
-        {
-          key: 'verify',
-          skill: 'verification-before-completion',
-          sourcePath: 'skills/verification-before-completion/SKILL.md',
-          role: 'review',
-          gates: [],
-        },
-      ]);
+      const criteria = (await assertGraph(db, f, run)) as StepCriteria[];
+      assertCitations(run, criteria);
       for (const step of run.steps) assert.equal(step.sourceSha256, skillSha('superpowers', step.sourcePath));
       assert.ok(isChain(run), 'mặc định tuần tự: mỗi bước chỉ chờ bước trước');
-      for (const gate of criteria.flatMap((item) => item.gates)) assert.equal(gate.requiredActor, 'owner');
+      // brainstorming: design sections, then written spec; its only exit is writing-plans.
+      const exit = /Invoke the ([a-z-]+) skill/.exec(sourceLines('skills/brainstorming/SKILL.md').join('\n'));
+      assert.deepEqual(
+        run.steps.slice(0, 3).map((step) => step.skill),
+        ['brainstorming', 'brainstorming', exit?.[1]],
+      );
+      assert.deepEqual(
+        criteria.slice(0, 3).map((item) => item.gates.map((gate) => gate.kind)),
+        [['design_approval'], ['spec_approval'], ['plan_approval_execution_method']],
+      );
+      // Execution: the owner picks one of writing-plans' REQUIRED SUB-SKILLs at the plan gate.
+      const execution = criteria[3] as StepCriteria;
+      const choices = requiredSubSkills('skills/writing-plans/SKILL.md');
+      assert.deepEqual([...new Set(choices)], ['subagent-driven-development', 'executing-plans']);
+      assert.deepEqual(
+        execution.executionChoices?.map((choice) => choice.skill),
+        [...new Set(choices)],
+      );
+      for (const choice of execution.executionChoices ?? []) {
+        assert.equal(choice.sourcePath, `skills/${choice.skill}/SKILL.md`);
+        assert.equal(choice.sourceSha256, skillSha('superpowers', choice.sourcePath));
+      }
+      assert.equal(execution.resolvedByGateId, criteria[2]?.gates[0]?.id);
+      assert.equal(run.steps[3]?.sourcePath, 'skills/writing-plans/SKILL.md');
+      assert.equal(run.steps[3]?.role, 'implement');
+      // Both execution skills hand off to the same finishing skill; it is the last step.
+      const finishing = new Set(
+        ['skills/subagent-driven-development/SKILL.md', 'skills/executing-plans/SKILL.md'].flatMap((path) =>
+          sourceLines(path)
+            .filter((line) => /Final review clean.*->/.test(line))
+            .flatMap(skillsIn),
+        ),
+      );
+      assert.deepEqual([...finishing], ['finishing-a-development-branch']);
+      assert.equal(run.steps.length, 5);
+      assert.equal(run.steps[4]?.skill, 'finishing-a-development-branch');
+      assert.equal(run.steps[4]?.sourcePath, 'skills/finishing-a-development-branch/SKILL.md');
+      assert.ok(!run.steps.some((step) => step.skill === 'test-driven-development'));
       // A run cannot be created twice for the same root, and Superpowers runs never latch a render.
       await assert.rejects(() => f.create(), { code: 'WORKFLOW_RUN_EXISTS', status: 409 });
       await assert.rejects(() => db.begin((tx) => f.runs.latchRenderedArtifact(tx, run.id, randomUUID())), {
@@ -428,103 +597,68 @@ test('assistant workflows: architectural path follows the pinned brainstorming �
     }
   }));
 
-const superpowersOutlines: Record<'bounded' | 'bug' | 'spike', ReturnType<typeof outline>> = {
-  bounded: [
-    {
-      key: 'design',
-      skill: 'brainstorming',
-      sourcePath: 'skills/brainstorming/SKILL.md',
-      role: 'research',
-      gates: ['design_approval'],
-    },
-    {
-      key: 'implement',
-      skill: 'test-driven-development',
-      sourcePath: 'skills/test-driven-development/SKILL.md',
-      role: 'implement',
-      gates: [],
-    },
-    {
-      key: 'review',
-      skill: 'requesting-code-review',
-      sourcePath: 'skills/requesting-code-review/SKILL.md',
-      role: 'review',
-      gates: [],
-    },
-    {
-      key: 'verify',
-      skill: 'verification-before-completion',
-      sourcePath: 'skills/verification-before-completion/SKILL.md',
-      role: 'review',
-      gates: [],
-    },
-  ],
-  bug: [
-    ...['root_cause', 'pattern', 'hypothesis'].map((key) => ({
-      key,
-      skill: 'systematic-debugging',
-      sourcePath: 'skills/systematic-debugging/SKILL.md',
-      role: 'research' as const,
-      gates: [],
-    })),
-    {
-      key: 'fix',
-      skill: 'systematic-debugging',
-      sourcePath: 'skills/systematic-debugging/SKILL.md',
-      role: 'fix',
-      gates: ['architecture_discussion'],
-    },
-    {
-      key: 'review',
-      skill: 'requesting-code-review',
-      sourcePath: 'skills/requesting-code-review/SKILL.md',
-      role: 'review',
-      gates: [],
-    },
-    {
-      key: 'verify',
-      skill: 'verification-before-completion',
-      sourcePath: 'skills/verification-before-completion/SKILL.md',
-      role: 'review',
-      gates: [],
-    },
-  ],
-  spike: [
-    {
-      key: 'probe',
-      skill: 'brainstorming',
-      sourcePath: 'skills/brainstorming/SKILL.md',
-      role: 'research',
-      gates: ['probe_approval'],
-    },
-    {
-      key: 'investigate',
-      skill: 'brainstorming',
-      sourcePath: 'skills/brainstorming/SKILL.md',
-      role: 'research',
-      gates: [],
-    },
-  ],
-};
-
 test('assistant workflows: bounded, bug and spike paths map their pinned sources', async () => {
   for (const path of ['bounded', 'bug', 'spike'] as const)
     await withDatabase(async (db) => {
       const f = await runFixture(db);
       try {
         const run = await f.create({ path });
-        const criteria = await assertGraph(db, f, run);
-        assert.deepEqual(outline(run, criteria), superpowersOutlines[path], path);
+        const criteria = (await assertGraph(db, f, run)) as StepCriteria[];
+        assertCitations(run, criteria);
         assert.ok(isChain(run), path);
+        assert.equal(
+          run.steps[0]?.sourcePath,
+          path === 'bug' ? 'skills/systematic-debugging/SKILL.md' : 'skills/brainstorming/SKILL.md',
+        );
         for (const step of run.steps)
           assert.equal(step.sourceSha256, skillSha('superpowers', step.sourcePath));
+        const kinds =
+          await db`select id,kind,outputs from tickets where id in ${db(run.steps.map((step) => step.ticketId))}`;
+        if (path === 'bounded') {
+          // brainstorming:127 — bounded implements through the normal workflow, TDD applies, no plan.
+          assert.match(
+            cited(criteria[0]?.citation as string),
+            /approves the short in-chat design|short design/,
+          );
+          assert.match(sourceLines('skills/brainstorming/SKILL.md')[126] as string, /TDD applies/);
+          assert.equal(run.steps[1]?.sourcePath, 'skills/test-driven-development/SKILL.md');
+          assert.ok(!run.steps.some((step) => step.skill === 'writing-plans'));
+          assert.deepEqual(
+            criteria.map((item) => item.gates.map((gate) => gate.kind)),
+            [['design_approval'], [], [], []],
+          );
+        }
+        if (path === 'bug') {
+          // The four phases in order, each step citing its own phase heading.
+          const phases = criteria.slice(0, 4).map((item) => /### Phase (\d)/.exec(cited(item.citation))?.[1]);
+          assert.deepEqual(phases, ['1', '2', '3', '4']);
+          const fix = criteria[3] as StepCriteria;
+          assert.deepEqual(
+            fix.gates.map((gate) => [gate.kind, gate.trigger]),
+            [['architecture_discussion', 'after_three_failed_fixes']],
+          );
+          for (const item of criteria.filter((entry) => entry !== fix))
+            for (const gate of item.gates) assert.equal(gate.trigger, 'on_stage');
+        }
         if (path === 'spike') {
-          const kinds =
-            await db`select kind from tickets where id in ${db(run.steps.map((step) => step.ticketId))}`;
+          // A spike answers a question: research tickets, no code output, no spec or plan.
+          assert.match(cited(criteria[0]?.citation as string), /Present question \+ probe/);
           assert.deepEqual(
             [...new Set(kinds.map((row) => row.kind))],
             ['research'],
             'spike không hoàn tất mã sản phẩm',
+          );
+          for (const step of run.steps) {
+            assert.equal(step.role, 'research');
+            assert.ok(
+              !step.outputKinds.includes('code') && !step.outputKinds.includes('test'),
+              step.outputKinds.join(),
+            );
+          }
+          for (const row of kinds) assert.ok(!(row.outputs.kinds as string[]).includes('code'));
+          assert.deepEqual(
+            criteria.map((item) => item.gates.map((gate) => gate.kind)),
+            [['probe_approval'], []],
           );
         }
       } finally {
@@ -552,6 +686,7 @@ async function seedReceipt(
     ticketId: Id;
     machineId: Id;
     bindingRevision?: number;
+    state?: 'active' | 'uncertain';
     data?: Record<string, unknown>;
     kind?: string;
   },
@@ -560,14 +695,15 @@ async function seedReceipt(
   const commandId = randomUUID(),
     attemptId = randomUUID(),
     evidenceId = randomUUID();
-  const [existing] = await db`select id from attempts where ticket_id=${input.ticketId} and state='active'`;
+  const [existing] =
+    await db`select id from attempts where ticket_id=${input.ticketId} and state in ('active','uncertain')`;
   const attempt = existing?.id ?? attemptId;
   if (!existing) {
     await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state)
       values(${commandId},${input.machineId},${input.ticketId},${input.bindingRevision ?? 2},'start','{}','received')`;
     await db`insert into attempts(id,ticket_id,machine_id,command_id,fence,binding_revision,process_instance_id,state,lease_expires_at,workflow_pin)
       values(${attemptId},${input.ticketId},${input.machineId},${commandId},1,${input.bindingRevision ?? 2},${randomUUID()},
-      'active',now()+interval '60 seconds','{}')`;
+      ${input.state ?? 'active'},now()+interval '60 seconds','{}')`;
   }
   const data = {
     definitionSha256: run.definitionSha256,
@@ -582,65 +718,66 @@ async function seedReceipt(
   return evidenceId;
 }
 
+// Official step chain of bmad-build: FIRST STEP of workflow.md, then each step's NEXT link.
+function bmadChain(): string[] {
+  const dir = 'src/bmm-skills/ship/bmad-build/';
+  const link = /\[\[bmad-snapshot:([a-z0-9-]+\.md)\]\]/;
+  const first = sourceLines(`${dir}workflow.md`).join('\n').split('## FIRST STEP')[1] ?? '';
+  const chain: string[] = [];
+  let next = link.exec(first)?.[1];
+  while (next && !chain.includes(next)) {
+    chain.push(next);
+    const tail = sourceLines(`${dir}${next}`).join('\n').split('## NEXT')[1];
+    next = tail ? link.exec(tail)?.[1] : undefined;
+  }
+  return chain;
+}
+
 test('assistant workflows: bmad-dispatch run waits for a verified render latch', async () =>
   withDatabase(async (db) => {
     const f = await runFixture(db, { workflow: 'bmad' });
     try {
       const run = await f.create();
-      const criteria = await assertGraph(db, f, run);
-      const file = (name: string) => `.claude/skills/bmad-build/${name}`;
-      assert.deepEqual(outline(run, criteria), [
-        {
-          key: 'step-01',
-          skill: 'bmad-build',
-          sourcePath: file('step-01-clarify-and-route.md'),
-          role: 'research',
-          gates: [],
-        },
-        {
-          key: 'step-02',
-          skill: 'bmad-build',
-          sourcePath: file('step-02-plan.md'),
-          role: 'research',
-          gates: ['spec_approval'],
-        },
-        {
-          key: 'step-03',
-          skill: 'bmad-build',
-          sourcePath: file('step-03-implement.md'),
-          role: 'implement',
-          gates: [],
-        },
-        {
-          key: 'step-04',
-          skill: 'bmad-build',
-          sourcePath: file('step-04-review.md'),
-          role: 'review',
-          gates: [],
-        },
-        {
-          key: 'step-05',
-          skill: 'bmad-build',
-          sourcePath: file('step-05-present.md'),
-          role: 'implement',
-          gates: [],
-        },
-      ]);
+      const criteria = (await assertGraph(db, f, run)) as StepCriteria[];
+      assertCitations(run, criteria);
+      assert.deepEqual(
+        run.steps.map((step) => step.sourcePath),
+        bmadChain().map((name) => `.claude/skills/bmad-build/${name}`),
+      );
+      assert.deepEqual(
+        criteria.map((item) => item.gates.map((gate) => gate.kind)),
+        [[], ['spec_approval'], [], [], []],
+      );
       for (const step of run.steps) assert.equal(step.sourceSha256, skillSha('bmad', step.sourcePath));
       assert.ok(isChain(run));
       assert.equal(run.renderedArtifactId, null);
       assert.deepEqual(run.projection, vector.bmad.projection);
-      const [first, second] = run.steps;
+      const [first, second, third, fourth] = run.steps;
       const latch = (evidenceId: Id) =>
         db.begin((tx) => f.runs.latchRenderedArtifact(tx, run.id, evidenceId));
       const conflict = { code: 'WORKFLOW_RENDER_RECEIPT_INVALID', status: 409 };
-      const wrong: Promise<Id>[] = [];
-      // Attempt by a machine other than the current binding.
-      wrong.push(seedReceipt(db, { ticketId: second?.ticketId as Id, machineId: f.otherC.id }, run));
       const good = { ticketId: first?.ticketId as Id, machineId: f.boundB.id };
+      const denied: Id[] = [];
+      // Attempt by a machine other than the current binding.
+      denied.push(await seedReceipt(db, { ticketId: second?.ticketId as Id, machineId: f.otherC.id }, run));
+      // Attempt under an older binding revision of the same machine.
+      denied.push(
+        await seedReceipt(
+          db,
+          { ticketId: third?.ticketId as Id, machineId: f.boundB.id, bindingRevision: 1 },
+          run,
+        ),
+      );
+      // Attempt that is no longer active.
+      denied.push(
+        await seedReceipt(
+          db,
+          { ticketId: fourth?.ticketId as Id, machineId: f.boundB.id, state: 'uncertain' },
+          run,
+        ),
+      );
       // Attempt on a ticket outside this run.
-      wrong.push(seedReceipt(db, { ticketId: f.a.id, machineId: f.boundB.id }, run));
-      const denied = await Promise.all(wrong);
+      denied.push(await seedReceipt(db, { ticketId: f.a.id, machineId: f.boundB.id }, run));
       denied.push(await seedReceipt(db, { ...good, data: { definitionSha256: superpowersHash } }, run));
       denied.push(await seedReceipt(db, { ...good, data: { customizationSha256: 'e'.repeat(64) } }, run));
       denied.push(
@@ -673,34 +810,38 @@ test('assistant workflows: bmad-oneshot keeps the official oneshot route without
     const f = await runFixture(db, { workflow: 'bmad' });
     try {
       const run = await f.create({ path: 'bmad-oneshot' });
-      const criteria = await assertGraph(db, f, run);
-      const file = (name: string) => `.claude/skills/bmad-build/${name}`;
-      assert.deepEqual(outline(run, criteria), [
-        {
-          key: 'step-01',
-          skill: 'bmad-build',
-          sourcePath: file('step-01-clarify-and-route.md'),
-          role: 'research',
-          gates: [],
-        },
-        {
-          key: 'step-02',
-          skill: 'bmad-build',
-          sourcePath: file('step-02-plan.md'),
-          role: 'research',
-          gates: [],
-        },
-        {
-          key: 'step-oneshot',
-          skill: 'bmad-build',
-          sourcePath: file('step-oneshot.md'),
-          role: 'implement',
-          gates: [],
-        },
-      ]);
+      const criteria = (await assertGraph(db, f, run)) as StepCriteria[];
+      assertCitations(run, criteria);
+      // step-02's early exit for the oneshot route.
+      const plan = sourceLines('src/bmm-skills/ship/bmad-build/step-02-plan.md');
+      const exit = plan.find((line) => line.includes("route: 'oneshot'") && line.includes('EARLY EXIT'));
+      const oneshot = /\[\[bmad-snapshot:([a-z0-9-]+\.md)\]\]/.exec(
+        (exit ?? '').split('EARLY EXIT')[1] ?? '',
+      )?.[1];
+      const [first, second] = bmadChain();
+      assert.deepEqual(
+        run.steps.map((step) => step.sourcePath),
+        [first, second, oneshot].map((name) => `.claude/skills/bmad-build/${name}`),
+      );
+      assert.deepEqual(
+        criteria.map((item) => item.gates.length),
+        [0, 0, 0],
+      );
       assert.equal(run.renderedArtifactId, null);
       // A Superpowers path cannot use the BMAD definition.
-      await assert.rejects(() => f.create({ path: 'bounded' }), { status: 422 });
+      await assert.rejects(
+        () =>
+          f.create(
+            { path: 'bounded' },
+            {
+              request: async () => ({
+                action: 'create_run',
+                payload: { ...f.runInput({ path: 'bounded' }), graphSha256: '0'.repeat(64) },
+              }),
+            },
+          ),
+        { status: 422 },
+      );
     } finally {
       await f.close();
     }
@@ -730,6 +871,69 @@ test('assistant workflows: pinned run and step identity is immutable in SQL', as
     }
   }));
 
+test('assistant workflows: createRun is all-or-nothing when a later write fails', async () =>
+  withDatabase(async (db) => {
+    const f = await runFixture(db);
+    try {
+      const before = await f.rows();
+      const marker = randomUUID();
+      // The caller keeps using its transaction after createRun fails, then commits.
+      const attempt = (runs: typeof f.runs, request?: RequestFor) =>
+        f.inTurn(
+          request ??
+            ((tx, operationId) => f.runs.createRunRequest(tx, operationId, f.runInput({ path: 'bounded' }))),
+          async (tx, proof) => {
+            let code: unknown = null;
+            try {
+              await runs.createRun(tx, proof, f.runInput({ path: 'bounded' }));
+            } catch (error) {
+              code = `${String((error as { code?: unknown }).code)}:${(error as Error).message}`;
+            }
+            await tx`insert into evidence(id,ticket_id,attempt_id,kind,data)
+              values(${randomUUID()},${f.root.id},null,'test_marker',${tx.json({ marker })})`;
+            return code;
+          },
+        );
+      // JS error from the port after the run row and the first tickets exist.
+      const failingPort: WorkflowOrchestrationPort = {
+        ...f.port,
+        async authorizeGraph(tx, actor, proof, request, graph) {
+          const session = await f.port.authorizeGraph(tx, actor, proof, request, graph);
+          return {
+            createTicket: (t, key, input) => session.createTicket(t, key, input),
+            dependency: async () => {
+              throw new ApiError('INJECTED_PORT_FAILURE', 409, 'Lỗi tiêm cho kiểm thử');
+            },
+            close: (t) => session.close(t),
+          };
+        },
+      };
+      const injected = createWorkflowRuns({ port: failingPort, resolver: f.resolver });
+      assert.match(String(await attempt(injected)), /^INJECTED_PORT_FAILURE:/);
+      // Database error after the run row exists (test-only trigger on the step table).
+      await db`create function test_only_fail_step() returns trigger language plpgsql as $$
+        begin if NEW.skill='requesting-code-review' then raise exception 'TEST_ONLY_STEP_FAILURE'; end if; return NEW; end $$`;
+      await db`create trigger test_only_fail_step before insert on workflow_steps for each row execute function test_only_fail_step()`;
+      try {
+        assert.match(String(await attempt(f.runs)), /TEST_ONLY_STEP_FAILURE/);
+      } finally {
+        await db`drop trigger test_only_fail_step on workflow_steps`;
+        await db`drop function test_only_fail_step()`;
+      }
+      // Both callers committed their own marker; createRun left nothing behind.
+      assert.equal(
+        (await db`select 1 from evidence where kind='test_marker' and data->>'marker'=${marker}`).length,
+        2,
+      );
+      assert.deepEqual(await f.rows(), before);
+      // The same root still accepts a complete run afterwards.
+      const run = await f.create({ path: 'bounded' });
+      assert.equal(run.steps.length, 4);
+    } finally {
+      await f.close();
+    }
+  }));
+
 async function setParallelApproval(db: Db, decisionId: Id | null) {
   await db`update assistant_config set policy=jsonb_set(policy,'{parallelApprovalId}',${db.json(decisionId as never)})
     where singleton=true`;
@@ -741,7 +945,7 @@ async function insertDecision(db: Db, ticketId: Id, actor: Actor, kind: string, 
   return id;
 }
 
-test('assistant workflows: parallel needs an exact owner approval, sequential otherwise', async () =>
+test('assistant workflows: parallel needs an exact owner approval of this root, sequential otherwise', async () =>
   withDatabase(async (db) => {
     const f = await runFixture(db);
     try {
@@ -762,7 +966,7 @@ test('assistant workflows: parallel needs an exact owner approval, sequential ot
         code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
         status: 403,
       });
-      await setParallelApproval(db, await insertDecision(db, f.a.id, owner, 'approval', scope));
+      await setParallelApproval(db, await insertDecision(db, f.root.id, owner, 'assessment', scope));
       await assert.rejects(() => f.create({ path: 'bounded' }), {
         code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
         status: 403,
@@ -797,6 +1001,32 @@ test('assistant workflows: parallel needs an exact owner approval, sequential ot
         [['v2/server/src/a.ts'], ['v2/web/src/b.tsx']],
       );
       assert.notEqual(criteria[1].stepOperationId, criteria[2].stepOperationId);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant workflows: owner approval of another root leaves this run sequential', async () =>
+  withDatabase(async (db) => {
+    const f = await runFixture(db);
+    try {
+      // Owner approval for the fixture's other root; the global policy still points at it.
+      const elsewhere = await insertDecision(db, f.request.id, owner, 'approval', {
+        parallel: {
+          rootTicketId: f.request.id,
+          path: 'bounded',
+          definitionSha256: superpowersHash,
+          units: [
+            { key: 'api', title: 'API', ownershipKeys: ['a.ts'] },
+            { key: 'web', title: 'Web', ownershipKeys: ['b.tsx'] },
+          ],
+        },
+      });
+      await setParallelApproval(db, elsewhere);
+      const run = await f.create({ path: 'bounded' });
+      assert.equal(run.parallelApprovalId, null);
+      assert.ok(isChain(run));
+      assert.equal(run.steps.length, 4);
     } finally {
       await f.close();
     }
