@@ -137,3 +137,7 @@ Task 5 S5a: minor (deferred, xử lý cùng lượt A5): C1 trong biên 5 phút 
 18:00 P-G1a2 review `producer-g1a2-review.md`: Spec ✅, Approved; một caller production (routes.ts:256, Db không Tx), pool an toàn, RED tất định.
 Producer P-G1a2: complete — 148875a. G1a (đọc) đã đủ cho S3b/A3 trừ G1b (attempt/machine/model/evidence).
 P-G1a2: minor (deferred): hook test khớp text SQL `where root_id=` — ghi comment coupling (`ticket-graph-snapshot.test.ts:10-26`).
+
+18:25 S6docs `2eb8936` review `task-6-s6docs-review.md`: Spec ❌, Needs fixes, Important3 (docsState không invalidate sau docs.imported; resolver lệch server LINK_PATH_ESCAPE; thiếu sửa ticket–docs links CAS/409 brief:19) /Minor7/⚠️5. FIX1/5 resume, nâng urlTransform hardening + metadata khi lỗi + audit warning.
+Ruling: nếu cần, S6docs được thêm đúng entry invalidation docs.imported trong `v2/web/src/lib/events.ts` (Task2-owned) — sai thì Task2 owner sửa lại entry.
+S6docs: minor (deferred): href="#path" cho link nội bộ (mở tab mới vô dụng); copy Set mỗi row O(n·depth); thiếu test đổi snapshot cùng project; NFC/NFD chưa chuẩn hóa; huỷ GET cũ khi đổi snapshot chưa test.
