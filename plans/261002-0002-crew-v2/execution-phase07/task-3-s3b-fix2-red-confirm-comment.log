@@ -1,0 +1,736 @@
+TELEMETRY {"at": "2026-10-04T05:37:05.435241+00:00", "pageSize": 16384, "pages": {"Pages free": 23811, "Pages inactive": 293194, "Pages speculative": 1417}, "availableBytes": 5217026048, "availableGiB": 4.859, "pressure": 1, "cpuIdlePercent": 84.1, "cpu": "5.78% user, 10.20% sys, 84.1% idle", "diskFreeBytes": 805785878528, "diskFreeGiB": 750.447, "heavyEligible": true}
+CMD perl -e alarm 300; exec @ARGV node --test --test-name-pattern=cảnh báo trùng|Bỏ bản nháp bình luận” bỏ trọn test/ticket-detail-dom.test.ts
+✖ “Bỏ bản nháp bình luận” bỏ trọn chữ, tệp và compose; chưa xác nhận thì giữ chữ và báo (386.862083ms)
+✖ bỏ bản nháp bình luận chưa xác nhận cần xác nhận cảnh báo trùng (77.230208ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 935.326833
+
+✖ failing tests:
+
+test at test/ticket-detail-dom.test.ts:485:1
+✖ “Bỏ bản nháp bình luận” bỏ trọn chữ, tệp và compose; chưa xác nhận thì giữ chữ và báo (386.862083ms)
+  Error: TIMEOUT:unconfirmed
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:139:5
+
+test at test/ticket-detail-dom.test.ts:511:1
+✖ bỏ bản nháp bình luận chưa xác nhận cần xác nhận cảnh báo trùng (77.230208ms)
+  Error [TestingLibraryElementError]: Unable to find an accessible element with the role "button" and name `/Bỏ bản nháp bình luận/`
+  
+  Here are the accessible roles:
+  
+    dialog:
+  
+    Name "Ticket A":
+    [36m<div[39m
+      [33maria-describedby[39m=[32m"radix-_r_9_"[39m
+      [33maria-labelledby[39m=[32m"radix-_r_8_"[39m
+      [33mdata-state[39m=[32m"open"[39m
+      [33mdata-testid[39m=[32m"ticket-dialog"[39m
+      [33mid[39m=[32m"radix-_r_7_"[39m
+      [33mrole[39m=[32m"dialog"[39m
+      [33mstyle[39m=[32m"position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: min(60rem, -2rem + 100vw); max-height: 92vh; overflow: auto; box-sizing: border-box; padding: 1.5rem; border-radius: 0.75rem; background: canvas; color: canvastext; box-shadow: 0 1.5rem 3rem rgb(15 23 42 / 0.3); pointer-events: auto;"[39m
+      [33mtabindex[39m=[32m"-1"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    button:
+  
+    Name "Đóng":
+    [36m<button[39m
+      [33maria-label[39m=[32m"Đóng"[39m
+      [33mstyle[39m=[32m"float: right; font: inherit; padding: 0.35rem 0.6rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+      [33mtype[39m=[32m"button"[39m
+    [36m/>[39m
+  
+    Name "Gửi lại đúng yêu cầu cũ":
+    [36m<button[39m
+      [33mtype[39m=[32m"button"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    article:
+  
+    Name "":
+    [36m<article[39m
+      [33mdata-revision[39m=[32m"1"[39m
+      [33mdata-testid[39m=[32m"ticket-detail"[39m
+      [33mdata-ticket-id[39m=[32m"66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 1.25rem; min-width: 0px;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    banner:
+  
+    Name "":
+    [36m<header[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.4rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    heading:
+  
+    Name "Ticket A":
+    [36m<h2[39m
+      [33mid[39m=[32m"radix-_r_8_"[39m
+      [33mstyle[39m=[32m"margin: 0px;"[39m
+    [36m/>[39m
+  
+    Name "Mô tả":
+    [36m<h2[39m
+      [33mid[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thông tin":
+    [36m<h2[39m
+      [33mid[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thực thi hiện tại":
+    [36m<h2[39m
+      [33mid[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Ticket con":
+    [36m<h2[39m
+      [33mid[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Tệp và tài liệu liên quan":
+    [36m<h2[39m
+      [33mid[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Lịch sử":
+    [36m<h2[39m
+      [33mid[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Bình luận mới":
+    [36m<h2[39m
+      [33mid[39m=[32m"comment-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    paragraph:
+  
+    Name "":
+    [36m<p[39m
+      [33mid[39m=[32m"radix-_r_9_"[39m
+      [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p[39m
+      [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p />[39m
+  
+    Name "":
+    [36m<p />[39m
+  
+    Name "":
+    [36m<p[39m
+      [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p />[39m
+  
+    Name "":
+    [36m<p[39m
+      [33maria-live[39m=[32m"polite"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    region:
+  
+    Name "Mô tả":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thông tin":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thực thi hiện tại":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Ticket con":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.5rem;"[39m
+    [36m/>[39m
+  
+    Name "Tệp và tài liệu liên quan":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+    [36m/>[39m
+  
+    Name "Lịch sử":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+    [36m/>[39m
+  
+    Name "Bình luận mới":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"comment-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.5rem;"[39m
+    [36m/>[39m
+  
+    Name "Soạn nội dung":
+    [36m<section[39m
+      [33maria-label[39m=[32m"Soạn nội dung"[39m
+      [33mdata-compose-state[39m=[32m"ambiguous"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    term:
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    --------------------------------------------------
+    definition:
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    code:
+  
+    Name "":
+    [36m<code />[39m
+  
+    Name "":
+    [36m<code />[39m
+  
+    --------------------------------------------------
+    group:
+  
+    Name "":
+    [36m<fieldset[39m
+      [33mstyle[39m=[32m"border: 0px; margin: 0px; padding: 0px; min-width: 0px;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    alert:
+  
+    Name "":
+    [36m<p[39m
+      [33mrole[39m=[32m"alert"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p[39m
+      [33mrole[39m=[32m"alert"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    textbox:
+  
+    Name "Nội dung":
+    [36m<textarea[39m
+      [33maria-readonly[39m=[32m"true"[39m
+      [33mid[39m=[32m"_r_b_"[39m
+      [33mreadonly[39m=[32m""[39m
+      [33mrows[39m=[32m"6"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+  
+  Ignored nodes: comments, script, style
+  [36m<body[39m
+    [33mdata-scroll-locked[39m=[32m"1"[39m
+    [33mstyle[39m=[32m"pointer-events: none;"[39m
+  [36m>[39m
+    [36m<span[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-radix-focus-guard[39m=[32m""[39m
+      [33mstyle[39m=[32m"outline: none; opacity: 0; position: fixed; pointer-events: none;"[39m
+      [33mtabindex[39m=[32m"0"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-state[39m=[32m"open"[39m
+      [33mstyle[39m=[32m"pointer-events: auto; position: fixed; inset: 0px; background: rgba(15, 23, 42, 0.45);"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-describedby[39m=[32m"radix-_r_9_"[39m
+      [33maria-labelledby[39m=[32m"radix-_r_8_"[39m
+      [33mdata-state[39m=[32m"open"[39m
+      [33mdata-testid[39m=[32m"ticket-dialog"[39m
+      [33mid[39m=[32m"radix-_r_7_"[39m
+      [33mrole[39m=[32m"dialog"[39m
+      [33mstyle[39m=[32m"position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: min(60rem, -2rem + 100vw); max-height: 92vh; overflow: auto; box-sizing: border-box; padding: 1.5rem; border-radius: 0.75rem; background: canvas; color: canvastext; box-shadow: 0 1.5rem 3rem rgb(15 23 42 / 0.3); pointer-events: auto;"[39m
+      [33mtabindex[39m=[32m"-1"[39m
+    [36m>[39m
+      [36m<button[39m
+        [33maria-label[39m=[32m"Đóng"[39m
+        [33mstyle[39m=[32m"float: right; font: inherit; padding: 0.35rem 0.6rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+        [33mtype[39m=[32m"button"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+        [36m>[39m
+          [0m×[0m
+        [36m</span>[39m
+      [36m</button>[39m
+      [36m<article[39m
+        [33mdata-revision[39m=[32m"1"[39m
+        [33mdata-testid[39m=[32m"ticket-detail"[39m
+        [33mdata-ticket-id[39m=[32m"66666666-6666-4666-8666-666666666666"[39m
+        [33mstyle[39m=[32m"display: grid; gap: 1.25rem; min-width: 0px;"[39m
+      [36m>[39m
+        [36m<header[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.4rem;"[39m
+        [36m>[39m
+          [36m<span>[39m
+            [0mYêu cầu[0m
+            [0m · [0m
+            [0mLập trình[0m
+          [36m</span>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"radix-_r_8_"[39m
+            [33mstyle[39m=[32m"margin: 0px;"[39m
+          [36m>[39m
+            [0mTicket A[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mid[39m=[32m"radix-_r_9_"[39m
+            [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+          [36m>[39m
+            [0mTrạng thái: [0m
+            [36m<span[39m
+              [33mdata-status[39m=[32m"running"[39m
+              [33mstyle[39m=[32m"white-space: nowrap;"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+              [36m>[39m
+                [0m▶[0m
+              [36m</span>[39m
+              [0m [0m
+              [0mĐang chạy[0m
+            [36m</span>[39m
+            [0m · Phiên bản [0m
+            [0m1[0m
+          [36m</p>[39m
+        [36m</header>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mMô tả[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+          [36m>[39m
+            [0mMô tả[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mThông tin[0m
+          [36m</h2>[39m
+          [36m<dl[39m
+            [33mstyle[39m=[32m"display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.35rem 1rem; margin: 0px;"[39m
+          [36m>[39m
+            [36m<dt>[39m
+              [0mMã ticket[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [36m<code>[39m
+                [0m66666666-6666-4666-8666-666666666666[0m
+              [36m</code>[39m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mTicket gốc[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [36m<code>[39m
+                [0m66666666-6666-4666-8666-666666666666[0m
+              [36m</code>[39m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mTicket cha[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mKhông có[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mBắt buộc[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mCó[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mWorkflow đã ghim[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa ghim[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mSkill[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mKhông có[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mSố vòng sửa[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0m0[0m
+              [0m/5[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mCommit đã merge[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có[0m
+            [36m</dd>[39m
+          [36m</dl>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mThực thi hiện tại[0m
+          [36m</h2>[39m
+          [36m<dl[39m
+            [33mstyle[39m=[32m"display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.35rem 1rem; margin: 0px;"[39m
+          [36m>[39m
+            [36m<dt>[39m
+              [0mMáy[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mModel[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mĐộ khó[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mLượt chạy[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mBằng chứng[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+          [36m</dl>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.5rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mTicket con[0m
+          [36m</h2>[39m
+          [36m<p>[39m
+            [0mKhông có ticket con.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mTệp và tài liệu liên quan[0m
+          [36m</h2>[39m
+          [36m<fieldset[39m
+            [33mstyle[39m=[32m"border: 0px; margin: 0px; padding: 0px; min-width: 0px;"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mrole[39m=[32m"alert"[39m
+            [36m>[39m
+              [0mKhông tìm thấy tài liệu này trong phiên bản đang xem.[0m
+            [36m</p>[39m
+          [36m</fieldset>[39m
+          [36m<p>[39m
+            [0mTicket chưa có tệp đính kèm.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mLịch sử[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+          [36m>[39m
+            [0mGồm bình luận và quyết định đã ghi nhận. Review, phương án dự phòng, sản phẩm, commit và đồng bộ tài liệu sẽ hiện khi máy chủ cung cấp lịch sử đầy đủ.[0m
+          [36m</p>[39m
+          [36m<p>[39m
+            [0mChưa có bình luận hay quyết định nào.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"comment-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.5rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"comment-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mBình luận mới[0m
+          [36m</h2>[39m
+          [36m<section[39m
+            [33maria-label[39m=[32m"Soạn nội dung"[39m
+            [33mdata-compose-state[39m=[32m"ambiguous"[39m
+            [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_b_"[39m
+            [36m>[39m
+              [0mNội dung[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-readonly[39m=[32m"true"[39m
+              [33mid[39m=[32m"_r_b_"[39m
+              [33mreadonly[39m=[32m""[39m
+              [33mrows[39m=[32m"6"[39m
+            [36m>[39m
+              [0mchưa rõ đã gửi chưa[0m
+            [36m</textarea>[39m
+            [36m<span[39m
+              [33maria-live[39m=[32m"polite"[39m
+              [33mstyle[39m=[32m"justify-self: end;"[39m
+            [36m>[39m
+              [0m19[0m
+              [0m/[0m
+              [0m32.768[0m
+              [0m ký tự[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33mstyle[39m=[32m"display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"_r_a_"[39m
+              [36m>[39m
+                [0mĐính kèm tệp[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mid[39m=[32m"_r_a_"[39m
+                [33mmultiple[39m=[32m""[39m
+                [33mtype[39m=[32m"file"[39m
+              [36m/>[39m
+              [36m<span>[39m
+                [0mCó thể dán ảnh từ clipboard vào ô nội dung hoặc kéo thả tệp vào đây.[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33maria-live[39m=[32m"polite"[39m
+            [36m>[39m
+              [0mChưa xác nhận kết quả. Nội dung đã khóa; gửi lại sẽ dùng đúng yêu cầu cũ.[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mrole[39m=[32m"alert"[39m
+            [36m>[39m
+              [0mChưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mstyle[39m=[32m"display: flex; gap: 0.75rem;"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mGửi lại đúng yêu cầu cũ[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</section>[39m
+      [36m</article>[39m
+    [36m</div>[39m
+    [36m<span[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-radix-focus-guard[39m=[32m""[39m
+      [33mstyle[39m=[32m"outline: none; opacity: 0; position: fixed; pointer-events: none;"[39m
+      [33mtabindex[39m=[32m"0"[39m
+    [36m/>[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:523:28
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:522:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+EXIT 1

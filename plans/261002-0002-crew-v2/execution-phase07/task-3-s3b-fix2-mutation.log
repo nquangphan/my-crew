@@ -1,0 +1,13 @@
+TELEMETRY {"at": "2026-10-04T05:38:21.767778+00:00", "pageSize": 16384, "pages": {"Pages free": 34682, "Pages inactive": 295280, "Pages speculative": 3418}, "availableBytes": 5462097920, "availableGiB": 5.087, "pressure": 1, "cpuIdlePercent": 83.9, "cpu": "5.13% user, 10.95% sys, 83.90% idle", "diskFreeBytes": 805785825280, "diskFreeGiB": 750.447, "heavyEligible": true}
+CMD /var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T//crew-v2-web-s3b/s3b-mutate2.sh
+== control
+ℹ pass 5 ℹ fail 0 
+== mutant confirm->direct
+ℹ pass 0 ℹ fail 2 
+== mutant clear on any result
+ℹ pass 1 ℹ fail 1 
+== mutant global sessionStorage (1)
+ℹ pass 1 ℹ fail 1 
+== mutant no index
+ℹ pass 1 ℹ fail 1 
+EXIT 0

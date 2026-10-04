@@ -92,3 +92,38 @@ Giới hạn còn lại (đã ghi trong docs):
 - Kho bản nháp chỉ tự xóa khi đã được tạo trong lần tải trang hiện tại.
 - Ticket đã kết thúc mà còn bình luận chưa xác nhận từ trước khi tải trang: ô bình luận không hiện, owner gửi lại qua panel Task2.
 - A3 vẫn BLOCKED vì fixture chưa mount attachments.
+
+## 6. Vòng sửa 2 (re-review `task-3-s3b-fix1-re-review.md`, ruling 20:05, API S5a `bdf277d`, review `task-5-s5a-fix4-re-review.md`)
+
+**Trạng thái: B1, B2, B4, I3 đã sửa — commit `ab1bb3a`.** B3 không có trong danh sách sửa của PM, nên vẫn là giới hạn đã ghi trong docs. Trước commit đã kiểm: import tương đối và các module E2E load đều đã được track; `onHandle` có trong `composer.tsx` ở HEAD.
+
+| Finding | Sửa | Test (RED trước) |
+|---|---|---|
+| B1 | Export `clearTicketDrafts(storage)`: xóa các key trong chỉ mục `crew-v2:form-draft:index`, và nếu storage liệt kê được thì xóa mọi key có tiền tố `crew-v2:form-draft:`. Không còn phụ thuộc kho đã được tạo trong lần tải trang. **Controller cần gọi hàm này trong `session.onLogout`** (em không sửa app-runtime) | unit: storage chỉ có API `TabStorage` (như `MemoryStorage` của composer) → xóa hết draft, giữ key khác; storage liệt kê được thì xóa cả key lạc. RED: key còn nguyên |
+| B2 | `FormDrafts` đọc/ghi thẳng storage do `TicketDraftStorageProvider` cấp (storage của runtime, cùng storage đưa vào `ComposeServicesProvider`); `null` thì dùng bộ nhớ. Bỏ `browserTabStorage()`. **Controller cần bọc `TicketDraftStorageProvider storage={…}`** | DOM: field ghi vào `env.storage`, `window.sessionStorage` rỗng (RED: 1 key). unit: chế độ bộ nhớ |
+| B4 | Ticket kết thúc dùng `TerminalDocsLinks`: danh sách chỉ xem, cùng query docs-links, có “Thử lại” và “Tải thêm”. Không còn `fieldset disabled` | DOM: lần đầu đọc 500 → “Thử lại” bấm được → danh sách hiện ra, không có checkbox hay nút Lưu (RED: TIMEOUT) |
+| I3 | `DraftDiscard` (dùng cho cả form và bình luận) gọi `ComposerHandle.discardDraft()`. Chỉ khi nhận `discarded` mới xóa field/chữ; `blocked`/`unconfirmed` thì giữ nguyên và báo. Thêm theo hợp đồng bổ sung: `discardMode` ẩn nút ở `accepted`, và yêu cầu xác nhận cảnh báo “có thể tạo bản trùng” ở `ambiguous`/`suspended` (“Vẫn bỏ bản nháp”/“Giữ lại”) | Form: bỏ trọn (compose `abandoned`, hết tệp, field mặc định, yêu cầu sau không mang tệp cũ); DELETE mất kết nối → giữ field + báo; đang gửi → `blocked` + báo; ambiguous → phải xác nhận, “Giữ lại” không gửi DELETE. Bình luận: bỏ trọn, `unconfirmed` giữ chữ, xác nhận cảnh báo trùng. unit `discardMode`. RED: thiếu nút / TIMEOUT / assertion |
+
+| Bước | Kết quả | Log, SHA-256 (8 ký tự đầu) |
+|---|---|---|
+| RED B1/B2/B4/I3 | 29 test: 6 fail theo hành vi | `task-3-s3b-fix2-red.log` `52b1a636` |
+| RED xác nhận cảnh báo trùng (form + unit) | 2 fail theo hành vi. File detail fail vì import đang refactor dở nên không tính | `task-3-s3b-fix2-red-confirm.log` `d62af4ab` |
+| RED bình luận (sau khi sửa import) | 2/2 fail theo hành vi | `task-3-s3b-fix2-red-confirm-comment.log` `d9839fdf` |
+| GREEN focused | 55/55. Lần đầu OOM vì một assertion cũ (“không có nút bỏ khi ambiguous”) in cả DOM element; assertion đó trái với hợp đồng mới nên đã đổi | `task-3-s3b-fix2-green-focused.log` `8a41e977` |
+| Đột biến (confirm→direct, xóa với mọi kết quả, dùng `sessionStorage` toàn cục, bỏ chỉ mục) | control 5/5; mỗi đột biến làm test tương ứng fail | `task-3-s3b-fix2-mutation.log` `662e1250` |
+| Unit web (trừ fixture-lifecycle) + tsc + vite build | 212/212; 0; 0 | `task-3-s3b-fix2-unit-full.log` `6926fd5d` |
+| Biome 14 file | exit 0 | `task-3-s3b-fix2-biome.log` `aabaee00` |
+| E2E `tickets.spec.ts` (harness có thêm `TicketDraftStorageProvider` với `sessionStorage`) | 2 passed | `task-3-s3b-fix2-e2e.log` `a00c9ade` |
+
+Docker trước/sau giống nhau; đã xóa `test-results`; lock đã trả; manifest không đổi.
+
+Wiring controller còn cần làm:
+1. Bọc `TicketDraftStorageProvider` với cùng storage của runtime.
+2. Gọi `clearTicketDrafts(storage)` trong hook logout.
+3. Giữ `ComposeServicesProvider`.
+
+Còn mở:
+- B3: draft bình luận của ticket đã kết thúc chỉ mất khi đăng xuất.
+- M6: ticket đã kết thúc ngay khi tải trang thì đi qua panel Task2.
+- D3 phía S5a: chặn handle ở `accepted`; form đã tự tránh gọi.
+- A3 vẫn BLOCKED (fixture chưa mount attachments).

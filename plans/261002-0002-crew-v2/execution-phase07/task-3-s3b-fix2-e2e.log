@@ -1,0 +1,12 @@
+TELEMETRY {"at": "2026-10-04T05:38:39.929698+00:00", "pageSize": 16384, "pages": {"Pages free": 49632, "Pages inactive": 241808, "Pages speculative": 4528}, "availableBytes": 4849139712, "availableGiB": 4.516, "pressure": 1, "cpuIdlePercent": 83.89, "cpu": "5.36% user, 10.73% sys, 83.89% idle", "diskFreeBytes": 805785526272, "diskFreeGiB": 750.446, "heavyEligible": true}
+CMD perl -e alarm 560; exec @ARGV ./node_modules/.bin/playwright test e2e/tickets.spec.ts --reporter=line
+
+Running 2 tests using 1 worker
+
+[1/2] [chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+[chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+{"level":30,"time":1791092322802,"pid":24597,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:50304"}
+
+[2/2] [chromium] › e2e/tickets.spec.ts:358:1 › “Tạo yêu cầu” trên bảng: form project/loại/tiêu đề/workflow, Superpowers mặc định, đóng vẫn giữ bản nháp
+  2 passed (9.6s)
+EXIT 0

@@ -1,0 +1,15 @@
+TELEMETRY {"at": "2026-10-04T05:38:32.358301+00:00", "pageSize": 16384, "pages": {"Pages free": 4952, "Pages inactive": 309565, "Pages speculative": 1221}, "availableBytes": 5173051392, "availableGiB": 4.818, "pressure": 1, "cpuIdlePercent": 83.9, "cpu": "6.16% user, 9.93% sys, 83.90% idle", "diskFreeBytes": 805785690112, "diskFreeGiB": 750.446, "heavyEligible": true}
+CMD /var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T//crew-v2-web-s3b/s3b-full.sh
+== unit: test/app-wiring.test.ts test/auth-recovery.test.ts test/client.test.ts test/compose-submit.test.ts test/compose.test.ts test/composer-dom.test.ts test/create-request.test.ts test/docs-links.test.ts test/docs-space-dom.test.ts test/docs-ticket-links-dom.test.ts test/events.test.ts test/ticket-detail-dom.test.ts test/ticket-routes.test.ts test/tickets.test.ts test/workspace.test.ts
+ℹ tests 212
+ℹ pass 212
+ℹ fail 0
+ℹ cancelled 0
+== tsc
+tsc exit=0
+== vite build
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 106ms
+vite exit=0
+EXIT 0

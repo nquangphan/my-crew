@@ -1,0 +1,448 @@
+TELEMETRY {"at": "2026-10-04T05:36:53.541934+00:00", "pageSize": 16384, "pages": {"Pages free": 6886, "Pages inactive": 315996, "Pages speculative": 412}, "availableBytes": 5296848896, "availableGiB": 4.933, "pressure": 1, "cpuIdlePercent": 84.26, "cpu": "5.94% user, 9.79% sys, 84.26% idle", "diskFreeBytes": 805785907200, "diskFreeGiB": 750.447, "heavyEligible": true}
+CMD perl -e alarm 300; exec @ARGV node --test --test-name-pattern=discardMode|cảnh báo trùng test/create-request.test.ts test/ticket-detail-dom.test.ts
+✖ discardMode: ẩn khi accepted, hỏi xác nhận khi ambiguous/suspended, gọi thẳng khi editing/sending (0.820375ms)
+✖ bỏ bản nháp khi yêu cầu chưa xác nhận: phải xác nhận cảnh báo trùng trước, “Giữ lại” không bỏ gì (111.742083ms)
+file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/tickets/detail.tsx:14
+import { browserTabStorage, formDrafts } from "./create-request-state.ts";
+         ^^^^^^^^^^^^^^^^^
+SyntaxError: The requested module './create-request-state.ts' does not provide an export named 'browserTabStorage'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:18:26
+
+Node.js v24.21.0
+✖ test/ticket-detail-dom.test.ts (715.966375ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 842.302625
+
+✖ failing tests:
+
+test at test/create-request.test.ts:213:1
+✖ discardMode: ẩn khi accepted, hỏi xác nhận khi ambiguous/suspended, gọi thẳng khi editing/sending (0.820375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'direct' !== 'hidden'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:214:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'direct',
+    expected: 'hidden',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:646:1
+✖ bỏ bản nháp khi yêu cầu chưa xác nhận: phải xác nhận cảnh báo trùng trước, “Giữ lại” không bỏ gì (111.742083ms)
+  Error [TestingLibraryElementError]: Unable to find an accessible element with the role "button" and name `/Bỏ bản nháp yêu cầu/`
+  
+  Here are the accessible roles:
+  
+    form:
+  
+    Name "Biểu mẫu tạo yêu cầu":
+    [36m<form[39m
+      [33maria-label[39m=[32m"Biểu mẫu tạo yêu cầu"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.9rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    combobox:
+  
+    Name "Dự án":
+    [36m<select[39m
+      [33mdisabled[39m=[32m""[39m
+      [33mid[39m=[32m"_r_0_"[39m
+    [36m/>[39m
+  
+    Name "Loại":
+    [36m<select[39m
+      [33mdisabled[39m=[32m""[39m
+      [33mid[39m=[32m"_r_1_"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    option:
+  
+    Name "Chọn dự án":
+    [36m<option[39m
+      [33mvalue[39m=[32m""[39m
+    [36m/>[39m
+  
+    Name "Dự án web (DỰ Á)":
+    [36m<option[39m
+      [33mvalue[39m=[32m"11111111-1111-4111-8111-111111111111"[39m
+    [36m/>[39m
+  
+    Name "Dự án máy chủ (DỰ Á)":
+    [36m<option[39m
+      [33mvalue[39m=[32m"44444444-4444-4444-8444-444444444444"[39m
+    [36m/>[39m
+  
+    Name "Lập trình":
+    [36m<option[39m
+      [33mvalue[39m=[32m"code"[39m
+    [36m/>[39m
+  
+    Name "Nghiên cứu":
+    [36m<option[39m
+      [33mvalue[39m=[32m"research"[39m
+    [36m/>[39m
+  
+    Name "Tài liệu":
+    [36m<option[39m
+      [33mvalue[39m=[32m"docs"[39m
+    [36m/>[39m
+  
+    Name "Triển khai":
+    [36m<option[39m
+      [33mvalue[39m=[32m"deploy"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    textbox:
+  
+    Name "Tiêu đề":
+    [36m<input[39m
+      [33maria-describedby[39m=[32m"_r_2_-count"[39m
+      [33mdisabled[39m=[32m""[39m
+      [33mid[39m=[32m"_r_2_"[39m
+      [33mtype[39m=[32m"text"[39m
+      [33mvalue[39m=[32m"Chưa xác nhận"[39m
+    [36m/>[39m
+  
+    Name "Mô tả":
+    [36m<textarea[39m
+      [33maria-readonly[39m=[32m"true"[39m
+      [33mid[39m=[32m"_r_5_"[39m
+      [33mreadonly[39m=[32m""[39m
+      [33mrows[39m=[32m"6"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    group:
+  
+    Name "Workflow":
+    [36m<fieldset[39m
+      [33mdisabled[39m=[32m""[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.4rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    radio:
+  
+    Name "Superpowers":
+    [36m<input[39m
+      [33maria-describedby[39m=[32m"_r_3_-superpowers-note"[39m
+      [33mchecked[39m=[32m""[39m
+      [33mdisabled[39m=[32m""[39m
+      [33mid[39m=[32m"_r_3_-superpowers"[39m
+      [33mname[39m=[32m"_r_3_"[39m
+      [33mtype[39m=[32m"radio"[39m
+      [33mvalue[39m=[32m"superpowers"[39m
+    [36m/>[39m
+  
+    Name "BMAD":
+    [36m<input[39m
+      [33maria-describedby[39m=[32m"_r_3_-bmad-note"[39m
+      [33mdisabled[39m=[32m""[39m
+      [33mid[39m=[32m"_r_3_-bmad"[39m
+      [33mname[39m=[32m"_r_3_"[39m
+      [33mtype[39m=[32m"radio"[39m
+      [33mvalue[39m=[32m"bmad"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    paragraph:
+  
+    Name "":
+    [36m<p[39m
+      [33mid[39m=[32m"_r_3_-superpowers-note"[39m
+      [33mstyle[39m=[32m"margin: 0.15rem 0px 0px 1.6rem;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p[39m
+      [33mid[39m=[32m"_r_3_-bmad-note"[39m
+      [33mstyle[39m=[32m"margin: 0.15rem 0px 0px 1.6rem;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p[39m
+      [33maria-live[39m=[32m"polite"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    region:
+  
+    Name "Soạn nội dung":
+    [36m<section[39m
+      [33maria-label[39m=[32m"Soạn nội dung"[39m
+      [33mdata-compose-state[39m=[32m"ambiguous"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    alert:
+  
+    Name "":
+    [36m<p[39m
+      [33mrole[39m=[32m"alert"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    button:
+  
+    Name "Gửi lại đúng yêu cầu cũ":
+    [36m<button[39m
+      [33mtype[39m=[32m"button"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+  
+  Ignored nodes: comments, script, style
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<form[39m
+        [33maria-label[39m=[32m"Biểu mẫu tạo yêu cầu"[39m
+        [33mstyle[39m=[32m"display: grid; gap: 0.9rem;"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.25rem;"[39m
+        [36m>[39m
+          [36m<label[39m
+            [33mfor[39m=[32m"_r_0_"[39m
+          [36m>[39m
+            [0mDự án[0m
+          [36m</label>[39m
+          [36m<select[39m
+            [33mdisabled[39m=[32m""[39m
+            [33mid[39m=[32m"_r_0_"[39m
+          [36m>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m""[39m
+            [36m>[39m
+              [0mChọn dự án[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"11111111-1111-4111-8111-111111111111"[39m
+            [36m>[39m
+              [0mDự án web[0m
+              [0m ([0m
+              [0mDỰ Á[0m
+              [0m)[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"44444444-4444-4444-8444-444444444444"[39m
+            [36m>[39m
+              [0mDự án máy chủ[0m
+              [0m ([0m
+              [0mDỰ Á[0m
+              [0m)[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.25rem;"[39m
+        [36m>[39m
+          [36m<label[39m
+            [33mfor[39m=[32m"_r_1_"[39m
+          [36m>[39m
+            [0mLoại[0m
+          [36m</label>[39m
+          [36m<select[39m
+            [33mdisabled[39m=[32m""[39m
+            [33mid[39m=[32m"_r_1_"[39m
+          [36m>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"code"[39m
+            [36m>[39m
+              [0mLập trình[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"research"[39m
+            [36m>[39m
+              [0mNghiên cứu[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"docs"[39m
+            [36m>[39m
+              [0mTài liệu[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"deploy"[39m
+            [36m>[39m
+              [0mTriển khai[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.25rem;"[39m
+        [36m>[39m
+          [36m<label[39m
+            [33mfor[39m=[32m"_r_2_"[39m
+          [36m>[39m
+            [0mTiêu đề[0m
+          [36m</label>[39m
+          [36m<input[39m
+            [33maria-describedby[39m=[32m"_r_2_-count"[39m
+            [33mdisabled[39m=[32m""[39m
+            [33mid[39m=[32m"_r_2_"[39m
+            [33mtype[39m=[32m"text"[39m
+            [33mvalue[39m=[32m"Chưa xác nhận"[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mid[39m=[32m"_r_2_-count"[39m
+            [33mstyle[39m=[32m"justify-self: end;"[39m
+          [36m>[39m
+            [0m13[0m
+            [0m/[0m
+            [0m200[0m
+            [0m ký tự[0m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<fieldset[39m
+          [33mdisabled[39m=[32m""[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.4rem;"[39m
+        [36m>[39m
+          [36m<legend>[39m
+            [0mWorkflow[0m
+          [36m</legend>[39m
+          [36m<div>[39m
+            [36m<input[39m
+              [33maria-describedby[39m=[32m"_r_3_-superpowers-note"[39m
+              [33mchecked[39m=[32m""[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mid[39m=[32m"_r_3_-superpowers"[39m
+              [33mname[39m=[32m"_r_3_"[39m
+              [33mtype[39m=[32m"radio"[39m
+              [33mvalue[39m=[32m"superpowers"[39m
+            [36m/>[39m
+            [0m [0m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_3_-superpowers"[39m
+            [36m>[39m
+              [0mSuperpowers[0m
+            [36m</label>[39m
+            [36m<p[39m
+              [33mid[39m=[32m"_r_3_-superpowers-note"[39m
+              [33mstyle[39m=[32m"margin: 0.15rem 0px 0px 1.6rem;"[39m
+            [36m>[39m
+              [0mMặc định cho mọi yêu cầu.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div>[39m
+            [36m<input[39m
+              [33maria-describedby[39m=[32m"_r_3_-bmad-note"[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mid[39m=[32m"_r_3_-bmad"[39m
+              [33mname[39m=[32m"_r_3_"[39m
+              [33mtype[39m=[32m"radio"[39m
+              [33mvalue[39m=[32m"bmad"[39m
+            [36m/>[39m
+            [0m [0m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_3_-bmad"[39m
+            [36m>[39m
+              [0mBMAD[0m
+            [36m</label>[39m
+            [36m<p[39m
+              [33mid[39m=[32m"_r_3_-bmad-note"[39m
+              [33mstyle[39m=[32m"margin: 0.15rem 0px 0px 1.6rem;"[39m
+            [36m>[39m
+              [0mChọn rõ khi cần. Hiện chỉ máy chạy Claude Code có định nghĩa BMAD; máy dùng Codex chưa chạy được BMAD.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</fieldset>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Soạn nội dung"[39m
+          [33mdata-compose-state[39m=[32m"ambiguous"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+        [36m>[39m
+          [36m<label[39m
+            [33mfor[39m=[32m"_r_5_"[39m
+          [36m>[39m
+            [0mMô tả[0m
+          [36m</label>[39m
+          [36m<textarea[39m
+            [33maria-readonly[39m=[32m"true"[39m
+            [33mid[39m=[32m"_r_5_"[39m
+            [33mreadonly[39m=[32m""[39m
+            [33mrows[39m=[32m"6"[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33maria-live[39m=[32m"polite"[39m
+            [33mstyle[39m=[32m"justify-self: end;"[39m
+          [36m>[39m
+            [0m0[0m
+            [0m/[0m
+            [0m65.536[0m
+            [0m ký tự[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mstyle[39m=[32m"display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"_r_4_"[39m
+            [36m>[39m
+              [0mĐính kèm tệp[0m
+            [36m</label>[39m
+            [36m<input[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mid[39m=[32m"_r_4_"[39m
+              [33mmultiple[39m=[32m""[39m
+              [33mtype[39m=[32m"file"[39m
+            [36m/>[39m
+            [36m<span>[39m
+              [0mCó thể dán ảnh từ clipboard vào ô nội dung hoặc kéo thả tệp vào đây.[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33maria-live[39m=[32m"polite"[39m
+          [36m>[39m
+            [0mChưa xác nhận kết quả. Nội dung đã khóa; gửi lại sẽ dùng đúng yêu cầu cũ.[0m
+          [36m</p>[39m
+          [36m<p[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [0mChưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mstyle[39m=[32m"display: flex; gap: 0.75rem;"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mGửi lại đúng yêu cầu cũ[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</form>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at button (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:314:41)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:659:21
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:658:9)
+
+test at test/ticket-detail-dom.test.ts:1:1
+✖ test/ticket-detail-dom.test.ts (715.966375ms)
+  'test failed'
+EXIT 1

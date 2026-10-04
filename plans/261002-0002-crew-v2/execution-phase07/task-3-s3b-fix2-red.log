@@ -1,0 +1,123 @@
+TELEMETRY {"at": "2026-10-04T05:35:54.403527+00:00", "pageSize": 16384, "pages": {"Pages free": 38228, "Pages inactive": 297737, "Pages speculative": 2351}, "availableBytes": 5542969344, "availableGiB": 5.162, "pressure": 1, "cpuIdlePercent": 86.71, "cpu": "3.49% user, 9.79% sys, 86.71% idle", "diskFreeBytes": 805786083328, "diskFreeGiB": 750.447, "heavyEligible": true}
+CMD perl -e alarm 400; exec @ARGV node --test test/create-request.test.ts test/ticket-detail-dom.test.ts
+✔ makeRequestSubmission map chính xác field form sang CreateTicket và target ticket (1.670333ms)
+✔ defaultRequestFields: Superpowers mặc định, loại code, giữ project được chọn (0.091ms)
+✔ workflowOptions: Superpowers đứng đầu là mặc định, BMAD ghi rõ chỉ có định nghĩa cho Claude Code (17.621458ms)
+✔ requestFormLocked: chỉ sửa field khi composer đang editing (0.111209ms)
+✔ formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session (0.831292ms)
+✔ formDrafts lưu vào tab storage, phiên mới (tải lại trang) đọc lại đúng field; dữ liệu hỏng bị bỏ (19.159208ms)
+✖ clearTicketDrafts xóa mọi bản nháp form/bình luận trong tab storage, kể cả khi chưa tạo kho trong lần tải trang (0.76875ms)
+✔ formDrafts không có storage thì giữ trong bộ nhớ của session, không ghi ra ngoài (0.0925ms)
+✔ form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng body, một ticket và mở ticket.id trả về (115.152875ms)
+✔ chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp (37.073ms)
+✔ mất response rồi hết phiên: field bị khóa, đăng nhập lại gửi lại đúng key/body, một ticket (36.546208ms)
+✔ nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa (74.05725ms)
+✔ mất response rồi tải lại trang: field khôi phục, bị khóa và khớp từng byte body gửi lại (39.888917ms)
+✖ bản nháp form dùng storage của runtime (cùng nguồn với composer), không ghi thẳng sessionStorage (6.983125ms)
+✖ “Bỏ bản nháp yêu cầu” bỏ trọn: compose và tệp bị abandon, field về mặc định, yêu cầu sau không mang tệp cũ (18.292583ms)
+✖ bỏ bản nháp chưa xác nhận được (DELETE mất kết nối) thì giữ field và báo; đang gửi thì báo bị chặn (275.551625ms)
+✔ draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại; chỉ “Bỏ bản nháp bình luận” mới xóa (159.433292ms)
+✔ gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại (27.213916ms)
+✔ ticket đã kết thúc chỉ xem: không có composer bình luận (12.939417ms)
+✔ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (13.991375ms)
+✔ danh sách yêu cầu: đọc level=request của producer, chỉ hiện gốc thật, chọn yêu cầu mở ticket, có “Tạo yêu cầu” (14.64525ms)
+✔ chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng ticket (16.874291ms)
+✔ chi tiết trong hộp thoại nhúng editor liên kết tài liệu của ticket thay cho dòng “chưa có dữ liệu” (30.063042ms)
+✔ trang ticket đổi ticketId mà không remount: chữ nháp của A không sang B (24.619208ms)
+✔ mất response bình luận rồi tải lại trang: ô nội dung khôi phục, khóa và khớp body gửi lại (42.790917ms)
+✔ deep link chữ hoa: cache theo key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè (16.14775ms)
+✖ ticket kết thúc: liên kết tài liệu chỉ xem, không có điều khiển sửa; lỗi đọc có “Thử lại” bấm được (302.639125ms)
+✔ ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại (30.521792ms)
+✖ “Bỏ bản nháp bình luận” bỏ trọn chữ, tệp và compose; chưa xác nhận thì giữ chữ và báo (289.1415ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 23
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1686.763
+
+✖ failing tests:
+
+test at test/create-request.test.ts:177:1
+✖ clearTicketDrafts xóa mọi bản nháp form/bình luận trong tab storage, kể cả khi chưa tạo kho trong lần tải trang (0.76875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   'crew-v2:form-draft:create-request',
+  +   'crew-v2:form-draft:comment:t1',
+  +   'crew-v2:form-draft:comment:t2',
+      'crew-v2:pending:other'
+    ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:188:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'crew-v2:form-draft:create-request', 'crew-v2:form-draft:comment:t1', 'crew-v2:form-draft:comment:t2', 'crew-v2:pending:other' ],
+    expected: [ 'crew-v2:pending:other' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:559:1
+✖ bản nháp form dùng storage của runtime (cùng nguồn với composer), không ghi thẳng sessionStorage (6.983125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:565:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:577:1
+✖ “Bỏ bản nháp yêu cầu” bỏ trọn: compose và tệp bị abandon, field về mặc định, yêu cầu sau không mang tệp cũ (18.292583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'open'
+  - 'abandoned'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:595:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'open',
+    expected: 'abandoned',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:607:1
+✖ bỏ bản nháp chưa xác nhận được (DELETE mất kết nối) thì giữ field và báo; đang gửi thì báo bị chặn (275.551625ms)
+  Error: TIMEOUT:unconfirmed
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:296:5
+
+test at test/ticket-detail-dom.test.ts:424:1
+✖ ticket kết thúc: liên kết tài liệu chỉ xem, không có điều khiển sửa; lỗi đọc có “Thử lại” bấm được (302.639125ms)
+  Error: TIMEOUT:read error
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:139:5
+
+test at test/ticket-detail-dom.test.ts:485:1
+✖ “Bỏ bản nháp bình luận” bỏ trọn chữ, tệp và compose; chưa xác nhận thì giữ chữ và báo (289.1415ms)
+  Error: TIMEOUT:unconfirmed
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:139:5
+EXIT 1
