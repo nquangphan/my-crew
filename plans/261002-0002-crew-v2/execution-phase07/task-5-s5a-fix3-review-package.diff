@@ -1,0 +1,576 @@
+cccbae1 fix(v2): composer không kết luận hết hạn theo đồng hồ client và khóa gửi khi đang bỏ bản nháp
+ .../execution-phase07/task-5-s5a-fix3-biome.log    |   2 +
+ .../execution-phase07/task-5-s5a-fix3-build.log    |   3 +
+ .../execution-phase07/task-5-s5a-fix3-green.log    |  75 ++++++++++
+ .../execution-phase07/task-5-s5a-fix3-red.log      | 151 +++++++++++++++++++++
+ .../task-5-s5a-fix3-unit-full.log                  | 114 ++++++++++++++++
+ .../execution-phase07/task-5-s5a-fix3-vite.log     |  10 ++
+ .../execution-phase07/task-5-s5a-report.md         |  26 ++++
+ v2/docs/flows/web-attachments.md                   |   5 +-
+ v2/docs/flows/web-shell.md                         |   2 +-
+ v2/web/package.json                                |   1 +
+ v2/web/pnpm-lock.yaml                              |   3 +
+ v2/web/src/compose/composer.tsx                    |   2 +
+ v2/web/src/compose/controller.ts                   |  48 ++++++-
+ v2/web/test/compose-submit.test.ts                 |  98 +++++++++++++
+ v2/web/test/support/compose-server.ts              |   5 +-
+ 15 files changed, 536 insertions(+), 9 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md
+index 37ac8c8..7079427 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md
+@@ -126,10 +126,36 @@ Telemetry khi lấy slot: RED 5,238 GiB / pressure 1 / CPU idle 84,36% / đĩa 7
+ | GREEN (trước format) | 63/63 | `task-5-s5a-fix2-green.log` `655604db05599cc77ab33ca9035837ff0b9089e490d584730c0e8773e55181a7` |
+ | Đột biến nối dây DOM + NOT_FOUND | control 6/6; 7 đột biến đều bị bắt | `task-5-s5a-fix2-mutation.log` `2e9c52a60342a2dc64718bcae6a717a57cf4746676176269ff5ded7853eed7dc` |
+ | `biome check` 15 file (gồm `package.json`) | exit 0 | `task-5-s5a-fix2-biome.log` `21d462a13fb241168cefa03678f4c5d4cc99c5aba7ff821f96ed7931261108c2` |
+ | `tsc --noEmit && vite build` | exit 0 | `task-5-s5a-fix2-build.log` `0b7ca9020da47675b38f806c4adcc31e209d0ae0a64340382ff2b459fc93da80` |
+ | Focused sau format | 63/63 | `task-5-s5a-fix2-green-final.log` `af2eb8dad4593053d2720f3024fb41836ed8795ff506ba27bc96d736b7653b07` |
+ | Web unit không DB (compose ×3 + client/events/auth-recovery) | 102/102 | `task-5-s5a-fix2-unit-full.log` `5c0e4ab13582bacd0c8d4350ab1ee2f67a75d6d5497b30f2e11673572ff04d76` |
+ 
+ Telemetry khi lấy slot: 4,535 GiB / pressure 1 / CPU idle 82,16% / đĩa 751 GiB. Slot đã trả. Manifest lock giữ từ lúc đọc HEAD `31ced2b` tới khi commit, chỉ thêm hunk của tôi (4 file test vào flow `web-attachments`, cùng 4 dòng generated trong `files.md`). Docs: `web-attachments.md` cập nhật; `web-shell.md` thêm devDependency ở hàng `package.json` (R3).
+ 
+ **Còn lại:** M1–M4 (M3 một phần, nhờ subscribe `PendingStore`), M6 chưa sửa; A5 blocked như trên.
++
++## 10. Vòng sửa 3 (`task-5-s5a-fix2-re-review.md`: B1, B2; khai báo peer)
++
++| Lỗi | Test (`compose-submit.test.ts`) | RED (`fix3-red.log`, 4/67 fail) | Sửa (`controller.ts`) |
++|---|---|---|---|
++| B1 lệch giờ | “đồng hồ client chạy nhanh hơn server…” (client +3 phút, server còn 1 phút) | `sessionId` thành null: compose còn hạn bị bỏ | `#expired()` chỉ coi `expiresAt` là đã qua sau biên `expirySkewMs` = 5 phút. API owner không có giờ server: `OwnerClient` không trả header `Date` và không được sửa `lib/api.ts`, nên tôi chọn phương án biên lệch giờ mà review nêu |
++| B1 đang gửi | “đang gửi thì GET compose báo hết hạn cũng không nhả khóa…” | state `editing` giữa lúc gửi | `#expired()` trả false khi `sending` hoặc khi khóa submit đang `pending` trong `PendingStore` (đang được gửi ở nơi khác) |
++| B2 khe gửi | “đang bỏ bản nháp thì không gửi được” | `submittable` true trong lúc DELETE | Cờ `#discarding` bật ngay đầu `discard()`: `submittable` false, `submit()` trả null, nút bỏ ẩn. `startNew` tắt cờ |
++| B2 lỗi DELETE | “DELETE bỏ lượt gửi lỗi transport…” | `errorCode` null, lỗi bị nuốt | DELETE chưa xác nhận: giữ bản nháp, báo `DISCARD_UNCONFIRMED` (kèm message máy chủ nếu là 5xx), khóa DELETE còn trong panel. Bấm bỏ lần nữa gửi lại đúng khóa đó. Từ chối đã được chứng minh thì tiếp tục bỏ như cũ |
++
++Hai test lúc đầu dựng tình huống bằng cách sửa `compose.state = 'open'` sau khi đã commit. Cách này không thực tế, nên tôi đổi sang `failBefore` (request không tới server) trước khi chạy RED.
++
++`@testing-library/dom` **10.4.2** được khai báo trong `devDependencies` (đúng version trong lock). `package.json` thêm 1 dòng, lock thêm 3 dòng importer.
++
++| Lệnh | Kết quả | Log, SHA-256 |
++|---|---|---|
++| RED 3 file compose | 67 test, 4 fail theo assertion | `task-5-s5a-fix3-red.log` `dd36fa71ded8c37e5f1c67d0a8e92ea16b888c6e92d29281908d274f2ce6a1d7` |
++| Biome 5 file | exit 0 | `task-5-s5a-fix3-biome.log` `c30e8a91ea5575eebfac61ef398baac5a6de55f4c59fc0ddfcfc1d8a67da57a5` |
++| GREEN sau format | 67/67 | `task-5-s5a-fix3-green.log` `50549f13269810cb7b6bbe558e1d0f6c695341a13c9e8792b5c1a8547818650c` |
++| Web unit không DB | 106/106 | `task-5-s5a-fix3-unit-full.log` `474a27f10cccdaa12e6fb72ed3d635525f96e753849888015c45ecbedc4141a2` |
++| `tsc --noEmit` | exit 1, 3 lỗi đều ở `test/ticket-routes.test.ts` (untracked, của worker khác đang sửa router/tickets); 0 lỗi ở file của tôi | `task-5-s5a-fix3-build.log` `70cee45923d59a3f8683fa4a94501ff552e59427465118b1a27f15b8ea51f61c` |
++| `vite build` | exit 0 | `task-5-s5a-fix3-vite.log` `ce3b89999fdaeb99ea6d7dcf990d70a271b08543141ebb31fc16201638231976` |
++
++**Vi phạm quy trình slot:** lệnh `pnpm add @testing-library/dom` chạy ngay sau khi lấy lock, trong cùng lệnh in telemetry, nên chưa chặn theo kết quả. Telemetry khi đó là `heavyEligible: false` (3,774 GiB khả dụng / pressure 1 / CPU idle 78,99%). Lệnh cài nhỏ (khoảng 1,3 giây, lock thêm 3 dòng); slot được trả ngay sau đó. Lần thử kế tiếp (3,455 GiB) bị từ chối và trả lock. Các lượt sau dùng vòng lặp chỉ chạy khi `heavyEligible` true; RED/GREEN chạy lúc 4,856 GiB / 1 / 81,17% / 751 GiB. Slot đã trả.
++
++Docs: `web-attachments.md` (biên lệch giờ, `discard`), `web-shell.md` (peer đã khai báo). Hai file này nằm ngoài danh sách được giao lượt này, nhưng luật R3 bắt buộc sửa vì `controller.ts`/`composer.tsx`/`package.json` thay đổi. Manifest không đổi.
+diff --git a/v2/docs/flows/web-attachments.md b/v2/docs/flows/web-attachments.md
+index 6c4407c..0b12c78 100644
+--- a/v2/docs/flows/web-attachments.md
++++ b/v2/docs/flows/web-attachments.md
+@@ -12,37 +12,38 @@ Trạng thái producer: `buildApp` mount route attachment khi được truyền
+ - `web/src/attachments/preview.tsx` → `TicketAttachments`: tệp của ticket nhóm theo bình luận (projection `GET /v2/tickets/:id/attachments/by-comment`), phần còn lại là tệp của ticket hoặc tệp kế thừa, kèm xem trước an toàn và trạng thái trích xuất.
+ 
+ Hợp đồng cho Task3 S3b/Task6: form tạo đủ `CreateTicket` (project/kind/title/workflow), hoặc cấp `projectId`/`ticketId`, hoặc cấp `conversationId`/`clientMessageId` (tạo một lần cho mỗi ý định). Mỗi lần người dùng sửa, form truyền lại cùng một đối tượng submission. Form khóa các field của mình theo `onStateChange`: chỉ `editing` mới cho sửa. Khi khóa cũ chỉ còn tombstone (sau đăng xuất), composer báo `editing` để owner nhập lại đúng nội dung ban đầu. `onAccepted` được gọi đúng một lần cho mỗi receipt; sau đó composer bắt đầu bản nháp mới, còn form tự reset (ví dụ cấp `clientMessageId` mới).
+ 
+ ## Các bước
+ 
+ 1. `web/src/compose/state.ts` → `filesFromTransfer`: một luồng nhận tệp chung cho `clipboardData.items`, `dataTransfer` khi thả và `<input multiple>`. Khi dán, composer chỉ `preventDefault` nếu clipboard có tệp; phần chữ đi kèm được chèn tại con trỏ nên giữ được cả chữ lẫn ảnh. Dán chữ thường vẫn để trình duyệt xử lý. `localFileName` đặt tên ảnh dán không tên (hoặc tên chung `image.png`) thành `anh-dan-YYYYMMDD-HHmmss-n.png`, giờ theo Asia/Ho_Chi_Minh và đuôi theo MIME.
+ 2. `checkIntake` kiểm số tệp, dung lượng từng tệp, tổng dung lượng, đuôi tệp và tên tệp theo `GET /v2/attachment-policy` *trước khi* băm; không gắn cứng 25 MiB. Tệp lớn hơn ngân sách băm của trình duyệt (`clientHashBudgetBytes` = 256 MiB) bị báo `CLIENT_HASH_LIMIT` chứ không bị bỏ qua âm thầm. Tệp vi phạm vẫn nằm trong danh sách ở trạng thái lỗi và chặn gửi cho tới khi owner bỏ nó.
+ 3. `web/src/compose/file-hash.ts` → `createWorkerHasher` băm tuần tự từng tệp trong worker riêng `file-hash.worker.ts` bằng `crypto.subtle.digest`. Mỗi lần chỉ giữ bytes của một tệp trong một `ArrayBuffer`, không tạo bản sao base64, và bỏ tham chiếu sau khi băm. Hủy, bỏ tệp hay đóng composer sẽ `terminate` worker và gỡ listener. Tệp trùng hash và size với tệp đã chọn bị đánh dấu `DUPLICATE_LOCAL` để owner bỏ.
+ 4. `web/src/compose/controller.ts` → `ComposeController`: lượt gửi được mở lười, `POST /v2/attachment-compose` với đúng một trong ba target. Mọi bước làm đổi revision (giữ chỗ, bỏ tệp, bỏ lượt gửi) chạy trong một hàng đợi tuần tự, nên `expectedRevision` luôn là revision mà bước trước trả về. Mỗi bước là một `PendingOperation` của Task2 với intent cố định theo bản nháp và tệp; intent giữ chỗ còn gắn với compose session nó giữ chỗ vào. Khi kết quả chưa xác nhận, composer gửi lại đúng key/body, không tạo reservation mới.
+-5. Tải bytes dùng `OwnerClient.upload` (PUT octet-stream kèm CSRF, cùng upload ID). Composer không hiện phần trăm giả. Nếu lỗi transport, bận (`ATTACHMENT_UPLOAD_BUSY`) hoặc hết thời gian, composer `GET /v2/attachment-compose/:id`: trạng thái `ready` thắng; `receiving` thì chờ (1/2/4 giây) rồi gửi lại cùng bytes; `reserved` thì gửi lại; lỗi chắc chắn (sai nội dung, replay khác) thì đánh dấu lỗi. Lượt gửi hết hạn (`expiresAt` đã qua) hoặc đã đóng, gặp qua `ATTACHMENT_COMPOSE_CLOSED`, `ATTACHMENT_UPLOAD_EXPIRED` hay `SELECTION_CHANGED` rồi GET compose: tệp được chuyển sang lượt mới và tải lại, khóa submit chưa giải quyết của lượt đó được nhả (lượt mở đã hết hạn thì không thể commit), lỗi hiện là `COMPOSE_EXPIRED`. Sau 4 lần chưa xác nhận, tệp ở `unknown`; “Thử lại” đọc lại compose rồi chạy lại vòng chờ đó với cùng bytes. Server còn `receiving` mà tab không có bytes (tải lại trang) thì tệp thành `unknown`/`UPLOAD_RECEIVING` kèm nút “Thử lại”, không đứng mãi ở “Đang tải lên”.
++5. Tải bytes dùng `OwnerClient.upload` (PUT octet-stream kèm CSRF, cùng upload ID). Composer không hiện phần trăm giả. Nếu lỗi transport, bận (`ATTACHMENT_UPLOAD_BUSY`) hoặc hết thời gian, composer `GET /v2/attachment-compose/:id`: trạng thái `ready` thắng; `receiving` thì chờ (1/2/4 giây) rồi gửi lại cùng bytes; `reserved` thì gửi lại; lỗi chắc chắn (sai nội dung, replay khác) thì đánh dấu lỗi. Lượt gửi hết hạn hoặc đã đóng. API owner không cho biết giờ server, nên tab chỉ coi `expiresAt` là đã qua sau biên lệch giờ `expirySkewMs` (5 phút) theo đồng hồ client. Tab không bao giờ kết luận hết hạn khi đang gửi hoặc khi khóa submit đang được gửi ở nơi khác (`pending`). Khi gặp gặp qua `ATTACHMENT_COMPOSE_CLOSED`, `ATTACHMENT_UPLOAD_EXPIRED` hay `SELECTION_CHANGED` rồi GET compose: tệp được chuyển sang lượt mới và tải lại, khóa submit chưa giải quyết của lượt đó được nhả (lượt mở đã hết hạn thì không thể commit), lỗi hiện là `COMPOSE_EXPIRED`. Sau 4 lần chưa xác nhận, tệp ở `unknown`; “Thử lại” đọc lại compose rồi chạy lại vòng chờ đó với cùng bytes. Server còn `receiving` mà tab không có bytes (tải lại trang) thì tệp thành `unknown`/`UPLOAD_RECEIVING` kèm nút “Thử lại”, không đứng mãi ở “Đang tải lên”.
+ 6. GET compose là nguồn sự thật. Upload còn hoạt động mà client chưa biết được nhận về theo SHA và size, hoặc thêm vào danh sách. Một reserve/remove chưa xác nhận được coi là đã commit nếu có dòng khớp hoặc upload đã `abandoned`. Nó được coi là chưa commit nếu revision đã vượt `expectedRevision` mà không có dòng khớp. Nếu GET chưa chứng minh được, nút “Thử lại” gửi lại operation cũ. Selection luôn bằng toàn bộ upload còn hoạt động; tệp lỗi không bị lọc bỏ để gửi cho được.
+ 7. Bỏ tệp: composer hủy công việc cục bộ trước, rồi `DELETE /v2/attachment-compose/:id/uploads/:uploadId {expectedRevision}`. Khi gặp 409 `ATTACHMENT_SELECTION_STALE`, composer đọc lại compose và gửi DELETE mới theo revision mới. Một reservation đã bị từ chối hẳn có thể bị bỏ để giữ chỗ lại bằng cùng bytes. Đổi project hoặc đích gửi khi đang soạn sẽ `DELETE /v2/attachment-compose/:id` lượt cũ rồi chuyển tệp sang lượt mới; lượt cũ không bao giờ được dùng lại. Khi rời lượt cũ, các khóa reserve/remove chưa giải quyết của lượt đó được nhả, vì lượt cũ đã đóng hoặc không bao giờ được dùng lại; file đi qua pipeline với khóa mới của lượt mới.
+ 8. Gửi: `submissionRequest`/`freezeSubmission` kiểm target khớp body (`TARGET_MISMATCH`/`TARGET_INVALID`), tiêu đề 1–200 code point, mô tả ≤ 65536, text ≤ 32768, kind/level/workflow enum, và text với tệp không cùng rỗng (riêng ticket không cần tệp). Body được serialize một lần: ticket `POST /v2/attachment-submissions/tickets {ticket,selection,assistantRead}`, bình luận `POST /v2/tickets/:ticketId/attachment-comments {text,selection,assistantRead}`, tin nhắn `POST /v2/attachment-submissions/messages {conversationId,clientMessageId,text,selection,assistantRead}`. `kind`, `target`, `draftKey` hay callback không bao giờ vào body. Ticket không tệp vẫn mở lượt gửi với `attachmentIds: []`.
+-9. `assistantRead` chỉ là `selected-inputs` khi owner tự bật ô “Cho phép Trợ lý đọc các tệp đã chọn”; giá trị này không suy ra từ cấu hình. Trong lúc `sending`, `ambiguous` hay `suspended`, ô nội dung chỉ đọc, `setSubmission` bị từ chối và body đã đóng băng không đổi dù props hay realtime đổi. Retry dùng cùng `PendingOperation`. Body đã đóng băng (gồm `assistantRead`) được giữ trong bộ nhớ. Nếu khóa biến mất vì đã được gửi lại ở panel khôi phục, hoặc vì 201 không giải mã được, draft vẫn khóa (`ambiguous`) và composer gửi lại đúng body đó trên cùng lượt gửi; máy chủ trả lại receipt đã lưu, không tạo entity thứ hai. Khóa đang giữ mà biến mất khỏi `PendingStore` (panel replay sau khi composer được dựng lại) được phát hiện qua `PendingStore.subscribe`: không còn body thì draft vào `SUBMIT_UNCONFIRMED`, rồi GET compose đưa về `SUBMITTED_ELSEWHERE` hoặc mở khóa; bấm gửi lúc đó chỉ chờ GET, không gửi gì. Khi mở khóa, consent và key cũ cũng được xóa. Lượt gửi đã `submitted` mà tab không còn khóa hay body (ví dụ tải lại trang sau khi panel đã gửi), hoặc lần gửi gặp 409 `COMPOSE_ALREADY_SUBMITTED`, thì draft bị khóa với `SUBMITTED_ELSEWHERE`: không chuyển file sang lượt mới, không cấp khóa mới. Chỉ khi owner bấm “Bỏ bản nháp này” (`discard`, owner đã duyệt kèm cảnh báo có thể tạo bản trùng), bản nháp cục bộ mới bị xóa. `discard` bị chặn khi đang gửi; nó bỏ lượt gửi cũ nếu còn mở và nhả khóa reserve/remove của lượt đó. Riêng khóa submit vẫn hiện ở panel khôi phục. Kết quả của một lần gửi thuộc draft đã bỏ không bao giờ được gắn vào draft mới (bộ đếm thế hệ).
++9. `assistantRead` chỉ là `selected-inputs` khi owner tự bật ô “Cho phép Trợ lý đọc các tệp đã chọn”; giá trị này không suy ra từ cấu hình. Trong lúc `sending`, `ambiguous` hay `suspended`, ô nội dung chỉ đọc, `setSubmission` bị từ chối và body đã đóng băng không đổi dù props hay realtime đổi. Retry dùng cùng `PendingOperation`. Body đã đóng băng (gồm `assistantRead`) được giữ trong bộ nhớ. Nếu khóa biến mất vì đã được gửi lại ở panel khôi phục, hoặc vì 201 không giải mã được, draft vẫn khóa (`ambiguous`) và composer gửi lại đúng body đó trên cùng lượt gửi; máy chủ trả lại receipt đã lưu, không tạo entity thứ hai. Khóa đang giữ mà biến mất khỏi `PendingStore` (panel replay sau khi composer được dựng lại) được phát hiện qua `PendingStore.subscribe`: không còn body thì draft vào `SUBMIT_UNCONFIRMED`, rồi GET compose đưa về `SUBMITTED_ELSEWHERE` hoặc mở khóa; bấm gửi lúc đó chỉ chờ GET, không gửi gì. Khi mở khóa, consent và key cũ cũng được xóa. Lượt gửi đã `submitted` mà tab không còn khóa hay body (ví dụ tải lại trang sau khi panel đã gửi), hoặc lần gửi gặp 409 `COMPOSE_ALREADY_SUBMITTED`, thì draft bị khóa với `SUBMITTED_ELSEWHERE`: không chuyển file sang lượt mới, không cấp khóa mới. Chỉ khi owner bấm “Bỏ bản nháp này” (`discard`, owner đã duyệt kèm cảnh báo có thể tạo bản trùng), bản nháp cục bộ mới bị xóa. `discard` bị chặn khi đang gửi, và trong suốt lúc `discard` chạy thì không gửi được (nút gửi tắt, nút bỏ ẩn). Nếu DELETE bỏ lượt gửi chưa xác nhận (lỗi transport/5xx), bản nháp được giữ, composer báo `DISCARD_UNCONFIRMED`, khóa DELETE hiện ở panel, và bấm bỏ lần nữa gửi lại đúng khóa đó; nó bỏ lượt gửi cũ nếu còn mở và nhả khóa reserve/remove của lượt đó. Riêng khóa submit vẫn hiện ở panel khôi phục. Kết quả của một lần gửi thuộc draft đã bỏ không bao giờ được gắn vào draft mới (bộ đếm thế hệ).
+ 10. Phiên hết hạn thì operation ở `suspended`; sau khi đăng nhập lại cùng owner, composer đọc lại compose và gửi lại cùng key. Tải lại tab: `sessionStorage` `crew-v2:compose:<draftKey>` chỉ giữ intent, compose ID, revision, tên/size/SHA/upload ID của tệp và key operation; không giữ chữ, bytes hay bí mật. Tệp chưa sẵn sàng phải được chọn lại đúng size và SHA (`NEEDS_RESELECT`/`RESELECT_MISMATCH`). Record còn giữ `assistantRead` đã đóng băng (không phải bí mật). Sau đăng xuất, Task2 chỉ giữ tombstone; composer không cấp key mới cho ý định đó mà yêu cầu nhập lại đúng nội dung rồi `PendingStore.resume` với khóa cũ. Trạng thái file lấy từ GET compose (kể cả khi lượt đã `submitted`, revision giữ đúng giá trị trong body cũ), còn consent lấy từ record và hiện ở dạng đã khóa. Nhập sai thì `IDEMPOTENCY_CONFLICT` trả về tombstone với khóa cũ. Owner cũng có lối thoát “Bỏ bản nháp này”.
+ 11. Khi được chấp nhận, receipt được giải mã theo loại (`decodeComposeReceipt`), cache ticket/comment/attachment bị invalidate, bản nháp được xóa đúng một lần, Lỗi 5xx (ví dụ 503 `EXTRACTION_NOT_CONFIGURED` khi máy chủ chưa có extractor) giữ khóa (`UNCONFIRMED`) và composer hiện kèm lý do máy chủ gửi về. 404 `NOT_FOUND` khi selection có tệp máy chủ không còn dẫn tới GET compose và đánh dấu tệp thiếu. 403 `ORIGIN_INVALID` làm mới phiên một lần rồi giữ khóa ở `suspended`; 403 `OWNER_REQUIRED` trên lần gửi đầu là từ chối hẳn. 401 (`UNAUTHENTICATED` hay `SESSION_INVALID`) đều làm phiên hết hạn và giữ khóa. `takeReceipt` trao receipt cho `onAccepted` đúng một lần, và `receiptSummary` chỉ nói máy chủ đã lưu gì, không bao giờ nói Trợ lý “đã đọc”.
+ 12. `web/src/attachments/queries.ts` → `fetchVerifiedBytes`: chỉ xem trước bytes đã được cấp quyền khi SHA-256 và size khớp record, và MIME theo magic bytes khớp MIME trong record hoặc manifest (không tin tên tệp hay content-type). Nội dung inline chỉ gồm ảnh PNG/JPEG và bản text đã xác minh (React escape, giới hạn 64 KiB ký tự, công thức/macro hiện nguyên văn). PDF/OOXML chỉ có link tải; không iframe/object HTML, SVG hay PDF cùng origin. Object URL bị thu hồi khi preview unmount. `summarizeExtraction` hiện trạng thái pending/running/complete/partial/encrypted/corrupt/unsupported/blocked/failed, các phần còn thiếu theo trang/trang tính/ô/dòng, kèm lời nhắc rằng byte đã xác minh không có nghĩa là mô hình đã đọc.
+ 
+ ## Dữ liệu
+ 
+ `DraftFile`, `ComposeSubmission`, `ComposeDraft` và `ComposeReceipt` đúng interface của brief Task5. `ComposeTarget` được suy từ decoder `ComposeSession` của Task2 (`web/src/contracts/attachments.ts`). Decoder `AssistantMessage` (`server/src/attachments/contracts.ts:270`) tạm nằm trong `state.ts` vì contracts Task2 chưa có; controller có thể chuyển nó vào `contracts/attachments.ts`. Danh sách `GET /v2/tickets/:id/attachments` là danh sách phẳng, không có `commentId` hay nhãn nguồn: UI liệt kê không nhóm và không suy luận nhóm từ thứ tự, chờ projection G2.
+ 
+ Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (dừng worker, hủy upload, gỡ listener). File bytes chỉ nằm trong bộ nhớ. Key và body đã đóng băng nằm trong `PendingStore` của tab. Payload chứa field giống bí mật bị Task2 từ chối lưu (`SECRET_PAYLOAD`) và composer báo lỗi, không gửi.
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, `PendingStore`, phiên owner và query keys. `server-attachments.md` định nghĩa compose/upload/submission và trích xuất. `web-shell.md` sở hữu wiring app nơi `ComposeServicesProvider` được gắn.
+ 
+ ## Tests
+ 
+ - `web/test/compose-submit.test.ts`: `freezeSubmission` cho cả ba loại với đúng path/body; target sai và giới hạn field bị chặn; selection rỗng hợp lệ cho ticket không tệp; bytes khớp `PendingStore.begin`; `canSubmit`. Controller chạy trên `OwnerClient`/`PendingStore` thật của Task2 với producer giả trong bộ nhớ (`web/test/support/compose-server.ts`): mất phản hồi sau commit thì form bị khóa, retry cùng key/body và chỉ có một ticket; hết phiên rồi đăng nhập lại giữ key và `clientMessageId`; tải lại tab giữ compose/key, không lưu chữ; đăng xuất chỉ còn tombstone và nhập lại đúng nội dung thì dùng khóa cũ; bình luận chỉ có ảnh.
+ - `web/test/compose.test.ts`: tên ảnh dán, giữ cả chữ lẫn ảnh khi dán, giới hạn policy, digest và worker (tuần tự, abort/dispose dừng worker và gỡ listener), reserve tuần tự theo revision, tệp lỗi và tệp trùng chặn gửi, DELETE kèm refetch khi 409, mất phản hồi reserve (GET nhận lại upload) và reserve chưa tới server (retry cùng key), PUT bận và lỗi transport, đổi project, chọn lại sau reload, cùng preview an toàn (magic bytes, SHA/MIME, 401) và tóm tắt trích xuất.
+ - Vòng sửa 1 (review I1–I5, M5): RED trước khi sửa: 11/44 test mới fail theo hành vi. Ví dụ, sau 201 không giải mã được, state về `editing`; tombstone có file thì file ở `unknown`; đổi project khi reserve chưa xác nhận thì `TIMEOUT:moved`; `receiving` thì `TIMEOUT:ready`/`uploading`; panel replay gửi body khác consent; các helper UI `pasteDecision`/`fileActions`/`composeLocks` sai. Sau khi sửa: GREEN 44/44, web unit không DB 83/83. Bốn test cho nhánh vốn đúng (SELECTION_CHANGED, PUT 401, nhả DELETE chưa commit, abandon gặp stale) được chứng minh có tác dụng bằng đột biến: mỗi đột biến làm đúng test đó fail. Hành vi UI của `composer.tsx` được kiểm qua các helper thuần; repo chưa có môi trường React/DOM test.
+ - Vòng sửa 2 (re-review N1–N5, I5, khớp hợp đồng G2): fake producer được sửa cho đúng server (by-comment, 503 extraction, 404 id lạ, 403 Origin/owner, login 200, hết hạn, 401 `SESSION_INVALID`). RED trước khi sửa: 5 test N và consent DOM fail, rồi 7 test G2 fail. GREEN: focused 63/63, web unit không DB 102/102. Component test thật `web/test/composer-dom.test.ts` chạy trên jsdom và React Testing Library, nạp `.tsx` bằng hook `web/test/support/tsx-loader.ts` (Oxc của Vite) và `web/test/support/dom.ts`. Test phủ: paste gọi `preventDefault` và chèn tại caret, kéo thả khi khóa, `readOnly` và consent `checked`/`disabled`, chuỗi receipt → `onAccepted` → bản nháp mới (consent tắt), nhãn và trạng thái của nút gửi và nút bỏ bản nháp, lý do 503. Mỗi điểm nối dây có đột biến làm đúng test đó fail.
++- Vòng sửa 3 (B1/B2): RED 4/67 (lệch giờ client nhanh hơn server, hết hạn trong lúc gửi, gửi trong lúc bỏ bản nháp, DELETE bỏ bị lỗi transport), GREEN 67/67, web unit không DB 106/106.
+ - Lượt đầu chạy 25/25 PASS vì source viết trước test. Kiểm tra đột biến cho thấy 3 trên 4 đột biến bị bắt. Đột biến còn lại phát hiện lỗi thật: reserve chưa xác nhận bị kẹt. Test mới cho lỗi này RED trên source cũ (`TIMEOUT:ready`), GREEN sau khi sửa. Kết quả cuối: focused 29/29, web unit không DB 68/68, `tsc` và `vite build` PASS.
+ - `web/e2e/compose.spec.ts` (A5 trên API/PostgreSQL thật) chưa có: fixture Task1 gọi `buildApp` không kèm `attachments`, nên route attachment không có trên API của fixture; kịch bản bị chặn, không tính là PASS.
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index dfbdfc8..303848c 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -19,21 +19,21 @@
+ 
+ 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
+ 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
+ 3. Dev Vite chỉ proxy `/v2` khi caller cấp `CREW_V2_WEB_API_ORIGIN`; build production dự kiến dùng cùng origin. Khung Task1 không gọi API hay import app/schema/role runtime v1.
+ 4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
+ 
+ ## Files
+ 
+ | File | Vai trò |
+ |---|---|
+-| `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 chỉ có trong lock |
++| `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 được khai báo tường minh trong `devDependencies` |
+ | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
+ | `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
+ | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
+ | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
+ 
+ ## Dữ liệu
+ 
+ Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+diff --git a/v2/web/package.json b/v2/web/package.json
+index 4738d42..6625934 100644
+--- a/v2/web/package.json
++++ b/v2/web/package.json
+@@ -25,13 +25,14 @@
+   },
+   "devDependencies": {
+     "vite": "8.3.2",
+     "@vitejs/plugin-react": "6.1.1",
+     "typescript": "7.0.2",
+     "@types/react": "19.3.0",
+     "@types/react-dom": "19.3.0",
+     "@types/node": "26.6.3",
+     "@playwright/test": "1.63.0",
+     "@testing-library/react": "16.3.3",
++    "@testing-library/dom": "10.4.2",
+     "jsdom": "30.1.1"
+   }
+ }
+diff --git a/v2/web/src/compose/composer.tsx b/v2/web/src/compose/composer.tsx
+index 68081ec..4fffd05 100644
+--- a/v2/web/src/compose/composer.tsx
++++ b/v2/web/src/compose/composer.tsx
+@@ -123,20 +123,22 @@ const messages: Record<string, string> = {
+   UNAUTHENTICATED: 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục; yêu cầu vẫn giữ khóa cũ.',
+   SESSION_REQUIRED: 'Cần đăng nhập để tiếp tục; yêu cầu vẫn giữ khóa cũ.',
+   SESSION_ENDED: 'Phiên đăng nhập đã kết thúc; yêu cầu vẫn giữ khóa cũ.',
+   UNCONFIRMED: 'Chưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.',
+   RESPONSE_SHAPE_INVALID: 'Máy chủ trả dữ liệu không đúng định dạng. Gửi lại sẽ nhận lại đúng kết quả cũ.',
+   UPLOAD_RECEIVING: 'Máy chủ vẫn đang nhận tệp này từ lần gửi trước. Thử lại để kiểm tra lại.',
+   NOT_FOUND: 'Máy chủ không còn một tệp trong lượt gửi. Bỏ tệp bị thiếu rồi gửi lại.',
+   ORIGIN_INVALID:
+     'Máy chủ không nhận nguồn gửi của tab này. Yêu cầu vẫn giữ khóa cũ; tải lại trang rồi thử lại.',
+   OWNER_REQUIRED: 'Phiên hiện tại không phải chủ sở hữu nên không được gửi.',
++  DISCARD_UNCONFIRMED:
++    'Chưa xác nhận được việc bỏ lượt gửi trên máy chủ. Bản nháp và yêu cầu bỏ vẫn được giữ; bấm bỏ bản nháp lần nữa để gửi lại đúng yêu cầu đó.',
+   COMPOSE_EXPIRED: 'Lượt gửi đã hết hạn; tệp được chuyển sang lượt gửi mới.',
+   ATTACHMENT_UPLOAD_EXPIRED: 'Lượt tải tệp đã hết hạn.',
+   ATTACHMENT_COMPOSE_CLOSED: 'Lượt gửi đã đóng.',
+   SUBMIT_UNCONFIRMED: 'Chưa xác nhận lần gửi trước. Đang kiểm tra với máy chủ; nội dung vẫn khóa.',
+   SUBMITTED_ELSEWHERE:
+     'Lượt gửi này đã được máy chủ lưu nhưng tab này không còn kết quả. Xem ở danh sách; bỏ bản nháp nếu muốn soạn mới.',
+ };
+ 
+ function describe(code: string | null): string | null {
+   if (!code) return null;
+diff --git a/v2/web/src/compose/controller.ts b/v2/web/src/compose/controller.ts
+index 27d14f6..8a80771 100644
+--- a/v2/web/src/compose/controller.ts
++++ b/v2/web/src/compose/controller.ts
+@@ -83,20 +83,25 @@ export type ComposeControllerOptions = {
+   hasher: FileHasher;
+   loadPolicy: (signal: AbortSignal) => Promise<AttachmentPolicy>;
+   newId?: () => string;
+   now?: () => Date;
+   sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
+ };
+ 
+ type FileSource = 'clipboard' | 'drop' | 'input';
+ 
+ const uploadBackoff = [1000, 2000, 4000] as const;
++/**
++ * Clock-skew allowance before a compose is treated as expired from this tab. The owner API exposes no
++ * server clock, so an `expiresAt` is trusted as past only after this margin on the client clock.
++ */
++export const expirySkewMs = 5 * 60_000;
+ const definitiveUpload = new Set([
+   'ATTACHMENT_CONTENT_INVALID',
+   'ATTACHMENT_MAGIC_MISMATCH',
+   'ATTACHMENT_BINARY_TEXT',
+   'ATTACHMENT_REPLAY_MISMATCH',
+   'ATTACHMENT_DATA_LOSS',
+   'ATTACHMENT_UPLOAD_EXPIRED',
+   'ATTACHMENT_UPLOAD_CONFLICT',
+   'ATTACHMENT_NOT_FOUND',
+ ]);
+@@ -199,20 +204,22 @@ export class ComposeController {
+   /**
+    * The submit outcome is unknown and cannot be resent from this tab: `SUBMIT_UNCONFIRMED` (reload after
+    * the key vanished) or `SUBMITTED_ELSEWHERE` (the compose was submitted without a local key).
+    */
+   #lockReason: string | null = null;
+   #receiptTaken = false;
+   /** Key of the latest submit of this intent, kept while its outcome is not proven. */
+   #lastSubmitId: string | null = null;
+   /** Bumped by `startNew`; a send that finishes under an older generation no longer owns the draft. */
+   #generation = 0;
++  /** Set for the whole of `discard()`: no submit may start while the draft is being dropped. */
++  #discarding = false;
+   readonly #offPending: () => void;
+   #errorCode: string | null = null;
+   #errorMessage: string | null = null;
+   #receipt: ComposeReceipt | null = null;
+   #policy: Promise<AttachmentPolicy> | null = null;
+   #queue: Promise<unknown> = Promise.resolve();
+   #fileChain: Promise<unknown> = Promise.resolve();
+   #view: ComposeView | null = null;
+ 
+   constructor(options: ComposeControllerOptions) {
+@@ -272,21 +279,23 @@ export class ComposeController {
+   view(): ComposeView {
+     this.#view ??= Object.freeze({
+       draft: this.#draft,
+       errorCode: this.#errorCode,
+       errorMessage: this.#errorMessage,
+       needsPayload: this.#tombstoneId !== null,
+       submittable: this.#submittable(),
+       receipt: this.#receipt,
+       assistantRead: this.#assistantRead,
+       discardable:
+-        this.#draft.state !== 'sending' && (this.#tombstoneId !== null || this.#lockReason !== null),
++        !this.#discarding &&
++        this.#draft.state !== 'sending' &&
++        (this.#tombstoneId !== null || this.#lockReason !== null),
+     });
+     return this.#view;
+   }
+ 
+   /** In-memory bytes of a file selected in this tab (for local preview); null after reload. */
+   localFile(localId: string): File | null {
+     return this.#bytes.get(localId) ?? null;
+   }
+ 
+   /** True while a pipeline step for this file is running in this tab. */
+@@ -296,27 +305,41 @@ export class ComposeController {
+ 
+   /** The accepted receipt, handed out exactly once. */
+   takeReceipt(): ComposeReceipt | null {
+     if (!this.#receipt || this.#receiptTaken) return null;
+     this.#receiptTaken = true;
+     return this.#receipt;
+   }
+ 
+   /** Explicit owner decision to drop the local draft; unresolved keys stay in the PendingStore. */
+   async discard(): Promise<void> {
+-    if (this.#draft.state === 'sending') return;
++    if (this.#discarding || this.#draft.state === 'sending') return;
+     if (this.#tombstoneId === null && this.#lockReason === null) return;
++    this.#discarding = true;
++    this.#emit();
+     const sessionId = this.#draft.sessionId;
+     if (sessionId !== null) {
+       // An open compose of the dropped draft is abandoned so it cannot be submitted or hold quota; a
+       // submitted one is left as is (the DELETE path reads it back and stops).
+-      await this.#enqueue(() => this.#abandonSession()).catch(() => undefined);
++      try {
++        await this.#enqueue(() => this.#abandonSession());
++      } catch (error) {
++        if (this.#unresolved(`${this.#intentId}:abandon:${sessionId}`)) {
++          // Unconfirmed DELETE: keep the draft and its key (shown in the recovery panel); a new discard
++          // resends the same key.
++          this.#discarding = false;
++          this.#setError('DISCARD_UNCONFIRMED', serverMessage(error));
++          this.#emit();
++          return;
++        }
++        // A proven rejection leaves nothing pending for this compose.
++      }
+       this.#releaseSessionKeys(sessionId);
+     }
+     this.startNew();
+   }
+ 
+   // ---- form input -------------------------------------------------------------------------------------
+ 
+   /**
+    * Controlled submission update. Refused while a submit is frozen (sending/ambiguous/suspended/accepted),
+    * except re-entry of content for a tombstoned key. A changed target moves files to a new compose session.
+@@ -433,21 +456,21 @@ export class ComposeController {
+     }
+   }
+ 
+   // ---- submit -----------------------------------------------------------------------------------------
+ 
+   /**
+    * Freeze and send, or retry the frozen operation with the same key/bytes. `assistantRead` is part of the
+    * frozen body and only applies to a new submit.
+    */
+   async submit(assistantRead: AssistantRead): Promise<ComposeReceipt | null> {
+-    if (this.#draft.state === 'sending' || this.#draft.state === 'accepted') return null;
++    if (this.#discarding || this.#draft.state === 'sending' || this.#draft.state === 'accepted') return null;
+     const generation = this.#generation;
+     let operation: PendingOperation | null;
+     try {
+       operation = await this.#submitOperation(assistantRead);
+     } catch (error) {
+       this.#fail(error);
+       return null;
+     }
+     if (operation === null || generation !== this.#generation) return null;
+     this.#lastSubmitId = operation.id;
+@@ -504,20 +527,21 @@ export class ComposeController {
+       await this.#enqueue(() => this.#abandonSession()).catch((error) => this.#fail(error));
+     this.startNew();
+   }
+ 
+   /** After the receipt was delivered: fresh intent, no files, no session. */
+   startNew(): void {
+     for (const abort of this.#aborts.values()) abort.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
+     this.#aborts.clear();
+     this.#bytes.clear();
+     this.#generation++;
++    this.#discarding = false;
+     this.#intentId = this.#newId();
+     this.#sessionTarget = null;
+     this.#tombstoneId = null;
+     this.#frozen = null;
+     this.#assistantRead = null;
+     this.#lockReason = null;
+     this.#lastSubmitId = null;
+     this.#receipt = null;
+     this.#receiptTaken = false;
+     this.#setError(null);
+@@ -710,20 +734,21 @@ export class ComposeController {
+     if (files.some((file) => file.state !== 'ready')) return 'FILES_PENDING';
+     try {
+       validateSubmission(this.#draft.submission, files.length);
+     } catch (error) {
+       return errorCode(error);
+     }
+     return 'COMPOSE_NOT_OPEN';
+   }
+ 
+   #submittable(): boolean {
++    if (this.#discarding) return false;
+     if (this.#tombstoneId !== null) {
+       const selection = selectionOf(this.#draft);
+       if (!selection) return false;
+       try {
+         validateSubmission(this.#draft.submission, this.#draft.files.length);
+         return true;
+       } catch {
+         return false;
+       }
+     }
+@@ -843,32 +868,45 @@ export class ComposeController {
+         this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
+       }
+       this.#mergeFiles(view, false);
+       return;
+     }
+     if (view.session.state !== 'open') {
+       if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
+       this.#detachFromSession('COMPOSE_CLOSED');
+       return;
+     }
+-    if (Date.parse(view.session.expiresAt) <= this.#now().getTime()) {
++    if (this.#expired(view.session.expiresAt)) {
+       // An expired open compose can no longer be submitted, and an earlier send would have made it
+       // `submitted`: any unresolved submit of it is proven not committed. Files move to a new compose.
+       this.#releaseSubmit();
+       this.#detachFromSession('COMPOSE_EXPIRED');
+       return;
+     }
+     // The vanished key did not submit this still-open compose: it was rejected.
+     if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
+     this.#mergeFiles(view, true);
+   }
+ 
++  /**
++   * Expired beyond the skew margin, and no send of the frozen submit can still be running: never while this
++   * tab is sending, nor while the PendingStore has the key in flight (`pending`).
++   */
++  #expired(expiresAt: string): boolean {
++    if (this.#draft.state === 'sending') return false;
++    const operation = this.#draft.submitOperation
++      ? this.#pending.get(this.#draft.submitOperation.id)
++      : undefined;
++    if (operation?.state === 'pending') return false;
++    return Date.parse(expiresAt) + expirySkewMs <= this.#now().getTime();
++  }
++
+   /** Server state is authoritative for every upload of the compose. */
+   #mergeFiles(view: { session: ComposeSession; attachments: Attachment[] }, open: boolean): void {
+     const revision = view.session.revision;
+     const byId = new Map(view.attachments.map((attachment) => [attachment.attachmentId, attachment]));
+     const files: DraftFile[] = [];
+     const claimed = new Set<string>();
+     for (const file of this.#draft.files) {
+       if (file.uploadId !== null) {
+         const server = byId.get(file.uploadId);
+         claimed.add(file.uploadId);
+diff --git a/v2/web/test/compose-submit.test.ts b/v2/web/test/compose-submit.test.ts
+index 54dacd9..abf235e 100644
+--- a/v2/web/test/compose-submit.test.ts
++++ b/v2/web/test/compose-submit.test.ts
+@@ -672,10 +672,108 @@ test('401 SESSION_INVALID: phiên hết hạn, đăng nhập lại (200) rồi g
+   await env.controller.submit('none');
+   server.sessionInvalid = true;
+   await env.controller.submit('none');
+   assert.equal(env.session.snapshot().state, 'expired');
+   assert.equal(env.controller.view().draft.state, 'suspended');
+   server.sessionInvalid = false;
+   assert.equal(await env.session.login('mat-khau'), true);
+   assert.equal((await env.controller.submit('none'))?.kind, 'comment');
+   assert.equal(server.comments.length, 1);
+ });
++
++test('đồng hồ client chạy nhanh hơn server: lượt gửi còn hạn ở server không bị coi là hết hạn, khóa được giữ', async () => {
++  const server = new FakeComposeServer();
++  const env = await harness(server);
++  const controller = new ComposeController({
++    draftKey: 'skew',
++    submission: commentSubmission('lệch giờ'),
++    client: env.client,
++    pending: env.pending,
++    storage: env.storage,
++    hasher: inlineHasher().hasher,
++    loadPolicy: (signal) => env.client.get('/v2/attachment-policy', { signal }),
++    sleep: async () => undefined,
++    now: () => new Date(Date.now() + 3 * 60_000),
++  });
++  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
++  await controller.submit('none');
++  const key = controller.view().draft.submitOperation?.id;
++  const sessionId = controller.view().draft.sessionId ?? '';
++  const compose = server.composes.get(sessionId);
++  assert.ok(key && compose);
++  compose.expiresAt = new Date(Date.now() + 60_000).toISOString();
++  await controller.reconcile();
++  assert.equal(controller.view().draft.sessionId, sessionId, 'không bỏ lượt gửi còn hạn ở server');
++  assert.equal(controller.view().draft.state, 'ambiguous');
++  assert.ok(env.pending.get(key), 'khóa submit vẫn giữ');
++});
++
++test('đang gửi thì GET compose báo hết hạn cũng không nhả khóa hay mở khóa form', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('đang gửi'));
++  await env.controller.addFiles([pngFile('a.png', 11)], 'input');
++  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
++  server.hold = (call) => call.url.endsWith('/attachment-comments');
++  const sending = env.controller.submit('none');
++  await settle(() => env.controller.view().draft.state === 'sending', 'sending');
++  const key = env.controller.view().draft.submitOperation?.id ?? '';
++  const compose = server.composes.get(env.controller.view().draft.sessionId ?? '');
++  assert.ok(compose);
++  compose.expiresAt = '2000-01-01T00:00:00.000Z';
++  await env.controller.reconcile();
++  assert.equal(env.controller.view().draft.state, 'sending');
++  assert.ok(env.pending.get(key), 'khóa đang gửi không bị nhả');
++  compose.expiresAt = undefined;
++  server.hold = null;
++  server.release();
++  assert.equal((await sending)?.kind, 'comment');
++  assert.equal(server.comments.length, 1);
++});
++
++test('đang bỏ bản nháp thì không gửi được', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('bỏ dở'));
++  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
++  await env.controller.submit('none');
++  env.pending.tombstoneAll();
++  env.controller.dispose();
++  const after = await controllerFor(server, commentSubmission('bỏ dở'), await harness(server, env.storage));
++  await after.controller.reconcile();
++  const compose = server.composes.get(after.controller.view().draft.sessionId ?? '');
++  assert.equal(compose?.state, 'open');
++  server.hold = (call) => call.method === 'DELETE';
++  const discarding = after.controller.discard();
++  await settle(() => server.calls.some((call) => call.method === 'DELETE'), 'delete sent');
++  assert.equal(after.controller.view().submittable, false);
++  const posts = server.calls.filter((call) => call.method === 'POST').length;
++  assert.equal(await after.controller.submit('none'), null);
++  assert.equal(server.calls.filter((call) => call.method === 'POST').length, posts, 'không có POST nào');
++  server.hold = null;
++  server.release();
++  await discarding;
++  assert.equal(after.controller.view().draft.sessionId, null);
++});
++
++test('DELETE bỏ lượt gửi lỗi transport: báo lỗi, giữ bản nháp và khóa; bỏ lại dùng cùng khóa', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('bỏ lỗi'));
++  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
++  await env.controller.submit('none');
++  env.pending.tombstoneAll();
++  env.controller.dispose();
++  const after = await controllerFor(server, commentSubmission(''), await harness(server, env.storage));
++  await after.controller.reconcile();
++  const sessionId = after.controller.view().draft.sessionId ?? '';
++  server.failBefore = (call) => call.method === 'DELETE';
++  await after.controller.discard();
++  assert.equal(after.controller.view().errorCode, 'DISCARD_UNCONFIRMED');
++  assert.equal(after.controller.view().draft.sessionId, sessionId, 'bản nháp chưa bị xóa');
++  assert.equal(after.controller.view().discardable, true);
++  const abandon = after.pending.list().find((operation) => operation.method === 'DELETE');
++  assert.ok(abandon, 'khóa bỏ lượt gửi hiện ở panel');
++  await after.controller.discard();
++  const deletes = server.calls.filter((call) => call.method === 'DELETE');
++  assert.equal(deletes.at(-1)?.headers.get('idempotency-key'), abandon.id);
++  assert.equal(server.composes.get(sessionId)?.state, 'abandoned');
++  assert.equal(after.controller.view().draft.sessionId, null);
++  assert.equal(after.pending.list().length, 0);
++});
+diff --git a/v2/web/test/support/compose-server.ts b/v2/web/test/support/compose-server.ts
+index fc1b549..16a0607 100644
+--- a/v2/web/test/support/compose-server.ts
++++ b/v2/web/test/support/compose-server.ts
+@@ -26,20 +26,22 @@ type Upload = {
+ type Compose = {
+   id: string;
+   purpose: 'ticket' | 'comment' | 'assistant_message';
+   projectId: string | null;
+   ticketId: string | null;
+   conversationId?: string;
+   revision: number;
+   state: 'open' | 'submitted' | 'abandoned';
+   /** Past `expiresAt`: the server rejects reserve, PUT and submission (`staging.ts:341,391`, `submissions.ts:133`). */
+   expired?: boolean;
++  /** Server-side expiry instant to report (default far future, or the past when `expired`). */
++  expiresAt?: string;
+ };
+ export type Call = { method: string; url: string; headers: Headers; body: string | null };
+ type Reply = { status: number; body: unknown };
+ 
+ export class MemoryStorage implements TabStorage {
+   readonly map = new Map<string, string>();
+   getItem(key: string) {
+     return this.map.get(key) ?? null;
+   }
+   setItem(key: string, value: string) {
+@@ -245,21 +247,22 @@ export class FakeComposeServer {
+   #session(compose: Compose) {
+     return {
+       id: compose.id,
+       ownerId: 'owner',
+       purpose: compose.purpose,
+       projectId: compose.projectId,
+       ticketId: compose.ticketId,
+       ...(compose.conversationId ? { conversationId: compose.conversationId } : {}),
+       revision: compose.revision,
+       state: compose.state,
+-      expiresAt: compose.expired ? '2000-01-01T00:00:00.000Z' : '2099-01-01T00:00:00.000Z',
++      expiresAt:
++        compose.expiresAt ?? (compose.expired ? '2000-01-01T00:00:00.000Z' : '2099-01-01T00:00:00.000Z'),
+     };
+   }
+ 
+   #attachment(upload: Upload) {
+     return {
+       attachmentId: upload.attachmentId,
+       sha256: upload.sha256,
+       ownerId: 'owner',
+       composeSessionId: upload.composeId,
+       fileName: upload.fileName,
