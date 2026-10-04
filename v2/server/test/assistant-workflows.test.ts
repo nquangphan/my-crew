@@ -966,6 +966,18 @@ test('assistant workflows: parallel needs an exact owner approval of this root, 
         code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
         status: 403,
       });
+      // The same deny inside createRun itself: the operation row exists before the call, so
+      // the denial cannot come from deriving the request.
+      const fixedRequest = {
+        request: async () => ({
+          action: 'create_run',
+          payload: { ...f.runInput({ path: 'bounded' }), graphSha256: '0'.repeat(64) },
+        }),
+      };
+      await assert.rejects(() => f.create({ path: 'bounded' }, fixedRequest), {
+        code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
+        status: 403,
+      });
       await setParallelApproval(db, await insertDecision(db, f.root.id, owner, 'assessment', scope));
       await assert.rejects(() => f.create({ path: 'bounded' }), {
         code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
@@ -975,6 +987,10 @@ test('assistant workflows: parallel needs an exact owner approval of this root, 
       overlapping.parallel.units[1]?.ownershipKeys.push('v2/server/src/a.ts');
       await setParallelApproval(db, await insertDecision(db, f.root.id, owner, 'approval', overlapping));
       await assert.rejects(() => f.create({ path: 'bounded' }), {
+        code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT',
+        status: 409,
+      });
+      await assert.rejects(() => f.create({ path: 'bounded' }, fixedRequest), {
         code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT',
         status: 409,
       });

@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
 import type { OrchestrationAction, OrchestrationProof, TurnFence } from '../src/assistant/contracts.ts';
 import type { OperationRequest } from '../src/assistant/operation-request.ts';
+import { operationRequestSha256 } from '../src/assistant/operation-request.ts';
 import type {
   CreateRunRequest,
   RunGraph,
@@ -1147,3 +1148,45 @@ test('S4 port graph needs create_run in the scope tools and its actions', async 
       }
     });
 });
+
+test('S4 operation request hash is versioned by its schema tag', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const request: OperationRequest = {
+        action: 'decision',
+        payload: { ticketId: f.a.id, input: decisionInput() },
+      };
+      const tagged = hash({
+        schema: 'crew-v2:operation-request:1',
+        action: request.action,
+        payload: request.payload,
+      });
+      const untagged = hash({ action: request.action, payload: request.payload });
+      assert.equal(operationRequestSha256(request), tagged);
+      assert.notEqual(tagged, untagged);
+      assert.notEqual(
+        operationRequestSha256(request),
+        hash({ schema: 'crew-v2:operation-request:2', action: request.action, payload: request.payload }),
+      );
+      // A row hashed without the schema tag authorizes nothing.
+      const before = await f.state();
+      await assert.rejects(
+        () =>
+          f.run((tx, proof, actor) => f.realPort.decision(tx, actor, proof, f.a.id, decisionInput()), {
+            operationId: async (tx) => {
+              const operationId = randomUUID();
+              await tx`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state)
+                values(${operationId},${f.fence.turnId},
+                (select coalesce(max(client_sequence),0)+1 from assistant_tool_operations where turn_id=${f.fence.turnId}),
+                ${`fixture-${operationId}`},${untagged},${f.snapshotId},'pending')`;
+              return operationId;
+            },
+          }),
+        { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+      );
+      assert.deepEqual(await f.state(), before);
+    } finally {
+      await f.close();
+    }
+  }));

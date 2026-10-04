@@ -24,9 +24,17 @@ export type OperationRequest =
       payload: { rootTicketId: Id; path: WorkflowRun['path']; definitionSha256: Sha256; graphSha256: Sha256 };
     };
 
-/** `sha256(canonicalJson({action, payload}))`; the action field separates the domains. */
+/** Schema tag of the request hash; a new canonical form needs a new tag. */
+export const operationRequestSchema = 'crew-v2:operation-request:1';
+
+/**
+ * `sha256(canonicalJson({schema, action, payload}))`. The schema tag versions the form and
+ * the action separates the domains; the transport must hash every tool with this function.
+ */
 export function operationRequestSha256(request: OperationRequest): Sha256 {
   return createHash('sha256')
-    .update(canonicalJson({ action: request.action, payload: request.payload }))
+    .update(
+      canonicalJson({ schema: operationRequestSchema, action: request.action, payload: request.payload }),
+    )
     .digest('hex');
 }
