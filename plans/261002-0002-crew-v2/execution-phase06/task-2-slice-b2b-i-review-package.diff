@@ -1,0 +1,1111 @@
+e9cdd37 feat(v2): thêm tín hiệu scoped cho Trợ lý (dependencies_ready, wait_owner chưa chạy)
+ .../task-2-slice-b2b-i-biome-run1.log              |  57 ++
+ .../execution-phase06/task-2-slice-b2b-i-biome.log |   2 +
+ .../execution-phase06/task-2-slice-b2b-i-docs.log  |  15 +
+ .../task-2-slice-b2b-i-green-cleanup.log           |   8 +
+ .../task-2-slice-b2b-i-green-resource.log          |   9 +
+ .../execution-phase06/task-2-slice-b2b-i-green.log | 147 +++++
+ .../task-2-slice-b2b-i-red-cleanup.log             |   8 +
+ .../task-2-slice-b2b-i-red-resource.log            |   9 +
+ .../execution-phase06/task-2-slice-b2b-i-red.log   | 717 +++++++++++++++++++++
+ .../execution-phase06/task-2-slice-b2b-i-report.md | 121 ++++
+ ...ask-2-slice-b2b-i-signal-regression-cleanup.log |   8 +
+ ...sk-2-slice-b2b-i-signal-regression-resource.log |   9 +
+ .../task-2-slice-b2b-i-signal-regression.log       | 379 +++++++++++
+ .../task-2-slice-b2b-i-typecheck-resource.log      |   1 +
+ .../task-2-slice-b2b-i-typecheck.log               |   0
+ v2/docs/flows/server-tickets.md                    |   8 +-
+ v2/server/src/tickets/assistant-access.ts          |   5 +-
+ v2/server/src/tickets/service.ts                   | 217 +++++--
+ v2/server/test/assistant-mutations.test.ts         | 384 ++++++++++-
+ 19 files changed, 2037 insertions(+), 67 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b2b-i-report.md b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b2b-i-report.md
+new file mode 100644
+index 0000000..01dc278
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b2b-i-report.md
+@@ -0,0 +1,121 @@
++# Task 2 Slice B2b-i — scoped signal (`dependencies_ready`, `wait_owner` chưa chạy)
++
++**Kết quả: DONE.** RED semantic 138 tests (119 pass / 19 fail, exit 1), GREEN 138/138 (exit 0) trên 5 file test của B2a, hồi quy thêm đường signal generic 102/102 (exit 0), scoped strict tsc exit 0 (output rỗng), Biome exit 0 với 0 warning, `crew-docs generate`/`check --all`/`check --staged` ok trong mirror tạm. Không chạm `execution/attempts.ts` hay `execution/commands.ts`, không nới generic ACL, không dùng owner tổng hợp.
++
++Làm theo ruling A1 và S1 trong `pm-next-slices-memo-261004.md`. Worktree `/Volumes/CORSAIR/Projects/my-crew-v2`, nhánh `codex/crew-v2-server`, BASE `d913052` (HEAD lúc commit đã lên `ed781fa` do worker khác commit, không giao file). Node v24.21.0, pnpm 10.32.1, Biome 2.5.14.
++
++## Thay đổi
++
++| File | Nội dung |
++|---|---|
++| `v2/server/src/tickets/service.ts` | Tách lõi signal thành `prepareSignal` (khóa root → ticket, CAS revision, kiểm predecessor `done`, tra quyết định tiếp tục vòng sửa cho `resume`), `signalTransition` và `persistSignal` (UPDATE + event `ticket.changed`). Generic `signalTicketWithDependencies` giữ nguyên hành vi và gọi lõi chung. Thêm `createAssistantSignalWriter`, nối thành `assistantSignalTicket` trong `createTicketServices`. |
++| `v2/server/src/tickets/assistant-access.ts` | Chỉ export `uuid` và `invalidScope` (M2 làm nhân tiện); service.ts dùng lại thay vì regex/ApiError inline. Không đổi hành vi. |
++| `v2/server/test/assistant-mutations.test.ts` | Fixture `run` nhận action `signal`; `state()` thêm status/wait_reason/repair-limit columns, `commands`, `attempts`. Thêm 20 test cho 10 case RED của memo. |
++| `v2/docs/flows/server-tickets.md` | Bước 4 mô tả lõi `prepareSignal`/`persistSignal`; bước 10 mô tả `assistantSignalTicket`. Bỏ trạng thái tạm (GREEN118/review chờ) ở đoạn B2a và dòng file test (M5). |
++
++### Produced interface
++
++`assistantSignalTicket(tx, actor, proof, ticketId, signal: 'dependencies_ready' | 'wait_owner', expectedRevision): Promise<Ticket>` — khớp `ProjectOrchestrationPort.signal` trong `assistant/contracts.ts`. Hash `orchestrationTargetHash('signal', {ticketId, signal, expectedRevision})`, tức tuple `['crew-v2:orchestration-target:1','signal',payload]` theo đúng spelling gửi lên.
++
++### Thứ tự trong entry scoped
++
++1. `captureAssistantOperation` chụp actor/proof/payload đồng bộ trước mọi await (owner → 403 `ORCHESTRATION_MACHINE_REQUIRED`; actor id không phải UUID → 400).
++2. Validate: ticketId UUID, signal thuộc `{dependencies_ready, wait_owner}` (còn lại 400 `VALIDATION`), revision safe integer ≥ 1.
++3. Thiếu authority → 503 `ORCHESTRATION_UNAVAILABLE`.
++4. `prepareSignal(..., actor=null)`: khóa root → ticket (không áp generic ACL máy; authority quyết định), CAS revision, `DEPENDENCIES_NOT_READY`.
++5. Khóa project `for update` (cùng lock order root → ticket → project như B2a).
++6. `wait_owner` trên `running` → 409 `EXECUTION_PROOF_REQUIRED`, luôn luôn, bất kể `deps.execution`.
++7. `signalTransition` (409 `INVALID_TICKET_TRANSITION`).
++8. `verify(tx, actor, proof, 'signal', targetSha256)` bằng method bind lúc tạo factory.
++9. Đánh dấu prepared trong `WeakMap` module-private; `persistSignal` tiêu một lần, kiểm cùng Tx, cùng operation, hash tính lại khớp, ticket/signal khớp prepared, không có continuation.
++
++## RED
++
++Trước khi viết source, thêm scaffold tối thiểu `assistantSignalTicket` ủy quyền thẳng cho generic `signalTicketWithDependencies` (ACL máy bound), để RED là thất bại ngữ nghĩa (404 `NOT_FOUND`) chứ không phải `TypeError` thiếu hàm.
++
++- Lệnh (qua script, container riêng): `NODE_OPTIONS=--max-old-space-size=384 CREW_V2_TEST_DATABASE_URL=postgres://postgres@127.0.0.1:62204/crew_v2_test CREW_V2_TEST_CONTAINER_ID=944d4b8c… node --test --test-concurrency=1 --test-timeout=60000 v2/server/test/assistant-mutations.test.ts v2/server/test/assistant-orchestration.test.ts v2/server/test/tickets.test.ts v2/server/test/deploy.test.ts v2/server/test/dependencies.test.ts`
++- Kết quả: tests 138, pass 119, fail 19, cancelled 0, skipped 0, exit 1, 24335.75 ms.
++- 119 pass = 118 test cũ (B1 47 + B2a 55 + existing 16, không vỡ sau khi mở rộng fixture) + case (1) generic route 404 (control, vốn đúng trước khi có source).
++- 19 fail đều semantic: 18 test nhận `NOT_FOUND` thay vì mã kỳ vọng (`ORCHESTRATION_UNAVAILABLE`, `TEST_TRUST_DENIED`, `DEPENDENCIES_NOT_READY`, `EXECUTION_PROOF_REQUIRED`, `REVISION_CONFLICT`, `VALIDATION`, hoặc thành công); test `owner` không bị từ chối (generic path cho owner signal thành công). Không có lỗi import/compile/setup.
++- Hash source lúc RED: service.ts (scaffold) `47b998fb…`, test `165867ac…`.
++
++### Map 10 case → test
++
++| Case memo | Test |
++|---|---|
++| (1) generic `/v2/tickets/:id/signals` A→B 404 | `B2b-i real machine-authenticated generic signal route keeps A→B ACL` (cả hai signal) |
++| (2) không authority 503, revision không đổi | `B2b-i signal without orchestration authority…` |
++| (3) sai proof/hash/action/Tx deny | 8 test `B2b-i signal rejects {owner,actor,operation,action,hash,root,project,tx}…` |
++| (4) `dependencies_ready` predecessor chưa done 409; đủ done → ready, revision+1, event | `B2b-i dependencies_ready requires done predecessors…` (kèm kiểm snapshot: mutate actor/proof/payload sau khi gọi không ảnh hưởng hash/audit; journal actor máy A) |
++| (5) `wait_owner` pending/ready → `needs_input`, `owner_input`, revision+1 | 2 test `B2b-i wait_owner on {pending,ready}…` |
++| (6) `wait_owner` running → 409, không command mới, attempt không đổi, không event | `B2b-i wait_owner on running ticket fails closed without synthetic owner command` |
++| (7) stale revision 409 | `B2b-i signal stale revision conflicts…` |
++| (8) `resume`/`start`/`passed` 400 | 3 test `B2b-i scoped signal rejects {resume,start,passed}…` |
++| (9) repair-limit: scoped không tiêu continuation | `B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation` |
++| (10) signal và dependency serialize trên root | `B2b-i scoped signal and dependency edge serialize on the root before verify` |
++
++Ghi chú case (6): memo viết "`attempts.terminal_intent` null", nhưng cột là `not null default 'complete'` (migration 005). Test khẳng định `terminal_intent='complete'` và `terminal_reason=null` không đổi, đúng tinh thần "không đổi". Test còn dựng services có `execution` thật (spy) và khẳng định không callback nào được gọi, tức nhánh fail-closed không phụ thuộc vào việc thiếu `deps.execution`.
++
++Ghi chú case (10): hook trong verify của signal khẳng định root, ticket và project đã bị khóa (`for update nowait` → 55P03), giữ verify mở trong lúc dependency `a←b` chạy ở connection khác; sau 200 ms dependency chưa tới verify (observed vẫn 1). Thả ra thì signal commit (`ready`, revision 2), dependency nhận `REVISION_CONFLICT`, không có cạnh nào được ghi.
++
++## GREEN
++
++| Lượt | Lệnh | Kết quả |
++|---|---|---|
++| Biome run1 | `pnpm dlx @biomejs/biome@2.5.14 check <3 owned files>` | exit 1, chỉ 2 lỗi format (xuống dòng). Sửa bằng `biome format --write` trên đúng 3 file. |
++| Biome final | cùng lệnh | exit 0, `Checked 3 files`, 0 warning |
++| tsc | `NODE_OPTIONS=--max-old-space-size=384 pnpm --dir v2/server exec tsc --noEmit --ignoreConfig --skipLibCheck --target ESNext --module NodeNext --strict --allowImportingTsExtensions --erasableSyntaxOnly --verbatimModuleSyntax --types node src/platform/picomatch.d.ts src/platform/thread-stream.d.ts src/attachments/extract/yauzl.d.ts src/tickets/service.ts src/tickets/decisions.ts src/tickets/dependencies.ts src/tickets/assistant-access.ts test/assistant-mutations.test.ts` | exit 0, output rỗng |
++| GREEN | 5 file như RED | tests 138, pass 138, fail 0, cancelled 0, skipped 0, exit 0, 24760.95 ms |
++| Hồi quy signal generic | `api-acceptance`, `assistant-store`, `attachments-routing`, `attachments-snapshots`, `attempts`, `completion`, `docs-read`, `repair` | tests 102, pass 102, fail 0, exit 0, 36832.89 ms |
++
++Lượt hồi quy thêm vì lát này refactor cả đường generic `signalTicket`/`applyExecutionSignal` (mọi file test gọi hai hàm này hoặc route `/signals`). Thứ tự kiểm ở generic đổi nhẹ: kiểm execution-signal giờ chạy sau CAS/predecessor/continuation thay vì trước. Vì tập execution signal và `{dependencies_ready, resume}` rời nhau, không signal nào thấy khác biệt; 102/102 xác nhận.
++
++Mọi lượt tính kết quả chạy trên source cuối (hash bên dưới); Biome format chạy trước tsc/GREEN.
++
++## Docs (R3)
++
++Chỉ flow `server-tickets` chứa 3 file source/test đã đổi. Mirror tạm trong scratchpad: `git archive HEAD:v2` (HEAD `ed781fa`), commit baseline, overlay đúng 4 file của lát này (không overlay thay đổi chưa commit của worker khác), chạy `packages/docs-kit/dist/crew-docs.cjs`: `generate` (index.md/files.md unchanged), `check --all` ok, `check --staged` ok. Mirror đã xóa. Không sửa `docs/flows.yaml`.
++
++## Tài nguyên và cleanup
++
++Heavy slot `$TMPDIR/crew-v2-heavy-slot.lock`: lần 1 giữ 02:56:30–02:57:3x UTC (RED), trả trước khi sửa source; lần 2 slot đang do `web-task2` giữ, chờ nền (thử lại mỗi 2 phút), lấy được 03:01:18, trả 03:03:37 UTC. Mọi lượt telemetry `heavyEligible=true`: pressure 1, available 4.78–5.03 GiB, CPU idle 71.8–86.5 %, disk ~753.5 GiB.
++
++| Lượt | Container | ID | Port |
++|---|---|---|---|
++| RED | crew-v2-test-5f96f86e-9357-4ab9-a87d-d6b458608fc8 | 944d4b8c32e3dc9c7598008dc90dd9f61855c560e98a37f457fa91a16f888f57 | 62204 |
++| GREEN | crew-v2-test-f0b1d2ad-e754-47d9-a7dd-e1919601e0fc | f1741009dac2701667d7808b1d44e3c1f78b86793afe69dd0e1145fbe788f5b0 | 65260 |
++| Hồi quy | crew-v2-test-fc4b3e60-19a1-4b42-a2ac-e68de0b11b47 | 4ca3bb768596652104a0961dfa3fe181971d2a74b0abf8798cea55ca1432212d | 49295 |
++
++Mỗi container: `postgres:18.6` local (image `4ef4dbc939d6`, không pull), `--rm --memory 256m --cpus 1 --pids-limit 64 -p 127.0.0.1::5432`, inspect mem 268435456 / nanoCPUs 1000000000 / pids 64, `pg_isready` ok ở lần thử 3. Cleanup mỗi lượt: `pg_database like 'crew_v2_test_%'` 0, `docker stop <id>` (auto-remove), `docker ps -a --filter id` rỗng, `docker inspect` no such object, không còn process `node --test`. Không chạm container của người khác. Script runner và mirror nằm trong scratchpad, mirror đã xóa.
++
++## SHA256
++
++| File | SHA256 |
++|---|---|
++| v2/server/src/tickets/service.ts | `345afbf84a59d509daecf9149c4debe7b031882c04ea87f643ca632aaf3adeb7` |
++| v2/server/src/tickets/assistant-access.ts | `50f8d9240cbb5b254047c631c0e4be105d16fa5052f3b57d5c5448f9d44f1ab7` |
++| v2/server/test/assistant-mutations.test.ts | `5c294aecb8ff78c5c2fcfc597a34afb9e09569f7fff5fc45f74630034c05ddb1` |
++| v2/docs/flows/server-tickets.md | `933da5a93d11cf7b011de6061b580f622997acdd7af436d2f1050211f0bbf57d` |
++| task-2-slice-b2b-i-red.log | `ae2793b557b06f9a3c3ea4296f4f2302678c05878112b1cf4fd9a1fae7daa743` |
++| task-2-slice-b2b-i-red-resource.log | `ce2998a238966971315e7825b619fc459d22b1357a3821e7425e5051aa46bc3c` |
++| task-2-slice-b2b-i-red-cleanup.log | `a51c4c07116999524763dec424906b559aebeb307321b9fbc3895856c4047159` |
++| task-2-slice-b2b-i-green.log | `f164019ab7ea8390378e84779536fbaffdef7e542b986990e3b0aa9efab1765e` |
++| task-2-slice-b2b-i-green-resource.log | `aad8474b1115c9e4b6d391bacb4caba9a1a0af940a3a27ddf4823d3eab9e60c0` |
++| task-2-slice-b2b-i-green-cleanup.log | `8a0a6c700472beaef244e99fbfba90fa567323c129a9991625966c391c395b92` |
++| task-2-slice-b2b-i-signal-regression.log | `cd54a15d5185a0e0358c89e0955c496662a9c384d653dd3956c36bf10c782f22` |
++| task-2-slice-b2b-i-signal-regression-resource.log | `addc432c3e8d5fcf7e26b84c1970788824cd14a416827e9b05af32e8bd30822b` |
++| task-2-slice-b2b-i-signal-regression-cleanup.log | `23db866a41c1910723b39fcc8d14e69cee851c9718dfb204ce7142654098cfaa` |
++| task-2-slice-b2b-i-typecheck.log | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (rỗng) |
++| task-2-slice-b2b-i-typecheck-resource.log | `654db8e728acdadc2b0595b1ad89a594b968737a231a2981babddb4a44d73fd7` |
++| task-2-slice-b2b-i-biome-run1.log | `9e5bfd478f932de859a44999e3d7d707bd5eb7bf1f8e9aef3042a264477b013f` |
++| task-2-slice-b2b-i-biome.log | `bbdf6f36fe15c9242b39e0e609578ef2daba00b9bab06a0e542e3640cb3c2d41` |
++| task-2-slice-b2b-i-docs.log | `b173cfd3e9d2d518c7ce2c6f59d350e4042a00b290e1beaa872d830468b71e54` |
++
++## Self-review
++
++- **Spec A1/S1:** union kiểu chỉ hai signal; runtime 400 cho phần còn lại; running `wait_owner` 409 trước verify, không gọi `requestTerminalIntent`, không tạo command; continuation chỉ cho `resume` nên scoped không thể tiêu; payload hash đúng ba key; snapshot trước await; lock root → ticket → project trước verify, không khóa muộn sau verify.
++- **Không synthetic owner:** entry scoped không bao giờ truyền actor owner hoặc gọi callback execution; test (6) chứng minh bằng spy.
++- **Generic không đổi hành vi:** cùng mã lỗi, cùng event, cùng nhánh running owner (vẫn dùng `requestTerminalIntent` như phase02, đúng trap C7 để lại cho triage). 102 + 138 test xác nhận.
++- **Khác biệt nhỏ cần biết:** scoped dùng `select * … for update` thay vì `access.prepare` của B2a, vì `prepare` chỉ nhận action `decision`/`dependency`; mở rộng nó cho `signal` là đổi hành vi `assistant-access.ts` ngoài quyền được cấp (chỉ export). Lock order và token một lần vẫn tương đương B2a; nếu PM muốn hợp nhất, việc đó là sửa một dòng `submitted` trong `prepare`.
++- **M2:** sửa phần thuộc service.ts/assistant-access.ts. `decisions.ts`/`dependencies.ts` vẫn có regex/ApiError inline vì không thuộc ownership lát này.
++- **Giới hạn:** scoped strict không phải full-server typecheck; production resolver vẫn deny (chỉ test-trust allowlist); B2b-ii (running `wait_owner`, `createAssistantCommand`) vẫn thuộc T4. Independent review chưa chạy (brief không cho dispatch).
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index 3707ba6..03f5026 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -8,31 +8,33 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d
+ 
+ - `server/src/tickets/routes.ts` → `registerTicketRoutes`: tạo, đọc, nối phụ thuộc, gửi tín hiệu hợp lệ, bình luận, quyết định, repair result và liên kết docs.
+ - `server/src/tickets/service.ts` → `createTicketServices`: gắn các reader/authority bất biến theo ứng dụng; mặc định từ chối cổng chưa được tích hợp.
+ - `server/src/tickets/dependencies.ts` → `addDependency`, `readGraph`: lưu DAG và trả dữ liệu sơ đồ thực tế.
+ 
+ ## Các bước
+ 
+ 1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Sau khi khóa root, service đọc lại root/cha và từ chối tạo con nếu một trong hai đã hoàn tất hoặc hủy. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
+ 2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
+ 3. `server/src/tickets/decisions.ts` → `appendComment`, `recordDecision` lưu nội dung trong bảng riêng và phát event chỉ chứa ID metadata. Legacy appendComment giữ nguyên: chấp nhận whitespace, từ chối chuỗi rỗng. Factory bổ sung appendAttachmentComment với callback commentAttachments do controller inject và giữ bất biến lúc tạo factory; thiếu callback từ chối trước INSERT. Method mới yêu cầu text tối đa32768 và text.trim có nội dung hoặc requested attachmentIds không rỗng. Callback xác minh actual ready set sau INSERT, trước một comment.created event trong cùng caller Tx; callback lỗi rollback comment/links/event và fanout009. Không dùng allowEmpty/count/dummy space, không nối consumer qua generic route. Nguồn quyết định phải là ticket/owner decision/artifact đã ghi nhận trong cùng gốc, hoặc trang docs được reader xác minh. Máy không thể ghi owner answer hoặc approval.
+-4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
++4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Lõi chung `prepareSignal` khóa root rồi ticket, so revision, kiểm predecessor `done` cho `dependencies_ready` và tra quyết định tiếp tục vòng sửa cho `resume`; `persistSignal` cập nhật row và phát event. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
+ 5. `server/src/tickets/deploy.ts` → `deployTicketFingerprint`, `readDeployAuthorization` chứng minh provenance của từng hành động deploy. Owner tạo request deploy chỉ cấp quyền cho chính request đó, không cấp quyền thừa kế cho hậu duệ. Máy không tạo request deploy gốc và mọi deploy child do máy tạo phải có approval owner khớp SHA-256 canonical của toàn bộ input có ý nghĩa, gắn đúng root; đổi title, target hoặc body đều bị từ chối. Quyết định được gắn vào một ticket. Gate thực thi Task 5 phải đọc cùng hàm này trước khi chạy deploy.
+ 6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy root do owner tạo tự có quyền, mọi deploy child cần approval đúng ticket kể cả khi owner trực tiếp tạo child. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+ 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+ 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+ 
+ 9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Production resolver vẫn deny, chưa nối current input/fence/routing decision; thành công test qua trust port riêng không chứng nhận production admission.
+ 
+-B2a checkpoint bổ sung `assistantRecordDecision` và `assistantAddDependency` trong factory. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh (không dùng non-null assertion) trước khi đọc root/project. GREEN118 (5 file test), strict có phạm vi và Biome đã pass; independent review còn chờ, không coi đây là quyền production đã nghiệm thu.
++Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project.
++
++10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi dùng lõi `prepareSignal` không áp generic ACL máy (authority quyết định), khóa root → ticket → project trước verify. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. Sau verify, token private chỉ cho `persistSignal` ghi một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/004_tickets.sql` | Bảng ticket, DAG, timeline, evidence, repair và liên kết docs |
+ | `server/migrations/010_attachment_comment_text.sql` | Forward-only text0..32768 cho attachment-only comment; giữ NOT NULL và trigger009 |
+ | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
+ | `server/src/tickets/service.ts` | Tạo ticket, scope, tín hiệu và factory |
+ | `server/src/tickets/dependencies.ts` | Cạnh phụ thuộc và sơ đồ |
+@@ -40,21 +42,21 @@ B2a checkpoint bổ sung `assistantRecordDecision` và `assistantAddDependency`
+ | `server/src/tickets/decisions.ts` | Bình luận, quyết định và kiểm tra nguồn |
+ | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
+ | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
+ | `server/src/tickets/docs-links.ts` | Liên kết ticket với snapshot đã xác minh |
+ | `server/src/tickets/authorization.ts` | Tx scope/current machine guard trước cached replay |
+ | `server/src/tickets/routes.ts` | HTTP validation, scope và idempotency |
+ | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
+ | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
+ | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
+ | `server/src/tickets/assistant-access.ts` | Snapshot và private prepared/verified capability cho scoped mutation |
+-| `server/test/assistant-mutations.test.ts` | B2a decision/dependency regression matrix, GREEN đã pass, review còn chờ |
++| `server/test/assistant-mutations.test.ts` | Scoped decision/dependency/signal: authority chính xác, invariant, fail-closed running `wait_owner`, khóa root tuần tự |
+ | `server/test/assistant-orchestration.test.ts` | Scoped create: hash/snapshot/private token, actual machine audit, prefix locks, UUID case và array descriptor boundary |
+ | `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
+ | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
+ | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
+ | `server/test/ticket-events.unit.test.ts` | Payload event metadata hợp lệ |
+ | `server/test/attachments-comment-factory.test.ts` | Producer attachment comment: default deny, actual ready callback, atomic rollback, legacy whitespace và fanout009 |
+ 
+ ## Dữ liệu
+ 
+ `tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `created_actor_kind/id`, `deploy_definition_hash` và `deploy_approval_decision_id` là provenance bền vững cho cổng deploy. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `repair_limit_cycle_id`/`repair_limit_at` chỉ cycle mới nhất đang chờ; `repair_limit_consumed_decision_id` ghi quyết định đã dùng. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
+diff --git a/v2/server/src/tickets/assistant-access.ts b/v2/server/src/tickets/assistant-access.ts
+index c7af80f..0da8910 100644
+--- a/v2/server/src/tickets/assistant-access.ts
++++ b/v2/server/src/tickets/assistant-access.ts
+@@ -83,22 +83,23 @@ export type PreparedAssistantTarget<T> = Readonly<{
+   operation: CapturedAssistantOperation<T>;
+   root: AssistantTargetTicket;
+   projectId: Id;
+   tickets: readonly AssistantTargetTicket[];
+   [preparedBrand]: true;
+ }>;
+ export type VerifiedAssistantScope<T> = Readonly<{ [verifiedBrand]: T }>;
+ const captures = new WeakSet<object>();
+ const preparations = new WeakMap<object, { tx: Tx; owner: object; authorized: boolean }>();
+ const permissions = new WeakMap<object, { tx: Tx; prepared: PreparedAssistantTarget<unknown> }>();
+-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+-const invalidScope = () => new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
++export const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++export const invalidScope = (): ApiError =>
++  new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+ 
+ export function captureAssistantOperation<T>(
+   actor: Actor,
+   proof: OrchestrationProof,
+   action: OrchestrationAction,
+   payload: T,
+ ): CapturedAssistantOperation<T> {
+   const snapshot = immutableSnapshot({ payload, actor, proof });
+   if (snapshot.actor.kind !== 'machine')
+     throw new ApiError('ORCHESTRATION_MACHINE_REQUIRED', 403, 'Chỉ máy trợ lý được điều phối');
+diff --git a/v2/server/src/tickets/service.ts b/v2/server/src/tickets/service.ts
+index a2d05a6..0cfcf00 100644
+--- a/v2/server/src/tickets/service.ts
++++ b/v2/server/src/tickets/service.ts
+@@ -1,19 +1,26 @@
+ import { randomUUID } from 'node:crypto';
+ import type { Signal } from '../../../src/ticket-policy.ts';
+ import { transition } from '../../../src/ticket-policy.ts';
+ import { samePin } from '../../../src/workflow-policy.ts';
+ import type { OrchestrationProof } from '../assistant/contracts.ts';
+ import { appendEvent } from '../journal/events.ts';
+ import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+-import { immutableSnapshot, orchestrationTargetHash } from './assistant-access.ts';
++import type { CapturedAssistantOperation } from './assistant-access.ts';
++import {
++  captureAssistantOperation,
++  immutableSnapshot,
++  invalidScope,
++  orchestrationTargetHash,
++  uuid,
++} from './assistant-access.ts';
+ import { readCompletionFacts } from './completion.ts';
+ import type {
+   AppendAttachmentComment,
+   CreateTicket,
+   Ticket,
+   TicketServiceDependencies,
+ } from './contracts.ts';
+ import {
+   appendAttachmentComment,
+   appendComment,
+@@ -104,22 +111,20 @@ function validPin(pin: CreateTicket['workflowPin']): boolean {
+       (pin.workflow === 'superpowers' || pin.workflow === 'bmad') &&
+       typeof pin.version === 'string' &&
+       !!pin.version &&
+       typeof pin.revision === 'string' &&
+       !!pin.revision &&
+       typeof pin.checksum === 'string' &&
+       /^[0-9a-f]{64}$/i.test(pin.checksum))
+   );
+ }
+ 
+-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+-
+ function validateCreateTicket(input: CreateTicket): void {
+   if (
+     !['request', 'step', 'task'].includes(input.level) ||
+     !['code', 'research', 'docs', 'deploy'].includes(input.kind) ||
+     typeof input.title !== 'string' ||
+     input.title.length < 1 ||
+     input.title.length > 200 ||
+     typeof input.description !== 'string' ||
+     typeof input.mandatory !== 'boolean' ||
+     !validObject(input.criteria) ||
+@@ -245,21 +250,21 @@ async function createTicketCore(
+     if (
+       !scope ||
+       scope.tx !== tx ||
+       scope.actor !== actor ||
+       scope.input !== input ||
+       scope.action !== 'create_ticket' ||
+       scope.targetSha256 !== createTargetHash(input) ||
+       scope.projectId !== input.projectId.toLowerCase() ||
+       scope.rootId !== scope.prepared.rootId
+     )
+-      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
++      throw invalidScope();
+     prepared = scope.prepared;
+   } else {
+     await requireProjectScope(tx, input.projectId, actor);
+     prepared = await prepareTicket(tx, input, actor);
+   }
+   const { id, rootId, workflowPin, criteria, deployDefinitionHash, deployApprovalDecisionId } = prepared;
+   const [row] = await tx`insert into tickets
+     (id,project_id,parent_id,root_id,level,kind,title,description,status,mandatory,criteria,inputs,outputs,skill,workflow_pin,
+       created_actor_kind,created_actor_id,deploy_definition_hash,deploy_approval_decision_id)
+     values (${id},${input.projectId},${input.parentId},${rootId},${input.level},${input.kind},${input.title},
+@@ -313,50 +318,70 @@ function scopedTicketCreator(verify: TicketServiceDependencies['assistant']) {
+       action: 'create_ticket',
+       targetSha256,
+       projectId: project.id as Id,
+       rootId: prepared.rootId,
+       prepared,
+     });
+     return createTicketCore(tx, capturedInput, capturedActor, permission);
+   };
+ }
+ 
+-async function signalTicketWithDependencies(
++type AssistantSignal = 'dependencies_ready' | 'wait_owner';
++type SignalPayload = { ticketId: Id; signal: AssistantSignal; expectedRevision: number };
++type PreparedSignal = Readonly<{
++  tx: Tx;
++  ticket: Ticket;
++  signal: Signal;
++  continuationDecisionId: Id | null;
++}>;
++type SignalOutcome = { next: Ticket['status']; waitReason: string | null; mergedCommit: string | null };
++
++const executionSignals: ReadonlySet<Signal> = new Set<Signal>([
++  'start',
++  'pause_confirmed',
++  'cancel_confirmed',
++  'reconciled_stopped',
++  'passed',
++]);
++const assistantSignals: ReadonlySet<unknown> = new Set<AssistantSignal>(['dependencies_ready', 'wait_owner']);
++// Module-private: only the scoped writer, after authority verification, can mark
++// a prepared signal as persistable for its captured operation, once.
++const verifiedSignals = new WeakMap<PreparedSignal, CapturedAssistantOperation<SignalPayload>>();
++
++function validateSignalRevision(expectedRevision: number): void {
++  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
++    throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
++}
++
++// Shared CAS core for generic and scoped signals. Locks the root, then the target;
++// scoped callers lock the project next and only then enter their authority.
++// `actor` applies the generic ticket ACL; scoped callers pass null because the
++// orchestration authority, not machine binding, decides access.
++async function prepareSignal(
+   tx: Tx,
+   ticketId: Id,
+   signal: Signal,
+   expectedRevision: number,
+-  evidenceId: Id | null,
+-  actor: Actor,
+-  deps: TicketServiceDependencies,
+-  internal: boolean,
+-): Promise<Ticket> {
+-  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+-    throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
++  actor: Actor | null,
++): Promise<PreparedSignal> {
+   const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
+   if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+   await tx`select id from tickets where id=${scope.root_id} for update`;
+-  const ticket = await requireTicket(tx, ticketId, actor, true);
++  let ticket: Ticket;
++  if (actor) ticket = await requireTicket(tx, ticketId, actor, true);
++  else {
++    const [row] = await tx`select * from tickets where id=${ticketId} for update`;
++    if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++    ticket = mapTicket(row);
++  }
+   if (ticket.revision !== expectedRevision)
+     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
+-  const executionSignals = new Set<Signal>([
+-    'start',
+-    'pause_confirmed',
+-    'cancel_confirmed',
+-    'reconciled_stopped',
+-    'passed',
+-  ]);
+-  if (executionSignals.has(signal)) {
+-    if (!internal || !deps.execution)
+-      throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
+-    await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
+-  }
+   if (signal === 'dependencies_ready') {
+     const [pending] = await tx`select 1 from dependencies d join tickets p on p.id=d.predecessor_id
+       where d.ticket_id=${ticketId} and p.status<>'done' limit 1`;
+     if (pending) throw new ApiError('DEPENDENCIES_NOT_READY', 409, 'Phụ thuộc chưa hoàn thành');
+   }
+   let continuationDecisionId: Id | null = null;
+   if (signal === 'resume' && ticket.repairCycles === 5) {
+     const [limit] = await tx`select repair_limit_cycle_id,repair_limit_at,repair_limit_consumed_decision_id
+       from tickets where id=${ticketId}`;
+     if (limit?.repair_limit_cycle_id) {
+@@ -368,85 +393,183 @@ async function signalTicketWithDependencies(
+           repairStepId: ticketId,
+           cycleId: limit.repair_limit_cycle_id,
+           continueAfterFive: true,
+         })}::jsonb
+         order by created_at,id limit 1`;
+       if (!approval)
+         throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Cần quyết định của chủ dự án');
+       continuationDecisionId = approval.id as Id;
+     }
+   }
++  return Object.freeze({ tx, ticket, signal, continuationDecisionId });
++}
++
++function signalTransition(ticket: Ticket, signal: Signal): Pick<SignalOutcome, 'next' | 'waitReason'> {
++  let next: Ticket['status'];
++  try {
++    next = transition(ticket.status, signal);
++  } catch {
++    throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Không thể chuyển trạng thái ticket');
++  }
++  const waitReason =
++    next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
++  return { next, waitReason };
++}
++
++async function persistSignal(
++  tx: Tx,
++  prepared: PreparedSignal,
++  outcome: SignalOutcome,
++  operation?: CapturedAssistantOperation<SignalPayload>,
++): Promise<Ticket> {
++  if (prepared.tx !== tx) throw invalidScope();
++  if (operation) {
++    const verified = verifiedSignals.get(prepared);
++    verifiedSignals.delete(prepared);
++    if (
++      verified !== operation ||
++      operation.action !== 'signal' ||
++      operation.targetSha256 !== orchestrationTargetHash('signal', operation.payload) ||
++      operation.payload.ticketId.toLowerCase() !== prepared.ticket.id ||
++      operation.payload.signal !== prepared.signal ||
++      prepared.continuationDecisionId !== null
++    )
++      throw invalidScope();
++  }
++  const { ticket, continuationDecisionId } = prepared;
++  const [row] = await tx`update tickets set status=${outcome.next}, revision=revision+1,
++    merged_commit=${outcome.mergedCommit}, wait_reason=${outcome.waitReason},
++    repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
++    repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
++    repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
++    where id=${ticket.id} returning *`;
++  if (!row) throw new Error('TICKET_UPDATE_FAILED');
++  await appendEvent(tx, {
++    type: 'ticket.changed',
++    projectId: ticket.projectId,
++    ticketId: ticket.id,
++    audienceMachineId: null,
++    data: { revision: Number(row.revision), status: outcome.next },
++  });
++  return mapTicket(row);
++}
++
++async function signalTicketWithDependencies(
++  tx: Tx,
++  ticketId: Id,
++  signal: Signal,
++  expectedRevision: number,
++  evidenceId: Id | null,
++  actor: Actor,
++  deps: TicketServiceDependencies,
++  internal: boolean,
++): Promise<Ticket> {
++  validateSignalRevision(expectedRevision);
++  const prepared = await prepareSignal(tx, ticketId, signal, expectedRevision, actor);
++  const { ticket } = prepared;
++  if (executionSignals.has(signal)) {
++    if (!internal || !deps.execution)
++      throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
++    await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
++  }
+   if (signal === 'wait_owner' && ticket.status === 'running') {
+     if (!deps.execution)
+       throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu quyền điều khiển tiến trình');
+     if (internal) {
+       await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
+     } else {
+       const reason = ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input';
+       await deps.execution.requestTerminalIntent(tx, ticketId, 'needs_input', reason);
+       const [row] = await tx`update tickets set wait_reason=${reason},revision=revision+1
+       where id=${ticketId} returning *`;
+       await appendEvent(tx, {
+         type: 'ticket.changed',
+         projectId: ticket.projectId,
+         ticketId,
+         audienceMachineId: null,
+         data: { revision: Number(row?.revision), status: row?.status as Ticket['status'] },
+       });
+       return mapTicket(row as Record<string, unknown>);
+     }
+   }
+-  let next: Ticket['status'];
+-  try {
+-    next = transition(ticket.status, signal);
+-  } catch {
+-    throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Không thể chuyển trạng thái ticket');
+-  }
++  const { next, waitReason } = signalTransition(ticket, signal);
+   let mergedCommit = ticket.mergedCommit;
+   if (signal === 'passed') {
+     const facts = await readCompletionFacts(tx, ticket, deps.docsCompletion);
+     if (!facts.ready) throw new ApiError('COMPLETION_GATE', 409, 'Thiếu bằng chứng hoàn tất');
+     mergedCommit = facts.mergedCommit;
+   }
+   if (signal === 'cancel_confirmed' && !internal)
+     throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận dừng tiến trình');
+-  const nextWaitReason =
+-    next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
+-  const [row] = await tx`update tickets set status=${next}, revision=revision+1,merged_commit=${mergedCommit},
+-    wait_reason=${nextWaitReason},
+-    repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
+-    repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
+-    repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
+-    where id=${ticketId} returning *`;
+-  await appendEvent(tx, {
+-    type: 'ticket.changed',
+-    projectId: ticket.projectId,
+-    ticketId,
+-    audienceMachineId: null,
+-    data: { revision: Number(row?.revision), status: next },
+-  });
+-  return mapTicket(row as Record<string, unknown>);
++  return persistSignal(tx, prepared, { next, waitReason, mergedCommit });
++}
++
++// Scoped A→B signal. Only dependencies_ready and wait_owner on a ticket that is not
++// running: stopping a running process needs an execution terminal intent bound to
++// this Actor, so that branch fails closed instead of borrowing an owner intent.
++function createAssistantSignalWriter(authority?: TicketServiceDependencies['assistant']) {
++  const verify = authority?.verify.bind(authority);
++  return async (
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    ticketId: Id,
++    signal: AssistantSignal,
++    expectedRevision: number,
++  ): Promise<Ticket> => {
++    // Actor, proof and payload are captured synchronously, before any DB or producer wait.
++    const operation = captureAssistantOperation<SignalPayload>(actor, proof, 'signal', {
++      ticketId,
++      signal,
++      expectedRevision,
++    });
++    const payload = operation.payload;
++    if (
++      typeof payload.ticketId !== 'string' ||
++      !uuid.test(payload.ticketId) ||
++      !assistantSignals.has(payload.signal)
++    )
++      throw new ApiError('VALIDATION', 400, 'Tín hiệu điều phối không hợp lệ');
++    validateSignalRevision(payload.expectedRevision);
++    if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
++    const prepared = await prepareSignal(
++      tx,
++      payload.ticketId,
++      payload.signal,
++      payload.expectedRevision,
++      null,
++    );
++    const [project] = await tx`select id from projects where id=${prepared.ticket.projectId} for update`;
++    if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++    if (payload.signal === 'wait_owner' && prepared.ticket.status === 'running')
++      throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
++    const outcome = signalTransition(prepared.ticket, payload.signal);
++    await verify(tx, operation.actor, operation.proof, 'signal', operation.targetSha256);
++    verifiedSignals.set(prepared, operation);
++    return persistSignal(tx, prepared, { ...outcome, mergedCommit: prepared.ticket.mergedCommit }, operation);
++  };
+ }
+ 
+ export function createTicketServices(deps: TicketServiceDependencies = {}) {
+   const immutable: Readonly<TicketServiceDependencies> = Object.freeze({
+     docsCompletion: deps.docsCompletion,
+     docsSource: deps.docsSource,
+     commentAttachments: deps.commentAttachments,
+     execution: deps.execution ? Object.freeze({ ...deps.execution }) : undefined,
+   });
+   return {
+     mapTicket,
+     createTicket,
+     assistantCreateTicket: scopedTicketCreator(deps.assistant),
+     assistantRecordDecision: createAssistantDecisionRecorder(deps.assistant, immutable.docsSource),
+     assistantAddDependency: createAssistantDependencyWriter(deps.assistant),
++    assistantSignalTicket: createAssistantSignalWriter(deps.assistant),
+     addDependency,
+     appendComment,
+     appendAttachmentComment: (
+       tx: Tx,
+       ticketId: Id,
+       input: Parameters<AppendAttachmentComment>[2],
+       actor: Actor,
+     ) => appendAttachmentComment(tx, ticketId, input, actor, immutable.commentAttachments),
+     recordDecision: (tx: Tx, ticketId: Id, input: Parameters<typeof recordDecision>[2], actor: Actor) =>
+       recordDecision(tx, ticketId, input, actor, immutable.docsSource),
+diff --git a/v2/server/test/assistant-mutations.test.ts b/v2/server/test/assistant-mutations.test.ts
+index 829e316..5d74cf0 100644
+--- a/v2/server/test/assistant-mutations.test.ts
++++ b/v2/server/test/assistant-mutations.test.ts
+@@ -19,24 +19,29 @@ import { bindProject } from '../src/projects/service.ts';
+ import type { DecisionInput, DocsSourceReader, TicketServiceDependencies } from '../src/tickets/contracts.ts';
+ import { registerTicketRoutes } from '../src/tickets/routes.ts';
+ import { createTicketServices } from '../src/tickets/service.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { importWithKey, legacyBundle, validDocs } from './support/docs.ts';
+ import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
+ 
+ const withDatabase = databaseFixture(11);
+ const clone = <T>(value: T): T => JSON.parse(canonicalJson(value));
+ const hash = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
+-type Action = 'decision' | 'dependency';
++type Action = 'decision' | 'dependency' | 'signal';
+ type DecisionPayload = { ticketId: string; input: DecisionInput };
+ type DependencyPayload = { ticketId: string; predecessorId: string; expectedRevision: number };
+-type Payload = DecisionPayload | DependencyPayload;
++type SignalPayload = {
++  ticketId: string;
++  signal: 'dependencies_ready' | 'wait_owner';
++  expectedRevision: number;
++};
++type Payload = DecisionPayload | DependencyPayload | SignalPayload;
+ const targetHash = (action: OrchestrationAction, payload: Payload) =>
+   hash(['crew-v2:orchestration-target:1', action, payload]);
+ const decisionInput = (changes: Partial<DecisionInput> = {}): DecisionInput => ({
+   kind: 'assessment',
+   content: 'Đánh giá đã ghi',
+   rationale: 'Nguồn trong cùng cây',
+   sources: [],
+   scope: {},
+   ...changes,
+ });
+@@ -133,21 +138,23 @@ async function fixture(db: Db, docsSource?: DocsSourceReader) {
+       expectedRevision: 1,
+     }),
+   );
+   const actor: Actor = { kind: 'machine', id: machines.a.machine.id };
+   const proof = proofForTest();
+   const trust = testTrust();
+   const services = createTicketServices({ assistant: trust.authority, docsSource });
+   const payloadFor = (action: Action): Payload =>
+     action === 'decision'
+       ? { ticketId: f.a.id, input: decisionInput() }
+-      : { ticketId: f.a.id, predecessorId: f.b.id, expectedRevision: 1 };
++      : action === 'dependency'
++        ? { ticketId: f.a.id, predecessorId: f.b.id, expectedRevision: 1 }
++        : { ticketId: f.a.id, signal: 'dependencies_ready', expectedRevision: 1 };
+   const run = async (
+     action: Action,
+     payload = payloadFor(action),
+     options: {
+       actor?: Actor;
+       proof?: OrchestrationProof;
+       services?: ReturnType<typeof createTicketServices>;
+       change?: (entry: Allowance) => void;
+       afterStart?: () => void;
+     } = {},
+@@ -170,40 +177,60 @@ async function fixture(db: Db, docsSource?: DocsSourceReader) {
+           rootId: scope?.root_id as string,
+           projectId: scope?.project_id as string,
+           machineId: machines.b.machine.id,
+         };
+         options.change?.(entry);
+         trust.allowed.set(tx, entry);
+         const selected = options.services ?? services;
+         const pending =
+           'input' in payload
+             ? selected.assistantRecordDecision(tx, actualActor, actualProof, payload.ticketId, payload.input)
+-            : selected.assistantAddDependency(
+-                tx,
+-                actualActor,
+-                actualProof,
+-                payload.ticketId,
+-                payload.predecessorId,
+-                payload.expectedRevision,
+-              );
++            : 'predecessorId' in payload
++              ? selected.assistantAddDependency(
++                  tx,
++                  actualActor,
++                  actualProof,
++                  payload.ticketId,
++                  payload.predecessorId,
++                  payload.expectedRevision,
++                )
++              : selected.assistantSignalTicket(
++                  tx,
++                  actualActor,
++                  actualProof,
++                  payload.ticketId,
++                  payload.signal,
++                  payload.expectedRevision,
++                );
+         options.afterStart?.();
+         // Frozen dependency port returns void; HTTP/journal envelope is caller-owned.
+-        return { status: 201, body: { id: (await pending) ?? null } };
++        const value = await pending;
++        return {
++          status: 201,
++          body: {
++            id: typeof value === 'string' ? value : null,
++            ticket: value && typeof value === 'object' ? value : null,
++          },
++        };
+       },
+     );
+-    return { id: result.body.id, key };
++    return { id: result.body.id, ticket: result.body.ticket, key };
+   };
+   const state = async () => ({
+     decisions: await db`select * from decisions order by id`,
+     dependencies: await db`select * from dependencies order by ticket_id,predecessor_id`,
+-    revisions: await db`select id,revision from tickets order by id`,
++    revisions:
++      await db`select id,revision,status,wait_reason,repair_limit_cycle_id,repair_limit_consumed_decision_id
++        from tickets order by id`,
+     events: await db`select cursor,type from events order by cursor`,
++    commands: await db`select * from commands order by id`,
++    attempts: await db`select id,state,terminal_intent,terminal_reason from attempts order by id`,
+   });
+   return { ...f, actor, proof, machines, trust, services, payloadFor, run, state };
+ }
+ 
+ for (const action of ['decision', 'dependency'] as const) {
+   test(`B2a ${action} scoped A→B verifies exact authority and preserves actual audit/journal`, async () =>
+     withDatabase(async (db) => {
+       const f = await fixture(db);
+       const payload = f.payloadFor(action);
+       const result = await f.run(action, payload);
+@@ -362,21 +389,21 @@ for (const action of ['decision', 'dependency'] as const) {
+         const fresh = await f.mutation('fresh-target', (tx) =>
+           f.services.createTicket(tx, inputTicket(f.project.id, 'step', f.request.id), owner),
+         );
+         payload.ticketId = fresh.id;
+       }
+       await assert.rejects(
+         () =>
+           f.mutation('unlisted-tx', async (tx) => {
+             if ('input' in payload)
+               await f.services.assistantRecordDecision(tx, f.actor, f.proof, payload.ticketId, payload.input);
+-            else
++            else if ('predecessorId' in payload)
+               await f.services.assistantAddDependency(
+                 tx,
+                 f.actor,
+                 f.proof,
+                 payload.ticketId,
+                 payload.predecessorId,
+                 payload.expectedRevision,
+               );
+           }),
+         { code: 'TEST_TRUST_DENIED' },
+@@ -685,10 +712,337 @@ for (const hostile of ['getter', 'iterator', 'prototype'] as const) {
+         );
+       } catch (error) {
+         failure = error;
+       }
+       assert.equal(failure instanceof ApiError ? failure.code : null, 'VALIDATION');
+       assert.equal(executions, 0);
+       assert.equal(f.trust.observed.length, 0);
+       assert.deepEqual(await f.state(), before);
+     }));
+ }
++
++const signalPayload = (
++  ticketId: string,
++  signal: SignalPayload['signal'],
++  expectedRevision = 1,
++): SignalPayload => ({ ticketId, signal, expectedRevision });
++
++test('B2b-i real machine-authenticated generic signal route keeps A→B ACL', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    await bootstrapOwner(db, 'test-only-owner-password');
++    const app = Fastify({ ajv: { customOptions: { removeAdditional: false } } });
++    const options = {
++      db,
++      publicOrigin: 'http://localhost',
++      secureCookies: false,
++      sessionEncryptionKey: Buffer.alloc(32),
++      now: () => new Date(),
++      authorizeDispatch: async () => {
++        throw new Error('NO_DISPATCH');
++      },
++      verifyFinalResult: async () => {
++        throw new Error('NO_FINALIZATION');
++      },
++    };
++    app.setErrorHandler((error, _request, reply) => {
++      if (error instanceof ApiError) return reply.status(error.status).send({ error: { code: error.code } });
++      return reply.status(500).send({ error: { code: 'UNEXPECTED' } });
++    });
++    registerTicketRoutes(app, options, {
++      auth: createAuthenticator(db, options),
++      mutator: createMutator(db),
++    });
++    const before = await f.state();
++    try {
++      for (const signal of ['dependencies_ready', 'wait_owner'] as const) {
++        const response = await app.inject({
++          method: 'POST',
++          url: `/v2/tickets/${f.a.id}/signals`,
++          headers: { authorization: `Bearer ${f.machines.a.token}`, 'idempotency-key': randomUUID() },
++          payload: { signal, expectedRevision: 1 },
++        });
++        assert.equal(response.statusCode, 404);
++        assert.equal(response.json().error.code, 'NOT_FOUND');
++      }
++      assert.deepEqual(await f.state(), before);
++      assert.equal(f.trust.observed.length, 0);
++    } finally {
++      await app.close();
++    }
++  }));
++
++test('B2b-i signal without orchestration authority is unavailable and preserves revision', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    const before = await f.state();
++    for (const signal of ['dependencies_ready', 'wait_owner'] as const)
++      await assert.rejects(
++        () => f.run('signal', signalPayload(f.a.id, signal), { services: createTicketServices() }),
++        { code: 'ORCHESTRATION_UNAVAILABLE' },
++      );
++    assert.deepEqual(await f.state(), before);
++    assert.equal((await f.read(f.a.id)).revision, 1);
++  }));
++
++for (const invalid of ['owner', 'actor', 'operation', 'action', 'hash', 'root', 'project', 'tx'] as const) {
++  test(`B2b-i signal rejects ${invalid} authority and atomically preserves state`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run('signal', signalPayload(f.a.id, 'wait_owner'), {
++            actor: invalid === 'owner' ? owner : undefined,
++            change(entry) {
++              if (invalid === 'actor') entry.actor = { kind: 'machine', id: f.machines.b.machine.id };
++              if (invalid === 'operation') entry.proof.operationId = randomUUID();
++              if (invalid === 'action') entry.action = 'dependency';
++              if (invalid === 'hash') entry.target = '0'.repeat(64);
++              if (invalid === 'root') entry.rootId = randomUUID();
++              if (invalid === 'project') entry.projectId = randomUUID();
++              if (invalid === 'tx') entry.tx = db as unknown as Tx;
++            },
++          }),
++        { code: invalid === 'owner' ? 'ORCHESTRATION_MACHINE_REQUIRED' : 'TEST_TRUST_DENIED' },
++      );
++      assert.deepEqual(await f.state(), before);
++    }));
++}
++
++test('B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    await f.mutation('seed-edge', (tx) => f.services.addDependency(tx, f.a.id, f.b.id, 1));
++    const before = await f.state();
++    await assert.rejects(() => f.run('signal', signalPayload(f.a.id, 'dependencies_ready', 2)), {
++      code: 'DEPENDENCIES_NOT_READY',
++    });
++    assert.deepEqual(await f.state(), before);
++    assert.equal(f.trust.observed.length, 0);
++    await db`update tickets set status='done' where id=${f.b.id}`;
++    const payload = signalPayload(f.a.id, 'dependencies_ready', 2);
++    const original = clone(payload);
++    const actor = clone(f.actor);
++    const proof = clone(f.proof);
++    const cursor = (await db`select coalesce(max(cursor),0) as cursor from events`)[0]?.cursor;
++    const result = await f.run('signal', payload, {
++      actor,
++      proof,
++      afterStart() {
++        // Caller mutations after the call starts cannot alter the captured operation.
++        actor.id = f.machines.b.machine.id;
++        proof.operationId = randomUUID();
++        payload.signal = 'wait_owner';
++        payload.expectedRevision = 99;
++      },
++    });
++    assert.equal(f.trust.observed.length, 1);
++    assert.equal(f.trust.observed[0]?.target, targetHash('signal', original));
++    assert.equal(result.ticket?.status, 'ready');
++    assert.equal(result.ticket?.revision, 3);
++    const ticket = await f.read(f.a.id);
++    assert.deepEqual([ticket.status, ticket.revision, ticket.waitReason], ['ready', 3, null]);
++    const events = await db`select type,ticket_id,data from events where cursor>${cursor} order by cursor`;
++    assert.deepEqual(
++      events.map((row) => ({ ...row })),
++      [{ type: 'ticket.changed', ticket_id: f.a.id, data: { revision: 3, status: 'ready' } }],
++    );
++    const [journal] = await db`select actor_kind,actor_id,body_hash from idempotency where key=${result.key}`;
++    assert.deepEqual(
++      { ...journal },
++      { actor_kind: 'machine', actor_id: f.actor.id, body_hash: hash(original) },
++    );
++  }));
++
++for (const status of ['pending', 'ready'] as const) {
++  test(`B2b-i wait_owner on ${status} moves to needs_input for owner input`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      if (status === 'ready') await db`update tickets set status='ready' where id=${f.a.id}`;
++      const cursor = (await db`select coalesce(max(cursor),0) as cursor from events`)[0]?.cursor;
++      const result = await f.run('signal', signalPayload(f.a.id, 'wait_owner'));
++      assert.equal(f.trust.observed.length, 1);
++      const ticket = await f.read(f.a.id);
++      assert.deepEqual(
++        [ticket.status, ticket.waitReason, ticket.revision],
++        ['needs_input', 'owner_input', 2],
++      );
++      assert.equal(result.ticket?.status, 'needs_input');
++      const events = await db`select type,data from events where cursor>${cursor} order by cursor`;
++      assert.deepEqual(
++        events.map((row) => ({ ...row })),
++        [{ type: 'ticket.changed', data: { revision: 2, status: 'needs_input' } }],
++      );
++    }));
++}
++
++test('B2b-i wait_owner on running ticket fails closed without synthetic owner command', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    const calls: string[] = [];
++    const services = createTicketServices({
++      assistant: f.trust.authority,
++      execution: {
++        async verifySignal() {
++          calls.push('verifySignal');
++        },
++        async requestTerminalIntent() {
++          calls.push('requestTerminalIntent');
++        },
++        async verifyRepairResult() {
++          calls.push('verifyRepairResult');
++        },
++      },
++    });
++    const commandId = randomUUID();
++    await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state)
++      values(${commandId},${f.machines.b.machine.id},${f.a.id},1,'start','{}','received')`;
++    await db`insert into attempts(id,ticket_id,machine_id,command_id,fence,binding_revision,process_instance_id,state,lease_expires_at,workflow_pin)
++      values(${randomUUID()},${f.a.id},${f.machines.b.machine.id},${commandId},1,1,${randomUUID()},'active',now()+interval '60 seconds','{}')`;
++    await db`update tickets set status='running' where id=${f.a.id}`;
++    const before = await f.state();
++    await assert.rejects(() => f.run('signal', signalPayload(f.a.id, 'wait_owner'), { services }), {
++      code: 'EXECUTION_PROOF_REQUIRED',
++    });
++    assert.deepEqual(await f.state(), before);
++    assert.equal(before.commands.length, 1);
++    assert.deepEqual(
++      before.attempts.map((row) => [row.terminal_intent, row.terminal_reason]),
++      [['complete', null]],
++    );
++    assert.equal((await f.read(f.a.id)).revision, 1);
++    assert.deepEqual(calls, []);
++    assert.equal(f.trust.observed.length, 0);
++  }));
++
++test('B2b-i signal stale revision conflicts and preserves state', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    const before = await f.state();
++    for (const signal of ['dependencies_ready', 'wait_owner'] as const)
++      await assert.rejects(() => f.run('signal', signalPayload(f.a.id, signal, 2)), {
++        code: 'REVISION_CONFLICT',
++      });
++    assert.deepEqual(await f.state(), before);
++    assert.equal(f.trust.observed.length, 0);
++  }));
++
++for (const signal of ['resume', 'start', 'passed'] as const) {
++  test(`B2b-i scoped signal rejects ${signal} as invalid input`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      await db`update tickets set status=${signal === 'resume' ? 'needs_input' : signal === 'start' ? 'ready' : 'running'}
++        where id=${f.a.id}`;
++      const before = await f.state();
++      await assert.rejects(
++        () => f.run('signal', signalPayload(f.a.id, signal as unknown as SignalPayload['signal'])),
++        { code: 'VALIDATION' },
++      );
++      assert.deepEqual(await f.state(), before);
++      assert.equal(f.trust.observed.length, 0);
++    }));
++}
++
++test('B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    const evidence = randomUUID();
++    const cycle = randomUUID();
++    await db`insert into evidence(id,ticket_id,kind,data) values(${evidence},${f.a.id},'artifact',${db.json({ observation: 'Không đạt' })})`;
++    await db`insert into repair_results(check_step_id,cycle_id,classification,passed,evidence_id)
++      values(${f.a.id},${cycle},'repair_review',false,${evidence})`;
++    await db`update tickets set repair_cycles=5,wait_reason='repair_limit',repair_limit_cycle_id=${cycle},
++      repair_limit_at=now()-interval '1 minute' where id=${f.a.id}`;
++    await f.mutation('owner-continuation', (tx) =>
++      f.services.recordDecision(
++        tx,
++        f.a.id,
++        decisionInput({
++          kind: 'owner_answer',
++          content: 'Tiếp tục sau vòng 5',
++          scope: { repairStepId: f.a.id, cycleId: cycle, continueAfterFive: true },
++        }),
++        owner,
++      ),
++    );
++    const before = await f.state();
++    await assert.rejects(
++      () => f.run('signal', signalPayload(f.a.id, 'resume' as unknown as SignalPayload['signal'], 1)),
++      { code: 'VALIDATION' },
++    );
++    assert.deepEqual(await f.state(), before);
++    await f.run('signal', signalPayload(f.a.id, 'wait_owner', 1));
++    const [row] =
++      await db`select status,wait_reason,revision,repair_limit_cycle_id,repair_limit_consumed_decision_id
++      from tickets where id=${f.a.id}`;
++    assert.deepEqual(
++      { ...row },
++      {
++        status: 'needs_input',
++        wait_reason: 'repair_limit',
++        revision: 2,
++        repair_limit_cycle_id: cycle,
++        repair_limit_consumed_decision_id: null,
++      },
++    );
++    assert.equal(f.trust.observed.length, 1);
++  }));
++
++test('B2b-i scoped signal and dependency edge serialize on the root before verify', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    let enter!: () => void;
++    let release!: () => void;
++    const entered = new Promise<void>((resolve) => {
++      enter = resolve;
++    });
++    const resume = new Promise<void>((resolve) => {
++      release = resolve;
++    });
++    f.trust.setHook(async (_tx, entry) => {
++      if (entry.action !== 'signal') return;
++      for (const id of [f.request.id, f.a.id])
++        await assert.rejects(
++          () =>
++            db.begin(async (peer) => {
++              await peer`select id from tickets where id=${id} for update nowait`;
++            }),
++          { code: '55P03' },
++        );
++      await assert.rejects(
++        () =>
++          db.begin(async (peer) => {
++            await peer`select id from projects where id=${f.project.id} for update nowait`;
++          }),
++        { code: '55P03' },
++      );
++      enter();
++      await resume;
++    });
++    const signal = f.run('signal', signalPayload(f.a.id, 'dependencies_ready'));
++    let dependency: Promise<unknown> | undefined;
++    try {
++      assert.equal(
++        await Promise.race([
++          entered.then(() => 'entered'),
++          signal.then(
++            () => 'settled',
++            () => 'settled',
++          ),
++        ]),
++        'entered',
++      );
++      dependency = f.run('dependency', { ticketId: f.a.id, predecessorId: f.b.id, expectedRevision: 1 });
++      await new Promise((resolve) => setTimeout(resolve, 200));
++      assert.equal(f.trust.observed.length, 1);
++    } finally {
++      release();
++    }
++    const [signalled, added] = await Promise.allSettled([signal, dependency]);
++    assert.equal(signalled.status, 'fulfilled');
++    assert.equal(added.status, 'rejected');
++    assert.equal((added as PromiseRejectedResult).reason.code, 'REVISION_CONFLICT');
++    assert.equal((await db`select * from dependencies`).length, 0);
++    const ticket = await f.read(f.a.id);
++    assert.deepEqual([ticket.status, ticket.revision], ['ready', 2]);
++  }));
