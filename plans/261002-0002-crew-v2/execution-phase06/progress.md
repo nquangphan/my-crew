@@ -119,3 +119,7 @@ Task 2 B2b-i: minor (deferred): M4 test serialize một chiều và dùng sleep(
 Ruling: ⚠️W1 wait_owner trên ready không retire start command chưa claim → checklist T4 (retirement R4). ⚠️W2 dò trạng thái trước verify → đã có ruling chống dò ở transport (A2) cho B3. ⚠️W3 M2 còn ở decisions/dependencies → gộp trong S2 khi đụng prepare.
 Dispatch S2 (T2-C positive resolver + orchestration port) theo memo A3/S2, thêm license gộp B2b-i M1 + B2a M2 vào `access.prepare`.
 Ruling 11:35: S3b sửa thêm `v2/server/src/gateway/contracts.ts` (schema đóng của install report) được chấp nhận — memo S3b đã cho phép contract type nơi DTO report nằm — sai thì phase03-owner review sẽ bắt.
+
+11:50 04/10 S3b review `task-s3b-review.md`: Spec ✅, phase03-owner chấp thuận có điều kiện I1, Needs fixes (Important1/Minor3/⚠️4). FIX1/5 resume implementer: I1 schema render đóng; nâng M1 (catch nuốt lỗi toàn vẹn), M2 (lastError DEFINITION_MISMATCH), M3 (vector chung gateway↔server).
+Ruling: nâng M1–M3 vào FIX1 — M1 giấu lỗi toàn vẹn, M3 chặn rủi ro mọi install bị từ chối vĩnh viễn khi nối production, M2 rẻ — sai thì thêm chút diff.
+Ruling (hợp đồng cho S4): đọc definition (số ít, theo S3b) chỉ từ slot `state=current` và so pin của slot, không suy từ appliedRevision; definition gồm cả `render` trong dữ liệu băm. Production chưa nối `SyncOptions.definitions` — host assembly (T7) phải cấp `createWorkflowManifest(registry)`; ghi vào checklist T7.
