@@ -126,3 +126,9 @@ Ruling (hợp đồng cho S4): đọc definition (số ít, theo S3b) chỉ từ
 
 15:00 S3b FIX1 `963dc31` (I1 render đóng 13 biến thể→400, M1 DEFINITION_FAILED, M2 DEFINITION_MISMATCH, M3 vector chung) → scoped re-review. S2/T2-C `3fddbeb`/`40d20c7` DONE (187/187, regression 102/102) → full independent security review.
 Ruling S2 concern: port ghi captured target theo Tx để verify kiểm membership root (chữ ký verify frozen không mang ticket IDs) — chấp nhận nếu review không thấy cấp quyền; request_hash chưa ràng targetSha256 → yêu cầu bắt buộc B3 transport (cùng ⚠️ B2a).
+
+15:15 S3b FIX1 re-review `task-s3b-fix1-re-review.md`: Approved, I1/M1/M2/M3 ADDRESSED, phase03-owner chấp thuận chuyển giao.
+Task S3b: complete — 963dc31 (c184944 + 963dc31).
+Task S3b: minor (deferred): nhánh DEFINITION_FAILED ghi `installed: null` làm mất pin để chẩn đoán — cân nhắc `installed: pin`.
+Ruling (hợp đồng host assembly T7): khi nối `definitions` vào production, lỗi I/O tạm của loader chặn acceptance tới lần retry partial kế — ghi vào checklist T7 cùng việc cấp `createWorkflowManifest(registry)`. Fixture recipe `workflow-archives.ts:117` map skills sang `.${runtime}/skills` — test nối loader thật phải dùng mapping production.
+S4 (createRun + latchRenderedArtifact) chờ S2 review khép.
