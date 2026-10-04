@@ -1,0 +1,1193 @@
+57601b9 feat(v2): định nghĩa workflow hai tầng cho BMAD và digest customization chung
+ .../execution-phase06/task-3-d2-biome.log          |   3 +
+ .../execution-phase06/task-3-d2-green.log          |  54 +++
+ .../execution-phase06/task-3-d2-red.log            | 163 +++++++++
+ .../execution-phase06/task-3-d2-report.md          |  48 +++
+ .../execution-phase06/task-3-d2-typecheck.log      |   4 +
+ v2/docs/flows/assistant-workflows.md               |  21 +-
+ v2/gateway/src/assistant/workflow-manifest.ts      | 193 ++++++++++-
+ .../bmad-claude-projection.json                    | 252 ++++++++++++++
+ v2/gateway/test/render-artifacts.test.ts           |  69 +++-
+ v2/gateway/test/workflow-manifest.test.ts          | 375 +++++++++++++++++++--
+ 10 files changed, 1131 insertions(+), 51 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase06/task-3-d2-report.md b/plans/261002-0002-crew-v2/execution-phase06/task-3-d2-report.md
+new file mode 100644
+index 0000000..fc3f66d
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase06/task-3-d2-report.md
+@@ -0,0 +1,48 @@
++# Phase06/T3-D2 — định nghĩa workflow v2 ở gateway (BMAD hai tầng + digest customization chung)
++
++Trạng thái: **DONE, chờ independent review**. Lát S3 theo memo PM `pm-next-slices-memo-261004.md` (A5.1, A6, S3). Base `d913052`, nhánh `codex/crew-v2-server`. Không chạy `uv`, renderer, DB, provider hay network.
++
++## Thay đổi
++
++- `v2/gateway/src/assistant/workflow-manifest.ts`
++  - `WorkflowDefinition = {sha256, skills, customizationSha256, render?}`; `RenderDefinition = Omit<CapturedRenderExpectation, 'projectRoot' | 'generationRoot'>` = `{source, projection, selectedProjectionSha256, layers}`.
++  - Hàm thuần `customizationContext(source, projection, layers)` trả `{context, sha256}`, với `sha256 = sha256(canonicalJson({schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}))`. Hàm validate lại hai pin, từ chối source/projection lệch nhau (`SOURCE_PROJECTION_MISMATCH`), từ chối Superpowers có layer khác `{}`, BMAD thiếu/thừa layer hoặc layer bắt buộc bằng `null` (`INVALID_CUSTOMIZATION_CONTEXT`).
++  - BMAD không còn ném `RENDER_ARTIFACT_REQUIRED`. Nhánh `loadBmadDefinition` chỉ nhận runtime `claude` (layer path của D1 cố định `.claude/...`; runtime khác trả `WORKFLOW_DEFINITION_UNAVAILABLE`). Nó resolve registry, chọn mọi file `.md` dưới `.claude/skills/bmad-build/` (kể cả thư mục con, không lấy `bmad-build-auto`), `customize.toml` và `_bmad/scripts/{render_skill,config_utils}.py`. Nó đo 7 layer path từ projection (sha256 hoặc `null`). Các trường hợp bị từ chối bằng `WORKFLOW_SKILL_MISMATCH`: thiếu `SKILL.md`, `workflow.md`, `customize.toml`, script, `_bmad/config.toml`; gặp symlink trong cây skill; layer path không phải file; tên `.md` ngoài pattern D1. Adapter đọc lại bytes của mọi file được chọn và mọi layer có mặt (`O_NOFOLLOW|O_NONBLOCK`, `nlink === 1`), rồi so manifest với pin. `skills` là các `.md` được chọn trừ `SKILL.md`.
++  - `sha256` = SHA-256 của canonical `{source, projection, skills, customizationSha256, render}`; Superpowers có `render = null`. Digest Superpowers vì vậy **khác giá trị trước D2** (giờ có ràng `customizationSha256`). Hiện chưa có consumer persisted nào (S3b/S4 chưa làm).
++- `v2/gateway/test/workflow-manifest.test.ts`: bỏ test "BMAD denied", thêm 6 test cho các case RED của memo, và assert hình dạng mới cho Superpowers.
++- `v2/gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json` (mới): tập con layout projection BMAD claude. Có 34 entry chính thức: bytes lấy từ `bmad-6.12.0.tgz` đã pin, và hash đã đối chiếu khớp projection build độc lập trong `workflow-builder/independent-builds.json`. Có 5 config layer tổng hợp, vì bytes installer sinh ra không được lưu. Có 14 `expectedSkills`. Test tính lại `ProjectionPin` trên cây tập con, nên đây chỉ là unit identity, không chứng nhận projection thật.
++- `v2/gateway/test/render-artifacts.test.ts` **chỉ sửa test cuối (dòng 570+)**, theo ruling PM gửi giữa task. Lý do: test cũ assert `RENDER_ARTIFACT_REQUIRED`, mà ruling A5.1 đã bỏ lỗi này. Bất biến "inspection tách khỏi adapter" được giữ lại. Test mới kiểm: `definition.render` đúng bằng expectation D1 trừ hai root; inspector vẫn là bước riêng, cần byte snapshot do host cấp; spy `child_process` có 0 lần gọi. Không chạm phần còn lại của file, cũng không chạm `render-artifacts.ts`.
++- `v2/docs/flows/assistant-workflows.md`: mô tả hành vi/invariant mới (bước 3–7, Files, Tests). Không cần sửa `flows.yaml`, vì fixture/test không thuộc `source.include`.
++
++## Ánh xạ 6 case RED của memo
++
++1. `customization context binds the Superpowers digest to the projection tree, not key order` kiểm: context đúng nguyên văn; đảo thứ tự key thì digest giữ nguyên; đổi `manifestSha256`/`treeSha256` thì digest đổi; Superpowers có layer thì bị deny.
++2. `... resolves BMAD to a two-tier render expectation with seven measured layers` kiểm: đúng 7 layer khớp bytes projection; `selectedProjectionSha256` đúng tập; `createBmadArtifactInspector` capture được (thêm root giả); thiếu `_bmad/config.toml` hoặc `customize.toml` bị deny; layer là symlink bị deny. Test phụ `re-reads BMAD layer bytes` dùng layer bị tamper, kết quả deny.
++3. `... digest changes when an optional BMAD layer appears with equal skill tokens` kiểm: thêm `_bmad/custom/bmad-build.toml` thì skills/selected giữ nguyên, nhưng `customizationSha256` và `sha256` đổi.
++4. `... selects exactly the bmad-build markdown skills except SKILL.md` kiểm: tập đúng bằng 14 path; thiếu `workflow.md` hoặc `SKILL.md` bị deny.
++5. `... rejects a BMAD projection bound to another source tree` kiểm: trả `SOURCE_PROJECTION_MISMATCH` và resolver không được gọi.
++6. `... never spawns uv, the renderer or any child process` kiểm: source không import `child_process`/inspector/`OwnedOperations`/`uv`; `mock.method` trên 7 hàm `child_process` kèm `syncBuiltinESMExports` cho 0 lần gọi.
++
++## Chứng cứ
++
++Mọi lần chạy Node/tsc đều giữ slot `$TMPDIR/crew-v2-heavy-slot.lock` (`owner=s3-t3-d2`). Telemetry đạt gate (pressure 1, available ≥ 4.6 GiB, CPU idle ≥ 82%, disk ≥ 753 GiB), `NODE_OPTIONS=--max-old-space-size=384`, watchdog 150 s. Child và watchdog đều được reap, và slot được nhả bằng trap. Telemetry đầy đủ nằm ở đầu mỗi log.
++
++| Bước | Lệnh (cwd `v2/gateway`) | Kết quả | Log SHA-256 |
++|---|---|---|---|
++| RED | `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts` | exit 1, 38 test, 30 pass / 8 fail. Tất cả là lỗi ngữ nghĩa: `RENDER_ARTIFACT_REQUIRED` hoặc stub `CUSTOMIZATION_CONTEXT_UNAVAILABLE`, không có lỗi import/compile. Case 5 pass ngay ở RED vì guard pin đã có từ T3. | `task-3-d2-red.log` `073735afbb767c58d2941a70176017952340c60aeecbbc8d40e33cbc8d76daa7` |
++| GREEN | cùng lệnh | exit 0, **38/38 pass** | `task-3-d2-green.log` `074b7131ec5ce83af347da2a1bc3ac0e9004e3a7175681c6299a4c8b65790165` |
++| Typecheck | `tsc --noEmit -p tsconfig.json` (toàn gateway) | exit 0, không có diagnostic | `task-3-d2-typecheck.log` `ec11f4740135ade9820c85b21a5e2dd6497ce1434e37d839b94304ef82e6c285` |
++| Biome | `biome check` 4 file (cwd `v2`) | exit 0, 0 lỗi, 0 warning | `task-3-d2-biome.log` `0fb861f353c5199c70d0f95aee570ec28cbf3f302dac3334dbd6f37e2fe2faaf` |
++| Docs | mirror (`git archive HEAD:v2` + overlay working `v2/`), `crew-docs generate` → index/files unchanged; `check --all` ok; `check --staged` ok | ok | mirror đã xoá |
++
++Nội dung RED/GREEN đều là sau khi đã sửa test RED. Lần chạy GREEN đầu tiên đã pass, không cần vòng sửa.
++
++SHA-256 file cuối: `workflow-manifest.ts` `d699a0fb268b957106e2a26ea70943af986143f10ef7e542cb80a2c2301fec94`; `workflow-manifest.test.ts` `0824fedf3769fcddb9ff2b692b487c41f73b137fcd8ba228c7691e44bbe16319`; `render-artifacts.test.ts` `6fa0768ea5fbb47ac6e76c0f23c0f39fecda76b86a9eb32ddf34cea832b75e67`; fixture `1d665c0c3ce9286dcb1fbb4e78d79e903b9eaf30c3c3039bab0b7d53536e38c0`; flow doc `8a5ab166c5e10adef5c095c7610fe463bc3c3539f4e4e006afd8351fc116b601`.
++
++## Giới hạn và điểm cần review
++
++- Lát này chưa có admission nào: server phải từ chối dispatch BMAD khi `rendered_artifact_id = null` (S4/T4). Ở gateway, BMAD giờ trả về definition thay vì deny.
++- Projection pin trong test BMAD được tính lại trên cây tập con. Nó không chứng nhận manifest projection BMAD thật `cc5320…`, vì bytes installer sinh ra không được giữ.
++- Chọn `.md` ở mọi độ sâu và loại mọi basename `SKILL.md` là theo đúng `selectedName` của D1. Memo chỉ ghi "trừ `SKILL.md`".
++- `customizationContext` ném lỗi khi BMAD có layer bắt buộc bằng `null`, nên ngay cả caller ngoài adapter cũng không tính được digest cho cấu hình thiếu layer.
++- Superpowers `sha256` đổi giá trị so với T3 (thêm `customizationSha256`). S3b/S4 cần dùng định nghĩa mới.
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 0c191a7..0150234 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -1,41 +1,44 @@
+ # Workflow chính thức của Trợ lý — bản nháp phase06/T3
+ 
+ ## Mục đích
+ 
+-Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Bản hiện tại có adapter manifest Superpowers và bộ kiểm tra byte artifact BMAD trong gateway. Run graph, gate, reader và renderer BMAD ở server/host chưa có producer được chứng thực.
++Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Gateway trả định nghĩa cho Superpowers và BMAD cùng một digest customization chung, và có bộ kiểm tra byte artifact BMAD. BMAD là định nghĩa hai tầng: tầng định nghĩa đến từ registry, render receipt được latch sau ở server. Run graph, gate, renderer và receipt BMAD ở server/host chưa có producer được chứng thực.
+ 
+ ## Điểm vào
+ 
+-- `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)`.
++- `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)` trả `WorkflowDefinition = {sha256, skills, customizationSha256, render?}`; `customizationContext(source, projection, layers)` là hàm thuần tính digest customization dùng chung.
+ - `gateway/src/workflows/registry.ts` → `WorkflowRegistry.resolve` kiểm cached source/projection và trả root cùng manifest.
+ - `gateway/src/assistant/render-artifacts.ts` → factory chụp expectation và kiểm artifact byte được cung cấp, trả loại `artifact-inspection` không có authority.
+-- `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch và BMAD mặc định từ chối.
++- `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch, digest customization và định nghĩa BMAD hai tầng.
+ 
+ ## Các bước
+ 
+ 1. Chụp sâu `SourcePin` và `ProjectionPin`, kể cả `derivation.options`, trước mọi lần chờ. Kiểm hai snapshot và dùng chính chúng cho `WorkflowRegistry.resolve`, so manifest và tính digest. Caller sửa object sau lời gọi không thể đổi identity đã xác thực.
+ 2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin. File được mở với `O_NOFOLLOW | O_NONBLOCK`; `fstat` loại FIFO và file không regular trước khi đọc; FD được đóng trong `finally`.
+-3. Định nghĩa trả SHA-256 của canonical `{source,projection,skills}` từ các snapshot và danh sách path/hash skill đã chọn. Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation.
+-4. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
+-5. BMAD trả `RENDER_ARTIFACT_REQUIRED` khi chưa có reader được host tin cậy, gắn project root và current render generation. Không dùng hash/path do client khai báo làm bằng chứng renderer.
++3. `customizationSha256` là SHA-256 của canonical `{schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}`. Superpowers có `layers = {}`: projection đã pin không chứa layer tùy biến nào, và phát biểu đó gắn vào `projectionTreeSha256`, nên đổi projection thì đổi digest; thứ tự key không ảnh hưởng. BMAD có đủ 7 layer path (SHA-256 hoặc `null`) đo từ projection. Hàm kiểm lại pin, từ chối source/projection lệch nhau, layer thừa/thiếu và layer bắt buộc bằng `null`.
++4. BMAD chỉ nhận runtime `claude`. Từ manifest projection, adapter chọn mọi file `.md` dưới `.claude/skills/bmad-build/` (kể cả thư mục con, không lấy `bmad-build-auto`), `customize.toml` và `_bmad/scripts/{render_skill,config_utils}.py`. Thiếu `SKILL.md`, `workflow.md`, `customize.toml`, một trong hai script, layer bắt buộc `_bmad/config.toml`, hoặc gặp symlink/không phải file ở cây skill hay layer path đều trả `WORKFLOW_SKILL_MISMATCH`. Mọi file được chọn và mọi layer có mặt được đọc lại bytes thật trong projection root. `skills` là các `.md` được chọn trừ `SKILL.md`. `render = {source, projection, selectedProjectionSha256, layers}` đúng bằng expectation của bộ kiểm tra artifact khi bỏ `projectRoot`/`generationRoot` do host gắn sau.
++5. `sha256` của định nghĩa là SHA-256 của canonical `{source, projection, skills, customizationSha256, render}` (Superpowers: `render = null`). Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation. Adapter không chạy renderer, `uv` hay process con nào.
++6. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
++7. Adapter không còn trả `RENDER_ARTIFACT_REQUIRED`. Việc từ chối BMAD chưa có artifact thuộc server: run BMAD được tạo với `rendered_artifact_id = null` và admission từ chối dispatch khi giá trị này còn `null`. Không dùng hash/path do client khai báo làm bằng chứng renderer.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+-| `gateway/src/assistant/workflow-manifest.ts` | Adapter manifest Superpowers, BMAD deny khi thiếu renderer reader |
++| `gateway/src/assistant/workflow-manifest.ts` | Adapter định nghĩa Superpowers/BMAD hai tầng và digest customization chung |
+ | `gateway/src/assistant/render-artifacts.ts` | Bộ kiểm tra thuần byte của artifact BMAD, không đọc host hoặc chạy renderer |
+ | `gateway/test/render-artifacts.test.ts` | Kiểm consistency, cap, descriptor, category và Unicode trên byte fixture |
+-| `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection và các điều kiện từ chối |
++| `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection, digest customization, định nghĩa BMAD và các điều kiện từ chối |
++| `gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json` | Tập con layout projection BMAD claude: bytes chính thức lấy từ archive đã pin, config layer tổng hợp |
+ 
+ ## Dữ liệu
+ 
+ Server `createRun` và `answerGate` cần persisted Actor A, TurnFence/scope hiện hành và orchestration port thật. Definition/render receipt phải đi từ host producer đã review sang server với exact source, projection, customization/config, project root và rendered bytes. SQL fixture chỉ kiểm quan hệ; không chứng nhận producer hoặc authority. Gate chỉ materialize khi artifact thật đã được xác minh; UUID đặt trước không thay cho `workflow_gates.artifact_sha256` bắt buộc.
+ 
+ ## Flow liên quan
+ 
+ `gateway-workflows` giữ registry và pin source/projection; `server-assistant` giữ scope/TurnFence; `server-tickets` giữ root ticket và owner decisions. Phase06/T3 chưa nối adapter manifest với authority và run graph. Native workflow runtime/admission vẫn cần chứng cứ riêng, không suy ra từ unit fixture này.
+ 
+ ## Tests
+ 
+-Focused `node --test --test-name-pattern='workflow manifest' test/workflow-manifest.test.ts` từ `v2/gateway`: 7/7 pass trên fixture official đã audit. Regression dùng resolver chờ để phát hiện caller đổi pin/nested derivation sau lời gọi; FIFO trong scratch được kiểm bằng child Node giới hạn 3 giây, có dấu `RESOLVED`, PID/reap và cleanup. `tsc --noEmit -p tsconfig.json` và Biome hai file pass. D1 sau full review và một vòng sửa/re-review đạt 25/25 test, gateway strict typecheck và Biome hai file trên freeze cuối; bốn finding đã được xử lý. Các positive fixture gồm string-list và normalized review-layer đúng nguồn chính thức. Đây chỉ là kiểm byte được cung cấp, không chứng minh filesystem confinement, lệnh render chính thức, receipt hoặc BMAD admission. Chưa có test renderer thực hoặc server run/gate; không coi unit fixture là production acceptance.
++Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực hoặc server run/gate; unit fixture không phải production acceptance.
+diff --git a/v2/gateway/src/assistant/workflow-manifest.ts b/v2/gateway/src/assistant/workflow-manifest.ts
+index 67ed1e0..0ce9ee0 100644
+--- a/v2/gateway/src/assistant/workflow-manifest.ts
++++ b/v2/gateway/src/assistant/workflow-manifest.ts
+@@ -1,86 +1,249 @@
+ import { constants } from 'node:fs';
+ import { lstat, open } from 'node:fs/promises';
+-import { join } from 'node:path';
++import { join, posix } from 'node:path';
+ import { canonicalJson, hash } from '../journal/atomic-records.ts';
+ import {
+   type ManifestEntry,
+   type ProjectionPin,
+   type SourcePin,
+   validateProjectionPin,
+   validateSourcePin,
++  type WorkflowManifest,
+ } from '../workflows/pins.ts';
+ import type { WorkflowRegistry } from '../workflows/registry.ts';
+ import { manifestHash } from '../workflows/stage.ts';
++import type { CapturedRenderExpectation, RenderLayerPath } from './render-artifacts.ts';
++
++export type RenderDefinition = Omit<CapturedRenderExpectation, 'projectRoot' | 'generationRoot'>;
+ 
+ export type WorkflowDefinition = {
+   sha256: string;
+   skills: { path: string; sha256: string }[];
++  customizationSha256: string;
++  render?: RenderDefinition;
++};
++
++type Layers = Readonly<Partial<Record<RenderLayerPath, string | null>>>;
++
++export type CustomizationContext = {
++  schema: 'crew-v2:workflow-customization:1';
++  workflow: SourcePin['name'];
++  sourceTreeSha256: string;
++  projectionTreeSha256: string;
++  layers: Layers;
+ };
+ 
++const customizationSchema = 'crew-v2:workflow-customization:1';
++const digest = /^[0-9a-f]{64}$/;
++const bmadSkillRoot = '.claude/skills/bmad-build/';
++const bmadSkill = `${bmadSkillRoot}SKILL.md`;
++const bmadWorkflow = `${bmadSkillRoot}workflow.md`;
++const bmadCustomize = `${bmadSkillRoot}customize.toml`;
++const bmadScripts = ['_bmad/scripts/render_skill.py', '_bmad/scripts/config_utils.py'];
++// Official render_skill.py layer order; the projected customize.toml is the skill base layer.
++const bmadLayers = [
++  '_bmad/config.toml',
++  '_bmad/config.user.toml',
++  '_bmad/custom/config.toml',
++  '_bmad/custom/config.user.toml',
++  '_bmad/custom/bmad-build.toml',
++  '_bmad/custom/bmad-build.user.toml',
++  bmadCustomize,
++] as const satisfies readonly RenderLayerPath[];
++const requiredBmadLayers: readonly RenderLayerPath[] = ['_bmad/config.toml', bmadCustomize];
++// Mirrors the markdown names the BMAD artifact inspector accepts for selected skill sources.
++const bmadMarkdown = /^(?:[A-Za-z0-9][A-Za-z0-9_.-]*\/)*[A-Za-z0-9][A-Za-z0-9_.-]*\.md$/;
++
++const byPath = (a: { path: string }, b: { path: string }) =>
++  Buffer.compare(Buffer.from(a.path), Buffer.from(b.path));
++
++function invalidContext(): never {
++  throw new Error('INVALID_CUSTOMIZATION_CONTEXT');
++}
++
++/**
++ * Shared, pure customization identity for both official workflows. Superpowers carries the measured
++ * empty layer set of its pinned projection; BMAD carries all seven render layers (SHA-256 or null).
++ */
++export function customizationContext(
++  source: SourcePin,
++  projection: ProjectionPin,
++  layers: Layers,
++): { context: CustomizationContext; sha256: string } {
++  const pinnedSource = structuredClone(source);
++  const pinnedProjection = structuredClone(projection);
++  validateSourcePin(pinnedSource);
++  validateProjectionPin(pinnedProjection);
++  if (pinnedSource.sourceTreeSha256 !== pinnedProjection.sourceTreeSha256)
++    throw new Error('SOURCE_PROJECTION_MISMATCH');
++  if (layers === null || typeof layers !== 'object' || Object.getPrototypeOf(layers) !== Object.prototype)
++    invalidContext();
++  const keys = Object.keys(layers);
++  const measured: Partial<Record<RenderLayerPath, string | null>> = {};
++  if (pinnedSource.name === 'superpowers') {
++    if (keys.length !== 0) invalidContext();
++  } else {
++    if (
++      keys.length !== bmadLayers.length ||
++      keys.some((key) => !(bmadLayers as readonly string[]).includes(key))
++    )
++      invalidContext();
++    for (const path of bmadLayers) {
++      const value = layers[path];
++      if (value === null && !requiredBmadLayers.includes(path)) measured[path] = null;
++      else if (typeof value === 'string' && digest.test(value)) measured[path] = value;
++      else invalidContext();
++    }
++  }
++  const context: CustomizationContext = {
++    schema: customizationSchema,
++    workflow: pinnedSource.name,
++    sourceTreeSha256: pinnedSource.sourceTreeSha256,
++    projectionTreeSha256: pinnedProjection.treeSha256,
++    layers: measured,
++  };
++  return { context, sha256: hash(canonicalJson(context)) };
++}
++
+ const skillPath = /^skills\/[a-z0-9][a-z0-9-]*\/SKILL\.md$/;
+ 
+-async function readPinnedSkill(root: string, entry: ManifestEntry): Promise<void> {
++async function readPinnedFile(root: string, entry: ManifestEntry): Promise<void> {
+   const parts = entry.path.split('/');
+   for (let index = 1; index < parts.length; index++) {
+     const parent = await lstat(join(root, ...parts.slice(0, index)));
+     if (!parent.isDirectory() || parent.isSymbolicLink()) throw new Error('WORKFLOW_SKILL_MISMATCH');
+   }
+   const file = await open(
+     join(root, entry.path),
+     constants.O_RDONLY | constants.O_NONBLOCK | constants.O_NOFOLLOW,
+   );
+   try {
+     const stat = await file.stat();
+     if (!stat.isFile() || stat.nlink !== 1 || hash(await file.readFile()) !== entry.sha256)
+       throw new Error('WORKFLOW_SKILL_MISMATCH');
+   } finally {
+     await file.close();
+   }
+ }
+ 
++function assertPinnedManifests(
++  manifests: WorkflowManifest,
++  source: SourcePin,
++  projection: ProjectionPin,
++): void {
++  if (
++    manifestHash(manifests.source) !== source.sourceManifestSha256 ||
++    manifestHash(manifests.projection) !== projection.manifestSha256
++  )
++    throw new Error('WORKFLOW_MANIFEST_MISMATCH');
++}
++
++function definition(
++  source: SourcePin,
++  projection: ProjectionPin,
++  skills: WorkflowDefinition['skills'],
++  layers: Layers,
++  selectedProjectionSha256?: Record<string, string>,
++): WorkflowDefinition {
++  const customizationSha256 = customizationContext(source, projection, layers).sha256;
++  const render: RenderDefinition | undefined = selectedProjectionSha256
++    ? {
++        source: structuredClone(source),
++        projection: structuredClone(projection),
++        selectedProjectionSha256,
++        layers: structuredClone(layers) as RenderDefinition['layers'],
++      }
++    : undefined;
++  return {
++    sha256: hash(canonicalJson({ source, projection, skills, customizationSha256, render: render ?? null })),
++    skills,
++    customizationSha256,
++    ...(render ? { render } : {}),
++  };
++}
++
++// BMAD tier one: the pinned projection selects skill sources, renderer scripts and the seven
++// customization layers. The render receipt is latched later by the server; nothing executes here.
++async function loadBmadDefinition(
++  registry: Pick<WorkflowRegistry, 'resolve'>,
++  source: SourcePin,
++  projection: ProjectionPin,
++): Promise<WorkflowDefinition> {
++  if (projection.runtime !== 'claude') throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
++  const resolved = await registry.resolve(source, projection);
++  const entries = new Map(resolved.manifest.projection.map((entry) => [entry.path, entry]));
++  const selected: ManifestEntry[] = [];
++  for (const entry of entries.values()) {
++    if (!entry.path.startsWith(bmadSkillRoot)) continue;
++    if (entry.type === 'symlink') throw new Error('WORKFLOW_SKILL_MISMATCH');
++    if (entry.type !== 'file') continue;
++    const name = entry.path.slice(bmadSkillRoot.length);
++    if (name.endsWith('.md') && !bmadMarkdown.test(name)) throw new Error('WORKFLOW_SKILL_MISMATCH');
++    if (entry.path === bmadCustomize || name.endsWith('.md')) selected.push(entry);
++  }
++  for (const path of bmadScripts) {
++    const entry = entries.get(path);
++    if (entry) selected.push(entry);
++  }
++  const layers = {} as Record<RenderLayerPath, string | null>;
++  const layerEntries: ManifestEntry[] = [];
++  for (const path of bmadLayers) {
++    const entry = entries.get(path);
++    if (entry && entry.type !== 'file') throw new Error('WORKFLOW_SKILL_MISMATCH');
++    if (!entry && requiredBmadLayers.includes(path)) throw new Error('WORKFLOW_SKILL_MISMATCH');
++    layers[path] = entry ? entry.sha256 : null;
++    if (entry && path !== bmadCustomize) layerEntries.push(entry);
++  }
++  const selectedPaths = new Set(selected.map((entry) => entry.path));
++  for (const required of [bmadSkill, bmadWorkflow, bmadCustomize, ...bmadScripts])
++    if (!selectedPaths.has(required)) throw new Error('WORKFLOW_SKILL_MISMATCH');
++  selected.sort(byPath);
++  for (const entry of [...selected, ...layerEntries]) await readPinnedFile(resolved.projectionRoot, entry);
++  assertPinnedManifests(resolved.manifest, source, projection);
++
++  const skills = selected
++    .filter((entry) => entry.path.endsWith('.md') && posix.basename(entry.path) !== 'SKILL.md')
++    .map((entry) => ({ path: entry.path, sha256: entry.sha256 }));
++  const selectedProjectionSha256 = Object.fromEntries(selected.map((entry) => [entry.path, entry.sha256]));
++  return definition(source, projection, skills, layers, selectedProjectionSha256);
++}
++
+ export function createWorkflowManifest(registry: Pick<WorkflowRegistry, 'resolve'>) {
+   return {
+     async loadDefinition(source: SourcePin, projection: ProjectionPin): Promise<WorkflowDefinition> {
+       const pinnedSource = structuredClone(source);
+       const pinnedProjection = structuredClone(projection);
+       validateSourcePin(pinnedSource);
+       if (pinnedSource.sourceTreeSha256 !== pinnedProjection.sourceTreeSha256)
+         throw new Error('SOURCE_PROJECTION_MISMATCH');
+       validateProjectionPin(pinnedProjection);
+-      if (pinnedSource.name === 'bmad') throw new Error('RENDER_ARTIFACT_REQUIRED');
++      if (pinnedSource.name === 'bmad') return loadBmadDefinition(registry, pinnedSource, pinnedProjection);
+       if (pinnedSource.name !== 'superpowers') throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
+ 
+       const resolved = await registry.resolve(pinnedSource, pinnedProjection);
+       const sourceEntries = new Map(resolved.manifest.source.map((entry) => [entry.path, entry]));
+       const projectionEntries = new Map(resolved.manifest.projection.map((entry) => [entry.path, entry]));
+       const skills = [...sourceEntries.values()]
+         .filter((entry) => skillPath.test(entry.path))
+-        .sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)))
++        .sort(byPath)
+         .map((entry) => ({ path: entry.path, sha256: entry.sha256 }));
+       if (skills.length === 0) throw new Error('WORKFLOW_SKILL_MISMATCH');
+       for (const skill of skills) {
+         const fromSource = sourceEntries.get(skill.path);
+         const fromProjection = projectionEntries.get(skill.path);
+         if (
+           !fromSource ||
+           !fromProjection ||
+           fromSource.type !== 'file' ||
+           fromProjection.type !== 'file' ||
+           fromSource.sha256 !== fromProjection.sha256
+         )
+           throw new Error('WORKFLOW_SKILL_MISMATCH');
+-        await readPinnedSkill(resolved.sourceRoot, fromSource);
+-        await readPinnedSkill(resolved.projectionRoot, fromProjection);
++        await readPinnedFile(resolved.sourceRoot, fromSource);
++        await readPinnedFile(resolved.projectionRoot, fromProjection);
+       }
+-      if (
+-        manifestHash(resolved.manifest.source) !== pinnedSource.sourceManifestSha256 ||
+-        manifestHash(resolved.manifest.projection) !== pinnedProjection.manifestSha256
+-      )
+-        throw new Error('WORKFLOW_MANIFEST_MISMATCH');
+-      return {
+-        sha256: hash(canonicalJson({ source: pinnedSource, projection: pinnedProjection, skills })),
+-        skills,
+-      };
++      assertPinnedManifests(resolved.manifest, pinnedSource, pinnedProjection);
++      return definition(pinnedSource, pinnedProjection, skills, {});
+     },
+   };
+ }
+diff --git a/v2/gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json b/v2/gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json
+new file mode 100644
+index 0000000..1961a65
+--- /dev/null
++++ b/v2/gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json
+@@ -0,0 +1,252 @@
++{
++  "description": "BMAD claude projection subset for workflow definition unit tests. Official entries copy exact bytes from the pinned bmad-6.12.0 archive and match the independently built projection hashes in workflow-builder/independent-builds.json. Generated config layers are synthetic because installer-generated bytes are not preserved; the projection pin is recomputed from this tree by the test.",
++  "official": [
++    {
++      "path": ".claude/skills/bmad-build-auto/SKILL.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/SKILL.md",
++      "mode": 420,
++      "sha256": "ea798a5f7df3b11eb73555a54fc0516c70d8f98739bd7857d968297b26f6ef94"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/compile-epic-context.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/compile-epic-context.md",
++      "mode": 420,
++      "sha256": "64d13b41974cfa0dfc1de64b6fbd8365e9b99f91c7c98f0ee1a9fbd018f324ca"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/customize.toml",
++      "from": "src/bmm-skills/ship/bmad-build-auto/customize.toml",
++      "mode": 420,
++      "sha256": "31417a8239f213c00621bb9016c3099631ae7ef03731ce5be209a5668a5730ee"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/references/claims-check.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/references/claims-check.md",
++      "mode": 420,
++      "sha256": "50ea17cb89a78ef815286dde2dabfd09f1dc9841d07a10857f88b39ab7b9bd2a"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/references/deletion-check.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/references/deletion-check.md",
++      "mode": 420,
++      "sha256": "0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/review-prompts/edge-case-hunter.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/review-prompts/edge-case-hunter.md",
++      "mode": 420,
++      "sha256": "8fc046af1cbf4ecc928207cec75e29c3c260adb86cc7da77537ade3b3a3b9448"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/review-prompts/verification-gap.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/review-prompts/verification-gap.md",
++      "mode": 420,
++      "sha256": "45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/spec-template.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/spec-template.md",
++      "mode": 420,
++      "sha256": "59a046df2773ec05af0688823d17238bfde2bb54c0c3b3eff6acec4856f1eb7a"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/step-01-clarify-and-route.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/step-01-clarify-and-route.md",
++      "mode": 420,
++      "sha256": "50674ecef3b4b7a26b993685c9a79ccd87b00b2255d51b6b9c13ed32aa6d1ffa"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/step-02-plan.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/step-02-plan.md",
++      "mode": 420,
++      "sha256": "a08e303c10f88dbfce88c55044757ec5059afe338793eb414e1ddb0b7c324625"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/step-03-implement.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/step-03-implement.md",
++      "mode": 420,
++      "sha256": "0dc9c9634eca148baaec03e7d154840a14101f92492b7ab469625bf13b4e2ab5"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/step-04-review.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/step-04-review.md",
++      "mode": 420,
++      "sha256": "c5530c50c89f197720275b83466b382f896fa27a0bba30d4b75c6af162148cdf"
++    },
++    {
++      "path": ".claude/skills/bmad-build-auto/workflow.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/workflow.md",
++      "mode": 420,
++      "sha256": "611f429206029a903ec9433ccdfd9b186fbafc6dc95da0a21fbcdf5965ad25ea"
++    },
++    {
++      "path": ".claude/skills/bmad-build/SKILL.md",
++      "from": "src/bmm-skills/ship/bmad-build/SKILL.md",
++      "mode": 420,
++      "sha256": "1cdf5406965ba24236d2375739d839699eb56b619834490539d1bd3d5111f890"
++    },
++    {
++      "path": ".claude/skills/bmad-build/compile-epic-context.md",
++      "from": "src/bmm-skills/ship/bmad-build/compile-epic-context.md",
++      "mode": 420,
++      "sha256": "6793b15ae85766cee529e6b349e45f2c6ec9e3212019611c29e8c77b4dc4b924"
++    },
++    {
++      "path": ".claude/skills/bmad-build/customize.toml",
++      "from": "src/bmm-skills/ship/bmad-build/customize.toml",
++      "mode": 420,
++      "sha256": "0ee9b033a40640420d1dc3411de7428146d00bf8c1409c9a9cfe6c1743cd53b9"
++    },
++    {
++      "path": ".claude/skills/bmad-build/references/claims-check.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/references/claims-check.md",
++      "mode": 420,
++      "sha256": "50ea17cb89a78ef815286dde2dabfd09f1dc9841d07a10857f88b39ab7b9bd2a"
++    },
++    {
++      "path": ".claude/skills/bmad-build/references/deletion-check.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/references/deletion-check.md",
++      "mode": 420,
++      "sha256": "0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da"
++    },
++    {
++      "path": ".claude/skills/bmad-build/review-prompts/edge-case-hunter.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/review-prompts/edge-case-hunter.md",
++      "mode": 420,
++      "sha256": "8fc046af1cbf4ecc928207cec75e29c3c260adb86cc7da77537ade3b3a3b9448"
++    },
++    {
++      "path": ".claude/skills/bmad-build/review-prompts/verification-gap.md",
++      "from": "src/bmm-skills/ship/bmad-build-auto/review-prompts/verification-gap.md",
++      "mode": 420,
++      "sha256": "45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03"
++    },
++    {
++      "path": ".claude/skills/bmad-build/spec-template.md",
++      "from": "src/bmm-skills/ship/bmad-build/spec-template.md",
++      "mode": 420,
++      "sha256": "e217325964857ebd90a9508bf171eddc2c4ad1b0b9b32a119775ac5c015695fd"
++    },
++    {
++      "path": ".claude/skills/bmad-build/step-01-clarify-and-route.md",
++      "from": "src/bmm-skills/ship/bmad-build/step-01-clarify-and-route.md",
++      "mode": 420,
++      "sha256": "1e8095b08e9e9c57d9b24678b524e07d0b6bbb5af72ba213622f12a1c7d909cc"
++    },
++    {
++      "path": ".claude/skills/bmad-build/step-02-plan.md",
++      "from": "src/bmm-skills/ship/bmad-build/step-02-plan.md",
++      "mode": 420,
++      "sha256": "5c999430f818f58fc5e4f64309a1b0f81358ce0ddcfbd3f44b25d56279ef25d8"
++    },
++    {
++      "path": ".claude/skills/bmad-build/step-03-implement.md",
++      "from": "src/bmm-skills/ship/bmad-build/step-03-implement.md",
++      "mode": 420,
++      "sha256": "15fd02d2f655d4102c515134ed6aa40cd055bd9d811e49d529512f8f36d09b03"
++    },
++    {
++      "path": ".claude/skills/bmad-build/step-04-review.md",
++      "from": "src/bmm-skills/ship/bmad-build/step-04-review.md",
++      "mode": 420,
++      "sha256": "f6b3f3fa5d3af0b324db2efee9351d4c348bdc0dfa4dad6c058eb4fd37921333"
++    },
++    {
++      "path": ".claude/skills/bmad-build/step-05-present.md",
++      "from": "src/bmm-skills/ship/bmad-build/step-05-present.md",
++      "mode": 420,
++      "sha256": "551e0847e2ebb64575180a5dacca5786b9b9d7825dcd986e1b3b58442eaf713a"
++    },
++    {
++      "path": ".claude/skills/bmad-build/step-oneshot.md",
++      "from": "src/bmm-skills/ship/bmad-build/step-oneshot.md",
++      "mode": 420,
++      "sha256": "241fa52e227c048a5d8e4428bef0f153267475f697640899deb218b58ebfd378"
++    },
++    {
++      "path": ".claude/skills/bmad-build/sync-sprint-status.md",
++      "from": "src/bmm-skills/ship/bmad-build/sync-sprint-status.md",
++      "mode": 420,
++      "sha256": "7ff44d21f5d813f4993780271eec8df2fce1373f525ff80e595b7c10618c4c36"
++    },
++    {
++      "path": ".claude/skills/bmad-build/workflow.md",
++      "from": "src/bmm-skills/ship/bmad-build/workflow.md",
++      "mode": 420,
++      "sha256": "481ff00ef349a9c7845feca02bbfd5722b1e318ccabac858355da6c90c2d8a39"
++    },
++    {
++      "path": "_bmad/scripts/config_utils.py",
++      "from": "src/scripts/config_utils.py",
++      "mode": 420,
++      "sha256": "48afe2bc18a29201e343cce3703be1e70df9c83ee74eeb68e57ef8ef42e8c651"
++    },
++    {
++      "path": "_bmad/scripts/memlog.py",
++      "from": "src/scripts/memlog.py",
++      "mode": 420,
++      "sha256": "3b00f82ca33dc4227f715123b939514ee35c4f9c71150c894c3d8185df1b48df"
++    },
++    {
++      "path": "_bmad/scripts/render_skill.py",
++      "from": "src/scripts/render_skill.py",
++      "mode": 420,
++      "sha256": "8496d0d8b449d64c21b42a9aab3b13fc8a813a430c0695ffd84ad75bb1da7942"
++    },
++    {
++      "path": "_bmad/scripts/resolve_config.py",
++      "from": "src/scripts/resolve_config.py",
++      "mode": 420,
++      "sha256": "70d7577396ed40ab9462ab75dce51f852bc2e094b2d1a054214f1b30c8789768"
++    },
++    {
++      "path": "_bmad/scripts/resolve_customization.py",
++      "from": "src/scripts/resolve_customization.py",
++      "mode": 493,
++      "sha256": "c95aab9f2dc500d6ab7db77d6a7860028701ce414e03690613a282cc3659d284"
++    }
++  ],
++  "generated": [
++    {
++      "path": "_bmad/config.toml",
++      "body": "# Synthetic unit fixture: installer-generated bytes are not preserved.\n[core]\nproject_name = \"crew-fixture\"\ncommunication_language = \"Vietnamese\"\n",
++      "sha256": "84c6d6ee6a0e58596a8b387e54e9385f26c4d3b91b4eab021a90e7425579c128"
++    },
++    {
++      "path": "_bmad/config.user.toml",
++      "body": "# Synthetic unit fixture.\n[core]\nuser_name = \"Crew\"\n",
++      "sha256": "e26ca0f6114ac8c72cf24f81ee9188b41cd5e333273d145c93dafd6697c48938"
++    },
++    {
++      "path": "_bmad/custom/.gitignore",
++      "body": "*.user.toml\n",
++      "sha256": "973b03a33f142c22cf9b65be285bebadd85790b6b55be04637d2f8c716f58fab"
++    },
++    {
++      "path": "_bmad/custom/config.toml",
++      "body": "# Synthetic unit fixture: team overrides.\n",
++      "sha256": "c7ba15f21a8b5c785912a12ca3bedfa7de6f1d7af1c5bdf5e2366249d229fe19"
++    },
++    {
++      "path": "_bmad/custom/config.user.toml",
++      "body": "# Synthetic unit fixture: personal overrides.\n",
++      "sha256": "0d04bd495c39c39cf947bd75fe33ccdda877e2e85425eec1df3484b8c7a35dbc"
++    }
++  ],
++  "expectedSkills": [
++    ".claude/skills/bmad-build/compile-epic-context.md",
++    ".claude/skills/bmad-build/references/claims-check.md",
++    ".claude/skills/bmad-build/references/deletion-check.md",
++    ".claude/skills/bmad-build/review-prompts/edge-case-hunter.md",
++    ".claude/skills/bmad-build/review-prompts/verification-gap.md",
++    ".claude/skills/bmad-build/spec-template.md",
++    ".claude/skills/bmad-build/step-01-clarify-and-route.md",
++    ".claude/skills/bmad-build/step-02-plan.md",
++    ".claude/skills/bmad-build/step-03-implement.md",
++    ".claude/skills/bmad-build/step-04-review.md",
++    ".claude/skills/bmad-build/step-05-present.md",
++    ".claude/skills/bmad-build/step-oneshot.md",
++    ".claude/skills/bmad-build/sync-sprint-status.md",
++    ".claude/skills/bmad-build/workflow.md"
++  ]
++}
+diff --git a/v2/gateway/test/render-artifacts.test.ts b/v2/gateway/test/render-artifacts.test.ts
+index 9732258..3c91aa0 100644
+--- a/v2/gateway/test/render-artifacts.test.ts
++++ b/v2/gateway/test/render-artifacts.test.ts
+@@ -560,18 +560,73 @@ test('render artifact inspection denies ambiguous resolved keys for one short co
+     'config.settings.communication_language': 'Vietnamese',
+     'config.other.communication_language': 'English',
+   };
+   setGeneration(f, 'e5971577e9ef99275a3d');
+   assert.throws(
+     () => createBmadArtifactInspector(f.expected).inspect(f.snapshot),
+     /RENDER_ARTIFACT_MISMATCH/,
+   );
+ });
+ 
+-test('render artifact inspection remains separate from the denied BMAD adapter', async () => {
+-  const adapter = createWorkflowManifest({
+-    resolve: async () => {
+-      throw new Error('resolver must not run');
+-    },
+-  });
+-  await assert.rejects(adapter.loadDefinition(source, projection), /RENDER_ARTIFACT_REQUIRED/);
++test('render artifact inspection remains separate from the two-tier BMAD adapter', async () => {
++  const [{ default: childProcess }, fs, { syncBuiltinESMExports }, os, path, { mock }, stage] =
++    await Promise.all([
++      import('node:child_process'),
++      import('node:fs/promises'),
++      import('node:module'),
++      import('node:os'),
++      import('node:path'),
++      import('node:test'),
++      import('../src/workflows/stage.ts'),
++    ]);
++  const f = fixture();
++  const audits = JSON.parse(
++    await fs.readFile(new URL('./fixtures/workflows/official-audits.json', import.meta.url), 'utf8'),
++  );
++  const archive = await fs.readFile(new URL('./fixtures/workflows/bmad-6.12.0.tgz', import.meta.url));
++  const sourceManifest = stage.manifest(await stage.parseArchive(archive, audits.bmad.source.executables));
++  const files = stage.validateFiles(
++    Object.entries({
++      ...f.snapshot.projectedFiles,
++      '_bmad/config.toml': f.snapshot.layerFiles['_bmad/config.toml'],
++    }).map(([filePath, body]) => ({
++      path: filePath,
++      type: 'file' as const,
++      mode: 0o644 as const,
++      body: Buffer.from(body ?? []),
++    })),
++  );
++  // Unit-only projection identity over the synthetic D1 bytes; the official source pin is real.
++  const base = { ...projection, manifestSha256: stage.manifestHash(stage.manifest(files)) };
++  const bound: ProjectionPin = { ...base, treeSha256: projectionTreeHash(base) };
++  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'crew-d1-adapter-')));
++  const spies = ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork'].map((name) =>
++    mock.method(childProcess, name as 'spawn', () => {
++      throw new Error(`unexpected child_process.${name}`);
++    }),
++  );
++  syncBuiltinESMExports();
++  try {
++    await stage.writeTree(path.join(root, 'projection'), files);
++    const adapter = createWorkflowManifest({
++      resolve: async () => ({
++        sourceRoot: path.join(root, 'source-not-materialized'),
++        projectionRoot: path.join(root, 'projection'),
++        manifest: { source: sourceManifest, projection: stage.manifest(files) },
++      }),
++    });
++    const definition = await adapter.loadDefinition(source, bound);
++    const { projectRoot: _root, generationRoot: _generation, ...expected } = f.expected;
++    assert.deepEqual(definition.render, { ...expected, projection: bound });
++    // The adapter yields expectations only; inspection still needs a host-supplied byte snapshot.
++    const inspection = createBmadArtifactInspector({
++      ...structuredClone(f.expected),
++      projection: bound,
++    }).inspect(f.snapshot);
++    assert.equal(inspection.kind, 'artifact-inspection');
++  } finally {
++    mock.restoreAll();
++    syncBuiltinESMExports();
++    await fs.rm(root, { recursive: true, force: true });
++  }
++  for (const spy of spies) assert.equal(spy.mock.callCount(), 0);
+ });
+diff --git a/v2/gateway/test/workflow-manifest.test.ts b/v2/gateway/test/workflow-manifest.test.ts
+index 7b3d2b2..4b4fffa 100644
+--- a/v2/gateway/test/workflow-manifest.test.ts
++++ b/v2/gateway/test/workflow-manifest.test.ts
+@@ -1,20 +1,30 @@
+ import assert from 'node:assert/strict';
+-import { spawn, spawnSync } from 'node:child_process';
++import childProcess, { spawn, spawnSync } from 'node:child_process';
+ import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
++import { syncBuiltinESMExports } from 'node:module';
+ import { tmpdir } from 'node:os';
+ import { join } from 'node:path';
+-import test from 'node:test';
+-import { createWorkflowManifest } from '../src/assistant/workflow-manifest.ts';
++import test, { mock } from 'node:test';
++import { createBmadArtifactInspector } from '../src/assistant/render-artifacts.ts';
++import { createWorkflowManifest, customizationContext } from '../src/assistant/workflow-manifest.ts';
++import { canonicalJson, hash } from '../src/journal/atomic-records.ts';
+ import { type ProjectionPin, projectionTreeHash, type SourcePin } from '../src/workflows/pins.ts';
+ import type { WorkflowRegistry } from '../src/workflows/registry.ts';
+-import { manifest, manifestHash, parseArchive, validateFiles, writeTree } from '../src/workflows/stage.ts';
++import {
++  manifest,
++  manifestHash,
++  parseArchive,
++  type TreeFile,
++  validateFiles,
++  writeTree,
++} from '../src/workflows/stage.ts';
+ 
+ const fixtures = new URL('./fixtures/', import.meta.url);
+ 
+ async function officialFixtures() {
+   const audits = JSON.parse(await readFile(new URL('workflows/official-audits.json', fixtures), 'utf8'));
+   const builds = JSON.parse(
+     await readFile(new URL('workflow-builder/real-projections.json', fixtures), 'utf8'),
+   );
+   return { audits, builds };
+ }
+@@ -57,28 +67,140 @@ async function withOfficialSuperpowers(
+         projectionRoot,
+         manifest: { source: manifest(files), projection: manifest(projected) },
+       }),
+     };
+     await run(resolver, source, projectionAudit.expected);
+   } finally {
+     await rm(root, { recursive: true, force: true });
+   }
+ }
+ 
++type BmadFixture = {
++  official: { path: string; from: string; mode: number; sha256: string }[];
++  generated: { path: string; body: string; sha256: string }[];
++  expectedSkills: string[];
++};
++
++const bmadSkillRoot = '.claude/skills/bmad-build/';
++const layerOrder = [
++  '_bmad/config.toml',
++  '_bmad/config.user.toml',
++  '_bmad/custom/config.toml',
++  '_bmad/custom/config.user.toml',
++  '_bmad/custom/bmad-build.toml',
++  '_bmad/custom/bmad-build.user.toml',
++  '.claude/skills/bmad-build/customize.toml',
++] as const;
++
++async function bmadProjectionFiles() {
++  const { audits, builds } = await officialFixtures();
++  const fixture: BmadFixture = JSON.parse(
++    await readFile(new URL('workflow-definitions/bmad-claude-projection.json', fixtures), 'utf8'),
++  );
++  const archive = await readFile(new URL('workflows/bmad-6.12.0.tgz', fixtures));
++  const sourceFiles = await parseArchive(archive, audits.bmad.source.executables);
++  const byPath = new Map(sourceFiles.map((file) => [file.path, file]));
++  const projected: TreeFile[] = [
++    ...fixture.official.map((entry) => {
++      const file = byPath.get(entry.from);
++      assert(file && file.type === 'file', `missing official ${entry.from}`);
++      assert.equal(hash(file.body), entry.sha256, `official bytes drifted for ${entry.path}`);
++      return {
++        path: entry.path,
++        type: 'file' as const,
++        mode: entry.mode === 0o755 ? (0o755 as const) : (0o644 as const),
++        body: Buffer.from(file.body),
++      };
++    }),
++    ...fixture.generated.map((entry) => {
++      assert.equal(hash(entry.body), entry.sha256);
++      return { path: entry.path, type: 'file' as const, mode: 0o644 as const, body: Buffer.from(entry.body) };
++    }),
++  ];
++  return {
++    source: audits.bmad.source.pin as SourcePin,
++    sourceManifest: manifest(sourceFiles),
++    derivation: builds.bmad.claude.expected.derivation as ProjectionPin['derivation'],
++    projected,
++    fixture,
++  };
++}
++
++async function withBmadProjection(
++  edit: (files: TreeFile[]) => TreeFile[],
++  run: (
++    resolver: Pick<WorkflowRegistry, 'resolve'>,
++    source: SourcePin,
++    projection: ProjectionPin,
++    context: { fixture: BmadFixture; projectionRoot: string; files: TreeFile[] },
++  ) => Promise<void>,
++) {
++  const { source, sourceManifest, derivation, projected, fixture } = await bmadProjectionFiles();
++  assert.equal(manifestHash(sourceManifest), source.sourceManifestSha256);
++  const files = validateFiles(edit(projected));
++  const projectionManifest = manifest(files);
++  const base = {
++    runtime: 'claude' as const,
++    sourceTreeSha256: source.sourceTreeSha256,
++    manifestSha256: manifestHash(projectionManifest),
++    derivation,
++  };
++  // Unit-only projection identity recomputed over a pinned subset of the audited BMAD layout:
++  // official bytes from the pinned archive plus synthetic installer-generated config layers.
++  const projection: ProjectionPin = { ...base, treeSha256: projectionTreeHash(base) };
++  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-workflow-definition-')));
++  try {
++    const projectionRoot = join(root, 'projection');
++    await writeTree(projectionRoot, files);
++    const resolver: Pick<WorkflowRegistry, 'resolve'> = {
++      resolve: async () => ({
++        sourceRoot: join(root, 'source-not-materialized'),
++        projectionRoot,
++        manifest: { source: sourceManifest, projection: projectionManifest },
++      }),
++    };
++    await run(resolver, source, projection, { fixture, projectionRoot, files });
++  } finally {
++    await rm(root, { recursive: true, force: true });
++  }
++}
++
++const without =
++  (...paths: string[]) =>
++  (files: TreeFile[]) =>
++    files.filter((file) => !paths.includes(file.path));
++
++function reorderedKeys<T extends Record<string, unknown>>(value: T): T {
++  return Object.fromEntries(
++    Object.entries(value)
++      .reverse()
++      .map(([key, item]) => [
++        key,
++        item && typeof item === 'object' && !Array.isArray(item)
++          ? reorderedKeys(item as Record<string, unknown>)
++          : item,
++      ]),
++  ) as T;
++}
++
+ test('workflow manifest binds Superpowers skills to official source and selected projection bytes', async () => {
+   await withOfficialSuperpowers(async (resolver, source, projection) => {
+     const adapter = createWorkflowManifest(resolver);
+     const first = await adapter.loadDefinition(source, projection);
+     const replay = await adapter.loadDefinition(source, projection);
+ 
+     assert.match(first.sha256, /^[0-9a-f]{64}$/);
+     assert.equal(first.sha256, replay.sha256);
++    assert.deepEqual(first, replay);
++    assert.equal(first.render, undefined);
++    assert.deepEqual(Object.keys(first).sort(), ['customizationSha256', 'sha256', 'skills']);
++    assert.equal(first.customizationSha256, customizationContext(source, projection, {}).sha256);
+     assert.equal(first.skills.length, 15);
+     assert.deepEqual(first.skills[0], {
+       path: 'skills/brainstorming/SKILL.md',
+       sha256: 'a32d2255354775aa124855aa7100cf276bea096fff4ebb3a0edf57be216e6c72',
+     });
+     assert(
+       first.skills.some(
+         (skill) =>
+           skill.path === 'skills/systematic-debugging/SKILL.md' &&
+           skill.sha256 === '808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787',
+@@ -124,36 +246,20 @@ test('workflow manifest rejects a projection bound to another source tree', asyn
+   await withOfficialSuperpowers(async (resolver, source, projection) => {
+     const base = { ...projection, sourceTreeSha256: '0'.repeat(64) };
+     const foreign = { ...base, treeSha256: projectionTreeHash(base) };
+     await assert.rejects(
+       createWorkflowManifest(resolver).loadDefinition(source, foreign),
+       /SOURCE_PROJECTION_MISMATCH/,
+     );
+   });
+ });
+ 
+-test('workflow manifest denies BMAD when no trusted renderer artifact reader is bound', async () => {
+-  const { audits, builds } = await officialFixtures();
+-  // Unit-only registry stub; the pinned npm source and generated projection identities are real.
+-  const unresolved = {
+-    resolve: async () => ({
+-      sourceRoot: '/unavailable',
+-      projectionRoot: '/unavailable',
+-      manifest: { source: [], projection: [] },
+-    }),
+-  };
+-  await assert.rejects(
+-    createWorkflowManifest(unresolved).loadDefinition(audits.bmad.source.pin, builds.bmad.claude.expected),
+-    /RENDER_ARTIFACT_REQUIRED/,
+-  );
+-});
+-
+ test('workflow manifest keeps one validated snapshot across a deferred registry resolve', async () => {
+   await withOfficialSuperpowers(async (resolver, source, projection) => {
+     const originalSource = structuredClone(source);
+     const originalProjection = structuredClone(projection);
+     const baseline = await createWorkflowManifest(resolver).loadDefinition(
+       originalSource,
+       originalProjection,
+     );
+     const entered = Promise.withResolvers<void>();
+     const release = Promise.withResolvers<void>();
+@@ -246,10 +352,239 @@ test('workflow manifest rejects a FIFO skill drift within a bounded reader deadl
+     context.diagnostic(
+       `fifo child pid=${child.pid} pgid=${child.pid} reaped=close code=${result.code} signal=${result.signal ?? 'none'} timedOut=${timedOut}`,
+     );
+     context.diagnostic(`fifo child boundary=${stdout.trim()}`);
+     assert.match(stdout, /RESOLVED/, `child did not reach the reader: ${stderr}`);
+     assert.equal(timedOut, false, `reader blocked on FIFO; child reaped by watchdog (${result.signal})`);
+     assert.equal(result.code, 0, stderr);
+     assert.match(stderr, /WORKFLOW_SKILL_MISMATCH/);
+   });
+ });
++
++test('customization context binds the Superpowers digest to the projection tree, not key order', async () => {
++  await withOfficialSuperpowers(async (_resolver, source, projection) => {
++    const measured = customizationContext(source, projection, {});
++    assert.deepEqual(measured.context, {
++      schema: 'crew-v2:workflow-customization:1',
++      workflow: 'superpowers',
++      sourceTreeSha256: source.sourceTreeSha256,
++      projectionTreeSha256: projection.treeSha256,
++      layers: {},
++    });
++    assert.equal(measured.sha256, hash(canonicalJson(measured.context)));
++    assert.equal(
++      customizationContext(reorderedKeys(source), reorderedKeys(projection), {}).sha256,
++      measured.sha256,
++    );
++
++    const changedBase = { ...projection, manifestSha256: '1'.repeat(64) };
++    const changed = { ...changedBase, treeSha256: projectionTreeHash(changedBase) };
++    assert.notEqual(customizationContext(source, changed, {}).sha256, measured.sha256);
++    assert.throws(
++      () => customizationContext(source, projection, { '_bmad/config.toml': '0'.repeat(64) }),
++      /INVALID_CUSTOMIZATION_CONTEXT/,
++    );
++  });
++});
++
++test('workflow definition resolves BMAD to a two-tier render expectation with seven measured layers', async () => {
++  await withBmadProjection(
++    (files) => files,
++    async (resolver, source, projection, { fixture, files }) => {
++      const definition = await createWorkflowManifest(resolver).loadDefinition(source, projection);
++      const bytes = new Map(files.map((file) => [file.path, hash(file.body)]));
++      const expectedLayers = Object.fromEntries(layerOrder.map((path) => [path, bytes.get(path) ?? null]));
++      assert.deepEqual(expectedLayers, {
++        '_bmad/config.toml': fixture.generated[0].sha256,
++        '_bmad/config.user.toml': fixture.generated[1].sha256,
++        '_bmad/custom/config.toml': fixture.generated[3].sha256,
++        '_bmad/custom/config.user.toml': fixture.generated[4].sha256,
++        '_bmad/custom/bmad-build.toml': null,
++        '_bmad/custom/bmad-build.user.toml': null,
++        '.claude/skills/bmad-build/customize.toml':
++          '0ee9b033a40640420d1dc3411de7428146d00bf8c1409c9a9cfe6c1743cd53b9',
++      });
++      assert(definition.render);
++      assert.deepEqual(Object.keys(definition.render).sort(), [
++        'layers',
++        'projection',
++        'selectedProjectionSha256',
++        'source',
++      ]);
++      assert.deepEqual(definition.render.source, source);
++      assert.deepEqual(definition.render.projection, projection);
++      assert.deepEqual(definition.render.layers, expectedLayers);
++      assert.deepEqual(Object.keys(definition.render.layers).sort(), [...layerOrder].sort());
++      const selected = Object.keys(definition.render.selectedProjectionSha256).sort();
++      assert.deepEqual(
++        selected,
++        [
++          '_bmad/scripts/config_utils.py',
++          '_bmad/scripts/render_skill.py',
++          `${bmadSkillRoot}SKILL.md`,
++          `${bmadSkillRoot}customize.toml`,
++          ...fixture.expectedSkills,
++        ].sort(),
++      );
++      for (const path of selected)
++        assert.equal(definition.render.selectedProjectionSha256[path], bytes.get(path));
++      assert.equal(
++        definition.customizationSha256,
++        customizationContext(source, projection, expectedLayers).sha256,
++      );
++      assert.equal(
++        customizationContext(source, projection, reorderedKeys(expectedLayers)).sha256,
++        definition.customizationSha256,
++      );
++      // The definition is exactly the D1 expectation minus host-bound roots.
++      const projectRoot = '/tmp/crew-d2-project';
++      assert.doesNotThrow(() =>
++        createBmadArtifactInspector({
++          ...structuredClone(definition.render),
++          projectRoot,
++          generationRoot: `${projectRoot}/_bmad/render/bmad-build/crew-d2-project-000000000000/${'0'.repeat(20)}`,
++        } as Parameters<typeof createBmadArtifactInspector>[0]),
++      );
++    },
++  );
++  for (const required of ['_bmad/config.toml', `${bmadSkillRoot}customize.toml`]) {
++    await withBmadProjection(without(required), async (resolver, source, projection) => {
++      await assert.rejects(
++        createWorkflowManifest(resolver).loadDefinition(source, projection),
++        /WORKFLOW_SKILL_MISMATCH/,
++        required,
++      );
++    });
++  }
++  await withBmadProjection(
++    (files) => [
++      ...files,
++      {
++        path: '_bmad/custom/bmad-build.toml',
++        type: 'symlink',
++        mode: null,
++        body: Buffer.alloc(0),
++        target: 'config.toml',
++      },
++    ],
++    async (resolver, source, projection) => {
++      await assert.rejects(
++        createWorkflowManifest(resolver).loadDefinition(source, projection),
++        /WORKFLOW_SKILL_MISMATCH/,
++      );
++    },
++  );
++});
++
++test('workflow definition re-reads BMAD layer bytes instead of trusting manifest claims', async () => {
++  await withBmadProjection(
++    (files) => files,
++    async (resolver, source, projection, { projectionRoot }) => {
++      await writeFile(join(projectionRoot, '_bmad/custom/config.toml'), 'tampered = true\n');
++      await assert.rejects(
++        createWorkflowManifest(resolver).loadDefinition(source, projection),
++        /WORKFLOW_SKILL_MISMATCH/,
++      );
++    },
++  );
++});
++
++test('workflow definition digest changes when an optional BMAD layer appears with equal skill tokens', async () => {
++  let baseline: Awaited<ReturnType<ReturnType<typeof createWorkflowManifest>['loadDefinition']>> | undefined;
++  await withBmadProjection(
++    (files) => files,
++    async (resolver, source, projection) => {
++      baseline = await createWorkflowManifest(resolver).loadDefinition(source, projection);
++    },
++  );
++  const overrides = '# Synthetic optional layer without token-changing values.\n';
++  await withBmadProjection(
++    (files) => [
++      ...files,
++      { path: '_bmad/custom/bmad-build.toml', type: 'file', mode: 0o644, body: Buffer.from(overrides) },
++    ],
++    async (resolver, source, projection) => {
++      assert(baseline?.render);
++      const withLayer = await createWorkflowManifest(resolver).loadDefinition(source, projection);
++      assert(withLayer.render);
++      assert.deepEqual(withLayer.skills, baseline.skills);
++      assert.deepEqual(withLayer.render.selectedProjectionSha256, baseline.render.selectedProjectionSha256);
++      assert.deepEqual(withLayer.render.layers, {
++        ...baseline.render.layers,
++        '_bmad/custom/bmad-build.toml': hash(overrides),
++      });
++      assert.notEqual(withLayer.customizationSha256, baseline.customizationSha256);
++      assert.notEqual(withLayer.sha256, baseline.sha256);
++    },
++  );
++});
++
++test('workflow definition selects exactly the bmad-build markdown skills except SKILL.md', async () => {
++  await withBmadProjection(
++    (files) => files,
++    async (resolver, source, projection, { fixture, files }) => {
++      const definition = await createWorkflowManifest(resolver).loadDefinition(source, projection);
++      const bytes = new Map(files.map((file) => [file.path, hash(file.body)]));
++      assert.deepEqual(
++        definition.skills,
++        fixture.expectedSkills.map((path) => ({ path, sha256: bytes.get(path) })),
++      );
++      assert(definition.skills.some((skill) => skill.path === `${bmadSkillRoot}workflow.md`));
++      assert(definition.skills.every((skill) => !skill.path.endsWith('/SKILL.md')));
++      assert(definition.skills.every((skill) => skill.path.startsWith(bmadSkillRoot)));
++      assert.equal(definition.skills.length, 14);
++    },
++  );
++  for (const required of [`${bmadSkillRoot}workflow.md`, `${bmadSkillRoot}SKILL.md`]) {
++    await withBmadProjection(without(required), async (resolver, source, projection) => {
++      await assert.rejects(
++        createWorkflowManifest(resolver).loadDefinition(source, projection),
++        /WORKFLOW_SKILL_MISMATCH/,
++        required,
++      );
++    });
++  }
++});
++
++test('workflow definition rejects a BMAD projection bound to another source tree', async () => {
++  await withBmadProjection(
++    (files) => files,
++    async (_resolver, source, projection) => {
++      const base = { ...projection, sourceTreeSha256: '0'.repeat(64) };
++      const foreign = { ...base, treeSha256: projectionTreeHash(base) };
++      const refusing = {
++        resolve: async () => {
++          throw new Error('resolver must not run');
++        },
++      };
++      await assert.rejects(
++        createWorkflowManifest(refusing).loadDefinition(source, foreign),
++        /SOURCE_PROJECTION_MISMATCH/,
++      );
++    },
++  );
++});
++
++test('workflow definition never spawns uv, the renderer or any child process', async () => {
++  const text = await readFile(new URL('../src/assistant/workflow-manifest.ts', import.meta.url), 'utf8');
++  assert.doesNotMatch(text, /child_process|createBmadArtifactInspector|OwnedOperations|\buv\b/);
++  await withBmadProjection(
++    (files) => files,
++    async (resolver, source, projection) => {
++      const names = ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork'] as const;
++      const spies = names.map((name) =>
++        mock.method(childProcess, name, () => {
++          throw new Error(`unexpected child_process.${name}`);
++        }),
++      );
++      syncBuiltinESMExports();
++      try {
++        const definition = await createWorkflowManifest(resolver).loadDefinition(source, projection);
++        assert(definition.render);
++      } finally {
++        mock.restoreAll();
++        syncBuiltinESMExports();
++      }
++      for (const spy of spies) assert.equal(spy.mock.callCount(), 0);
++    },
++  );
++});
