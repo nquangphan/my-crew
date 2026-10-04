@@ -1,0 +1,7 @@
+telemetry-before: {"at": "2026-10-04T05:14:36.657685+00:00", "pageSize": 16384, "pages": {"Pages free": 6708, "Pages inactive": 306667, "Pages speculative": 5644}, "availableBytes": 5226807296, "availableGiB": 4.868, "pressure": 1, "cpuIdlePercent": 75.42, "cpu": "12.28% user, 12.28% sys, 75.42% idle", "diskFreeBytes": 805988823040, "diskFreeGiB": 750.636, "heavyEligible": true}
+container=crew-v2-test-a2255e4f-ffbe-4ee9-b514-7edd9ddd767c id=69671ee7daedb73b45d4e4ab4df87fb5b6a557b7641a38e2c1a37519053737c3 port=26288
+telemetry-node: {"at": "2026-10-04T05:14:38.434021+00:00", "pageSize": 16384, "pages": {"Pages free": 4664, "Pages inactive": 304667, "Pages speculative": 9056}, "availableBytes": 5216452608, "availableGiB": 4.858, "pressure": 1, "cpuIdlePercent": 76.79, "cpu": "10.58% user, 12.62% sys, 76.79% idle", "diskFreeBytes": 805940232192, "diskFreeGiB": 750.59, "heavyEligible": true}
+exit=1
+leftover_dbs=0
+after-stop: 0 containers; node: 0
+telemetry-after: {"at": "2026-10-04T05:14:50.389456+00:00", "pageSize": 16384, "pages": {"Pages free": 10407, "Pages inactive": 288137, "Pages speculative": 8122}, "availableBytes": 5024415744, "availableGiB": 4.679, "pressure": 1, "cpuIdlePercent": 74.83, "cpu": "11.93% user, 13.22% sys, 74.83% idle", "diskFreeBytes": 805923028992, "diskFreeGiB": 750.574, "heavyEligible": true}

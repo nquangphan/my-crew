@@ -1,0 +1,50 @@
+v2/server/src/assistant/runs.ts:145:5 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    143 │     from decisions d join tickets t on t.id=d.ticket_id where d.id=${id.toLowerCase()} for share of d`;
+    144 │   if (
+  > 145 │     !decision ||
+        │     ^^^^^^^^^^^^
+  > 146 │     decision.actor_kind !== 'owner' ||
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    147 │     decision.actor_id !== 'owner' ||
+    148 │     decision.kind !== 'approval' ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    143 143 │       from decisions d join tickets t on t.id=d.ticket_id where d.id=${id.toLowerCase()} for share of d`;
+    144 144 │     if (
+    145     │ - ····!decision·||
+    146     │ - ····decision.actor_kind·!==·'owner'·||
+        145 │ + ····decision?.actor_kind·!==·'owner'·||
+    147 146 │       decision.actor_id !== 'owner' ||
+    148 147 │       decision.kind !== 'approval' ||
+  
+
+v2/server/src/assistant/runs.ts:394:11 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    392 │       const [evidence] = await tx`select id,ticket_id,attempt_id,kind,data from evidence
+    393 │         where id=${evidenceId.toLowerCase()} for share`;
+  > 394 │       if (!evidence || evidence.kind !== 'workflow_render_receipt' || evidence.attempt_id === null)
+        │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    395 │         throw renderConflict('Receipt render không hợp lệ');
+    396 │       const [attempt] = await tx`select a.id,a.ticket_id,a.machine_id,a.binding_revision from attempts a
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    392 392 │         const [evidence] = await tx`select id,ticket_id,attempt_id,kind,data from evidence
+    393 393 │           where id=${evidenceId.toLowerCase()} for share`;
+    394     │ - ······if·(!evidence·||·evidence.kind·!==·'workflow_render_receipt'·||·evidence.attempt_id·===·null)
+        394 │ + ······if·(evidence?.kind·!==·'workflow_render_receipt'·||·evidence.attempt_id·===·null)
+    395 395 │           throw renderConflict('Receipt render không hợp lệ');
+    396 396 │         const [attempt] = await tx`select a.id,a.ticket_id,a.machine_id,a.binding_revision from attempts a
+  
+
+Skipped 2 suggested fixes.
+If you wish to apply the suggested (unsafe) fixes, use the command biome check --write --unsafe
+
+Checked 5 files in 47ms. Fixed 5 files.
+Found 2 warnings.
