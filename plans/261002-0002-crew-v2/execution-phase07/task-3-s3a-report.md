@@ -101,3 +101,9 @@ Telemetry khi lấy slot: 5,189 GiB khả dụng / pressure 1 / CPU idle 84,51% 
 | `v2/web/test/tickets.test.ts` | `eab7196dcb9ce17199746dc8057b178587617781e8b18a60ec5c5de936f2e458` |
 | `v2/web/e2e/tickets.spec.ts` | `60e378780e65a62aac067fa37158fe7d0c983c949bbd2b46ea9f8e7055ebd946` |
 | `v2/docs/flows/web-tickets.md` | `6b75598e40ce3880a4a9c38e4561ed96be137b23446ef146e4cad8cab87c2287` |
+
+## 8. Commit và sự cố manifest
+
+- `ba58e42` là commit S3a. Patch `-U0` của em áp vào HEAD lúc controller vừa commit nên bị lệch: mục `web-tickets` nằm sau `shared`/`unassigned` (sai cấu trúc YAML), còn các dòng trong `files.md` sai thứ tự. Sau đó `dbeb6da` (worker wiring) ghi đè mục này và `e2dd3e4` đã khôi phục nó.
+- `167f79c` là bản sửa: chuyển `web-tickets` lên trước `shared` và sinh lại `files.md` bằng `crew-docs generate` từ bản HEAD mới nhất (có `app-router.spec`); kết quả `check --all: ok`. Lệnh `git diff 167f79c^ 167f79c -- v2/docs/flows.yaml v2/docs/files.md` chỉ cho thấy các hunk sắp lại vị trí của em. HEAD có `web-tickets` tại `flows.yaml:518` và 9 dòng trong `files.md`.
+- Quy tắc lock manifest (`$TMPDIR/crew-v2-manifest.lock`) đến sau khi `167f79c` đã commit, nên commit đó chạy không có lock. Commit report này không đụng tới manifest.
