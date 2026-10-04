@@ -5,8 +5,7 @@
  */
 import type { CSSProperties } from 'react';
 import { useRuntime } from '../app-runtime.ts';
-import { ApiFailure } from '../lib/api.ts';
-import { actorLabel, formatTime, type TimelineEntry, useTicketHistory } from './queries.ts';
+import { actorLabel, failureText, formatTime, type TimelineEntry, useTicketHistory } from './queries.ts';
 
 const decisionLabels: Record<Extract<TimelineEntry, { source: 'decision' }>['kind'], string> = {
   assessment: 'Đánh giá',
@@ -37,16 +36,6 @@ const entryStyle: CSSProperties = {
   gap: '0.25rem',
 };
 const textStyle: CSSProperties = { margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
-
-export function failureText(error: unknown): string {
-  if (error instanceof ApiFailure) {
-    if (error.status === 404) return 'Không tìm thấy ticket hoặc bạn không có quyền xem.';
-    if (error.kind === 'transport') return 'Mất kết nối tới máy chủ.';
-    if (error.kind === 'shape') return 'Máy chủ trả dữ liệu không đúng định dạng.';
-    return `Máy chủ báo lỗi (${error.code}).`;
-  }
-  return 'Đã có lỗi không xác định.';
-}
 
 function Entry({ entry }: { entry: TimelineEntry }) {
   const heading = entry.source === 'comment' ? 'Bình luận' : `Quyết định · ${decisionLabels[entry.kind]}`;

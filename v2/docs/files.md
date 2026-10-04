@@ -397,11 +397,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/tickets/board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/create-request-state.ts` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/create-request.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/detail.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/dialog.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
 | `web/src/tickets/history.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/list.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/queries.ts` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/requests.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
@@ -409,14 +412,17 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/compose.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/composer-dom.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/create-request.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/docs-links.test.ts` | [web-docs](flows/web-docs.md) (test) |
 | `web/test/docs-space-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/ticket-detail-dom.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |

@@ -1,15 +1,15 @@
 /**
  * Ticket list view plus the filter bar and pagination shared with the board. Both views read the same
  * `useTicketList(client, filters)` query, so they show the same rows and revisions. Filters are exactly the
- * producer's (`projectId`, `status`, `kind`, `rootId`); the caller keeps them in the URL so switching views
+ * producer's (`projectId`, `status`, `kind`, `level`, `rootId`); the caller keeps them in the URL so switching views
  * preserves them. Pages load one at a time on “Tải thêm” until `nextCursor` is null.
  */
 import type { CSSProperties } from 'react';
 import { useRuntime } from '../app-runtime.ts';
 import type { Ticket } from '../contracts/tickets.ts';
+import { CreateRequestAction } from './create-request.tsx';
 import { StatusBadge } from './detail.tsx';
-import { failureText } from './history.tsx';
-import { parseTicketFilters, type TicketFilters, useTicketList } from './queries.ts';
+import { failureText, parseTicketFilters, type TicketFilters, useTicketList } from './queries.ts';
 import { kindLabels, levelLabels, statusLabels, statusOrder } from './status.ts';
 
 export type TicketViewProps = {
@@ -39,7 +39,11 @@ const openStyle: CSSProperties = {
 export function TicketFilterBar({
   filters,
   onFiltersChange,
-}: Pick<TicketViewProps, 'filters' | 'onFiltersChange'>) {
+  levelFixed = false,
+}: Pick<TicketViewProps, 'filters' | 'onFiltersChange'> & {
+  /** The request view always reads `level=request`, so it hides the level choice. */
+  levelFixed?: boolean;
+}) {
   const update = (patch: Partial<Record<keyof TicketFilters, string>>) =>
     onFiltersChange(parseTicketFilters({ ...filters, ...patch }));
   return (
@@ -66,6 +70,19 @@ export function TicketFilterBar({
           ))}
         </select>
       </label>
+      {!levelFixed && (
+        <label style={{ display: 'grid', gap: '0.25rem' }}>
+          Cấp
+          <select value={filters.level ?? ''} onChange={(event) => update({ level: event.target.value })}>
+            <option value="">Tất cả</option>
+            {(Object.keys(levelLabels) as Ticket['level'][]).map((level) => (
+              <option key={level} value={level}>
+                {levelLabels[level]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {filters.rootId && (
         <button type="button" style={buttonStyle} onClick={() => update({ rootId: '' })}>
           Bỏ lọc theo yêu cầu gốc
@@ -117,6 +134,9 @@ export function TicketList({ filters, onFiltersChange, onOpenTicket }: TicketVie
       tabIndex={-1}
       style={{ display: 'grid', gap: '1rem', minWidth: 0 }}
     >
+      <div>
+        <CreateRequestAction projectId={filters.projectId} onOpenTicket={onOpenTicket} />
+      </div>
       <TicketFilterBar filters={filters} onFiltersChange={onFiltersChange} />
       {list.tickets.length > 0 && (
         <div style={{ overflowX: 'auto' }}>

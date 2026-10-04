@@ -535,8 +535,14 @@ flows:
       - web/src/tickets/history.tsx
       - web/src/tickets/queries.ts
       - web/src/tickets/status.ts
+      - web/src/tickets/requests.tsx
+      - web/src/tickets/create-request.tsx
+      - web/src/tickets/create-request-state.ts
     tests:
       - web/test/tickets.test.ts
+      - web/test/create-request.test.ts
+      - web/test/ticket-detail-dom.test.ts
+      - web/test/support/dom-events.ts
       - web/e2e/tickets.spec.ts
   web-attachments:
     title: Composer chung và tệp đính kèm web Crew v2

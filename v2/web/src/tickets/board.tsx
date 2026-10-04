@@ -4,6 +4,7 @@
  */
 import type { CSSProperties } from 'react';
 import { useRuntime } from '../app-runtime.ts';
+import { CreateRequestAction } from './create-request.tsx';
 import { TicketFilterBar, TicketPagination, type TicketViewProps } from './list.tsx';
 import { useTicketList } from './queries.ts';
 import { groupByStatus, kindLabels, levelLabels, statusIcons, statusLabels, statusOrder } from './status.ts';
@@ -48,6 +49,9 @@ export function TicketBoard({ filters, onFiltersChange, onOpenTicket }: TicketVi
       tabIndex={-1}
       style={{ display: 'grid', gap: '1rem', minWidth: 0 }}
     >
+      <div>
+        <CreateRequestAction projectId={filters.projectId} onOpenTicket={onOpenTicket} />
+      </div>
       <TicketFilterBar filters={filters} onFiltersChange={onFiltersChange} />
       <div style={boardStyle}>
         {statusOrder.map((status) => (

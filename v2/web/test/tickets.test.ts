@@ -7,11 +7,14 @@ import { queryKeys } from '../src/lib/query-keys.ts';
 import {
   actorLabel,
   buildLegacyTimeline,
+  failureText,
   fetchAllPages,
   fetchTicketPage,
   formatTime,
   historyPageLimit,
+  historyQueryOptions,
   parseTicketFilters,
+  requestListFilters,
   ticketListOptions,
   ticketListPath,
   ticketQueryOptions,
@@ -25,6 +28,7 @@ import {
   statusIcons,
   statusLabels,
   statusOrder,
+  waitNotice,
 } from '../src/tickets/status.ts';
 
 const projectId = '00000000-0000-4000-8000-0000000000aa';
@@ -180,9 +184,12 @@ test('parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị
       q: 'abc',
       cursor: id(2),
     }),
-    { projectId, status: 'needs_input', kind: 'research', rootId: id(1) },
+    { projectId, status: 'needs_input', kind: 'research', level: 'request', rootId: id(1) },
   );
-  assert.deepEqual(parseTicketFilters({ projectId: 'không-phải-uuid', status: 'blocked', kind: 7 }), {});
+  assert.deepEqual(
+    parseTicketFilters({ projectId: 'không-phải-uuid', status: 'blocked', kind: 7, level: 'epic' }),
+    {},
+  );
   assert.deepEqual(parseTicketFilters(null), {});
 });
 
@@ -333,4 +340,76 @@ test('pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì
   assert.equal(pickReturnFocus([lostTrigger, container, main]), container);
   assert.equal(pickReturnFocus([lostTrigger, null, main]), main);
   assert.equal(pickReturnFocus([lostTrigger, null]), null);
+});
+
+test('ticketListPath gửi filter level của producer cho danh sách yêu cầu gốc', () => {
+  assert.equal(
+    ticketListPath({ projectId, level: 'request' }, null),
+    `/v2/tickets?projectId=${projectId}&level=request&limit=50`,
+  );
+});
+
+test('ticketId chữ hoa được chuẩn hóa chữ thường cho query key, path và revision guard', async () => {
+  const lower = id(0xabc);
+  const upper = lower.toUpperCase();
+  const cache = new QueryClient();
+  cache.setQueryData(queryKeys.ticket(lower), ticket({ id: lower, revision: 9, status: 'running' }));
+  const fake = fakeClient(() => ticket({ id: lower, revision: 2, status: 'pending' }));
+  const options = ticketQueryOptions(fake.client, cache, upper);
+  assert.deepEqual(options.queryKey, queryKeys.ticket(lower));
+  const signal = new AbortController().signal;
+  assert.equal((await options.queryFn({ signal })).revision, 9, 'response cũ không ghi đè cache chữ thường');
+  assert.deepEqual(fake.paths, [`/v2/tickets/${lower}`]);
+  const comments = historyQueryOptions(fake.client, upper, 'comment');
+  const decisions = historyQueryOptions(fake.client, upper, 'decision');
+  assert.deepEqual(comments.queryKey, queryKeys.comments(lower));
+  assert.deepEqual(decisions.queryKey, queryKeys.decisions(lower));
+});
+
+test('historyQueryOptions đọc đúng collection bằng ID chữ thường', async () => {
+  const lower = id(0xdef);
+  const fake = fakeClient(() => ({ items: [], nextCursor: null }));
+  const signal = new AbortController().signal;
+  await historyQueryOptions(fake.client, lower.toUpperCase(), 'decision').queryFn({ signal });
+  assert.deepEqual(fake.paths, [`/v2/tickets/${lower}/decisions?limit=${historyPageLimit}`]);
+});
+
+test('failureText tách lỗi phía trình duyệt, hủy tải và lỗi máy chủ', () => {
+  assert.equal(
+    failureText(new ApiFailure(null, 'TICKET_ID_INVALID', 'local')),
+    'Đường dẫn ticket không hợp lệ.',
+  );
+  assert.doesNotMatch(failureText(new ApiFailure(null, 'CURSOR_INVALID', 'local')), /Máy chủ/);
+  assert.doesNotMatch(failureText(new ApiFailure(null, 'ABORTED', 'aborted')), /Máy chủ/);
+  assert.match(failureText(new ApiFailure(null, 'ABORTED', 'aborted')), /hủy/);
+  assert.equal(failureText(new ApiFailure(500, 'INTERNAL', 'http')), 'Máy chủ báo lỗi (INTERNAL).');
+  assert.equal(
+    failureText(new ApiFailure(404, 'NOT_FOUND', 'http')),
+    'Không tìm thấy ticket hoặc bạn không có quyền xem.',
+  );
+  assert.equal(failureText(new ApiFailure(null, 'X', 'transport')), 'Mất kết nối tới máy chủ.');
+});
+
+test('waitNotice hiện waitReason ở mọi trạng thái, chỉ nói “chờ bạn” khi needs_input', () => {
+  const running = waitNotice('running', 'final_result_pending');
+  assert.ok(running, 'final_result_pending khi đang chạy vẫn hiện');
+  assert.match(running, /^Lý do chờ: /);
+  assert.doesNotMatch(running, /chờ bạn/i);
+  const needs = waitNotice('needs_input', 'repair_limit');
+  assert.match(needs ?? '', /Đã sửa đủ 5 vòng/);
+  assert.match(needs ?? '', /^Đang chờ bạn/);
+  const odd = waitNotice('needs_input', 'final_result_pending');
+  assert.doesNotMatch(odd ?? '', /Đang chờ bạn: Đang chờ/, 'không tự mâu thuẫn');
+  assert.match(waitNotice('needs_input', null) ?? '', /chưa ghi lý do/);
+  assert.match(waitNotice('paused', 'ma_la') ?? '', /ma_la/);
+  assert.equal(waitNotice('ready', null), null);
+});
+
+test('requestListFilters ép level request cho view yêu cầu, giữ filter producer khác', () => {
+  assert.deepEqual(requestListFilters({ projectId, status: 'done', level: 'step' }), {
+    projectId,
+    status: 'done',
+    level: 'request',
+  });
+  assert.deepEqual(requestListFilters({}), { level: 'request' });
 });

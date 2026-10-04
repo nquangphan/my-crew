@@ -82,13 +82,24 @@ export function pickReturnFocus<T extends Focusable>(candidates: readonly (T | n
   return candidates.find((candidate): candidate is T => candidate?.isConnected === true) ?? null;
 }
 
+/** Codes the producer writes: `server/src/tickets/repair.ts:54`, `server/src/execution/attempts.ts:489`. */
 const waitReasonLabels: Readonly<Record<string, string>> = {
   repair_limit: 'Đã sửa đủ 5 vòng nhưng vẫn chưa đạt, cần bạn quyết định.',
-  final_result_pending: 'Đang chờ máy xác nhận kết quả cuối.',
+  final_result_pending: 'Máy chưa xác nhận kết quả cuối.',
 };
 
 /** Label for the producer's `waitReason` code; an unknown code is shown verbatim, never reinterpreted. */
-export function waitReasonLabel(reason: string | null): string {
-  if (reason === null) return 'Máy chủ chưa ghi lý do.';
-  return waitReasonLabels[reason] ?? `Lý do từ máy chủ: ${reason}`;
+export function waitReasonLabel(reason: string): string {
+  return waitReasonLabels[reason] ?? `mã từ máy chủ “${reason}”.`;
+}
+
+/**
+ * Wait notice for the detail view. `waitReason` is shown whenever the producer set it, whatever the status
+ * (`final_result_pending` is written without moving the ticket to `needs_input`); “Đang chờ bạn” is said
+ * only for `needs_input`, and the reason is introduced neutrally so the two never contradict each other.
+ */
+export function waitNotice(status: TicketStatus, reason: string | null): string | null {
+  const why = reason === null ? null : `Lý do chờ: ${waitReasonLabel(reason)}`;
+  if (status === 'needs_input') return `Đang chờ bạn. ${why ?? 'Máy chủ chưa ghi lý do.'}`;
+  return why;
 }

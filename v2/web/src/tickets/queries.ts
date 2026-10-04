@@ -7,6 +7,7 @@
 import { type QueryClient, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { type Actor, isUuid } from '../contracts/http.ts';
+import { decodeProjectPage, type Project } from '../contracts/machines.ts';
 import {
   type Comment,
   type Decision,
@@ -21,18 +22,20 @@ import {
   type TicketPage,
   type TicketStatus,
   ticketKind,
+  ticketLevel,
   ticketStatus,
 } from '../contracts/tickets.ts';
 import { ApiFailure, getDecoded, type OwnerClient } from '../lib/api.ts';
 import { queryKeys } from '../lib/query-keys.ts';
 import { mergeTicketPages } from './status.ts';
 
-/** Exactly the filters accepted by GET `/v2/tickets` (`v2/server/src/tickets/routes.ts:199`). */
+/** Exactly the filters accepted by GET `/v2/tickets` (`v2/server/src/tickets/routes.ts:200-240`). */
 export type TicketFilters = {
   projectId?: string;
   status?: TicketStatus;
   kind?: Ticket['kind'];
   rootId?: string;
+  level?: Ticket['level'];
 };
 export const ticketListPageLimit = 50;
 /** Producer maximum page size for comments/decisions (`routes.ts:150`). */
@@ -56,8 +59,23 @@ export function parseTicketFilters(search: unknown): TicketFilters {
   if (isUuid(source.projectId)) filters.projectId = source.projectId.toLowerCase();
   if (accepts(ticketStatus, source.status)) filters.status = source.status;
   if (accepts(ticketKind, source.kind)) filters.kind = source.kind;
+  if (accepts(ticketLevel, source.level)) filters.level = source.level;
   if (isUuid(source.rootId)) filters.rootId = source.rootId.toLowerCase();
   return filters;
+}
+
+/** Request view: the producer's `level=request` filter, other supported filters kept. */
+export function requestListFilters(filters: TicketFilters): TicketFilters {
+  return parseTicketFilters({ ...filters, level: 'request' });
+}
+
+/**
+ * Canonical ticket ID: the server and the event journal use lower-case UUIDs, so query keys, paths and the
+ * revision guard must too (a deep link may carry upper case). A non-UUID is returned unchanged and rejected
+ * by `ticketPath` before any request.
+ */
+export function canonicalTicketId(ticketId: string): string {
+  return isUuid(ticketId) ? ticketId.toLowerCase() : ticketId;
 }
 
 function filterRecord(filters: TicketFilters): Record<string, string> {
@@ -74,7 +92,7 @@ export function ticketListPath(filters: TicketFilters, cursor: string | null): s
 
 function ticketPath(ticketId: string, suffix = ''): string {
   if (!isUuid(ticketId)) throw new ApiFailure(null, 'TICKET_ID_INVALID', 'local');
-  return `/v2/tickets/${ticketId}${suffix}`;
+  return `/v2/tickets/${ticketId.toLowerCase()}${suffix}`;
 }
 
 export function fetchTicketPage(
@@ -99,7 +117,8 @@ export function ticketListOptions(client: OwnerClient, filters: TicketFilters) {
 }
 
 /** Single ticket with a revision guard: an older response never replaces a newer cached row. */
-export function ticketQueryOptions(client: OwnerClient, cache: QueryClient, ticketId: string) {
+export function ticketQueryOptions(client: OwnerClient, cache: QueryClient, rawTicketId: string) {
+  const ticketId = canonicalTicketId(rawTicketId);
   const queryKey = queryKeys.ticket(ticketId);
   return {
     queryKey,
@@ -128,13 +147,23 @@ export async function fetchAllPages<K extends keyof HistoryItem>(
     items: HistoryItem[K][];
     nextCursor: string | null;
   };
-  const items: HistoryItem[K][] = [];
+  return readAllPages(client, path, decoder, historyPageLimit, signal);
+}
+
+async function readAllPages<T>(
+  client: OwnerClient,
+  path: string,
+  decoder: (value: unknown) => { items: T[]; nextCursor: string | null },
+  limit: number,
+  signal?: AbortSignal,
+): Promise<T[]> {
+  const items: T[] = [];
   const seen = new Set<string>();
   let cursor: string | null = null;
   for (let pageIndex = 0; pageIndex < maxHistoryPages; pageIndex++) {
     const params = new URLSearchParams();
     if (cursor) params.set('cursor', cursor);
-    params.set('limit', String(historyPageLimit));
+    params.set('limit', String(limit));
     const page = await getDecoded(client, `${path}?${params.toString()}`, decoder, signal);
     items.push(...page.items);
     if (page.nextCursor === null) return items;
@@ -220,6 +249,52 @@ export function actorLabel(actor: Actor): string {
  * Hooks take the app runtime's single `OwnerClient` (`useRuntime().client`) from the calling component, so
  * this module stays free of the app composition root.
  */
+/** Owner-visible projects (GET `/v2/projects`, `projects/routes.ts:45`), every page read. */
+export function projectsQueryOptions(client: OwnerClient) {
+  return {
+    queryKey: queryKeys.projects(),
+    queryFn: ({ signal }: { signal: AbortSignal }): Promise<Project[]> =>
+      readAllPages(client, '/v2/projects', decodeProjectPage, 100, signal),
+    retry: false as const,
+  };
+}
+
+/** Comments or decisions of one ticket, every page, under the canonical (lower-case) ticket key. */
+export function historyQueryOptions<K extends keyof HistoryItem>(
+  client: OwnerClient,
+  rawTicketId: string,
+  kind: K,
+) {
+  const ticketId = canonicalTicketId(rawTicketId);
+  return {
+    queryKey: kind === 'comment' ? queryKeys.comments(ticketId) : queryKeys.decisions(ticketId),
+    queryFn: ({ signal }: { signal: AbortSignal }): Promise<HistoryItem[K][]> =>
+      fetchAllPages(
+        client,
+        ticketPath(ticketId, kind === 'comment' ? '/comments' : '/decisions'),
+        kind,
+        signal,
+      ),
+    retry: false as const,
+  };
+}
+
+/** Owner-facing text for a read failure; local and aborted failures are never blamed on the server. */
+export function failureText(error: unknown): string {
+  if (error instanceof ApiFailure) {
+    if (error.kind === 'local')
+      return error.code === 'TICKET_ID_INVALID'
+        ? 'Đường dẫn ticket không hợp lệ.'
+        : `Trình duyệt không gửi được yêu cầu này (${error.code}).`;
+    if (error.kind === 'aborted') return 'Đã hủy tải dữ liệu.';
+    if (error.status === 404) return 'Không tìm thấy ticket hoặc bạn không có quyền xem.';
+    if (error.kind === 'transport') return 'Mất kết nối tới máy chủ.';
+    if (error.kind === 'shape') return 'Máy chủ trả dữ liệu không đúng định dạng.';
+    return `Máy chủ báo lỗi (${error.code}).`;
+  }
+  return 'Đã có lỗi không xác định.';
+}
+
 export function useTicket(client: OwnerClient, ticketId: string) {
   const cache = useQueryClient();
   return useQuery(ticketQueryOptions(client, cache, ticketId));
@@ -235,16 +310,8 @@ export function useTicketList(client: OwnerClient, filters: TicketFilters) {
 }
 
 export function useTicketHistory(client: OwnerClient, ticketId: string) {
-  const comments = useQuery({
-    queryKey: queryKeys.comments(ticketId),
-    queryFn: ({ signal }) => fetchAllPages(client, ticketPath(ticketId, '/comments'), 'comment', signal),
-    retry: false,
-  });
-  const decisions = useQuery({
-    queryKey: queryKeys.decisions(ticketId),
-    queryFn: ({ signal }) => fetchAllPages(client, ticketPath(ticketId, '/decisions'), 'decision', signal),
-    retry: false,
-  });
+  const comments = useQuery(historyQueryOptions(client, ticketId, 'comment'));
+  const decisions = useQuery(historyQueryOptions(client, ticketId, 'decision'));
   const entries = useMemo(
     () => (comments.data && decisions.data ? buildLegacyTimeline(comments.data, decisions.data) : undefined),
     [comments.data, decisions.data],
@@ -258,7 +325,8 @@ export function useTicketHistory(client: OwnerClient, ticketId: string) {
 }
 
 /** Whole-root graph (`/v2/tickets/:rootId/graph`); used here only to list direct children. */
-export function useTicketGraph(client: OwnerClient, rootId: string | undefined) {
+export function useTicketGraph(client: OwnerClient, rawRootId: string | undefined) {
+  const rootId = rawRootId === undefined ? undefined : canonicalTicketId(rawRootId);
   return useQuery({
     queryKey: queryKeys.graph(rootId ?? ''),
     queryFn: ({ signal }): Promise<TicketGraph> =>

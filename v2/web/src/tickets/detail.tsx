@@ -1,15 +1,20 @@
 /**
  * Shared ticket detail used by the ticket page and by the ticket dialog. It renders only producer fields of
- * the Ticket DTO plus the legacy history. Machine, model, difficulty, current attempt and evidence wait for
- * the typed G1/G3 projection; attachments wait for G2 and ticket→docs links for G1. Missing data is shown
- * as missing, never derived from `criteria` keys or prose.
+ * the Ticket DTO, the legacy history, the shared Task5 attachment list and — for open tickets — a comment
+ * composer (the shared `AttachmentComposer`). Machine, model, difficulty, current attempt and evidence wait
+ * for the typed G1/G3 projection; ticket→docs links are not read yet. Missing data is shown as missing,
+ * never derived from `criteria` keys or prose.
  */
 import * as Dialog from '@radix-ui/react-dialog';
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
 import { useRuntime } from '../app-runtime.ts';
+import { TicketAttachments } from '../attachments/preview.tsx';
+import { AttachmentComposer } from '../compose/composer.tsx';
+import type { ComposeDraft, ComposeSubmission } from '../compose/state.ts';
 import type { Ticket } from '../contracts/tickets.ts';
-import { failureText, TicketHistory } from './history.tsx';
-import { useTicket, useTicketGraph } from './queries.ts';
+import { formDrafts } from './create-request-state.ts';
+import { TicketHistory } from './history.tsx';
+import { failureText, useTicket, useTicketGraph } from './queries.ts';
 import {
   isTerminal,
   kindLabels,
@@ -17,7 +22,7 @@ import {
   statusIcons,
   statusLabels,
   statusOrder,
-  waitReasonLabel,
+  waitNotice,
 } from './status.ts';
 
 export type TicketDetailProps = { ticketId: string; presentation: 'page' | 'dialog' };
@@ -106,8 +111,54 @@ function ChildTickets({ ticket }: { ticket: Ticket }) {
   );
 }
 
+/**
+ * New comment through the shared Task5 composer. The text draft is kept per ticket for the session, so
+ * closing the dialog or a realtime refetch never loses it; only “Bỏ bản nháp bình luận” or a confirmed
+ * comment clears it.
+ */
+function CommentComposer({ ticket }: { ticket: Ticket }) {
+  const drafts = formDrafts(useRuntime().session);
+  const [text, setText] = useState(() => drafts.comments.get(ticket.id) ?? '');
+  const [state, setState] = useState<ComposeDraft['state']>('editing');
+  const submission = useMemo<ComposeSubmission>(
+    () => ({
+      kind: 'comment',
+      target: { purpose: 'comment', projectId: ticket.projectId, ticketId: ticket.id },
+      text,
+    }),
+    [ticket.projectId, ticket.id, text],
+  );
+  const write = (next: string) => {
+    if (next === '') drafts.comments.delete(ticket.id);
+    else drafts.comments.set(ticket.id, next);
+    setText(next);
+  };
+  return (
+    <section aria-labelledby={`comment-${ticket.id}`} style={{ display: 'grid', gap: '0.5rem' }}>
+      <h2 id={`comment-${ticket.id}`}>Bình luận mới</h2>
+      <AttachmentComposer
+        draftKey={`comment:${ticket.id}`}
+        submission={submission}
+        onSubmissionChange={(next) => {
+          if (next.kind === 'comment') write(next.text);
+        }}
+        onStateChange={setState}
+        onAccepted={() => write('')}
+      />
+      {state === 'editing' && text !== '' && (
+        <div>
+          <button type="button" onClick={() => write('')}>
+            Bỏ bản nháp bình luận
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
-  const query = useTicket(useRuntime().client, ticketId);
+  const runtime = useRuntime();
+  const query = useTicket(runtime.client, ticketId);
   if (!query.data) {
     const failed = query.error !== null;
     return (
@@ -129,6 +180,7 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
   }
   const ticket = query.data;
   const pin = ticket.workflowPin;
+  const wait = waitNotice(ticket.status, ticket.waitReason);
   return (
     <article
       style={stackStyle}
@@ -160,9 +212,9 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
           Ticket đã kết thúc ({statusLabels[ticket.status]}), chỉ xem.
         </p>
       )}
-      {ticket.status === 'needs_input' && (
+      {wait !== null && (
         <p role="note" style={noticeStyle}>
-          Đang chờ bạn: {waitReasonLabel(ticket.waitReason)}
+          {wait}
         </p>
       )}
       <section aria-labelledby={`description-${ticket.id}`}>
@@ -204,11 +256,16 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
       <section aria-labelledby={`related-${ticket.id}`}>
         <h2 id={`related-${ticket.id}`}>Tệp và tài liệu liên quan</h2>
         <dl style={gridStyle}>
-          <Field label="Tệp đính kèm">Chưa hiển thị được — máy chủ chưa mở API tệp đính kèm.</Field>
           <Field label="Tài liệu liên quan">{missing}</Field>
         </dl>
+        <TicketAttachments
+          ticketId={ticket.id}
+          client={runtime.client}
+          onUnauthorized={() => runtime.session.expire()}
+        />
       </section>
       <TicketHistory ticketId={ticket.id} />
+      {!isTerminal(ticket.status) && <CommentComposer ticket={ticket} />}
     </article>
   );
 }
