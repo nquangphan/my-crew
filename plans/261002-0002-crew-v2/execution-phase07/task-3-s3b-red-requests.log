@@ -1,0 +1,27 @@
+TELEMETRY {"at": "2026-10-04T05:06:57.105612+00:00", "pageSize": 16384, "pages": {"Pages free": 9178, "Pages inactive": 307222, "Pages speculative": 4293}, "availableBytes": 5254234112, "availableGiB": 4.893, "pressure": 1, "cpuIdlePercent": 83.56, "cpu": "5.13% user, 11.30% sys, 83.56% idle", "diskFreeBytes": 806392709120, "diskFreeGiB": 751.012, "heavyEligible": true}
+CMD perl -e alarm 300; exec @ARGV node --test --test-name-pattern=danh sách yêu cầu|tệp đính kèm chung test/ticket-detail-dom.test.ts
+✖ danh sách yêu cầu: đọc level=request của producer, chỉ hiện gốc thật, chọn yêu cầu mở ticket, có “Tạo yêu cầu” (257.602167ms)
+✖ chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng ticket (331.440958ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1142.070667
+
+✖ failing tests:
+
+test at test/ticket-detail-dom.test.ts:208:1
+✖ danh sách yêu cầu: đọc level=request của producer, chỉ hiện gốc thật, chọn yêu cầu mở ticket, có “Tạo yêu cầu” (257.602167ms)
+  Error: TIMEOUT:roots
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:117:5
+
+test at test/ticket-detail-dom.test.ts:256:1
+✖ chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng ticket (331.440958ms)
+  Error: TIMEOUT:attachment listed
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:117:5
+EXIT 1

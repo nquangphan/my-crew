@@ -1,0 +1,10 @@
+TELEMETRY {"at": "2026-10-04T05:08:38.035753+00:00", "pageSize": 16384, "pages": {"Pages free": 12067, "Pages inactive": 300417, "Pages speculative": 12321}, "availableBytes": 5321605120, "availableGiB": 4.956, "pressure": 1, "cpuIdlePercent": 82.75, "cpu": "5.86% user, 11.37% sys, 82.75% idle", "diskFreeBytes": 806191202304, "diskFreeGiB": 750.824, "heavyEligible": true}
+CMD /private/tmp/claude-501/-Volumes-CORSAIR-Projects-my-crew/a6341b76-fea8-48de-862a-50ed6bc4325e/scratchpad/mutate.sh
+== control
+ℹ pass 1
+ℹ fail 0
+== M1 mutation: canonicalTicketId identity + path keeps case
+2
+ℹ pass 0
+ℹ fail 1
+EXIT 0

@@ -1,0 +1,67 @@
+TELEMETRY {"at": "2026-10-04T05:08:17.465619+00:00", "pageSize": 16384, "pages": {"Pages free": 45719, "Pages inactive": 278256, "Pages speculative": 12384}, "availableBytes": 5510905856, "availableGiB": 5.132, "pressure": 1, "cpuIdlePercent": 80.68, "cpu": "5.86% user, 13.44% sys, 80.68% idle", "diskFreeBytes": 806191239168, "diskFreeGiB": 750.824, "heavyEligible": true}
+CMD perl -e alarm 300; exec @ARGV node --test test/tickets.test.ts test/create-request.test.ts test/ticket-detail-dom.test.ts
+✔ makeRequestSubmission map chính xác field form sang CreateTicket và target ticket (1.789708ms)
+✔ defaultRequestFields: Superpowers mặc định, loại code, giữ project được chọn (0.098417ms)
+✔ workflowOptions: Superpowers đứng đầu là mặc định, BMAD ghi rõ chỉ có định nghĩa cho Claude Code (14.675875ms)
+✔ requestFormLocked: chỉ sửa field khi composer đang editing (0.116ms)
+✔ formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session (0.729292ms)
+✔ form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng body, một ticket và mở ticket.id trả về (113.657833ms)
+✔ chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp (37.449375ms)
+✔ mất response rồi hết phiên: field bị khóa, đăng nhập lại gửi lại đúng key/body, một ticket (35.890667ms)
+✔ nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa (75.2525ms)
+✔ draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại; chỉ “Bỏ bản nháp bình luận” mới xóa (152.222292ms)
+✔ gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại (23.885291ms)
+✔ ticket đã kết thúc chỉ xem: không có composer bình luận (9.957ms)
+✖ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (13.71275ms)
+✔ danh sách yêu cầu: đọc level=request của producer, chỉ hiện gốc thật, chọn yêu cầu mở ticket, có “Tạo yêu cầu” (15.450167ms)
+✔ chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng ticket (12.101458ms)
+✔ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (0.837583ms)
+✔ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.19025ms)
+✔ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.098875ms)
+✔ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.089125ms)
+✔ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.239875ms)
+✔ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.288625ms)
+✔ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.345459ms)
+✔ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.0895ms)
+✔ fetchAllPages đọc hết trang theo cursor đến null (0.231875ms)
+✔ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.146583ms)
+✔ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.191833ms)
+✔ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.64975ms)
+✔ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.085083ms)
+✔ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.069458ms)
+✔ actorLabel phân biệt chủ dự án và máy (0.045125ms)
+✔ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.061334ms)
+✔ ticketListPath gửi filter level của producer cho danh sách yêu cầu gốc (0.055542ms)
+✔ ticketId chữ hoa được chuẩn hóa chữ thường cho query key, path và revision guard (0.121291ms)
+✔ historyQueryOptions đọc đúng collection bằng ID chữ thường (0.062875ms)
+✔ failureText tách lỗi phía trình duyệt, hủy tải và lỗi máy chủ (0.139042ms)
+✔ waitNotice hiện waitReason ở mọi trạng thái, chỉ nói “chờ bạn” khi needs_input (0.08225ms)
+✔ requestListFilters ép level request cho view yêu cầu, giữ filter producer khác (0.066ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 36
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 920.325042
+
+✖ failing tests:
+
+test at test/ticket-detail-dom.test.ts:197:1
+✖ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (13.71275ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(reads.every((url) => !url.includes(ticketA.toUpperCase())))
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:204:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+EXIT 1

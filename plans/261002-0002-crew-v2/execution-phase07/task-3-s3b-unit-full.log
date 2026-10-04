@@ -1,0 +1,15 @@
+TELEMETRY {"at": "2026-10-04T05:17:49.075703+00:00", "pageSize": 16384, "pages": {"Pages free": 33910, "Pages inactive": 304962, "Pages speculative": 3995}, "availableBytes": 5617532928, "availableGiB": 5.232, "pressure": 1, "cpuIdlePercent": 83.97, "cpu": "4.87% user, 11.14% sys, 83.97% idle", "diskFreeBytes": 805989396480, "diskFreeGiB": 750.636, "heavyEligible": true}
+CMD /private/tmp/claude-501/-Volumes-CORSAIR-Projects-my-crew/a6341b76-fea8-48de-862a-50ed6bc4325e/scratchpad/web-s3b/s3b-full.sh
+== unit: test/app-wiring.test.ts test/auth-recovery.test.ts test/client.test.ts test/compose-submit.test.ts test/compose.test.ts test/composer-dom.test.ts test/create-request.test.ts test/docs-links.test.ts test/docs-space-dom.test.ts test/docs-ticket-links-dom.test.ts test/events.test.ts test/ticket-detail-dom.test.ts test/ticket-routes.test.ts test/tickets.test.ts test/workspace.test.ts
+ℹ tests 189
+ℹ pass 189
+ℹ fail 0
+ℹ cancelled 0
+== tsc
+tsc exit=0
+== vite build
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/tmp.1R7fmD7nA9/assets/index-q11g9L5s.js             497.38 kB │ gzip: 157.29 kB
+
+✓ built in 102ms
+vite exit=0
+EXIT 0

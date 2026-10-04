@@ -1,0 +1,3 @@
+TELEMETRY {"at": "2026-10-04T05:08:45.709803+00:00", "pageSize": 16384, "pages": {"Pages free": 16294, "Pages inactive": 303701, "Pages speculative": 4672}, "availableBytes": 5319344128, "availableGiB": 4.954, "pressure": 1, "cpuIdlePercent": 84.2, "cpu": "5.55% user, 10.41% sys, 84.2% idle", "diskFreeBytes": 806191206400, "diskFreeGiB": 750.824, "heavyEligible": true}
+CMD perl -e alarm 400; exec @ARGV ./node_modules/.bin/tsc --noEmit
+EXIT 0

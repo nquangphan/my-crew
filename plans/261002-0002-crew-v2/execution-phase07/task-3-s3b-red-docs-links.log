@@ -1,0 +1,20 @@
+TELEMETRY {"at": "2026-10-04T05:17:36.032450+00:00", "pageSize": 16384, "pages": {"Pages free": 41042, "Pages inactive": 303940, "Pages speculative": 1909}, "availableBytes": 5683462144, "availableGiB": 5.293, "pressure": 1, "cpuIdlePercent": 80.47, "cpu": "7.87% user, 11.64% sys, 80.47% idle", "diskFreeBytes": 805989388288, "diskFreeGiB": 750.636, "heavyEligible": true}
+CMD perl -e alarm 300; exec @ARGV node --test --test-name-pattern=editor liên kết test/ticket-detail-dom.test.ts
+✖ chi tiết trong hộp thoại nhúng editor liên kết tài liệu của ticket thay cho dòng “chưa có dữ liệu” (472.776584ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1144.538833
+
+✖ failing tests:
+
+test at test/ticket-detail-dom.test.ts:283:1
+✖ chi tiết trong hộp thoại nhúng editor liên kết tài liệu của ticket thay cho dòng “chưa có dữ liệu” (472.776584ms)
+  Error: TIMEOUT:editor
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:118:5
+EXIT 1

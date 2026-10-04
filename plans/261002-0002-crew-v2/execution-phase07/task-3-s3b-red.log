@@ -1,0 +1,561 @@
+TELEMETRY {"at": "2026-10-04T05:00:16.279825+00:00", "pageSize": 16384, "pages": {"Pages free": 5994, "Pages inactive": 282280, "Pages speculative": 1294}, "availableBytes": 4744282112, "availableGiB": 4.418, "pressure": 1, "cpuIdlePercent": 74.63, "cpu": "7.78% user, 17.57% sys, 74.63% idle", "diskFreeBytes": 806586073088, "diskFreeGiB": 751.192, "heavyEligible": true}
+CMD perl -e alarm 300; exec @ARGV node --test test/tickets.test.ts test/create-request.test.ts test/ticket-detail-dom.test.ts
+✖ makeRequestSubmission map chính xác field form sang CreateTicket và target ticket (1.309458ms)
+✖ defaultRequestFields: Superpowers mặc định, loại code, giữ project được chọn (0.125292ms)
+✖ workflowOptions: Superpowers đứng đầu là mặc định, BMAD ghi rõ chỉ có định nghĩa cho Claude Code (1.124042ms)
+✖ requestFormLocked: chỉ sửa field khi composer đang editing (0.230916ms)
+✖ formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session (0.225458ms)
+✖ form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng body, một ticket và mở ticket.id trả về (21.052584ms)
+✖ chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp (5.889334ms)
+✖ mất response rồi hết phiên: field bị khóa, đăng nhập lại gửi lại đúng key/body, một ticket (1.468125ms)
+✖ nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa (67.924ms)
+✖ draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại; chỉ “Bỏ bản nháp bình luận” mới xóa (118.405958ms)
+✖ gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại (10.285833ms)
+✖ ticket đã kết thúc chỉ xem: không có composer bình luận (7.506ms)
+✖ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (10.95575ms)
+✔ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (0.963958ms)
+✔ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.1815ms)
+✔ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.107709ms)
+✔ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.090625ms)
+✖ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.70525ms)
+✔ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.310416ms)
+✔ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.327042ms)
+✔ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.08875ms)
+✔ fetchAllPages đọc hết trang theo cursor đến null (0.22725ms)
+✔ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.148583ms)
+✔ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.281458ms)
+✔ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.640334ms)
+✔ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.092375ms)
+✔ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.094667ms)
+✔ actorLabel phân biệt chủ dự án và máy (0.057459ms)
+✔ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.06725ms)
+✖ ticketListPath gửi filter level của producer cho danh sách yêu cầu gốc (0.198167ms)
+✖ ticketId chữ hoa được chuẩn hóa chữ thường cho query key, path và revision guard (0.180833ms)
+✖ historyQueryOptions đọc đúng collection bằng ID chữ thường (0.144042ms)
+✖ failureText tách lỗi phía trình duyệt, hủy tải và lỗi máy chủ (0.114333ms)
+✖ waitNotice hiện waitReason ở mọi trạng thái, chỉ nói “chờ bạn” khi needs_input (0.069167ms)
+✖ requestListFilters ép level request cho view yêu cầu, giữ filter producer khác (0.11025ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 15
+ℹ fail 20
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 934.797
+
+✖ failing tests:
+
+test at test/create-request.test.ts:30:1
+✖ makeRequestSubmission map chính xác field form sang CreateTicket và target ticket (1.309458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      kind: 'ticket',
+      target: {
+        projectId: '11111111-1111-4111-8111-111111111111',
+        purpose: 'ticket',
+  ...
+      ticket: {
+  +     criteria: {},
+  -     criteria: {
+  -       workflowChoice: 'bmad'
+  -     },
+  -     deployApprovalDecisionId: null,
+        description: 'Cần so sánh ba thư viện.\nƯu tiên nhẹ.',
+        inputs: {},
+        kind: 'research',
+        level: 'request',
+  +     mandatory: false,
+  -     mandatory: true,
+        outputs: {},
+        parentId: null,
+        projectId: '11111111-1111-4111-8111-111111111111',
+        skill: null,
+        title: 'Khảo sát thư viện biểu đồ',
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:39:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { kind: 'ticket', target: { purpose: 'ticket', projectId: '11111111-1111-4111-8111-111111111111', ticketId: null }, ticket: { projectId: '11111111-1111-4111-8111-111111111111', parentId: null, level: 'request', kind: 'research', title: 'Khảo sát thư viện biểu đồ', description: 'Cần so sánh ba thư viện.\nƯu tiên nhẹ.', mandatory: false, criteria: {}, inputs: {}, outputs: {}, skill: null, workflowPin: null } },
+    expected: { kind: 'ticket', target: { purpose: 'ticket', projectId: '11111111-1111-4111-8111-111111111111', ticketId: null }, ticket: { projectId: '11111111-1111-4111-8111-111111111111', parentId: null, level: 'request', kind: 'research', title: 'Khảo sát thư viện biểu đồ', description: 'Cần so sánh ba thư viện.\nƯu tiên nhẹ.', mandatory: true, criteria: [Object], inputs: {}, outputs: {}, skill: null, workflowPin: null, deployApprovalDecisionId: null } },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:71:1
+✖ defaultRequestFields: Superpowers mặc định, loại code, giữ project được chọn (0.125292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      description: '',
+  +   kind: 'docs',
+  -   kind: 'code',
+      projectId: '11111111-1111-4111-8111-111111111111',
+      title: '',
+  +   workflowChoice: 'bmad'
+  -   workflowChoice: 'superpowers'
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:72:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { projectId: '11111111-1111-4111-8111-111111111111', kind: 'docs', title: '', description: '', workflowChoice: 'bmad' },
+    expected: { projectId: '11111111-1111-4111-8111-111111111111', kind: 'code', title: '', description: '', workflowChoice: 'superpowers' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:82:1
+✖ workflowOptions: Superpowers đứng đầu là mặc định, BMAD ghi rõ chỉ có định nghĩa cho Claude Code (1.124042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   'superpowers',
+  -   'bmad'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:83:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'superpowers', 'bmad' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:94:1
+✖ requestFormLocked: chỉ sửa field khi composer đang editing (0.230916ms)
+  AssertionError [ERR_ASSERTION]: sending
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:97:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:116:1
+✖ formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session (0.225458ms)
+  AssertionError [ERR_ASSERTION]: một kho cho một session
+  
+  FormDrafts {
+    comments: Map(0) {},
+    request: null
+  }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:119:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { request: null, comments: Map(0) {} },
+    expected: { request: null, comments: Map(0) {} },
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:241:1
+✖ form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng body, một ticket và mở ticket.id trả về (21.052584ms)
+  Error [TestingLibraryElementError]: Unable to find a label with the text of: Dự án
+  
+  Ignored nodes: comments, script, style
+  [36m<body>[39m
+    [36m<div />[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getAllByLabelText (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/queries/label-text.js:111:38)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at projectSelect (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:216:36)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:225:11
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:488:9)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:211:11
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22)
+
+test at test/create-request.test.ts:287:1
+✖ chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp (5.889334ms)
+  Error [TestingLibraryElementError]: Unable to find a label with the text of: Dự án
+  
+  Ignored nodes: comments, script, style
+  [36m<body>[39m
+    [36m<div />[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getAllByLabelText (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/queries/label-text.js:111:38)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at projectSelect (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:216:36)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:225:11
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:488:9)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:211:11
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22)
+
+test at test/create-request.test.ts:320:1
+✖ mất response rồi hết phiên: field bị khóa, đăng nhập lại gửi lại đúng key/body, một ticket (1.468125ms)
+  Error [TestingLibraryElementError]: Unable to find a label with the text of: Dự án
+  
+  Ignored nodes: comments, script, style
+  [36m<body>[39m
+    [36m<div />[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getAllByLabelText (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/queries/label-text.js:111:38)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at projectSelect (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:216:36)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:225:11
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:488:9)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:211:11
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22)
+
+test at test/create-request.test.ts:367:1
+✖ nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa (67.924ms)
+  Error [TestingLibraryElementError]: Unable to find an accessible element with the role "button" and name `/^Tạo yêu cầu$/`
+  
+  There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+  
+  Ignored nodes: comments, script, style
+  [36m<body>[39m
+    [36m<div />[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at button (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:220:41)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:381:21
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:380:9)
+
+test at test/ticket-detail-dom.test.ts:137:1
+✖ draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại; chỉ “Bỏ bản nháp bình luận” mới xóa (118.405958ms)
+  Error [AggregateError]
+      at aggregateErrors (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:625:11)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:935:40 {
+    [errors]: [
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at Proxy.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at dispatchUpdate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:341:12)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:118:7
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13),
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at HTMLDivElement.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-focus-scope@1.1.16_@types+react-dom@19.3.0_@types+react@19.3.0__@types+_91a0a1d715213a5ab8359e0114beaafa/node_modules/@radix-ui/react-focus-scope/dist/index.mjs:84:21
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16898:11)
+    ]
+  }
+
+test at test/ticket-detail-dom.test.ts:164:1
+✖ gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại (10.285833ms)
+  Error [AggregateError]
+      at aggregateErrors (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:625:11)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:935:40 {
+    [errors]: [
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at Proxy.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at dispatchUpdate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:341:12)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:118:7
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13),
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at HTMLDivElement.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-focus-scope@1.1.16_@types+react-dom@19.3.0_@types+react@19.3.0__@types+_91a0a1d715213a5ab8359e0114beaafa/node_modules/@radix-ui/react-focus-scope/dist/index.mjs:84:21
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16898:11)
+    ]
+  }
+
+test at test/ticket-detail-dom.test.ts:184:1
+✖ ticket đã kết thúc chỉ xem: không có composer bình luận (7.506ms)
+  Error [AggregateError]
+      at aggregateErrors (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:625:11)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:935:40 {
+    [errors]: [
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at Proxy.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at dispatchUpdate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:341:12)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:118:7
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13),
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at HTMLDivElement.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-focus-scope@1.1.16_@types+react-dom@19.3.0_@types+react@19.3.0__@types+_91a0a1d715213a5ab8359e0114beaafa/node_modules/@radix-ui/react-focus-scope/dist/index.mjs:84:21
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16898:11)
+    ]
+  }
+
+test at test/ticket-detail-dom.test.ts:193:1
+✖ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (10.95575ms)
+  Error [AggregateError]
+      at aggregateErrors (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:625:11)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:935:40 {
+    [errors]: [
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at Proxy.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at dispatchUpdate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:341:12)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-dismissable-layer@1.1.19_@types+react-dom@19.3.0_@types+react@19.3.0__@_c9641557e0183ada0688bd7873e8a9d9/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:118:7
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13),
+      TypeError: Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.
+          at exports.convert (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/Event.js:25:9)
+          at HTMLDivElement.dispatchEvent (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/jsdom@30.1.1/node_modules/jsdom/lib/generated/idl/EventTarget.js:235:24)
+          at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@radix-ui+react-focus-scope@1.1.16_@types+react-dom@19.3.0_@types+react@19.3.0__@types+_91a0a1d715213a5ab8359e0114beaafa/node_modules/@radix-ui/react-focus-scope/dist/index.mjs:84:21
+          at Object.react_stack_bottom_frame (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28656:20)
+          at runWithFiberInDEV (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1045:30)
+          at commitHookEffectListMount (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13748:29)
+          at commitHookPassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:13835:11)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16906:13)
+          at recursivelyTraversePassiveMountEffects (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16851:13)
+          at commitPassiveMountOnFiber (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:16898:11)
+    ]
+  }
+
+test at test/tickets.test.ts:176:1
+✖ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.70525ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      kind: 'research',
+  -   level: 'request',
+      projectId: '00000000-0000-4000-8000-0000000000aa',
+      rootId: '00000000-0000-4000-8000-000000000001',
+      status: 'needs_input'
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:177:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { projectId: '00000000-0000-4000-8000-0000000000aa', status: 'needs_input', kind: 'research', rootId: '00000000-0000-4000-8000-000000000001' },
+    expected: { projectId: '00000000-0000-4000-8000-0000000000aa', status: 'needs_input', kind: 'research', level: 'request', rootId: '00000000-0000-4000-8000-000000000001' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:345:1
+✖ ticketListPath gửi filter level của producer cho danh sách yêu cầu gốc (0.198167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '/v2/tickets?projectId=00000000-0000-4000-8000-0000000000aa&limit=50'
+  - '/v2/tickets?projectId=00000000-0000-4000-8000-0000000000aa&level=request&limit=50'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:346:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/v2/tickets?projectId=00000000-0000-4000-8000-0000000000aa&limit=50',
+    expected: '/v2/tickets?projectId=00000000-0000-4000-8000-0000000000aa&level=request&limit=50',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:352:1
+✖ ticketId chữ hoa được chuẩn hóa chữ thường cho query key, path và revision guard (0.180833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'v2',
+      'ticket',
+  +   '00000000-0000-4000-8000-000000000ABC'
+  -   '00000000-0000-4000-8000-000000000abc'
+    ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:359:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'v2', 'ticket', '00000000-0000-4000-8000-000000000ABC' ],
+    expected: [ 'v2', 'ticket', '00000000-0000-4000-8000-000000000abc' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:369:1
+✖ historyQueryOptions đọc đúng collection bằng ID chữ thường (0.144042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '/v2/tickets/00000000-0000-4000-8000-000000000DEF/decisions?limit=100'
+  -   '/v2/tickets/00000000-0000-4000-8000-000000000def/decisions?limit=100'
+    ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:374:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/v2/tickets/00000000-0000-4000-8000-000000000DEF/decisions?limit=100' ],
+    expected: [ '/v2/tickets/00000000-0000-4000-8000-000000000def/decisions?limit=100' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:377:1
+✖ failureText tách lỗi phía trình duyệt, hủy tải và lỗi máy chủ (0.114333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + ''
+  - 'Đường dẫn ticket không hợp lệ.'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:378:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: 'Đường dẫn ticket không hợp lệ.',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:393:1
+✖ waitNotice hiện waitReason ở mọi trạng thái, chỉ nói “chờ bạn” khi needs_input (0.069167ms)
+  AssertionError [ERR_ASSERTION]: final_result_pending khi đang chạy vẫn hiện
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:395:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:408:1
+✖ requestListFilters ép level request cho view yêu cầu, giữ filter producer khác (0.11025ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   level: 'step',
+  -   level: 'request',
+      projectId: '00000000-0000-4000-8000-0000000000aa',
+      status: 'done'
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:409:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { projectId: '00000000-0000-4000-8000-0000000000aa', status: 'done', level: 'step' },
+    expected: { projectId: '00000000-0000-4000-8000-0000000000aa', status: 'done', level: 'request' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+EXIT 1
