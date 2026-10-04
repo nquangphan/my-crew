@@ -133,3 +133,7 @@ Kế tiếp: P-G1a2 (readGraph một snapshot nhất quán, `tickets/dependencie
 17:45 S5a B1/B2 re-review `task-5-s5a-fix3-re-review.md`: Approved; B1 (biên tạm) và B2 ADDRESSED.
 Task 5 S5a follow-up: complete — cccbae1. B1/B2 điều kiện trước A5 đã đóng (B1 còn phụ thuộc follow-up Date header Task2).
 Task 5 S5a: minor (deferred, xử lý cùng lượt A5): C1 trong biên 5 phút file không chuyển lượt gửi dù server đã chứng minh compose đóng; C2 tombstone DELETE abandon sau logout làm discard lặp DISCARD_UNCONFIRMED vô hạn; C3 #abandonSession coi rejected khi compose có thể còn open, #discarding không timeout.
+
+18:00 P-G1a2 review `producer-g1a2-review.md`: Spec ✅, Approved; một caller production (routes.ts:256, Db không Tx), pool an toàn, RED tất định.
+Producer P-G1a2: complete — 148875a. G1a (đọc) đã đủ cho S3b/A3 trừ G1b (attempt/machine/model/evidence).
+P-G1a2: minor (deferred): hook test khớp text SQL `where root_id=` — ghi comment coupling (`ticket-graph-snapshot.test.ts:10-26`).
