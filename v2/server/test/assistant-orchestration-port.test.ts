@@ -4,9 +4,11 @@ import test from 'node:test';
 import Fastify from 'fastify';
 import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
 import type { OrchestrationAction, OrchestrationProof, TurnFence } from '../src/assistant/contracts.ts';
+import type { RunGraph, RunGraphSession } from '../src/assistant/orchestration.ts';
 import {
   createPersistedOrchestrationAuthority,
   createProjectOrchestrationPort,
+  runGraphSha256,
 } from '../src/assistant/orchestration.ts';
 import { digest } from '../src/attachments/submissions.ts';
 import { bootstrapOwner } from '../src/auth/bootstrap.ts';
@@ -50,6 +52,7 @@ async function portFixture(
   options: {
     scope?: 'root' | 'message';
     actions?: OrchestrationAction[];
+    toolNames?: string[];
     admission?: Admission | 'none';
     verifierBuildSha256?: string;
   } = {},
@@ -92,7 +95,7 @@ async function portFixture(
   await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
     scope_sha256,owner_authorization_id,expires_at)
     values(${scopeId},${fence.turnId},${kind === 'root' ? f.request.id : null},${messageId},${kind === 'root' ? f.project.id : null},
-    ${db.json(options.actions ?? allActions)},'[]',${snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
+    ${db.json(options.actions ?? allActions)},${db.json(options.toolNames ?? [])},${snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
   const resolver = createPersistedAssistantActorResolver({
     verifierBuildSha256: options.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
   });
@@ -699,3 +702,260 @@ test('S2 bare persisted authority without the port target fails closed', async (
       await f.close();
     }
   }));
+
+// Graph authorization: one pending `create_run` operation authorizes exactly one hashed
+// set of root children and edges. Fixtures use the same admitted turn and real rows.
+const graphFixture = (db: Db, options: { toolNames?: string[]; actions?: OrchestrationAction[] } = {}) =>
+  portFixture(db, { toolNames: options.toolNames ?? ['create_run'], actions: options.actions ?? allActions });
+type GraphFixture = Awaited<ReturnType<typeof graphFixture>>;
+function twoStepGraph(f: GraphFixture): { graph: RunGraph; first: Id; second: Id; edge: Id } {
+  const first = randomUUID();
+  const second = randomUUID();
+  const edge = randomUUID();
+  const graph: RunGraph = {
+    runId: randomUUID(),
+    rootTicketId: f.request.id,
+    tickets: [
+      { key: first, input: inputTicket(f.project.id, 'step', f.request.id, { title: 'Bước đồ thị 1' }) },
+      { key: second, input: inputTicket(f.project.id, 'step', f.request.id, { title: 'Bước đồ thị 2' }) },
+    ],
+    edges: [{ key: edge, ticketKey: second, predecessorKey: first }],
+  };
+  return { graph, first, second, edge };
+}
+
+test('S4 port graph authorization creates the exact hashed set with actor A and closes once', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const { graph, first, second } = twoStepGraph(f);
+      const { value } = await f.run(async (tx, proof, actor) => {
+        const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+        const one = await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
+        const two = await session.createTicket(tx, second, graph.tickets[1]?.input as CreateTicket);
+        await session.dependency(tx, two.id, one.id, two.revision);
+        session.close(tx);
+        return { one: one.id, two: two.id };
+      });
+      const ids = value as { one: Id; two: Id };
+      const rows = await db`select id,created_actor_kind,created_actor_id,parent_id from tickets
+        where id in ${db([ids.one, ids.two])} order by title`;
+      assert.deepEqual(
+        rows.map((row) => ({ ...row })),
+        [
+          {
+            id: ids.one,
+            created_actor_kind: 'machine',
+            created_actor_id: f.assistantA.id,
+            parent_id: f.request.id,
+          },
+          {
+            id: ids.two,
+            created_actor_kind: 'machine',
+            created_actor_id: f.assistantA.id,
+            parent_id: f.request.id,
+          },
+        ],
+      );
+      const edges = await db`select ticket_id,predecessor_id from dependencies where ticket_id=${ids.two}`;
+      assert.deepEqual(
+        edges.map((row) => ({ ...row })),
+        [{ ticket_id: ids.two, predecessor_id: ids.one }],
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S4 port graph whose hash differs from its payload is denied without rows', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const { graph } = twoStepGraph(f);
+      const tampered: RunGraph = {
+        ...graph,
+        tickets: [
+          ...graph.tickets.slice(0, 1),
+          {
+            key: graph.tickets[1]?.key as Id,
+            input: inputTicket(f.project.id, 'step', f.request.id, { title: 'Bước bị đổi' }),
+          },
+        ],
+      };
+      const before = await f.state();
+      await assert.rejects(
+        () =>
+          f.run((tx, proof, actor) =>
+            f.port.authorizeGraph(tx, actor, proof, tampered, runGraphSha256(graph)),
+          ),
+        { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
+      );
+      assert.deepEqual(await f.state(), before);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S4 port graph mutation outside the hashed set is denied', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const { graph, first } = twoStepGraph(f);
+      const before = await f.state();
+      const attempts: ((tx: Tx, session: RunGraphSession) => Promise<unknown>)[] = [
+        (tx, session) => session.createTicket(tx, randomUUID(), graph.tickets[0]?.input as CreateTicket),
+        (tx, session) =>
+          session.createTicket(
+            tx,
+            first,
+            inputTicket(f.project.id, 'step', f.request.id, { title: 'Khác phần tử đã băm' }),
+          ),
+        (tx, session) => session.dependency(tx, f.a.id, f.b.id, 1),
+        async (tx, session) => {
+          const one = await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
+          // Reverse direction of the authorized edge is not in the set.
+          return session.dependency(tx, one.id, f.a.id, one.revision);
+        },
+      ];
+      for (const attempt of attempts)
+        await assert.rejects(
+          () =>
+            f.run(async (tx, proof, actor) =>
+              attempt(tx, await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph))),
+            ),
+          { code: 'ORCHESTRATION_TARGET_NOT_AUTHORIZED', status: 403 },
+        );
+      assert.deepEqual(await f.state(), before);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S4 port graph element reused in the same session is a conflict', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const { graph, first, second } = twoStepGraph(f);
+      const before = await f.state();
+      await assert.rejects(
+        () =>
+          f.run(async (tx, proof, actor) => {
+            const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+            await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
+            return session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
+          }),
+        { code: 'ORCHESTRATION_TARGET_CONSUMED', status: 409 },
+      );
+      await assert.rejects(
+        () =>
+          f.run(async (tx, proof, actor) => {
+            const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+            const one = await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
+            const two = await session.createTicket(tx, second, graph.tickets[1]?.input as CreateTicket);
+            await session.dependency(tx, two.id, one.id, two.revision);
+            return session.dependency(tx, two.id, one.id, two.revision + 1);
+          }),
+        { code: 'ORCHESTRATION_TARGET_CONSUMED', status: 409 },
+      );
+      await assert.rejects(
+        () =>
+          f.run(async (tx, proof, actor) => {
+            const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+            await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
+            session.close(tx);
+          }),
+        { code: 'ORCHESTRATION_GRAPH_INCOMPLETE', status: 409 },
+      );
+      assert.deepEqual(await f.state(), before);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S4 port graph authorization from another Tx is not found', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const { graph, first } = twoStepGraph(f);
+      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
+      const before = await f.state();
+      await assert.rejects(
+        () =>
+          f.run((tx, proof, actor) => f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph)), {
+            operationId: committed,
+          }),
+        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+      );
+      let carried: RunGraphSession | null = null;
+      await f.run(async (tx, proof, actor) => {
+        carried = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+      });
+      await assert.rejects(
+        () =>
+          f.run((tx) =>
+            (carried as unknown as RunGraphSession).createTicket(
+              tx,
+              first,
+              graph.tickets[0]?.input as CreateTicket,
+            ),
+          ),
+        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+      );
+      const after = await f.state();
+      assert.deepEqual(
+        { tickets: after.tickets, dependencies: after.dependencies, decisions: after.decisions },
+        { tickets: before.tickets, dependencies: before.dependencies, decisions: before.decisions },
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S4 port create_run authorization and single mutations never stand in for each other', async () =>
+  withDatabase(async (db) => {
+    const f = await graphFixture(db);
+    try {
+      const { graph } = twoStepGraph(f);
+      const before = await f.state();
+      await assert.rejects(
+        () =>
+          f.run(async (tx, proof, actor) => {
+            await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+            return f.port.createTicket(tx, actor, proof, graph.tickets[0]?.input as CreateTicket);
+          }),
+        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
+      );
+      await assert.rejects(
+        () =>
+          f.run(async (tx, proof, actor) => {
+            await f.port.decision(tx, actor, proof, f.a.id, decisionInput());
+            return f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
+          }),
+        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
+      );
+      assert.deepEqual(await f.state(), before);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S4 port graph needs create_run in the scope tools and its actions', async () => {
+  for (const options of [{ toolNames: [] }, { actions: ['create_ticket'] as OrchestrationAction[] }])
+    await withDatabase(async (db) => {
+      const f = await graphFixture(db, options);
+      try {
+        const { graph } = twoStepGraph(f);
+        const before = await f.state();
+        await assert.rejects(
+          () =>
+            f.run((tx, proof, actor) =>
+              f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph)),
+            ),
+          { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
+        );
+        assert.deepEqual(await f.state(), before);
+      } finally {
+        await f.close();
+      }
+    });
+});
