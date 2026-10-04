@@ -1,9 +1,9 @@
 /**
  * Shared ticket detail used by the ticket page and by the ticket dialog. It renders only producer fields of
  * the Ticket DTO, the legacy history, the shared Task5 attachment list and — for open tickets — a comment
- * composer (the shared `AttachmentComposer`). Machine, model, difficulty, current attempt and evidence wait
- * for the typed G1/G3 projection; ticket→docs links are not read yet. Missing data is shown as missing,
- * never derived from `criteria` keys or prose.
+ * composer (the shared `AttachmentComposer`), plus the Task6 ticket→docs links editor. Machine, model,
+ * difficulty, current attempt and evidence wait for the typed G1/G3 projection. Missing data is shown as
+ * missing, never derived from `criteria` keys or prose.
  */
 import * as Dialog from '@radix-ui/react-dialog';
 import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
@@ -12,6 +12,7 @@ import { TicketAttachments } from '../attachments/preview.tsx';
 import { AttachmentComposer } from '../compose/composer.tsx';
 import type { ComposeDraft, ComposeSubmission } from '../compose/state.ts';
 import type { Ticket } from '../contracts/tickets.ts';
+import { TicketDocsLinksEditor } from '../docs/ticket-links.tsx';
 import { formDrafts } from './create-request-state.ts';
 import { TicketHistory } from './history.tsx';
 import { failureText, useTicket, useTicketGraph } from './queries.ts';
@@ -253,11 +254,9 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
         </dl>
       </section>
       <ChildTickets ticket={ticket} />
-      <section aria-labelledby={`related-${ticket.id}`}>
+      <section aria-labelledby={`related-${ticket.id}`} style={{ display: 'grid', gap: '0.75rem' }}>
         <h2 id={`related-${ticket.id}`}>Tệp và tài liệu liên quan</h2>
-        <dl style={gridStyle}>
-          <Field label="Tài liệu liên quan">{missing}</Field>
-        </dl>
+        <TicketDocsLinksEditor ticketId={ticket.id} />
         <TicketAttachments
           ticketId={ticket.id}
           client={runtime.client}

@@ -35,7 +35,14 @@ const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
 });
 test.describe.configure({ mode: 'serial', timeout: 120_000 });
 
-const ticketModules = ['board.tsx', 'list.tsx', 'dialog.tsx', 'queries.ts'] as const;
+const ticketModules = [
+  'board.tsx',
+  'list.tsx',
+  'dialog.tsx',
+  'queries.ts',
+  'requests.tsx',
+  'create-request.tsx',
+] as const;
 
 /**
  * The ticket modules pull `@radix-ui/react-dialog`, which the Vite dev server discovers on first import and
@@ -94,6 +101,9 @@ async function mountHarness(page: Page, crew: FixtureHandle): Promise<void> {
     const dialogModule = (await load(
       '/crew-v2/src/tickets/dialog.tsx',
     )) as typeof import('../src/tickets/dialog.tsx');
+    const composerModule = (await load(
+      '/crew-v2/src/compose/composer.tsx',
+    )) as typeof import('../src/compose/composer.tsx');
 
     // The app's own composition root: one QueryClient, session, owner client and event stream.
     const runtime = runtimeModule.createAppRuntime({ storage: window.sessionStorage, window });
@@ -148,7 +158,15 @@ async function mountHarness(page: Page, crew: FixtureHandle): Promise<void> {
         h(
           queryModule.QueryClientProvider,
           { client: cache },
-          h(boundaryModule.SessionBoundary, { session, pending, client, children: h(Views) }),
+          h(boundaryModule.SessionBoundary, {
+            session,
+            pending,
+            client,
+            children: h(composerModule.ComposeServicesProvider, {
+              services: { client, pending, session, storage: window.sessionStorage },
+              children: h(Views),
+            }),
+          }),
         ),
       ),
     );
@@ -287,9 +305,26 @@ test('board/list/dialog đọc cùng ticket và revision, lịch sử theo thờ
   await expect(entries.nth(3)).toContainText('Bình luận realtime');
   await expect(close).toBeFocused();
 
+  // A comment draft typed in the shared composer survives a realtime event and keeps focus.
+  const commentBox = dialog.getByRole('textbox', { name: 'Nội dung', exact: true });
+  await commentBox.fill('Bản nháp bình luận chưa gửi');
+  await commentBox.focus();
+  await mutate(page, 'live-c4', `/v2/tickets/${seeded.rootA.id}/comments`, { text: 'Bình luận realtime 2' });
+  await expect(entries).toHaveCount(5, { timeout: 15_000 });
+  await expect(commentBox).toBeFocused();
+  await expect(commentBox).toHaveValue('Bản nháp bình luận chưa gửi');
+
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(cardA).toBeFocused();
+
+  // The draft is kept per ticket when the dialog closes.
+  await cardA.click();
+  await expect(dialog.getByRole('textbox', { name: 'Nội dung', exact: true })).toHaveValue(
+    'Bản nháp bình luận chưa gửi',
+  );
+  await dialog.getByRole('button', { name: 'Đóng' }).click();
+  await expect(dialog).toBeHidden();
 
   const boardRevision = await cardA.getAttribute('data-revision');
   await page.getByRole('button', { name: 'Xem dạng danh sách' }).click();
@@ -312,4 +347,49 @@ test('board/list/dialog đọc cùng ticket và revision, lịch sử theo thờ
   await expect(list.locator(`tr[data-ticket-id="${seeded.rootB.id}"]`)).toBeVisible();
   await page.getByRole('button', { name: 'Xem dạng bảng' }).click();
   await expect(board.locator('button[data-ticket-id]')).toHaveCount(1);
+});
+
+test('“Tạo yêu cầu” trên bảng: form project/loại/tiêu đề/workflow, Superpowers mặc định, đóng vẫn giữ bản nháp', async ({
+  page,
+  crew,
+}) => {
+  await mountHarness(page, crew);
+  await login(page, crew);
+  const project = await mutate<{ id: string }>(page, 'create-form-project', '/v2/projects', {
+    key: 'FORM',
+    name: 'Dự án biểu mẫu',
+    repositoryUrl: null,
+  });
+  await page.evaluate((projectId) => {
+    (window as unknown as { crewTest: Harness }).crewTest.setFilters({ projectId });
+  }, project.id);
+  const board = page.getByRole('region', { name: 'Bảng ticket' });
+  const trigger = board.getByRole('button', { name: 'Tạo yêu cầu', exact: true });
+  await trigger.click();
+  const form = page.getByRole('dialog', { name: 'Tạo yêu cầu' });
+  await expect(form).toBeVisible();
+  await expect(form.getByLabel('Dự án')).toHaveValue(project.id);
+  await expect(form.getByRole('radio', { name: 'Superpowers' })).toBeChecked();
+  await expect(form.getByText(/chỉ máy chạy Claude Code có định nghĩa BMAD/)).toBeVisible();
+  await form.getByLabel('Loại').selectOption('research');
+  await form.getByLabel('Tiêu đề').fill('Yêu cầu nháp tiếng Việt');
+  await form
+    .getByRole('textbox', { name: 'Mô tả', exact: true })
+    .fill('Mô tả có dấu: kiểm tra giữ bản nháp.');
+  await form.getByRole('radio', { name: 'BMAD' }).check();
+  await page.keyboard.press('Escape');
+  await expect(form).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.getByRole('button', { name: 'Xem dạng danh sách' }).click();
+  const list = page.getByRole('region', { name: 'Danh sách ticket' });
+  await list.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).click();
+  await expect(form.getByLabel('Tiêu đề')).toHaveValue('Yêu cầu nháp tiếng Việt');
+  await expect(form.getByRole('textbox', { name: 'Mô tả', exact: true })).toHaveValue(
+    'Mô tả có dấu: kiểm tra giữ bản nháp.',
+  );
+  await expect(form.getByLabel('Loại')).toHaveValue('research');
+  await expect(form.getByRole('radio', { name: 'BMAD' })).toBeChecked();
+  await form.getByRole('button', { name: 'Bỏ bản nháp yêu cầu' }).click();
+  await expect(form.getByLabel('Tiêu đề')).toHaveValue('');
+  await expect(form.getByRole('radio', { name: 'Superpowers' })).toBeChecked();
 });

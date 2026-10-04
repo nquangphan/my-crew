@@ -279,3 +279,48 @@ test('chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng
   assert.ok(reads.some((url) => url.startsWith(`/v2/tickets/${ticketA}/attachments`)));
   assert.doesNotMatch(document.body.textContent ?? '', /máy chủ chưa mở API tệp đính kèm/);
 });
+
+test('chi tiết trong hộp thoại nhúng editor liên kết tài liệu của ticket thay cho dòng “chưa có dữ liệu”', async () => {
+  const snapshotId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A')]);
+  const base = server.fetch;
+  const json = (body: unknown) =>
+    new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+  server.fetch = async (url: string, init: RequestInit = {}) => {
+    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/projects/${projectId}/docs/tree`))
+      return json({
+        projectId,
+        snapshotId,
+        sourceCommit: null,
+        auditState: 'verified',
+        contentClass: 'implemented',
+        pages: [
+          { path: 'docs/huong-dan.md', title: 'Hướng dẫn', parentPath: null, contentClass: 'implemented' },
+        ],
+        links: [],
+        relatedTicketIds: [],
+      });
+    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/tickets/${ticketA}/docs-links`))
+      return json({ items: [{ snapshotId, path: 'docs/huong-dan.md' }], nextCursor: null });
+    return base(url, init);
+  };
+  const env = await harness(server);
+  mount(env);
+  await open(ticketA);
+  await until(
+    () => screen.queryByRole('region', { name: 'Tài liệu liên kết với ticket' }) !== null,
+    'editor',
+  );
+  const dialog = screen.getByRole('dialog');
+  assert.ok(dialog.contains(screen.getByRole('region', { name: 'Tài liệu liên kết với ticket' })));
+  await until(
+    () =>
+      (screen.queryByRole('checkbox', { name: /huong-dan|Hướng dẫn/ }) as HTMLInputElement | null)
+        ?.checked === true,
+    'linked page checked',
+  );
+  assert.doesNotMatch(
+    document.querySelector('[data-testid="ticket-detail"]')?.textContent ?? '',
+    /Tài liệu liên quanChưa có dữ liệu/,
+  );
+});
