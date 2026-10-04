@@ -111,6 +111,12 @@ async function sourceExists(
   return !!row;
 }
 
+function requireDecisionInput(input: DecisionInput): void {
+  // A null/non-object input is a 400 before any property access or write.
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    throw new ApiError('VALIDATION', 400, 'Quyết định không hợp lệ');
+}
+
 async function prepareDecision(
   tx: Tx,
   ticket: AssistantTargetTicket,
@@ -118,6 +124,7 @@ async function prepareDecision(
   actor: Actor,
   docsSource?: DocsSourceReader,
 ): Promise<void> {
+  requireDecisionInput(input);
   if (
     !['assessment', 'delegated', 'owner_answer', 'approval', 'intervention', 'dispatch'].includes(
       input.kind,
@@ -153,6 +160,11 @@ async function prepareDecision(
       if (target?.deploy_definition_hash !== hash)
         throw new ApiError('VALIDATION', 400, 'Duyệt deploy không khớp ticket');
     }
+  }
+  // A null/non-object source element is a 400, checked before any source verify.
+  for (const source of input.sources) {
+    if (!source || typeof source !== 'object' || Array.isArray(source))
+      throw new ApiError('VALIDATION', 400, 'Quyết định không hợp lệ');
   }
   for (const source of input.sources) {
     if (!(await sourceExists(tx, ticket.projectId, ticket.rootId, source, docsSource)))
@@ -208,6 +220,7 @@ export async function recordDecision(
   actor: Actor,
   docsSource?: DocsSourceReader,
 ): Promise<Id> {
+  requireDecisionInput(input);
   if (input.kind === 'owner_answer') {
     const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
     if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');

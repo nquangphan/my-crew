@@ -16,7 +16,12 @@ import { createMutator, mutate } from '../src/journal/mutation.ts';
 import type { Actor, Db, Tx } from '../src/platform/contracts.ts';
 import { ApiError } from '../src/platform/errors.ts';
 import { bindProject, createProject } from '../src/projects/service.ts';
-import type { DecisionInput, DocsSourceReader, TicketServiceDependencies } from '../src/tickets/contracts.ts';
+import type {
+  DecisionInput,
+  DocsSourceReader,
+  SourceRef,
+  TicketServiceDependencies,
+} from '../src/tickets/contracts.ts';
 import { registerTicketRoutes } from '../src/tickets/routes.ts';
 import { createTicketServices } from '../src/tickets/service.ts';
 import { databaseFixture } from './support/db.ts';
@@ -602,6 +607,31 @@ for (const condition of [
       }
       const before = await f.state();
       await assert.rejects(() => f.run('decision', { ticketId: f.a.id, input }), { code });
+      assert.deepEqual(await f.state(), before);
+      assert.equal(f.trust.observed.length, 0);
+    }));
+}
+
+// A null decision input or a null/non-object source element is a 400 VALIDATION
+// on both the direct and scoped assistant paths, never a TypeError/500 or 422.
+for (const invalid of ['null-input', 'null-source'] as const) {
+  test(`B2a decision rejects ${invalid} with VALIDATION before any write`, async () =>
+    withDatabase(async (db) => {
+      const f = await fixture(db);
+      const input =
+        invalid === 'null-input' ? null : decisionInput({ sources: [null as unknown as SourceRef] });
+      const before = await f.state();
+      await assert.rejects(
+        () => f.run('decision', { ticketId: f.a.id, input: input as unknown as DecisionInput }),
+        { code: 'VALIDATION' },
+      );
+      await assert.rejects(
+        () =>
+          f.mutation(`direct-${invalid}`, (tx) =>
+            f.services.recordDecision(tx, f.a.id, input as unknown as DecisionInput, owner),
+          ),
+        { code: 'VALIDATION' },
+      );
       assert.deepEqual(await f.state(), before);
       assert.equal(f.trust.observed.length, 0);
     }));

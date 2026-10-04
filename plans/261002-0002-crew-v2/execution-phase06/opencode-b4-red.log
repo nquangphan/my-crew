@@ -1,0 +1,231 @@
+✔ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (508.089375ms)
+✔ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (326.361667ms)
+✔ assistant authority kiểm session hiện hành trước cached reply (322.512042ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-IFkFyW
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-IFkFyW nonceSha256=67a10bc905c210c62200df923a12bec2953ca2e1d474a531ecc12b163474cb09
+attachment DB scratch identity dev=16777231 ino=220852872 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-IFkFyW
+✔ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (249.127417ms)
+✔ assistant authority resolver requires a valid pinned verifier build at assembly (0.213ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-J2TZW5
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-J2TZW5 nonceSha256=83bcc7148c4761bbc291be08ffca8e4398a917289fc647137cdf889b7a58b33c
+attachment DB scratch identity dev=16777231 ino=220852879 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-J2TZW5
+✔ assistant authority resolver returns the designation machine for an admitted PASS turn (239.412458ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pVZDnx
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pVZDnx nonceSha256=84de608de5735946eb896695971a66a0892fb9408f4c5bbc246db880c74794ad
+attachment DB scratch identity dev=16777231 ino=220852886 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pVZDnx
+✔ assistant authority resolver measures session expiry with clock_timestamp after locking (3333.090625ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JXhuBm
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JXhuBm nonceSha256=65c83de5b34173c383512f619edcbcf1243b9c0d706fc200b85749543d1e2eef
+attachment DB scratch identity dev=16777231 ino=220852895 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JXhuBm
+✔ assistant authority resolver denies a grant whose designation binding drifts from the fence (275.295333ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hLhAP6
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hLhAP6 nonceSha256=60d74fe0e6b3b8ee91ce47ef9f5487d8156b90290bd184c7d72f83917c4c50a2
+attachment DB scratch identity dev=16777231 ino=220852902 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hLhAP6
+✔ assistant authority resolver denies a grant whose snapshot differs from the session snapshot (232.199292ms)
+✔ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (345.103125ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JZFyL5
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JZFyL5 nonceSha256=185a1f4198531ef3d0c75824c216a9d7869fff1d3f658572edee2a7c48211f97
+attachment DB scratch identity dev=16777231 ino=220852912 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JZFyL5
+✔ assistant authority live turn chặn reassignment và không thả guard bằng config (405.215208ms)
+A1 lock witness waiting=115 blocker=114 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for fresh
+✔ assistant authority A1 fresh/guard/revoked trong lock wait bị từ chối (307.038458ms)
+A1 lock witness waiting=119 blocker=118 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/guard
+✔ assistant authority A1 fresh/guard/expired trong lock wait bị từ chối (432.946875ms)
+A1 lock witness waiting=123 blocker=122 query=machines
+A1 revoke committed before releasing machine for fresh
+✔ assistant authority A1 fresh/machine/revoked trong lock wait bị từ chối (315.851916ms)
+A1 lock witness waiting=127 blocker=126 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/machine
+✔ assistant authority A1 fresh/machine/expired trong lock wait bị từ chối (430.204084ms)
+A1 lock witness waiting=131 blocker=130 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for replay
+✔ assistant authority A1 replay/guard/revoked trong lock wait bị từ chối (332.630208ms)
+A1 lock witness waiting=135 blocker=134 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true replay/guard
+✔ assistant authority A1 replay/guard/expired trong lock wait bị từ chối (427.481041ms)
+A1 lock witness waiting=139 blocker=138 query=machines
+A1 revoke committed before releasing machine for replay
+✔ assistant authority A1 replay/machine/revoked trong lock wait bị từ chối (330.041042ms)
+A1 lock witness waiting=143 blocker=142 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true replay/machine
+✔ assistant authority A1 replay/machine/expired trong lock wait bị từ chối (429.739875ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8NwHyE
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8NwHyE nonceSha256=1e04d99d64537f9fc8a23d8af9e8f4ed87cf371a7fd68b17efe6dae730fc03fc
+attachment DB scratch identity dev=16777231 ino=220852929 uid=501 pid=95935
+A1 lock witness waiting=147 blocker=146 query=assistant_turns
+A1 turn expiry witness expired=true transaction_predates_expiry=true
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8NwHyE
+✔ assistant authority A1 turn/expired sau mọi authority lock bị từ chối (1397.635083ms)
+A1 credential lock witness waiting=151 blocker=150
+✔ assistant authority A1 fresh giữ credential lock đến mutation commit (329.535875ms)
+A1 credential lock witness waiting=155 blocker=154
+✔ assistant authority A1 replay giữ credential lock đến mutation commit (312.460792ms)
+✔ assistant authority A2 uppercase designation và revoked target dùng cùng identity (310.344792ms)
+attachment DB container 949721614c6a6cab0a263093dcb98d8f129eea4b3b2d92ef112da5ecde937b7b root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A3klpZ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A3klpZ nonceSha256=fc761b7793f9601ef6e404344b95670b5f0a8bc96f05f3eae958d26b2be2e5a6
+attachment DB scratch identity dev=16777231 ino=220852936 uid=501 pid=95935
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A3klpZ
+✔ assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn (372.813667ms)
+✔ B2a decision scoped A→B verifies exact authority and preserves actual audit/journal (219.124208ms)
+✔ B2a decision rejects missing authority and atomically preserves state (178.963333ms)
+✔ B2a decision rejects owner authority and atomically preserves state (198.136ms)
+✔ B2a decision rejects actor authority and atomically preserves state (174.807875ms)
+✔ B2a decision rejects operation authority and atomically preserves state (176.034291ms)
+✔ B2a decision rejects action authority and atomically preserves state (181.82575ms)
+✔ B2a decision rejects hash authority and atomically preserves state (175.598125ms)
+✔ B2a decision rejects root authority and atomically preserves state (179.464042ms)
+✔ B2a decision rejects project authority and atomically preserves state (176.401834ms)
+✔ B2a decision rejects tx authority and atomically preserves state (179.24425ms)
+✔ B2a decision prefix locks root, canonical sorted tickets and project before verify (181.357833ms)
+✔ B2a decision snapshots input actor proof before first await and during deferred verify (177.354292ms)
+✔ B2a decision captures factory authority and denies cross-Tx token reuse (175.523541ms)
+✔ B2a decision uppercase identities retain exact submitted hash and reject lowercase replay (175.205166ms)
+✔ B2a dependency scoped A→B verifies exact authority and preserves actual audit/journal (182.718583ms)
+✔ B2a dependency rejects missing authority and atomically preserves state (173.448791ms)
+✔ B2a dependency rejects owner authority and atomically preserves state (169.240833ms)
+✔ B2a dependency rejects actor authority and atomically preserves state (174.106791ms)
+✔ B2a dependency rejects operation authority and atomically preserves state (184.877791ms)
+✔ B2a dependency rejects action authority and atomically preserves state (177.601958ms)
+✔ B2a dependency rejects hash authority and atomically preserves state (179.416042ms)
+✔ B2a dependency rejects root authority and atomically preserves state (173.5625ms)
+✔ B2a dependency rejects project authority and atomically preserves state (172.091667ms)
+✔ B2a dependency rejects tx authority and atomically preserves state (173.094125ms)
+✔ B2a dependency prefix locks root, canonical sorted tickets and project before verify (226.071541ms)
+✔ B2a dependency snapshots input actor proof before first await and during deferred verify (187.724167ms)
+✔ B2a dependency captures factory authority and denies cross-Tx token reuse (178.249375ms)
+✔ B2a dependency uppercase identities retain exact submitted hash and reject lowercase replay (179.360125ms)
+✔ B2a real machine-authenticated generic decision/dependency routes keep A→B ACL (316.942125ms)
+✔ B2a dependency preserves revision invariant (224.595458ms)
+✔ B2a dependency preserves self invariant (173.607083ms)
+✔ B2a dependency preserves cross-root invariant (176.827667ms)
+✔ B2a dependency preserves duplicate invariant (179.938625ms)
+✔ B2a dependency preserves cycle invariant (176.4315ms)
+✔ B2a dependency preserves closed invariant (172.71375ms)
+✔ B2a dependency preserves ready invariant (175.733834ms)
+✔ B2a dependency preserves running invariant (175.981625ms)
+✔ B2a dependency preserves missing invariant (170.418542ms)
+✔ B2a concurrent opposite dependency requests cannot commit a cycle (182.48525ms)
+✔ B2a decision preserves owner-answer invariant (182.079375ms)
+✔ B2a decision preserves owner-approval invariant (170.284875ms)
+✔ B2a decision preserves empty-content invariant (174.797042ms)
+✔ B2a decision preserves long-content invariant (174.78775ms)
+✔ B2a decision preserves empty-rationale invariant (169.359417ms)
+✔ B2a decision preserves long-rationale invariant (182.033208ms)
+✔ B2a decision preserves too-many-sources invariant (179.555917ms)
+✔ B2a decision preserves unsafe-scope invariant (175.709334ms)
+✔ B2a decision preserves cross-root-source invariant (168.270541ms)
+✔ B2a decision preserves bad-locator invariant (171.698417ms)
+✔ B2a decision preserves missing-docs-reader invariant (170.103042ms)
+✖ B2a decision rejects null-input with VALIDATION before any write (171.311333ms)
+✖ B2a decision rejects null-source with VALIDATION before any write (168.164458ms)
+✔ B2a decision supports actual same-root ticket owner decision and reported artifact sources (180.676583ms)
+✔ B2a docs source validation completes before verify and is not repeated after verification (206.518916ms)
+✔ B2a decision rejects array getter before user code or authority (241.214166ms)
+✔ B2a decision rejects array iterator before user code or authority (177.132ms)
+✔ B2a decision rejects array prototype before user code or authority (176.974583ms)
+✔ B2b-i real machine-authenticated generic signal route keeps A→B ACL (257.832125ms)
+✔ B2b-i signal without orchestration authority is unavailable and preserves revision (214.245667ms)
+✔ B2b-i signal rejects owner authority and atomically preserves state (182.215958ms)
+✔ B2b-i signal rejects actor authority and atomically preserves state (190.59275ms)
+✔ B2b-i signal rejects operation authority and atomically preserves state (212.02825ms)
+✔ B2b-i signal rejects action authority and atomically preserves state (188.243792ms)
+✔ B2b-i signal rejects hash authority and atomically preserves state (178.189125ms)
+✔ B2b-i signal rejects root authority and atomically preserves state (180.554709ms)
+✔ B2b-i signal rejects project authority and atomically preserves state (180.868292ms)
+✔ B2b-i signal rejects tx authority and atomically preserves state (174.814875ms)
+✔ B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event (185.500125ms)
+✔ B2b-i wait_owner on pending moves to needs_input for owner input (184.190625ms)
+✔ B2b-i wait_owner on ready moves to needs_input for owner input (177.702541ms)
+✔ B2b-i wait_owner on running ticket fails closed without synthetic owner command (174.075542ms)
+✔ B2b-i signal stale revision conflicts and preserves state (173.781875ms)
+✔ B2b-i scoped signal rejects resume as invalid input (175.402875ms)
+✔ B2b-i scoped signal rejects start as invalid input (179.216917ms)
+✔ B2b-i scoped signal rejects passed as invalid input (176.011292ms)
+✔ B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation (177.663458ms)
+✔ B2b-i scoped signal and dependency edge serialize on the root before verify (416.235541ms)
+✔ scoped signal rechecks project under the shared prefix before authority (190.0945ms)
+✔ scoped signal rechecks root under the shared prefix before authority (174.466959ms)
+ℹ tests 103
+ℹ suites 0
+ℹ pass 101
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27099.488916
+
+✖ failing tests:
+
+test at v2/server/test/assistant-mutations.test.ts:618:3
+✖ B2a decision rejects null-input with VALIDATION before any write (171.311333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'VALIDATION'
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:626:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: Cannot read properties of null (reading 'kind')
+        at prepareDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:123:13)
+        at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:239:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:211:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:170:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:618:3
+✖ B2a decision rejects null-source with VALIDATION before any write (168.164458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'SOURCE_UNVERIFIED'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:626:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Nguồn quyết định chưa được ghi nhận
+        at prepareDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:159:13)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:239:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:211:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:170:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }

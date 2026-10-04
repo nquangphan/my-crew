@@ -439,6 +439,80 @@ test('assistant authority resolver measures session expiry with clock_timestamp 
     }
   }));
 
+// Catches a resolver accepting an input grant whose designation or designation
+// revision no longer matches the turn fence.
+test('assistant authority resolver denies a grant whose designation binding drifts from the fence', async () =>
+  withDatabase(async (db) => {
+    const { f, seeded, proof } = await admittedScope(db);
+    try {
+      const resolveActor = createPersistedAssistantActorResolver({
+        verifierBuildSha256: fixtureVerifierBuildSha256,
+      });
+      const grants = () =>
+        db`select id,designation_id,designation_revision,machine_id,snapshot_id,revoked_at
+          from attachment_assistant_grants order by id`;
+      assert.deepEqual(await db.begin((tx) => resolveActor(tx, proof)), {
+        kind: 'machine',
+        id: seeded.machineId,
+      });
+      for (const drift of ['designation_id', 'designation_revision'] as const) {
+        if (drift === 'designation_id')
+          await db`update attachment_assistant_grants set designation_id=${randomUUID()}`;
+        else await db`update attachment_assistant_grants set designation_revision=99`;
+        const drifted = await grants();
+        await assert.rejects(
+          db.begin((tx) => resolveActor(tx, proof)),
+          {
+            code: 'ASSISTANT_ADMISSION_DENIED',
+          },
+        );
+        assert.deepEqual(await grants(), drifted);
+        await db`update attachment_assistant_grants set designation_id=${seeded.fence.designationId},
+          designation_revision=${seeded.fence.designationRevision}`;
+      }
+      assert.deepEqual(await db.begin((tx) => resolveActor(tx, proof)), {
+        kind: 'machine',
+        id: seeded.machineId,
+      });
+    } finally {
+      await f.close();
+    }
+  }));
+
+// Catches a resolver accepting an input grant pinned to a different input
+// snapshot than the admitted read session.
+test('assistant authority resolver denies a grant whose snapshot differs from the session snapshot', async () =>
+  withDatabase(async (db) => {
+    const { f, seeded, proof } = await admittedScope(db);
+    try {
+      const resolveActor = createPersistedAssistantActorResolver({
+        verifierBuildSha256: fixtureVerifierBuildSha256,
+      });
+      assert.deepEqual(await db.begin((tx) => resolveActor(tx, proof)), {
+        kind: 'machine',
+        id: seeded.machineId,
+      });
+      const other = randomUUID();
+      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+        values(${other},'ticket',${f.request.id},1,0,'{}',${'b'.repeat(64)})`;
+      await db`update attachment_assistant_grants set snapshot_id=${other}`;
+      const drifted =
+        await db`select id,designation_id,designation_revision,snapshot_id,revoked_at from attachment_assistant_grants`;
+      await assert.rejects(
+        db.begin((tx) => resolveActor(tx, proof)),
+        {
+          code: 'ASSISTANT_ADMISSION_DENIED',
+        },
+      );
+      assert.deepEqual(
+        await db`select id,designation_id,designation_revision,snapshot_id,revoked_at from attachment_assistant_grants`,
+        drifted,
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
 // Catches competing owners both committing, unnecessary designation churn, or unsafe live reassignment.
 test('assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority', async () =>
   withDatabase(async (db) => {
