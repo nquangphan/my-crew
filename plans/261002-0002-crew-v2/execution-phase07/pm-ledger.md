@@ -123,3 +123,7 @@ Task 5 S5a: minor (PHẢI sửa trước A5): B2 nút gửi còn bật trong lú
 Task 5 S5a: minor (deferred): B3 tsx-loader là cơ chế biên dịch thứ hai không dùng config Vite; register()/jsdom global toàn process; peer @testing-library/dom chưa khai báo trong package.json. I5 còn trống: dispose/StrictMode, reconcile sau login, invalidate sau receipt, nút abandon/chọn lại tệp, preventDefault onDrop khi khóa. Minor cũ M1/M2/M4/M6 vẫn mở.
 
 17:00 P-G1a FIX1 `78bf6c3`/`ccb3f99`: latest owner-only + test machine 403/401, history so text, docs cursor. Sự cố quy trình: lượt RED chạy khi heavyEligible=false (3.724GiB < 4GiB, ~1s, container dừng ngay) — worker tự báo và sửa cách lấy slot; không coi RED đó là bằng chứng tài nguyên hợp lệ, GREEN chạy khi eligible. Nhắc mọi worker: phải chặn theo heavyEligible.
+
+17:10 P-G1a FIX1 re-review `producer-g1a-fix1-re-review.md`: Approved, hai Important + Minor ADDRESSED, không breakage.
+Producer P-G1a: complete — 78bf6c3 (fa8ccbc + 78bf6c3).
+Kế tiếp: P-G1a2 (readGraph một snapshot nhất quán, `tickets/dependencies.ts`) dispatch; web lib/events.ts dùng `/v2/events/latest` (owner session) là follow-up Task2 sau khi controller integration khép.
