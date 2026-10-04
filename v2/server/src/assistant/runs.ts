@@ -9,6 +9,7 @@ import { uuid } from '../tickets/assistant-access.ts';
 import type { CreateTicket, Ticket } from '../tickets/contracts.ts';
 import type { PersistedAssistantActorResolver } from './authority.ts';
 import type { OrchestrationProof, Sha256, SkillStep, WorkflowRun } from './contracts.ts';
+import { parallelUnits } from './gates.ts';
 import type { OperationRequest } from './operation-request.ts';
 import type { RunGraph, WorkflowOrchestrationPort } from './orchestration.ts';
 import { runGraphSha256 } from './orchestration.ts';
@@ -102,45 +103,23 @@ function validateInput(input: CreateRunInput): CreateRunInput {
   };
 }
 
+// Exact run identity of the approval; the units follow the shared parallel rule of gates.ts.
 function units(scope: unknown, input: CreateRunInput): ParallelUnit[] {
+  const mismatch = () =>
+    new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Duyệt song song không khớp run');
   const parallel = plainObject(scope) ? scope.parallel : undefined;
   if (
     !plainObject(parallel) ||
     parallel.rootTicketId !== input.rootTicketId ||
     parallel.path !== input.path ||
-    parallel.definitionSha256 !== input.definitionSha256 ||
-    !Array.isArray(parallel.units) ||
-    parallel.units.length < 2 ||
-    parallel.units.length > 16
+    parallel.definitionSha256 !== input.definitionSha256
   )
-    throw new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Duyệt song song không khớp run');
-  const result: ParallelUnit[] = [];
-  const owned = new Set<string>();
-  const keys = new Set<string>();
-  for (const unit of parallel.units) {
-    if (
-      !plainObject(unit) ||
-      typeof unit.key !== 'string' ||
-      !/^[a-z0-9][a-z0-9-]{0,63}$/.test(unit.key) ||
-      keys.has(unit.key) ||
-      typeof unit.title !== 'string' ||
-      unit.title.length < 1 ||
-      unit.title.length > 120 ||
-      !Array.isArray(unit.ownershipKeys) ||
-      unit.ownershipKeys.length < 1 ||
-      unit.ownershipKeys.some((key) => typeof key !== 'string' || !key || key.length > 512)
-    )
-      throw new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Duyệt song song không khớp run');
-    // Same path, index or migration in two units forbids overlap even with approval.
-    for (const key of unit.ownershipKeys as string[]) {
-      if (owned.has(key))
-        throw new ApiError('WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', 409, 'Các phần song song trùng sở hữu');
-      owned.add(key);
-    }
-    keys.add(unit.key);
-    result.push({ key: unit.key, title: unit.title, ownershipKeys: [...(unit.ownershipKeys as string[])] });
-  }
-  return result;
+    throw mismatch();
+  return parallelUnits(parallel.units, mismatch).map((unit) => ({
+    key: unit.key,
+    title: unit.title,
+    ownershipKeys: unit.ownershipKeys,
+  }));
 }
 
 /**

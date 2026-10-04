@@ -15,6 +15,7 @@ import type {
 import type { GateAnswer, RecordGateAnswerInput } from '../src/assistant/gates.ts';
 import { createWorkflowGates } from '../src/assistant/gates.ts';
 import type { OperationRequest } from '../src/assistant/operation-request.ts';
+import { operationRequestSha256 } from '../src/assistant/operation-request.ts';
 import type { WorkflowOrchestrationPort } from '../src/assistant/orchestration.ts';
 import { createProjectOrchestrationPort } from '../src/assistant/orchestration.ts';
 import type { CreateRunInput } from '../src/assistant/runs.ts';
@@ -1951,3 +1952,354 @@ test('assistant gates: a BMAD gate needs the latched render of its run', async (
       await f.close();
     }
   }));
+
+test('assistant gates: only the newest artifact of the step is asked or approved; a superseded one can still be rejected', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const first = textSha('design v1');
+      await f.artifact(design.ticketId, first);
+      const question = await f.ask(gateProposal(f, run, designTarget(first)));
+      const input: RecordGateAnswerInput = {
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: first,
+        answer: approve(),
+      };
+      // The step now has a newer artifact: the pinned bytes are no longer what runs next.
+      await f.artifact(design.ticketId, textSha('design v2'));
+      const before = await f.gateRows();
+      const superseded = { code: 'WORKFLOW_ARTIFACT_SUPERSEDED', status: 409 };
+      await assert.rejects(() => f.answer(owner, input), superseded);
+      await assert.rejects(() => f.ask(gateProposal(f, run, designTarget(first))), superseded);
+      assert.deepEqual(await f.gateRows(), before);
+      const [gate] =
+        await db`select state,decision_id from workflow_gates where id=${design.gateIds[0] as Id}`;
+      assert.deepEqual({ ...gate }, { state: 'pending', decision_id: null });
+      // Re-registering the pinned bytes makes them the newest again.
+      await f.artifact(design.ticketId, first);
+      assert.equal((await f.answer(owner, input)).gateState, 'approved');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a reject of the superseded artifact closes the gate without approving it', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const first = textSha('design v1');
+      await f.artifact(design.ticketId, first);
+      const question = await f.ask(gateProposal(f, run, designTarget(first)));
+      await f.artifact(design.ticketId, textSha('design v2'));
+      const result = await f.answer(owner, {
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: first,
+        answer: approve({ verdict: 'reject', option: 'Yêu cầu sửa', text: 'Đã có bản mới' }),
+      });
+      assert.equal(result.gateState, 'rejected');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a gate of a run superseded by a newer run of the same root is closed', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const proposal = gateProposal(f, run, designTarget(designSha));
+      const question = await f.ask(proposal);
+      // A newer run of the same root (journal order of its step tickets), seeded in SQL
+      // because the superseding producer belongs to a later slice.
+      const newerStep = await f.mutation(randomUUID(), (tx) =>
+        f.services.createTicket(
+          tx,
+          inputTicket(f.project.id, 'step', f.root.id, { title: 'Run mới' }),
+          owner,
+        ),
+      );
+      const newerRun = randomUUID();
+      await db`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,path,revision)
+        values(${newerRun},${f.root.id},${db.json(run.source as never)},${db.json(run.projection as never)},
+        ${run.definitionSha256},${run.customizationSha256},'bounded',1)`;
+      await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,
+        output_kinds,gate_ids,ownership_keys,role)
+        values(${randomUUID()},${newerRun},${newerStep.id},'brainstorming','skills/brainstorming/SKILL.md',
+        ${design.sourceSha256},'[]','[]','[]','[]','[]','research')`;
+      const before = await f.gateRows();
+      const supersededRun = { code: 'WORKFLOW_RUN_SUPERSEDED', status: 409 };
+      await assert.rejects(
+        () =>
+          f.answer(owner, {
+            questionId: question.id,
+            expectedRevision: 1,
+            scopeSha256: question.scopeSha256,
+            artifactSha256: designSha,
+            answer: approve(),
+          }),
+        supersededRun,
+      );
+      await assert.rejects(() => f.ask({ ...proposal, question: 'Hỏi lại' }), supersededRun);
+      assert.deepEqual(await f.gateRows(), before);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: recordGateAnswer holds the journal cursor before it waits for the root', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const design = run.steps[0];
+      assert.ok(design);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const question = await f.ask(gateProposal(f, run, designTarget(designSha)));
+      let release: () => void = () => {};
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let locked: () => void = () => {};
+      const rootLocked = new Promise<void>((resolve) => {
+        locked = resolve;
+      });
+      const holder = db.begin(async (tx) => {
+        await tx`select id from tickets where id=${f.root.id} for update`;
+        locked();
+        await released;
+      });
+      await rootLocked;
+      // A bare transaction, not mutate(): the service itself takes the cursor first.
+      const answering = db.begin((tx) =>
+        f.gates.recordGateAnswer(tx, owner, {
+          questionId: question.id,
+          expectedRevision: 1,
+          scopeSha256: question.scopeSha256,
+          artifactSha256: designSha,
+          answer: approve(),
+        }),
+      );
+      answering.catch(() => {});
+      try {
+        let waiting = false;
+        for (let attempt = 0; attempt < 100 && !waiting; attempt++) {
+          const [row] = await db`select 1 from pg_stat_activity where datname=current_database()
+            and wait_event_type='Lock' and query like '%from tickets%for update%' limit 1`;
+          waiting = !!row;
+          if (!waiting) await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        assert.ok(waiting, 'recordGateAnswer waits for the root lock');
+        await assert.rejects(
+          () => db.begin((tx) => tx`select value from event_cursor where singleton=true for update nowait`),
+          (error: { code?: string }) => error.code === '55P03',
+        );
+      } finally {
+        release();
+        await holder;
+      }
+      assert.equal((await answering).gateState, 'approved');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: parallel ownership is compared on normalized paths and directory nesting', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const plan = run.steps[2];
+      assert.ok(plan);
+      const planSha = textSha('plan v1');
+      await f.artifact(plan.ticketId, planSha);
+      const question = await f.ask(
+        gateProposal(
+          f,
+          run,
+          { step: 2, kind: 'plan_approval_execution_method', artifactSha256: planSha },
+          { options: [] },
+        ),
+      );
+      const withKeys = (api: string[], web: string[]) => {
+        const units = independentUnits();
+        (units.units[0] as { ownershipKeys: string[] }).ownershipKeys = api;
+        (units.units[1] as { ownershipKeys: string[] }).ownershipKeys = web;
+        return {
+          questionId: question.id,
+          expectedRevision: 1,
+          scopeSha256: question.scopeSha256,
+          artifactSha256: planSha,
+          answer: approve({ option: null, executionMethod: 'native', parallel: units }),
+        };
+      };
+      const conflict = { code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', status: 409 };
+      await assert.rejects(() => f.answer(owner, withKeys(['./src/a.ts'], ['src/a.ts'])), conflict);
+      await assert.rejects(() => f.answer(owner, withKeys(['src/db'], ['src/db/011.sql'])), conflict);
+      await assert.rejects(() => f.answer(owner, withKeys(['src/db/'], ['src/./db/x.ts'])), conflict);
+      for (const bad of ['../src/a.ts', 'src/../b.ts', '/src/a.ts', 'src//a.ts', 'src\\a.ts'])
+        await assert.rejects(() => f.answer(owner, withKeys([bad], ['web/b.tsx'])), {
+          code: 'VALIDATION',
+          status: 400,
+        });
+      // Sibling names sharing a prefix are not nested.
+      assert.equal((await f.answer(owner, withKeys(['src/db'], ['src/dbx/a.ts']))).gateState, 'approved');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant workflows: bounded parallel approval applies the shared unit rules', async () =>
+  withDatabase(async (db) => {
+    const f = await runFixture(db);
+    try {
+      const scope = (units: unknown[]) => ({
+        parallel: { rootTicketId: f.root.id, path: 'bounded', definitionSha256: superpowersHash, units },
+      });
+      const before = await f.rows();
+      await setParallelApproval(
+        db,
+        await insertDecision(
+          db,
+          f.root.id,
+          owner,
+          'approval',
+          scope([
+            { key: 'api', title: 'API', ownershipKeys: ['./src/db'] },
+            { key: 'web', title: 'Web', ownershipKeys: ['src/db/x.ts'] },
+          ]),
+        ),
+      );
+      await assert.rejects(() => f.create({ path: 'bounded' }), {
+        code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT',
+        status: 409,
+      });
+      await setParallelApproval(
+        db,
+        await insertDecision(
+          db,
+          f.root.id,
+          owner,
+          'approval',
+          scope([
+            { key: 'api', title: 'API', ownershipKeys: ['src/a.ts'] },
+            { key: 'web', title: 'Web', ownershipKeys: ['web/b.tsx'], dependsOn: ['api'] },
+          ]),
+        ),
+      );
+      await assert.rejects(() => f.create({ path: 'bounded' }), {
+        code: 'WORKFLOW_PARALLEL_DEPENDENCY',
+        status: 409,
+      });
+      await setParallelApproval(
+        db,
+        await insertDecision(
+          db,
+          f.root.id,
+          owner,
+          'approval',
+          scope([
+            { key: 'api', title: 'API', ownershipKeys: ['../a.ts'] },
+            { key: 'web', title: 'Web', ownershipKeys: ['web/b.tsx'] },
+          ]),
+        ),
+      );
+      await assert.rejects(() => f.create({ path: 'bounded' }), {
+        code: 'WORKFLOW_PARALLEL_SCOPE_MISMATCH',
+        status: 409,
+      });
+      const after = await f.rows();
+      assert.deepEqual(
+        { runs: after.runs, steps: after.steps, tickets: after.tickets },
+        { runs: before.runs, steps: before.steps, tickets: before.tickets },
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a decision of another gate or another root cannot advance this question', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const [design, spec] = run.steps;
+      assert.ok(design && spec);
+      const designSha = textSha('design v1');
+      await f.artifact(design.ticketId, designSha);
+      const first = await f.ask(gateProposal(f, run, designTarget(designSha)));
+      const answered = await f.answer(owner, {
+        questionId: first.id,
+        expectedRevision: 1,
+        scopeSha256: first.scopeSha256,
+        artifactSha256: designSha,
+        answer: approve(),
+      });
+      const specSha = textSha('spec v1');
+      await f.artifact(spec.ticketId, specSha);
+      const second = await f.ask(
+        gateProposal(f, run, { step: 1, kind: 'spec_approval', artifactSha256: specSha }),
+      );
+      const scope = {
+        questionId: second.id,
+        questionRevision: 1,
+        gateId: second.gateId,
+        runId: run.id,
+        stepId: spec.id,
+        artifactSha256: specSha,
+        scopeSha256: second.scopeSha256,
+        verdict: 'approve',
+      };
+      const mismatch = { code: 'WORKFLOW_QUESTION_SCOPE_MISMATCH', status: 409 };
+      // An owner approval with this question's scope, recorded on a ticket of another root.
+      const elsewhere = await insertDecision(db, f.a.id, owner, 'approval', scope);
+      const before = await f.gateRows();
+      // The answered decision of the design gate.
+      await assert.rejects(() => f.advance(second.id, answered.decisionId), mismatch);
+      await assert.rejects(() => f.advance(second.id, elsewhere), mismatch);
+      // The answered question cannot be advanced again with the other gate's decision either.
+      await assert.rejects(() => f.advance(first.id, elsewhere), {
+        code: 'WORKFLOW_QUESTION_ANSWERED',
+        status: 409,
+      });
+      assert.deepEqual(await f.gateRows(), before);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: ask_owner is a member of the tagged operation request form', () => {
+  const payload: QuestionProposal = {
+    conversationId: randomUUID(),
+    ticketId: randomUUID(),
+    runId: null,
+    stepId: null,
+    gateId: null,
+    cycleId: null,
+    artifactSha256: null,
+    question: 'Câu hỏi',
+    options: [],
+    scopeSha256: 'a'.repeat(64),
+  };
+  const request: OperationRequest = { action: 'ask_owner', payload };
+  assert.equal(
+    operationRequestSha256(request),
+    createHash('sha256')
+      .update(canonicalJson({ schema: 'crew-v2:operation-request:1', action: 'ask_owner', payload }))
+      .digest('hex'),
+  );
+});

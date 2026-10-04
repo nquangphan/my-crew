@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto';
 import { canonicalJson } from '../journal/canonical.ts';
 import type { Id } from '../platform/contracts.ts';
 import type { CreateTicket, DecisionInput } from '../tickets/contracts.ts';
-import type { Sha256, WorkflowRun } from './contracts.ts';
+import type { QuestionProposal, Sha256, WorkflowRun } from './contracts.ts';
 
 /**
  * Exact request one pending `assistant_tool_operations` row authorizes. The tools
  * transport writes `request_hash = operationRequestSha256(request)` with the row; the
  * orchestration port accepts the operation only for this exact action and payload.
- * Single mutations carry the exact submitted payload; `create_run` carries the run
- * input plus the graph digest the server derived itself.
+ * Single mutations and `ask_owner` carry the exact submitted payload; `create_run` carries
+ * the run input plus the graph digest the server derived itself.
  */
 export type OperationRequest =
   | { action: 'create_ticket'; payload: CreateTicket }
@@ -22,7 +22,8 @@ export type OperationRequest =
   | {
       action: 'create_run';
       payload: { rootTicketId: Id; path: WorkflowRun['path']; definitionSha256: Sha256; graphSha256: Sha256 };
-    };
+    }
+  | { action: 'ask_owner'; payload: QuestionProposal };
 
 /** Schema tag of the request hash; a new canonical form needs a new tag. */
 export const operationRequestSchema = 'crew-v2:operation-request:1';

@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { validPath } from '../docs/manifest.ts';
 import { canonicalJson } from '../journal/canonical.ts';
 import type { Actor, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
@@ -13,16 +14,16 @@ import type {
   Sha256,
   WorkflowRun,
 } from './contracts.ts';
-import type { OperationRequest } from './operation-request.ts';
 import { operationRequestSha256 } from './operation-request.ts';
 import type { DefinitionLookup, GateSpec, StepSpec, WorkflowDefinitionRecord } from './workflows.ts';
 import { createDefinitionLookup, workflowSteps } from './workflows.ts';
 
+/** One owner-approved parallel unit; an absent `dependsOn` means no dependency. */
 export type ParallelUnitApproval = {
   key: string;
   title: string;
   ownershipKeys: string[];
-  dependsOn: string[];
+  dependsOn?: string[];
 };
 /** Owner approval of independent units after the written plan, with the plan inputs they share. */
 export type ParallelPlanApproval = { units: ParallelUnitApproval[]; sharedInputSha256: Sha256[] };
@@ -56,7 +57,11 @@ export type RecordedGateAnswer = {
 export type WorkflowGates = {
   /** `ask_owner`: the persisted Assistant asks through its own pending operation of this Tx. */
   createOwnerQuestion(tx: Tx, proof: OrchestrationProof, proposal: QuestionProposal): Promise<OwnerQuestion>;
-  /** Owner decision, immutable answer and gate advance in one all-or-nothing write. */
+  /**
+   * Owner decision, immutable answer and gate advance in one all-or-nothing write. Takes the
+   * journal `event_cursor` row lock first (as mutate() does), then root → project → ticket →
+   * gate → question, so a caller must not hold any of those locks out of this order.
+   */
   recordGateAnswer(tx: Tx, owner: Actor, input: RecordGateAnswerInput): Promise<RecordedGateAnswer>;
   answerGate(tx: Tx, questionId: Id, decisionId: Id): Promise<void>;
 };
@@ -161,12 +166,6 @@ function questionIdOf(operationId: Id): Id {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
-// The tools transport hashes `ask_owner` with the shared tagged request form. The shared
-// union lists the orchestration-port actions only; the function reads just action and payload.
-function askOwnerRequestSha256(payload: QuestionProposal): Sha256 {
-  return operationRequestSha256({ action: 'ask_owner', payload } as unknown as OperationRequest);
-}
-
 const proposalKeys = [
   'conversationId',
   'ticketId',
@@ -229,25 +228,32 @@ function validateProposal(proposal: QuestionProposal): {
   };
 }
 
-function validateParallel(value: unknown): ParallelPlanApproval {
-  if (
-    !plainObject(value) ||
-    !exactKeys(value, ['units', 'sharedInputSha256']) ||
-    !Array.isArray(value.units) ||
-    value.units.length < 2 ||
-    value.units.length > 16 ||
-    !Array.isArray(value.sharedInputSha256) ||
-    value.sharedInputSha256.length < 1 ||
-    value.sharedInputSha256.length > 64 ||
-    value.sharedInputSha256.some((hash) => typeof hash !== 'string' || !digest.test(hash)) ||
-    new Set(value.sharedInputSha256).size !== value.sharedInputSha256.length
-  )
-    throw invalid();
+// Ownership key in the server docs path convention (case-sensitive, relative, no `.`/`..`
+// segment); `./` segments and one trailing `/` are dropped first. Invalid keys give null.
+function ownershipPath(key: unknown): string | null {
+  if (typeof key !== 'string' || key.length < 1 || key.length > 512) return null;
+  const parts = key.split('/').filter((part) => part !== '.');
+  if (parts.length > 1 && parts[parts.length - 1] === '') parts.pop();
+  const path = parts.join('/');
+  return validPath(path) ? path : null;
+}
+const nested = (left: string, right: string) =>
+  left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
+
+/**
+ * Shared rule for owner-approved parallel units (gate answer and run policy): 2–16 units with
+ * unique keys and titles, valid ownership paths, optional `dependsOn` naming other units. Two
+ * units owning the same or a nested path, or any dependency between units, deny parallel
+ * even with the owner's approval. Shape errors use the caller's error.
+ */
+export function parallelUnits(value: unknown, shapeError: () => ApiError): ParallelUnitApproval[] {
+  if (!Array.isArray(value) || value.length < 2 || value.length > 16) throw shapeError();
   const keys = new Set<string>();
-  for (const unit of value.units) {
+  const units: (ParallelUnitApproval & { paths: string[] })[] = [];
+  for (const unit of value) {
     if (
       !plainObject(unit) ||
-      !exactKeys(unit, ['key', 'title', 'ownershipKeys', 'dependsOn']) ||
+      !Object.keys(unit).every((field) => ['key', 'title', 'ownershipKeys', 'dependsOn'].includes(field)) ||
       typeof unit.key !== 'string' ||
       !unitKey.test(unit.key) ||
       keys.has(unit.key) ||
@@ -255,19 +261,49 @@ function validateParallel(value: unknown): ParallelPlanApproval {
       !Array.isArray(unit.ownershipKeys) ||
       unit.ownershipKeys.length < 1 ||
       unit.ownershipKeys.length > 64 ||
-      unit.ownershipKeys.some((key) => !text(key, 512)) ||
-      new Set(unit.ownershipKeys).size !== unit.ownershipKeys.length ||
-      !Array.isArray(unit.dependsOn)
+      (unit.dependsOn !== undefined && !Array.isArray(unit.dependsOn))
     )
-      throw invalid();
+      throw shapeError();
+    const paths = unit.ownershipKeys.map(ownershipPath);
+    if (paths.some((path) => path === null) || new Set(paths).size !== paths.length) throw shapeError();
     keys.add(unit.key);
+    units.push({
+      key: unit.key,
+      title: unit.title as string,
+      ownershipKeys: [...(unit.ownershipKeys as string[])],
+      dependsOn: [...((unit.dependsOn as unknown[] | undefined) ?? [])] as string[],
+      paths: paths as string[],
+    });
   }
-  for (const unit of value.units as ParallelUnitApproval[])
+  for (const unit of units)
     if (
-      unit.dependsOn.some((key) => typeof key !== 'string' || key === unit.key || !keys.has(key)) ||
-      new Set(unit.dependsOn).size !== unit.dependsOn.length
+      unit.dependsOn?.some((key) => typeof key !== 'string' || key === unit.key || !keys.has(key)) ||
+      new Set(unit.dependsOn).size !== unit.dependsOn?.length
     )
-      throw invalid();
+      throw shapeError();
+  for (const [index, unit] of units.entries())
+    for (const other of units.slice(index + 1))
+      if (unit.paths.some((path) => other.paths.some((otherPath) => nested(path, otherPath))))
+        throw new ApiError('WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', 409, 'Các phần song song trùng sở hữu');
+  if (units.some((unit) => (unit.dependsOn?.length ?? 0) > 0))
+    throw new ApiError('WORKFLOW_PARALLEL_DEPENDENCY', 409, 'Các phần song song phụ thuộc nhau');
+  return units.map(({ paths: _paths, ...unit }) => unit);
+}
+
+// Outer shape of a plan-gate parallel approval; the units are checked by `parallelUnits`
+// once the gate is known to resolve the execution step.
+function validateParallel(value: unknown): ParallelPlanApproval {
+  if (
+    !plainObject(value) ||
+    !exactKeys(value, ['units', 'sharedInputSha256']) ||
+    !Array.isArray(value.units) ||
+    !Array.isArray(value.sharedInputSha256) ||
+    value.sharedInputSha256.length < 1 ||
+    value.sharedInputSha256.length > 64 ||
+    value.sharedInputSha256.some((hash) => typeof hash !== 'string' || !digest.test(hash)) ||
+    new Set(value.sharedInputSha256).size !== value.sharedInputSha256.length
+  )
+    throw invalid();
   return value as ParallelPlanApproval;
 }
 
@@ -390,15 +426,54 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
   }
 
   // Artifact evidence on the gate's step ticket, registered by an attempt of the project's
-  // current machine binding, with exactly these bytes.
-  async function artifactVerified(tx: Tx, project: Row, step: Row, artifactSha256: string): Promise<boolean> {
-    if (project.machine_id === null) return false;
-    const [row] = await tx`select e.id from evidence e join attempts a on a.id=e.attempt_id
-      where e.ticket_id=${String(step.ticket_id)} and e.kind='artifact' and e.data->>'sha256'=${artifactSha256}
-        and a.ticket_id=e.ticket_id and a.machine_id=${String(project.machine_id)}
-        and a.binding_revision=${Number(project.binding_revision)}
-      limit 1`;
-    return !!row;
+  // current machine binding. The newest such registration (attempt fence, then evidence time)
+  // is the step's current artifact; older bytes are superseded once anything newer differs.
+  async function artifactState(
+    tx: Tx,
+    project: Row,
+    step: Row,
+    artifactSha256: string,
+  ): Promise<'current' | 'superseded' | 'missing'> {
+    if (project.machine_id === null) return 'missing';
+    const rows = await tx`select e.data->>'sha256' as sha256,a.fence,e.created_at from evidence e
+      join attempts a on a.id=e.attempt_id
+      where e.ticket_id=${String(step.ticket_id)} and e.kind='artifact' and a.ticket_id=e.ticket_id
+        and a.machine_id=${String(project.machine_id)} and a.binding_revision=${Number(project.binding_revision)}
+      order by a.fence desc,e.created_at desc`;
+    if (!rows.some((row) => row.sha256 === artifactSha256)) return 'missing';
+    const [newest] = rows;
+    if (!newest) return 'missing';
+    const latest = rows.filter(
+      (row) =>
+        String(row.fence) === String(newest.fence) &&
+        (row.created_at as Date).getTime() === (newest.created_at as Date).getTime(),
+    );
+    return latest.every((row) => row.sha256 === artifactSha256) ? 'current' : 'superseded';
+  }
+  async function assertArtifact(
+    tx: Tx,
+    project: Row,
+    step: Row,
+    artifactSha256: string,
+    allowSuperseded: boolean,
+  ): Promise<void> {
+    const state = await artifactState(tx, project, step, artifactSha256);
+    if (state === 'missing') throw artifactUnverified();
+    if (state === 'superseded' && !allowSuperseded)
+      throw new ApiError('WORKFLOW_ARTIFACT_SUPERSEDED', 409, 'Bước đã có artifact mới hơn');
+  }
+
+  // A run stays answerable only while no newer run of the same root exists (journal order
+  // of the runs' step tickets).
+  async function assertRunCurrent(tx: Tx, run: Row): Promise<void> {
+    const [newer] = await tx`with first_created as (
+        select s.run_id,min(e.cursor) as cursor from workflow_steps s
+        join events e on e.ticket_id=s.ticket_id and e.type='ticket.created'
+        join workflow_runs r on r.id=s.run_id
+        where r.root_ticket_id=${String(run.root_ticket_id)} group by s.run_id)
+      select other.run_id from first_created other, first_created own
+      where own.run_id=${String(run.id)} and other.run_id<>own.run_id and other.cursor>own.cursor limit 1`;
+    if (newer) throw new ApiError('WORKFLOW_RUN_SUPERSEDED', 409, 'Run đã có run mới hơn thay thế');
   }
 
   // Only after three failed fixes, counted as failed initial or repair reviews of this run.
@@ -513,23 +588,7 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
     const executionChoice = choices.find((choice) => choice.method === answer.executionMethod);
     if (!executionChoice) throw invalid();
     const parallel = answer.parallel === null ? null : validateParallel(answer.parallel);
-    if (parallel) {
-      // Same path, index or migration in two units, or any dependency between them, keeps
-      // the plan sequential even with the owner's approval.
-      const owned = new Set<string>();
-      for (const unit of parallel.units)
-        for (const key of unit.ownershipKeys) {
-          if (owned.has(key))
-            throw new ApiError(
-              'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT',
-              409,
-              'Các phần song song trùng sở hữu',
-            );
-          owned.add(key);
-        }
-      if (parallel.units.some((unit) => unit.dependsOn.length > 0))
-        throw new ApiError('WORKFLOW_PARALLEL_DEPENDENCY', 409, 'Các phần song song phụ thuộc nhau');
-    }
+    if (parallel) parallelUnits(parallel.units, invalid);
     return { verdict: 'approve', executionChoice, parallel };
   }
 
@@ -572,10 +631,14 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
     if (!question) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy câu hỏi');
     if (root.status === 'done' || root.status === 'cancelled')
       throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+    const [run] = question.run_id
+      ? await tx`select * from workflow_runs where id=${String(question.run_id)} for share`
+      : [];
+    if (question.run_id && (!run || run.root_ticket_id !== root.id)) throw notFound();
+    if (run) await assertRunCurrent(tx, run);
     if (!gate) return { root, project, question, gate: null };
-    const [run] = await tx`select * from workflow_runs where id=${String(gate.run_id)} for share`;
     const [step] = await tx`select * from workflow_steps where id=${String(gate.step_id)}`;
-    if (!run || !step || run.root_ticket_id !== root.id) throw notFound();
+    if (!run || !step || gate.run_id !== run.id) throw notFound();
     const { spec, gateSpec } = gateSpecOf(run, step, await stepCriteria(tx, step.ticket_id), String(gate.id));
     const record = await currentDefinition(tx, project, run);
     return { root, project, question, gate: { gate, run, step, spec, gateSpec, record } };
@@ -627,8 +690,14 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
         ) !== gate.gate.scope_sha256
       )
         throw scopeMismatch();
-      if (!(await artifactVerified(tx, context.project, gate.step, String(gate.gate.artifact_sha256))))
-        throw artifactUnverified();
+      // A superseded artifact may still be rejected, never approved.
+      await assertArtifact(
+        tx,
+        context.project,
+        gate.step,
+        String(gate.gate.artifact_sha256),
+        resolved.verdict === 'reject',
+      );
       const [updated] = await tx`update workflow_gates
         set decision_id=${String(decision.id)},state=${resolved.verdict === 'approve' ? 'approved' : 'rejected'}
         where id=${String(gate.gate.id)} and decision_id is null and state='pending' returning id`;
@@ -679,7 +748,7 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
         throw new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
       if (operation.input_snapshot_id !== scope.input_snapshot_id)
         throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
-      if (operation.request_hash !== askOwnerRequestSha256(submitted))
+      if (operation.request_hash !== operationRequestSha256({ action: 'ask_owner', payload: submitted }))
         throw new ApiError(
           'ORCHESTRATION_REQUEST_MISMATCH',
           403,
@@ -696,6 +765,7 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
         ? await tx`select * from workflow_runs where id=${input.runId} for share`
         : [];
       if (input.runId && (!run || run.root_ticket_id !== root.id)) throw notFound();
+      if (run) await assertRunCurrent(tx, run);
       const [step] = input.stepId
         ? await tx`select * from workflow_steps where id=${input.stepId} and run_id=${input.runId}`
         : [];
@@ -730,7 +800,7 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
       if ((run.path === 'bmad-dispatch' || run.path === 'bmad-oneshot') && run.rendered_artifact_id === null)
         throw new ApiError('WORKFLOW_RENDER_REQUIRED', 409, 'Run BMAD chưa ghim render');
       await triggerMet(tx, run, gateSpec, input.cycleId);
-      if (!(await artifactVerified(tx, project, step, artifactSha256))) throw artifactUnverified();
+      await assertArtifact(tx, project, step, artifactSha256, false);
       const [gate] = await tx`select * from workflow_gates where id=${gateId} for update`;
       if (gate) {
         if (gate.state !== 'pending') throw gateDecided();
@@ -770,6 +840,8 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
       if (!plainObject(owner) || owner.kind !== 'owner' || owner.id !== 'owner')
         throw new ApiError('OWNER_REQUIRED', 403, 'Cần quyền chủ dự án');
       const input = validateAnswerInput(request);
+      // Journal cursor before the root, in mutate()'s order: the decision appends an event.
+      await tx`select value from event_cursor where singleton = true for update`;
       const context = await loadQuestion(tx, input.questionId);
       const { question, gate } = context;
       if (question.state === 'answered') throw questionAnswered();
