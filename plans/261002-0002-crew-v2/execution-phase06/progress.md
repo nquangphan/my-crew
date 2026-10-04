@@ -235,3 +235,5 @@ Dispatch S6b-i.
 10:50 S6b-i security review `task-3-s6b-i-review.md`: Spec ❌, phase03-owner chấp nhận hướng (KERN_PROC_ALL+getsid, NOTE_EXIT từng member) nhưng bytes chưa; Important3 (I1 drain phải kill vẫn PASS; I2 nhánh timedOut bỏ qua escaped; I3 `.leader` trong stage child ghi được) /Minor6/⚠️5. FIX1/5 resume: I1, I2, I3, M1 (kill mọi member kể cả pgid riêng/escaped), M3 (NOTE_FORK), M5 (tách lỗi toàn vẹn guard khỏi EXECUTOR_BUSY), M6 test. M2/M4 ledger.
 Câu hỏi mở cho S6b-ii: XNU có giữ không cấp lại pid đang là sid của session còn member sau khi leader bị reap không — quyết định reconcile có dùng getsid làm bằng chứng không.
 Codex batch 1 (docs/comment) commit — PM chỉnh comment code sang tiếng Anh.
+
+11:45 S6b-i FIX1 `4c4e0aa` re-review `task-3-s6b-i-fix1-re-review.md`: Approved có điều kiện, 7/7 ADDRESSED, execute cũ byte-identical. FIX2/5: N1a sửa khẳng định sai 'snapshot nguyên tử' (điều kiện chặn), N1b probe kill(-g,0) mỗi group lúc phán quyết/xác nhận, N2 prune group rỗng + kiểm lại trước kill (tránh kill nhầm group tái dùng). N3 (dọn receipts/{id}.leader, kiểm vắng trước spawn) → S6b-ii.
