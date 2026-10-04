@@ -101,7 +101,7 @@ async function portFixture(
     call: (tx: Tx, proof: OrchestrationProof, actor: Actor) => Promise<T>,
     opts: {
       actor?: Actor;
-      operationId?: Id;
+      operationId?: Id | ((tx: Tx) => Promise<Id>);
       before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>;
     } = {},
   ) => {
@@ -112,7 +112,9 @@ async function portFixture(
       { actor, route: 'test-only:assistant-port', key, body: {} },
       async (tx) => {
         const operationId =
-          opts.operationId ?? (await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId }));
+          typeof opts.operationId === 'function'
+            ? await opts.operationId(tx)
+            : (opts.operationId ?? (await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId })));
         const proof: OrchestrationProof = { fence, scopeId, operationId };
         await opts.before?.(tx, proof);
         const value = await call(tx, proof, actor);
@@ -295,6 +297,71 @@ const admissionDenials: Record<
       await db`update attachment_assistant_sessions set designation_revision=2`;
     },
   },
+  // Re-route revokes grants without touching a reserved session (attachments/routing.ts).
+  'grant revoked by re-route while session stays reserved': {
+    tamper: async (db, f) => {
+      await db`update attachment_assistant_sessions set state='reserved'`;
+      await db`update attachment_assistant_grants set revoked_at=now() where revoked_at is null
+        and target_kind='ticket' and target_id=${f.request.id}`;
+    },
+  },
+  'grant expired': {
+    tamper: async (db) => {
+      await db`update attachment_assistant_grants set expires_at=clock_timestamp()-interval '1 second'`;
+    },
+  },
+  'grant for another machine': {
+    tamper: async (db, f) => {
+      await db`update attachment_assistant_grants set machine_id=${f.boundB.id}`;
+    },
+  },
+  'capability receipt expired': {
+    // Simulates an expired imported capability; the identity trigger keeps live rows immutable.
+    tamper: async (db) => {
+      await db.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`update routing_capability_receipts set received_at=now()-interval '20 minutes',
+          expires_at=clock_timestamp()-interval '1 second'`;
+      });
+    },
+  },
+  'receipt for another machine': {
+    tamper: async (db, f) => {
+      await db.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`update assistant_policy_receipts set machine_id=${f.boundB.id} where id=${f.policyReceiptId}`;
+      });
+    },
+  },
+  'session for another machine': {
+    tamper: async (db, f) => {
+      await db`update attachment_assistant_sessions set machine_id=${f.boundB.id}`;
+    },
+  },
+  'session on another snapshot': {
+    tamper: async (db, f) => {
+      const other = randomUUID();
+      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+        values(${other},'ticket',${f.request.id},1,0,'{}',${'e'.repeat(64)})`;
+      await db`update attachment_assistant_sessions set snapshot_id=${other}`;
+    },
+  },
+  'turn read session is another session': {
+    tamper: async (db, f) => {
+      const [session] = await db`select * from attachment_assistant_sessions`;
+      const otherId = randomUUID();
+      await db`insert into attachment_assistant_sessions(id,grant_id,snapshot_id,snapshot_sha256,designation_revision,machine_id,
+        runtime,model_key,model_selection_id,policy_receipt_id,process_instance_id,admission_id,admitted_at,model_config_revision,
+        source_enabled_at_admission,state,expires_at)
+        values(${otherId},${session?.grant_id},${session?.snapshot_id},${session?.snapshot_sha256},1,${session?.machine_id},'api',
+        ${session?.model_key},${session?.model_selection_id},${session?.policy_receipt_id},${randomUUID()},${randomUUID()},now(),1,
+        true,'running',clock_timestamp()+interval '5 minutes')`;
+      await db.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`update assistant_turns set read_session_id=${otherId} where id=${f.fence.turnId}`;
+      });
+    },
+  },
   'session no longer live': {
     tamper: async (db) => {
       await db`update attachment_assistant_sessions set state='unknown'`;
@@ -326,12 +393,12 @@ for (const [name, variant] of Object.entries(admissionDenials)) {
     }));
 }
 
-test('S2 operation must be a pending row of this turn on the scope input', async () =>
+test('S2 operation must be a pending row written in this Tx on the scope input', async () =>
   withDatabase(async (db) => {
     const f = await portFixture(db);
     try {
       const before = await f.state();
-      const decide = (operationId: Id) =>
+      const decide = (operationId: Id | ((tx: Tx) => Promise<Id>)) =>
         f.run((tx, proof, actor) => f.port.decision(tx, actor, proof, f.a.id, decisionInput()), {
           operationId,
         });
@@ -339,21 +406,46 @@ test('S2 operation must be a pending row of this turn on the scope input', async
         code: 'ASSISTANT_OPERATION_NOT_FOUND',
         status: 404,
       });
-      const completed = await f.seedToolOperation(db, {
-        turnId: f.fence.turnId,
-        snapshotId: f.snapshotId,
-        state: 'completed',
-      });
-      await assert.rejects(() => decide(completed), { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 });
+      await assert.rejects(
+        () =>
+          decide((tx) =>
+            f.seedToolOperation(tx, { turnId: f.fence.turnId, snapshotId: f.snapshotId, state: 'completed' }),
+          ),
+        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+      );
       const otherSnapshot = randomUUID();
       await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
         values(${otherSnapshot},'ticket',${f.request.id},1,0,'{}',${'e'.repeat(64)})`;
-      const stale = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: otherSnapshot });
-      await assert.rejects(() => decide(stale), { code: 'ASSISTANT_OPERATION_STALE', status: 409 });
+      await assert.rejects(
+        () => decide((tx) => f.seedToolOperation(tx, { turnId: f.fence.turnId, snapshotId: otherSnapshot })),
+        { code: 'ASSISTANT_OPERATION_STALE', status: 409 },
+      );
+      // A pending row committed by an earlier Tx is not this call's operation.
+      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
+      await assert.rejects(() => decide(committed), { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 });
       assert.deepEqual(await f.state(), before);
-      // A pending operation committed earlier on the scope input still authorizes.
-      const pending = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
-      await decide(pending);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('S2 one operation authorizes exactly one mutation in its Tx', async () =>
+  withDatabase(async (db) => {
+    const f = await portFixture(db);
+    try {
+      const before = await f.state();
+      let first: Id | null = null;
+      await assert.rejects(
+        () =>
+          f.run(async (tx, proof, actor) => {
+            first = await f.port.decision(tx, actor, proof, f.a.id, decisionInput());
+            // Same proof, different payload: the operation is already consumed.
+            return f.port.signal(tx, actor, proof, f.a.id, 'wait_owner', 1);
+          }),
+        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
+      );
+      assert.ok(first);
+      assert.deepEqual(await f.state(), before);
     } finally {
       await f.close();
     }
@@ -386,24 +478,29 @@ test('S2 new root requires the same-Tx routing decision for the exact CreateTick
     const f = await portFixture(db, { scope: 'message' });
     try {
       const input = inputTicket(f.project.id, 'request');
-      const create = (before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>, operationId?: Id) =>
-        f.run((tx, proof, actor) => f.port.createTicket(tx, actor, proof, input), { before, operationId });
+      const create = (
+        before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>,
+        operationId?: (tx: Tx) => Promise<Id>,
+      ) => f.run((tx, proof, actor) => f.port.createTicket(tx, actor, proof, input), { before, operationId });
       const before = await f.state();
       await assert.rejects(() => create(), { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 });
       await assert.rejects(
         () => create((tx, proof) => f.routingDecision(tx, proof, createHashFor({ ...input, title: 'Khác' }))),
         { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 },
       );
-      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
-      await f.routingDecision(
-        db,
-        { fence: f.fence, scopeId: f.scopeId, operationId: committed },
-        createHashFor(input),
+      // The decision for this operation exists but was committed by an earlier Tx.
+      const operationId = randomUUID();
+      await f.routingDecision(db, { fence: f.fence, scopeId: f.scopeId, operationId }, createHashFor(input));
+      await assert.rejects(
+        () =>
+          create(undefined, (tx) =>
+            f.seedToolOperation(tx, { turnId: f.fence.turnId, snapshotId: f.snapshotId, operationId }),
+          ),
+        {
+          code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
+          status: 403,
+        },
       );
-      await assert.rejects(() => create(undefined, committed), {
-        code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
-        status: 403,
-      });
       const after = await f.state();
       assert.deepEqual(after, before);
       const { value } = await create((tx, proof) => f.routingDecision(tx, proof, createHashFor(input)));

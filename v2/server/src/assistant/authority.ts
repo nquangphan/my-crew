@@ -116,7 +116,7 @@ const admissionDenied = () =>
 
 /**
  * Positive Actor only from persisted rows in this deployment: current fence and
- * scope, the turn's admitted read session, and a current PASS policy receipt
+ * scope, the turn's admitted read session and its live input grant, and a current PASS policy receipt
  * issued by the pinned verifier. A turn without admission stays 503; every
  * mismatch is 403 with no fallback. Expiry is measured by `clock_timestamp()`
  * after the authority rows are locked, never by the transaction start time.
@@ -146,9 +146,20 @@ export function createPersistedAssistantActorResolver(
     if (!turn) throw new ApiError('ASSISTANT_TURN_STALE', 409, 'Lượt Trợ lý không còn quyền hiện hành');
     if (turn.admission_id === null)
       throw new ApiError('ASSISTANT_ADMISSION_NOT_CONFIGURED', 503, 'Chưa cấu hình admission Trợ lý');
-    const [session] =
-      await tx`select id,state,machine_id,process_instance_id,designation_revision,model_selection_id,
-      policy_receipt_id,snapshot_id from attachment_assistant_sessions where admission_id=${turn.admission_id} for share`;
+    // The turn's own read session, then its grant before the session (plan order grant → session).
+    const [link] = turn.read_session_id
+      ? await tx`select grant_id from attachment_assistant_sessions
+        where id=${turn.read_session_id} and admission_id=${turn.admission_id}`
+      : [];
+    const [grant] = link
+      ? await tx`select id,revoked_at,machine_id,snapshot_id,designation_id,designation_revision
+        from attachment_assistant_grants where id=${link.grant_id} for share`
+      : [];
+    const [session] = grant
+      ? await tx`select id,grant_id,state,machine_id,process_instance_id,designation_revision,model_selection_id,
+        policy_receipt_id,snapshot_id from attachment_assistant_sessions
+        where id=${turn.read_session_id} and admission_id=${turn.admission_id} for share`
+      : [];
     const [selection] = session
       ? await tx`select id,policy_receipt_id,probe_receipt_id from assistant_model_selections
         where id=${turn.model_selection_id} and turn_id=${fence.turnId} for share`
@@ -165,17 +176,26 @@ export function createPersistedAssistantActorResolver(
     const [clock] = session
       ? await tx`select
           (select expires_at>clock_timestamp() from attachment_assistant_sessions where id=${session.id}) as session_current,
+          (select expires_at>clock_timestamp() from attachment_assistant_grants where id=${grant?.id ?? null}) as grant_current,
           (select expires_at>clock_timestamp() from assistant_policy_receipts where id=${selection?.policy_receipt_id ?? null}) as receipt_current,
           (select expires_at>clock_timestamp() from routing_capability_receipts where id=${capability?.id ?? null}) as capability_current,
           (select deployment_id from assistant_config where singleton=true) as deployment_id`
       : [];
     if (
+      !grant ||
       !session ||
       !selection ||
       !receipt ||
       !capability ||
       !clock ||
       session.id !== turn.read_session_id ||
+      session.grant_id !== grant.id ||
+      grant.revoked_at !== null ||
+      clock.grant_current !== true ||
+      grant.machine_id !== turn.machine_id ||
+      grant.snapshot_id !== session.snapshot_id ||
+      grant.designation_id !== fence.designationId ||
+      Number(grant.designation_revision) !== fence.designationRevision ||
       !['reserved', 'running'].includes(String(session.state)) ||
       clock.session_current !== true ||
       session.machine_id !== turn.machine_id ||

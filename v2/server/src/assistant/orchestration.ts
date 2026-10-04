@@ -51,6 +51,7 @@ function sameIdentity(binding: Binding, actor: Actor, proof: OrchestrationProof)
 
 // A new root exists only through the router's persisted routing decision written
 // in this same transaction for this exact operation, scope and CreateTicket hash.
+// The message row is share-locked so its input revision cannot move under the check.
 async function verifyNewRoot(
   tx: Tx,
   scope: ScopeRow,
@@ -62,7 +63,7 @@ async function verifyNewRoot(
   const decisions = await tx`select d.*,m.input_revision as current_revision
     from attachment_message_decisions d join attachment_messages m on m.id=d.message_id
     where d.message_id=${scope.messageId} and d.kind='routing' and d.xmin=pg_current_xact_id()::xid
-    order by d.id`;
+    order by d.id for share of m`;
   const body = canonicalJson({
     operationId: proof.operationId,
     scopeId: proof.scopeId,
@@ -130,6 +131,8 @@ async function verifyTarget(
 function persistedAuthority(resolver: PersistedAssistantActorResolver) {
   const resolve = resolver;
   const bindings = new WeakMap<Tx, Binding>();
+  // Each operation row authorizes exactly one mutation in its own Tx.
+  const consumed = new WeakMap<Tx, Set<string>>();
   const authority: ProjectOrchestrationAuthority = Object.freeze({
     async verify(
       tx: Tx,
@@ -156,12 +159,20 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
       if (!scope) throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
       if (!Array.isArray(scope.actions) || !scope.actions.includes(action))
         throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
-      const [operation] = await tx`select turn_id,state,input_snapshot_id from assistant_tool_operations
-        where operation_id=${binding.proof.operationId} for update`;
+      // The tools route writes the pending row in this same Tx before calling the port.
+      const [operation] =
+        await tx`select operation_id,turn_id,state,input_snapshot_id from assistant_tool_operations
+        where operation_id=${binding.proof.operationId} and xmin=pg_current_xact_id()::xid for update`;
       if (!operation || operation.turn_id !== binding.proof.fence.turnId || operation.state !== 'pending')
         throw new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
       if (operation.input_snapshot_id !== scope.input_snapshot_id)
         throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
+      const used = consumed.get(tx) ?? new Set<string>();
+      consumed.set(tx, used);
+      const operationKey = String(operation.operation_id);
+      if (used.has(operationKey))
+        throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
+      used.add(operationKey);
       await verifyTarget(
         tx,
         {

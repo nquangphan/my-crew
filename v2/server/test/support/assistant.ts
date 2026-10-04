@@ -776,9 +776,9 @@ export async function assistantFixture(db: Db) {
     /** Test-only stand-in for the tools route row written before the port call. */
     async seedToolOperation(
       sql: Db | Tx,
-      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected' },
+      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected'; operationId?: Id },
     ): Promise<Id> {
-      const operationId = randomUUID();
+      const operationId = input.operationId ?? randomUUID();
       const state = input.state ?? 'pending';
       await sql`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state,response)
         values(${operationId},${input.turnId},
