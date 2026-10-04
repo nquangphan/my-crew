@@ -517,6 +517,8 @@ export type DraftRecord = {
   sessionId: string | null;
   selectionRevision: number | null;
   submitOperationId: string | null;
+  /** Consent frozen into the unresolved submit; needed to re-enter the exact body after logout. */
+  assistantRead: AssistantRead | null;
   files: Pick<DraftFile, 'localId' | 'name' | 'size' | 'sha256' | 'uploadId'>[];
 };
 
@@ -528,6 +530,7 @@ export function serializeDraftRecord(record: DraftRecord): string {
     sessionId: record.sessionId,
     selectionRevision: record.selectionRevision,
     submitOperationId: record.submitOperationId,
+    assistantRead: record.assistantRead,
     files: record.files.map(({ localId, name, size, sha256, uploadId }) => ({
       localId,
       name,
@@ -571,6 +574,10 @@ export function parseDraftRecord(raw: string | null): DraftRecord | null {
     sessionId: nullableUuid(value.sessionId),
     selectionRevision: typeof revision === 'number' && Number.isSafeInteger(revision) ? revision : null,
     submitOperationId: typeof value.submitOperationId === 'string' ? value.submitOperationId : null,
+    assistantRead:
+      value.assistantRead === 'none' || value.assistantRead === 'selected-inputs'
+        ? value.assistantRead
+        : null,
     files,
   };
 }
@@ -590,4 +597,81 @@ export function receiptSummary(receipt: ComposeReceipt): string {
   }
   const files = receipt.message.attachmentIds.length;
   return `Đã gửi tin nhắn cho Trợ lý${files ? ` kèm ${files} tệp` : ''}. Trợ lý chưa trả lời.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// UI policy of the composer (pure, so the rules are unit-tested without a DOM)
+
+/** Paste handling: only a paste that carries files is taken over; its text is inserted at the caret. */
+export function pasteDecision(input: {
+  files: File[];
+  text: string;
+  value: string;
+  start: number | null;
+  end: number | null;
+  filesLocked: boolean;
+}): { prevent: boolean; nextValue: string | null; files: File[] } {
+  if (input.files.length === 0 || input.filesLocked) return { prevent: false, nextValue: null, files: [] };
+  if (!input.text) return { prevent: true, nextValue: null, files: input.files };
+  const start = input.start ?? input.value.length;
+  const end = input.end ?? start;
+  return {
+    prevent: true,
+    nextValue: input.value.slice(0, start) + input.text + input.value.slice(end),
+    files: input.files,
+  };
+}
+
+/** Buttons offered for one file row. `active` means a pipeline step for it is running in this tab. */
+export function fileActions(
+  file: DraftFile,
+  context: { hasBytes: boolean; active: boolean; locked: boolean },
+): { retry: boolean; reselect: boolean; remove: boolean } {
+  if (context.locked) return { retry: false, reselect: false, remove: false };
+  const stalled =
+    file.state === 'unknown' ||
+    file.state === 'removing' ||
+    (file.state === 'failed' && context.hasBytes) ||
+    (file.state === 'uploading' && !context.active);
+  return {
+    retry: stalled && file.errorCode !== 'DUPLICATE_LOCAL',
+    reselect: file.errorCode === 'NEEDS_RESELECT',
+    remove: file.state !== 'removing',
+  };
+}
+
+/**
+ * Which parts of the composer are locked, the consent shown and the state reported to the form. A frozen
+ * consent is shown as frozen; re-entry for a tombstoned key unlocks the text (and reports `editing`) but
+ * keeps files and consent as they were sent.
+ */
+export function composeLocks(
+  view: {
+    state: ComposeDraft['state'];
+    needsPayload: boolean;
+    assistantRead: AssistantRead | null;
+    discardable: boolean;
+    hasDraft: boolean;
+  },
+  context: { ready: boolean; authenticated: boolean; localConsent: boolean },
+): {
+  textLocked: boolean;
+  filesLocked: boolean;
+  consentLocked: boolean;
+  consent: boolean;
+  reportedState: ComposeDraft['state'];
+  showDiscard: boolean;
+  showAbandon: boolean;
+} {
+  const unavailable = !context.ready || !context.authenticated;
+  const filesLocked = unavailable || view.state !== 'editing';
+  return {
+    textLocked: unavailable || (view.state !== 'editing' && !view.needsPayload),
+    filesLocked,
+    consentLocked: filesLocked || view.assistantRead !== null,
+    consent: view.assistantRead !== null ? view.assistantRead === 'selected-inputs' : context.localConsent,
+    reportedState: view.needsPayload ? 'editing' : view.state,
+    showDiscard: view.discardable,
+    showAbandon: view.state === 'editing' && !view.needsPayload && view.hasDraft,
+  };
 }

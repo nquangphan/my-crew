@@ -34,8 +34,11 @@ import {
   type ComposeReceipt,
   type ComposeSubmission,
   codePoints,
+  composeLocks,
   type DraftFile,
+  fileActions,
   filesFromTransfer,
+  pasteDecision,
   receiptSummary,
   submissionLimits,
 } from './state.ts';
@@ -122,6 +125,10 @@ const messages: Record<string, string> = {
   SESSION_ENDED: 'Phiên đăng nhập đã kết thúc; yêu cầu vẫn giữ khóa cũ.',
   UNCONFIRMED: 'Chưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.',
   RESPONSE_SHAPE_INVALID: 'Máy chủ trả dữ liệu không đúng định dạng. Gửi lại sẽ nhận lại đúng kết quả cũ.',
+  UPLOAD_RECEIVING: 'Máy chủ vẫn đang nhận tệp này từ lần gửi trước. Thử lại để kiểm tra lại.',
+  SUBMIT_UNCONFIRMED: 'Chưa xác nhận lần gửi trước. Đang kiểm tra với máy chủ; nội dung vẫn khóa.',
+  SUBMITTED_ELSEWHERE:
+    'Lượt gửi này đã được máy chủ lưu nhưng tab này không còn kết quả. Xem ở danh sách; bỏ bản nháp nếu muốn soạn mới.',
 };
 
 function describe(code: string | null): string | null {
@@ -167,8 +174,11 @@ function FileRow({
 }) {
   const reselectId = useId();
   const local = controller.localFile(file.localId);
-  const retryable =
-    file.state === 'unknown' || file.state === 'removing' || (file.state === 'failed' && local !== null);
+  const actions = fileActions(file, {
+    hasBytes: local !== null,
+    active: controller.isActive(file.localId),
+    locked,
+  });
   return (
     <li
       data-local-id={file.localId}
@@ -184,12 +194,12 @@ function FileRow({
       </div>
       {!locked && (
         <span style={{ display: 'flex', gap: '0.5rem' }}>
-          {retryable && file.errorCode !== 'DUPLICATE_LOCAL' && (
+          {actions.retry && (
             <button type="button" onClick={() => void controller.retryFile(file.localId)}>
               Thử lại
             </button>
           )}
-          {file.errorCode === 'NEEDS_RESELECT' && (
+          {actions.reselect && (
             <>
               <label htmlFor={reselectId}>Chọn lại tệp</label>
               <input
@@ -204,7 +214,7 @@ function FileRow({
               />
             </>
           )}
-          {file.state !== 'removing' && (
+          {actions.remove && (
             <button type="button" onClick={() => void controller.removeFile(file.localId)}>
               Bỏ tệp
             </button>
@@ -256,11 +266,6 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
   }, [controller, submission]);
 
   const state = view?.draft.state ?? 'editing';
-  // Re-entry for a tombstoned key needs the whole form editable again (the payload was wiped at logout).
-  const reportedState = view?.needsPayload ? 'editing' : state;
-  useEffect(() => {
-    latest.current.onStateChange(reportedState);
-  }, [reportedState]);
 
   // Reconcile the compose session after (re)authentication.
   const sessionState = useSyncExternalStore(
@@ -271,12 +276,13 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
     if (sessionState === 'authenticated') void controller?.reconcile();
   }, [sessionState, controller]);
 
-  // Deliver an accepted receipt exactly once, invalidate affected views, then start a fresh draft.
-  const delivered = useRef<ComposeReceipt | null>(null);
-  const receipt = view?.receipt ?? null;
+  // Deliver an accepted receipt exactly once (the controller hands it out once), invalidate affected
+  // views, then start a fresh draft.
+  const pendingReceipt = view?.receipt ?? null;
   useEffect(() => {
-    if (!receipt || !controller || delivered.current === receipt) return;
-    delivered.current = receipt;
+    if (!pendingReceipt || !controller) return;
+    const receipt = controller.takeReceipt();
+    if (!receipt) return;
     if (receipt.kind === 'ticket') {
       void queryClient.invalidateQueries({ queryKey: queryRoots.tickets });
       void queryClient.invalidateQueries({ queryKey: queryRoots.ticket(receipt.ticket.id) });
@@ -288,7 +294,7 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
     }
     latest.current.onAccepted(receipt);
     controller.startNew();
-  }, [receipt, controller, queryClient]);
+  }, [pendingReceipt, controller, queryClient]);
 
   const [allowRead, setAllowRead] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -297,9 +303,24 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
   const consentId = useId();
   const authenticated = sessionState === 'authenticated';
   const reentry = view?.needsPayload ?? false;
-  const locked = !controller || !authenticated || (state !== 'editing' && !reentry);
-  const filesLocked = !controller || !authenticated || state !== 'editing';
   const files = view?.draft.files ?? [];
+  const locks = composeLocks(
+    {
+      state,
+      needsPayload: reentry,
+      assistantRead: view?.assistantRead ?? null,
+      discardable: view?.discardable ?? false,
+      hasDraft: Boolean(view?.draft.sessionId) || files.length > 0,
+    },
+    { ready: controller !== null, authenticated, localConsent: allowRead },
+  );
+  const locked = locks.textLocked;
+  const filesLocked = locks.filesLocked;
+  // Re-entry for a tombstoned key needs the form editable again (the payload was wiped at logout).
+  const reportedState = locks.reportedState;
+  useEffect(() => {
+    latest.current.onStateChange(reportedState);
+  }, [reportedState]);
   const text = textOf(submission);
   const max = submission.kind === 'ticket' ? submissionLimits.descriptionMax : submissionLimits.textMax;
   const length = codePoints(text);
@@ -310,17 +331,19 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
   };
 
   const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const { files: pasted, text: pastedText } = filesFromTransfer(event.clipboardData);
-    if (pasted.length === 0 || filesLocked || !controller) return; // ordinary paste stays native
+    const transfer = filesFromTransfer(event.clipboardData);
+    const decision = pasteDecision({
+      ...transfer,
+      value: text,
+      start: event.currentTarget.selectionStart,
+      end: event.currentTarget.selectionEnd,
+      filesLocked: filesLocked || !controller,
+    });
+    if (!decision.prevent) return; // ordinary paste stays native
     // Handle exactly what this paste carried: the files, plus its text inserted at the caret.
     event.preventDefault();
-    if (pastedText) {
-      const element = event.currentTarget;
-      const start = element.selectionStart ?? text.length;
-      const end = element.selectionEnd ?? start;
-      changeText(text.slice(0, start) + pastedText + text.slice(end));
-    }
-    void controller.addFiles(pasted, 'clipboard');
+    if (decision.nextValue !== null) changeText(decision.nextValue);
+    void controller?.addFiles(decision.files, 'clipboard');
   };
 
   const onDragOver = (event: DragEvent<HTMLElement>) => {
@@ -336,7 +359,7 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
   const submit = async () => {
     if (!controller) return;
     setNotice(null);
-    const result = await controller.submit(allowRead ? 'selected-inputs' : 'none');
+    const result = await controller.submit(locks.consent ? 'selected-inputs' : 'none');
     if (result) setNotice(receiptSummary(result));
   };
 
@@ -392,8 +415,8 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
           <input
             id={consentId}
             type="checkbox"
-            checked={allowRead}
-            disabled={state !== 'editing'}
+            checked={locks.consent}
+            disabled={locks.consentLocked}
             onChange={(event) => setAllowRead(event.currentTarget.checked)}
           />{' '}
           <label htmlFor={consentId}>Cho phép Trợ lý đọc các tệp đã chọn trong lượt gửi này</label>
@@ -421,12 +444,23 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
               ? 'Gửi lại đúng yêu cầu cũ'
               : submitLabels[submission.kind]}
         </button>
-        {state === 'editing' && !reentry && (view?.draft.sessionId || files.length > 0) && (
+        {locks.showAbandon && (
           <button type="button" disabled={!authenticated} onClick={() => void controller?.abandon()}>
             Bỏ bản nháp tệp
           </button>
         )}
+        {locks.showDiscard && (
+          <button type="button" onClick={() => controller?.discard()}>
+            Bỏ bản nháp này
+          </button>
+        )}
       </div>
+      {locks.showDiscard && (
+        <p>
+          Bỏ bản nháp chỉ xóa bản nháp trên trình duyệt; yêu cầu cũ vẫn nằm trong “Tiếp tục yêu cầu chưa xác
+          nhận”. Nếu yêu cầu cũ đã được máy chủ lưu, gửi một nội dung mới sẽ tạo thêm một mục khác.
+        </p>
+      )}
     </section>
   );
 }

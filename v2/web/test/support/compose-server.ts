@@ -116,6 +116,8 @@ export class FakeComposeServer {
   dropAfterCommit: ((call: Call) => boolean) | null = null;
   /** Fail matching request before commit with a transport error. */
   failBefore: ((call: Call) => boolean) | null = null;
+  /** Commit the next matching request, then answer 201 with a body that does not match the contract. */
+  corruptNext: ((call: Call) => boolean) | null = null;
   /** While true every PUT content fails with a transport error before reaching the producer. */
   blockPuts = false;
   /** PUT content answers 409 ATTACHMENT_UPLOAD_BUSY this many times while the upload reads `receiving`. */
@@ -134,6 +136,13 @@ export class FakeComposeServer {
     if (this.blockPuts && method === 'PUT') throw new TypeError('fetch failed');
     const bytes = init.body instanceof Blob ? new Uint8Array(await init.body.arrayBuffer()) : null;
     const reply = this.#handle(call, bytes);
+    if (this.corruptNext?.(call) && reply.status < 300) {
+      this.corruptNext = null;
+      return new Response(JSON.stringify({ unexpected: true }), {
+        status: reply.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
     if (this.dropAfterCommit?.(call)) {
       this.dropAfterCommit = null;
       throw new TypeError('fetch failed');

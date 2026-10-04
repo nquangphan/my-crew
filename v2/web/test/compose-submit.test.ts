@@ -226,6 +226,15 @@ test('canSubmit: file lỗi chặn gửi dù có text; sending/accepted không g
   assert.equal(canSubmit({ ...base, files: [], sessionId: null, selectionRevision: null }), true);
   assert.equal(canSubmit({ ...base, files: [], state: 'sending' }), false);
   assert.equal(canSubmit({ ...base, files: [], state: 'ambiguous' }), false);
+  const frozenOp = freezeSubmission({
+    submission: commentSubmission('có nội dung'),
+    selection: selection(),
+    assistantRead: 'none',
+    operationId: 'op',
+    intentId: 'intent',
+  });
+  assert.equal(canSubmit({ ...base, files: [], state: 'ambiguous', submitOperation: frozenOp }), true);
+  assert.equal(canSubmit({ ...base, files: [], state: 'suspended', submitOperation: frozenOp }), true);
 });
 
 async function controllerFor(
@@ -348,4 +357,130 @@ test('comment chỉ có ảnh ready: selection đúng mọi upload active, recei
   assert.equal(body.assistantRead, 'selected-inputs');
   assert.ok(receipt);
   assert.doesNotMatch(receiptSummary(receipt), /đã đọc|đã hiểu/i);
+});
+
+// ---- fix round 1 -----------------------------------------------------------------------------------------
+
+test('I1: 201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai', async () => {
+  const server = new FakeComposeServer();
+  const { controller } = await controllerFor(server, commentSubmission('nội dung gốc'));
+  server.corruptNext = (call) => call.url.endsWith('/attachment-comments');
+  assert.equal(await controller.submit('none'), null);
+  assert.equal(server.comments.length, 1, 'server đã commit');
+  assert.notEqual(controller.view().draft.state, 'editing', 'không mở khóa form khi server có thể đã commit');
+  assert.equal(controller.setSubmission(commentSubmission('owner sửa sau đó')), false);
+  assert.equal(controller.view().submittable, true);
+  const receipt = await controller.submit('selected-inputs');
+  assert.equal(receipt?.kind, 'comment');
+  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+  assert.equal(posts.length, 2);
+  assert.equal(posts[1]?.body, posts[0]?.body, 'đúng body đã đóng băng, kể cả assistantRead');
+  assert.equal(server.comments.length, 1);
+  assert.equal(server.composes.size, 1);
+});
+
+test('I1: lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng', async () => {
+  const server = new FakeComposeServer();
+  const first = await controllerFor(server, commentSubmission('đã gửi ở panel'));
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await first.controller.submit('none');
+  const operation = first.controller.view().draft.submitOperation;
+  assert.ok(operation);
+  // The recovery panel replays and accepts the operation; the key is released.
+  await first.client.mutate(operation);
+  assert.equal(first.pending.get(operation.id), undefined);
+  first.controller.dispose();
+  const reloaded = await controllerFor(server, commentSubmission(''), await harness(server, first.storage));
+  await reloaded.controller.reconcile();
+  assert.notEqual(reloaded.controller.view().draft.state, 'editing');
+  assert.equal(reloaded.controller.setSubmission(commentSubmission('nội dung khác')), false);
+  await reloaded.controller.submit('none');
+  await reloaded.controller.submit('none');
+  assert.equal(server.comments.length, 1);
+  assert.equal(server.composes.size, 1, 'không mở compose mới');
+  assert.equal(reloaded.controller.view().discardable, true, 'owner có lối thoát rõ ràng');
+  reloaded.controller.discard();
+  assert.equal(reloaded.controller.view().draft.state, 'editing');
+  assert.equal(reloaded.controller.view().draft.sessionId, null);
+});
+
+test('I2: nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('kèm ảnh'));
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('selected-inputs');
+  const key = env.controller.view().draft.submitOperation?.id;
+  assert.ok(key);
+  env.pending.tombstoneAll();
+  env.controller.dispose();
+  const after = await controllerFor(server, commentSubmission(''), await harness(server, env.storage));
+  await after.controller.reconcile();
+  const view = after.controller.view();
+  assert.equal(view.needsPayload, true);
+  assert.equal(view.draft.files[0]?.state, 'ready', 'file lấy trạng thái từ GET compose');
+  assert.equal(view.assistantRead, 'selected-inputs', 'consent gốc được giữ để nhập lại đúng body');
+  assert.equal(view.discardable, true);
+  // Wrong content first: conflict keeps the tombstone and the old key.
+  assert.equal(after.controller.setSubmission(commentSubmission('sai nội dung')), true);
+  await after.controller.submit('none');
+  assert.equal(after.controller.view().errorCode, 'IDEMPOTENCY_CONFLICT');
+  assert.equal(after.controller.view().needsPayload, true);
+  assert.equal(after.controller.setSubmission(commentSubmission('kèm ảnh')), true);
+  const receipt = await after.controller.submit('none');
+  assert.equal(receipt?.kind, 'comment');
+  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+  assert.ok(posts.every((call) => call.headers.get('idempotency-key') === key));
+  assert.equal(JSON.parse(posts.at(-1)?.body ?? '{}').assistantRead, 'selected-inputs');
+  assert.equal(server.comments.length, 1);
+});
+
+test('I5: op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('panel'));
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('selected-inputs');
+  const operation = env.controller.view().draft.submitOperation;
+  assert.ok(operation);
+  await env.client.mutate(operation);
+  const receipt = await env.controller.submit('none');
+  assert.equal(receipt?.kind, 'comment');
+  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+  assert.equal(new Set(posts.map((call) => call.body)).size, 1);
+  assert.equal(server.comments.length, 1);
+});
+
+test('I5: SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('có chữ'));
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  // Another tab reserved a second file on the same compose.
+  const compose = [...server.composes.values()][0];
+  assert.ok(compose);
+  server.uploads.set('aaaaaaaa-bbbb-4ccc-8ddd-999999999999', {
+    attachmentId: 'aaaaaaaa-bbbb-4ccc-8ddd-999999999999',
+    composeId: compose.id,
+    fileName: 'khac.png',
+    mime: 'image/png',
+    byteLength: 10,
+    sha256: 'e'.repeat(64),
+    state: 'ready',
+  });
+  compose.revision++;
+  assert.equal(await env.controller.submit('none'), null);
+  assert.equal(env.controller.view().errorCode, 'SELECTION_CHANGED');
+  await settle(() => env.controller.view().draft.files.length === 2, 'refetched');
+  assert.equal(env.controller.view().draft.state, 'editing');
+  const receipt = await env.controller.submit('none');
+  assert.equal(receipt?.kind === 'comment' && receipt.attachmentIds.length, 2);
+});
+
+test('I5: takeReceipt trả receipt đúng một lần', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('một lần'));
+  await env.controller.submit('none');
+  assert.equal(env.controller.takeReceipt()?.kind, 'comment');
+  assert.equal(env.controller.takeReceipt(), null);
 });

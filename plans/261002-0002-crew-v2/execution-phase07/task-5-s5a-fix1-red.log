@@ -1,0 +1,255 @@
+✔ freezeSubmission ticket: đúng path/body, không gửi kind/target/draftKey, selection rỗng hợp lệ (1.101875ms)
+✔ freezeSubmission comment và assistant_message: đúng route/body, giữ clientMessageId (0.143ms)
+✔ freezeSubmission chặn target sai, field sai giới hạn và text/file cùng rỗng (1.434125ms)
+✔ PendingStore.begin cho cùng intent/path/body ra đúng bytes của freezeSubmission (0.382667ms)
+✔ canSubmit: file lỗi chặn gửi dù có text; sending/accepted không gửi; ambiguous chỉ retry op cũ (0.136375ms)
+✔ mất phản hồi sau commit: khóa form, retry cùng key/body, một ticket; frozen body không đổi khi form đổi (9.940458ms)
+✔ hết phiên rồi đăng nhập lại cùng owner: retry giữ key gốc và clientMessageId, một message (1.689291ms)
+✔ reload tab: compose ID/revision và key gốc được giữ, không lưu text/File; gửi lại ra một comment (0.830333ms)
+✔ logout: chỉ còn tombstone; không cấp key mới, nhập lại đúng nội dung gửi bằng key cũ (1.553459ms)
+✔ comment chỉ có ảnh ready: selection đúng mọi upload active, receipt không nói “đã đọc” (2.9025ms)
+✖ I1: 201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai (0.583125ms)
+✖ I1: lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng (0.582333ms)
+✖ I2: nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ (2.269208ms)
+✖ I5: op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ (0.685209ms)
+✔ I5: SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection (1.120375ms)
+✖ I5: takeReceipt trả receipt đúng một lần (0.34825ms)
+✔ tên ảnh clipboard không tên/tên chung có giờ Asia/Ho_Chi_Minh và đuôi theo MIME (0.837041ms)
+✔ một luồng nhận file: paste giữ cả text và ảnh; input/drop dùng FileList (0.5045ms)
+✔ policy kiểm trước hash theo giá trị được công bố, không gắn cứng 25MiB (0.141417ms)
+✔ digestFile: SHA-256 đúng, từ chối vượt ngân sách trước khi đọc (2.507416ms)
+✔ worker hasher: mỗi lượt một file, abort dừng worker và bỏ listener, dispose dừng worker (5.763459ms)
+✔ reserve tuần tự theo revision hiện hành rồi PUT cùng upload ID; hai ảnh paste đều ready (12.803958ms)
+✔ file lỗi chặn gửi dù có text; bỏ file lỗi cục bộ thì gửi được (0.46175ms)
+✔ file trùng hash+size bị đánh dấu để owner bỏ, không reserve thêm (1.8735ms)
+✔ bỏ file: DELETE với revision hiện hành, 409 thì đọc lại compose và gửi lại theo revision mới (1.5505ms)
+✔ mất phản hồi reserve sau commit: GET compose nhận lại upload, không tạo reservation thứ hai (2.162542ms)
+✔ reserve chưa tới server: GET chưa chứng minh được thì retry gửi lại đúng key/body cũ (2.275458ms)
+✔ PUT bận/receiving: chờ rồi gửi lại cùng bytes cùng ID, ready thắng (1.985ms)
+✔ lỗi transport thật khi PUT: file chưa sẵn sàng thì không gửi; retry dùng lại reservation (3.510083ms)
+✔ đổi project: bỏ compose cũ rõ ràng rồi chuyển file sang compose mới (2.124083ms)
+✔ reload mất bytes: chọn lại phải đúng size+SHA trước khi gửi bytes (3.669833ms)
+✔ dispose dừng hasher và không còn listener (0.133583ms)
+✔ preview chỉ nhận PNG/JPEG theo magic bytes, không SVG/HTML/PDF (0.053208ms)
+✔ bytes preview phải khớp SHA/MIME của record, không tin tên tệp hay content-type (0.648459ms)
+✔ trạng thái trích xuất nêu phần thiếu theo trang/sheet/ô và không nói “đã đọc” (0.168292ms)
+✖ I3: đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới (256.276833ms)
+✖ I4: PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready (271.40275ms)
+✖ I4: reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên (3.943958ms)
+✔ I5: PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload (4.363584ms)
+✔ I5: bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới (2.984167ms)
+✔ I5: abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi (2.679667ms)
+✖ I5 composer: paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên (0.881375ms)
+✖ I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file (0.23375ms)
+✖ I5 composer: khóa form, consent đóng băng và state báo cho form (0.21125ms)
+ℹ tests 44
+ℹ suites 0
+ℹ pass 33
+ℹ fail 11
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 687.654
+
+✖ failing tests:
+
+test at test/compose-submit.test.ts:364:1
+✖ I1: 201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai (0.583125ms)
+  AssertionError [ERR_ASSERTION]: không mở khóa form khi server có thể đã commit
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:370:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'editing',
+    expected: 'editing',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose-submit.test.ts:382:1
+✖ I1: lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng (0.582333ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'editing'
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:395:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'editing',
+    expected: 'editing',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose-submit.test.ts:407:1
+✖ I2: nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ (2.269208ms)
+  AssertionError [ERR_ASSERTION]: file lấy trạng thái từ GET compose
+  
+  'unknown' !== 'ready'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:422:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'unknown',
+    expected: 'ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose-submit.test.ts:439:1
+✖ I5: op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ (0.685209ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'comment'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:448:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'comment',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose-submit.test.ts:480:1
+✖ I5: takeReceipt trả receipt đúng một lần (0.34825ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'comment'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:484:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'comment',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose.test.ts:526:1
+✖ I3: đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới (256.276833ms)
+  Error: TIMEOUT:moved
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:431:9)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:534:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/compose.test.ts:551:1
+✖ I4: PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready (271.40275ms)
+  Error: TIMEOUT:ready
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:431:9)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:558:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/compose.test.ts:563:1
+✖ I4: reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên (3.943958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'uploading'
+  - 'unknown'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:584:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'uploading',
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose.test.ts:662:1
+✖ I5 composer: paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên (0.881375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   files: [],
+  +   nextValue: null,
+  +   prevent: false
+  -   files: [
+  -     File {
+  -       Symbol(kHandle): Blob {},
+  -       Symbol(kLength): 10,
+  -       Symbol(kType): 'image/png',
+  -       Symbol(state): FileState {
+  -         lastModified: 1791085591128,
+  -         name: 'image.png'
+  -       }
+  -     }
+  -   ],
+  -   nextValue: 'aXYd',
+  -   prevent: true
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:668:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { prevent: false, nextValue: null, files: [] },
+    expected: { prevent: true, nextValue: 'aXYd', files: [ {} ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose.test.ts:682:1
+✖ I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file (0.23375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:685:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose.test.ts:700:1
+✖ I5 composer: khóa form, consent đóng băng và state báo cho form (0.21125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:705:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

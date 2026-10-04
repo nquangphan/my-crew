@@ -20,10 +20,13 @@ import {
   type ComposeSubmission,
   checkIntake,
   clientHashBudgetBytes,
+  composeLocks,
   declaredMimeFor,
+  fileActions,
   filesFromTransfer,
   localFileName,
   parseDraftRecord,
+  pasteDecision,
 } from '../src/compose/state.ts';
 import {
   FakeComposeServer,
@@ -516,4 +519,222 @@ test('trạng thái trích xuất nêu phần thiếu theo trang/sheet/ô và kh
     'Bảng 1, hàng 2, ô 4',
   );
   assert.equal(describeLocator({ kind: 'unknown' }), 'Vị trí không xác định');
+});
+
+// ---- fix round 1 -----------------------------------------------------------------------------------------
+
+test('I3: đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới', async () => {
+  const env = await setup(ticketSubmission());
+  env.server.failBefore = (call) => call.method === 'POST' && call.url.endsWith('/uploads');
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(env.allSettled, 'unknown');
+  assert.equal(env.files()[0]?.state, 'unknown');
+  const oldSession = env.controller.view().draft.sessionId;
+  assert.equal(env.controller.setSubmission(ticketSubmission(otherProject)), true);
+  await settle(
+    () => env.controller.view().draft.sessionId !== oldSession && env.files()[0]?.state === 'ready',
+    'moved',
+  );
+  const next = env.controller.view().draft.sessionId ?? '';
+  assert.equal(env.server.composes.get(next)?.projectId, otherProject);
+  assert.equal([...env.server.uploads.values()].filter((upload) => upload.composeId === next).length, 1);
+  assert.equal(
+    env.pending.list().filter((operation) => operation.path.includes(oldSession ?? '-')).length,
+    0,
+    'không còn op reserve treo trên compose cũ',
+  );
+});
+
+test('I4: PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready', async () => {
+  const env = await setup(commentSubmission(''));
+  env.server.busyPuts = 6;
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(env.allSettled, 'unknown');
+  assert.equal(env.files()[0]?.state, 'unknown');
+  await env.controller.retryFile(env.files()[0]?.localId ?? '');
+  await settle(() => env.files()[0]?.state === 'ready', 'ready');
+  const puts = env.server.calls.filter((call) => call.method === 'PUT');
+  assert.equal(new Set(puts.map((call) => call.url)).size, 1);
+});
+
+test('I4: reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên', async () => {
+  const server = new FakeComposeServer();
+  server.busyPuts = 50;
+  const first = await setup(commentSubmission(''), server);
+  await first.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(first.allSettled, 'unknown');
+  first.controller.dispose();
+  const env = await harness(server, first.storage);
+  const controller = new ComposeController({
+    draftKey: 'draft-files',
+    submission: commentSubmission(''),
+    client: env.client,
+    pending: env.pending,
+    storage: env.storage,
+    hasher: inlineHasher().hasher,
+    loadPolicy: (signal) => env.client.get('/v2/attachment-policy', { signal }),
+    sleep: async () => undefined,
+  });
+  await controller.reconcile();
+  const file = controller.view().draft.files[0];
+  assert.ok(file);
+  assert.equal(file.state, 'unknown');
+  assert.equal(file.errorCode, 'UPLOAD_RECEIVING');
+  assert.equal(fileActions(file, { hasBytes: false, active: false, locked: false }).retry, true);
+  const upload = [...server.uploads.values()][0];
+  if (upload) upload.state = 'ready';
+  await controller.retryFile(file.localId);
+  assert.equal(controller.view().draft.files[0]?.state, 'ready');
+});
+
+test('I5: PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload', async () => {
+  const env = await setup(commentSubmission(''));
+  env.server.failBefore = null;
+  const original = env.server.fetch;
+  let unauthorizedPut = true;
+  env.server.fetch = async (url, init) => {
+    if (unauthorizedPut && init?.method === 'PUT') {
+      unauthorizedPut = false;
+      return new Response(JSON.stringify({ error: { code: 'UNAUTHENTICATED', message: 'x' } }), {
+        status: 401,
+      });
+    }
+    return original(url, init);
+  };
+  const wrapped = await harness(env.server, env.storage);
+  const controller = new ComposeController({
+    draftKey: 'draft-401',
+    submission: commentSubmission(''),
+    client: wrapped.client,
+    pending: wrapped.pending,
+    storage: wrapped.storage,
+    hasher: inlineHasher().hasher,
+    loadPolicy: (signal) => wrapped.client.get('/v2/attachment-policy', { signal }),
+    sleep: async () => undefined,
+  });
+  await controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(() => controller.view().draft.files[0]?.state === 'unknown', 'unknown');
+  assert.equal(controller.view().draft.files[0]?.errorCode, 'UNAUTHENTICATED');
+  assert.equal(wrapped.session.snapshot().state, 'expired');
+  assert.equal(await wrapped.session.login('mat-khau'), true);
+  await controller.reconcile();
+  await settle(() => controller.view().draft.files[0]?.state === 'ready', 'ready');
+  assert.equal(env.server.uploads.size, 1);
+});
+
+test('I5: bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới', async () => {
+  const env = await setup(commentSubmission(''));
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(() => env.files()[0]?.state === 'ready', 'ready');
+  env.server.failBefore = (call) => call.method === 'DELETE';
+  const localId = env.files()[0]?.localId ?? '';
+  await env.controller.removeFile(localId);
+  assert.equal(env.files()[0]?.state, 'removing');
+  const compose = [...env.server.composes.values()][0];
+  if (compose) compose.revision++;
+  await env.controller.reconcile();
+  assert.equal(env.pending.list().length, 0, 'op DELETE cũ được nhả nhờ GET compose');
+  await env.controller.retryFile(localId);
+  assert.equal(env.files().length, 0);
+  const deletes = env.server.calls.filter((call) => call.method === 'DELETE');
+  assert.notEqual(deletes[0]?.headers.get('idempotency-key'), deletes.at(-1)?.headers.get('idempotency-key'));
+});
+
+test('I5: abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi', async () => {
+  const env = await setup(commentSubmission(''));
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(() => env.files()[0]?.state === 'ready', 'ready');
+  const sessionId = env.controller.view().draft.sessionId ?? '';
+  const compose = env.server.composes.get(sessionId);
+  if (compose) compose.revision++;
+  await env.controller.abandon();
+  assert.equal(env.server.composes.get(sessionId)?.state, 'abandoned');
+  const deletes = env.server.calls.filter((call) => call.method === 'DELETE');
+  assert.deepEqual(
+    deletes.map((call) => JSON.parse(call.body ?? '{}').expectedRevision),
+    [2, 3],
+  );
+  assert.equal(env.controller.view().draft.sessionId, null);
+  assert.equal(env.files().length, 0);
+});
+
+test('I5 composer: paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên', () => {
+  const image = pngFile('image.png', 1);
+  assert.deepEqual(
+    pasteDecision({ files: [], text: 'chữ', value: 'ab', start: 1, end: 1, filesLocked: false }),
+    { prevent: false, nextValue: null, files: [] },
+  );
+  assert.deepEqual(
+    pasteDecision({ files: [image], text: 'XY', value: 'abcd', start: 1, end: 3, filesLocked: false }),
+    { prevent: true, nextValue: 'aXYd', files: [image] },
+  );
+  assert.deepEqual(
+    pasteDecision({ files: [image], text: '', value: 'abcd', start: null, end: null, filesLocked: false }),
+    { prevent: true, nextValue: null, files: [image] },
+  );
+  assert.deepEqual(
+    pasteDecision({ files: [image], text: 'XY', value: 'abcd', start: 0, end: 0, filesLocked: true }),
+    { prevent: false, nextValue: null, files: [] },
+  );
+});
+
+test('I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file', () => {
+  const base = { localId: 'l', name: 'a.png', size: 1, sha256: null, uploadId: null, errorCode: null };
+  const open = { hasBytes: true, active: false, locked: false };
+  assert.equal(fileActions({ ...base, state: 'unknown' }, open).retry, true);
+  assert.equal(fileActions({ ...base, state: 'uploading' }, { ...open, active: true }).retry, false);
+  assert.equal(
+    fileActions({ ...base, state: 'uploading' }, open).retry,
+    true,
+    'uploading không có tiến trình',
+  );
+  assert.equal(
+    fileActions({ ...base, state: 'failed', errorCode: 'X' }, { ...open, hasBytes: false }).retry,
+    false,
+  );
+  assert.equal(fileActions({ ...base, state: 'failed', errorCode: 'DUPLICATE_LOCAL' }, open).retry, false);
+  assert.equal(fileActions({ ...base, state: 'failed', errorCode: 'NEEDS_RESELECT' }, open).reselect, true);
+  assert.equal(fileActions({ ...base, state: 'ready' }, open).remove, true);
+  assert.equal(fileActions({ ...base, state: 'removing' }, open).remove, false);
+  assert.deepEqual(fileActions({ ...base, state: 'unknown' }, { ...open, locked: true }), {
+    retry: false,
+    reselect: false,
+    remove: false,
+  });
+});
+
+test('I5 composer: khóa form, consent đóng băng và state báo cho form', () => {
+  const view = {
+    state: 'editing' as const,
+    needsPayload: false,
+    assistantRead: null,
+    discardable: false,
+    hasDraft: true,
+  };
+  const ctx = { ready: true, authenticated: true, localConsent: true };
+  const editing = composeLocks(view, ctx);
+  assert.equal(editing.textLocked, false);
+  assert.equal(editing.consent, true);
+  assert.equal(editing.consentLocked, false);
+  assert.equal(editing.showAbandon, true);
+  const sending = composeLocks({ ...view, state: 'sending', assistantRead: 'none' }, ctx);
+  assert.equal(sending.textLocked, true);
+  assert.equal(sending.filesLocked, true);
+  assert.equal(sending.consent, false, 'consent hiển thị đúng giá trị đã đóng băng');
+  assert.equal(sending.consentLocked, true);
+  assert.equal(sending.reportedState, 'sending');
+  const reentry = composeLocks(
+    { ...view, state: 'suspended', needsPayload: true, assistantRead: 'selected-inputs', discardable: true },
+    { ...ctx, localConsent: false },
+  );
+  assert.equal(reentry.textLocked, false, 'nhập lại nội dung');
+  assert.equal(reentry.filesLocked, true);
+  assert.equal(reentry.consent, true);
+  assert.equal(reentry.consentLocked, true);
+  assert.equal(reentry.reportedState, 'editing');
+  assert.equal(reentry.showDiscard, true);
+  assert.equal(reentry.showAbandon, false);
+  const guest = composeLocks(view, { ...ctx, authenticated: false });
+  assert.equal(guest.textLocked, true);
+  assert.equal(guest.filesLocked, true);
 });

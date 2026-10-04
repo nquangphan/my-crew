@@ -1,0 +1,5 @@
+none (control) [I5: SELECTION_CHANGED|I5: PUT gặp 401|I5: bỏ file khi DELETE|I5: abandon gặp] -> [('pass', '4'), ('fail', '0')]
+SELECTION_CHANGED-no-refresh [I5: SELECTION_CHANGED] -> [('pass', '1'), ('fail', '1')]
+reconcile-no-schedule [I5: PUT gặp 401] -> [('pass', '1'), ('fail', '1')]
+remove-no-reject [I5: bỏ file khi DELETE] -> [('pass', '1'), ('fail', '1')]
+abandon-no-stale-loop [I5: abandon gặp] -> [('pass', '1'), ('fail', '1')]

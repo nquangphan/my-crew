@@ -66,6 +66,10 @@ export type ComposeView = {
   /** Submit button state: new submit, retry of the frozen operation, or re-entry for a tombstone. */
   submittable: boolean;
   receipt: ComposeReceipt | null;
+  /** Consent frozen into the unresolved submit (re-entry must reproduce it); null when nothing is frozen. */
+  assistantRead: AssistantRead | null;
+  /** The owner may drop this local draft explicitly (re-entry or a submit that can no longer be resent). */
+  discardable: boolean;
 };
 
 export type ComposeControllerOptions = {
@@ -180,6 +184,18 @@ export class ComposeController {
   #intentId: string;
   #sessionTarget: string | null;
   #tombstoneId: string | null = null;
+  /** Exact bytes of the current submit intent (memory only); a lost key is replaced by the same body. */
+  #frozen: { path: string; bodyJson: string } | null = null;
+  /** Consent frozen into the submit intent (persisted, non-secret). */
+  #assistantRead: AssistantRead | null = null;
+  /**
+   * The submit outcome is unknown and cannot be resent from this tab: `SUBMIT_UNCONFIRMED` (reload after
+   * the key vanished) or `SUBMITTED_ELSEWHERE` (the compose was submitted without a local key).
+   */
+  #lockReason: string | null = null;
+  #receiptTaken = false;
+  /** Key of the latest submit of this intent, kept while its outcome is not proven. */
+  #lastSubmitId: string | null = null;
   #errorCode: string | null = null;
   #receipt: ComposeReceipt | null = null;
   #policy: Promise<AttachmentPolicy> | null = null;
@@ -204,15 +220,18 @@ export class ComposeController {
     const record = parseDraftRecord(raw);
     this.#intentId = record?.intentId ?? this.#newId();
     this.#sessionTarget = record?.sessionId ? record.targetKey : null;
+    this.#assistantRead = record?.assistantRead ?? null;
+    const restoredSession = record?.sessionId ?? null;
     this.#draft = {
       submission: options.submission,
       sessionId: record?.sessionId ?? null,
       selectionRevision: record?.sessionId ? record.selectionRevision : null,
-      files: (record?.files ?? []).map((file) => this.#restoredFile(file)),
+      files: (record?.files ?? []).map((file) => this.#restoredFile(file, restoredSession)),
       submitOperation: null,
       state: 'editing',
     };
     const operationId = record?.submitOperationId ?? null;
+    this.#lastSubmitId = operationId;
     if (operationId) {
       const operation = this.#pending.get(operationId);
       if (operation) {
@@ -221,6 +240,10 @@ export class ComposeController {
       } else if (this.#pending.tombstones().some((tombstone) => tombstone.id === operationId)) {
         this.#tombstoneId = operationId;
         this.#draft.state = 'suspended';
+      } else {
+        // The key was resolved elsewhere (accepted or rejected); GET compose decides which.
+        this.#lockReason = 'SUBMIT_UNCONFIRMED';
+        this.#draft.state = 'ambiguous';
       }
     }
   }
@@ -240,6 +263,8 @@ export class ComposeController {
       needsPayload: this.#tombstoneId !== null,
       submittable: this.#submittable(),
       receipt: this.#receipt,
+      assistantRead: this.#assistantRead,
+      discardable: this.#tombstoneId !== null || this.#lockReason !== null,
     });
     return this.#view;
   }
@@ -247,6 +272,24 @@ export class ComposeController {
   /** In-memory bytes of a file selected in this tab (for local preview); null after reload. */
   localFile(localId: string): File | null {
     return this.#bytes.get(localId) ?? null;
+  }
+
+  /** True while a pipeline step for this file is running in this tab. */
+  isActive(localId: string): boolean {
+    return this.#aborts.has(localId);
+  }
+
+  /** The accepted receipt, handed out exactly once. */
+  takeReceipt(): ComposeReceipt | null {
+    if (!this.#receipt || this.#receiptTaken) return null;
+    this.#receiptTaken = true;
+    return this.#receipt;
+  }
+
+  /** Explicit owner decision to drop the local draft; unresolved keys stay in the PendingStore. */
+  discard(): void {
+    if (this.#tombstoneId === null && this.#lockReason === null) return;
+    this.startNew();
   }
 
   // ---- form input -------------------------------------------------------------------------------------
@@ -334,10 +377,10 @@ export class ComposeController {
     // An unconfirmed reservation GET could not prove is re-sent with its original key and bytes.
     if (current.state === 'failed' && current.sha256 === null && current.errorCode !== 'HASH_ABORTED') return;
     if (current.errorCode === 'DUPLICATE_LOCAL') return;
-    if (current.state !== 'ready' && current.state !== 'uploading') {
-      this.#patch(localId, { state: current.uploadId ? 'reserved' : 'selected', errorCode: null });
-      this.#schedule(localId);
-    }
+    if (current.state === 'ready' || this.isActive(localId)) return;
+    const resume = current.uploadId ? (current.state === 'uploading' ? 'uploading' : 'reserved') : 'selected';
+    this.#patch(localId, { state: resume, errorCode: null });
+    this.#schedule(localId);
   }
 
   /** After a reload the bytes are gone: the owner selects the same file again (same size and SHA-256). */
@@ -382,6 +425,7 @@ export class ComposeController {
       this.#fail(error);
       return null;
     }
+    this.#lastSubmitId = operation.id;
     this.#draft = { ...this.#draft, submitOperation: operation, state: 'sending' };
     this.#errorCode = null;
     this.#emit();
@@ -396,14 +440,18 @@ export class ComposeController {
     try {
       receipt = decodeComposeReceipt(this.#draft.submission.kind, value);
     } catch {
-      // The server committed; resending the same body on this compose replays the stored response.
-      this.#draft = { ...this.#draft, submitOperation: null, state: 'editing' };
+      // The server committed and the key is released: stay locked; resending the frozen body on the same
+      // compose replays the stored response instead of creating a second entity.
+      this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
       this.#errorCode = 'RESPONSE_SHAPE_INVALID';
       this.#emit();
       return null;
     }
     this.#receipt = receipt;
+    this.#receiptTaken = false;
     this.#tombstoneId = null;
+    this.#frozen = null;
+    this.#lockReason = null;
     this.#draft = { ...this.#draft, submitOperation: null, state: 'accepted' };
     this.#emit();
     return receipt;
@@ -413,8 +461,10 @@ export class ComposeController {
   async reconcile(): Promise<void> {
     if (this.#draft.sessionId === null) return;
     await this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
+    if (this.#draft.state !== 'editing') return;
     for (const file of this.#draft.files) {
-      if (file.state !== 'reserved' && file.state !== 'selected') continue;
+      if (file.state !== 'reserved' && file.state !== 'selected' && file.state !== 'uploading') continue;
+      if (this.isActive(file.localId)) continue;
       if (this.#bytes.has(file.localId)) this.#schedule(file.localId);
       // A reservation without bytes in this tab (reload) needs the same file selected again.
       else this.#patch(file.localId, { state: 'failed', errorCode: 'NEEDS_RESELECT' });
@@ -437,7 +487,12 @@ export class ComposeController {
     this.#intentId = this.#newId();
     this.#sessionTarget = null;
     this.#tombstoneId = null;
+    this.#frozen = null;
+    this.#assistantRead = null;
+    this.#lockReason = null;
+    this.#lastSubmitId = null;
     this.#receipt = null;
+    this.#receiptTaken = false;
     this.#errorCode = null;
     this.#draft = {
       submission: this.#draft.submission,
@@ -468,23 +523,35 @@ export class ComposeController {
       : undefined;
     if (existing) return existing;
     if (this.#tombstoneId !== null) {
-      const request = this.#request(assistantRead);
+      // Re-entry must reproduce the original body, including the consent frozen with it.
+      const request = this.#request(this.#assistantRead ?? assistantRead);
       return this.#pending.resume(this.#tombstoneId, request.body, 'tab');
     }
-    // The frozen operation vanished (replayed elsewhere or rejected): same body on the same compose.
-    if (this.#draft.state !== 'editing')
-      this.#draft = { ...this.#draft, state: 'editing', submitOperation: null };
+    if (this.#frozen) {
+      // The key vanished (replayed elsewhere or the reply was unreadable): the same body on the same
+      // compose replays the stored result; a new body would be a second intent.
+      return this.#beginSubmit(this.#frozen.path, JSON.parse(this.#frozen.bodyJson));
+    }
+    if (this.#lockReason !== null) throw new ComposeValidationError(this.#lockReason);
+    if (this.#draft.state !== 'editing') throw new ComposeValidationError('SUBMIT_UNCONFIRMED');
     if (this.#draft.files.length === 0 && this.#draft.sessionId === null)
       await this.#enqueue(() => this.#ensureSession());
     await this.#queue;
     if (!canSubmit(this.#draft)) throw new ComposeValidationError(this.#blocker());
     const request = this.#request(assistantRead);
+    const operation = this.#beginSubmit(request.path, request.body);
+    this.#frozen = { path: operation.path, bodyJson: operation.bodyJson };
+    this.#assistantRead = assistantRead;
+    return operation;
+  }
+
+  #beginSubmit(path: string, body: unknown): PendingOperation {
     try {
       return this.#pending.begin({
         intentId: this.#submitIntent(),
         method: 'POST',
-        path: request.path,
-        body: request.body,
+        path,
+        body,
         storage: 'tab',
       });
     } catch (error) {
@@ -514,13 +581,23 @@ export class ComposeController {
     } else if (this.#pending.tombstones().some((tombstone) => tombstone.id === operation.id)) {
       this.#draft = { ...this.#draft, submitOperation: null, state: 'suspended' };
       this.#tombstoneId = operation.id;
+    } else if (code === 'COMPOSE_ALREADY_SUBMITTED') {
+      // The compose was used by another body: never move files to a new compose from here.
+      this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
+      this.#tombstoneId = null;
+      this.#frozen = null;
+      this.#lockReason = 'SUBMITTED_ELSEWHERE';
     } else {
+      // Proven rejection: the intent is free again.
       this.#draft = { ...this.#draft, submitOperation: null, state: 'editing' };
       this.#tombstoneId = null;
+      this.#frozen = null;
+      this.#assistantRead = null;
+      this.#lastSubmitId = null;
     }
     this.#errorCode = code;
     this.#emit();
-    if (!kept && reconcileAfterSubmit.has(code))
+    if (!kept && this.#draft.state === 'editing' && reconcileAfterSubmit.has(code))
       await this.#enqueue(() => this.#refresh()).catch((failure) => this.#fail(failure));
   }
 
@@ -547,6 +624,8 @@ export class ComposeController {
         return false;
       }
     }
+    if (this.#frozen && (this.#draft.state === 'ambiguous' || this.#draft.state === 'suspended')) return true;
+    if (this.#lockReason !== null) return false;
     return canSubmit(this.#draft);
   }
 
@@ -613,6 +692,13 @@ export class ComposeController {
   #detachFromSession(code: string): void {
     for (const abort of this.#aborts.values()) abort.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
     this.#aborts.clear();
+    // The old compose is closed or never reused: its unresolved reserve/remove keys can no longer matter.
+    const oldSession = this.#draft.sessionId;
+    if (oldSession !== null)
+      for (const file of this.#draft.files) {
+        this.#resolve(this.#reserveIntent(file.localId, oldSession), 'reject');
+        if (file.uploadId) this.#resolve(this.#removeIntent(file.uploadId), 'reject');
+      }
     const files = this.#draft.files
       .filter((file) => file.state !== 'removing')
       .map((file): DraftFile => {
@@ -649,12 +735,38 @@ export class ComposeController {
     if (sessionId === null) return;
     const view = await this.#readCompose(sessionId);
     if (this.#draft.sessionId !== sessionId) return;
+    if (view.session.state === 'submitted') {
+      // Never move files to a new compose: either our frozen submit is replayed for its receipt, or the
+      // compose was submitted without a local key and the draft stays locked until the owner discards it.
+      const ours =
+        this.#draft.submitOperation !== null || this.#tombstoneId !== null || this.#frozen !== null;
+      if (!ours) {
+        this.#lockReason = 'SUBMITTED_ELSEWHERE';
+        this.#errorCode = 'SUBMITTED_ELSEWHERE';
+        this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
+      }
+      this.#mergeFiles(view, false);
+      return;
+    }
     if (view.session.state !== 'open') {
-      // A submitted session with our frozen operation is resolved by replaying that operation.
-      if (view.session.state === 'submitted' && (this.#draft.submitOperation || this.#tombstoneId)) return;
+      if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
+        this.#lockReason = null;
+        this.#draft = { ...this.#draft, state: 'editing' };
+      }
       this.#detachFromSession('COMPOSE_CLOSED');
       return;
     }
+    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
+      // The vanished key did not submit this still-open compose: it was rejected.
+      this.#lockReason = null;
+      this.#errorCode = null;
+      this.#draft = { ...this.#draft, state: 'editing' };
+    }
+    this.#mergeFiles(view, true);
+  }
+
+  /** Server state is authoritative for every upload of the compose. */
+  #mergeFiles(view: { session: ComposeSession; attachments: Attachment[] }, open: boolean): void {
     const revision = view.session.revision;
     const byId = new Map(view.attachments.map((attachment) => [attachment.attachmentId, attachment]));
     const files: DraftFile[] = [];
@@ -681,7 +793,7 @@ export class ComposeController {
           files.push({ ...file, errorCode: entry ? file.errorCode : 'REMOVE_PENDING' });
           continue;
         }
-        files.push({ ...file, ...fromServer(server) });
+        files.push(this.#stalled({ ...file, ...fromServer(server) }));
         continue;
       }
       // Not yet known to have a reservation: adopt a matching active upload (lost reserve response).
@@ -699,7 +811,7 @@ export class ComposeController {
       if (adopted) {
         claimed.add(adopted.attachmentId);
         this.#resolve(this.#reserveIntent(file.localId), 'accept');
-        files.push({ ...file, uploadId: adopted.attachmentId, ...fromServer(adopted) });
+        files.push(this.#stalled({ ...file, uploadId: adopted.attachmentId, ...fromServer(adopted) }));
         continue;
       }
       if (reserve) {
@@ -732,18 +844,21 @@ export class ComposeController {
         attachment.state === 'deleted'
       )
         continue;
-      files.push({
-        localId: this.#newId(),
-        name: attachment.fileName,
-        size: attachment.byteLength,
-        sha256: attachment.sha256,
-        uploadId: attachment.attachmentId,
-        ...fromServer(attachment),
-      });
+      files.push(
+        this.#stalled({
+          localId: this.#newId(),
+          name: attachment.fileName,
+          size: attachment.byteLength,
+          sha256: attachment.sha256,
+          uploadId: attachment.attachmentId,
+          ...fromServer(attachment),
+        }),
+      );
     }
     this.#draft = {
       ...this.#draft,
-      selectionRevision: revision,
+      // A submitted compose keeps the revision frozen into the submit body.
+      selectionRevision: open ? revision : this.#draft.selectionRevision,
       files: files.filter(
         (file) =>
           !(
@@ -756,6 +871,13 @@ export class ComposeController {
     this.#emit();
   }
 
+  /** `receiving` on the server with no bytes and no step in this tab: nothing will move it but a retry. */
+  #stalled(file: DraftFile): DraftFile {
+    if (file.state !== 'uploading' || this.#bytes.has(file.localId) || this.isActive(file.localId))
+      return file;
+    return { ...file, state: 'unknown', errorCode: 'UPLOAD_RECEIVING' };
+  }
+
   // ---- internals: file pipeline -----------------------------------------------------------------------
 
   #schedule(localId: string): void {
@@ -766,7 +888,8 @@ export class ComposeController {
     const start = this.#file(localId);
     const file = this.#bytes.get(localId);
     if (!start || !file || this.#life.signal.aborted) return;
-    if (start.state !== 'selected' && start.state !== 'reserved') return;
+    if (start.state !== 'selected' && start.state !== 'reserved' && start.state !== 'uploading') return;
+    if (this.isActive(localId)) return;
     const abort = new AbortController();
     this.#aborts.set(localId, abort);
     const signal = AbortSignal.any([abort.signal, this.#life.signal]);
@@ -1001,8 +1124,9 @@ export class ComposeController {
     else this.#pending.reject(entry.id);
   }
 
-  #reserveIntent(localId: string): string {
-    return `${this.#intentId}:reserve:${localId}`;
+  /** Reserve keys are scoped to the compose session they reserve into. */
+  #reserveIntent(localId: string, sessionId: string | null = this.#draft.sessionId): string {
+    return `${this.#intentId}:reserve:${sessionId ?? 'none'}:${localId}`;
   }
 
   #removeIntent(uploadId: string): string {
@@ -1021,9 +1145,12 @@ export class ComposeController {
     }
   }
 
-  #restoredFile(file: Pick<DraftFile, 'localId' | 'name' | 'size' | 'sha256' | 'uploadId'>): DraftFile {
+  #restoredFile(
+    file: Pick<DraftFile, 'localId' | 'name' | 'size' | 'sha256' | 'uploadId'>,
+    sessionId: string | null,
+  ): DraftFile {
     if (file.uploadId !== null) return { ...file, state: 'unknown', errorCode: null };
-    const reserve = this.#options.pending.unresolved(`${this.#intentId}:reserve:${file.localId}`);
+    const reserve = this.#options.pending.unresolved(this.#reserveIntent(file.localId, sessionId));
     return reserve
       ? { ...file, state: 'unknown', errorCode: 'RESERVE_UNCONFIRMED' }
       : { ...file, state: 'failed', errorCode: 'NEEDS_RESELECT' };
@@ -1057,7 +1184,12 @@ export class ComposeController {
       const draft = this.#draft;
       if (
         draft.state === 'accepted' ||
-        (draft.sessionId === null && draft.files.length === 0 && !draft.submitOperation && !this.#tombstoneId)
+        (draft.sessionId === null &&
+          draft.files.length === 0 &&
+          !draft.submitOperation &&
+          !this.#tombstoneId &&
+          this.#lockReason === null &&
+          this.#frozen === null)
       ) {
         storage.removeItem(this.#storageKey);
         return;
@@ -1070,7 +1202,11 @@ export class ComposeController {
           targetKey: this.#sessionTarget,
           sessionId: draft.sessionId,
           selectionRevision: draft.selectionRevision,
-          submitOperationId: draft.submitOperation?.id ?? this.#tombstoneId,
+          submitOperationId:
+            draft.submitOperation?.id ??
+            this.#tombstoneId ??
+            (this.#lockReason !== null || this.#frozen !== null ? this.#lastSubmitId : null),
+          assistantRead: this.#assistantRead,
           files: draft.files.filter((file) => file.state !== 'removing' || file.uploadId !== null),
         }),
       );
