@@ -1,0 +1,757 @@
+62fd150 test(v2-web): nghiệm thu E2E composer chỉ văn bản trên API/PostgreSQL thật
+ .../execution-phase07/a5-a3-e2e-report.md          |  55 ++
+ v2/docs/files.md                                   |   1 +
+ v2/docs/flows.yaml                                 |   1 +
+ v2/docs/flows/web-attachments.md                   |   2 +-
+ v2/docs/flows/web-tickets.md                       |   2 +-
+ v2/web/e2e/compose.spec.ts                         | 596 +++++++++++++++++++++
+ 6 files changed, 655 insertions(+), 2 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/a5-a3-e2e-report.md b/plans/261002-0002-crew-v2/execution-phase07/a5-a3-e2e-report.md
+new file mode 100644
+index 0000000..d90db69
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase07/a5-a3-e2e-report.md
+@@ -0,0 +1,55 @@
++# CREWV2-701 / A5 (đường chỉ có văn bản) và phần văn bản của A3 — E2E trên API/PostgreSQL thật
++
++BASE `82415118ab7f88a0d20717875d58b6b54992397c` (nhánh `codex/crew-v2-server`), Node v24.21.0, pnpm 10.32.1, Asia/Ho_Chi_Minh. Worker web-a5a3, không dispatch subagent hay reviewer. **Trạng thái: DONE_WITH_CONCERNS** (xem mục 5).
++
++## 1. Phạm vi và file
++
++- Mới: `v2/web/e2e/compose.spec.ts`. Sửa docs: `v2/docs/flows/web-attachments.md` (bullet E2E, thay câu “chưa có”), `v2/docs/flows/web-tickets.md` (câu cuối bullet E2E), manifest `v2/docs/flows.yaml` (+1 dòng test của flow `web-attachments`), `v2/docs/files.md` (+1 dòng, bản generated không đổi sau `generate`).
++- `v2/web/e2e/tickets.spec.ts` **không sửa**: dialog/realtime/draft đã có sẵn, còn tạo yêu cầu và bình luận từ board/dialog được `compose.spec.ts` phủ bằng chính `TicketBoard` + `TicketDialog` thật.
++- Host trong spec chỉ mount component production (`TicketBoard` kèm “Tạo yêu cầu”, `TicketDialog`) vào `createAppRuntime` thật; không mock mạng, entity hay receipt. Phần dựng host là bản chép của `tickets.spec.ts` (spec không import được spec khác; file support dùng chung nằm ngoài danh sách được sửa).
++
++## 2. Kịch bản và bằng chứng DB
++
++| # | Kịch bản | Bằng chứng |
++|---|---|---|
++| 1 | Tạo yêu cầu chỉ có chữ rồi bình luận trong dialog | 1 POST `/v2/attachment-compose` rỗng, body `attachmentIds: []`, `assistantRead: 'none'`; DB: 1 ticket (đúng project, `kind=research`, mô tả, `criteria.workflowChoice=bmad`), 1 receipt `POST:/v2/attachment-submissions/tickets`, 1 event `ticket.created`, 0 tệp liên kết; dialog mở đúng `ticket.id` trả về; bình luận: 1 dòng `comments`, 1 receipt `POST:/v2/tickets/<id>/attachment-comments`, 1 event `comment.created`, hiện trong timeline |
++| 2 | Mất response sau commit → hết phiên → đăng nhập lại → replay (ticket) | Route chỉ `route.fetch()` rồi `abort('connectionreset')` (4 lần máy chủ trả 201, trình duyệt không nhận). Form khóa `ambiguous`; DB 1 ticket/1 receipt ngay trước khi hết phiên; `sessions.expires_at` đẩy về quá khứ qua DB fixture; nút gửi lại → 401 → màn hình đăng nhập lại, không lộ tiêu đề; đăng nhập lại cùng owner, mở lại form thấy bản nháp khóa, gửi lại → thành công. 6 POST, một Idempotency-Key, một body, CSRF cuối khác CSRF đầu; DB 1 ticket, 1 receipt, 1 event `ticket.created`; `pending.list()` rỗng, không còn recovery panel |
++| 3 | Như 2 cho bình luận trong dialog | 6 POST cùng key/body, DB 1 comment, 1 receipt, 1 event `comment.created` |
++| 4 | Bỏ bản nháp khi chưa xác nhận | Cảnh báo “có thể tạo bản trùng”; “Giữ lại” không đổi gì; “Vẫn bỏ bản nháp” xóa form; DB vẫn 1 ticket/1 receipt; khóa cũ vẫn nằm trong `PendingStore`; mọi POST dùng đúng một key |
++| 5 | Gửi kèm PNG khi chưa chứng nhận extractor | File qua hash worker, reserve, PUT thật tới `ready`; submit trả 503 `EXTRACTION_NOT_CONFIGURED`, UI hiện “Chưa cấu hình xử lý tệp”; 4 POST cùng key/body; DB: 0 ticket, 0 receipt, 0 tệp liên kết; form vẫn khóa kèm nút “Gửi lại đúng yêu cầu cũ” |
++
++## 3. Kiểm chứng
++
++Mọi lệnh chạy trong `v2/web`, concurrency 1 (`workers: 1`, `serial`), `NODE_OPTIONS=--max-old-space-size=384`, watchdog Python 500 giây.
++
++| Lệnh | Kết quả | Log, SHA-256 |
++|---|---|---|
++| `playwright test e2e/compose.spec.ts` (lần 1, spec cuối) | exit 0, 5 passed, 44,2 giây | `a5-a3-e2e-green-run1.log` `655651541148558cd28481a0c03a54f8c51ad6918e45805656ca98503b73aa4a` |
++| cùng lệnh (lần 2) | exit 0, 5 passed, 44,3 giây | `a5-a3-e2e-green-run2.log` `246b4f9c24ca73d017825bf7ec71d09110778be8caeae63b736c67b066bf48f8` |
++| `tsc --noEmit` | exit 0, không output | scratch, SHA rỗng `e3b0c442…b855` |
++| `biome check v2/web/e2e/compose.spec.ts` | exit 0 sạch (đã xóa một import thừa) | trên console |
++| `crew-docs generate` + `check --all` trên bản sao có `v2/` làm Git root | `unchanged index.md/files.md`, `check --all: ok` | trên console |
++
++Không có RED trước: spec là test nghiệm thu trên producer đã có, nên lượt chạy đầu có thể xanh; tôi không chứng minh bằng đột biến vì không được sửa product code. Lượt chạy xanh đầu tiên chỉ sau khi sửa một kỳ vọng sai của chính tôi (text-only vẫn mở đúng một compose rỗng, xem log `a5-a3-e2e-first-run-without-slot.log`, fail ở assert đó).
++
++## 4. Tài nguyên, slot, cleanup
++
++- **Sai sót quy trình:** lượt chạy đầu (`a5-a3-e2e-first-run-without-slot.log`, 2,4 giây, 1 fail do kỳ vọng sai của tôi, 4 chưa chạy) chạy **khi tôi chưa giữ heavy slot**: tôi nhả slot vì telemetry tụt dưới ngưỡng, chờ eligible, rồi `mkdir` thất bại (worker b3a vừa lấy) nhưng lệnh tiếp theo của tôi vẫn chạy do viết `;` thay vì `&&`. Fixture đã tự đóng sau 2,4 giây; không chạm lock hay tài nguyên của b3a. Các lần chạy sau đều giữ slot (owner `web-a5a3`, lock lấy 07:12:52Z sau khi lock của b3a được nhả và `heavyEligible` true).
++- Telemetry khi lấy slot: 07:12:52Z và lúc kết thúc, trong `a5-a3-e2e-telemetry.log` (gate eligible; cuối chạy: bộ nhớ trống đủ, pressure 1).
++- Heavy slot và manifest lock đều đã trả bằng `rm -rf` đúng thư mục; `ls` xác nhận không còn. Fixture tự dọn DB/container/scratch theo `withFixture` (không còn tiến trình `e2e-fixture` hay Chromium của tôi; các tiến trình `playwright-mcp` còn thấy là của phiên khác). Scratch `$TMPDIR/crew-v2-web-a5a3/` (bản sao docs, log gốc) sẽ xóa sau commit.
++
++## 5. Concern và phần còn bị chặn
++
++**Phát hiện product (không sửa, chuyển PM):**
++1. `v2/web/src/lib/api.ts:248-256` (nhánh `response.status >= 500`): mọi 5xx, kể cả 503 `EXTRACTION_NOT_CONFIGURED` mang tính tất định, bị coi là “chưa xác nhận” và tự gửi lại 3 lần có backoff (repro: scenario 5, 4 POST cùng key). Không tạo thêm entity vì key giữ nguyên, nhưng UI đi vào trạng thái `ambiguous` (“Chưa xác nhận kết quả…”) thay vì báo thẳng lỗi cấu hình, và tốn 3 request vô ích. Đề xuất: Task2 nhận diện code `EXTRACTION_NOT_CONFIGURED` là lỗi dừng (giữ key, không retry tự động) — cần quyết định của PM.
++2. Quan sát (không phải lỗi): text-only vẫn mở một compose session rỗng trước khi submit (`controller.ts:613`); ghi vào docs.
++
++**Còn bị chặn (không tính PASS):**
++- Gửi thành công kèm tệp (PNG/PDF, bỏ một tệp, transport lỗi rồi retry, mất response → one ticket + links, ảnh-only trong dialog, bình luận conversation, wake/input revision): chờ extractor đã chứng nhận (phase05). Chỉ phần 503 được kiểm.
++- Nhóm tệp theo bình luận, lịch sử và câu hỏi: chờ projection G3. Attempt/model: G1b.
++- A3 đầy đủ (graph, pause/cancel, request done) chưa thuộc lượt này.
++- Còn mở từ review trước (không đụng): N1 tombstone re-entry không xác nhận trùng, B3 key comment ticket terminal chưa dọn, M4 tạo thành công không mở ticket khi trigger null.
++
++## 6. Commit
++
++Một commit chỉ gồm `compose.spec.ts`, hai trang flow, hunk manifest/`files.md` của tôi (index dựng từ HEAD + hunk của tôi, vì `flows.yaml`/`files.md` còn hunk chưa commit của worker b3a) và report/log `a5-a3-e2e-*`.
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 95fa667..bc4eb11 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -357,20 +357,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `web/e2e/app-router.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
++| `web/e2e/compose.spec.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/e2e/docs-assistant.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/e2e/support/owner-seed.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/e2e/ticket-routes.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/tickets.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
+ | `web/package.json` | [web-shell](flows/web-shell.md) (file) |
+ | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index e5e30b7..c2112a1 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -571,20 +571,21 @@ flows:
+       - web/src/attachments/preview.tsx
+       - web/src/attachments/queries.ts
+     tests:
+       - web/test/compose.test.ts
+       - web/test/compose-submit.test.ts
+       - web/test/support/compose-server.ts
+       - web/test/composer-dom.test.ts
+       - web/test/support/dom.ts
+       - web/test/support/tsx-loader.ts
+       - web/test/support/jsdom.d.ts
++      - web/e2e/compose.spec.ts
+   web-docs:
+     title: Không gian tài liệu chỉ đọc trên web Crew v2
+     doc: docs/flows/web-docs.md
+     entrypoints:
+       - web/src/docs/space.tsx
+     files:
+       - web/src/docs/page.tsx
+       - web/src/docs/search.tsx
+       - web/src/docs/links.ts
+       - web/src/docs/queries.ts
+diff --git a/v2/docs/flows/web-attachments.md b/v2/docs/flows/web-attachments.md
+index 4864760..17c8627 100644
+--- a/v2/docs/flows/web-attachments.md
++++ b/v2/docs/flows/web-attachments.md
+@@ -40,11 +40,11 @@ Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (d
+ 
+ ## Tests
+ 
+ - `web/test/compose-submit.test.ts`: `freezeSubmission` cho cả ba loại với đúng path/body; target sai và giới hạn field bị chặn; selection rỗng hợp lệ cho ticket không tệp; bytes khớp `PendingStore.begin`; `canSubmit`. Controller chạy trên `OwnerClient`/`PendingStore` thật của Task2 với producer giả trong bộ nhớ (`web/test/support/compose-server.ts`): mất phản hồi sau commit thì form bị khóa, retry cùng key/body và chỉ có một ticket; hết phiên rồi đăng nhập lại giữ key và `clientMessageId`; tải lại tab giữ compose/key, không lưu chữ; đăng xuất chỉ còn tombstone và nhập lại đúng nội dung thì dùng khóa cũ; bình luận chỉ có ảnh.
+ - `web/test/compose.test.ts`: tên ảnh dán, giữ cả chữ lẫn ảnh khi dán, giới hạn policy, digest và worker (tuần tự, abort/dispose dừng worker và gỡ listener), reserve tuần tự theo revision, tệp lỗi và tệp trùng chặn gửi, DELETE kèm refetch khi 409, mất phản hồi reserve (GET nhận lại upload) và reserve chưa tới server (retry cùng key), PUT bận và lỗi transport, đổi project, chọn lại sau reload, cùng preview an toàn (magic bytes, SHA/MIME, 401) và tóm tắt trích xuất.
+ - Vòng sửa 1 (review I1–I5, M5): RED trước khi sửa: 11/44 test mới fail theo hành vi. Ví dụ, sau 201 không giải mã được, state về `editing`; tombstone có file thì file ở `unknown`; đổi project khi reserve chưa xác nhận thì `TIMEOUT:moved`; `receiving` thì `TIMEOUT:ready`/`uploading`; panel replay gửi body khác consent; các helper UI `pasteDecision`/`fileActions`/`composeLocks` sai. Sau khi sửa: GREEN 44/44, web unit không DB 83/83. Bốn test cho nhánh vốn đúng (SELECTION_CHANGED, PUT 401, nhả DELETE chưa commit, abandon gặp stale) được chứng minh có tác dụng bằng đột biến: mỗi đột biến làm đúng test đó fail. Hành vi UI của `composer.tsx` được kiểm qua các helper thuần; repo chưa có môi trường React/DOM test.
+ - Vòng sửa 2 (re-review N1–N5, I5, khớp hợp đồng G2): fake producer được sửa cho đúng server (by-comment, 503 extraction, 404 id lạ, 403 Origin/owner, login 200, hết hạn, 401 `SESSION_INVALID`). RED trước khi sửa: 5 test N và consent DOM fail, rồi 7 test G2 fail. GREEN: focused 63/63, web unit không DB 102/102. Component test thật `web/test/composer-dom.test.ts` chạy trên jsdom và React Testing Library, nạp `.tsx` bằng hook `web/test/support/tsx-loader.ts` (Oxc của Vite) và `web/test/support/dom.ts`. Test phủ: paste gọi `preventDefault` và chèn tại caret, kéo thả khi khóa, `readOnly` và consent `checked`/`disabled`, chuỗi receipt → `onAccepted` → bản nháp mới (consent tắt), nhãn và trạng thái của nút gửi và nút bỏ bản nháp, lý do 503. Mỗi điểm nối dây có đột biến làm đúng test đó fail.
+ - Lượt `discardDraft`/`onHandle`: RED 5/73 (đang soạn, DELETE lỗi transport, chưa xác nhận còn khóa, tombstone, handle trên component), GREEN 73/73, web unit không DB 112/112. Nhánh `blocked` khi đang gửi được chứng minh bằng đột biến.
+ - Vòng sửa 3 (B1/B2): RED 4/67 (lệch giờ client nhanh hơn server, hết hạn trong lúc gửi, gửi trong lúc bỏ bản nháp, DELETE bỏ bị lỗi transport), GREEN 67/67, web unit không DB 106/106.
+ - Lượt đầu chạy 25/25 PASS vì source viết trước test. Kiểm tra đột biến cho thấy 3 trên 4 đột biến bị bắt. Đột biến còn lại phát hiện lỗi thật: reserve chưa xác nhận bị kẹt. Test mới cho lỗi này RED trên source cũ (`TIMEOUT:ready`), GREEN sau khi sửa. Kết quả cuối: focused 29/29, web unit không DB 68/68, `tsc` và `vite build` PASS.
+-- `web/e2e/compose.spec.ts` (A5 trên API/PostgreSQL thật) chưa có: fixture Task1 gọi `buildApp` không kèm `attachments`, nên route attachment không có trên API của fixture; kịch bản bị chặn, không tính là PASS.
++- `web/e2e/compose.spec.ts` (A5 đường chỉ có văn bản và phần văn bản của A3) chạy trên API, PostgreSQL và Vite thật của fixture Task1, không mock mạng, không dựng dữ liệu giả. Host chỉ mount `TicketBoard` (có nút “Tạo yêu cầu”) và `TicketDialog` vào runtime thật của app; Playwright route chỉ cắt phía trình duyệt của response sau khi máy chủ đã commit. Năm kịch bản: (1) tạo yêu cầu bằng biểu mẫu chỉ có chữ (một lượt mở compose rỗng, `attachmentIds: []`, `assistantRead: 'none'`) → đúng một ticket, một receipt idempotency, một event `ticket.created`, không tệp nào được liên kết; dialog mở đúng ticket trả về, rồi bình luận trong dialog → đúng một bình luận, một receipt, một event `comment.created`; (2) mất response sau commit → form khóa ở trạng thái chưa xác nhận → phiên hết hạn qua DB fixture → đăng nhập lại cùng owner → nhập lại bản nháp đã khóa → gửi lại đúng key/body với CSRF mới → vẫn một ticket, một receipt, một event; (3) như (2) cho bình luận trong dialog; (4) bỏ bản nháp khi chưa xác nhận: hiện cảnh báo bản trùng, “Giữ lại” không đổi gì, “Vẫn bỏ bản nháp” xóa form nhưng ticket đã lưu và receipt vẫn một, khóa cũ vẫn còn trong `PendingStore`; (5) gửi kèm một ảnh PNG thật (reserve, PUT, hash qua worker đều chạy trên fixture) → máy chủ trả 503 `EXTRACTION_NOT_CONFIGURED` vì chưa chứng nhận extractor: không có ticket, không có receipt, không có tệp được liên kết, mọi lần gửi dùng cùng key/body, form giữ khóa. Phần còn bị chặn: gửi thành công kèm tệp (cần extractor đã chứng nhận), nhóm tệp theo bình luận và lịch sử/câu hỏi (projection G3), attempt/model (G1b).
+diff --git a/v2/docs/flows/web-tickets.md b/v2/docs/flows/web-tickets.md
+index c0d324d..f169f4e 100644
+--- a/v2/docs/flows/web-tickets.md
++++ b/v2/docs/flows/web-tickets.md
+@@ -49,11 +49,11 @@ Sáu nơi mở ticket phải dùng chung `TicketDialog`/`TicketDetail` và query
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, query key, event invalidation và DTO. `web-shell.md` sở hữu app runtime, router và fixture. `server-tickets.md` định nghĩa các route đọc ticket, graph, comment và decision.
+ 
+ ## Tests
+ 
+ - `web/test/tickets.test.ts`: 23 test (thêm nhãn `owner_input`). Ngoài 16 test S3a còn có: filter `level` và `requestListFilters`; UUID chữ hoa được đổi sang chữ thường cho key, path và revision guard; `historyQueryOptions`; `failureText` tách lỗi local/aborted/máy chủ; `waitNotice`. Phần S3a gồm cho đủ 7 nhãn và biểu tượng riêng; `requestRoots` với hai gốc trùng tiêu đề, bước mồ côi, con bắt buộc, gốc giả và gốc done/cancelled; ID trùng lấy revision mới; nhóm theo trạng thái; filter chỉ giữ giá trị producer hỗ trợ; path danh sách và cursor UUID; giải mã và lỗi shape; `nextCursor` null dừng phân trang; đọc hết trang và chặn cursor lặp; timeline theo thời gian khi thứ tự UUID ngược; revision guard; từ chối ID sai trước khi gọi mạng; giờ Asia/Ho_Chi_Minh; nhãn người thực hiện; chọn đích trả focus. RED trên scaffold: 16/16 thất bại; GREEN 16/16.
+ - `web/test/create-request.test.ts`: 18 test (thêm: `clearTicketDrafts` xóa hết kể cả khi chưa tạo kho, kho chỉ trong bộ nhớ khi không có storage, `discardMode`, kho dùng storage của runtime chứ không dùng `sessionStorage` toàn cục, bỏ trọn bản nháp có tệp, giữ field khi `unconfirmed`/`blocked`, xác nhận cảnh báo trùng khi chưa xác nhận; kho bản nháp lưu và đọc lại từ tab storage, bỏ dữ liệu hỏng; mất response rồi tải lại trang thì field khôi phục, bị khóa và khớp body gửi lại, chỉ một ticket). Phần thuần kiểm map chính xác của `makeRequestSubmission` (kể cả qua `submissionRequest`), mặc định Superpowers/code, ghi chú BMAD chỉ Claude Code, khóa field theo trạng thái composer, `formDrafts` giữ qua `expired` và xóa khi đăng xuất. Phần component (jsdom + RTL, client/session/pending thật của Task2 trên producer giả trong bộ nhớ) kiểm: tạo text-only đúng body, một ticket, mở `ticket.id`; BMAD kèm PNG có đúng ID tệp; mất response rồi hết phiên thì field bị khóa, đăng nhập lại gửi lại đúng key/body và chỉ tạo một ticket; đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa.
+ - `web/test/ticket-detail-dom.test.ts`: 14 test (thêm: bỏ trọn bản nháp bình luận và giữ chữ khi chưa xác nhận; xác nhận cảnh báo trùng; liên kết tài liệu chỉ xem kèm “Thử lại” trên ticket kết thúc; trang đổi `ticketId` không remount không mang bản nháp sang ticket khác; bình luận mất response rồi tải lại trang khớp body gửi lại; deep link chữ hoa dùng key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè; ticket kết thúc qua realtime vẫn giữ composer để gửi lại). Draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại, chỉ nút bỏ mới xóa; gửi bình luận tạo một comment và timeline đọc lại; ticket `done` không có ô bình luận; deep link UUID chữ hoa đọc bằng chữ thường và hiện “Lý do chờ” khi đang chạy; view yêu cầu đọc `level=request` và chỉ hiện gốc thật; chi tiết dùng `TicketAttachments` chung; hộp thoại nhúng `TicketDocsLinksEditor` và trang đã liên kết được đánh dấu. `web/test/support/dom-events.ts` gắn `Event`/`CustomEvent` của jsdom vào global, vì Radix dialog dispatch `CustomEvent` mà jsdom từ chối constructor của Node.
+-- `web/e2e/tickets.spec.ts` chạy trên API, PostgreSQL và Vite thật của fixture Task1, dữ liệu tạo qua API owner, không mock mạng. Bảng có đủ 7 cột, ba ticket (hai gốc trùng tiêu đề và một bước con). Hộp thoại mở đúng ticket, hiện mô tả nhiều dòng, ticket con, phần chưa có dữ liệu và timeline bình luận → quyết định → bình luận kèm lý do. Nền bị `aria-hidden`, Tab không thoát khỏi hộp thoại. Bình luận mới tạo trong lúc hộp thoại mở xuất hiện qua event thật mà focus vẫn ở nút Đóng. Escape trả focus về thẻ. Danh sách hiện cùng revision với bảng; mở từ dòng, đóng bằng X trả focus về dòng. Filter loại thu hẹp cả danh sách lẫn bảng. Bản nháp bình luận trong composer giữ nguyên giá trị và focus khi có event realtime, và vẫn còn khi đóng rồi mở lại hộp thoại. Test thứ hai mở “Tạo yêu cầu” từ bảng: dự án mặc định theo view, Superpowers được chọn sẵn, có ghi chú BMAD; đóng bằng Escape trả focus về nút, mở lại từ danh sách vẫn còn field; “Bỏ bản nháp yêu cầu” đưa form về mặc định. Gửi thật qua API chưa chạy được trong E2E: fixture Task1 ở HEAD chưa mount route attachment, nên phần này thuộc A3.
++- `web/e2e/tickets.spec.ts` chạy trên API, PostgreSQL và Vite thật của fixture Task1, dữ liệu tạo qua API owner, không mock mạng. Bảng có đủ 7 cột, ba ticket (hai gốc trùng tiêu đề và một bước con). Hộp thoại mở đúng ticket, hiện mô tả nhiều dòng, ticket con, phần chưa có dữ liệu và timeline bình luận → quyết định → bình luận kèm lý do. Nền bị `aria-hidden`, Tab không thoát khỏi hộp thoại. Bình luận mới tạo trong lúc hộp thoại mở xuất hiện qua event thật mà focus vẫn ở nút Đóng. Escape trả focus về thẻ. Danh sách hiện cùng revision với bảng; mở từ dòng, đóng bằng X trả focus về dòng. Filter loại thu hẹp cả danh sách lẫn bảng. Bản nháp bình luận trong composer giữ nguyên giá trị và focus khi có event realtime, và vẫn còn khi đóng rồi mở lại hộp thoại. Test thứ hai mở “Tạo yêu cầu” từ bảng: dự án mặc định theo view, Superpowers được chọn sẵn, có ghi chú BMAD; đóng bằng Escape trả focus về nút, mở lại từ danh sách vẫn còn field; “Bỏ bản nháp yêu cầu” đưa form về mặc định. Gửi thật qua API (tạo yêu cầu chỉ có chữ, bình luận trong dialog, mất response rồi replay cùng key sau khi hết phiên) được kiểm trong `web/e2e/compose.spec.ts` của flow `web-attachments`; phần có tệp, lịch sử/câu hỏi và attempt/model vẫn chờ producer.
+diff --git a/v2/web/e2e/compose.spec.ts b/v2/web/e2e/compose.spec.ts
+new file mode 100644
+index 0000000..1975008
+--- /dev/null
++++ b/v2/web/e2e/compose.spec.ts
+@@ -0,0 +1,596 @@
++/**
++ * A5 (text-only path) and the text-only part of A3: the shared composer through the real create-request form
++ * and the ticket dialog comment box, on the real API/PostgreSQL of the Task1 fixture. The host only mounts the
++ * production components (`TicketBoard` with its "Tạo yêu cầu" action, `TicketDialog`) inside the app's own
++ * runtime; every request reaches the real producer. Playwright routes never fabricate data: they only drop
++ * the browser side of a response after the server has committed it. Session expiry is produced through the
++ * fixture's database. Submissions that carry files stay 503 EXTRACTION_NOT_CONFIGURED until an extractor
++ * version is certified, and that outcome is asserted here instead of a fake success.
++ */
++import { test as base, expect, type Page } from '@playwright/test';
++import { connectDb } from '../../server/src/db/client.ts';
++import type { OwnerClient } from '../src/lib/api.ts';
++import type { PendingStore } from '../src/lib/pending-operation.ts';
++import type { SessionController } from '../src/lib/session.ts';
++import { type FixtureHandle, withFixture } from './support/fixture.ts';
++
++type Harness = {
++  session: SessionController;
++  pending: PendingStore;
++  client: OwnerClient;
++  setFilters: (filters: Record<string, string>) => void;
++};
++type Captured = { method: string; path: string; headers: Record<string, string>; body: string | null };
++
++const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
++  crew: [
++    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern for fixture deps.
++    async ({}, use) => {
++      await withFixture(async (handle) => {
++        await use(handle);
++      });
++    },
++    { scope: 'worker', timeout: 180_000 },
++  ],
++});
++test.describe.configure({ mode: 'serial', timeout: 150_000 });
++
++const ticketSubmitPath = '/v2/attachment-submissions/tickets';
++const commentSubmitPath = (ticketId: string) => `/v2/tickets/${ticketId}/attachment-comments`;
++const ticketRoute = `POST:${ticketSubmitPath}`;
++
++async function withDb<T>(
++  crew: FixtureHandle,
++  run: (db: ReturnType<typeof connectDb>) => Promise<T>,
++): Promise<T> {
++  const db = connectDb(`postgres://postgres@127.0.0.1:${crew.dbPort}/${crew.dbName}`);
++  try {
++    return await run(db);
++  } finally {
++    await db.end({ timeout: 2 });
++  }
++}
++
++/** Expire every live owner session by moving `expires_at` into the past (fixture DB test support only). */
++async function expireSessions(crew: FixtureHandle): Promise<void> {
++  await withDb(
++    crew,
++    (db) => db`update sessions set expires_at = now() - interval '1 second' where revoked_at is null`,
++  );
++}
++
++async function count(crew: FixtureHandle, run: (db: ReturnType<typeof connectDb>) => Promise<number>) {
++  return withDb(crew, run);
++}
++
++const ticketsWithTitle = (crew: FixtureHandle, title: string) =>
++  count(crew, async (db) => {
++    const [row] = await db`select count(*)::int as count from tickets where title = ${title}`;
++    return row?.count ?? -1;
++  });
++
++const receiptsForKey = (crew: FixtureHandle, route: string, key: string) =>
++  count(crew, async (db) => {
++    const [row] =
++      await db`select count(*)::int as count from idempotency where route = ${route} and key = ${key}`;
++    return row?.count ?? -1;
++  });
++
++const commentsWithText = (crew: FixtureHandle, text: string) =>
++  count(crew, async (db) => {
++    const [row] = await db`select count(*)::int as count from comments where text = ${text}`;
++    return row?.count ?? -1;
++  });
++
++function capture(page: Page): Captured[] {
++  const captured: Captured[] = [];
++  page.on('request', (request) => {
++    const url = new URL(request.url());
++    if (url.pathname.startsWith('/v2/'))
++      captured.push({
++        method: request.method(),
++        path: url.pathname,
++        headers: request.headers(),
++        body: request.postData(),
++      });
++  });
++  return captured;
++}
++
++/**
++ * Drop the browser side of every POST to `path` after the server answered it. The request still reaches the
++ * producer (and commits), so the client sees a lost response; the same-key retries replay the stored answer
++ * and are dropped too until `release()` is called.
++ */
++async function dropResponses(page: Page, path: string) {
++  const state = { armed: true, served: [] as number[] };
++  await page.route(`**${path}`, async (route) => {
++    if (state.armed && route.request().method() === 'POST') {
++      const response = await route.fetch();
++      state.served.push(response.status());
++      await route.abort('connectionreset');
++      return;
++    }
++    await route.fallback();
++  });
++  return {
++    state,
++    release: () => {
++      state.armed = false;
++    },
++  };
++}
++
++const ticketModules = [
++  'board.tsx',
++  'list.tsx',
++  'dialog.tsx',
++  'queries.ts',
++  'requests.tsx',
++  'create-request.tsx',
++] as const;
++
++/** The Vite dev server may reload once after discovering Radix; import first, then start from a fresh page. */
++async function warmUp(page: Page, crew: FixtureHandle): Promise<void> {
++  await page.goto(`${crew.webOrigin}/crew-v2/`);
++  await page.waitForSelector('.app-shell');
++  await page
++    .evaluate(async (modules) => {
++      for (const name of modules) await import(/* @vite-ignore */ `/crew-v2/src/tickets/${name}`);
++    }, ticketModules)
++    .catch(() => undefined);
++  await page.waitForTimeout(1500);
++  await page.goto(`${crew.webOrigin}/crew-v2/`);
++  await page.waitForSelector('.app-shell');
++}
++
++/** Mounts only production components inside the app's own runtime; the host owns no network or entity logic. */
++async function mountHost(page: Page, crew: FixtureHandle): Promise<void> {
++  await warmUp(page, crew);
++  await page.evaluate(async () => {
++    const load = (url: string): Promise<unknown> => import(/* @vite-ignore */ url);
++    const entry = await (await fetch('/crew-v2/src/main.tsx')).text();
++    const dep = async (name: string) => {
++      const url = [...entry.matchAll(/["']([^"']*\/\.vite\/deps\/[^"']+)["']/g)]
++        .map((match) => match[1] ?? '')
++        .find((candidate) => (candidate.split('/').pop() ?? '').startsWith(`${name}.js`));
++      if (!url) throw new Error(`DEP_NOT_FOUND:${name}`);
++      return (await load(url)) as Record<string, unknown> & { default?: Record<string, unknown> };
++    };
++    const reactModule = await dep('react');
++    const React = (reactModule.default ?? reactModule) as typeof import('react');
++    const domModule = await dep('react-dom_client');
++    const { createRoot } = (
++      domModule.createRoot ? domModule : domModule.default
++    ) as typeof import('react-dom/client');
++    const queryModule = (await dep(
++      '@tanstack_react-query',
++    )) as unknown as typeof import('@tanstack/react-query');
++    const runtimeModule = (await load(
++      '/crew-v2/src/app-runtime.ts',
++    )) as typeof import('../src/app-runtime.ts');
++    const boundaryModule = (await load(
++      '/crew-v2/src/auth/session-boundary.tsx',
++    )) as typeof import('../src/auth/session-boundary.tsx');
++    const queries = (await load(
++      '/crew-v2/src/tickets/queries.ts',
++    )) as typeof import('../src/tickets/queries.ts');
++    const boardModule = (await load(
++      '/crew-v2/src/tickets/board.tsx',
++    )) as typeof import('../src/tickets/board.tsx');
++    const dialogModule = (await load(
++      '/crew-v2/src/tickets/dialog.tsx',
++    )) as typeof import('../src/tickets/dialog.tsx');
++    const composerModule = (await load(
++      '/crew-v2/src/compose/composer.tsx',
++    )) as typeof import('../src/compose/composer.tsx');
++    const createRequestModule = (await load(
++      '/crew-v2/src/tickets/create-request.tsx',
++    )) as typeof import('../src/tickets/create-request.tsx');
++
++    const runtime = runtimeModule.createAppRuntime({ storage: window.sessionStorage, window });
++    const { session, pending, client, queryClient: cache } = runtime;
++    const harness = { session, pending, client } as Omit<Harness, 'setFilters'> & {
++      setFilters?: Harness['setFilters'];
++    };
++    (window as unknown as { crewTest: typeof harness }).crewTest = harness;
++
++    const h = React.createElement;
++    function Views() {
++      const [filters, setFilters] = React.useState<Record<string, string>>({});
++      const [open, setOpen] = React.useState<{ id: string | null; trigger: HTMLElement | null }>({
++        id: null,
++        trigger: null,
++      });
++      harness.setFilters = setFilters;
++      return h(
++        'div',
++        null,
++        h(boardModule.TicketBoard, {
++          filters: queries.parseTicketFilters(filters),
++          onFiltersChange: (next: Record<string, string>) => setFilters({ ...next }),
++          onOpenTicket: (id: string, trigger: HTMLElement) => setOpen({ id, trigger }),
++        }),
++        h(dialogModule.TicketDialog, {
++          ticketId: open.id,
++          returnFocus: open.trigger,
++          onClose: () => setOpen((current) => ({ id: null, trigger: current.trigger })),
++        }),
++      );
++    }
++
++    const app = document.getElementById('app');
++    if (app) app.style.display = 'none';
++    const mount = document.createElement('main');
++    mount.id = 'compose-host';
++    mount.tabIndex = -1;
++    mount.className = 'workspace__main';
++    document.body.append(mount);
++    createRoot(mount).render(
++      h(
++        runtimeModule.RuntimeContext.Provider,
++        { value: runtime },
++        h(
++          queryModule.QueryClientProvider,
++          { client: cache },
++          h(boundaryModule.SessionBoundary, {
++            session,
++            pending,
++            client,
++            children: h(composerModule.ComposeServicesProvider, {
++              services: { client, pending, session, storage: window.sessionStorage },
++              children: h(createRequestModule.TicketDraftStorageProvider, {
++                storage: window.sessionStorage,
++                children: h(Views),
++              }),
++            }),
++          }),
++        ),
++      ),
++    );
++  });
++}
++
++async function login(page: Page, crew: FixtureHandle, button: 'Đăng nhập' | 'Đăng nhập lại' = 'Đăng nhập') {
++  const root = page.locator('#compose-host');
++  await root.getByLabel('Mật khẩu').fill(crew.ownerPassword);
++  await root.getByRole('button', { name: button, exact: true }).click();
++  await expect(root.getByRole('button', { name: 'Tạo yêu cầu', exact: true })).toBeVisible();
++}
++
++async function seedProject(page: Page, key: string): Promise<string> {
++  const project = await page.evaluate(async (projectKey) => {
++    const harness = (window as unknown as { crewTest: Harness }).crewTest;
++    const operation = harness.pending.begin({
++      intentId: `seed-project-${projectKey}`,
++      method: 'POST',
++      path: '/v2/projects',
++      body: { key: projectKey, name: `Dự án ${projectKey}`, repositoryUrl: null },
++      storage: 'tab',
++    });
++    return harness.client.mutate<{ id: string }>(operation);
++  }, key);
++  await page.evaluate((projectId) => {
++    (window as unknown as { crewTest: Harness }).crewTest.setFilters({ projectId });
++  }, project.id);
++  return project.id;
++}
++
++async function openCreateForm(page: Page) {
++  await page
++    .getByRole('region', { name: 'Bảng ticket' })
++    .getByRole('button', { name: 'Tạo yêu cầu', exact: true })
++    .click();
++  const form = page.getByRole('dialog', { name: 'Tạo yêu cầu' });
++  await expect(form).toBeVisible();
++  return form;
++}
++
++async function fillRequest(form: ReturnType<Page['getByRole']>, title: string, description: string) {
++  await form.getByLabel('Loại').selectOption('code');
++  await form.getByLabel('Tiêu đề').fill(title);
++  await form.getByRole('textbox', { name: 'Mô tả', exact: true }).fill(description);
++}
++
++/** Evidence line for the run log (counts the real attempts the browser made). */
++const evidence = (label: string, value: unknown) =>
++  process.stdout.write(`EVIDENCE ${label} ${JSON.stringify(value)}\n`);
++
++const posts = (requests: Captured[], path: string) =>
++  requests.filter((request) => request.method === 'POST' && request.path === path);
++
++test('A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt', async ({
++  page,
++  crew,
++}) => {
++  const requests = capture(page);
++  await mountHost(page, crew);
++  await login(page, crew);
++  const projectId = await seedProject(page, 'CMPA');
++  const title = 'Yêu cầu văn bản thuần A5';
++  const description = 'Mô tả tiếng Việt có dấu, không tệp đính kèm.';
++
++  const form = await openCreateForm(page);
++  await expect(form.getByLabel('Dự án')).toHaveValue(projectId);
++  await form.getByLabel('Loại').selectOption('research');
++  await form.getByLabel('Tiêu đề').fill(title);
++  await form.getByRole('textbox', { name: 'Mô tả', exact: true }).fill(description);
++  await form.getByRole('radio', { name: 'BMAD' }).check();
++  await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
++
++  // Accepted: the create dialog closes and the shared ticket dialog opens the returned ticket.
++  const detail = page.getByRole('dialog', { name: title });
++  await expect(detail).toBeVisible();
++  await expect(form).toBeHidden();
++  const ticketId = (await detail.getByTestId('ticket-detail').getAttribute('data-ticket-id')) ?? '';
++  expect(ticketId).toMatch(/^[0-9a-f-]{36}$/);
++
++  const created = posts(requests, ticketSubmitPath);
++  expect(created).toHaveLength(1);
++  const createKey = created[0]?.headers['idempotency-key'] ?? '';
++  expect(createKey).not.toBe('');
++  // Text-only still goes through one empty compose session so the atomic submission has a selection.
++  expect(posts(requests, '/v2/attachment-compose')).toHaveLength(1);
++  const body = JSON.parse(created[0]?.body ?? '{}') as {
++    selection?: { attachmentIds?: string[] };
++    assistantRead?: string;
++  };
++  expect(body.selection?.attachmentIds).toEqual([]);
++  expect(body.assistantRead).toBe('none');
++  await withDb(crew, async (db) => {
++    const rows =
++      await db`select id, project_id, kind, title, description, criteria from tickets where title = ${title}`;
++    expect(rows).toHaveLength(1);
++    expect(rows[0]?.id).toBe(ticketId);
++    expect(rows[0]?.project_id).toBe(projectId);
++    expect(rows[0]?.kind).toBe('research');
++    expect(rows[0]?.description).toBe(description);
++    expect(rows[0]?.criteria).toMatchObject({ workflowChoice: 'bmad' });
++    const [events] =
++      await db`select count(*)::int as count from events where ticket_id = ${ticketId} and type = 'ticket.created'`;
++    expect(events?.count).toBe(1);
++    const [links] =
++      await db`select count(*)::int as count from attachment_uploads where owner_id = 'owner' and linked_at is not null`;
++    expect(links?.count).toBe(0);
++  });
++  expect(await receiptsForKey(crew, ticketRoute, createKey)).toBe(1);
++
++  // Comment from the ticket detail.
++  const commentText = 'Bình luận văn bản thuần từ dialog.';
++  const box = detail.getByRole('textbox', { name: 'Nội dung', exact: true });
++  await box.fill(commentText);
++  await detail.getByRole('button', { name: 'Gửi bình luận', exact: true }).click();
++  await expect(detail.getByTestId('timeline-entry').filter({ hasText: commentText })).toHaveCount(1, {
++    timeout: 15_000,
++  });
++  await expect(box).toHaveValue('');
++  const comments = posts(requests, commentSubmitPath(ticketId));
++  expect(comments).toHaveLength(1);
++  const commentKey = comments[0]?.headers['idempotency-key'] ?? '';
++  expect(commentKey).not.toBe(createKey);
++  expect(await commentsWithText(crew, commentText)).toBe(1);
++  expect(await receiptsForKey(crew, `POST:${commentSubmitPath(ticketId)}`, commentKey)).toBe(1);
++  await withDb(crew, async (db) => {
++    const [events] =
++      await db`select count(*)::int as count from events where ticket_id = ${ticketId} and type = 'comment.created'`;
++    expect(events?.count).toBe(1);
++  });
++});
++
++test('A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket', async ({
++  page,
++  crew,
++}) => {
++  const requests = capture(page);
++  await mountHost(page, crew);
++  await login(page, crew);
++  await seedProject(page, 'CMPB');
++  const title = 'Yêu cầu mất phản hồi A5';
++  const description = 'Máy chủ lưu rồi nhưng trình duyệt không nhận được phản hồi.';
++
++  const lost = await dropResponses(page, ticketSubmitPath);
++  const form = await openCreateForm(page);
++  await fillRequest(form, title, description);
++  await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
++
++  // The server committed; the browser only sees an unconfirmed send and locks every field.
++  await expect(form.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' })).toBeVisible({
++    timeout: 30_000,
++  });
++  await expect(form.locator('section[data-compose-state="ambiguous"]')).toBeVisible();
++  await expect(form.getByLabel('Tiêu đề')).toBeDisabled();
++  await expect(form.getByRole('textbox', { name: 'Mô tả', exact: true })).toHaveJSProperty('readOnly', true);
++  expect(lost.state.served.length).toBeGreaterThanOrEqual(1);
++  expect(lost.state.served[0]).toBe(201);
++  expect(await ticketsWithTitle(crew, title)).toBe(1);
++  const key = posts(requests, ticketSubmitPath)[0]?.headers['idempotency-key'] ?? '';
++  expect(key).not.toBe('');
++  expect(await receiptsForKey(crew, ticketRoute, key)).toBe(1);
++
++  await expireSessions(crew);
++  lost.release();
++  await form.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }).click();
++  await expect(page.getByRole('heading', { name: 'Đăng nhập lại để tiếp tục' })).toBeVisible();
++  await expect(page.locator('#compose-host')).not.toContainText(title);
++  expect(await ticketsWithTitle(crew, title)).toBe(1);
++
++  await login(page, crew, 'Đăng nhập lại');
++  const reopened = await openCreateForm(page);
++  // The draft survives expiry with its fields locked to the original body.
++  await expect(reopened.getByLabel('Tiêu đề')).toHaveValue(title);
++  await expect(reopened.getByLabel('Tiêu đề')).toBeDisabled();
++  await reopened.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }).click();
++  const detail = page.getByRole('dialog', { name: title });
++  await expect(detail).toBeVisible({ timeout: 20_000 });
++
++  const writes = posts(requests, ticketSubmitPath);
++  expect(writes.length).toBeGreaterThanOrEqual(2);
++  evidence('ticket-replay', { posts: writes.length, droppedAfterCommit: lost.state.served });
++  expect(new Set(writes.map((request) => request.headers['idempotency-key']))).toEqual(new Set([key]));
++  expect(new Set(writes.map((request) => request.body)).size).toBe(1);
++  expect(writes.at(-1)?.headers['x-csrf-token']).not.toBe(writes[0]?.headers['x-csrf-token']);
++  expect(await ticketsWithTitle(crew, title)).toBe(1);
++  expect(await receiptsForKey(crew, ticketRoute, key)).toBe(1);
++  await withDb(crew, async (db) => {
++    const [events] = await db`select count(*)::int as count from events e join tickets t on t.id = e.ticket_id
++      where t.title = ${title} and e.type = 'ticket.created'`;
++    expect(events?.count).toBe(1);
++  });
++  await expect(page.getByTestId('recovery-panel')).toHaveCount(0);
++  const leftover = await page.evaluate(
++    () => (window as unknown as { crewTest: Harness }).crewTest.pending.list().length,
++  );
++  expect(leftover).toBe(0);
++});
++
++test('A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận', async ({
++  page,
++  crew,
++}) => {
++  const requests = capture(page);
++  await mountHost(page, crew);
++  await login(page, crew);
++  await seedProject(page, 'CMPC');
++  const title = 'Yêu cầu để bình luận A5';
++  const form = await openCreateForm(page);
++  await fillRequest(form, title, 'Mô tả cho ticket bình luận.');
++  await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
++  const detail = page.getByRole('dialog', { name: title });
++  await expect(detail).toBeVisible();
++  const ticketId = (await detail.getByTestId('ticket-detail').getAttribute('data-ticket-id')) ?? '';
++  const path = commentSubmitPath(ticketId);
++  const commentText = 'Bình luận bị mất phản hồi.';
++
++  const lost = await dropResponses(page, path);
++  await detail.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(commentText);
++  await detail.getByRole('button', { name: 'Gửi bình luận', exact: true }).click();
++  await expect(detail.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' })).toBeVisible({
++    timeout: 30_000,
++  });
++  await expect(detail.getByRole('textbox', { name: 'Nội dung', exact: true })).toHaveJSProperty(
++    'readOnly',
++    true,
++  );
++  expect(lost.state.served[0]).toBe(201);
++  expect(await commentsWithText(crew, commentText)).toBe(1);
++  const key = posts(requests, path)[0]?.headers['idempotency-key'] ?? '';
++  expect(await receiptsForKey(crew, `POST:${path}`, key)).toBe(1);
++
++  await expireSessions(crew);
++  lost.release();
++  await detail.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }).click();
++  await expect(page.getByRole('heading', { name: 'Đăng nhập lại để tiếp tục' })).toBeVisible();
++  expect(await commentsWithText(crew, commentText)).toBe(1);
++
++  await login(page, crew, 'Đăng nhập lại');
++  await page.locator(`button[data-ticket-id="${ticketId}"]`).click();
++  const reopened = page.getByRole('dialog', { name: title });
++  await expect(reopened).toBeVisible();
++  await expect(reopened.getByRole('textbox', { name: 'Nội dung', exact: true })).toHaveValue(commentText);
++  await reopened.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }).click();
++  await expect(reopened.getByTestId('timeline-entry').filter({ hasText: commentText })).toHaveCount(1, {
++    timeout: 20_000,
++  });
++
++  const writes = posts(requests, path);
++  expect(writes.length).toBeGreaterThanOrEqual(2);
++  evidence('comment-replay', { posts: writes.length, droppedAfterCommit: lost.state.served });
++  expect(new Set(writes.map((request) => request.headers['idempotency-key']))).toEqual(new Set([key]));
++  expect(new Set(writes.map((request) => request.body)).size).toBe(1);
++  expect(await commentsWithText(crew, commentText)).toBe(1);
++  expect(await receiptsForKey(crew, `POST:${path}`, key)).toBe(1);
++  await withDb(crew, async (db) => {
++    const [events] =
++      await db`select count(*)::int as count from events where ticket_id = ${ticketId} and type = 'comment.created'`;
++    expect(events?.count).toBe(1);
++  });
++});
++
++test('A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo trùng, giữ khóa cũ và không mất ticket đã lưu', async ({
++  page,
++  crew,
++}) => {
++  const requests = capture(page);
++  await mountHost(page, crew);
++  await login(page, crew);
++  await seedProject(page, 'CMPD');
++  const title = 'Yêu cầu bỏ bản nháp A5';
++
++  const lost = await dropResponses(page, ticketSubmitPath);
++  const form = await openCreateForm(page);
++  await fillRequest(form, title, 'Nội dung cần bỏ sau khi mất phản hồi.');
++  await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
++  await expect(form.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' })).toBeVisible({
++    timeout: 30_000,
++  });
++  expect(await ticketsWithTitle(crew, title)).toBe(1);
++  const key = posts(requests, ticketSubmitPath)[0]?.headers['idempotency-key'] ?? '';
++
++  // Ambiguous: discarding first asks the owner and nothing is dropped until they confirm.
++  await form.getByRole('button', { name: 'Bỏ bản nháp yêu cầu' }).click();
++  const warning = form.getByRole('alertdialog', { name: 'Xác nhận bỏ bản nháp' });
++  await expect(warning).toContainText('có thể tạo bản trùng');
++  await warning.getByRole('button', { name: 'Giữ lại' }).click();
++  await expect(warning).toBeHidden();
++  await expect(form.getByLabel('Tiêu đề')).toHaveValue(title);
++
++  await form.getByRole('button', { name: 'Bỏ bản nháp yêu cầu' }).click();
++  await warning.getByRole('button', { name: 'Vẫn bỏ bản nháp' }).click();
++  await expect(form.getByLabel('Tiêu đề')).toHaveValue('');
++  await expect(form.getByLabel('Tiêu đề')).toBeEnabled();
++  lost.release();
++
++  // The committed ticket is untouched, still one receipt, and the old key is still held for recovery.
++  expect(await ticketsWithTitle(crew, title)).toBe(1);
++  expect(await receiptsForKey(crew, ticketRoute, key)).toBe(1);
++  const held = await page.evaluate(() =>
++    (window as unknown as { crewTest: Harness }).crewTest.pending.list().map((item) => item.id),
++  );
++  expect(held).toContain(key);
++  expect(
++    posts(requests, ticketSubmitPath).every((request) => request.headers['idempotency-key'] === key),
++  ).toBe(true);
++});
++
++// 1x1 PNG, enough for the producer's magic-number check.
++const tinyPng = Buffer.from(
++  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
++  'base64',
++);
++
++test('A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket', async ({
++  page,
++  crew,
++}) => {
++  const requests = capture(page);
++  await mountHost(page, crew);
++  await login(page, crew);
++  await seedProject(page, 'CMPE');
++  const title = 'Yêu cầu có tệp A5';
++
++  const form = await openCreateForm(page);
++  await fillRequest(form, title, 'Có kèm một ảnh PNG.');
++  await form
++    .getByLabel('Đính kèm tệp')
++    .setInputFiles({ name: 'anh-a5.png', mimeType: 'image/png', buffer: tinyPng });
++  await expect(form.locator('li[data-state="ready"]')).toHaveCount(1, { timeout: 30_000 });
++  await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
++  await expect(form.getByRole('alert')).toContainText('Chưa cấu hình xử lý tệp', { timeout: 40_000 });
++
++  const attempts = posts(requests, ticketSubmitPath);
++  expect(attempts.length).toBeGreaterThanOrEqual(1);
++  evidence('files-503', { posts: attempts.length });
++  const key = attempts[0]?.headers['idempotency-key'] ?? '';
++  expect(new Set(attempts.map((request) => request.headers['idempotency-key']))).toEqual(new Set([key]));
++  expect(new Set(attempts.map((request) => request.body)).size).toBe(1);
++  expect(await ticketsWithTitle(crew, title)).toBe(0);
++  expect(await receiptsForKey(crew, ticketRoute, key)).toBe(0);
++  await withDb(crew, async (db) => {
++    const [linked] =
++      await db`select count(*)::int as count from attachment_uploads where owner_id = 'owner' and linked_at is not null`;
++    expect(linked?.count).toBe(0);
++  });
++  // The form stays locked on its original body; retry uses the same key, never a new one.
++  await expect(form.getByLabel('Tiêu đề')).toBeDisabled();
++  await expect(form.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' })).toBeVisible();
++});
