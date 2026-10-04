@@ -40,6 +40,8 @@ Phần còn chờ producer được hiện rõ là chưa có dữ liệu, không
 
 Giới hạn đã biết:
 
+- Mỗi event `comment.created`/`decision.created` làm invalidate query comments/decisions nên `TicketHistory` đọc lại toàn bộ trang lịch sử từ đầu (`fetchAllPages` trong `queries.ts`).
+- Mỗi event ticket khi dialog đang mở làm tải lại graph cả root (`useTicketGraph` trong `detail.tsx`), vì `useTicketSubline` và `ChildTickets` đều dùng chung query key `queryKeys.graph(rootId)`.
 - Ticket đã kết thúc mà còn một bình luận chưa xác nhận từ trước khi tải trang: ô bình luận không hiện; gửi lại qua panel khôi phục của Task2.
 - Bản nháp bình luận của ticket đã kết thúc không được dọn tự động. Nó chỉ mất khi đăng xuất.
 

@@ -85,6 +85,7 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
     dùng khi PUT config no-op. Body có thể thêm `runtime` (`claude|codex|api`). Chưa cấu hình 409
     `CONFIG_NOT_CONFIGURED`, revision lệch 409 `CONFIG_REVISION_CONFLICT`, 409 `CONFIG_DISABLED` (không xếp
     command) khi `enabled=false` của máy, hoặc khi có `runtime` mà nguồn đó đang OFF (`isSourceEnabled`).
+    `runtime` chỉ dùng để chặn (409 `CONFIG_DISABLED`) khi nguồn đó tắt; command `sync_workflows` vẫn đồng bộ mọi runtime, không phải retry riêng một runtime.
     Ba switch nguồn desired (Claude, Codex, API) KHÔNG nằm trong config gateway: chúng đã có sẵn ở
     `PUT/GET /v2/machines/:id/model-sources` (flow server-models; `enabled{claude,codex,api}` + CAS revision,
     desired tách khỏi `applied` do gateway báo, gateway áp qua `sync_models`). `isSourceEnabled(tx, machineId,

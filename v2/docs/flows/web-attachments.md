@@ -32,6 +32,8 @@ Hợp đồng cho Task3 S3b/Task6: form tạo đủ `CreateTicket` (project/kind
 
 `DraftFile`, `ComposeSubmission`, `ComposeDraft` và `ComposeReceipt` đúng interface của brief Task5. `ComposeTarget` được suy từ decoder `ComposeSession` của Task2 (`web/src/contracts/attachments.ts`). Decoder `AssistantMessage` (`server/src/attachments/contracts.ts:270`) tạm nằm trong `state.ts` vì contracts Task2 chưa có; controller có thể chuyển nó vào `contracts/attachments.ts`. Danh sách `GET /v2/tickets/:id/attachments` là danh sách phẳng, không có `commentId` hay nhãn nguồn: UI liệt kê không nhóm và không suy luận nhóm từ thứ tự, chờ projection G2.
 
+Giới hạn đã biết: upload qua `OwnerClient.upload` gặp 5xx không retry tự động và không chuyển trạng thái `ambiguous`, vì upload không dùng `PendingStore`; lỗi trả ngay với `kind: 'http'` (hoặc `'configuration'` nếu là `*_NOT_CONFIGURED`). Điều này được chấp nhận tới khi route attachment chạy production đầy đủ.
+
 Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (dừng worker, hủy upload, gỡ listener). File bytes chỉ nằm trong bộ nhớ. Key và body đã đóng băng nằm trong `PendingStore` của tab. Payload chứa field giống bí mật bị Task2 từ chối lưu (`SECRET_PAYLOAD`) và composer báo lỗi, không gửi.
 
 ## Flow liên quan
