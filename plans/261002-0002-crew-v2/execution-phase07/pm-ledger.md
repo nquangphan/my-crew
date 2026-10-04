@@ -158,3 +158,8 @@ Task 3 S3b: minor (deferred): M4 tạo thành công không mở ticket khi trigg
 Ruling: B1 chia ranh giới — S3b export `clearTicketDrafts(storage)` (xóa prefix crew-v2:form-draft:*) và dùng storage của runtime (B2); controller gọi trong session.onLogout ở createAppRuntime/wireSession + test hai đường sót. S3b FIX2 = I3 (sau API S5a) + B1 export + B2 + B4 (Thử lại không bị fieldset disable). B3 (key comment của ticket terminal không dọn) deferred.
 
 20:20 S5a API discardDraft `bdf277d` (73/73, 112/112). Báo S3b tiếp I3. Scoped review API giao reviewer S5a cũ.
+
+20:35 S5a API discardDraft `bdf277d` re-review `task-5-s5a-fix4-re-review.md`: Approved; đúng ruling, B2 vẫn đúng và sửa thêm lỗi abandon nuốt lỗi cũ.
+Task 5 S5a API discardDraft: complete — bdf277d.
+Ruling: hợp đồng S3b — form/bình luận tự hiện cảnh báo trùng và chờ xác nhận trước discardDraft ở ambiguous/suspended; không gọi khi accepted.
+Task 5 S5a: minor (deferred, lượt A5 cùng C1–C3): D1 #reserve mở compose rỗng sau discard; D2 file kẹt hashing khi guard bỏ reserve + DELETE unconfirmed; D3 discardDraft không chặn accepted (mất receipt/onAccepted); D4 handle sau unmount vẫn gửi DELETE — trả blocked.
