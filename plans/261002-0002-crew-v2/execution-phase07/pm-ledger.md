@@ -232,3 +232,7 @@ Producer P-G4r: complete — f100caf (947ffb5 + f100caf).
 P-G4r: minor (deferred): N1 lease đo từ received_at lần đầu, không làm mới khi ack received lặp — có thể sinh command trùng chạy tuần tự (vô hại); N2 sửa lời "5 phút đủ cho cài chậm" — là heuristic server, không phải hợp đồng daemon.
 
 09:20 Task4 FIX1 `a297d3d` re-review `task-4-fix1-re-review.md`: I1/I2/route/ruling/M1/M3/M4/M6 ADDRESSED; mới B1 Important (sau Mở tất cả task xa bước cha) + B2/B3 Minor. FIX2/5: relayoutHierarchy + dịch viewport theo node neo (đúng ruling), ResizeObserver, guard history.back().
+
+09:50 Task4 FIX2 `00aeace` re-review `task-4-fix2-re-review.md`: Approved, B1/B2/B3 ADDRESSED.
+Task 4: complete — 00aeace (da607c8 + a297d3d + 00aeace). S4 source + A4 (trừ dán ảnh/tệp chờ extractor) ĐẠT trên API/PG thật.
+Task 4: minor (deferred): M2 nhãn cạnh dày ở 801 node; N1 neo "tất cả" dùng focusedTicketId cũ; N2 chớp hình khi dịch viewport chưa đo; vị trí thẻ không lưu qua reload; task realtime có thể xa bước cha tới khi "Sắp xếp lại" (ruling); E2E repair_links ghi DB (route máy repair-results chưa end-to-end); IMG_6454 thiếu.
