@@ -238,3 +238,6 @@ Task 4: complete — 00aeace (da607c8 + a297d3d + 00aeace). S4 source + A4 (tr�
 Task 4: minor (deferred): M2 nhãn cạnh dày ở 801 node; N1 neo "tất cả" dùng focusedTicketId cũ; N2 chớp hình khi dịch viewport chưa đo; vị trí thẻ không lưu qua reload; task realtime có thể xa bước cha tới khi "Sắp xếp lại" (ruling); E2E repair_links ghi DB (route máy repair-results chưa end-to-end); IMG_6454 thiếu.
 
 10:00 OWNER: chạy tiếp tới khi quota tuần còn 1% (giữ 1% viết handover) — thay ngưỡng 5%. Owner gửi lại ảnh tham chiếu map, lưu `ui-evidence/reference-map-IMG_6454.png` (modal tối "Agent map": root trái, con phải, nối bằng ngoặc dọc, thẻ có chấm trạng thái + dòng phụ thời gian/token). Dispatch: đối chiếu visual Task4 với ảnh; G4w (ba switch Claude/Codex/API); kongming soạn ruling S6b Q1/Q2/N1.
+
+10:20 OWNER QUYẾT (map vs ảnh tham chiếu `task-4-visual-vs-reference.md`): (delta 2) realtime → tự căn lại cây như tham chiếu, dịch viewport giữ thẻ focus/đang xem đứng yên (thay ruling "chỉ Sắp xếp lại bố cục toàn bộ" cho trường hợp realtime); (delta 6) dòng phụ dùng dữ liệu đang có (bước/workflow · trạng thái · thời gian cập nhật), thời lượng/token để sau G1b/phase04; (delta 11) giữ sơ đồ là trang, header sơ đồ giống modal (tiêu đề + phụ đề số lượng). Task4 polish: delta 1,3,4,5,7,8,9 + ba quyết định trên.
+OWNER: push.
