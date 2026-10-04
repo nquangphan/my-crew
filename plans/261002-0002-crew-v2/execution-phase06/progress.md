@@ -221,3 +221,7 @@ THÔNG BÁO OWNER: máy dự án chạy BMAD cần uv + Python ≥3.11 (máy hi�
 08:20 S6a FIX1 `d2ab486` re-review `task-3-s6a-fix1-re-review.md`: I1/I2/M1/M2/M3 ADDRESSED, M6 một phần; Approved có điều kiện. Follow-up nhỏ: N3 (sanitizer lộ path trong backtick/[/</{, ~/, Bearer/token: ), N2 (dev/ino/mtime/ctime thư mục chống thêm-rồi-xóa giữa hai lần kiểm), N4 docs argv[0].
 CÂU HỎI RULING S6b BẮT BUỘC (8): N1 projection BMAD đã pin còn ship `_bmad/scripts/{memlog,resolve_config,resolve_customization}.py` và `_bmad/custom/.gitignore` — hoặc tập đóng = toàn bộ tập pin với hash từng file (definition phải mang pin này → digest đổi), hoặc S6b chỉ copy hai script kèm bằng chứng runtime không cần phần còn lại.
 S6a: minor (deferred → S6b): N5 execute gặp lock bận (exit 20 trước spawn) báo UNAVAILABLE và giữ stage — sửa ở operations.ts; N6 log còn ghi khi LIFETIME_UNKNOWN có thể đọc lỗi (vô hại).
+
+08:45 S6a follow-up `10b2e64` re-review `task-3-s6a-fix2-re-review.md`: Approved, N2/N3/N4 ADDRESSED; tạo trước _bmad/render rủi ro thấp chấp nhận.
+Task 3 S6a: complete — 10b2e64 (d577085 + d2ab486 + 10b2e64). Render thật vẫn HALT tới khi ruling S6b Q1/Q2/N1.
+S6a: minor (deferred → S6b): R1 stamp chỉ phủ thư mục — nên stamp inode/ctime từng file closure, projectRoot/.claude/.claude/skills chưa stamp; R2 tail sau path đã biết thoát rule credential (`?token=`); R3 rule `*key*` bắt nhầm KeyError/keyword; trả thêm dòng cuối không rỗng của log (traceback); S6b phải khai `_bmad/render` là injected entry kể cả khi HALT.
