@@ -2,14 +2,23 @@
  * “Tạo yêu cầu”: project/kind/title/workflow fields owned here plus the description textarea and files of
  * the shared Task5 composer (`AttachmentComposer`, never cloned). Fields lock whenever the composer leaves
  * `editing`, so an unconfirmed request is only ever replayed with its original key and body. The draft is
- * kept per session across dialog close, view change and re-authentication; only “Bỏ bản nháp yêu cầu”
- * (or a confirmed create) clears it.
+ * kept in the runtime's tab storage across dialog close, view change, reload and re-authentication; only
+ * “Bỏ bản nháp yêu cầu” (a whole-draft discard through the composer handle) or a confirmed create clears it.
  */
 import * as Dialog from '@radix-ui/react-dialog';
 import { useQuery } from '@tanstack/react-query';
-import { type CSSProperties, useId, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  createContext,
+  type ReactNode,
+  useContext,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useRuntime } from '../app-runtime.ts';
-import { AttachmentComposer } from '../compose/composer.tsx';
+import { AttachmentComposer, type ComposerHandle } from '../compose/composer.tsx';
 import {
   type ComposeDraft,
   type ComposeReceipt,
@@ -20,8 +29,10 @@ import {
 import { isUuid } from '../contracts/http.ts';
 import type { Ticket } from '../contracts/tickets.ts';
 import {
-  browserTabStorage,
+  type DraftStorage,
   defaultRequestFields,
+  discardMode,
+  type FormDrafts,
   formDrafts,
   makeRequestSubmission,
   type RequestFormFields,
@@ -30,6 +41,103 @@ import {
 } from './create-request-state.ts';
 import { failureText, projectsQueryOptions } from './queries.ts';
 import { kindLabels } from './status.ts';
+
+const DraftStorageContext = createContext<DraftStorage | null>(null);
+
+/**
+ * Supplies the runtime's tab storage (the same one given to `ComposeServicesProvider`) to the form and
+ * comment drafts. Without it drafts stay in memory, like the composer with `storage: null`.
+ */
+export function TicketDraftStorageProvider({
+  storage,
+  children,
+}: {
+  storage: DraftStorage | null;
+  children: ReactNode;
+}) {
+  return <DraftStorageContext.Provider value={storage}>{children}</DraftStorageContext.Provider>;
+}
+
+/** The session's form/comment draft store over the runtime's tab storage. */
+export function useTicketDrafts(): FormDrafts {
+  return formDrafts(useRuntime().session, useContext(DraftStorageContext));
+}
+
+/** Owner-facing result of a whole-draft discard through the composer handle (null: nothing to say). */
+export function discardMessage(result: 'discarded' | 'blocked' | 'unconfirmed'): string | null {
+  if (result === 'blocked') return 'Đang gửi nên chưa bỏ được bản nháp. Chờ kết quả rồi thử lại.';
+  if (result === 'unconfirmed')
+    return 'Chưa xác nhận được việc bỏ bản nháp với máy chủ; nội dung vẫn được giữ. Bấm bỏ lần nữa để thử lại.';
+  return null;
+}
+
+export type DraftDiscardProps = {
+  /** Button text, e.g. “Bỏ bản nháp yêu cầu”. */
+  label: string;
+  state: ComposeDraft['state'];
+  /** The composer handle, or null when no composer is mounted (then there is nothing beyond the text). */
+  handle: () => ComposerHandle | null;
+  /** Clears the form's own fields/text; called only after the composer reported `discarded`. */
+  onDiscarded: () => void;
+};
+
+/**
+ * Whole-draft discard for the request form and the comment box: drops compose session, files and key
+ * through `discardDraft()`, then the form's own fields. Asks for confirmation of the duplicate risk while
+ * the previous send is unconfirmed; never calls the handle while the receipt is being collected.
+ */
+export function DraftDiscard({ label, state, handle, onDiscarded }: DraftDiscardProps) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const mode = discardMode(state);
+  if (mode === 'hidden') return null;
+  const run = async () => {
+    setConfirming(false);
+    setBusy(true);
+    try {
+      const current = handle();
+      const result = current ? await current.discardDraft() : 'discarded';
+      setNotice(discardMessage(result));
+      if (result === 'discarded') onDiscarded();
+    } catch {
+      setNotice(discardMessage('unconfirmed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div style={{ display: 'grid', gap: '0.4rem' }}>
+      <div>
+        <button
+          type="button"
+          style={buttonStyle}
+          disabled={busy || confirming}
+          onClick={() => (mode === 'confirm' ? setConfirming(true) : void run())}
+        >
+          {label}
+        </button>
+      </div>
+      {confirming && (
+        <div role="alertdialog" aria-label="Xác nhận bỏ bản nháp" style={{ display: 'grid', gap: '0.4rem' }}>
+          <p style={{ margin: 0 }}>
+            Lần gửi trước chưa được xác nhận và có thể đã được máy chủ lưu. Nếu bỏ bản nháp rồi gửi nội dung
+            mới, có thể tạo bản trùng. Khóa của lần gửi cũ vẫn nằm trong “Tiếp tục yêu cầu chưa xác nhận”.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="button" style={buttonStyle} onClick={() => void run()}>
+              Vẫn bỏ bản nháp
+            </button>
+            <button type="button" style={buttonStyle} onClick={() => setConfirming(false)}>
+              Giữ lại
+            </button>
+          </div>
+        </div>
+      )}
+      {notice && <p role="status">{notice}</p>}
+    </div>
+  );
+}
 
 /** Fixed composer draft key: one “new request” draft per tab, whatever view or project opened it. */
 const requestDraftKey = 'create-request';
@@ -53,8 +161,9 @@ export type CreateRequestFormProps = {
 };
 
 export function CreateRequestForm({ initialProjectId, onCreated }: CreateRequestFormProps) {
-  const { client, session } = useRuntime();
-  const drafts = formDrafts(session, browserTabStorage());
+  const { client } = useRuntime();
+  const drafts = useTicketDrafts();
+  const handle = useRef<ComposerHandle | null>(null);
   const initial = useRef<RequestFormFields | null>(null);
   if (initial.current === null) {
     const stored = drafts.request;
@@ -181,17 +290,19 @@ export function CreateRequestForm({ initialProjectId, onCreated }: CreateRequest
           onSubmissionChange={onSubmissionChange}
           onStateChange={setComposeState}
           onAccepted={onAccepted}
+          onHandle={(next) => {
+            handle.current = next;
+          }}
         />
       ) : (
         <p role="status">Chọn dự án để nhập mô tả, đính kèm tệp và gửi yêu cầu.</p>
       )}
-      {!locked && (
-        <div>
-          <button type="button" style={buttonStyle} onClick={() => save(null)}>
-            Bỏ bản nháp yêu cầu
-          </button>
-        </div>
-      )}
+      <DraftDiscard
+        label="Bỏ bản nháp yêu cầu"
+        state={composeState}
+        handle={() => (projectReady ? handle.current : null)}
+        onDiscarded={() => save(null)}
+      />
     </form>
   );
 }

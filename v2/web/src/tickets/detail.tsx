@@ -6,14 +6,15 @@
  * missing, never derived from `criteria` keys or prose.
  */
 import * as Dialog from '@radix-ui/react-dialog';
-import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
+import { type CSSProperties, type ReactNode, useMemo, useRef, useState } from 'react';
 import { useRuntime } from '../app-runtime.ts';
 import { TicketAttachments } from '../attachments/preview.tsx';
-import { AttachmentComposer } from '../compose/composer.tsx';
+import { AttachmentComposer, type ComposerHandle } from '../compose/composer.tsx';
 import type { ComposeDraft, ComposeSubmission } from '../compose/state.ts';
 import type { Ticket } from '../contracts/tickets.ts';
+import { docsFailureText, useTicketDocsLinks } from '../docs/queries.ts';
 import { TicketDocsLinksEditor } from '../docs/ticket-links.tsx';
-import { browserTabStorage, formDrafts } from './create-request-state.ts';
+import { DraftDiscard, useTicketDrafts } from './create-request.tsx';
 import { TicketHistory } from './history.tsx';
 import { failureText, useTicket, useTicketGraph } from './queries.ts';
 import {
@@ -120,7 +121,8 @@ function ChildTickets({ ticket }: { ticket: Ticket }) {
  * sending or unconfirmed, so its resend/status remains reachable; a fresh comment is not offered.
  */
 function CommentComposer({ ticket, terminal }: { ticket: Ticket; terminal: boolean }) {
-  const drafts = formDrafts(useRuntime().session, browserTabStorage());
+  const drafts = useTicketDrafts();
+  const handle = useRef<ComposerHandle | null>(null);
   const [text, setText] = useState(() => drafts.comment(ticket.id));
   const [state, setState] = useState<ComposeDraft['state']>('editing');
   const submission = useMemo<ComposeSubmission>(
@@ -153,11 +155,63 @@ function CommentComposer({ ticket, terminal }: { ticket: Ticket; terminal: boole
         }}
         onStateChange={setState}
         onAccepted={() => write('')}
+        onHandle={(next) => {
+          handle.current = next;
+        }}
       />
-      {state === 'editing' && text !== '' && (
+      <DraftDiscard
+        label="Bỏ bản nháp bình luận"
+        state={state}
+        handle={() => handle.current}
+        onDiscarded={() => write('')}
+      />
+    </section>
+  );
+}
+
+/**
+ * Read-only ticket→docs links of a terminal ticket (GET `/v2/tickets/:id/docs-links`, same query as the
+ * Task6 editor). Nothing here mutates; reading can always be retried.
+ */
+function TerminalDocsLinks({ ticketId }: { ticketId: string }) {
+  const links = useTicketDocsLinks(useRuntime().client, ticketId);
+  const rows = links.data?.pages.flatMap((page) => page.items) ?? [];
+  return (
+    <section aria-label="Tài liệu liên kết với ticket" style={{ display: 'grid', gap: '0.4rem' }}>
+      <h3 style={{ margin: 0 }}>Tài liệu liên kết</h3>
+      <p style={{ margin: 0 }}>Ticket đã kết thúc nên liên kết tài liệu chỉ xem.</p>
+      {links.isPending ? (
+        <p role="status">Đang tải liên kết tài liệu…</p>
+      ) : links.isError && !links.data ? (
+        <div role="alert">
+          <p style={{ margin: 0 }}>Không tải được liên kết tài liệu: {docsFailureText(links.error)}</p>
+          <button
+            type="button"
+            aria-label="Thử lại tải liên kết tài liệu"
+            onClick={() => void links.refetch()}
+          >
+            Thử lại
+          </button>
+        </div>
+      ) : rows.length === 0 ? (
+        <p style={{ margin: 0 }}>Không có tài liệu liên kết.</p>
+      ) : (
+        <ul style={{ margin: 0 }}>
+          {rows.map((row) => (
+            <li key={`${row.snapshotId}:${row.path}`}>
+              <code>{row.path}</code>
+            </li>
+          ))}
+        </ul>
+      )}
+      {links.hasNextPage && (
         <div>
-          <button type="button" onClick={() => write('')}>
-            Bỏ bản nháp bình luận
+          <button
+            type="button"
+            disabled={links.isFetchingNextPage}
+            onClick={() => void links.fetchNextPage()}
+          >
+            Tải thêm liên kết
           </button>
         </div>
       )}
@@ -265,10 +319,11 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
       <ChildTickets ticket={ticket} />
       <section aria-labelledby={`related-${ticket.id}`} style={{ display: 'grid', gap: '0.75rem' }}>
         <h2 id={`related-${ticket.id}`}>Tệp và tài liệu liên quan</h2>
-        {/* A terminal ticket is read-only: the disabled fieldset disables every control of the editor. */}
-        <fieldset disabled={terminal} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+        {terminal ? (
+          <TerminalDocsLinks ticketId={ticket.id} />
+        ) : (
           <TicketDocsLinksEditor ticketId={ticket.id} />
-        </fieldset>
+        )}
         <TicketAttachments
           ticketId={ticket.id}
           client={runtime.client}

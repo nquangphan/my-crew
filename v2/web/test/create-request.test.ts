@@ -4,7 +4,9 @@ import type { AppRuntime } from '../src/app-runtime.ts';
 import { submissionRequest } from '../src/compose/state.ts';
 import type { SessionSnapshot } from '../src/lib/session.ts';
 import {
+  clearTicketDrafts,
   defaultRequestFields,
+  discardMode,
   formDrafts,
   makeRequestSubmission,
   type RequestFormFields,
@@ -15,6 +17,7 @@ import {
   FakeComposeServer,
   harness,
   inlineHasher,
+  MemoryStorage,
   pngFile,
   projectId,
   settle,
@@ -172,6 +175,49 @@ test('formDrafts lưu vào tab storage, phiên mới (tải lại trang) đọc 
   assert.equal(formDrafts(fakeSession(), storage).request, null, 'field sai kiểu không được khôi phục');
 });
 
+test('clearTicketDrafts xóa mọi bản nháp form/bình luận trong tab storage, kể cả khi chưa tạo kho trong lần tải trang', () => {
+  // Storage that only has the Task2 `TabStorage` members (no enumeration), like the composer's.
+  const storage = new MemoryStorage();
+  const before = formDrafts(fakeSession(), storage);
+  before.request = { ...defaultRequestFields(projectId), title: 'Còn sau đăng xuất?' };
+  before.setComment('t1', 'nháp 1');
+  before.setComment('t2', 'nháp 2');
+  storage.setItem('crew-v2:pending:other', 'giữ nguyên');
+  assert.ok(storage.map.size >= 4);
+  // A reload: no draft store exists in this page; the logout hook clears the tab storage directly.
+  clearTicketDrafts(storage);
+  assert.deepEqual([...storage.map.keys()], ['crew-v2:pending:other']);
+  const after = formDrafts(fakeSession(), storage);
+  assert.equal(after.request, null);
+  assert.equal(after.comment('t1'), '');
+  // An enumerable storage also loses stray prefixed keys that no index lists.
+  const enumerable = tabStorage();
+  enumerable.setItem('crew-v2:form-draft:comment:lac', 'x');
+  enumerable.setItem('khac', 'y');
+  clearTicketDrafts(enumerable);
+  assert.deepEqual([...enumerable.map.keys()], ['khac']);
+});
+
+test('formDrafts không có storage thì giữ trong bộ nhớ của session, không ghi ra ngoài', () => {
+  const session = fakeSession();
+  const drafts = formDrafts(session, null);
+  drafts.setComment('t1', 'chỉ trong bộ nhớ');
+  drafts.request = { ...defaultRequestFields(projectId), title: 'Bộ nhớ' };
+  assert.equal(formDrafts(session, null).comment('t1'), 'chỉ trong bộ nhớ');
+  assert.equal(formDrafts(fakeSession(), null).comment('t1'), '', 'trang mới không thấy bản nháp bộ nhớ');
+  session.set('logging_out');
+  assert.equal(drafts.comment('t1'), '');
+  assert.equal(drafts.request, null);
+});
+
+test('discardMode: ẩn khi accepted, hỏi xác nhận khi ambiguous/suspended, gọi thẳng khi editing/sending', () => {
+  assert.equal(discardMode('accepted'), 'hidden');
+  assert.equal(discardMode('ambiguous'), 'confirm');
+  assert.equal(discardMode('suspended'), 'confirm');
+  assert.equal(discardMode('editing'), 'direct');
+  assert.equal(discardMode('sending'), 'direct', 'composer tự trả blocked');
+});
+
 // ---------------------------------------------------------------------------------------------------------
 // Form component (jsdom + RTL, real Task2 client/session/pending over the in-memory producer)
 // ---------------------------------------------------------------------------------------------------------
@@ -184,7 +230,9 @@ const { createElement } = await import('react');
 const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
 const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
 const { RuntimeContext } = await import('../src/app-runtime.ts');
-const { CreateRequestAction, CreateRequestForm } = await import('../src/tickets/create-request.tsx');
+const { CreateRequestAction, CreateRequestForm, TicketDraftStorageProvider } = await import(
+  '../src/tickets/create-request.tsx'
+);
 
 afterEach(() => {
   cleanup();
@@ -244,7 +292,10 @@ function providers(env: Env, child: ReturnType<typeof createElement>) {
     createElement(
       QueryClientProvider,
       { client: queryClient },
-      createElement(ComposeServicesProvider, { services, children: child }),
+      createElement(ComposeServicesProvider, {
+        services,
+        children: createElement(TicketDraftStorageProvider, { storage: env.storage, children: child }),
+      }),
     ),
   );
 }
@@ -324,7 +375,7 @@ test('form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng b
   assert.equal(titleInput().value, '', 'sau khi tạo, form bắt đầu bản nháp mới');
   assert.equal(description().value, '');
   assert.equal(projectSelect().value, projectId, 'giữ project đang chọn');
-  assert.equal(formDrafts(env.session, window.sessionStorage).request?.title ?? '', '');
+  assert.equal(formDrafts(env.session, env.storage).request?.title ?? '', '');
 });
 
 test('chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp', async () => {
@@ -382,7 +433,8 @@ test('mất response rồi hết phiên: field bị khóa, đăng nhập lại g
   await until(() => composeState() === 'ambiguous', 'ambiguous');
   for (const field of [titleInput(), projectSelect(), kindSelect(), radio(/BMAD/), radio(/Superpowers/)])
     assert.equal(field.disabled, true, `${field.tagName} bị khóa khi chưa xác nhận`);
-  assert.equal(screen.queryByRole('button', { name: /Bỏ bản nháp yêu cầu/ }), null);
+  // Discard is offered only behind the duplicate-risk confirmation (own test below).
+  assert.equal(screen.queryByRole('alertdialog'), null);
   await change(titleInput(), 'Đổi tiêu đề để gửi body mới');
   assert.equal(titleInput().value, 'Yêu cầu chưa xác nhận');
   server.authenticated = false;
@@ -512,4 +564,133 @@ test('mất response rồi tải lại trang: field khôi phục, bị khóa và
   assert.equal(new Set(posts.map((call) => call.body)).size, 1);
   assert.equal(new Set(posts.map((call) => call.headers.get('idempotency-key'))).size, 1);
   assert.equal(server.tickets.length, 1);
+});
+
+test('bản nháp form dùng storage của runtime (cùng nguồn với composer), không ghi thẳng sessionStorage', async () => {
+  const server = serverWithProjects();
+  const env = await harness(server);
+  render(
+    providers(
+      env,
+      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: () => undefined }),
+    ),
+  );
+  await formReady();
+  await change(titleInput(), 'Lưu cùng chỗ với composer');
+  assert.equal(window.sessionStorage.length, 0);
+  assert.ok([...env.storage.map.values()].some((value) => value.includes('Lưu cùng chỗ với composer')));
+});
+
+async function withUploadedFile(server: FakeComposeServer) {
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('cu.png', 9)] } });
+  });
+  await until(() => document.querySelector('[data-state="ready"]') !== null, 'file ready');
+  return [...server.composes.values()].at(-1);
+}
+
+test('“Bỏ bản nháp yêu cầu” bỏ trọn: compose và tệp bị abandon, field về mặc định, yêu cầu sau không mang tệp cũ', async () => {
+  const server = serverWithProjects();
+  const env = await harness(server);
+  const created: string[] = [];
+  render(
+    providers(
+      env,
+      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: (id) => created.push(id) }),
+    ),
+  );
+  await formReady();
+  await change(titleInput(), 'Sẽ bỏ');
+  await change(description(), 'Mô tả sẽ bỏ');
+  const compose = await withUploadedFile(server);
+  await act(async () => {
+    fireEvent.click(button(/Bỏ bản nháp yêu cầu/));
+  });
+  await until(() => titleInput().value === '', 'fields cleared');
+  assert.equal(compose?.state, 'abandoned');
+  assert.equal(document.querySelectorAll('[data-local-id]').length, 0);
+  assert.equal(description().value, '');
+  assert.equal(formDrafts(env.session, env.storage).request?.title ?? '', '');
+  await change(titleInput(), 'Yêu cầu mới không tệp');
+  await act(async () => {
+    fireEvent.click(button(/Tạo ticket/));
+  });
+  await until(() => created.length === 1, 'created');
+  assert.deepEqual(JSON.parse(ticketPosts(server)[0]?.body ?? '{}').selection.attachmentIds, []);
+});
+
+test('bỏ bản nháp chưa xác nhận được (DELETE mất kết nối) thì giữ field và báo; đang gửi thì báo bị chặn', async () => {
+  const server = serverWithProjects();
+  const env = await harness(server);
+  render(
+    providers(
+      env,
+      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: () => undefined }),
+    ),
+  );
+  await formReady();
+  await change(titleInput(), 'Giữ khi chưa xác nhận');
+  await withUploadedFile(server);
+  server.failBefore = (call) => call.method === 'DELETE';
+  await act(async () => {
+    fireEvent.click(button(/Bỏ bản nháp yêu cầu/));
+  });
+  await until(
+    () => /Chưa xác nhận được việc bỏ bản nháp/.test(document.body.textContent ?? ''),
+    'unconfirmed',
+  );
+  assert.equal(titleInput().value, 'Giữ khi chưa xác nhận');
+  assert.equal(formDrafts(env.session, env.storage).request?.title, 'Giữ khi chưa xác nhận');
+  // Sending: the composer refuses to discard, the form keeps its fields.
+  server.hold = (call) => call.url === '/v2/attachment-submissions/tickets';
+  await act(async () => {
+    fireEvent.click(button(/Tạo ticket/));
+  });
+  await until(() => composeState() === 'sending', 'sending');
+  await act(async () => {
+    fireEvent.click(button(/Bỏ bản nháp yêu cầu/));
+  });
+  await until(() => /Đang gửi nên chưa bỏ được bản nháp/.test(document.body.textContent ?? ''), 'blocked');
+  assert.equal(titleInput().value, 'Giữ khi chưa xác nhận');
+  server.hold = null;
+  server.release();
+  await until(() => server.tickets.length === 1, 'released');
+});
+
+test('bỏ bản nháp khi yêu cầu chưa xác nhận: phải xác nhận cảnh báo trùng trước, “Giữ lại” không bỏ gì', async () => {
+  const server = serverWithProjects();
+  const env = await harness(server);
+  render(
+    providers(
+      env,
+      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: () => undefined }),
+    ),
+  );
+  await formReady();
+  await change(titleInput(), 'Chưa xác nhận');
+  server.dropAfterCommit = (call) => call.url === '/v2/attachment-submissions/tickets';
+  await act(async () => {
+    fireEvent.click(button(/Tạo ticket/));
+  });
+  await until(() => composeState() === 'ambiguous', 'ambiguous');
+  const deletesBefore = server.calls.filter((call) => call.method === 'DELETE').length;
+  await act(async () => {
+    fireEvent.click(button(/Bỏ bản nháp yêu cầu/));
+  });
+  assert.match(document.body.textContent ?? '', /có thể tạo bản trùng/);
+  assert.equal(composeState(), 'ambiguous', 'chưa gọi discardDraft trước khi owner xác nhận');
+  await act(async () => {
+    fireEvent.click(button(/^Giữ lại$/));
+  });
+  assert.doesNotMatch(document.body.textContent ?? '', /có thể tạo bản trùng/);
+  assert.equal(titleInput().value, 'Chưa xác nhận');
+  assert.equal(server.calls.filter((call) => call.method === 'DELETE').length, deletesBefore);
+  await act(async () => {
+    fireEvent.click(button(/Bỏ bản nháp yêu cầu/));
+  });
+  await act(async () => {
+    fireEvent.click(button(/Vẫn bỏ bản nháp/));
+  });
+  await until(() => titleInput().value === '' && composeState() === 'editing', 'discarded');
+  assert.equal(titleInput().disabled, false);
 });

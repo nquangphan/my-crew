@@ -104,6 +104,9 @@ async function mountHarness(page: Page, crew: FixtureHandle): Promise<void> {
     const composerModule = (await load(
       '/crew-v2/src/compose/composer.tsx',
     )) as typeof import('../src/compose/composer.tsx');
+    const createRequestModule = (await load(
+      '/crew-v2/src/tickets/create-request.tsx',
+    )) as typeof import('../src/tickets/create-request.tsx');
 
     // The app's own composition root: one QueryClient, session, owner client and event stream.
     const runtime = runtimeModule.createAppRuntime({ storage: window.sessionStorage, window });
@@ -164,7 +167,10 @@ async function mountHarness(page: Page, crew: FixtureHandle): Promise<void> {
             client,
             children: h(composerModule.ComposeServicesProvider, {
               services: { client, pending, session, storage: window.sessionStorage },
-              children: h(Views),
+              children: h(createRequestModule.TicketDraftStorageProvider, {
+                storage: window.sessionStorage,
+                children: h(Views),
+              }),
             }),
           }),
         ),

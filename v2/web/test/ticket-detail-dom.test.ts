@@ -3,7 +3,14 @@ import { after, afterEach, test } from 'node:test';
 import type { AppRuntime } from '../src/app-runtime.ts';
 import type { Ticket } from '../src/contracts/tickets.ts';
 import { formDrafts } from '../src/tickets/create-request-state.ts';
-import { FakeComposeServer, harness, inlineHasher, projectId, settle } from './support/compose-server.ts';
+import {
+  FakeComposeServer,
+  harness,
+  inlineHasher,
+  pngFile,
+  projectId,
+  settle,
+} from './support/compose-server.ts';
 import { installDom } from './support/dom.ts';
 import { useDomEventConstructors } from './support/dom-events.ts';
 
@@ -19,6 +26,7 @@ const { TicketDialog } = await import('../src/tickets/dialog.tsx');
 const { TicketDetail } = await import('../src/tickets/detail.tsx');
 const { queryKeys, queryRoots } = await import('../src/lib/query-keys.ts');
 const { RequestList } = await import('../src/tickets/requests.tsx');
+const { TicketDraftStorageProvider } = await import('../src/tickets/create-request.tsx');
 
 afterEach(() => {
   cleanup();
@@ -122,7 +130,10 @@ function mount(env: Env, mode: 'dialog' | 'page' = 'dialog') {
         { client: queryClient },
         createElement(ComposeServicesProvider, {
           services,
-          children: createElement(mode === 'page' ? Page : Host),
+          children: createElement(TicketDraftStorageProvider, {
+            storage: env.storage,
+            children: createElement(mode === 'page' ? Page : Host),
+          }),
         }),
       ),
     ),
@@ -181,7 +192,7 @@ test('draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại;
   await open(ticketA);
   await until(() => commentBox() !== null, 'composer A third');
   assert.equal(commentBox()?.value, '', 'đã bỏ thì không khôi phục');
-  assert.equal(formDrafts(env.session, window.sessionStorage).comment(ticketB), 'nháp cho B');
+  assert.equal(formDrafts(env.session, env.storage).comment(ticketB), 'nháp cho B');
 });
 
 test('gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại', async () => {
@@ -201,7 +212,7 @@ test('gửi bình luận qua composer chung: một comment, ô nhập trống v�
     'timeline refetch',
   );
   await until(() => (document.body.textContent ?? '').includes('Bình luận có dấu tiếng Việt'), 'timeline');
-  assert.equal(formDrafts(env.session, window.sessionStorage).comment(ticketA), '');
+  assert.equal(formDrafts(env.session, env.storage).comment(ticketA), '');
 });
 
 test('ticket đã kết thúc chỉ xem: không có composer bình luận', async () => {
@@ -355,7 +366,7 @@ test('trang ticket đổi ticketId mà không remount: chữ nháp của A khôn
   );
   await until(() => commentBox() !== null, 'composer B');
   assert.equal(commentBox()?.value, '');
-  const drafts = formDrafts(env.session, window.sessionStorage);
+  const drafts = formDrafts(env.session, env.storage);
   assert.equal(drafts.comment(ticketB), '');
   assert.equal(drafts.comment(ticketA), 'chỉ dành cho A');
   await act(async () => showPage(ticketA));
@@ -417,35 +428,43 @@ test('deep link chữ hoa: cache theo key chữ thường, invalidation chữ th
   assert.doesNotMatch(document.body.textContent ?? '', /Bản cũ/);
 });
 
-test('ticket kết thúc: editor liên kết tài liệu chỉ đọc', async () => {
-  const snapshotId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+test('ticket kết thúc: liên kết tài liệu chỉ xem, không có điều khiển sửa; lỗi đọc có “Thử lại” bấm được', async () => {
   const { server } = serverWithTickets([ticket(ticketDone, 'Ticket xong', { status: 'done' })]);
   const base = server.fetch;
-  const json = (body: unknown) =>
-    new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+  let failures = 1;
   server.fetch = async (url: string, init: RequestInit = {}) => {
-    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/projects/${projectId}/docs/tree`))
-      return json({
-        projectId,
-        snapshotId,
-        sourceCommit: null,
-        auditState: 'verified',
-        contentClass: 'implemented',
-        pages: [{ path: 'docs/a.md', title: 'A', parentPath: null, contentClass: 'implemented' }],
-        links: [],
-        relatedTicketIds: [],
-      });
-    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/tickets/${ticketDone}/docs-links`))
-      return json({ items: [], nextCursor: null });
+    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/tickets/${ticketDone}/docs-links`)) {
+      if (failures-- > 0)
+        return new Response(JSON.stringify({ error: { code: 'INTERNAL', message: 'lỗi' } }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        });
+      return new Response(
+        JSON.stringify({
+          items: [{ snapshotId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', path: 'docs/huong-dan.md' }],
+          nextCursor: null,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }
     return base(url, init);
   };
   const env = await harness(server);
   mount(env);
   await open(ticketDone);
-  await until(() => screen.queryAllByRole('checkbox').length > 0, 'editor');
-  const region = screen.getByRole('region', { name: 'Tài liệu liên kết với ticket' });
-  for (const control of region.querySelectorAll('input, button'))
-    assert.equal((control as HTMLInputElement).matches(':disabled'), true, control.outerHTML.slice(0, 60));
+  const region = () => screen.getByRole('region', { name: 'Tài liệu liên kết với ticket' });
+  await until(
+    () => screen.queryByRole('button', { name: 'Thử lại tải liên kết tài liệu' }) !== null,
+    'read error',
+  );
+  const retry = screen.getByRole('button', { name: 'Thử lại tải liên kết tài liệu' }) as HTMLButtonElement;
+  assert.equal(retry.matches(':disabled'), false);
+  await act(async () => {
+    fireEvent.click(retry);
+  });
+  await until(() => (region().textContent ?? '').includes('docs/huong-dan.md'), 'links listed');
+  assert.equal(region().querySelectorAll('input').length, 0, 'không có checkbox sửa');
+  assert.equal(screen.queryByRole('button', { name: 'Lưu liên kết' }), null);
 });
 
 test('ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại', async () => {
@@ -471,4 +490,56 @@ test('ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác 
   });
   await until(() => server.comments.length === 1, 'resent');
   await until(() => document.querySelector('[data-compose-state]') === null, 'composer gone once settled');
+});
+
+test('“Bỏ bản nháp bình luận” bỏ trọn chữ, tệp và compose; chưa xác nhận thì giữ chữ và báo', async () => {
+  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A')]);
+  const env = await harness(server);
+  mount(env);
+  await open(ticketA);
+  await typeComment('bình luận kèm tệp');
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('a.png', 2)] } });
+  });
+  await until(() => document.querySelector('[data-state="ready"]') !== null, 'file ready');
+  const compose = [...server.composes.values()].at(-1);
+  server.failBefore = (call) => call.method === 'DELETE';
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Bỏ bản nháp bình luận/ }));
+  });
+  await until(
+    () => /Chưa xác nhận được việc bỏ bản nháp/.test(document.body.textContent ?? ''),
+    'unconfirmed',
+  );
+  assert.equal(commentBox()?.value, 'bình luận kèm tệp');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Bỏ bản nháp bình luận/ }));
+  });
+  await until(() => commentBox()?.value === '', 'cleared');
+  assert.equal(compose?.state, 'abandoned');
+  assert.equal(document.querySelectorAll('[data-local-id]').length, 0);
+  assert.equal(formDrafts(env.session, env.storage).comment(ticketA), '');
+});
+
+test('bỏ bản nháp bình luận chưa xác nhận cần xác nhận cảnh báo trùng', async () => {
+  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A')]);
+  const env = await harness(server);
+  mount(env);
+  await open(ticketA);
+  await typeComment('chưa rõ đã gửi chưa');
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Gửi bình luận/ }));
+  });
+  await until(() => document.querySelector('[data-compose-state="ambiguous"]') !== null, 'ambiguous');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Bỏ bản nháp bình luận/ }));
+  });
+  assert.match(document.body.textContent ?? '', /có thể tạo bản trùng/);
+  assert.equal(commentBox()?.value, 'chưa rõ đã gửi chưa');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Vẫn bỏ bản nháp/ }));
+  });
+  await until(() => commentBox()?.value === '', 'discarded');
+  assert.equal(formDrafts(env.session, env.storage).comment(ticketA), '');
 });
