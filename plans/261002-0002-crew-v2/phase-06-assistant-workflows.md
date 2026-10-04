@@ -204,7 +204,7 @@ export type RoutingTool= {name:'read_catalog';input:{}} | {name:'read_docs';inpu
  | {name:'request_review';input:{runId:Id;implementationStepId:Id;implementationAttemptId:Id}}
  | {name:'publish_reply';input:{messageId:Id;inputRevision:string;snapshotId:Id;receiptIds:Id[];text:string;sources:SourceRef[]}};
 export type RoutingEvent={kind:'tool';providerCallId:string;sequence:string;call:RoutingTool}|{kind:'finished';outcome:'completed'|'failed'|'interrupted'};
-export type RoutingToolValue={kind:'catalog';items:{projectId:Id;key:string;name:string;latestSnapshotId:Id|null;sourceCommit:string|null}[]}
+export type RoutingToolValue={kind:'catalog';items:{projectId:Id;key:string;name:string;latestSnapshotId:Id|null;sourceCommit:string|null}[];truncated:boolean}
  | {kind:'execution_candidates';snapshot:ExecutionCandidateSnapshot} | {kind:'docs';page:DocRead;readReceiptId:Id} | {kind:'route';route:MessageRoute} | {kind:'assessment';assessment:Assessment}
  | {kind:'question';question:OwnerQuestion} | {kind:'run';run:WorkflowRun} | {kind:'review';step:SkillStep}
  | {kind:'capacity';request:CapacityRequest} | {kind:'dispatch';dispatch:PreparedDispatch} | {kind:'reply';decisionId:Id};

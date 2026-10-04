@@ -188,3 +188,8 @@ Task 5: minor (deferred): composer câu thông báo riêng cho mã *_NOT_CONFIGU
 01:40 B3a FIX1 `c348950` (260/260, regression 102/102).
 Ruling: chấp nhận thêm field bắt buộc `truncated` vào kind `catalog` của RoutingToolValue (contracts.ts + schema strict) — additive, chưa consumer — R2 type trong phase-06 coi như cập nhật theo ruling này (gateway/web sau dùng `truncated`). 
 Ruling: header `x-crew-provider-call-id` cấm dấu phẩy (hẹp hơn ruling 00:50) để phát hiện header trùng sau merge — fail-closed — gateway tool-client không được sinh providerCallId có dấu phẩy.
+
+01:55 B3a FIX1 re-review `task-2-slice-b3a-fix1-re-review.md`: Approved, 6/6 ADDRESSED, không breakage; miễn maxTurnMs khi replay không lách được effect mới.
+Task 2 Slice B3a: complete — c348950 (922abed + c348950). Production chưa mount (W4/M4 checklist T7).
+PM cập nhật R2 type trong phase-06 thêm `truncated:boolean` cho kind catalog (R3 review).
+Task 2 B3a: minor (deferred): R1 test cùng máy A dùng lại operationId ở turn khác (cần fixture turn thứ hai); R2 nhãn stale khi đọc latestSnapshotId verified mà có import mới hơn chưa verified — ruling sau; R4 test ask_owner từ scope message chưa route.
