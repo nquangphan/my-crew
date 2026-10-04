@@ -263,3 +263,5 @@ Task 4 polish (theo design owner duyệt): complete — 531892b (47bbfe9 + 74f67
 Task 4: minor (deferred — ứng viên OpenCode sửa code + tester chạy test): N1 khi đang kéo nên hoãn cả bố cục mới lẫn độ dời viewport rồi áp cùng lúc khi thả (hiện thẻ nhảy hai lần) + assert vị trí neo khi kéo/sau thả; N2 làn 3 cạnh phụ thuộc/sửa (gap+28) trùng thân ngoặc cha–con (bracketRun 28); N3 nhãn mép phải bị cắt; N4 span nhãn cạnh thiếu aria-hidden. Thân dialog: bảng Thông tin/cỡ chữ vẫn khác màn 2; trang /tickets/:id dùng chung header mới.
 
 12:55 Map N2/N4 commit (OpenCode code + tester RED 1 fail semantic/GREEN 62/62/E2E ticket-map 4/4). Task 4: minor N2, N4 — đóng.
+
+14:00 Task4 N1 ruling: bỏ cơ chế hoãn, luôn dời viewport ngay trong layout effect (kể cả khi kéo); E2E đo boundingBox thẻ neo khi giữ chuột và sau thả. Giao OpenCode batch7 (code+test, tester chạy sau).
