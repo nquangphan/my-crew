@@ -218,3 +218,32 @@ Source SHA (16 ký tự đầu):
 - Theo W7, duyệt song song cho architectural lúc tạo run giờ trả 409. Đây là thu hẹp hành vi so với vòng đầu; tách unit sau written plan thuộc S5.
 - `createRunRequest` đọc không khóa. B3 phải gọi nó trong cùng transaction rồi ghi row ngay, nếu không thì `createRun` dựng lại graph và trả 403 khi các row đã đổi.
 - Deferred theo ledger: W2, W5, W6, W9, M4, M5.
+
+---
+
+# Follow-up N3/N4 (re-review `task-3-s1-fix1-re-review.md`)
+
+Commit `01367a9` trên HEAD `5a3e3f2`.
+
+- **N3.** `operationRequestSha256` giờ băm canonical `{schema:'crew-v2:operation-request:1', action, payload}`; tag được export là `operationRequestSchema`. Fixture `seedToolOperation` và test đều dùng chính hàm này, nên tự theo tag mới. Test mới có ba phần:
+  - hash bằng dạng có tag;
+  - hash khác dạng không tag và khác tag `:2`;
+  - row mang hash dạng cũ (không tag) trả 403 `ORCHESTRATION_REQUEST_MISMATCH`, không có row nào được ghi.
+  Flow `server-assistant` mục 11 ghi công thức kèm yêu cầu B3 phải băm mọi tool bằng đúng hàm này.
+- **N4.** Test song song thêm hai ca với request cố định (row operation ghi sẵn trước `createRun`): quyết định của máy → 403, ownership trùng → 409. Hai ca này **pass ngay ở RED**: nhánh deny trong `createRun` vốn đã đúng, nên đây là test bổ sung độ phủ, không phải test sửa lỗi.
+
+| Lượt | Kết quả | Log SHA (16) |
+|---|---|---|
+| RED (`task-3-s1-followup-red.log`) | 55 test, 54 pass, 1 fail. Fail duy nhất là test N3, lệch hash do thiếu tag (semantic) | `d1813c9f92c2d52d` |
+| GREEN (8 tệp như vòng đầu) | 217/217 (216 cũ + 1 test N3) | `9e46aed4277ac979` |
+| Hồi quy | 102/102 | `ce6f89619a46cc85` |
+
+Kiểm tra khác:
+- Scoped strict tsc: exit 0, log rỗng.
+- Biome trên 7 file: 0 warning.
+- `crew-docs check --all` và `--staged` ok.
+
+Tài nguyên:
+- Mọi lượt nặng đều có `heavyEligible=true`.
+- Dọn dẹp sau mỗi lượt: còn 0 DB, container đã stop/rm, không còn `node --test`.
+- Scratch riêng `$TMPDIR/crew-v2-s4-t3s1/`.
