@@ -156,3 +156,5 @@ Task 3 S3b: minor (deferred): M4 tạo thành công không mở ticket khi trigg
 
 20:05 S3b FIX1 re-review `task-3-s3b-fix1-re-review.md`: I1/M1/M2/M3/M6 ADDRESSED, I2 một phần, I3 NOT (chờ S5a), mới B1 Important (draft sống qua logout: wipe chỉ chạy khi store tạo trong page load) + B2/B3/B4 Minor.
 Ruling: B1 chia ranh giới — S3b export `clearTicketDrafts(storage)` (xóa prefix crew-v2:form-draft:*) và dùng storage của runtime (B2); controller gọi trong session.onLogout ở createAppRuntime/wireSession + test hai đường sót. S3b FIX2 = I3 (sau API S5a) + B1 export + B2 + B4 (Thử lại không bị fieldset disable). B3 (key comment của ticket terminal không dọn) deferred.
+
+20:20 S5a API discardDraft `bdf277d` (73/73, 112/112). Báo S3b tiếp I3. Scoped review API giao reviewer S5a cũ.
