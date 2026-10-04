@@ -206,3 +206,7 @@ S7basic: minor (deferred): M2 đăng ký máy thứ hai khi panel token mở ghi
 04:40 S7basic FIX1 `2f94ed3` re-review `task-7-s7basic-fix1-re-review.md`: I1/I2/I3/M1/M3/M5 ADDRESSED, M4 NOT; mới Important1 (thông báo bảo "thu hồi máy" nhưng không có route/UI thu hồi). Reviewer đã sửa kết luận sai token plaintext trong review cũ. FIX2/5: đổi chữ thông báo, Minor1 (tombstone mất payload + IDEMPOTENCY_CONFLICT vẫn có lối "Bỏ"), Minor2 (guard issued).
 Ruling: không sửa lib/api.ts cho M4 (lỗi hiếm: JSON hợp lệ sai contract); thu hồi máy là việc S7full/server (route revoke máy chưa có — backlog producer).
 S7basic: minor (deferred): Minor3 E2E yêu cầu IndexedDB/CacheStorage rỗng sẽ giòn khi S7full dùng kho; Minor4 invalidateQueries trùng trong finally CreateProjectForm.
+
+04:55 S7basic FIX2 `3b202e9` re-review `task-7-s7basic-fix2-re-review.md`: Approved, 3/3 ADDRESSED.
+Task 7 S7basic: complete — 3b202e9 (333468a + 2f94ed3 + 3b202e9). A7basic ĐẠT trên API/PG thật (đăng ký máy → tạo project → bind → reload; stale 409 hai tab; rebind 409 khi active/uncertain).
+S7basic: minor (deferred): test tombstone chỉ phủ form máy (dự án/gắn máy dùng cùng mã); FakeServer so body thô thay vì canonicalJson, không kiểm schema/auth; máy mồ côi khi 2xx lỗi format vẫn "Đang dùng" tới khi có route thu hồi.
