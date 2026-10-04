@@ -117,3 +117,32 @@ Kiểm chứng:
 Số đo mới: viewport lệch 0/0/0 (`viewport-a4.json`); first usable 801 node là 211/208/196 ms (`perf-801.json`).
 
 Còn mở (không thuộc FIX1): M2 nhãn cạnh dày (PM ghi ledger); A4 dán ảnh/tệp chờ extractor; `repair_links` E2E vẫn ghi DB trực tiếp; ảnh chụp bằng Playwright test, IMG_6454 không có trong repo. Tải lại trang thì bố cục làm mới từ đầu, vì vị trí thẻ không được lưu (chỉ viewport và bước đang mở được lưu).
+
+## FIX2 (re-review `task-4-fix1-re-review.md`)
+
+Commit: `00aeace` (source/test/docs). Báo cáo, log và ảnh nằm ở commit kế tiếp. Gate kiểm bằng parse JSON và giữ slot cho mọi lệnh nặng.
+
+| Mục | Sửa | RED trước (semantic, `task-4-fix2-red-unit.log` `b435c159f92d`, 5/5 fail bằng assertion) |
+|---|---|---|
+| B1 cây mất cấu trúc sau mở | Thao tác cấu trúc của owner (mở/thu gọn một bước, Mở/Thu gọn tất cả) gọi `relayoutAround`: chạy `layoutHierarchy` cho cả cây, rồi `followAnchor` dịch viewport theo độ lệch của node neo. Neo là bước vừa bấm; với “tất cả” là thẻ đang focus, không có thì root; neo không còn hiện thì dùng root. Realtime vẫn dùng `placeNewNodes` tránh chồng (I1 giữ nguyên). E2E: root đứng yên khi Mở tất cả, bước C đứng yên khi thu gọn và mở lại (≤ 1 px); sau Vừa khung, task liền bước cha, không chồng, nằm trong khung. Đã chụp lại `map-root-fork-join-repair.png` | Unit: bố cục khác `layoutHierarchy` và neo trôi; DOM: “Việc A2 liền bước A” fail |
+| B2 chiều cao khung | `useFrameHeight` thêm `ResizeObserver` trên `.page-stack` và `body`, giữ cả `resize` | DOM: khung giữ `752px` sau khi ResizeObserver báo nội dung phía trên dài thêm |
+| B3 guard `history.back()` | Mục do sơ đồ push mang state `crewMapDialog: <rootId>`. `closeMapDialogNavigation` chỉ trả `back` khi mục hiện tại có đúng dấu của root này, còn lại `replace`. Bỏ ref `openedInApp`; reload một mục có dấu vẫn lùi đúng về sơ đồ | Unit: `root khác` vẫn trả `back` |
+
+Ghi chú về test:
+- Helper unit `tasksBesideParents` lúc đầu áp “dải (n−1)/2 hàng” cho cả root. Sau khi sửa source, chính helper đó báo sai, vì con của root là cây con chứ không phải lá. Đã giới hạn helper về đúng yêu cầu: chỉ xét task của bước. RED vẫn hợp lệ, vì trên stub assertion đầu tiên (bố cục bằng `layoutHierarchy`) đã fail.
+- Assertion E2E cho neo và task liền bước được thêm sau khi sửa source; RED của B1 đến từ unit và DOM.
+- Lượt E2E đầu sau khi sửa fail một lần vì test phụ thuộc dữ liệu: bước C có thể nằm ngoài khung sau Mở tất cả (thứ tự theo UUID ngẫu nhiên) nên không được mount. Đã thêm Vừa khung trước bước kiểm này, sau đó 3/3 lượt liền xanh.
+
+Kiểm chứng:
+
+| Lệnh | Kết quả | Log |
+|---|---|---|
+| Biome 12 file | exit 0 | `task-4-fix2-biome.log` `6ebb816afd40` |
+| tsc | exit 0 | `task-4-fix2-typecheck.log` `19eaf43821a7` |
+| Unit web đầy đủ | 289/289 | `task-4-fix2-unit-full.log` `9aaf86f9d0ab` |
+| Build (outDir scratch) | exit 0 | `task-4-fix2-build.log` `e8dd3d24c6f2` |
+| `ticket-map.spec.ts` ba lượt liền | 4/4 ×3 | `task-4-fix2-e2e-run1.log` `82e57f32d7a5`, `run2` `1aa2cd5eeeb2`, `run3` `f16395aee3a1` |
+| Spec lân cận `ticket-routes`, `app-router`, `tickets` | 8/8 | `task-4-fix2-e2e-adjacent.log` `9b5c11cf6fd3` |
+| `crew-docs generate` + `check --all` (bản sao v2) | ok, generated không đổi | — |
+
+Rủi ro còn lại: khi node neo đổi chỗ, ReactFlow có thể vẽ một khung hình với vị trí mới trước khi viewport kịp dịch (dịch trong `useLayoutEffect`). Trạng thái cuối đã được đo đúng (≤ 1 px), còn chớp hình thì chưa đo.

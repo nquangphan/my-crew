@@ -1,0 +1,12 @@
+
+Running 4 tests using 1 worker
+
+[1/4] [chromium] › e2e/ticket-map.spec.ts:322:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload
+[chromium] › e2e/ticket-map.spec.ts:322:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload
+{"level":30,"time":1791117137838,"pid":10692,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:49704"}
+
+[2/4] [chromium] › e2e/ticket-map.spec.ts:528:1 › G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối
+[3/4] [chromium] › e2e/ticket-map.spec.ts:598:1 › 390px và 640px (tương đương zoom 200%): danh sách tương đương, không tràn ngang, mở dialog chung
+[4/4] [chromium] › e2e/ticket-map.spec.ts:625:1 › hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đầu ≤ 2s trên máy fixture
+  4 passed (24.0s)
+exit=0
