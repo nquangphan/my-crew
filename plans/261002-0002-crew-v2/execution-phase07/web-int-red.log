@@ -1,0 +1,67 @@
+✖ ticket deep link and reload mount the ticket page for an owner, including an unknown id (91.5905ms)
+✖ ticket routes are owner-protected: a guest is sent to login with the exact return path (0.726792ms)
+✖ the project tickets route keeps view/status/kind/rootId in the URL search (0.189791ms)
+✖ parseTicketsSearch defaults to the board and keeps only producer filters (0.05775ms)
+✖ the runtime provides compose services built from its own client, pending store and session (0.112708ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 315.073625
+
+✖ failing tests:
+
+test at test/ticket-routes.test.ts:78:1
+✖ ticket deep link and reload mount the ticket page for an owner, including an unknown id (91.5905ms)
+  TypeError: Cannot read properties of undefined (reading 'location')
+      at RouterCore.updateLatestLocation (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/router.js:156:58)
+      at loadServerRoute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/load-server.js:540:9)
+      at RouterCore.load (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/router.js:485:42)
+      at load (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:69:16)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:80:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at test/ticket-routes.test.ts:86:1
+✖ ticket routes are owner-protected: a guest is sent to login with the exact return path (0.726792ms)
+  TypeError: Cannot read properties of undefined (reading 'location')
+      at RouterCore.updateLatestLocation (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/router.js:156:58)
+      at loadServerRoute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/load-server.js:540:9)
+      at RouterCore.load (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/router.js:485:42)
+      at load (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:69:16)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:87:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/ticket-routes.test.ts:103:1
+✖ the project tickets route keeps view/status/kind/rootId in the URL search (0.189791ms)
+  TypeError: Cannot read properties of undefined (reading 'location')
+      at RouterCore.updateLatestLocation (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/router.js:156:58)
+      at loadServerRoute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/load-server.js:540:9)
+      at RouterCore.load (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@tanstack+router-core@1.171.34/node_modules/@tanstack/router-core/dist/esm/router.js:485:42)
+      at load (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:69:16)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:104:40)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/ticket-routes.test.ts:113:1
+✖ parseTicketsSearch defaults to the board and keeps only producer filters (0.05775ms)
+  TypeError: runtime.parseTicketsSearch is not a function
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:114:28)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/ticket-routes.test.ts:125:1
+✖ the runtime provides compose services built from its own client, pending store and session (0.112708ms)
+  TypeError: Cannot read properties of undefined (reading 'client')
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-routes.test.ts:128:36)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

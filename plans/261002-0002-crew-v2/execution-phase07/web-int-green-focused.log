@@ -1,0 +1,26 @@
+TELEMETRY {"at": "2026-10-04T05:41:06.125709+00:00", "pageSize": 16384, "pages": {"Pages free": 3893, "Pages inactive": 309462, "Pages speculative": 2073}, "availableBytes": 5167972352, "availableGiB": 4.813, "pressure": 1, "cpuIdlePercent": 84.58, "cpu": "4.79% user, 10.61% sys, 84.58% idle", "diskFreeBytes": 805392150528, "diskFreeGiB": 750.08, "heavyEligible": true}
+CMD bash -c node --test test/ticket-routes.test.ts test/app-wiring.test.ts; npx tsc --noEmit; echo TSC=$?
+✔ the event stream starts before the first protected GET (139.212542ms)
+✔ query defaults disable retry because OwnerClient.get retries itself, and keep focus/reconnect refetch (0.890708ms)
+✔ an unauthenticated protected route is sent to login with an internal return path (0.958791ms)
+✔ the login return route accepts only internal /crew-v2/ paths (0.108625ms)
+✔ logout wipes the query cache and closes the event stream (20.587125ms)
+✔ session expiry stops the stream and drops the cache so the route boundary asks for re-authentication (0.579084ms)
+✔ ticket deep link mounts the ticket page route for any id, so an unknown id reaches the 404 view (321.455959ms)
+✔ the project tickets route sits under the owner layout and keeps its filters in the search (0.497416ms)
+✔ the project docs route sits under the owner layout and passes the path through (0.140375ms)
+✔ parseDocsSearch keeps only a sane non-empty string path (0.062833ms)
+✔ parseTicketsSearch defaults to the board and keeps only producer filters (0.158583ms)
+✔ the runtime provides compose services built from its own client, pending store and session (0.094167ms)
+✔ logout wipes form drafts of a reloaded page that never opened a ticket, and keeps unrelated keys (2.631042ms)
+✔ after logout, a reload as guest finds no draft and creates none (0.653292ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 517.056958
+TSC=0
+EXIT 0

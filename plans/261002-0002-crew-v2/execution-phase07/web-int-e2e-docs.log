@@ -1,0 +1,11 @@
+TELEMETRY {"at": "2026-10-04T06:03:42.943528+00:00", "pageSize": 16384, "pages": {"Pages free": 7931, "Pages inactive": 288491, "Pages speculative": 15105}, "availableBytes": 5104058368, "availableGiB": 4.754, "pressure": 1, "cpuIdlePercent": 81.9, "cpu": "7.56% user, 11.34% sys, 81.9% idle", "diskFreeBytes": 805209382912, "diskFreeGiB": 749.91, "heavyEligible": true}
+CMD bash -c npx playwright test e2e/docs-assistant.spec.ts
+
+Running 2 tests using 1 worker
+
+{"level":30,"time":1791093825782,"pid":82485,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:60331"}
+  ✓  1 [chromium] › e2e/docs-assistant.spec.ts:41:1 › cây Unicode, mở trang theo URL, link nội bộ và metadata phiên bản (740ms)
+  ✓  2 [chromium] › e2e/docs-assistant.spec.ts:81:1 › mục điều hướng Tài liệu dẫn tới không gian tài liệu của dự án (352ms)
+
+  2 passed (3.9s)
+EXIT 0
