@@ -52,3 +52,27 @@ Phase07 (web) + producer:
 
 - Push các commit trên khi owner đồng ý.
 - Máy dự án cần `uv` cho BMAD (S6); máy hiện tại đã có `~/.local/bin/uv`.
+
+## Cập nhật 04/10 19:40
+
+Đã push lần 1 (`0c35a43..5e852b5`). Sau đó nghiệm thu thêm (chưa push, 32 commit):
+
+| Mục | Commit cuối | Ghi chú |
+|---|---|---|
+| B3a route tool server | `c348950` | catalog `truncated`, latestSnapshotId verified |
+| B3b gateway tool-client | `586da9c` | carrier `x-crew-provider-call-id` không dấu phẩy; `classifyError` + test chống trôi mã |
+| Task2 follow-up (503 cấu hình, Date header, `/v2/events/latest`) | `c4ab472` | |
+| A5/A3 text-only E2E thật | `62fd150` | |
+| S7basic + A7basic onboarding | `3b202e9` | |
+| Producer G4 đọc (status/workflows/retry/commands) | `f100caf` | retry khi disabled → 409 |
+| S6a render executor (unit) | `10b2e64` | render thật vẫn HALT |
+| Task4 sơ đồ ticket + A4 | `00aeace` | route `/requests/$rootId/map` |
+
+Việc kế tiếp và ruling còn chờ:
+- **S6b** cần ruling trước khi làm: (Q1) closure tiến trình con của `uv` → Python; (Q2) nguồn Python ≥3.11 không đổi argv; (N1) tập đóng `_bmad` so với tập materialize A4. Xem `execution-phase06/progress.md` mục 07:55 và 08:20.
+- **G4w**: config gateway chỉ có một cờ `enabled`; S7full cần ba switch độc lập Claude/Codex/API.
+- Producer thiếu: route thu hồi máy; `GET tools/:operationId`; wait intent `ask_owner`.
+- T4–T7 phase06, S6assistant (G3), S7full (G4w), Task8 (G5/G6), A3/A5 có file (extractor phase05).
+- Trước merge: triage toàn bộ dòng `minor (deferred)` hai ledger + checklist T7; full `tsc` web/server.
+
+Cần owner: gửi lại ảnh tham chiếu map `IMG_6454.JPG` (không còn trong repo/~/Downloads); máy dự án chạy BMAD cần `uv` + Python ≥3.11.
