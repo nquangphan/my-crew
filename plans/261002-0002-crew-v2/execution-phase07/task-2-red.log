@@ -1,0 +1,600 @@
+$ node --test test/client.test.ts test/events.test.ts test/auth-recovery.test.ts
+✖ bootstrapping → authenticated / guest / bootstrap-unavailable (0.799083ms)
+✖ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.152709ms)
+✖ owner khác sau reauth không được authenticated (0.09275ms)
+✖ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (1.490708ms)
+✖ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (0.141542ms)
+✖ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.125167ms)
+✖ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.135ms)
+✖ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.07075ms)
+✖ serializer từ chối memory operation, secret, token và hash của secret (0.124625ms)
+✖ return route chỉ nhận path nội bộ /crew-v2/ (0.113834ms)
+✖ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (0.4925ms)
+✖ không mutation hoặc upload trước khi có phiên (0.441417ms)
+✖ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (3.3665ms)
+✖ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.213083ms)
+✖ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.274375ms)
+✖ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.210125ms)
+✖ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.090833ms)
+✖ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.098792ms)
+✖ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.124958ms)
+✖ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.147917ms)
+✖ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.106083ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.517416ms)
+✖ cursor bigint không bị làm tròn (0.71425ms)
+✖ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (0.677958ms)
+✖ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (0.533042ms)
+✖ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.131958ms)
+✖ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (11.927709ms)
+✖ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (8.088958ms)
+✖ frame có event name khác type trong data bị coi là hỏng (7.618833ms)
+✖ phiên hết hạn (401) đóng stream và báo session expire (7.576375ms)
+✖ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (7.956375ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 1
+ℹ fail 30
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 119.884167
+
+✖ failing tests:
+
+test at test/auth-recovery.test.ts:47:1
+✖ bootstrapping → authenticated / guest / bootstrap-unavailable (0.799083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'bootstrapping'
+  - 'authenticated'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:51:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'bootstrapping',
+    expected: 'authenticated',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:66:1
+✖ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.152709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + null
+  - 'PASSWORD_INVALID'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:67:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: 'PASSWORD_INVALID',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:98:1
+✖ owner khác sau reauth không được authenticated (0.09275ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'bootstrapping'
+  - 'expired'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:106:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'bootstrapping',
+    expected: 'expired',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:110:1
+✖ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (1.490708ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:135:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+        at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:135:31)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:152:1
+✖ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (0.141542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'DELETE'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:174:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'DELETE',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:203:1
+✖ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.125167ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:219:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+        at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:219:31)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:228:1
+✖ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.135ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'ambiguous'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:241:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'ambiguous',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:248:1
+✖ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.07075ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - '75663ee7-7d6f-4521-a089-fa117384bb93'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:259:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '75663ee7-7d6f-4521-a089-fa117384bb93',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:263:1
+✖ serializer từ chối memory operation, secret, token và hash của secret (0.124625ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (PendingSerializationError).
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:272:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/auth-recovery.test.ts:298:1
+✖ return route chỉ nhận path nội bộ /crew-v2/ (0.113834ms)
+  AssertionError [ERR_ASSERTION]: https://evil.example/crew-v2/
+  + actual - expected
+  
+  + 'https://evil.example/crew-v2/'
+  - '/crew-v2/'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/auth-recovery.test.ts:310:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'https://evil.example/crew-v2/',
+    expected: '/crew-v2/',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:47:1
+✖ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (0.4925ms)
+  Error: NOT_IMPLEMENTED
+      at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:54:33)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at test/client.test.ts:67:1
+✖ không mutation hoặc upload trước khi có phiên (0.441417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'bootstrapping'
+  - 'guest'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:71:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'bootstrapping',
+    expected: 'guest',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:84:1
+✖ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (3.3665ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Object.isFrozen(operation))
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:96:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:108:1
+✖ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.213083ms)
+  Error: NOT_IMPLEMENTED
+      at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:117:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/client.test.ts:128:1
+✖ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.274375ms)
+  AssertionError [ERR_ASSERTION]: Error: NOT_IMPLEMENTED
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:140:12)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:139:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:149:1
+✖ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.210125ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof ApiFailure)
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:163:12)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:162:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:176:1
+✖ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.090833ms)
+  Error: NOT_IMPLEMENTED
+      at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:189:33)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/client.test.ts:196:1
+✖ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.098792ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:205:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+        at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:205:31)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:210:1
+✖ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.124958ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:221:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+        at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:221:31)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:233:1
+✖ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.147917ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:243:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.deny (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:14:52)
+        at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:243:31)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:252:1
+✖ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.106083ms)
+  AssertionError [ERR_ASSERTION]: request cũ bị abort
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:256:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:94:1
+✖ cursor bigint không bị làm tròn (0.71425ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:95:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:103:1
+✖ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (0.677958ms)
+  AssertionError [ERR_ASSERTION]: chunk 1
+  + actual - expected
+  
+  + []
+  - [
+  -   {
+  -     data: '{"a":\n"Tiếng Việt"}',
+  -     event: 'ticket.changed',
+  -     id: '1'
+  -   },
+  -   {
+  -     data: 'một',
+  -     event: 'x',
+  -     id: '2'
+  -   },
+  -   {
+  -     data: 'hai',
+  -     event: 'y',
+  -     id: '3'
+  -   }
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:114:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ { id: '1', event: 'ticket.changed', data: '{"a":\n"Tiếng Việt"}' }, { id: '2', event: 'x', data: 'một' }, { id: '3', event: 'y', data: 'hai' } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:123:1
+✖ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (0.533042ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:126:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:141:1
+✖ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.131958ms)
+  AssertionError [ERR_ASSERTION]: ["v2","ticket","11111111-1111-4111-8111-111111111111"]
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:144:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:156:1
+✖ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (11.927709ms)
+  AssertionError [ERR_ASSERTION]: timeout: live
+      at until (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:91:10)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:184:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:200:1
+✖ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (8.088958ms)
+  AssertionError [ERR_ASSERTION]: timeout: failed
+      at until (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:91:10)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:217:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:223:1
+✖ frame có event name khác type trong data bị coi là hỏng (7.618833ms)
+  AssertionError [ERR_ASSERTION]: timeout: failed
+      at until (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:91:10)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:237:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:241:1
+✖ phiên hết hạn (401) đóng stream và báo session expire (7.576375ms)
+  AssertionError [ERR_ASSERTION]: timeout: live
+      at until (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:91:10)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:260:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:269:1
+✖ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (7.956375ms)
+  AssertionError [ERR_ASSERTION]: timeout: live
+      at until (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:91:10)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:300:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+[watchdog] pid=35136 exit=1 timeout=False wall=0.19s

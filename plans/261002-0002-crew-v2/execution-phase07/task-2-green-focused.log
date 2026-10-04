@@ -1,0 +1,42 @@
+$ node --test test/client.test.ts test/events.test.ts test/auth-recovery.test.ts
+✔ bootstrapping → authenticated / guest / bootstrap-unavailable (11.429666ms)
+✔ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.687958ms)
+✔ owner khác sau reauth không được authenticated (0.40925ms)
+✔ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (1.526833ms)
+✔ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (0.564833ms)
+✔ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.380792ms)
+✔ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.196417ms)
+✔ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.084375ms)
+✔ serializer từ chối memory operation, secret, token và hash của secret (0.149708ms)
+✔ return route chỉ nhận path nội bộ /crew-v2/ (0.114084ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (11.600708ms)
+✔ không mutation hoặc upload trước khi có phiên (0.809334ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.461542ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.384458ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.501209ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.269417ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.351125ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.205792ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.291667ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.36175ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.131167ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.148083ms)
+✔ cursor bigint không bị làm tròn (0.565458ms)
+✔ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (0.867875ms)
+✔ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (31.735375ms)
+✔ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.2535ms)
+✔ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (11.752042ms)
+✔ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (0.79475ms)
+✔ frame có event name khác type trong data bị coi là hỏng (0.366042ms)
+✔ phiên hết hạn (401) đóng stream và báo session expire (1.066917ms)
+✔ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (0.79475ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 129.599125
+
+[watchdog] pid=55097 exit=0 timeout=False wall=0.18s
