@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path';
 import type { CommandRunner } from '../system.js';
 import { listProcesses } from './process-table.js';
-import { type ReaperState, type ReapTarget, selectTargets } from './select.js';
+import { groupIsRunOnly, type ReaperState, type ReapTarget, selectTargets } from './select.js';
 
 export interface ReapDeps {
   runner: CommandRunner;
@@ -68,13 +68,18 @@ export async function reapOnce(deps: ReapDeps, options: ReapOptions): Promise<Re
   if (!options.dryRun && targets.length > 0) {
     for (const t of targets) for (const pid of termTargets(t)) send(deps, pid, 'SIGTERM');
     await deps.sleep(options.termWaitMs);
-    const alive = new Map((await listProcesses(deps.runner)).map((p) => [p.pid, p]));
+    const aliveList = await listProcesses(deps.runner);
+    const alive = new Map(aliveList.map((p) => [p.pid, p]));
+    const selfPgid = alive.get(deps.selfPid)?.pgid ?? null;
     for (const t of targets) {
       // Chỉ KILL process còn đúng group đã ghi lúc chọn, tránh trúng pid đã bị tái dùng.
       const leftInGroup = t.pids.filter((pid) => alive.get(pid)?.pgid === t.pgid);
       const leftStrays = t.strays.filter((s) => alive.get(s.pid)?.pgid === s.pgid).map((s) => s.pid);
-      if (t.killGroup) {
-        if ([...alive.values()].some((p) => p.pgid === t.pgid)) send(deps, -t.pgid, 'SIGKILL');
+      // Kiểm lại group sau khi chờ: pgid có thể đã được cấp cho group khác, hoặc group đã lẫn process lạ.
+      const groupStillRun =
+        t.killGroup && leftInGroup.length > 0 && groupIsRunOnly(t.pgid, t.runId, aliveList, selfPgid);
+      if (groupStillRun) {
+        send(deps, -t.pgid, 'SIGKILL');
         for (const pid of leftStrays) send(deps, pid, 'SIGKILL');
       } else {
         for (const pid of [...leftInGroup, ...leftStrays]) send(deps, pid, 'SIGKILL');

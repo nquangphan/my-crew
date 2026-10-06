@@ -6,8 +6,9 @@ export interface ProcInfo {
   pgid: number;
   /** Tiêu đề process (sshd đổi thành "sshd-session: user@notty"). */
   comm: string;
-  /** Argv rồi tới env lúc exec, theo `ps -E`; env chỉ có với binary không phải của Apple. */
+  /** Chỉ argv (`ps -o command=` không có `-E`). */
   command: string;
+  /** PAPERCLIP_RUN_ID lấy từ phần env lúc exec (`ps -E`), không bao giờ từ argv. */
   runId: string | null;
 }
 
@@ -30,7 +31,8 @@ export function parsePsTree(text: string): Map<number, { ppid: number; pgid: num
   return rows;
 }
 
-export function parsePsEnv(text: string): Map<number, string> {
+/** Đọc `pid command…` của `ps -o pid=,command=` (có hoặc không `-E`). */
+export function parsePsCommands(text: string): Map<number, string> {
   const rows = new Map<number, string>();
   for (const line of text.split('\n')) {
     const match = ENV_RE.exec(line);
@@ -39,17 +41,26 @@ export function parsePsEnv(text: string): Map<number, string> {
   return rows;
 }
 
-export function extractRunId(commandWithEnv: string): string | null {
-  return RUN_ID_RE.exec(commandWithEnv)?.[1] ?? null;
+/**
+ * Run id chỉ được tìm trong phần env mà `ps -E` nối sau argv. Prompt của owner (`claude -p "… PAPERCLIP_RUN_ID=…"`)
+ * nằm trong argv nên không được tính. Argv rỗng hoặc không khớp đầu chuỗi thì không đoán.
+ */
+export function extractRunId(argvOnly: string, withEnv: string): string | null {
+  if (argvOnly === '' || !withEnv.startsWith(argvOnly)) return null;
+  return RUN_ID_RE.exec(withEnv.slice(argvOnly.length))?.[1] ?? null;
 }
 
 export async function listProcesses(runner: CommandRunner): Promise<ProcInfo[]> {
   const tree = await runner.run('/bin/ps', ['-axww', '-o', 'pid=,ppid=,pgid=,comm='], { timeoutMs: 15_000 });
+  const argv = await runner.run('/bin/ps', ['-axww', '-o', 'pid=,command='], { timeoutMs: 15_000 });
   const env = await runner.run('/bin/ps', ['-E', '-axww', '-o', 'pid=,command='], { timeoutMs: 15_000 });
-  if (tree.code !== 0 || env.code !== 0) throw new Error(`ps lỗi: ${tree.stderr} ${env.stderr}`.trim());
-  const commands = parsePsEnv(env.stdout);
+  if (tree.code !== 0 || argv.code !== 0 || env.code !== 0) {
+    throw new Error(`ps lỗi: ${tree.stderr} ${argv.stderr} ${env.stderr}`.trim());
+  }
+  const argvs = parsePsCommands(argv.stdout);
+  const envs = parsePsCommands(env.stdout);
   return [...parsePsTree(tree.stdout)].map(([pid, row]) => {
-    const command = commands.get(pid) ?? '';
-    return { pid, ...row, command, runId: extractRunId(command) };
+    const command = argvs.get(pid) ?? '';
+    return { pid, ...row, command, runId: extractRunId(command, envs.get(pid) ?? '') };
   });
 }

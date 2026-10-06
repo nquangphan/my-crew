@@ -62,7 +62,7 @@ function descendants(rootPid: number, procs: readonly ProcInfo[]): number[] {
  * Group an toàn để gửi signal cả group: không phải group của reaper, không có sshd, không có phiên claude
  * không mang run id (phiên tương tác của owner) và không có process của run khác.
  */
-function groupIsRunOnly(
+export function groupIsRunOnly(
   pgid: number,
   runId: string,
   procs: readonly ProcInfo[],

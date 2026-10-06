@@ -16,7 +16,9 @@ các process này và dừng chúng. Đây là lớp phòng thủ phía Mac, b�
 ## Các bước
 
 1. `apps/crew-mac/src/reaper/process-table.ts` → `listProcesses`: `ps -axww -o pid=,ppid=,pgid=,comm=` cho cây
-   process, `ps -E -axww -o pid=,command=` cho env lúc exec; `extractRunId` lấy `PAPERCLIP_RUN_ID`.
+   process, `ps -axww -o pid=,command=` cho argv và `ps -E -axww -o pid=,command=` cho argv kèm env lúc exec;
+   `extractRunId` chỉ tìm `PAPERCLIP_RUN_ID` trong phần env nối sau argv, nên chữ đó nằm trong prompt của owner
+   không bị tính là run.
 2. `apps/crew-mac/src/reaper/select.ts` → `selectTargets`: chỉ xét `claude` chạy `--print`/`-p` có
    `PAPERCLIP_RUN_ID` (`isClaudePrint`); mồ côi khi chuỗi tổ tiên không còn `sshd`/`sshd-session` (`isOrphaned`);
    ghi thời điểm thấy mồ côi lần đầu vào state; quá thời hạn (mặc định 60 giây) thì chọn claude, mọi process con và
@@ -31,7 +33,7 @@ các process này và dừng chúng. Đây là lớp phòng thủ phía Mac, b�
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn | `reapOnce`, `readReaperState`, `vnTime` |
-| `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process và env | `listProcesses`, `parsePsTree`, `parsePsEnv`, `extractRunId` |
+| `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process và env | `listProcesses`, `parsePsTree`, `parsePsCommands`, `extractRunId` |
 | `apps/crew-mac/src/reaper/select.ts` | Chọn process mồ côi | `selectTargets`, `isClaudePrint`, `isOrphaned` |
 
 ## Dữ liệu
@@ -44,8 +46,14 @@ các process này và dừng chúng. Đây là lớp phòng thủ phía Mac, b�
 
 - `ps -E` chỉ cho thấy env lúc exec, và chỉ với binary không phải của Apple. `claude` và `node` đọc được;
   `zsh`, `git`, `sleep` thì không. Vì vậy process con được tìm theo cây PPID.
-- Không bao giờ dừng process không có `PAPERCLIP_RUN_ID` hoặc không chạy `--print`, nên phiên `claude` tương tác
-  của owner an toàn.
+- Không bao giờ dừng process không có `PAPERCLIP_RUN_ID` trong env hoặc không chạy `--print`, nên phiên `claude`
+  tương tác của owner an toàn.
+- Ngoại lệ cần biết: owner tự chạy `claude -p` trong Terminal mà env có `PAPERCLIP_RUN_ID` (ví dụ chạy lại tay một
+  run) thì process đó trông giống run mồ côi, vì Terminal không có `sshd` trong chuỗi cha, và sẽ bị dọn sau 60 giây.
+  Bỏ biến này khỏi env (`env -u PAPERCLIP_RUN_ID claude -p …`) khi chạy tay.
+- Ngưỡng mồ côi tối thiểu là 60 giây (`crew-mac reap --grace-seconds` nhỏ hơn bị từ chối).
+- Trước khi KILL theo group, reaper kiểm lại group sau 10 giây chờ: còn ít nhất một pid của run trong đúng pgid và
+  group vẫn chỉ gồm process của run. Không đạt (ví dụ pgid đã được cấp cho group khác) thì chỉ KILL từng pid đã kiểm.
 - Mất mạng: `sshd` (`ClientAliveInterval 15`, `ClientAliveCountMax 2`) cắt phiên sau khoảng 30 giây, rồi reaper
   dừng run sau 60 giây mồ côi, chậm nhất thêm một chu kỳ 60 giây của LaunchAgent và 10 giây chờ TERM: tổng cộng
   khoảng 2 phút 40 giây kể từ lúc mất mạng. Run đó coi như hỏng; Paperclip chạy lại theo luồng của nó.

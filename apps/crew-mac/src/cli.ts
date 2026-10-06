@@ -31,6 +31,9 @@ export interface CliIo {
 
 class UsageError extends Error {}
 
+/** Ngưỡng mồ côi thấp nhất: ngắn hơn thì dễ dọn nhầm run vừa mất mạng chốc lát. */
+const MIN_GRACE_SECONDS = 60;
+
 function parseFlags(
   args: readonly string[],
   valueFlags: readonly string[],
@@ -160,6 +163,10 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
       }
       case 'reap': {
         const flags = parseFlags(args, ['--grace-seconds'], ['--dry-run']);
+        const graceSeconds = flags.number('--grace-seconds') ?? MIN_GRACE_SECONDS;
+        if (graceSeconds < MIN_GRACE_SECONDS) {
+          throw new UsageError(`--grace-seconds tối thiểu ${MIN_GRACE_SECONDS} (giây mồ côi trước khi dọn)`);
+        }
         const paths = macPaths(ctx.home);
         const targets = await reapOnce(
           {
@@ -170,7 +177,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             selfPid: process.pid,
           },
           {
-            graceMs: (flags.number('--grace-seconds') ?? 60) * 1000,
+            graceMs: graceSeconds * 1000,
             termWaitMs: 10_000,
             dryRun: flags.has('--dry-run'),
             statePath: paths.reaperState,

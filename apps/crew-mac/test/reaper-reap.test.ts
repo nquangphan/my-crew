@@ -26,11 +26,28 @@ const TREE_SHARED_AFTER = [
   '80009     1 80000 claude',
 ].join('\n');
 
+// pgid 80000 đã được cấp lại cho một app không liên quan sau khi group của run chết hết.
+const TREE_REUSED = ['    1     0     1 /sbin/launchd', '80000     1 80000 Foo'].join('\n');
+
+/** Argv của ps (không -E): bỏ các token biến môi trường KEY=VALUE ở đuôi. */
+function argvOf(env: string): string {
+  return env
+    .split('\n')
+    .map((line) =>
+      line
+        .split(' ')
+        .filter((token) => !/^[A-Z_][A-Z0-9_]*=/.test(token))
+        .join(' '),
+    )
+    .join('\n');
+}
+
 function setupDeps(trees: string[], env = ENV) {
   const dir = mkdtempSync(join(tmpdir(), 'crew-mac-reaper-'));
   let treeCall = 0;
   const runner = new FakeRunner().on('/bin/ps', (args) => {
     if (args.includes('-E')) return { stdout: env };
+    if (args.includes('pid=,command=')) return { stdout: argvOf(env) };
     const tree = trees[Math.min(treeCall, trees.length - 1)] as string;
     treeCall++;
     return { stdout: tree };
@@ -93,6 +110,16 @@ describe('reapOnce', () => {
     await reapOnce(t.deps, t.options);
     expect(t.signals).toEqual(['SIGTERM 80001', 'SIGTERM 80002', 'SIGKILL 80001']);
     expect(t.signals.some((s) => s.includes('80009') || s.includes('-80000'))).toBe(false);
+  });
+
+  it('pgid đã bị cấp lại cho group khác sau 10 giây thì không KILL theo group', async () => {
+    const t = setupDeps([TREE, TREE_REUSED], `${ENV}\n80000 Foo`);
+    writeFileSync(
+      t.options.statePath,
+      JSON.stringify({ orphanSince: { '80001:run-dead': '2026-10-06T07:00:00.000Z' } }),
+    );
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual(['SIGTERM -80000']);
   });
 
   it('dry-run không gửi signal', async () => {

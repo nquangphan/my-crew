@@ -3,7 +3,7 @@ import {
   extractRunId,
   listProcesses,
   type ProcInfo,
-  parsePsEnv,
+  parsePsCommands,
   parsePsTree,
 } from '../src/reaper/process-table.js';
 import { isClaudePrint, isOrphaned, selectTargets } from '../src/reaper/select.js';
@@ -22,6 +22,14 @@ const TREE = [
   '90000 57355 90000 claude',
 ].join('\n');
 
+// Argv không kèm env (`ps -axww -o pid=,command=`).
+const ARGV = [
+  '71440 claude --print --output-format stream-json',
+  '80001 claude --print --output-format stream-json',
+  '80002 git status',
+  '90000 claude --dangerously-skip-permissions',
+].join('\n');
+
 const ENV = [
   '71440 claude --print --output-format stream-json PAPERCLIP_RUN_ID=run-live HOME=/Users/owner',
   '80001 claude --print --output-format stream-json PAPERCLIP_RUN_ID=run-dead HOME=/Users/owner',
@@ -30,10 +38,11 @@ const ENV = [
 ].join('\n');
 
 function procs(): ProcInfo[] {
-  const env = parsePsEnv(ENV);
+  const argv = parsePsCommands(ARGV);
+  const env = parsePsCommands(ENV);
   return [...parsePsTree(TREE)].map(([pid, t]) => {
-    const command = env.get(pid) ?? '';
-    return { pid, ...t, command, runId: extractRunId(command) };
+    const command = argv.get(pid) ?? '';
+    return { pid, ...t, command, runId: extractRunId(command, env.get(pid) ?? '') };
   });
 }
 
@@ -49,18 +58,34 @@ describe('đọc bảng process', () => {
     });
   });
 
-  it('lấy PAPERCLIP_RUN_ID làm một token riêng', () => {
-    expect(extractRunId('claude --print PAPERCLIP_RUN_ID=abc-123 X=1')).toBe('abc-123');
-    expect(extractRunId('claude --print XPAPERCLIP_RUN_ID=abc')).toBeNull();
-    expect(extractRunId('claude --print')).toBeNull();
+  it('chỉ lấy PAPERCLIP_RUN_ID trong phần env, sau argv', () => {
+    expect(extractRunId('claude --print', 'claude --print PAPERCLIP_RUN_ID=abc-123 X=1')).toBe('abc-123');
+    expect(extractRunId('claude --print', 'claude --print XPAPERCLIP_RUN_ID=abc')).toBeNull();
+    expect(extractRunId('claude --print', 'claude --print')).toBeNull();
   });
 
-  it('listProcesses gọi ps hai lần và ghép theo pid', async () => {
-    const runner = new FakeRunner().on('/bin/ps', (args) => ({ stdout: args.includes('-E') ? ENV : TREE }));
+  it('PAPERCLIP_RUN_ID nằm trong argv (prompt) mà env không có thì không phải run', () => {
+    const argv = 'claude -p giải thích vì sao PAPERCLIP_RUN_ID=abc-123 bị lỗi';
+    expect(extractRunId(argv, `${argv} HOME=/Users/owner`)).toBeNull();
+    expect(extractRunId(argv, `${argv} HOME=/Users/owner PAPERCLIP_RUN_ID=run-that`)).toBe('run-that');
+  });
+
+  it('argv rỗng hoặc không khớp đầu chuỗi env thì không đoán', () => {
+    expect(extractRunId('', 'PAPERCLIP_RUN_ID=abc')).toBeNull();
+    expect(extractRunId('claude -p a', 'claude -p b PAPERCLIP_RUN_ID=abc')).toBeNull();
+  });
+
+  it('listProcesses gọi ps ba lần và ghép theo pid', async () => {
+    const runner = new FakeRunner().on('/bin/ps', (args) => ({
+      stdout: args.includes('-E') ? ENV : args.includes('pid=,command=') ? ARGV : TREE,
+    }));
     const list = await listProcesses(runner);
-    expect(list.find((p) => p.pid === 80001)?.runId).toBe('run-dead');
+    const dead = list.find((p) => p.pid === 80001);
+    expect(dead?.runId).toBe('run-dead');
+    expect(dead?.command).toBe('claude --print --output-format stream-json');
     expect(runner.commands()).toEqual([
       '/bin/ps -axww -o pid=,ppid=,pgid=,comm=',
+      '/bin/ps -axww -o pid=,command=',
       '/bin/ps -E -axww -o pid=,command=',
     ]);
   });
@@ -174,6 +199,20 @@ describe('chọn process mồ côi', () => {
     expect(targets[0]?.pids).toEqual([80001, 80002, 80005]);
     expect(targets[0]?.strays).toEqual([{ pid: 80005, pgid: 80005 }]);
     expect(targets[0]?.killGroup).toBe(true);
+  });
+
+  it('claude -p của owner chạy từ Terminal, prompt có chữ PAPERCLIP_RUN_ID= nhưng env không có: không chọn', async () => {
+    const argvLine = '95000 claude -p giải thích vì sao PAPERCLIP_RUN_ID=abc-123 bị lỗi';
+    const runner = new FakeRunner().on('/bin/ps', (args) => ({
+      stdout: args.includes('-E')
+        ? `${ENV}\n${argvLine} HOME=/Users/owner TERM_PROGRAM=Apple_Terminal`
+        : args.includes('pid=,command=')
+          ? `${ARGV}\n${argvLine}`
+          : `${TREE}\n95000     1 95000 claude`,
+    }));
+    const list = await listProcesses(runner);
+    const { targets } = selectTargets(list, { orphanSince: {} }, at('2026-10-06T07:00:00Z'), 0, 999);
+    expect(targets.map((t) => t.pid)).toEqual([80001]);
   });
 
   it('bỏ entry state của process đã hết mồ côi hoặc đã chết', () => {

@@ -53,6 +53,9 @@ describe('crew-mac CLI', () => {
     expect(await main(['reap', '--dry-run'], ok.io)).toBe(0);
     const bad = io(mac);
     expect(await main(['reap', '--grace-seconds', 'abc'], bad.io)).toBe(2);
+    const tooShort = io(mac);
+    expect(await main(['reap', '--grace-seconds', '30'], tooShort.io)).toBe(2);
+    expect(tooShort.err.join('\n')).toContain('60');
   });
 
   it('đọc cổng server từ SSH_CONNECTION', () => {
