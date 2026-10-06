@@ -158,6 +158,7 @@ describe('crew-mac doctor', () => {
     expect(results.map((r) => [r.id, r.status])).toEqual([
       ['tailscale', 'ok'],
       ['sshd-agent', 'ok'],
+      ['reaper', 'ok'],
       ['sshd-port', 'ok'],
       ['zshenv-path', 'ok'],
       ['wrapper', 'ok'],
@@ -265,5 +266,17 @@ describe('crew-mac doctor', () => {
     const load = results.find((r) => r.id === 'load');
     expect(load?.status).toBe('warn');
     expect(load?.hint).toBe('Máy đang bận; Paperclip sẽ cho run mới chờ tới khi tải giảm.');
+  });
+
+  it('reaper thoát lỗi thì fail', async () => {
+    const mac = await installed(okSsh);
+    const base = mac.runner;
+    const original = base.run.bind(base);
+    base.run = async (command, args, options) =>
+      command === 'launchctl' && args[1] === 'gui/501/com.2p.crew-mac-reaper'
+        ? { code: 0, stdout: 'state = not running\n\tlast exit code = 1\n', stderr: '', timedOut: false }
+        : original(command, args, options);
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'reaper')?.status).toBe('fail');
   });
 });

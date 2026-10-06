@@ -4,7 +4,7 @@ import type { MacContext } from '../context.js';
 import { readText } from '../fs-util.js';
 import { serviceState } from '../launchctl.js';
 import { type Manifest, readManifest } from '../manifest.js';
-import { forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL } from '../paths.js';
+import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { hasPathBlock } from '../zshenv.js';
@@ -166,6 +166,27 @@ async function checkSshdService(ctx: MacContext): Promise<CheckResult> {
       : `${SSHD_LABEL} chưa nạp`,
     hint: 'Đăng nhập màn hình Mac (LaunchAgent chỉ chạy trong phiên desktop), rồi chạy lại "crew-mac setup". Lỗi chi tiết ở ~/.crew-mac/sshd/sshd.log.',
   };
+}
+
+async function checkReaper(ctx: MacContext): Promise<CheckResult> {
+  const state = await serviceState(ctx.runner, ctx.uid, REAPER_LABEL);
+  const base = { id: 'reaper', title: 'Bộ dọn process mồ côi' };
+  if (!state.loaded)
+    return {
+      ...base,
+      status: 'fail',
+      detail: `${REAPER_LABEL} chưa nạp`,
+      hint: 'Chạy lại "crew-mac setup".',
+    };
+  if (state.lastExitCode !== null && state.lastExitCode !== 0) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `lần chạy gần nhất thoát mã ${state.lastExitCode}`,
+      hint: 'Xem ~/.crew-mac/reaper/reaper.log. Nếu đã chuyển repo Crew hay nâng Node, chạy lại "crew-mac setup".',
+    };
+  }
+  return { ...base, status: 'ok', detail: `${REAPER_LABEL} chạy mỗi 60 giây` };
 }
 
 async function checkSshdPort(ctx: MacContext, manifest: Manifest): Promise<CheckResult> {
@@ -375,6 +396,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   const results: CheckResult[] = [];
   results.push(await checkTailscale(ctx, manifest));
   results.push(await checkSshdService(ctx));
+  results.push(await checkReaper(ctx));
   results.push(await checkSshdPort(ctx, manifest));
   results.push(checkZshenv(paths));
   results.push(await checkWrapper(ctx, paths, manifest));

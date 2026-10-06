@@ -46,6 +46,15 @@ describe('crew-mac CLI', () => {
     expect(await main(['uninstall', '--force'], forced.io)).toBe(0);
   });
 
+  it('reap chạy được với bảng process rỗng và từ chối số giây sai', async () => {
+    const mac = fakeMac();
+    mac.runner.on('/bin/ps', () => ({ stdout: '    1     0     1 /sbin/launchd\n' }));
+    const ok = io(mac);
+    expect(await main(['reap', '--dry-run'], ok.io)).toBe(0);
+    const bad = io(mac);
+    expect(await main(['reap', '--grace-seconds', 'abc'], bad.io)).toBe(2);
+  });
+
   it('đọc cổng server từ SSH_CONNECTION', () => {
     expect(sshServerPort({ SSH_CONNECTION: '1.2.3.4 5 6.7.8.9 22' })).toBe(22);
     expect(sshServerPort({})).toBeNull();

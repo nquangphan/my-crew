@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { setup } from '../src/commands/setup.js';
 import { SetupError } from '../src/context.js';
-import { macPaths, SSHD_LABEL } from '../src/paths.js';
+import { macPaths, REAPER_LABEL, SSHD_LABEL } from '../src/paths.js';
 import { WRAPPER_SOURCE } from '../src/wrapper.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY } from '../src/zshenv.js';
 import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
@@ -80,7 +80,13 @@ describe('crew-mac setup', () => {
     expect(statSync(paths.wrapper).mode & 0o777).toBe(0o755);
     expect(existsSync(join(home, 'crew-agents'))).toBe(true);
     expect(loaded.has(SSHD_LABEL)).toBe(true);
-    expect(report.restarted).toEqual([SSHD_LABEL]);
+    expect(report.restarted).toEqual([SSHD_LABEL, REAPER_LABEL]);
+    expect(loaded.has(REAPER_LABEL)).toBe(true);
+    const reaperPlist = readFileSync(paths.reaperPlist, 'utf8');
+    expect(reaperPlist).toContain('<string>/opt/homebrew/bin/node</string>');
+    expect(reaperPlist).toContain('<string>/opt/crew/apps/crew-mac/dist/cli.js</string>');
+    expect(reaperPlist).toContain('<string>reap</string>');
+    expect(reaperPlist).toContain('<key>StartInterval</key><integer>60</integer>');
     expect(report.manifest).toMatchObject({
       port: 2222,
       listenAddress: '100.102.189.67',

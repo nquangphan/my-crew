@@ -89,6 +89,7 @@ describe('crew-mac uninstall', () => {
 
     expect(loaded.size).toBe(0);
     expect(existsSync(paths.sshdPlist)).toBe(false);
+    expect(existsSync(paths.reaperPlist)).toBe(false);
     expect(existsSync(paths.root)).toBe(false);
     expect(readFileSync(paths.zshenv, 'utf8')).toBe('export EDITOR=vim\n');
     expect(readFileSync(paths.authorizedKeys, 'utf8')).toBe(`${OWNER_KEY}\n`);

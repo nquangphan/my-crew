@@ -12,6 +12,7 @@ import {
   type MacPaths,
   macPaths,
   PAPERCLIP_KEY_COMMENT,
+  REAPER_LABEL,
   SPIKE_LABEL,
   SSHD_LABEL,
 } from '../paths.js';
@@ -44,6 +45,19 @@ export function sshdPlistSpec(paths: MacPaths): PlistSpec {
     keepAlive: true,
     aquaOnly: true,
     processType: 'Interactive',
+  };
+}
+
+export function reaperPlistSpec(ctx: MacContext, paths: MacPaths): PlistSpec {
+  return {
+    label: REAPER_LABEL,
+    programArguments: [ctx.nodePath, ctx.cliPath, 'reap'],
+    keepAlive: false,
+    startIntervalSec: 60,
+    aquaOnly: true,
+    processType: 'Background',
+    stdoutPath: paths.reaperLog,
+    stderrPath: paths.reaperLog,
   };
 }
 
@@ -162,6 +176,14 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   const sshdReload =
     sshdPlistChanged || changed.includes(paths.sshdConfig) || changed.includes(paths.hostKey);
   if (await ensureService(ctx, SSHD_LABEL, paths.sshdPlist, sshdReload, true)) restarted.push(SSHD_LABEL);
+  const reaperPlistChanged = writeIfChanged(
+    paths.reaperPlist,
+    renderPlist(reaperPlistSpec(ctx, paths)),
+    0o644,
+  );
+  track(paths.reaperPlist, reaperPlistChanged);
+  if (await ensureService(ctx, REAPER_LABEL, paths.reaperPlist, reaperPlistChanged, false))
+    restarted.push(REAPER_LABEL);
 
   const manifest: Manifest = {
     version: 1,

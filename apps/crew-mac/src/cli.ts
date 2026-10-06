@@ -8,6 +8,7 @@ import { uninstall } from './commands/uninstall.js';
 import type { MacContext } from './context.js';
 import { readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths } from './paths.js';
+import { reapOnce } from './reaper/reap.js';
 import { createRunner } from './system.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
@@ -155,6 +156,29 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         io.out(report.removed.length === 0 ? 'Không còn gì để gỡ.' : `Đã gỡ: ${report.removed.join(', ')}`);
         for (const kept of report.kept)
           io.out(`Giữ nguyên thư mục worktree ${kept} (có thể còn việc của agent).`);
+        return 0;
+      }
+      case 'reap': {
+        const flags = parseFlags(args, ['--grace-seconds'], ['--dry-run']);
+        const paths = macPaths(ctx.home);
+        const targets = await reapOnce(
+          {
+            runner: ctx.runner,
+            signal: (pid, sig) => process.kill(pid, sig),
+            sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+            now: ctx.now,
+            selfPid: process.pid,
+          },
+          {
+            graceMs: (flags.number('--grace-seconds') ?? 60) * 1000,
+            termWaitMs: 10_000,
+            dryRun: flags.has('--dry-run'),
+            statePath: paths.reaperState,
+            logPath: paths.reaperLog,
+          },
+        );
+        if (targets.length > 0)
+          io.out(`Đã xử lý ${targets.length} run mồ côi; chi tiết ở ${paths.reaperLog}.`);
         return 0;
       }
       default:

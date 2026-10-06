@@ -672,6 +672,17 @@ flows:
       - apps/crew-mac/test/doctor.test.ts
       - apps/crew-mac/test/uninstall.test.ts
       - apps/crew-mac/test/cli.test.ts
+  mac-orphan-reaper:
+    title: Dọn process claude mồ côi trên Mac (crew-mac reap)
+    doc: docs/flows/mac-orphan-reaper.md
+    entrypoints:
+      - apps/crew-mac/src/reaper/reap.ts
+    files:
+      - apps/crew-mac/src/reaper/process-table.ts
+      - apps/crew-mac/src/reaper/select.ts
+    tests:
+      - apps/crew-mac/test/reaper-select.test.ts
+      - apps/crew-mac/test/reaper-reap.test.ts
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

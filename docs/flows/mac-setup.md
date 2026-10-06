@@ -23,12 +23,18 @@ không cần token và không login lại.
    `~/.ssh/authorized_keys` (`upsertKey`, comment `crew-mac-paperclip`, `crew-mac-doctor`), khối PATH trong
    `~/.zshenv` (`upsertPathBlock`), wrapper `~/.crew/bin/crew-claude-run` chép từ `apps/crew-mac/assets/crew-claude-run.sh`
    (`WRAPPER_SOURCE`, mode 755); ghi plist `com.2p.crew-mac-sshd` (`renderPlist`) và nạp bằng `ensureService`;
-   ghi `~/.crew-mac/manifest.json`. Mọi file ghi qua `writeIfChanged`, nên chạy lại không đổi gì.
-3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent và cổng, PATH, wrapper (`checkWrapper`: có,
+   ghi plist `com.2p.crew-mac-reaper` (`reaperPlistSpec`, chạy `crew-mac reap` mỗi 60 giây) và nạp bằng
+   `ensureService`; ghi `~/.crew-mac/manifest.json`. Mọi file ghi qua `writeIfChanged`, nên chạy lại không đổi gì;
+   đường dẫn là symlink (dotfiles của owner) thì ghi vào file đích và giữ symlink, file có sẵn của owner
+   (`~/.zshenv`, `authorized_keys`) giữ mode cũ. `~/.zshenv` có dòng mở khối PATH mà thiếu dòng đóng thì dừng trước
+   khi ghi gì, yêu cầu owner sửa tay.
+3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent và cổng, LaunchAgent reaper (`checkReaper`),
+   PATH, wrapper (`checkWrapper`: có,
    chạy được qua sshd agent, giống bản trong repo), thư mục worktree,
-   `claude auth status` qua chính sshd agent (`sshArgs`, key doctor), phép thử `claude -p` trong git repo tạm có
-   tự `SIGKILL` (`printProbeScript`), hộp thoại TCC đang chờ (`/usr/bin/log show`, `parsePendingTccPrompts`,
-   `tccHint`), tải máy (`parseLoad`).
+   `claude auth status` qua chính sshd agent (`sshArgs`, `-F /dev/null`, key doctor), phép thử `claude -p` trong git
+   repo tạm, chạy trong process group riêng và `SIGKILL` cả group khi quá hạn hoặc khi xong (`printProbeScript`),
+   hộp thoại TCC đang chờ (`/usr/bin/log show`, `parsePendingTccPrompts`, `tccHint`; dòng log lệch định dạng thì
+   cảnh báo), tải máy (`parseLoad`; số liệu không đọc được thì cảnh báo).
 4. `apps/crew-mac/src/commands/uninstall.ts` → `uninstall`: bootout và xóa plist crew-mac lẫn spike
    (`com.2p.crew-spike-sshd`), gỡ key theo comment, gỡ khối PATH và hai dòng PATH spike, xóa `~/.crew-mac` và
    `~/.crew-spike-sshd`, wrapper (và `~/.crew/bin` nếu rỗng). Không đụng phần còn lại của `~/.crew` (của `crewd` v2).
@@ -52,14 +58,14 @@ không cần token và không login lại.
 | `apps/crew-mac/src/tailscale.ts` | IP Tailscale | `tailscaleIpv4` |
 | `apps/crew-mac/src/wrapper.ts` | Đường dẫn nguồn wrapper | `WRAPPER_SOURCE` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: ghi `pgid`, `started` của run rồi `exec claude` (bản sao nguyên văn từ fork `crew/mac/crew-claude-run.sh`) | — |
-| `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `ensureService`, `sshdPlistSpec` |
-| `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkWrapper`, `parsePendingTccPrompts`, `printProbeScript` |
+| `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec` |
+| `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkWrapper`, `checkReaper`, `parsePendingTccPrompts`, `printProbeScript` |
 | `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall` |
 
 ## Dữ liệu
 
 - File trên Mac: `~/.crew-mac/` (manifest, sshd config, host key, key doctor, known_hosts),
-  `~/Library/LaunchAgents/com.2p.crew-mac-sshd.plist`, khối `# >>> crew-mac path >>>` trong `~/.zshenv`, dòng key
+  `~/Library/LaunchAgents/com.2p.crew-mac-sshd.plist`, `~/Library/LaunchAgents/com.2p.crew-mac-reaper.plist`, khối `# >>> crew-mac path >>>` trong `~/.zshenv`, dòng key
   `crew-mac-paperclip` và `crew-mac-doctor` trong `~/.ssh/authorized_keys`, wrapper `~/.crew/bin/crew-claude-run`,
   thư mục worktree (mặc định `~/crew-agents`).
 - Wrapper ghi `<worktree>/.paperclip-runtime/runs/<runId>/pgid` và `started` cho mỗi run; H3 phía server (RT-1) đọc
