@@ -3,6 +3,7 @@ import { basename } from 'node:path';
 import type { MacContext } from '../context.js';
 import { readText } from '../fs-util.js';
 import { serviceState } from '../launchctl.js';
+import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
 import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
 import { tailscaleIpv4 } from '../tailscale.js';
@@ -252,6 +253,35 @@ async function checkWrapper(ctx: MacContext, paths: MacPaths, manifest: Manifest
   };
 }
 
+function checkLauncher(ctx: MacContext, paths: MacPaths): CheckResult {
+  const base = { id: 'launcher', title: 'Lệnh crew-mac cho phía server' };
+  const reinstall = 'Chạy lại "crew-mac setup".';
+  if (!existsSync(paths.launcher))
+    return { ...base, status: 'fail', detail: `thiếu ${paths.launcher}`, hint: reinstall };
+  if ((statSync(paths.launcher).mode & 0o111) === 0) {
+    return { ...base, status: 'fail', detail: `${paths.launcher} không có quyền chạy`, hint: reinstall };
+  }
+  const text = readFileSync(paths.launcher, 'utf8');
+  const target = parseLauncher(text);
+  if (target === null || !existsSync(target.nodePath) || !existsSync(target.cliPath)) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `${paths.launcher} trỏ tới node hoặc cli.js không còn (${target ? `${target.nodePath}, ${target.cliPath}` : 'không đọc được'})`,
+      hint: 'Đã chuyển repo Crew hoặc nâng Node: chạy lại "crew-mac setup" từ bản build hiện tại.',
+    };
+  }
+  if (text !== renderLauncher(ctx.nodePath, ctx.cliPath)) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `${paths.launcher} trỏ tới bản crew-mac khác bản đang chạy`,
+      hint: reinstall,
+    };
+  }
+  return { ...base, status: 'ok', detail: `${paths.launcher} → ${target.cliPath}` };
+}
+
 function checkWorktreeRoot(ctx: MacContext, manifest: Manifest): CheckResult {
   const base = { id: 'worktree-root', title: 'Thư mục worktree' };
   const reason = forbiddenRootReason(ctx.home, manifest.worktreeRoot);
@@ -400,6 +430,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkSshdPort(ctx, manifest));
   results.push(checkZshenv(paths));
   results.push(await checkWrapper(ctx, paths, manifest));
+  results.push(checkLauncher(ctx, paths));
   results.push(checkWorktreeRoot(ctx, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));

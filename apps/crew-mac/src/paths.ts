@@ -38,6 +38,7 @@ export function macPaths(home: string) {
     /** Dùng chung thư mục ~/.crew với crewd v2: chỉ được đụng tới bin/crew-claude-run. */
     crewBin: join(home, '.crew', 'bin'),
     wrapper: join(home, '.crew', 'bin', 'crew-claude-run'),
+    launcher: join(home, '.crew', 'bin', 'crew-mac'),
     defaultWorktreeRoot: join(home, 'crew-agents'),
   };
 }

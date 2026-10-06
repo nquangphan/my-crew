@@ -8,7 +8,15 @@ import { FakeRunner } from './fake-runner.js';
 export const PAPERCLIP_PUB =
   'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaperclipTestKey000000000000000000000000 paperclip@vps';
 
-export function fakeMac(options: { tailscaleIp?: string | null; gui?: boolean; spikeLoaded?: boolean } = {}) {
+export function fakeMac(
+  options: {
+    tailscaleIp?: string | null;
+    gui?: boolean;
+    spikeLoaded?: boolean;
+    nodePath?: string;
+    cliPath?: string;
+  } = {},
+) {
   const home = mkdtempSync(join(tmpdir(), 'crew-mac-home-'));
   const loaded = new Set<string>(options.spikeLoaded ? [SPIKE_LABEL] : []);
   const labelOf = (target: string | undefined) => String(target).split('/').at(-1) as string;
@@ -57,8 +65,8 @@ export function fakeMac(options: { tailscaleIp?: string | null; gui?: boolean; s
     runner,
     now: () => new Date('2026-10-06T07:00:00.000Z'),
     out: (line) => out.push(line),
-    nodePath: '/opt/homebrew/bin/node',
-    cliPath: '/opt/crew/apps/crew-mac/dist/cli.js',
+    nodePath: options.nodePath ?? '/opt/homebrew/bin/node',
+    cliPath: options.cliPath ?? '/opt/crew/apps/crew-mac/dist/cli.js',
   };
   return { home, ctx, runner, loaded, out };
 }

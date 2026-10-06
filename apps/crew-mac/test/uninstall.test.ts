@@ -96,6 +96,7 @@ describe('crew-mac uninstall', () => {
     expect(existsSync(join(home, 'crew-agents'))).toBe(true);
     expect(report.kept).toEqual([join(home, 'crew-agents')]);
     expect(existsSync(paths.wrapper)).toBe(false);
+    expect(existsSync(paths.launcher)).toBe(false);
     expect(readFileSync(join(home, '.crew', 'config.yaml'), 'utf8')).toBe('apiUrl: x\n');
   });
 

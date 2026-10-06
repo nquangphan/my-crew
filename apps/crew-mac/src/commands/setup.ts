@@ -4,6 +4,7 @@ import { parsePublicKey, upsertKey } from '../authorized-keys.js';
 import { type MacContext, SetupError } from '../context.js';
 import { readText, writeIfChanged } from '../fs-util.js';
 import { bootout, bootstrap, guiSessionAvailable, serviceState } from '../launchctl.js';
+import { renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest, writeManifest } from '../manifest.js';
 import {
   DEFAULT_PORT,
@@ -165,6 +166,7 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   track(paths.authorizedKeys, writeIfChanged(paths.authorizedKeys, keys, 0o600, { keepExistingMode: true }));
   track(paths.zshenv, writeIfChanged(paths.zshenv, zshenvNext, 0o644, { keepExistingMode: true }));
   track(paths.wrapper, writeIfChanged(paths.wrapper, readFileSync(WRAPPER_SOURCE, 'utf8'), 0o755));
+  track(paths.launcher, writeIfChanged(paths.launcher, renderLauncher(ctx.nodePath, ctx.cliPath), 0o755));
   if (!existsSync(worktreeRoot)) {
     mkdirSync(worktreeRoot, { recursive: true, mode: 0o700 });
     changed.push(worktreeRoot);

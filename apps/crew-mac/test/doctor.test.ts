@@ -3,6 +3,7 @@ import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   doctor,
@@ -33,7 +34,8 @@ const AUTH_OK = JSON.stringify({ loggedIn: true, authMethod: 'claude.ai', subscr
 async function installed(
   sshHandler: (remote: string) => { code?: number; stdout?: string; timedOut?: boolean },
 ) {
-  const mac = fakeMac();
+  // node và cli phải tồn tại thật để check launcher đạt.
+  const mac = fakeMac({ nodePath: process.execPath, cliPath: fileURLToPath(import.meta.url) });
   await setup(mac.ctx, { paperclipKey: PAPERCLIP_PUB });
   mac.runner
     .on('/usr/bin/nc', () => ({}))
@@ -162,6 +164,7 @@ describe('crew-mac doctor', () => {
       ['sshd-port', 'ok'],
       ['zshenv-path', 'ok'],
       ['wrapper', 'ok'],
+      ['launcher', 'ok'],
       ['worktree-root', 'ok'],
       ['claude-auth', 'ok'],
       ['claude-print-git', 'ok'],
@@ -278,5 +281,18 @@ describe('crew-mac doctor', () => {
         : original(command, args, options);
     const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.find((r) => r.id === 'reaper')?.status).toBe('fail');
+  });
+
+  it('launcher thiếu thì fail, trỏ sai node hoặc cli thì cảnh báo', async () => {
+    const mac = await installed(okSsh);
+    const paths = macPaths(mac.home);
+    writeFileSync(paths.launcher, "#!/bin/sh\nexec '/khong/co/node' '/khong/co/cli.js' \"$@\"\n", {
+      mode: 0o755,
+    });
+    let results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'launcher')?.status).toBe('warn');
+    rmSync(paths.launcher);
+    results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'launcher')?.status).toBe('fail');
   });
 });

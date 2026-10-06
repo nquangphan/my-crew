@@ -64,9 +64,11 @@ export async function uninstall(ctx: MacContext): Promise<UninstallReport> {
       removed.push(`${paths.zshenv} (dòng PATH crew-mac và spike)`);
     }
   }
-  if (existsSync(paths.wrapper)) {
-    rmSync(paths.wrapper);
-    removed.push(paths.wrapper);
+  for (const file of [paths.wrapper, paths.launcher]) {
+    if (existsSync(file)) {
+      rmSync(file);
+      removed.push(file);
+    }
   }
   if (existsSync(paths.crewBin) && readdirSync(paths.crewBin).length === 0)
     rmSync(paths.crewBin, { recursive: true });

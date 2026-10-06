@@ -78,6 +78,10 @@ describe('crew-mac setup', () => {
     expect(readFileSync(paths.knownHosts, 'utf8')).toMatch(/^\[100\.102\.189\.67\]:2222 ssh-ed25519 \S+\n$/);
     expect(readFileSync(paths.wrapper, 'utf8')).toBe(readFileSync(WRAPPER_SOURCE, 'utf8'));
     expect(statSync(paths.wrapper).mode & 0o777).toBe(0o755);
+    expect(readFileSync(paths.launcher, 'utf8')).toBe(
+      "#!/bin/sh\n# Quản lý bởi crew-mac setup: đường dẫn ổn định để gọi crew-mac qua SSH.\nexec '/opt/homebrew/bin/node' '/opt/crew/apps/crew-mac/dist/cli.js' \"$@\"\n",
+    );
+    expect(statSync(paths.launcher).mode & 0o777).toBe(0o755);
     expect(existsSync(join(home, 'crew-agents'))).toBe(true);
     expect(loaded.has(SSHD_LABEL)).toBe(true);
     expect(report.restarted).toEqual([SSHD_LABEL, REAPER_LABEL]);
