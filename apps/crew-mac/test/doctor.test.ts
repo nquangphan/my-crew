@@ -113,6 +113,26 @@ describe('printProbeScript', () => {
     expect(ps.split('\n').filter((line) => line.trim() === marker)).toEqual([]);
     expect(readdirSync(root)).toEqual([]);
   });
+
+  it('claude thoát bình thường nhưng để lại process con thì vẫn dọn cả nhóm', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'crew-probe-root-'));
+    const bin = mkdtempSync(join(tmpdir(), 'crew-probe-bin-'));
+    const marker = `sleep ${4000 + (process.pid % 997)}`;
+    // claude giả: in ok, để lại một process con chạy nền rồi thoát mã 0.
+    writeFileSync(join(bin, 'claude'), `#!/bin/sh\n${marker} &\necho ok\nexit 0\n`);
+    chmodSync(join(bin, 'claude'), 0o755);
+    const run = spawnSync('/bin/sh', ['-c', printProbeScript(root, 10)], {
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+      encoding: 'utf8',
+      timeout: 15_000,
+    });
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain('ok');
+    await sleep(300);
+    const ps = spawnSync('/bin/ps', ['-axo', 'command='], { encoding: 'utf8' }).stdout;
+    expect(ps.split('\n').filter((line) => line.trim() === marker)).toEqual([]);
+    expect(readdirSync(root)).toEqual([]);
+  });
 });
 
 describe('parseLoad', () => {
@@ -242,6 +262,8 @@ describe('crew-mac doctor', () => {
       stdout: args.includes('vm.loadavg') ? '{ 25.0 20.0 18.0 }\n' : '10\n',
     }));
     const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
-    expect(results.find((r) => r.id === 'load')?.status).toBe('warn');
+    const load = results.find((r) => r.id === 'load');
+    expect(load?.status).toBe('warn');
+    expect(load?.hint).toBe('Máy đang bận; Paperclip sẽ cho run mới chờ tới khi tải giảm.');
   });
 });

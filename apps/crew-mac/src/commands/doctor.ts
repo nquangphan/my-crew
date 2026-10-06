@@ -102,7 +102,7 @@ export function printProbeScript(worktreeRoot: string, timeoutSec: number): stri
     'p=$!',
     'i=0',
     `while kill -0 "$p" 2>/dev/null && [ "$i" -lt ${timeoutSec} ]; do sleep 1; i=$((i+1)); done`,
-    'if kill -0 "$p" 2>/dev/null; then kill -9 -- -"$p"; wait "$p" 2>/dev/null; echo CREW_MAC_TIMEOUT; rc=124; else wait "$p"; rc=$?; fi',
+    'if kill -0 "$p" 2>/dev/null; then kill -9 -- -"$p"; wait "$p" 2>/dev/null; echo CREW_MAC_TIMEOUT; rc=124; else wait "$p"; rc=$?; kill -9 -- -"$p" 2>/dev/null; fi',
     'cat "$d.out"',
     'exit $rc',
   ].join('\n');
@@ -353,7 +353,7 @@ async function checkLoad(ctx: MacContext): Promise<CheckResult> {
         title: 'Tải máy',
         status: 'warn',
         detail,
-        hint: 'Máy đang bận; cổng tải của Paperclip (RT-2) sẽ cho run chờ.',
+        hint: 'Máy đang bận; Paperclip sẽ cho run mới chờ tới khi tải giảm.',
       }
     : { id: 'load', title: 'Tải máy', status: 'ok', detail };
 }
