@@ -6,13 +6,14 @@ Luật chia: vẽ gói ngữ cảnh trước rồi mới cắt ticket. Ticket c�
 
 ## Quyết định
 
-- 06/10/2026: Đại Ca chốt chạy spike trên VPS như v1 (Ubuntu, Docker Compose, sau nginx biên `2ps-landing-nginx`, xem `docs/flows/deployment.md`), không chạy container trên Mac. Paperclip spike là compose project riêng, không đụng stack `crew` của v1 ở `/opt/crew`.
+- 06/10/2026: Đại Ca chốt chạy spike trên VPS như v1 (Ubuntu, Docker Compose, sau nginx biên `2ps-landing-nginx`, xem `docs/flows/deployment.md`), không chạy container trên Mac. Paperclip spike là compose project riêng ở `/opt/crew-v3-spike` trên `nhamoiplatform`, không đụng stack `crew` của v1 ở `/opt/crew`, UI chỉ mở qua Tailscale.
+- 06/10/2026: Máy chạy agent (máy "Mac" trong plan) là **Mac mini** `phans-mac-mini`, không phải MacBook đang chạy phiên Trợ Lý. Mac mini chỉ là máy thử cho spike: agent Paperclip chạy Claude Code trên đó bằng tài khoản của Mac mini, nhưng chỉ làm việc thử trong `~/crew-spike/repo-a`. Code dự án Crew v3 vẫn làm trên MacBook.
 
 ## Gói ngữ cảnh
 
 | Gói | Nạp gì (trong fork `.worktrees/paperclip-v3`, tìm theo symbol) | Môi trường dùng chung | Worker · model | Reviewer · model |
 |---|---|---|---|---|
-| `moi-truong` | `server/src/services/workspace-realization.ts`, `environment-runtime.ts`, `environment-run-orchestrator.ts`, `plugin-environment-driver.ts`, `environment-probe.ts`, `packages/plugins/sdk/src/types.ts`; trong `heartbeat.ts` chỉ mở `claimQueuedRun`, `reapOrphanedRuns`, `cancelRunInternal` | Server Paperclip của S1 trên VPS, SSH qua Tailscale từ VPS tới Mac, repo thử `~/crew-spike/repo-a` | chưa giao · opus | chưa giao · opus |
+| `moi-truong` | `server/src/services/workspace-realization.ts`, `environment-runtime.ts`, `environment-run-orchestrator.ts`, `plugin-environment-driver.ts`, `environment-probe.ts`, `packages/plugins/sdk/src/types.ts`; trong `heartbeat.ts` chỉ mở `claimQueuedRun`, `reapOrphanedRuns`, `cancelRunInternal` | Server Paperclip của S1 trên VPS, SSH qua Tailscale từ VPS tới Mac mini, repo thử `~/crew-spike/repo-a` | chưa giao · opus | chưa giao · opus |
 | `policy` | `docs/guides/execution-policy.md`, `applyIssueExecutionPolicyTransition`, `issueService` (`runUpdate`), `routes/issues.ts`; trong `heartbeat.ts` chỉ mở `deriveTaskKey`, `agentTaskSessions` | Dùng chung server của S1, company riêng; không dựng server thứ hai | chưa giao · opus | chưa giao · opus |
 | `upgrade` | `spike-moi-truong.md` (kết luận hook của S3/S5), remote `upstream` của fork, `server/src/adapters/plugin-loader.test.ts` | Worktree tạm trong scratchpad, không đụng nhánh `v3` | chưa giao · opus | chưa giao · sonnet |
 | `tong-hop` | `spike-*.md` của ba gói trên, spec v3, Phần 2 của plan | — | Trợ Lý tự làm | Đại Ca chốt go/no-go |
