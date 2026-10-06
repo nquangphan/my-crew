@@ -13,26 +13,22 @@ Kế thừa yêu cầu sản phẩm từ [spec v2](2026-10-01-crew-v2-design.md)
 
 ## 2. Kiến trúc
 
+Cập nhật 06/10/2026 theo spike stock-first ([báo cáo](../../../plans/261006-0805-crew-v3-stock-first/spike-report.md), [quyết định](../../../plans/261006-0805-crew-v3-stock-first/can-dai-ca-chot.md)): bỏ gateway và transport tự viết, dùng SSH environment có sẵn của Paperclip.
+
 ```mermaid
 flowchart TB
     Owner[Owner trên web] --> Web[Paperclip UI và Crew UI extension]
-    Web --> Core[Paperclip fork: identity/project/issue/run/event/session/usage]
-    Web --> Crew[Crew services: workflow/machine/docs/decision policy]
-    Core <--> Crew
-    Core --> Adapter[Crew remote adapter]
-    Adapter <--> Transport[Gateway transport trên VPS]
-    Gateway[Crew gateway macOS: kết nối chủ động ra VPS] <--> Transport
-    Gateway --> Assistant[Trợ Lý trên máy owner chọn]
-    Gateway --> Runtime[Claude Code / Codex / API tool loop]
-    Runtime --> Skills[BMAD hoặc Superpowers đã ghim và cách ly]
-    Skills --> Checkout[Repo/worktree trên máy dự án]
+    Web --> Core[Paperclip fork gần như stock: issue/run/scheduler/session/execution policy]
+    Core --> Plugin[Plugin Crew: rule, map, trạng thái máy]
+    Core -->|SSH qua Tailscale| Sshd[sshd trong phiên desktop của Mac]
+    Sshd --> Runtime[Claude Code, đăng nhập Keychain sẵn có]
+    Runtime --> Skills[Superpowers đã ghim]
+    Skills --> Worktree[Git worktree riêng của agent, in_place]
+    Mac[crew-mac setup/doctor, bộ dọn process mồ côi] --> Sshd
     Core --> DB[(PostgreSQL)]
-    Crew --> DB
-    Core --> Files[(Kho file/artifact)]
-    Crew --> Files
 ```
 
-Trợ Lý và máy dự án có thể khác máy. Mỗi project có đúng một máy thực thi. Trợ Lý offline thì chờ, không tự đổi máy; owner đổi máy/model từ web. Heartbeat gateway độc lập inference.
+Paperclip trên VPS là lõi duy nhất. Mac là một SSH environment của Paperclip, nối qua Tailscale. Agent `claude_local` chạy ở chế độ `in_place` trong một git worktree riêng trên Mac, không bao giờ trong checkout của owner. sshd dành cho agent chạy dưới LaunchAgent trong phiên desktop để Claude Code dùng được đăng nhập trong Keychain, không cần token và không login lại; vì vậy Mac phải đang đăng nhập desktop. Mỗi project có đúng một máy thực thi; máy quá tải hoặc không vào được thì run nằm chờ trong hàng đợi, không chuyển máy.
 
 ## 3. Ai sở hữu dữ liệu và quyền thực thi?
 
@@ -43,13 +39,13 @@ Trợ Lý và máy dự án có thể khác máy. Mỗi project có đúng một
 | Workflow pin, step/gate, dependency bổ sung, repair cycle và completion evidence | Crew namespace, tham chiếu Paperclip ID |
 | Machine binding, desired/applied, inventory, telemetry, execution reservation | Crew namespace |
 | Docs snapshot/graph/review/dedup | Crew namespace và kho blob |
-| Process, worktree, runtime session, checkpoint, tài nguyên local | Gateway; kết quả được liên kết Paperclip run |
+| Process, worktree, transcript Claude, tài nguyên local | Mac (SSH environment); Paperclip giữ session id và kết quả run. H3 dừng process của run khi trả lease, bộ dọn trên Mac xử lý process mồ côi khi mất mạng |
 
 Trợ Lý đề xuất dự án/workflow/model và gọi official skill để phân rã. Agent chạy BMAD tạo epic/story; agent chạy Superpowers tạo design/plan/task. Controller lưu ánh xạ và kiểm gate; không tự thay nội dung workflow bằng bộ prompt PM riêng.
 
-Paperclip là scheduler duy nhất. Crew không tạo một queue thực thi khác; transport chỉ giữ envelope/ACK/delivery để chuyển run đã được cấp quyền. Capacity reservation có tính nguyên tử trước spawn; stale telemetry hoặc máy bận giữ công việc chờ. Event replay không cấp thêm quyền chạy.
+Paperclip là scheduler duy nhất. Crew không tạo một queue thực thi khác. Kiểm tải máy trước khi claim run bằng hook H1 ở đầu `claimQueuedRun`; máy bận hoặc không vào được thì run giữ `queued`, quá thời hạn thì chuyển trạng thái rõ kèm lý do.
 
-Một bộ invariant phải dùng chung ở mọi đường: UI, API, agent tool, routine, child-task creation và sửa trạng thái trực tiếp. Worker không thể tự ghi done/merge/deploy để bỏ qua gate. Hook quan sát sau commit không đủ bảo vệ: cần kiểm trước mutation/dispatch; nếu extension API không hỗ trợ thì dùng patch lõi hẹp, có test và sổ patch.
+Một bộ invariant phải dùng chung ở mọi đường: UI, API, agent tool, routine, child-task creation và sửa trạng thái trực tiếp. Gate review, docs và owner dùng execution policy có sẵn của Paperclip (giới hạn vòng sửa qua `maxReviewRounds`). Hook H2 ở đầu `runUpdate` chặn ghi `done` khi chưa qua đủ stage và chặn agent sửa hoặc xóa `executionPolicy` (spike đã xác nhận đường lách này). Hook quan sát sau commit không đủ bảo vệ.
 
 ## 4. Yêu cầu sản phẩm giữ nguyên
 
@@ -81,6 +77,8 @@ Fork giữ lịch sử upstream; `origin` là fork do owner sở hữu, `upstrea
 
 Code Crew ưu tiên package riêng ở `crew/`; mở rộng qua plugin/adapter. Không sửa hàng loạt UI/core chỉ để đổi tên. Public API nối qua một compatibility facade; UI có route extension. Core patch chỉ khi cần invariant mà API không bảo vệ, mỗi patch có file/why/test/upstream issue/commit/removal condition trong registry. Không sửa migration upstream đã áp dụng hoặc đổi checksum để né conflict.
 
+Cách đếm vá (owner chốt 06/10/2026): ngân sách tối đa 5 chỉ đếm hook một dòng có registry ở đầu hàm (hiện H1 `claimQueuedRun`, H2 `runUpdate`, H3 `releaseRunLease` của SSH driver). Vá adapter/driver (claude_local in_place, metadata in_place của SSH driver, `sessionCodec`, dòng log resume) ghi riêng trong `crew/release/core-hooks.json` và gửi PR upstream để giảm dần.
+
 Plugin SDK đang alpha: tài liệu master và release chọn có thể khác nhau. Phase00 phải ghim source SHA/tag/package version và xác minh seam thực tế trước freeze detailed plan. Không hứa merge upstream sạch hoặc hỗ trợ mọi release.
 
 ## 6. Cập nhật upstream và rollback
@@ -107,17 +105,17 @@ Không copy DB schema 001–011 của Crew thành second ticket system. Wrapper 
 
 ## 8. Bằng chứng và điều kiện dừng
 
-Phase00 phải chứng minh run do Paperclip tạo chạy trên Mac qua kết nối chủ động ra VPS, stream log/session/result đúng lifecycle và không tự hoàn tất khi disconnect; gate không bị bypass qua worker/API/routine; update candidate không mất Crew data. Thiếu seam thì ghi patch proposal cụ thể và test, không bù bằng scheduler thứ hai hoặc chỉ prompt.
+Spike stock-first ngày 06/10/2026 đã chứng minh: run do Paperclip tạo chạy trên Mac qua SSH environment và commit trong worktree riêng mà không đụng checkout của owner; gate review/docs/owner chặn đúng; hai issue dùng chung session được; Mac quá tải hoặc không vào được thì run chờ (khi có H1); nâng upstream chỉ vướng một file test. Chưa đạt: khi mất mạng, restart hoặc hủy run, process `claude` trên Mac vẫn chạy tiếp; đây là điều kiện đầu tiên của R1-1 (H3 và bộ dọn process mồ côi), phải chạy lại kịch bản S3 tới khi đạt. Thiếu seam thì ghi patch proposal cụ thể và test, không bù bằng scheduler thứ hai hoặc chỉ prompt.
 
-Nghiệm thu cuối gồm hai workflow, ba runtime, file corpus, offline/restart/cancel/retry, 5 vòng sửa, owner gate, auto-merge/docs sync, deploy approval, import/restore, signed updater và nâng upstream một release. UI dùng Playwright với API/DB thật. Không dùng ticket done hoặc health 200 làm bằng chứng toàn sản phẩm.
+Nghiệm thu cuối gồm workflow Superpowers, offline/restart/cancel/retry, 5 vòng sửa, owner gate, auto-merge/docs sync, deploy approval, backup/restore và nâng upstream một release. UI dùng Playwright với API/DB thật. Không dùng ticket done hoặc health 200 làm bằng chứng toàn sản phẩm.
 
 ## 9. Mốc phát hành
 
-R1 bắt buộc tích hợp fork Paperclip thành lõi vận hành thật trên VPS: ticket/run/scheduler/session/lịch sử thuộc core, gateway Mac chạy remote adapter và trả kết quả về cùng core ID trên web. Fork skeleton, adapter prototype hoặc Crew v2 chạy độc lập cạnh Paperclip chưa phải release. V3 tập trung vào tích hợp này; R2 mở rộng tính năng trên lõi R1, không phải mốc mới gắn Paperclip.
+R1 bắt buộc dùng fork Paperclip làm lõi vận hành thật trên VPS: ticket/run/scheduler/session/lịch sử thuộc core, agent trên Mac chạy qua SSH environment và trả kết quả về cùng core ID trên web.
 
-Owner chọn hai đợt release: R1/v3.0 cho luồng text yêu cầu → official workflow/story/task → agent trên Mac → review/merge/docs-sync, có cả BMAD/Superpowers và ba nguồn runtime, web/map, backup/restore và nâng fork đã thử. R2/v3.1 hoàn thiện ảnh/file/comment, docs graph/dedup, usage/reuse nâng cao và signed remote updater. R1 không bỏ docs/owner/deploy/resource/recovery gate; phần chưa hỗ trợ bị UI từ chối rõ. Phân bổ task ở [release plan](../../../plans/261005-2154-crew-v3-paperclip/releases.md).
+Theo quyết định 06/10/2026, R1/v3.0 làm mỏng: Superpowers × Claude Code chạy xuyên suốt từ text yêu cầu → plan/task → agent trên Mac → review/merge/docs-sync, kèm web/map, backup/restore và nâng fork đã thử. R1 gồm R1-1 nền và kết nối Mac ([plan](../../../plans/261006-1355-crew-v3-r1-1/plan.md)), R1-2 workflow và gate, R1-3 Trợ Lý, R1-4 UI, R1-5 nâng upstream và phát hành. R2/v3.1 thêm BMAD, Codex, API OpenAI-compatible, ảnh/file/comment, docs graph/dedup, usage/reuse nâng cao, app macOS ký số và updater. R1 không bỏ docs/owner/deploy/resource/recovery gate; phần chưa hỗ trợ bị UI từ chối rõ.
 
-R1 có signed installer và quy trình update gateway thủ công qua gói ký; remote web-triggered updater thuộc R2. Credential AI đặt trên máy Mac thực thi, VPS giữ authentication của hệ thống và token gateway; UI web R1 không gửi raw provider key lên VPS. Nếu sau này nhập secret qua web thì dùng end-to-end encryption tới gateway và có acceptance riêng trước bật.
+Credential AI đặt trên máy Mac thực thi; Claude Code dùng đăng nhập Keychain sẵn có, không token và không bắt login lại. VPS giữ authentication của hệ thống, SSH key vào Mac và secret DB. Ở R1, mỗi lần Claude Code cập nhật bản mới, macOS có thể hỏi lại quyền đọc thư mục được bảo vệ; `crew-mac doctor` phát hiện và hướng dẫn. Ở R2, app macOS ký số đứng ra chạy `claude` để macOS chỉ hỏi quyền một lần cho app.
 
 ## 10. Nguồn nghiên cứu
 
