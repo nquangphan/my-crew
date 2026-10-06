@@ -36,8 +36,8 @@ Brainstorming là bước **có Đại Ca trong phòng** — nó thuộc về l�
 |---|---|
 | Ghi doc flow, đổi chuỗi, quét/đối chiếu số, sửa fixture, edit cơ học có spec đầy đủ | `haiku` |
 | Bám khuôn có sẵn: thêm endpoint/route, component giống cái đã có, test cho code đã rõ | `sonnet` |
-| Hook lõi Paperclip, execution policy, scheduler/claim · schema/migration · auth/phân quyền · SSH/Tailscale/process lifecycle trên Mac · luật `crew-docs` dùng chung · lượt review cuối toàn nhánh | `opus` |
-| Kẹt thật (2 lần sửa hỏng, hoặc ngã rẽ thiết kế rủi ro cao) | Hỏi `kongming` (chạy `fable`), không đổi model của cả phiên |
+| Hook lõi Paperclip, execution policy, scheduler/claim · schema/migration · auth/phân quyền · SSH/Tailscale/process lifecycle trên Mac · luật `crew-docs` dùng chung · lượt review cuối toàn nhánh (kể cả khi skill bảo dùng model mạnh nhất) | `opus` |
+| Kẹt thật (2 lần sửa hỏng, hoặc ngã rẽ thiết kế rủi ro cao) | Dùng `opus` với góc nhìn mới. **Không tự gọi `fable`** (kể cả qua `kongming`) — Đại Ca cấm; cần thì hỏi Đại Ca trước |
 
 Cân **theo thứ việc chạm vào**, không theo cảm giác khó. Một dòng hook trong `issues.ts` của Paperclip vẫn là `opus`, vì nó chặn mọi lần ghi issue.
 
