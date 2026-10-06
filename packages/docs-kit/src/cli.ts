@@ -23,9 +23,9 @@ export interface CliEnv {
 export const USAGE = `crew-docs ${VERSION}: the 2P Crew docs standard
 
 Usage:
-  crew-docs check --staged              pre-commit: R1 R2 R4 on the index, R3 and R7 on the staged diff
+  crew-docs check --staged              pre-commit: R7 on the staged diff (docs rules run at push)
   crew-docs check --commit-msg <file>   commit-msg: R6 with the message trailers (docs-init exemption)
-  crew-docs check --range <base>..<head>  every non-merge commit (R3 R6 R7) plus R1 R2 R4 at <head>
+  crew-docs check --range <base>..<head>  R3 over the range, R6 R7 per non-merge commit, R1 R2 R4 at <head>
   crew-docs check --pre-push [remote]   pre-push: like --range for each ref on stdin
   crew-docs check --all                 R1 R2 R4 over the working tree
   crew-docs init [--flow <id> [--title <title>]]

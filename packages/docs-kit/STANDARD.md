@@ -84,7 +84,7 @@ Không sửa tay phần giữa marker. Sau khi sửa `flows.yaml` hoặc sau khi
 |------|---------|
 | R1 manifest | `flows.yaml` sai YAML hoặc sai schema; flow id trùng; file doc, entrypoint, file, test, shared hay unassigned được liệt kê mà không tồn tại; shared trỏ tới flow không có; doc không phải `docs/**.md`; một file vừa unassigned vừa thuộc flow |
 | R2 coverage | Một file nguồn (include trừ exclude) không thuộc flow nào, không nằm trong `shared` hay `unassigned` |
-| R3 freshness | Một commit không phải merge thêm, sửa, xóa hoặc đổi tên file nguồn mà không sửa `docs/flows/<id>.md` của mọi flow bị ảnh hưởng trong cùng commit. Flow bị ảnh hưởng: flow liệt kê file đó trước hoặc sau thay đổi, kể cả qua `shared` |
+| R3 freshness | Tập commit của một lần push, merge hoặc range CI (không tính commit merge, commit docs-init và lịch sử trước nó) thêm, sửa, xóa hoặc đổi tên file nguồn mà không commit nào trong tập đó sửa `docs/flows/<id>.md` của mọi flow bị ảnh hưởng. Lỗi được báo trên commit đầu (head) của range. Flow bị ảnh hưởng: flow liệt kê file đó trước hoặc sau thay đổi, kể cả qua `shared` |
 | R4 generated | Block sinh tự động trong `index.md` hay `files.md` khác với kết quả `crew-docs generate` |
 | R5 initialized | `check --all`/`check --range`: không có `docs/flows.yaml` → exit 3 `NOT_INITIALIZED`. Ở `check --staged`/`--commit-msg`/`--pre-push`: nếu manifest thiếu ở CẢ bản đang xét và bản trước (HEAD cho staged/commit-msg; tip vừa push và tip đã biết của remote cho mỗi ref pre-push) thì không kiểm tra gì, in một dòng cảnh báo trên stderr và exit 0 — chủ dự án vẫn commit/push được trước khi chạy docs-init. Xoá manifest khỏi repo đã có docs vẫn bị chặn (exit 3) như cũ |
 | R6 protected | Ngoài commit docs-init, commit đổi `.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md` ở gốc repo (một `AGENTS.md` lồng trong thư mục con, ví dụ `src/AGENTS.md`, không được bảo vệ), file cấu hình hook (`.husky/**`, `lefthook.yml`, thư mục `core.hooksPath` trong repo), `.github/workflows/crew-docs.yml`, `.github/crew-docs/**`, hoặc các mục `source`, `unassigned`, `shared` của `flows.yaml`, mà không có trailer `Crew-Owner-Approved: <ticket-key>` |
@@ -103,9 +103,9 @@ nhận ra sau rebase hoặc squash. Không có cách bỏ qua nào khác. Lịch
 
 | Lệnh | Dùng ở | Kiểm tra |
 |------|--------|----------|
-| `check --staged` | pre-commit | R1, R2, R4 trên index; R3 trên diff staged (bỏ qua khi index đang thêm `flows.yaml`); R7 |
+| `check --staged` | pre-commit | Chỉ R7 trên diff staged, để commit luôn nhanh; luật docs chạy lúc push |
 | `check --commit-msg <file>` | commit-msg | R6 với trailer của message; miễn cho commit docs-init có trailer |
-| `check --range <base>..<head>` | CI, cổng trước khi push của PM | R1, R2, R4 tại `<head>`; R3, R6, R7 cho từng commit không phải merge |
+| `check --range <base>..<head>` | CI, cổng merge/trước khi push | R1, R2, R4 tại `<head>`; R3 trên toàn range; R6, R7 cho từng commit không phải merge |
 | `check --pre-push` | pre-push | Như `--range` cho mỗi ref git sắp push (đọc từ stdin); nhánh mới thì kiểm tra mọi commit chưa có trên remote |
 | `check --all` | CI, docs-init | R1, R2, R4 trên working tree (kể cả file chưa track mà không bị ignore) |
 
@@ -115,7 +115,7 @@ docs-init. `--all` và `--range` luôn báo `NOT_INITIALIZED` khi thiếu manife
 hiện lúc nào cần chạy ticket docs-init, còn CI và cổng trước khi push của PM dùng `--range`.
 
 Commit merge được bỏ qua ở R3 và R6 (kể cả khi kết thúc một `git merge` qua hook) vì các commit nó mang vào đã
-được kiểm tra riêng. R1, R2, R4 và R7 vẫn chạy.
+được kiểm tra riêng. R1, R2, R4 tại head và R7 vẫn chạy.
 
 ### Kết quả
 

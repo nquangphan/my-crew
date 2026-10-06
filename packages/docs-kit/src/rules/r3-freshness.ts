@@ -12,8 +12,9 @@ export interface FreshnessInput {
 }
 
 /**
- * R3: a change that adds, modifies, deletes or renames a source file must also change the doc of every
- * affected flow: the flows that list the file before or after the change, including `shared` entries.
+ * R3: a change set (the commits of one push, merge or CI range) that adds, modifies, deletes or renames a
+ * source file must also change the doc of every affected flow: the flows that list the file before or after
+ * the change, including `shared` entries.
  */
 export function checkFreshness({ changes, before, after }: FreshnessInput): Violation[] {
   const touched = new Set<string>();
@@ -40,7 +41,7 @@ export function checkFreshness({ changes, before, after }: FreshnessInput): Viol
         violations.push({
           rule: 'R3',
           path,
-          message: `changed without updating ${doc} (flow ${id}); edit that flow doc in the same commit`,
+          message: `changed without updating ${doc} (flow ${id}); edit that flow doc in a commit of the same push`,
         });
       }
     }

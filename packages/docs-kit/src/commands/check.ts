@@ -4,6 +4,7 @@ import {
   commitChanges,
   commitMessage,
   commitPatch,
+  type FileChange,
   firstParent,
   getConfig,
   headCommit,
@@ -26,11 +27,11 @@ import type { Violation } from '../rules/types.js';
 import { commitReader, indexReader, type TreeReader, workingTreeReader } from '../tree.js';
 
 export type CheckMode =
-  /** pre-commit: R1, R2, R4 on the index; R3 on the staged diff; R7 on the staged lines. */
+  /** pre-commit: R7 on the staged lines only, so a commit stays fast; the docs rules run at push time. */
   | { kind: 'staged' }
   /** commit-msg: R6 on the staged diff, with the message's trailers (and the docs-init exemption). */
   | { kind: 'commit-msg'; messageFile: string }
-  /** CI and Phase 7 gates: R1, R2, R4 at the head; R3, R6, R7 per non-merge commit. */
+  /** CI, pre-push and merge gates: R1, R2, R4 at the head; R3 over the whole range; R6, R7 per non-merge commit. */
   | { kind: 'range'; range: string }
   /** pre-push: like `range`, for each ref git is about to push (read from the hook's stdin). */
   | { kind: 'pre-push'; stdin: string }
@@ -127,21 +128,9 @@ function checkStaged(root: string, options: CheckOptions): CheckOutcome {
   const before = headManifest(root);
   // Removing the manifest of an adopted repo is still refused.
   if (after.status === 'missing') return before.status === 'missing' ? notAdopted() : uninitialized('index');
-  const violations = treeRules(index, after);
-  // A commit that adds the manifest is the docs-init candidate: R3 and R6 are checked at commit-msg time,
-  // where the Crew-Docs-Init trailer is visible. A merge commit is skipped like in range mode: the
-  // commits it brings in are checked on their own.
-  if (after.status === 'ok' && before.status !== 'missing' && !isMerging(root)) {
-    violations.push(
-      ...checkFreshness({
-        changes: stagedChanges(root),
-        before: before.status === 'ok' ? before.manifest : null,
-        after: after.manifest,
-      }),
-    );
-  }
-  violations.push(...checkSecrets(stagedPatch(root), options.gitleaks));
-  return ok(violations);
+  // Only R7 runs per commit: a credential must never enter history. Docs and manifest rules run once
+  // over the pushed range, so work-in-progress commits do not each need their own docs edit.
+  return ok(checkSecrets(stagedPatch(root), options.gitleaks));
 }
 
 function checkCommitMessage(root: string, messageFile: string): CheckOutcome {
@@ -171,7 +160,7 @@ function checkCommitMessage(root: string, messageFile: string): CheckOutcome {
   );
 }
 
-/** R3, R6 and R7 of one non-merge commit; commits from before the docs init are skipped. */
+/** R6 and R7 of one non-merge commit; commits from before the docs init are skipped. */
 function commitRules(root: string, sha: string, extraPatterns: string[], options: CheckOptions): Violation[] {
   const after = loadManifest(commitReader(root, sha));
   if (after.status === 'missing') return [];
@@ -182,15 +171,6 @@ function commitRules(root: string, sha: string, extraPatterns: string[], options
   const violations: Violation[] = [];
   if (!isInit) {
     const changes = commitChanges(root, sha);
-    if (after.status === 'ok') {
-      violations.push(
-        ...checkFreshness({
-          changes,
-          before: before.status === 'ok' ? before.manifest : null,
-          after: after.manifest,
-        }),
-      );
-    }
     violations.push(
       ...checkProtected({
         changes,
@@ -203,6 +183,37 @@ function commitRules(root: string, sha: string, extraPatterns: string[], options
   }
   violations.push(...checkSecrets(commitPatch(root, sha), options.gitleaks));
   return violations.map((violation) => ({ ...violation, commit: sha }));
+}
+
+/**
+ * R3 over a whole range: every source file changed by any commit after the docs init must have its flow
+ * docs changed by some commit of the same range. Reported once, on the range head.
+ */
+function rangeFreshness(
+  root: string,
+  commits: readonly string[],
+  head: string,
+  after: ManifestResult,
+): Violation[] {
+  if (after.status !== 'ok') return [];
+  const changes: FileChange[] = [];
+  let before: ManifestResult | undefined;
+  for (const sha of commits) {
+    if (loadManifest(commitReader(root, sha)).status === 'missing') continue;
+    const parent = firstParent(root, sha);
+    const parentManifest: ManifestResult = parent
+      ? loadManifest(commitReader(root, parent))
+      : { status: 'missing' };
+    if (parentManifest.status === 'missing' && isDocsInitMessage(commitMessage(root, sha))) continue;
+    before ??= parentManifest;
+    changes.push(...commitChanges(root, sha));
+  }
+  if (!before) return [];
+  return checkFreshness({
+    changes,
+    before: before.status === 'ok' ? before.manifest : null,
+    after: after.manifest,
+  }).map((violation) => ({ ...violation, commit: head }));
 }
 
 interface PushTarget {
@@ -238,7 +249,9 @@ function checkCommits(
     violations.push(
       ...treeRules(headTree, manifest).map((violation) => ({ ...violation, commit: target.head })),
     );
-    for (const sha of nonMergeCommits(root, target.revList)) {
+    const commits = nonMergeCommits(root, target.revList);
+    violations.push(...rangeFreshness(root, commits, target.head, manifest));
+    for (const sha of commits) {
       if (seen.has(sha)) continue;
       seen.add(sha);
       violations.push(...commitRules(root, sha, extraPatterns, options));

@@ -21,15 +21,16 @@ Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew
 - Lint/format bằng Biome (`biome.json` ở gốc repo, chạy `pnpm lint` để kiểm và `pnpm format` để tự sửa); không
   dùng ESLint hay Prettier.
 
-## Docs đi cùng mỗi commit
+## Docs đi cùng mỗi lần push
 
 Repo áp dụng chuẩn docs-kit chung (định nghĩa đầy đủ ở đường dẫn `packages/docs-kit/STANDARD.md`, kiểm bằng CLI
 `crew-docs`). Năm luật hay gặp nhất khi sửa code:
 
 - **R2 (coverage)** — mọi file nguồn mới (khớp `source.include` trừ `source.exclude` của `docs/flows.yaml`)
   phải thuộc một flow trong mục `flows`, hoặc được khai vào `shared`/`unassigned` kèm lý do.
-- **R3 (freshness)** — commit đổi một file nguồn mà không sửa `docs/flows/<id>.md` của mọi flow chứa file đó
-  (kể cả qua `shared`) trong cùng commit sẽ bị chặn. Sửa trang flow tương ứng cùng lúc với code.
+- **R3 (freshness)** — một lần push hoặc merge có commit đổi file nguồn mà không commit nào trong lần đó sửa
+  `docs/flows/<id>.md` của mọi flow chứa file đó (kể cả qua `shared`) sẽ bị chặn ở pre-push/CI. Commit giữa
+  chừng không cần sửa docs; pre-commit chỉ chặn credential (R7).
 - **R4 (generated)** — block tự động trong `index.md`/`files.md` (giữa marker `crew-docs:flows`/`crew-docs:files`)
   phải khớp đúng kết quả `crew-docs generate`; không sửa tay phần đó.
 - **R6 (protected)** — đổi `.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md` ở gốc repo, file cấu hình hook

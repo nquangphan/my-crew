@@ -25,7 +25,9 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
    docs (áp dụng từ commit docs-init)`) và giữ exit code `0` của `outcome`.
 2. `packages/docs-kit/src/commands/check.ts` → `runCheck(root, mode)`: một trong 5 chế độ
    (`staged`/`commit-msg`/`range`/`pre-push`/`all`), mỗi chế độ gọi đúng tập luật R1–R7 theo bảng ở
-   `STANDARD.md#chế-độ`. `treeRules()` chạy R1 luôn, R2+R4 khi manifest hợp lệ. Commit merge (`isMerging()` từ
+   `STANDARD.md#chế-độ`. `staged` chỉ chạy R7 (`checkSecrets`) để commit nhanh. `treeRules()` chạy R1 luôn,
+   R2+R4 khi manifest hợp lệ. R3 chạy một lần trên cả range qua `rangeFreshness()`: gộp thay đổi của mọi
+   commit sau docs-init và báo lỗi trên head; `commitRules()` chỉ còn R6/R7 cho từng commit. Commit merge (`isMerging()` từ
    `git.ts`, hoặc phát hiện qua `firstParent`) được bỏ qua ở R3 và R6 vì các commit nó mang vào đã được kiểm
    tra riêng khi tạo ra; R1, R2, R4, R7 vẫn chạy. Ba chế độ hook (`staged`/`commit-msg`/`pre-push`) gọi
    `notAdopted()` khi `docs/flows.yaml` thiếu ở cả bản đang xét và bản trước (`headManifest()` cho staged/
@@ -103,7 +105,8 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 
 ## Tests
 
-- `packages/docs-kit/test/rules.test.ts`: từng luật R1–R7, cả 5 chế độ `check`, lệnh `where`/`flow`, sinh block
+- `packages/docs-kit/test/rules.test.ts`: từng luật R1–R7, cả 5 chế độ `check`, pre-commit không chặn R2/R3,
+  R3 chấp nhận doc được sửa ở commit sau trong cùng range và báo lỗi trên head, lệnh `where`/`flow`, sinh block
   tự động, hành vi bỏ qua R3/R6 trên commit merge, `--all`/`--range` vẫn báo `NOT_INITIALIZED`, ba chế độ hook
   cho qua với đúng một dòng cảnh báo khi repo chưa có `docs/flows.yaml` ở cả hai bản so sánh, và vẫn từ chối
   (exit 3) khi một commit hay một push xoá manifest khỏi repo đã khởi tạo docs; R6 với `AGENTS.md` ở gốc repo:

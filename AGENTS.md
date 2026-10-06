@@ -38,9 +38,10 @@ Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
 - Commit theo Conventional Commits.
 - Lint/format bằng Biome (`biome.json` ở gốc repo); không dùng ESLint/Prettier.
 
-## Docs đi cùng mỗi commit
+## Docs đi cùng mỗi lần push
 
-- Commit nào đổi file nguồn cũng phải sửa `docs/flows/<id>.md` của mọi flow chứa file đó (luật R3).
+- Mỗi lần push hoặc merge, nếu tập commit đổi file nguồn thì phải có commit (trong cùng lần đó) sửa
+  `docs/flows/<id>.md` của mọi flow chứa file đó (luật R3). Từng commit riêng lẻ không cần tự sửa docs.
 - File nguồn mới phải có mặt trong một flow của `docs/flows.yaml` (luật R2).
 - Sửa `docs/flows.yaml` xong thì chạy bundle `crew-docs generate` (build bằng
   `pnpm --filter @crew/docs-kit build`, ra `packages/docs-kit/dist/crew-docs.cjs`).
@@ -49,4 +50,5 @@ Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
   `Crew-Owner-Approved: <ticket-key>`.
 - Commit khởi tạo docs (thêm `docs/flows.yaml` lần đầu) cần trailer `Crew-Docs-Init: true`.
 - Không bao giờ commit credential (luật R7).
-- Kiểm tra trước khi commit: `crew-docs check --staged`.
+- Pre-commit chỉ chặn credential (`crew-docs check --staged`, R7). Kiểm docs trước khi push:
+  `crew-docs check --range <base>..HEAD`.

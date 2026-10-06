@@ -83,18 +83,17 @@ describe('R1 manifest', () => {
 });
 
 describe('R2 coverage', () => {
-  it('fails a new unmapped source file in --all and --staged, and passes once it is mapped', async () => {
+  it('fails a new unmapped source file in --all but not at commit time, and passes once it is mapped', async () => {
     const repo = await fixtureRepo();
     repo.write('src/checkout/coupon.ts', 'export const coupon = 1;\n');
-    let res = await repo.cli('check', '--all');
+    const res = await repo.cli('check', '--all');
     expect(res.code).toBe(1);
     expect(lines(res.out)).toEqual([
       expect.stringMatching(/^R2 src\/checkout\/coupon\.ts: source file is in no flow/),
     ]);
 
     repo.git('add', '-A');
-    res = await repo.cli('check', '--staged');
-    expect(lines(res.out, 'R2')).toHaveLength(1);
+    expect(await repo.cli('check', '--staged')).toMatchObject({ code: 0, out: '' });
 
     repo.write(
       'docs/flows.yaml',
@@ -117,19 +116,22 @@ describe('R2 coverage', () => {
 });
 
 describe('R3 freshness', () => {
-  it('blocks a mapped file changed without its flow doc, naming the doc, and passes once the doc is edited', async () => {
+  it('lets the commit through, blocks the range naming the doc, and passes once the doc is edited', async () => {
     const repo = await fixtureRepo();
+    const base = repo.head();
     repo.write('src/checkout/cart.ts', 'export const addItem = (item: string) => [item.trim()];\n');
     repo.git('add', '-A');
-    let res = await repo.cli('check', '--staged');
+    expect(await repo.cli('check', '--staged')).toMatchObject({ code: 0 });
+    const head = repo.commit('feat: cắt khoảng trắng');
+    let res = await range(repo, base);
     expect(res.code).toBe(1);
     expect(lines(res.out)).toEqual([
-      'R3 src/checkout/cart.ts: changed without updating docs/flows/checkout.md (flow checkout); edit that flow doc in the same commit',
+      `R3 src/checkout/cart.ts: changed without updating docs/flows/checkout.md (flow checkout); edit that flow doc in a commit of the same push [commit ${head.slice(0, 7)}]`,
     ]);
 
     repo.append('docs/flows/checkout.md', '\nTên món được cắt khoảng trắng.\n');
-    repo.git('add', '-A');
-    res = await repo.cli('check', '--staged');
+    repo.commit('docs: cập nhật checkout');
+    res = await range(repo, base);
     expect(res).toMatchObject({ code: 0 });
   });
 
@@ -181,45 +183,50 @@ describe('R3 freshness', () => {
 
   it('requires every flow a shared file lists, and nothing for an unassigned file', async () => {
     const repo = await fixtureRepo();
+    const base = repo.head();
     repo.write('src/db.ts', "export const db = { url: 'postgres' };\n");
     repo.append('docs/flows/checkout.md', '\nDùng Postgres.\n');
-    repo.git('add', '-A');
-    let res = await repo.cli('check', '--staged');
+    const head = repo.commit('feat: postgres');
+    let res = await range(repo, base);
     expect(lines(res.out)).toEqual([
-      'R3 src/db.ts: changed without updating docs/flows/payments.md (flow payments); edit that flow doc in the same commit',
+      `R3 src/db.ts: changed without updating docs/flows/payments.md (flow payments); edit that flow doc in a commit of the same push [commit ${head.slice(0, 7)}]`,
     ]);
     repo.append('docs/flows/payments.md', '\nDùng Postgres.\n');
-    repo.git('add', '-A');
-    expect(await repo.cli('check', '--staged')).toMatchObject({ code: 0 });
+    repo.commit('docs: payments dùng Postgres');
+    expect(await range(repo, base)).toMatchObject({ code: 0 });
 
-    repo.commit('feat: postgres');
+    const next = repo.head();
     repo.write('src/dev-reset.ts', 'export const reset = () => null;\n');
-    repo.git('add', '-A');
-    res = await repo.cli('check', '--staged');
+    repo.commit('chore: reset');
+    res = await range(repo, next);
     expect(res).toMatchObject({ code: 0 });
   });
 
-  it('flags only the bad commit of a range, tagged with its SHA', async () => {
+  it('accepts a doc edited in a later commit of the range, and reports a missing doc on the range head', async () => {
     const repo = await fixtureRepo();
     const base = repo.head();
     repo.write('src/checkout/cart.ts', 'export const addItem = (item: string) => [item, 1];\n');
     repo.append('docs/flows/checkout.md', '\nThêm số lượng.\n');
     repo.commit('feat: số lượng');
     repo.write('src/payments/charge.ts', 'export const charge = (amount: number) => amount >= 0;\n');
-    const bad = repo.commit('fix: cho phép 0 đồng');
+    repo.commit('fix: cho phép 0 đồng');
     repo.write(
       'src/checkout/routes.ts',
       "import { addItem } from './cart';\n\nexport const checkoutRoute = (item: string) => addItem(item.trim());\n",
     );
-    repo.append('docs/flows/checkout.md', '\nCắt khoảng trắng ở route.\n');
-    repo.commit('feat: route cắt khoảng trắng');
+    const head = repo.commit('feat: route cắt khoảng trắng');
 
-    const res = await range(repo, base);
+    let res = await range(repo, base);
     expect(res.code).toBe(1);
     expect(lines(res.out)).toEqual([
-      `R3 src/payments/charge.ts: changed without updating docs/flows/payments.md (flow payments); edit that flow doc in the same commit [commit ${bad.slice(0, 7)}]`,
+      `R3 src/payments/charge.ts: changed without updating docs/flows/payments.md (flow payments); edit that flow doc in a commit of the same push [commit ${head.slice(0, 7)}]`,
     ]);
     expect(res.err).toContain('(3 commits)');
+
+    repo.append('docs/flows/payments.md', '\nCho phép 0 đồng.\n');
+    repo.commit('docs: payments');
+    res = await range(repo, base);
+    expect(res).toMatchObject({ code: 0 });
   });
 
   it('skips merge commits because their parents are checked', async () => {
