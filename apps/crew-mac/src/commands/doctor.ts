@@ -38,11 +38,20 @@ export const TCC_PREDICATE =
 const PROMPT_RE = /^(\S+ \S+) .*AUTHREQ_PROMPTING: msgID=([\d.]+), service=(\w+), subject=Sub:\{([^}]*)\}/;
 const RESULT_RE = /AUTHREQ_RESULT: msgID=([\d.]+),/;
 
-export function parsePendingTccPrompts(logText: string): PendingPrompt[] {
+/**
+ * Hộp thoại đã hiện mà chưa có kết quả. Dòng có AUTHREQ_PROMPTING mà không khớp định dạng (macOS đổi định
+ * dạng, subject bị che thành <private>) được đếm vào `unparsed`, để doctor không báo đạt khi không đọc được.
+ */
+export function parsePendingTccPrompts(logText: string): { pending: PendingPrompt[]; unparsed: number } {
   const prompts = new Map<string, PendingPrompt>();
   const answered = new Set<string>();
+  let unparsed = 0;
   for (const line of logText.split('\n')) {
     const prompt = PROMPT_RE.exec(line);
+    if (!prompt && line.includes('AUTHREQ_PROMPTING')) {
+      unparsed++;
+      continue;
+    }
     if (prompt) {
       const msgId = prompt[2] as string;
       prompts.set(msgId, {
@@ -56,7 +65,7 @@ export function parsePendingTccPrompts(logText: string): PendingPrompt[] {
     const result = RESULT_RE.exec(line);
     if (result) answered.add(result[1] as string);
   }
-  return [...prompts.values()].filter((p) => !answered.has(p.msgId));
+  return { pending: [...prompts.values()].filter((p) => !answered.has(p.msgId)), unparsed };
 }
 
 const SERVICE_VI: Record<string, { what: string; section: string }> = {
@@ -86,20 +95,24 @@ export function printProbeScript(worktreeRoot: string, timeoutSec: number): stri
   return [
     `d=$(mktemp -d ${shQuote(`${worktreeRoot}/.crew-mac-doctor-XXXXXX`)}) || exit 90`,
     'git -C "$d" init -q || { rm -rf "$d"; exit 91; }',
+    `trap 'cd /; rm -rf "$d" "$d.out"' EXIT`,
     'cd "$d" || exit 92',
-    `claude -p 'Trả lời đúng một từ: ok' --model haiku --setting-sources project,local </dev/null >"$d.out" 2>&1 &`,
+    // macOS không có setsid: perl setpgrp đưa claude vào process group riêng để giết được cả con của nó.
+    `perl -e 'setpgrp(0, 0); exec @ARGV or die' claude -p 'Trả lời đúng một từ: ok' --model haiku --setting-sources project,local </dev/null >"$d.out" 2>&1 &`,
     'p=$!',
     'i=0',
     `while kill -0 "$p" 2>/dev/null && [ "$i" -lt ${timeoutSec} ]; do sleep 1; i=$((i+1)); done`,
-    'if kill -0 "$p" 2>/dev/null; then kill -9 "$p"; wait "$p" 2>/dev/null; echo CREW_MAC_TIMEOUT; rc=124; else wait "$p"; rc=$?; fi',
+    'if kill -0 "$p" 2>/dev/null; then kill -9 -- -"$p"; wait "$p" 2>/dev/null; echo CREW_MAC_TIMEOUT; rc=124; else wait "$p"; rc=$?; fi',
     'cat "$d.out"',
-    'cd / && rm -rf "$d" "$d.out"',
     'exit $rc',
   ].join('\n');
 }
 
 export function sshArgs(paths: MacPaths, manifest: Manifest, user: string, remoteCommand: string): string[] {
   return [
+    // Bỏ qua ~/.ssh/config của owner: chỉ dùng đúng các tùy chọn bên dưới.
+    '-F',
+    '/dev/null',
     '-p',
     String(manifest.port),
     '-i',
@@ -298,14 +311,28 @@ async function checkTccPending(ctx: MacContext, window: string): Promise<CheckRe
   );
   if (result.code !== 0)
     return { ...base, status: 'warn', detail: `không đọc được log hệ thống: ${result.stderr.trim()}` };
-  const pending = parsePendingTccPrompts(result.stdout);
-  if (pending.length === 0) return { ...base, status: 'ok', detail: `không có trong ${window} gần nhất` };
-  return {
-    ...base,
-    status: 'fail',
-    detail: pending.map((p) => `${p.at} ${p.service} cho ${p.subject}`).join('; '),
-    hint: pending.map(tccHint).join('\n'),
-  };
+  const { pending, unparsed } = parsePendingTccPrompts(result.stdout);
+  const unreadable =
+    unparsed > 0 ? `${unparsed} dòng AUTHREQ_PROMPTING không đọc được (định dạng log khác dự kiến)` : '';
+  if (pending.length > 0) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: [pending.map((p) => `${p.at} ${p.service} cho ${p.subject}`).join('; '), unreadable]
+        .filter(Boolean)
+        .join('; '),
+      hint: pending.map(tccHint).join('\n'),
+    };
+  }
+  if (unparsed > 0) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: unreadable,
+      hint: 'Mở màn hình Mac, xem có hộp thoại xin quyền đang chờ không và bấm "Allow" nếu là claude.',
+    };
+  }
+  return { ...base, status: 'ok', detail: `không có trong ${window} gần nhất` };
 }
 
 async function checkLoad(ctx: MacContext): Promise<CheckResult> {
@@ -316,6 +343,9 @@ async function checkLoad(ctx: MacContext): Promise<CheckResult> {
   ]);
   const load = parseLoad(loadavg.stdout, ncpu.stdout, pressure.stdout);
   const detail = `load 1 phút ${load.load1} / ${load.ncpu} CPU, RAM trống ${load.freePct}%`;
+  if (![load.load1, load.ncpu, load.freePct].every(Number.isFinite) || load.ncpu <= 0) {
+    return { id: 'load', title: 'Tải máy', status: 'warn', detail: `không đọc được số liệu tải (${detail})` };
+  }
   const busy = load.load1 / load.ncpu > 1.5 || load.freePct < 10;
   return busy
     ? {

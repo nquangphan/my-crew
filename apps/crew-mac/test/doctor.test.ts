@@ -1,4 +1,8 @@
-import { rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { describe, expect, it } from 'vitest';
 import {
   doctor,
@@ -19,6 +23,10 @@ const TCC_LOG = [
   '2026-10-06 11:57:48.683 Df tccd[75697:5ad68f1] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=75841.27701, service=kTCCServiceSystemPolicyDesktopFolder, subject=Sub:{/private/tmp/opendir}Resp:{TCCDProcess: identifier=opendir, pid=84654}',
   '2026-10-06 11:58:10.001 Df tccd[75697:5ad68f1] [com.apple.TCC:access] AUTHREQ_RESULT: msgID=75841.27701, authValue=0, authReason=2, authVersion=1, desired_auth=0, error=(null),',
 ].join('\n');
+
+// Cùng sự kiện nhưng subject bị log che thành <private>: không khớp định dạng đầy đủ.
+const TCC_PRIVATE_LINE =
+  '2026-10-06 12:00:00.000 Df tccd[75697:5ad6000] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=75841.27800, service=kTCCServiceSystemPolicyRemovableVolumes, subject=<private>';
 
 const AUTH_OK = JSON.stringify({ loggedIn: true, authMethod: 'claude.ai', subscriptionType: 'max' });
 
@@ -44,18 +52,25 @@ const okSsh = (remote: string) => {
 
 describe('parsePendingTccPrompts', () => {
   it('chỉ trả hộp thoại chưa có kết quả', () => {
-    expect(parsePendingTccPrompts(TCC_LOG)).toEqual([
-      {
-        msgId: '75841.27656',
-        at: '2026-10-06 10:41:02.207',
-        service: 'kTCCServiceSystemPolicyRemovableVolumes',
-        subject: '/Users/owner/.local/share/claude/versions/2.1.289',
-      },
-    ]);
+    expect(parsePendingTccPrompts(TCC_LOG)).toEqual({
+      pending: [
+        {
+          msgId: '75841.27656',
+          at: '2026-10-06 10:41:02.207',
+          service: 'kTCCServiceSystemPolicyRemovableVolumes',
+          subject: '/Users/owner/.local/share/claude/versions/2.1.289',
+        },
+      ],
+      unparsed: 0,
+    });
+  });
+
+  it('đếm dòng AUTHREQ_PROMPTING lệch định dạng thay vì bỏ qua', () => {
+    expect(parsePendingTccPrompts(`${TCC_LOG}\n${TCC_PRIVATE_LINE}`).unparsed).toBe(1);
   });
 
   it('hướng dẫn nêu tên binary, loại quyền và chỗ bấm', () => {
-    const [prompt] = parsePendingTccPrompts(TCC_LOG);
+    const [prompt] = parsePendingTccPrompts(TCC_LOG).pending;
     const hint = tccHint(prompt as NonNullable<typeof prompt>);
     expect(hint).toContain('"2.1.289"');
     expect(hint).toContain('ổ đĩa di động');
@@ -73,9 +88,30 @@ describe('printProbeScript', () => {
       "claude -p 'Trả lời đúng một từ: ok' --model haiku --setting-sources project,local",
     );
     expect(script).toContain('-lt 90');
-    expect(script).toContain('kill -9 "$p"');
+    expect(script).toContain("perl -e 'setpgrp(0, 0); exec @ARGV or die' claude -p");
+    expect(script).toContain('kill -9 -- -"$p"');
     expect(script).toContain('echo CREW_MAC_TIMEOUT');
-    expect(script).toContain('rm -rf "$d"');
+    expect(script).toContain(`trap 'cd /; rm -rf "$d" "$d.out"' EXIT`);
+  });
+
+  it('quá hạn thì giết cả nhóm process của claude và dọn thư mục tạm', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'crew-probe-root-'));
+    const bin = mkdtempSync(join(tmpdir(), 'crew-probe-bin-'));
+    const marker = `sleep ${3000 + (process.pid % 997)}`;
+    // claude giả: bỏ qua SIGTERM, sinh một process con rồi treo.
+    writeFileSync(join(bin, 'claude'), `#!/bin/sh\ntrap '' TERM\n${marker} &\n${marker}\n`);
+    chmodSync(join(bin, 'claude'), 0o755);
+    const run = spawnSync('/bin/sh', ['-c', printProbeScript(root, 1)], {
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+      encoding: 'utf8',
+      timeout: 15_000,
+    });
+    expect(run.stdout).toContain('CREW_MAC_TIMEOUT');
+    expect(run.status).toBe(124);
+    await sleep(300);
+    const ps = spawnSync('/bin/ps', ['-axo', 'command='], { encoding: 'utf8' }).stdout;
+    expect(ps.split('\n').filter((line) => line.trim() === marker)).toEqual([]);
+    expect(readdirSync(root)).toEqual([]);
   });
 });
 
@@ -114,6 +150,7 @@ describe('crew-mac doctor', () => {
     const log = runner.calls.find((c) => c.command === '/usr/bin/log');
     expect(log?.args).toEqual(['show', '--last', '24h', '--style', 'compact', '--predicate', TCC_PREDICATE]);
     const ssh = runner.calls.find((c) => c.command === 'ssh');
+    expect(ssh?.args.slice(0, 2)).toEqual(['-F', '/dev/null']);
     expect(ssh?.args).toContain('BatchMode=yes');
     expect(ssh?.args).toContain('owner@100.102.189.67');
   });
@@ -179,6 +216,24 @@ describe('crew-mac doctor', () => {
     );
     const results = await doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.find((r) => r.id === 'wrapper')?.status).toBe('fail');
+  });
+
+  it('log TCC có dòng lệch định dạng thì cảnh báo, không báo đạt', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/log', () => ({
+      stdout: `Timestamp               Ty Process[PID:TID]\n${TCC_PRIVATE_LINE}\n`,
+    }));
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    const tcc = results.find((r) => r.id === 'tcc-pending');
+    expect(tcc?.status).toBe('warn');
+    expect(tcc?.detail).toContain('1 dòng');
+  });
+
+  it('không đọc được số liệu tải thì cảnh báo', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('memory_pressure', () => ({ code: 1, stdout: '' }));
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'load')?.status).toBe('warn');
   });
 
   it('máy quá tải thì cảnh báo', async () => {

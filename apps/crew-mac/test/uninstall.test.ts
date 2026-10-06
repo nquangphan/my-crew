@@ -1,10 +1,20 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { setup } from '../src/commands/setup.js';
 import { uninstall } from '../src/commands/uninstall.js';
+import { SetupError } from '../src/context.js';
 import { macPaths, SPIKE_LABEL, SSHD_LABEL } from '../src/paths.js';
-import { PATH_BLOCK_BODY, SPIKE_PATH_COMMENT } from '../src/zshenv.js';
+import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY, SPIKE_PATH_COMMENT } from '../src/zshenv.js';
 import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
 const OWNER_KEY = 'ssh-ed25519 AAAAOwnerKey owner@macbook';
@@ -24,6 +34,30 @@ function seedSpike(home: string) {
 }
 
 describe('crew-mac uninstall', () => {
+  it('~/.zshenv có khối mở mà thiếu dòng đóng thì dừng và giữ nguyên file', async () => {
+    const { home, ctx } = fakeMac();
+    const broken = `export A=1\n${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\nexport OWNER=giu\n`;
+    writeFileSync(join(home, '.zshenv'), broken);
+    await expect(uninstall(ctx)).rejects.toThrow(SetupError);
+    expect(readFileSync(join(home, '.zshenv'), 'utf8')).toBe(broken);
+  });
+
+  it('~/.zshenv là symlink: gỡ khối trong file đích, không xóa symlink kể cả khi file rỗng', async () => {
+    const { home, ctx } = fakeMac();
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    const paths = macPaths(home);
+    const target = join(home, 'dotfiles-zshenv');
+    writeFileSync(target, readFileSync(paths.zshenv, 'utf8'), { mode: 0o600 });
+    rmSync(paths.zshenv);
+    symlinkSync(target, paths.zshenv);
+
+    await uninstall(ctx);
+
+    expect(lstatSync(paths.zshenv).isSymbolicLink()).toBe(true);
+    expect(readFileSync(target, 'utf8')).toBe('');
+    expect(statSync(target).mode & 0o777).toBe(0o600);
+  });
+
   it('gỡ phần spike rồi setup cài lại được (kịch bản AC-1)', async () => {
     const { home, ctx, loaded } = fakeMac({ spikeLoaded: true });
     seedSpike(home);

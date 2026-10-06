@@ -1,4 +1,5 @@
-import { isAbsolute, join, resolve } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 
 export const SSHD_LABEL = 'com.2p.crew-mac-sshd';
 export const REAPER_LABEL = 'com.2p.crew-mac-reaper';
@@ -43,11 +44,36 @@ export function macPaths(home: string) {
 
 export type MacPaths = ReturnType<typeof macPaths>;
 
+/**
+ * Đường dẫn thật để so sánh: resolve symlink của phần đã tồn tại gần nhất, nối phần chưa tồn tại phía sau,
+ * rồi hạ chữ thường vì APFS mặc định không phân biệt hoa thường.
+ */
+function comparablePath(path: string): string {
+  let existing = resolve(path);
+  const rest: string[] = [];
+  while (!existsSync(existing)) {
+    const parent = dirname(existing);
+    if (parent === existing) break;
+    rest.unshift(basename(existing));
+    existing = parent;
+  }
+  let real = existing;
+  try {
+    real = realpathSync(existing);
+  } catch {
+    // Không đọc được (quyền): giữ đường dẫn đã resolve.
+  }
+  return join(real, ...rest).toLowerCase();
+}
+
 /** Lý do không được đặt worktree ở `root`, hoặc null nếu được. */
 export function forbiddenRootReason(home: string, root: string): string | null {
   if (!isAbsolute(root)) return 'thư mục gốc worktree phải là đường dẫn tuyệt đối';
-  const abs = resolve(root);
-  const under = (base: string) => abs === base || abs.startsWith(`${base}/`);
+  const abs = comparablePath(root);
+  const under = (base: string) => {
+    const b = comparablePath(base);
+    return abs === b || abs.startsWith(`${b}/`);
+  };
   if (under('/Volumes')) return 'không đặt dưới /Volumes: macOS hỏi quyền ổ ngoài và agent treo im lặng';
   if (under(join(home, 'Desktop'))) return 'không đặt dưới ~/Desktop: thư mục được macOS bảo vệ (TCC)';
   if (under(join(home, 'Downloads'))) return 'không đặt dưới ~/Downloads: thư mục được macOS bảo vệ (TCC)';

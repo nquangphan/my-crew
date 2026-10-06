@@ -1,20 +1,66 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { setup } from '../src/commands/setup.js';
 import { SetupError } from '../src/context.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
 import { WRAPPER_SOURCE } from '../src/wrapper.js';
-import { PATH_BLOCK_BEGIN } from '../src/zshenv.js';
+import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY } from '../src/zshenv.js';
 import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
 describe('crew-mac setup', () => {
+  it('~/.zshenv có khối mở mà thiếu dòng đóng thì dừng và giữ nguyên file', async () => {
+    const { home, ctx } = fakeMac();
+    const broken = `export A=1\n${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\nexport OWNER=giu\n`;
+    writeFileSync(join(home, '.zshenv'), broken);
+    await expect(setup(ctx, { paperclipKey: PAPERCLIP_PUB })).rejects.toThrow(SetupError);
+    expect(readFileSync(join(home, '.zshenv'), 'utf8')).toBe(broken);
+  });
+
+  it('~/.zshenv và authorized_keys là symlink từ dotfiles: giữ symlink, sửa file đích, giữ mode', async () => {
+    const { home, ctx } = fakeMac();
+    const dotfiles = join(home, 'dotfiles');
+    mkdirSync(dotfiles);
+    writeFileSync(join(dotfiles, 'zshenv'), 'export A=1\n', { mode: 0o600 });
+    symlinkSync(join(dotfiles, 'zshenv'), join(home, '.zshenv'));
+    mkdirSync(join(home, '.ssh'));
+    writeFileSync(join(dotfiles, 'authorized_keys'), 'ssh-ed25519 AAAAOwnerKey owner@macbook\n', {
+      mode: 0o600,
+    });
+    symlinkSync(join(dotfiles, 'authorized_keys'), join(home, '.ssh', 'authorized_keys'));
+
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+
+    expect(lstatSync(join(home, '.zshenv')).isSymbolicLink()).toBe(true);
+    expect(readFileSync(join(dotfiles, 'zshenv'), 'utf8')).toContain(PATH_BLOCK_BEGIN);
+    expect(statSync(join(dotfiles, 'zshenv')).mode & 0o777).toBe(0o600);
+    expect(lstatSync(join(home, '.ssh', 'authorized_keys')).isSymbolicLink()).toBe(true);
+    expect(readFileSync(join(dotfiles, 'authorized_keys'), 'utf8')).toContain('crew-mac-paperclip');
+  });
+
+  it('thư mục worktree là symlink trỏ vào ~/Desktop thì từ chối', async () => {
+    const { home, ctx } = fakeMac();
+    mkdirSync(join(home, 'Desktop', 'agents'), { recursive: true });
+    symlinkSync(join(home, 'Desktop', 'agents'), join(home, 'agents-link'));
+    await expect(
+      setup(ctx, { paperclipKey: PAPERCLIP_PUB, worktreeRoot: join(home, 'agents-link') }),
+    ).rejects.toThrow('Desktop');
+  });
+
   it('cài sshd phiên Aqua, key, PATH, thư mục worktree và manifest', async () => {
     const { home, ctx, runner, loaded } = fakeMac();
     const paths = macPaths(home);
     writeFileSync(join(home, '.zshenv'), 'export EDITOR=vim\n');
     mkdirSync(join(home, '.ssh'), { recursive: true });
-    writeFileSync(paths.authorizedKeys, 'ssh-ed25519 AAAAOwnerKey owner@macbook\n');
+    writeFileSync(paths.authorizedKeys, 'ssh-ed25519 AAAAOwnerKey owner@macbook\n', { mode: 0o600 });
 
     const report = await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
 
@@ -44,8 +90,9 @@ describe('crew-mac setup', () => {
   });
 
   it('chạy lại không đổi file nào và không restart', async () => {
-    const { ctx, runner } = fakeMac();
+    const { home, ctx, runner } = fakeMac();
     await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    expect(statSync(macPaths(home).authorizedKeys).mode & 0o777).toBe(0o600);
     const before = runner.calls.length;
     const report = await setup(ctx);
     expect(report.changed).toEqual([]);

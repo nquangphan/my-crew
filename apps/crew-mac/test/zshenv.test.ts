@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SetupError } from '../src/context.js';
 import {
   hasPathBlock,
   PATH_BLOCK_BEGIN,
@@ -32,6 +33,12 @@ describe('khối PATH trong ~/.zshenv', () => {
   it('gỡ đúng hai dòng PATH của spike, không đụng dòng PATH khác', () => {
     const text = `export A=1\n${SPIKE_PATH_COMMENT}\n${PATH_BLOCK_BODY}\nexport PATH="$HOME/bin:$PATH"\n`;
     expect(removeSpikePathLines(text)).toBe('export A=1\nexport PATH="$HOME/bin:$PATH"\n');
+  });
+
+  it('khối thiếu dòng đóng thì báo lỗi, không bỏ phần còn lại của file', () => {
+    const text = `export A=1\n${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\nexport OWNER=giu\n`;
+    expect(() => removePathBlock(text)).toThrow(SetupError);
+    expect(() => upsertPathBlock(text)).toThrow('dòng đóng');
   });
 
   it('không gỡ dòng PATH giống hệt nếu không đi sau comment spike', () => {

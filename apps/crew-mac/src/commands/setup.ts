@@ -121,6 +121,8 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   const worktreeRoot = resolve(options.worktreeRoot ?? previous?.worktreeRoot ?? paths.defaultWorktreeRoot);
   const forbidden = forbiddenRootReason(ctx.home, worktreeRoot);
   if (forbidden) throw new SetupError(`${worktreeRoot}: ${forbidden}.`);
+  // Tính trước khi ghi gì: khối PATH hỏng trong ~/.zshenv thì dừng khi máy còn nguyên.
+  const zshenvNext = upsertPathBlock(readText(paths.zshenv));
 
   const changed: string[] = [];
   const track = (path: string, didChange: boolean) => {
@@ -146,8 +148,8 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   );
   let keys = upsertKey(readText(paths.authorizedKeys), paperclipKey, PAPERCLIP_KEY_COMMENT);
   keys = upsertKey(keys, publicKeyOf(paths.doctorKey), DOCTOR_KEY_COMMENT, DOCTOR_KEY_OPTIONS);
-  track(paths.authorizedKeys, writeIfChanged(paths.authorizedKeys, keys, 0o600));
-  track(paths.zshenv, writeIfChanged(paths.zshenv, upsertPathBlock(readText(paths.zshenv)), 0o644));
+  track(paths.authorizedKeys, writeIfChanged(paths.authorizedKeys, keys, 0o600, { keepExistingMode: true }));
+  track(paths.zshenv, writeIfChanged(paths.zshenv, zshenvNext, 0o644, { keepExistingMode: true }));
   track(paths.wrapper, writeIfChanged(paths.wrapper, readFileSync(WRAPPER_SOURCE, 'utf8'), 0o755));
   if (!existsSync(worktreeRoot)) {
     mkdirSync(worktreeRoot, { recursive: true, mode: 0o700 });
