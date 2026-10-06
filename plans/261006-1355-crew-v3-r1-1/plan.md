@@ -87,3 +87,23 @@ Trợ Lý tự review 06/10/2026 sau khi ba gói viết xong phần chi tiết:
 - **Review Focus:** mỗi dòng có ticket sở hữu test: 1 → RT-1 + MS-2; 2, 3 → RT-1; 4 → MS-1 (`doctor` phát hiện TCC); 5 → RT-2.
 
 Còn chờ owner: duyệt push fork để mở PR upstream cho P1–P4; chọn nơi đặt bản sao backup ngoài VPS.
+
+## Kết quả (06/10/2026)
+
+- Mọi ticket đạt review riêng: RL-1, RL-2, RT-1, RT-2, RT-3, RT-4, MS-1, MS-2, MS-3 (MS-3 thêm giữa chừng: `crew-mac stop-run` nhận diện process của run theo cây cha–con và worktree, vì Bash tool của Claude Code chạy trong process group và session riêng). Review toàn nhánh (fable) cùng một đợt sửa.
+- AC-1 trên máy thật (Mac mini + VPS spike, commit server `1b85a07ed`): 12/13 tiêu chí đạt — issue chạy `in_place` đúng worktree agent, hủy run dừng process ~6 giây và issue chuyển `blocked`, restart server không chạy song song, mất mạng thì reaper dọn sau 138 giây, Mac quá tải/không vào được/hết hạn chờ đúng, restore đọc đúng 39 issue và 81 run. Không đạt: mất mạng dẫn tới commit trùng vì retry làm lại việc process cũ đã kịp commit; spec Review Focus 1 vẫn đạt.
+- `crew-mac` đã cài trên Mac mini (`~/.crew/app/crew-mac`, LaunchAgent `com.2p.crew-mac-sshd`, `com.2p.crew-mac-reaper`), worktree agent `~/crew-agents/mac-claude`.
+- Nhánh fork chỉ gộp cục bộ vào `v3`, chưa push (PR upstream cho P1–P4 để sau, cần owner duyệt).
+
+## Việc bắt buộc đầu R1-2 (chuyển từ R1-1)
+
+1. Retry sau mất kết nối phải kiểm tiến độ worktree (commit kể từ `started` của run trước) trước khi làm lại, để không commit trùng.
+2. H3: `crew-mac stop-run` thoát 2 (root ngoài worktree root hoặc chưa setup) thì chạy fallback thay vì chỉ ghi `failed`.
+3. Cổng tải: khi ghi comment chờ lỗi bền vẫn phải có mốc deadline bền (ghi activity), hoặc trần cứng theo `createdAt`, để không chờ vô hạn.
+4. `crew-mac uninstall` từ chối khi còn run đang chạy (trừ `--force`).
+5. `doctor` chỉ báo lỗi hộp thoại quyền macOS của claude/node agent; app khác chỉ cảnh báo.
+6. Đóng gói plugin `crew.core` thành bundle (bỏ phụ thuộc tsx loader dev của image Paperclip) và kiểm `/plugins/<id>/health` sau mỗi deploy.
+7. Logic thật của H2 (chặn `done` khi chưa đủ stage, chặn agent sửa/xóa `executionPolicy`).
+
+Danh sách minor hoãn và mọi ruling nằm trong [sdd-ledger.md](sdd-ledger.md).
+

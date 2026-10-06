@@ -36,7 +36,7 @@ Kế thừa nguyên văn mục Global Constraints của [plan.md](plan.md) và [
   - Đo tải: timeout SSH 5 giây, cache 15 giây cho mỗi environment.
 - **Giờ trong comment:** hiển thị theo `Asia/Ho_Chi_Minh`, nội dung comment bằng tiếng Việt.
 - **VPS:**
-  - Chỉ đụng `/opt/crew-v3-spike`, `/opt/crew-v3-restore-drill` (tạm) và `/etc/cron.d/crew-v3-spike-backup`.
+  - Chỉ đụng `/opt/crew-v3-spike` (kể cả `/opt/crew-v3-spike/restore-drill` tạm và compose project `crew-v3-spike-restore`), systemd unit `crew-v3-spike-backup.{service,timer}` và dòng key kéo backup trong `/root/.ssh/authorized_keys`.
   - Trước khi build hoặc chạy restore drill phải kiểm RAM available: build cần ≥ 2048 MiB, drill cần ≥ 3072 MiB.
 - **Restart server:** chỉ restart server spike khi `crew/ops/active-runs.sh` trả 0 dòng.
 - **Hook `scout-block` trên MacBook:** lệnh Bash có chữ `dist` hoặc `node_modules` bị chặn. File có các chữ đó phải tạo bằng công cụ ghi file.
@@ -84,7 +84,7 @@ H1 giữ nguyên chữ ký `beforeClaim({ db, run })`. Khi hết hạn chờ, `l
 | `packages/crew-plugin/src/manifest.ts`, `src/worker.ts` (RL-1 tạo) | RT-1.2 | Thêm capability, gọi handler trong `setup` |
 | `server/src/crew/load-gate.ts` | RT-2 | Cấu hình theo environment, cache đo tải, quyết định chờ hay hết hạn, thông báo |
 | `server/src/__tests__/crew-load-gate.test.ts` | RT-2 | Test với deps giả |
-| `crew/ops/active-runs.sh`, `backup.sh`, `restore-drill.sh`, `crew-v3-spike-backup.cron` | RT-3 | Backup, diễn tập restore, lịch |
+| `crew/ops/active-runs.sh`, `backup.sh`, `restore-drill.sh`, `systemd/crew-v3-spike-backup.{service,timer}`, `backup-serve.sh`, `pull-backup.sh`, `pull-backup.test.mjs`, `launchd/com.2p.crew-backup-pull.plist` | RT-3 | Backup, diễn tập restore, lịch, bản sao kéo về Mac mini |
 | `crew/ops/overlay-source.sh`, `overlay-job.sh`, `deploy.sh`, `rollback.sh`, `inspect-image.sh`, `watch-run.sh` | RT-4 | Overlay, deploy, rollback, kiểm image, theo dõi kịch bản |
 
 Đường dẫn fork: `/Users/phannhatquang/Documents/projects/crew/.worktrees/paperclip-v3` (sau đây gọi là `$FORK`).
@@ -1319,8 +1319,9 @@ git commit -m "feat(crew): hold queued runs while their Mac is overloaded or unr
 - Chưa có bản sao ngoài VPS: xem "Đề nghị sửa khung".
 
 **Files:**
-- Create (fork): `crew/ops/active-runs.sh`, `crew/ops/backup.sh`, `crew/ops/restore-drill.sh`, `crew/ops/crew-v3-spike-backup.cron`
-- VPS: `/opt/crew-v3-spike/ops/`, `/etc/cron.d/crew-v3-spike-backup`
+- Create (fork): `crew/ops/active-runs.sh`, `crew/ops/backup.sh`, `crew/ops/restore-drill.sh`, `crew/ops/systemd/crew-v3-spike-backup.service`, `crew/ops/systemd/crew-v3-spike-backup.timer`, `crew/ops/backup-serve.sh`, `crew/ops/pull-backup.sh`, `crew/ops/pull-backup.test.mjs`, `crew/ops/launchd/com.2p.crew-backup-pull.plist`
+- VPS: `/opt/crew-v3-spike/ops/`, `/etc/systemd/system/crew-v3-spike-backup.{service,timer}`, một dòng trong `/root/.ssh/authorized_keys`
+- Mac mini: `~/.ssh/crew_backup_pull_ed25519`, `~/.ssh/crew_backup_pull_known_hosts`, `~/crew-backups/`, `~/Library/LaunchAgents/com.2p.crew-backup-pull.plist`
 - Modify (repo Crew): `plans/261006-1355-crew-v3-r1-1/processes.md`
 
 **Interfaces:**
@@ -1354,6 +1355,8 @@ docker exec crew-v3-spike-db-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
 
 - [ ] **Step 3: Viết `crew/ops/backup.sh`**
+
+Bản đã commit ở fork (nhánh `crew/rt3-backup`) là bản đúng; khối dưới là bản viết lúc lập plan. Bản commit sửa thêm: drill chờ healthcheck bằng `up -d --wait db`, gửi header `Host` công khai, cách ly thêm `heartbeat_runs`; backup ghi tar ra `.tmp` rồi `mv` và chấp nhận exit 1 của tar.
 
 ```bash
 #!/bin/bash
@@ -1398,17 +1401,20 @@ echo "backup $TS ok: $(du -ch "$OUT"/*-"$TS".* | tail -1 | cut -f1) total, built
 
 - [ ] **Step 4: Viết `crew/ops/restore-drill.sh`**
 
+Bản đã commit ở fork (nhánh `crew/rt3-backup`) là bản đúng; khối dưới là bản viết lúc lập plan. Bản commit sửa thêm: drill chờ healthcheck bằng `up -d --wait db`, gửi header `Host` công khai, cách ly thêm `heartbeat_runs`; backup ghi tar ra `.tmp` rồi `mv` và chấp nhận exit 1 của tar.
+
 ```bash
 #!/bin/bash
-# Restores a daily backup into a throwaway compose project (crew-v3-restore), checks the data,
+# Restores a daily backup into a throwaway compose project (crew-v3-spike-restore, files under
+# /opt/crew-v3-spike/restore-drill), checks the data,
 # also restores the newest built-in .sql.gz into a scratch DB, then removes everything.
 # Usage: restore-drill.sh <TS>   (TS from /opt/crew-v3-spike/backups/daily/LATEST)
 set -euo pipefail
 ROOT=/opt/crew-v3-spike
 SRC=$ROOT/backups/daily
 TS=$1
-DRILL=/opt/crew-v3-restore-drill
-P=crew-v3-restore
+DRILL=$ROOT/restore-drill
+P=crew-v3-spike-restore
 
 [ ! -e "$DRILL" ] || { echo "drill: $DRILL exists, remove it first" >&2; exit 2; }
 AV=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
@@ -1486,11 +1492,37 @@ echo "drill: builtin $(basename "$BUILTIN") restored, issues=$BUILTIN_ISSUES"
 echo "DRILL OK"
 ```
 
-- [ ] **Step 5: Viết `crew/ops/crew-v3-spike-backup.cron`**
+- [ ] **Step 5: Viết lịch backup bằng systemd timer**
 
+VPS không cài gói `cron`, nên lịch dùng systemd (đã kiểm: `dpkg -l cron` báo `un`).
+
+`crew/ops/systemd/crew-v3-spike-backup.service`:
+
+```ini
+# Daily backup of the crew-v3-spike Paperclip stack (started by crew-v3-spike-backup.timer).
+[Unit]
+Description=crew-v3-spike daily Paperclip backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/opt/crew-v3-spike/ops/backup.sh >> /opt/crew-v3-spike/backups/backup.log 2>&1'
 ```
-# Daily backup of the crew-v3-spike Paperclip stack at 03:30 (VPS clock is +07, Asia/Ho_Chi_Minh).
-30 3 * * * root /opt/crew-v3-spike/ops/backup.sh >> /opt/crew-v3-spike/backups/backup.log 2>&1
+
+`crew/ops/systemd/crew-v3-spike-backup.timer`:
+
+```ini
+# 03:30 every day in the VPS local time (+07, Asia/Ho_Chi_Minh). Persistent catches up after downtime.
+[Unit]
+Description=crew-v3-spike daily Paperclip backup at 03:30
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
 ```
 
 - [ ] **Step 6: Đưa lên VPS và chạy backup lần đầu**
@@ -1509,28 +1541,49 @@ Expected:
 
 - [ ] **Step 7: Diễn tập restore**
 
-Run: `ssh nhamoiplatform '/opt/crew-v3-spike/ops/restore-drill.sh "$(cat /opt/crew-v3-spike/backups/daily/LATEST)"; echo exit=$?; docker ps -a --format "{{.Names}}" | grep crew-v3-restore; ls /opt/crew-v3-restore-drill 2>&1 | head -1'`
+Run: `ssh nhamoiplatform '/opt/crew-v3-spike/ops/restore-drill.sh "$(cat /opt/crew-v3-spike/backups/daily/LATEST)"; echo exit=$?; docker ps -a --format "{{.Names}}" | grep crew-v3-spike-restore; ls /opt/crew-v3-spike/restore-drill 2>&1 | head -1'`
 
 Expected:
 - Các dòng `drill: issues match (N), heartbeat_runs=M`, `drill: API issue … status=X expected=X`, `drill: builtin paperclip-….sql.gz restored, issues=N'` (N' ≥ N), `DRILL OK`, `exit=0`.
-- Không còn container `crew-v3-restore-*`; `ls` báo không có thư mục.
+- Không còn container `crew-v3-spike-restore-*`; `ls /opt/crew-v3-spike/restore-drill` báo không có thư mục.
 - Trong lúc drill, từ MacBook chạy `ssh phannhatquang@100.102.189.67 'pgrep -fl "claude --print" | wc -l'`, phải in `0`.
 
-- [ ] **Step 8: Cài lịch**
+- [ ] **Step 8: Cài lịch và bản sao kéo về Mac mini**
 
-Run: `scp -q crew/ops/crew-v3-spike-backup.cron nhamoiplatform:/etc/cron.d/crew-v3-spike-backup && ssh nhamoiplatform 'chmod 644 /etc/cron.d/crew-v3-spike-backup && cat /etc/cron.d/crew-v3-spike-backup && date'`
-Expected: in đúng hai dòng của file; `date` có `+07`.
+Lịch backup trên VPS:
+```bash
+scp -q crew/ops/systemd/crew-v3-spike-backup.service crew/ops/systemd/crew-v3-spike-backup.timer nhamoiplatform:/etc/systemd/system/
+ssh nhamoiplatform 'chmod 644 /etc/systemd/system/crew-v3-spike-backup.*; systemctl daemon-reload && systemctl enable --now crew-v3-spike-backup.timer; systemctl list-timers crew-v3-spike-backup.timer --no-pager; systemctl start crew-v3-spike-backup.service; systemctl show crew-v3-spike-backup.service -p Result'
+```
+Expected: lần chạy kế tiếp 03:30 (+07); `Result=success`.
+
+Bản sao ngoài VPS (quyết định của owner: kéo về Mac mini, giữ 14 ngày):
+- Trên VPS, forced command `crew/ops/backup-serve.sh` chỉ nhận `list`, `manifest <TS>`, `get <tên file backup>`; không phục vụ symlink. VPS không có `rsync`, nên không dùng `rrsync`.
+- Trên Mac mini, tạo key riêng `~/.ssh/crew_backup_pull_ed25519` và known_hosts riêng (đối chiếu fingerprint với `/etc/ssh/ssh_host_ed25519_key.pub` của VPS).
+- Thêm vào `/root/.ssh/authorized_keys` của VPS (sao lưu file trước): `restrict,from="100.102.189.67",command="/opt/crew-v3-spike/ops/backup-serve.sh" ssh-ed25519 <key> crew-backup-pull-mac-mini`.
+- `crew/ops/pull-backup.sh` chép tới `~/crew-backups/bin/pull-backup.sh`, đích `~/crew-backups/vps/<TS>/`:
+  - kiểm kích thước, sha256, `gzip -t`, header `PGDMP`, và đúng 4 tên file của bộ;
+  - giữ 14 ngày, luôn giữ 3 bộ mới nhất, chỉ xoá theo tuổi khi còn ít nhất một bộ không quá 2 ngày tuổi;
+  - bộ mới nhất trên VPS quá 2 ngày tuổi thì in `stale=1` và exit khác 0.
+- LaunchAgent `crew/ops/launchd/com.2p.crew-backup-pull.plist` chạy lúc 04:15 hằng ngày.
+
+Test: `node --test crew/ops/pull-backup.test.mjs` (6 test). Kiểm thật từ Mac mini:
+- `list` chạy được;
+- lệnh lạ, `get ../../.env`, `-tt`, `-L` bị chặn;
+- vào qua IP public bị từ chối;
+- `pull-backup.sh` báo `failed=0 stale=0`.
 
 - [ ] **Step 9: Ghi `processes.md` và commit fork**
 
 Trong `plans/261006-1355-crew-v3-r1-1/processes.md`, thêm các dòng sau, mỗi dòng kèm cách gỡ:
 - `/opt/crew-v3-spike/ops/`, `/opt/crew-v3-spike/backups/daily` (dung lượng đo ở Step 6);
-- `/etc/cron.d/crew-v3-spike-backup` (gỡ: `rm /etc/cron.d/crew-v3-spike-backup`);
+- systemd timer `crew-v3-spike-backup.timer` (gỡ: `systemctl disable --now crew-v3-spike-backup.timer && rm /etc/systemd/system/crew-v3-spike-backup.{service,timer} && systemctl daemon-reload`);
+- dòng key `crew-backup-pull-mac-mini` trong `/root/.ssh/authorized_keys` (gỡ: `sed -i '/crew-backup-pull-mac-mini/d' /root/.ssh/authorized_keys`), và phía Mac mini: key, `~/crew-backups/`, LaunchAgent `com.2p.crew-backup-pull`;
 - kết quả drill.
 
 ```bash
 cd $FORK
-git add crew/ops/active-runs.sh crew/ops/backup.sh crew/ops/restore-drill.sh crew/ops/crew-v3-spike-backup.cron
+git add crew/ops/active-runs.sh crew/ops/backup.sh crew/ops/restore-drill.sh crew/ops/systemd/crew-v3-spike-backup.service crew/ops/systemd/crew-v3-spike-backup.timer crew/ops/backup-serve.sh crew/ops/pull-backup.sh crew/ops/pull-backup.test.mjs crew/ops/launchd/com.2p.crew-backup-pull.plist
 git commit -m "feat(crew-ops): daily backup and a restore drill for the Paperclip stack"
 ```
 
@@ -1870,7 +1923,7 @@ git commit -m "docs(v3): kết quả deploy R1-1 và chạy lại S3, S5"
 | Plugin chuyển `blocked` khi đã có run mới xếp hàng cho issue | Issue `blocked` nhưng run mới vẫn chạy | Bộ lọc `executionRunId`; nếu vẫn gặp thì cần capability đọc run để kiểm "không còn run queued" |
 | Plugin không resolve `@paperclipai/plugin-sdk` trong image | `inspect-image.sh` báo `plugin sdk FAIL`; plugin `error` | Không deploy; đổi script `build` của plugin sang esbuild bundle (báo gói `release`) |
 | Backup cùng đĩa với dữ liệu | Mất đĩa VPS thì mất cả hai | Chờ owner chọn nơi đặt bản sao ngoài VPS; không chặn RT-3 |
-| Restore drill vô tình chạy agent | Process `claude` xuất hiện trên Mac trong lúc drill | Drill archive environment, pause agent và tắt scheduler trước khi bật server. Nếu vẫn thấy process: `docker compose -p crew-v3-restore down` ngay |
+| Restore drill vô tình chạy agent | Process `claude` xuất hiện trên Mac trong lúc drill | Drill archive environment, pause agent và tắt scheduler trước khi bật server. Nếu vẫn thấy process: `docker compose -p crew-v3-spike-restore down` ngay |
 
 **Rollback từng phần:**
 - **Server:**
@@ -1878,7 +1931,7 @@ git commit -m "docs(v3): kết quả deploy R1-1 và chạy lại S3, S5"
   2. `ssh nhamoiplatform '/opt/crew-v3-spike/ops/rollback.sh <TS>'` về image trước, mặc định `crew-v3-spike/paperclip:in-place-6ab1aa8`.
 - **Wrapper:** xóa key `command` khỏi `adapterConfig` của agent (agent quay về `claude`). Wrapper thuộc MS-1, để nguyên trên Mac.
 - **Cổng tải:** xóa key `crewLoadGate` khỏi metadata environment (`PATCH /environments/:id`).
-- **Backup:** `rm /etc/cron.d/crew-v3-spike-backup`. Thư mục `backups/daily` giữ tới khi owner cho xóa.
+- **Backup:** tắt và gỡ systemd timer `crew-v3-spike-backup.timer`; gỡ dòng key `crew-backup-pull-mac-mini` và LaunchAgent `com.2p.crew-backup-pull`. Thư mục `backups/daily` và `~/crew-backups` giữ tới khi owner cho xóa.
 - **Dữ liệu:** chỉ khi owner duyệt.
   1. `docker compose stop server`.
   2. Trong container DB chạy `dropdb` rồi `createdb`.
@@ -1910,7 +1963,7 @@ Trợ Lý đã đối chiếu và chốt. Mọi mục dưới đây đã đượ
 - **Phủ yêu cầu:**
   - RT-1: H3 đi qua cả bốn đường release; nhận diện bằng file `pgid` cộng token; test đơn vị trên macOS thật trong RT-1.1; kịch bản S3 trong RT-4; issue sau hủy ở RT-1.2.
   - RT-2: cache TTL; timeout 5 giây; lý do trên UI (comment hệ thống + activity); thời hạn rồi `cancelled` + `blocked`; ngưỡng trong metadata environment.
-  - RT-3: dùng cơ chế backup có sẵn, thêm backup hằng ngày, drill ra compose project mới rồi gỡ, cron.
+  - RT-3: dùng cơ chế backup có sẵn, thêm backup hằng ngày, drill ra compose project `crew-v3-spike-restore` rồi gỡ, systemd timer 03:30, bản sao kéo về Mac mini lúc 04:15.
   - RT-4: overlay từ `v3`, kiểm image, backup trước, cài plugin và kiểm nó load, dùng wrapper của MS-1, rollback.
 - **Khớp `release.md`:**
   - test ở `server/src/__tests__/crew-*.test.ts`;
