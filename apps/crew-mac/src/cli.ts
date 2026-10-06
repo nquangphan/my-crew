@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
+import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
+import { formatStopLine, RUN_ID_UUID, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
 import type { MacContext } from './context.js';
 import { readManifest } from './manifest.js';
@@ -18,6 +20,7 @@ Cách dùng:
   crew-mac doctor [--no-probe] [--tcc-window 24h] [--probe-timeout 90]
   crew-mac uninstall [--force]
   crew-mac reap [--grace-seconds 60] [--dry-run]
+  crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -30,6 +33,10 @@ export interface CliIo {
 }
 
 class UsageError extends Error {}
+
+/** Thời gian chờ sau TERM của stop-run: mặc định và tối đa (phía server chờ tổng cộng khoảng 25 giây). */
+const DEFAULT_TERM_WAIT_SECONDS = 5;
+const MAX_TERM_WAIT_SECONDS = 20;
 
 /** Ngưỡng mồ côi thấp nhất: ngắn hơn thì dễ dọn nhầm run vừa mất mạng chốc lát. */
 const MIN_GRACE_SECONDS = 60;
@@ -159,6 +166,29 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         io.out(report.removed.length === 0 ? 'Không còn gì để gỡ.' : `Đã gỡ: ${report.removed.join(', ')}`);
         for (const kept of report.kept)
           io.out(`Giữ nguyên thư mục worktree ${kept} (có thể còn việc của agent).`);
+        return 0;
+      }
+      case 'stop-run': {
+        const flags = parseFlags(args, ['--run-id', '--root', '--term-wait-seconds']);
+        const runId = flags.value('--run-id');
+        const root = flags.value('--root');
+        const waitSeconds = flags.number('--term-wait-seconds') ?? DEFAULT_TERM_WAIT_SECONDS;
+        if (!runId || !RUN_ID_UUID.test(runId)) throw new UsageError('--run-id phải là UUID');
+        if (!root || !isAbsolute(root)) throw new UsageError('--root phải là đường dẫn tuyệt đối');
+        if (!Number.isInteger(waitSeconds) || waitSeconds < 0 || waitSeconds > MAX_TERM_WAIT_SECONDS) {
+          throw new UsageError(`--term-wait-seconds phải là số nguyên 0–${MAX_TERM_WAIT_SECONDS}`);
+        }
+        const result = await stopRun(
+          {
+            runner: ctx.runner,
+            signal: (pid, sig) => process.kill(pid, sig),
+            sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+            now: ctx.now,
+            selfPid: process.pid,
+          },
+          { runId, root, termWaitMs: waitSeconds * 1000 },
+        );
+        io.out(formatStopLine(result));
         return 0;
       }
       case 'reap': {
