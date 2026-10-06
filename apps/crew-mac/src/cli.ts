@@ -34,7 +34,9 @@ export interface CliIo {
 
 class UsageError extends Error {}
 
-/** Thời gian chờ sau TERM của stop-run: mặc định và tối đa (phía server chờ tổng cộng khoảng 25 giây). */
+/**
+ * Thời gian chờ sau TERM của stop-run: mặc định và tối đa. Phía server truyền 3 giây và chờ cả lệnh khoảng 12 giây.
+ */
 const DEFAULT_TERM_WAIT_SECONDS = 5;
 const MAX_TERM_WAIT_SECONDS = 20;
 

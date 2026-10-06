@@ -20,9 +20,10 @@ không cần token và không login lại.
 2. `apps/crew-mac/src/commands/setup.ts` → `setup`: kiểm macOS, phiên Aqua (`guiSessionAvailable`), LaunchAgent spike
    còn chạy hay không, IP Tailscale (`tailscaleIpv4`), thư mục worktree (`forbiddenRootReason`: không phải HOME hay cha của HOME, không dưới `/Volumes`, `~/Desktop`, `~/Downloads`); tạo host key và key
    doctor (`ssh-keygen`); ghi `~/.crew-mac/sshd/sshd_config` (`renderSshdConfig`), `known_hosts`, dòng key trong
-   `~/.ssh/authorized_keys` (`upsertKey`, comment `crew-mac-paperclip`, `crew-mac-doctor`), khối PATH trong
+   `~/.ssh/authorized_keys` (`upsertKey`, comment `crew-mac-paperclip`, `crew-mac-doctor`; cả hai có `KEY_OPTIONS`:
+   `from="100.64.0.0/10"` và tắt forwarding), khối PATH trong
    `~/.zshenv` (`upsertPathBlock`), wrapper `~/.crew/bin/crew-claude-run` chép từ `apps/crew-mac/assets/crew-claude-run.sh`
-   (`WRAPPER_SOURCE`, mode 755), launcher `~/.crew/bin/crew-mac` gọi node và `cli.js` đã cài (`renderLauncher`, mode
+   (`WRAPPER_SOURCE`, mode 755), launcher `~/.crew/bin/crew-mac` gọi node và `cli.js` đã cài, thiếu một trong hai thì thoát 127 (`renderLauncher`, mode
    755; đường dẫn ổn định mà phía server gọi `crew-mac stop-run` qua SSH); ghi plist `com.2p.crew-mac-sshd` (`renderPlist`) và nạp bằng `ensureService`;
    ghi plist `com.2p.crew-mac-reaper` (`reaperPlistSpec`, chạy `crew-mac reap` mỗi 60 giây) và nạp bằng
    `ensureService`; ghi `~/.crew-mac/manifest.json`. Mọi file ghi qua `writeIfChanged`, nên chạy lại không đổi gì;
@@ -59,8 +60,8 @@ không cần token và không login lại.
 | `apps/crew-mac/src/tailscale.ts` | IP Tailscale | `tailscaleIpv4` |
 | `apps/crew-mac/src/wrapper.ts` | Đường dẫn nguồn wrapper | `WRAPPER_SOURCE` |
 | `apps/crew-mac/src/launcher.ts` | Script `~/.crew/bin/crew-mac` | `renderLauncher`, `parseLauncher` |
-| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: ghi `pgid`, `started` của run rồi `exec claude` (bản sao nguyên văn từ fork `crew/mac/crew-claude-run.sh`) | — |
-| `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec` |
+| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
+| `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
 | `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkWrapper`, `checkLauncher`, `checkReaper`, `parsePendingTccPrompts`, `printProbeScript` |
 | `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall` |
 

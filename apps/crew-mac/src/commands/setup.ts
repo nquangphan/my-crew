@@ -35,9 +35,12 @@ export interface SetupReport {
   manifest: Manifest;
 }
 
-/** Key doctor chỉ vào được từ dải Tailscale và không mở được forwarding. */
-export const DOCTOR_KEY_OPTIONS =
-  'from="100.64.0.0/10",no-port-forwarding,no-agent-forwarding,no-X11-forwarding';
+/**
+ * Key của Paperclip và của doctor chỉ vào được từ dải Tailscale và không mở được forwarding (driver SSH của Paperclip
+ * không dùng forwarding).
+ */
+export const KEY_OPTIONS = 'from="100.64.0.0/10",no-port-forwarding,no-agent-forwarding,no-X11-forwarding';
+export const DOCTOR_KEY_OPTIONS = KEY_OPTIONS;
 
 export function sshdPlistSpec(paths: MacPaths): PlistSpec {
   return {
@@ -161,7 +164,7 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
     paths.knownHosts,
     writeIfChanged(paths.knownHosts, `[${listenAddress}]:${port} ${publicKeyOf(paths.hostKey)}\n`, 0o600),
   );
-  let keys = upsertKey(readText(paths.authorizedKeys), paperclipKey, PAPERCLIP_KEY_COMMENT);
+  let keys = upsertKey(readText(paths.authorizedKeys), paperclipKey, PAPERCLIP_KEY_COMMENT, KEY_OPTIONS);
   keys = upsertKey(keys, publicKeyOf(paths.doctorKey), DOCTOR_KEY_COMMENT, DOCTOR_KEY_OPTIONS);
   track(paths.authorizedKeys, writeIfChanged(paths.authorizedKeys, keys, 0o600, { keepExistingMode: true }));
   track(paths.zshenv, writeIfChanged(paths.zshenv, zshenvNext, 0o644, { keepExistingMode: true }));

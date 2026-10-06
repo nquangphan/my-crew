@@ -58,7 +58,7 @@ describe('crew-mac uninstall', () => {
     expect(statSync(target).mode & 0o777).toBe(0o600);
   });
 
-  it('gỡ phần spike rồi setup cài lại được (kịch bản AC-1)', async () => {
+  it('gỡ phần cài đặt spike rồi setup cài lại được', async () => {
     const { home, ctx, loaded } = fakeMac({ spikeLoaded: true });
     seedSpike(home);
     const paths = macPaths(home);

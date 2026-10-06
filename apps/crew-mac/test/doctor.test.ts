@@ -17,7 +17,7 @@ import { setup } from '../src/commands/setup.js';
 import { macPaths } from '../src/paths.js';
 import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
-// Dòng log thật trên Mac mini 06/10/2026 (rút gọn phần đuôi), xem spike-claude-mac.md mục D1.
+// Dòng log thật của tccd trên Mac mini ngày 06/10/2026 (rút gọn phần đuôi): hộp thoại quyền ổ ngoài đang chờ.
 const TCC_LOG = [
   'Timestamp               Ty Process[PID:TID]',
   '2026-10-06 10:41:02.207 Df tccd[75697:5a8b53a] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=75841.27656, service=kTCCServiceSystemPolicyRemovableVolumes, subject=Sub:{/Users/owner/.local/share/claude/versions/2.1.289}Resp:{TCCDProcess: identifier=com.anthropic.claude-code, pid=18951}',
@@ -283,14 +283,14 @@ describe('crew-mac doctor', () => {
     expect(results.find((r) => r.id === 'reaper')?.status).toBe('fail');
   });
 
-  it('launcher thiếu thì fail, trỏ sai node hoặc cli thì cảnh báo', async () => {
+  it('launcher thiếu, hoặc trỏ tới node hay cli.js không còn, thì fail', async () => {
     const mac = await installed(okSsh);
     const paths = macPaths(mac.home);
     writeFileSync(paths.launcher, "#!/bin/sh\nexec '/khong/co/node' '/khong/co/cli.js' \"$@\"\n", {
       mode: 0o755,
     });
     let results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
-    expect(results.find((r) => r.id === 'launcher')?.status).toBe('warn');
+    expect(results.find((r) => r.id === 'launcher')?.status).toBe('fail');
     rmSync(paths.launcher);
     results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.find((r) => r.id === 'launcher')?.status).toBe('fail');

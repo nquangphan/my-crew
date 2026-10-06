@@ -669,6 +669,7 @@ flows:
       - apps/crew-mac/test/render.test.ts
       - apps/crew-mac/test/system-wrappers.test.ts
       - apps/crew-mac/test/crew-claude-run.test.ts
+      - apps/crew-mac/test/launcher.test.ts
       - apps/crew-mac/test/setup.test.ts
       - apps/crew-mac/test/doctor.test.ts
       - apps/crew-mac/test/uninstall.test.ts

@@ -79,7 +79,7 @@ describe('crew-mac setup', () => {
     expect(readFileSync(paths.wrapper, 'utf8')).toBe(readFileSync(WRAPPER_SOURCE, 'utf8'));
     expect(statSync(paths.wrapper).mode & 0o777).toBe(0o755);
     expect(readFileSync(paths.launcher, 'utf8')).toBe(
-      "#!/bin/sh\n# Quản lý bởi crew-mac setup: đường dẫn ổn định để gọi crew-mac qua SSH.\nexec '/opt/homebrew/bin/node' '/opt/crew/apps/crew-mac/dist/cli.js' \"$@\"\n",
+      "#!/bin/sh\n# Quản lý bởi crew-mac setup: đường dẫn ổn định để gọi crew-mac qua SSH.\n[ -x '/opt/homebrew/bin/node' ] && [ -f '/opt/crew/apps/crew-mac/dist/cli.js' ] || exit 127\nexec '/opt/homebrew/bin/node' '/opt/crew/apps/crew-mac/dist/cli.js' \"$@\"\n",
     );
     expect(statSync(paths.launcher).mode & 0o777).toBe(0o755);
     expect(existsSync(join(home, 'crew-agents'))).toBe(true);
@@ -97,6 +97,24 @@ describe('crew-mac setup', () => {
       worktreeRoot: join(home, 'crew-agents'),
     });
     expect(runner.commands()).toContain(`launchctl bootstrap gui/501 ${paths.sshdPlist}`);
+  });
+
+  it('key Paperclip chỉ vào được từ dải Tailscale, không forwarding; thay dòng cũ không options', async () => {
+    const { home, ctx } = fakeMac();
+    const paths = macPaths(home);
+    mkdirSync(join(home, '.ssh'), { recursive: true });
+    writeFileSync(
+      paths.authorizedKeys,
+      'ssh-ed25519 AAAAOwnerKey owner@macbook\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaperclipTestKey000000000000000000000000 crew-mac-paperclip\n',
+      { mode: 0o600 },
+    );
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    const lines = readFileSync(paths.authorizedKeys, 'utf8').trim().split('\n');
+    const paperclip = lines.filter((l) => l.includes('PaperclipTestKey'));
+    expect(paperclip).toEqual([
+      'from="100.64.0.0/10",no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaperclipTestKey000000000000000000000000 crew-mac-paperclip',
+    ]);
+    expect(lines).toContain('ssh-ed25519 AAAAOwnerKey owner@macbook');
   });
 
   it('chạy lại không đổi file nào và không restart', async () => {

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Crew wrapper for claude_local on the Mac (adapterConfig.command).
-# Records this run's process group so the server (H3) and crew-mac (MS-2) can stop
+# Records this run's process group so the server (H3) and the crew-mac orphan reaper can stop
 # the whole run later, then becomes the agent CLI. The SSH session already gives
 # this process its own group, and every exec in the chain keeps the same PID.
 if [ -n "${PAPERCLIP_RUN_ID:-}" ]; then

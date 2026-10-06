@@ -266,7 +266,7 @@ function checkLauncher(ctx: MacContext, paths: MacPaths): CheckResult {
   if (target === null || !existsSync(target.nodePath) || !existsSync(target.cliPath)) {
     return {
       ...base,
-      status: 'warn',
+      status: 'fail',
       detail: `${paths.launcher} trỏ tới node hoặc cli.js không còn (${target ? `${target.nodePath}, ${target.cliPath}` : 'không đọc được'})`,
       hint: 'Đã chuyển repo Crew hoặc nâng Node: chạy lại "crew-mac setup" từ bản build hiện tại.',
     };
