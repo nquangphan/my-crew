@@ -1,0 +1,14 @@
+{
+  "name": "@crew/mac",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "bin": {
+    "crew-mac": "./dist/cli.js"
+  }
+}
