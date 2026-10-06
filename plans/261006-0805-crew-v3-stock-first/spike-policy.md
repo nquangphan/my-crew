@@ -752,3 +752,81 @@ Số patch hoặc hook lõi S4 đề xuất cho S7 cân nhắc:
    upstream. Nếu thiếu bản vá này thì agent trên Mac **không bao giờ resume session**, kể cả trong cùng một issue.
    Điều này ảnh hưởng tới cả S2/R1, không riêng Step 6.
 3. **Hook đầu `enqueueWakeup`** (tùy chọn): chỉ cần nếu Crew muốn chuỗi issue tự kế thừa session.
+
+---
+
+## S4 — Step 6 lần cuối (sau bản vá codec): ĐẠT, thủ công qua API stock
+
+Thời điểm: 06/10/2026, 13:09–13:11 (Asia/Ho_Chi_Minh). Server chạy overlay `crew-v3-spike/paperclip:in-place-6ab1aa8`;
+`/api/health` trả commit `6ab1aa8c67631cfdb80d9de4a2f45d9b0da3b4f3`. Cấu hình agent, environment và repo giữ nguyên
+như lần trước (`mac-claude-policy`, `mac-mini-policy` in_place, `~/crew-spike/policy-repo`). Không tạo agent key.
+
+Đề bài A' **cho phép** agent nhắc lại mật mã khi chủ dự án hỏi, để tránh lỗi đề bài của lần trước. Mật mã đồ chơi:
+`VELTRANOX-8147`.
+
+| Issue | Wake | Run | `session_id_before` → `after` | `--resume` trong lệnh | Câu trả lời |
+|---|---|---|---|---|---|
+| A' **CREA-17** `cf64de36-…` | tự động `issue_assigned` | `bc5c6281-…` | — → **`007465f1-…`** | không | comment `ok`, `done` |
+| B' **CREA-18** `3fb2071b-…` (blocked by A') | tay: `POST /api/agents/<agent>/wakeup {reason:"s4_shared_session_v2", payload:{issueId:B', resumeFromRunId:"bc5c6281-…"}}` → 202 | `bb717b3f-…` | **`007465f1-…` → `007465f1-…`** | **có**: event `adapter.invoke` chứa `"--resume", "007465f1-2a6c-476f-ad72-0514a1ff66e9"` | **`MẬT MÃ: VELTRANOX-8147`** (đúng), `done` |
+| C' **CREA-19** `8a6a1c95-…` (blocked by A', đối chứng) | tự động `issue_assigned`, không đặt gì | `fda23c99-…` | — → `75173967-…` (mới) | **không** (0 event `adapter.invoke` có `--resume`) | **`KHONG NHO`** |
+
+Bằng chứng thêm:
+
+- Stream của B' có event `system/init` với `session_id=007465f1-…` (trùng session A'), `cwd=/Users/phannhatquang/crew-spike/policy-repo`.
+- Log B' vẫn in dòng `[paperclip] Claude session "007465f1-…" does not match the current remote execution identity … Starting a fresh remote session`,
+  nhưng thực tế vẫn resume (lệnh có `--resume`, session id giữ nguyên). Đúng như Trợ Lý đã báo trước: dòng log này
+  so cwd VPS với cwd Mac, không đáng tin.
+- **Auto-memory không rò:** không có thư mục `memory/` cho repo. Mật mã chỉ nằm trong transcript
+  `~/.claude/projects/-Users-phannhatquang-crew-spike-policy-repo/007465f1-….jsonl`, tức đúng session A' mà B' đã resume.
+  C' chạy session mới thì không biết mật mã. Câu trả lời đúng của B' là nhờ Paperclip resume session, không phải nhờ
+  memory.
+- Lần này **không gặp** run follow-up "different runtime MCP server set" (không có run handoff nào sau B').
+- Wake tay cho C' (`s4_control_c2`) trả `202 skipped` vì C' đã được wake tự động `issue_assigned` ngay khi agent
+  resume, giống lần trước. Run tự động đó chính là đối chứng.
+- Trên B' có một comment hệ thống "Paperclip cannot safely continue automatic recovery because the original assignee
+  is not invokable…", sinh ra vì agent bị pause đúng lúc tạo B'. Đó là hệ quả của cách dựng kịch bản, không ảnh hưởng
+  kết quả.
+- Repo `policy-repo` sạch, vẫn `61ac0a7 init`.
+
+### Kết luận Step 6 (chốt)
+
+**Dùng chung session giữa hai issue làm được qua API stock, thủ công**: `POST /api/agents/:id/wakeup` với
+`payload.issueId=<B>` và `payload.resumeFromRunId=<run cuối của A>`. Run của B resume đúng session của A (cùng session
+id, transcript nối tiếp). Điều kiện:
+
+- Trên SSH environment cần **bản vá codec `claude_local`** (giữ `remoteExecution` trong session params, đã có ở
+  `6ab1aa8`). Đây là upstream bug, nên gửi lên upstream.
+- A và B phải chạy cùng workspace cố định (`in_place`).
+- Nên dùng `resumeFromRunId` thay cho `taskKey=<A>`, vì cách sau ghi đè session gốc của A (đã thấy ở lần chạy trước).
+
+Muốn **tự động** (mọi wake của B kế thừa session A) thì cần **hook lõi một dòng ở đầu `enqueueWakeup`**
+(`heartbeat.ts`) để đặt `resumeFromRunId` theo chuỗi blocker. Plugin SDK không có đường nào. Wake tự động
+`issue_assigned` của B luôn mở session mới (thấy ở C').
+
+### Dọn dẹp lần cuối
+
+- Agent `mac-claude-policy` đã pause; cả bốn agent S4 `paused`, 0 key còn hiệu lực, 0 run `queued`/`running`.
+- Đã xóa `/tmp/s4spike` trên VPS.
+- Còn giữ: environment `mac-mini-policy`, repo `~/crew-spike/policy-repo`, các transcript trong
+  `~/.claude/projects/-Users-phannhatquang-crew-spike-policy-repo/` (chứa mật mã đồ chơi), và các issue CREA-1…19.
+  Xóa khi S4 đóng hẳn.
+
+## Kết luận Step 7 (S4, bản chốt)
+
+| Hạng mục | Kết quả |
+|---|---|
+| Gate review → integrator (docs) → owner | **Đạt** (CREA-1); owner approve qua API bằng board. |
+| Runtime chặn đồng bộ | Agent không phải participant hiện tại mà chuyển `done` hoặc đổi assignee thì nhận 422; reviewer sau escalation nhận 422; stage approval không có participant hợp lệ nhận 422; agent ghi thiếu run id nhận 403/401; ghi lên issue `in_progress` không đúng run checkout nhận 409; wake issue còn blocker thì `skipped`. |
+| Chỉ thấy sau khi đã ghi | Agent sửa hoặc xóa `executionPolicy`, stage review auto-skip, board override, số vòng changes requested. Nguồn: `activity_log`/plugin event `issue.updated`, `issue_execution_decisions`. |
+| Bypass xác nhận thật | (1) Executor xóa policy rồi tự đóng (CREA-2). (2) Executor rút gọn policy, bỏ gate docs và owner (CREA-3). (3) Stage review chỉ có executor bị bỏ qua lặng lẽ (CREA-5). (4) Board ép `done` (CREA-4). Ngoài ra, comment `## Review: APPROVED` tự duyệt stage (CREA-6). |
+| Vòng sửa | `maxReviewRounds` của stock (CREA-8 với 5 vòng, CREA-9 với mặc định 3). Không cần plugin hay hook. |
+| Blockers | **Đạt** (CREA-10/11). |
+| Dùng chung session | **Đạt, thủ công qua API stock** (CREA-17/18/19), với điều kiện có bản vá codec `claude_local` trên SSH và workspace `in_place`. Muốn tự động thì cần hook đầu `enqueueWakeup`. |
+
+Thay đổi lõi do S4 đề xuất cho S7:
+
+1. **H2 mở rộng** ở đầu `runUpdate`: chặn `done` khi chưa qua đủ stage, và chặn agent gửi `executionPolicy`. Thiếu
+   vế sau thì bypass 1–2 vẫn mở.
+2. **Vá codec `claude_local`** (đã deploy ở `6ab1aa8`): nên gửi upstream. Nếu không, tính là một patch ngoài khuôn
+   "hook một dòng".
+3. **Hook đầu `enqueueWakeup`**: tùy chọn, chỉ khi Crew muốn chuỗi issue tự kế thừa session.
