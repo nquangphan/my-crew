@@ -513,3 +513,242 @@ sau commit. Bypass 3 xử lý được ở phía Crew bằng quy tắc tạo pol
 nhất của stage review). Rule "tối đa 5 vòng" dùng `maxReviewRounds: 5` của stock, không cần plugin hay hook.
 
 Step 6 (dùng chung session) chưa chạy; kết luận sơ bộ từ code vẫn như mục "S4 — chuẩn bị".
+
+---
+
+## S4 — chạy thật Step 6 (dùng chung session): CHƯA XONG, bị chặn
+
+Thời điểm: 06/10/2026, khoảng 10:40–11:05 (Asia/Ho_Chi_Minh).
+
+### Đã dựng
+
+| Đối tượng | ID / giá trị |
+|---|---|
+| Environment `mac-mini-policy` (driver `ssh`, company S4) | `00ca623e-a4f5-4395-a357-d09e8cc6e7af`, host `100.102.189.67:2222`, user `phannhatquang`, `remoteWorkspacePath=/Users/phannhatquang/crew-spike/policy-workspaces`, `strictHostKeyChecking=true`. Private key gửi một lần (đọc từ file trên VPS, không in ra), Paperclip lưu thành secret `712bf1a7-e668-4932-a579-f5de4877d0a5`. Probe trả `ok:true`. |
+| Agent `mac-claude-policy` (`claude_local`) | `23a84ec4-03d3-4280-af45-a433898ab1ef`, `engine=cli`, `model=claude-haiku-4-5`, `defaultEnvironmentId` = env trên. Lần chạy thứ hai có thêm `env.CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`. |
+| Issue A **CREA-12** | `c26410c2-b038-4e8d-b744-40da5f32e6f2`. Mô tả yêu cầu nhớ mật mã (giá trị đặt trong mô tả A, không ghi lại ở đây), không ghi file, comment "ok" rồi chuyển `done`. |
+
+B, C và các wake có `taskKey`/`resumeFromRunId` **chưa tạo**, vì A chưa chạy xong lần nào.
+
+### Diễn biến
+
+| Lần | Run | Kết quả |
+|---|---|---|
+| 1 | `07295e1a-3024-422c-a4f1-2dfe42c7068e` (`issue_assigned`) | Claude khởi động (session `dd0589da-…`, cwd `/Users/phannhatquang/crew-spike/policy-workspaces/.paperclip-runtime/runs/07295e1a-…/workspace`). Agent gọi tool `Write` để ghi mật mã vào **auto-memory của Claude** (`~/.claude/projects/<cwd>/memory/session_password.md`). Tool trả kết quả lúc 10:42:02, sau đó **im lặng hơn 14 phút**: process `claude` trên Mac mini 0% CPU, không có process con, các kết nối HTTPS tới Anthropic đều `CLOSED`. Board cancel run (`POST /api/heartbeat-runs/:id/cancel`, 200). |
+| 2 | `be639d73-11e8-45b6-9a66-7b9f45a96a21` (wake tay `s4_step6_retry_a`, đã tắt auto-memory) | Session `d6affcab-…`, cwd riêng theo run. Agent gọi `ToolSearch` hai lần (có kết quả), rồi gọi `Bash` lúc 10:57:23. Sau đó **treo y như lần 1**: transcript dừng ở `deferred_tools_record`, không có tool result, không có process con. Board cancel run. |
+
+Kẹt hai lần cùng một chỗ (process `claude` treo sau một lần gọi tool trên SSH environment cổng 2222), nên dừng Step 6
+theo ranh giới đã giao. Chưa chẩn đoán sâu nguyên nhân vì việc này thuộc gói `moi-truong` (S2/S3). Lúc kiểm, có một
+process `claude --model claude-sonnet-4-6` của gói `moi-truong` đã chạy khoảng 13 phút; tôi không đụng vào.
+
+### Phát hiện phụ (bằng chứng cho S2/S3/S7)
+
+1. **Cancel run không dừng process trên Mac.** Cả hai lần, sau khi Paperclip báo run `cancelled`, process `claude`
+   vẫn sống trên Mac mini, **phớt lờ SIGTERM**, và tôi phải `kill -KILL` (pid 20254 và 94267, đều do run của tôi
+   sinh ra). Process `paperclip-bridge-server.mjs` thì tự tắt. Đây là ca "process mồ côi" của Review Focus #1/S3.
+2. **Không có project workspace thì mỗi run một cwd.** Log ghi "No project or prior session workspace was
+   available. Using fallback workspace …", và cwd trên Mac là `…/.paperclip-runtime/runs/<runId>/workspace`.
+   Claude Code lưu session theo thư mục `~/.claude/projects/<cwd>`, nên `--resume` sang run khác (kể cả cùng
+   issue) gần như chắc chắn không tìm thấy session. Muốn thử Step 6 có ý nghĩa thì A và B phải nằm trong một project
+   có workspace cố định (`in_place` như S2), không dùng fallback workspace.
+3. **Run dùng cấu hình Claude toàn cục của user trên Mac mini.** Agent xưng "Đại Ca" (lấy từ CLAUDE.md toàn cục),
+   chạy hook của `~/.claude/settings.json` (thấy `PostToolUse:ToolSearch` trong transcript), tải plugin/MCP của user,
+   và dùng auto-memory. Auto-memory là một kênh **nhớ chéo session ngoài kiểm soát của Paperclip**: lần 1 đã ghi mật
+   mã ra file nhớ theo cwd. Vì vậy thí nghiệm "B nhớ mật mã" phải tắt auto-memory, nếu không sẽ có false positive
+   khi cwd trùng.
+4. Event `rate_limit_event` trong log cho thấy quota 7 ngày của tài khoản Claude trên Mac mini đang ở **96%**
+   (`allowed_warning`). Các spike tiếp theo chạy agent thật cần tính đến điều này.
+
+### Kết luận Step 6
+
+**Chưa có kết luận chạy thật.** Kết luận sơ bộ từ code giữ nguyên (mục "S4 — chuẩn bị"):
+
+- Đường stock **thủ công**: `POST /api/agents/:id/wakeup` với `payload.issueId=<B>` và `payload.taskKey=<A>` hoặc
+  `payload.resumeFromRunId=<run cuối của A>`.
+- Không có đường nào cho plugin.
+- Muốn mọi wake của B tự kế thừa session thì cần **hook lõi một dòng ở đầu `enqueueWakeup`** (`heartbeat.ts`) để đặt
+  `taskKey` hoặc `resumeFromRunId`.
+
+Có thêm một điều kiện tiên quyết mới, phát hiện khi chạy: phải có workspace cố định cho A và B (phát hiện 2), nếu
+không thì kể cả đường thủ công cũng không resume được ở tầng Claude Code. Muốn chạy lại Step 6 cần:
+
+- (a) S2/S3 giải xong lỗi `claude` treo sau khi gọi tool trên SSH environment;
+- (b) một project với workspace `in_place` cố định trên Mac mini;
+- (c) tắt auto-memory, hoặc một thư mục cấu hình Claude riêng cho agent.
+
+### Dọn dẹp đã làm
+
+- Hai run treo đã cancel qua API. Hai process `claude` mồ côi trên Mac mini đã `kill -KILL` (chỉ process do run S4
+  sinh ra).
+- Đã xóa hai thư mục `~/.claude/projects/-Users-phannhatquang-crew-spike-policy-workspaces--paperclip-runtime-runs-{07295e1a…,be639d73…}-workspace`
+  trên Mac mini (transcript và file nhớ chứa mật mã test). Kiểm lại `grep` mật mã trong `~/.claude/projects` không
+  còn kết quả.
+- Pause cả bốn agent S4 (`executor`, `reviewer`, `integrator`, `mac-claude-policy`). Không còn run `queued`/`running`
+  nào trong company S4.
+- Revoke ba agent key S4 (`DELETE /api/agents/:id/keys/:keyId`, đều 200; DB: `revoked_at` đã đặt). Agent
+  `mac-claude-policy` không có key.
+- Xóa `/tmp/s4spike` trên VPS (helper, key, file body tạm).
+- **Giữ lại**: company `Crew Spike Policy`, environment `mac-mini-policy` (cùng secret SSH key do Paperclip giữ) và
+  issue CREA-1…12 để Trợ Lý kiểm và để chạy lại Step 6. Thư mục `/Users/phannhatquang/crew-spike/policy-workspaces`
+  trên Mac mini do Paperclip tạo, chưa xóa.
+- Ghi chú quy trình: để kiểm process trên Mac mini, tôi SSH thẳng từ MacBook tới `100.102.189.67:2222` bằng key của
+  MacBook (chỉ `ps`, `lsof`, đọc settings, `kill`, `rm` các thư mục test nói trên), không qua key Paperclip trên VPS.
+
+---
+
+## Kết luận Step 7 (S4)
+
+| Hạng mục | Kết quả |
+|---|---|
+| Gate review → integrator (docs) → owner theo thứ tự | **Đạt** (CREA-1). Ba decision ghi đủ; owner approve qua API bằng board. |
+| Chặn đồng bộ | Agent không phải participant hiện tại chuyển `done` hoặc đổi assignee thì nhận **422**; thiếu comment thì 422 (theo code); agent reviewer sau escalation nhận 422; stage approval không còn participant hợp lệ nhận 422; agent ghi mà không có run id nhận 403/401; ghi lên issue `in_progress` không đúng run checkout nhận 409; wake issue còn blocker thì `skipped`, không tạo run. |
+| Chỉ thấy sau commit | Agent sửa hoặc xóa `executionPolicy`; stage review auto-skip; board override; số vòng changes requested. Nguồn: `activity_log` (`issue.updated` mang `changes.executionPolicy` và `executionState`), `issue_execution_decisions`, plugin event `issue.updated`. |
+| Bypass xác nhận thật | (1) Executor xóa policy rồi tự đóng (CREA-2, 0 decision). (2) Executor rút gọn policy, bỏ gate docs và owner (CREA-3). (3) Stage review chỉ có executor bị bỏ qua lặng lẽ (CREA-5). (4) Board ép `done` ở mọi stage, không cần comment (CREA-4). Ngoài ra, comment `## Review: APPROVED` của participant hiện tại tự duyệt stage (CREA-6), ngược với docs upstream. |
+| Vòng sửa | `maxReviewRounds` của stock làm đúng rule "tối đa N vòng rồi chuyển owner" (CREA-8 với 5 vòng, CREA-9 với mặc định 3). Không cần plugin hay hook. |
+| Blockers | **Đạt** (CREA-10/11). Wake bị `skipped` khi còn blocker; comment của người là ngoại lệ có chủ đích; đóng A thì B được wake `issue_blockers_resolved`. |
+| Dùng chung session (Step 6) | **Chưa kiểm được**, bị chặn bởi lỗi `claude` treo trên SSH environment. Sơ bộ từ code: thủ công qua API stock được; tự động cần hook ở đầu `enqueueWakeup`; và cần workspace cố định. |
+
+Hàm ý cho hook và plugin, để S7 quyết:
+
+- H2 như đang chốt (chặn ghi `done` khi chưa qua đủ stage) **không đủ** cho bypass 1–2. Cần mở rộng H2 để từ chối khi
+  **actor là agent mà patch có `executionPolicy`**, vẫn ở đầu `runUpdate`, hoặc chấp nhận để plugin phát hiện và
+  khôi phục sau commit.
+- Bypass 3 xử lý ở phía Crew: không tạo stage review mà participant duy nhất là executor.
+- Bypass 4 là quyền của board; cần quyết có giới hạn ai là board trong company hay không.
+
+---
+
+## S4 — chạy lại Step 6 (in_place, sau khi gỡ TCC)
+
+Thời điểm: 06/10/2026, khoảng 12:10–12:27 (Asia/Ho_Chi_Minh). Server chạy image overlay có bản vá `in_place`
+(fork `5f28832b2`). Không restart server, không đụng company, env hay agent của gói `moi-truong`.
+
+### Cấu hình
+
+- **Repo thử trên Mac mini:** `~/crew-spike/policy-repo`, `git init -b main`, một commit `61ac0a7 init` (README).
+  `.paperclip-runtime/` được ghi vào `info/exclude` (đường dẫn lấy qua `git rev-parse --git-path info/exclude`). Kiểm:
+  `git status --short` sạch, `--ignored` hiện `!! .paperclip-runtime/`.
+- **Smoke test** qua cổng 2222 bằng key Paperclip: `claude -p "Reply with exactly: ok" --model claude-haiku-4-5 --setting-sources project,local`
+  trong repo trả `ok`, exit 0. Sự cố TCC đã hết. Thư mục transcript sinh ra từ smoke test đã xóa để có mốc sạch.
+- **Environment `mac-mini-policy`** (`00ca623e-…`): `PATCH /api/environments/:id` đổi
+  `remoteWorkspacePath=/Users/phannhatquang/crew-spike/policy-repo` và `metadata.workspaceRealizationMode="in_place"`.
+  Secret key giữ nguyên (`712bf1a7-…`). Probe `ok:true`, `remoteCwd` là repo.
+- **Agent `mac-claude-policy`** (`23a84ec4-…`) có cấu hình:
+  - `engine=cli`, `model=claude-haiku-4-5`;
+  - `extraArgs=["--setting-sources","project,local"]`;
+  - `env.CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`;
+  - `runtimeConfig.heartbeat={enabled:false, maxConcurrentRuns:1}`.
+
+  Environment này chỉ gắn cho agent này. Không tạo agent key (mọi wake gọi bằng board; agent tự dùng JWT của run).
+- Issue A cũ (CREA-12) đã chuyển `cancelled`.
+
+### Kịch bản và kết quả
+
+Mật mã test: `QUOMBRELLIX-5928` (giá trị đồ chơi, chỉ có trong mô tả A).
+
+| Issue | Cách wake | Run | `taskKey` của run | `session_id_before` → `after` | Câu trả lời |
+|---|---|---|---|---|---|
+| A **CREA-13** `61d3fdea-…` | tự động `issue_assigned` | `6d6aa07c-…` | A | — → `803dffd0-…` | comment `ok`, issue `done` |
+| B1 **CREA-14** `742a5640-…` (blocked by A) | **6b** `POST /api/agents/<agent>/wakeup {reason:"s4_shared_session", payload:{issueId:B1, resumeFromRunId:"6d6aa07c-…"}}` → 202 | `7c180b87-…` | B1 | **`803dffd0-…` (session của A)** → `c1c6e3fe-…` | **"KHÔNG NHỚ"** |
+| B2 **CREA-15** `8f6b401c-…` (blocked by A) — **đối chứng C** | tự động `issue_assigned`, không đặt taskKey | `b3ee45a5-…` | B2 | — → `30f70f76-…` | **"KHONG NHO"** |
+| B3 **CREA-16** `d2f48113-…` (blocked by A) | **6a** `POST /api/agents/<agent>/wakeup {reason:"s4_shared_session_taskkey", payload:{issueId:B3, taskKey:A}}` → 202 | `87b2b1a7-…` | **A** | **`803dffd0-…` (session của A)** → `27ef04fc-…` | **"KHÔNG NHỚ"** |
+
+Ghi chú cách làm: tạo B trong lúc agent bị pause để không có wake tự động trước wake tay. Dù vậy, khi agent resume,
+B2 vẫn nhận một wake `issue_assigned` của hệ thống (05:19:25 UTC); run đó được dùng làm đối chứng C. Ba run
+B1/B2/handoff chạy nối tiếp (`maxConcurrentRuns: 1` có hiệu lực). Run B1 còn có thêm một run
+`finish_successful_run_handoff` (`883430bc-…`), cũng mở session mới.
+
+### Bằng chứng: Paperclip đã chuyển session của A, adapter từ chối resume
+
+1. **Tầng Paperclip đúng như đọc code.**
+   - Với 6b, `context_snapshot` của run B1 có `resumeFromRunId=6d6aa07c-…`, `resumeSessionDisplayId=803dffd0-…` và
+     `resumeSessionParams` lấy từ session của A.
+   - Với 6a, run B3 có `context_snapshot.taskKey = A`, nên `getTaskSession` đọc đúng dòng `agent_task_sessions`
+     của A.
+   - Cả hai run đều có `session_id_before = 803dffd0-…` (session của A).
+2. **Tầng adapter `claude_local` từ chối.** Log run B1 và B3:
+   ```
+   [paperclip] Claude session "803dffd0-9eda-4ac8-9a5c-c1ed2fada58d" does not match the current remote execution identity and will not be resumed in "/Users/phannhatquang/crew-spike/policy-repo". Starting a fresh remote session.
+   ```
+   Run handoff của B1 cũng bị từ chối với chính session vừa tạo của nó (`c1c6e3fe-…`), kèm thêm dòng "was saved with a
+   different runtime MCP server set". Như vậy **cùng một issue trên SSH environment cũng không resume được**.
+3. **Nguyên nhân (đọc code, khớp dữ liệu).**
+   - `execute.ts` của `claude_local` có ghi `remoteExecution` vào session params khi target là remote.
+   - Nhưng `sessionCodec.serialize/deserialize` (`packages/adapters/claude-local/src/server/index.ts`) chỉ giữ
+     `sessionId, cwd, promptBundleKey, mcpServerIdentity, workspaceId, repoUrl, repoRef`, tức là **làm rơi
+     `remoteExecution`**. Dòng `agent_task_sessions` của A đúng là không có `remoteExecution`.
+   - Ở lần sau, `adapterExecutionTargetSessionMatches(saved, target)` với `transport === "ssh"` gọi
+     `remoteExecutionSessionMatches`; hàm này so `host/port/username/remoteCwd` với một object rỗng nên luôn
+     `false`, và `canResumeSession=false`.
+
+   Đây là lỗi của upstream stock (không liên quan bản vá `in_place`): `claude_local` trên SSH environment **không bao
+   giờ resume session**.
+4. **Session của A còn nguyên và resume được ở tầng Claude Code.** Gọi thẳng trên Mac mini (cổng 2222, key Paperclip):
+   `claude -p --resume 803dffd0-… --model claude-haiku-4-5 --setting-sources project,local` trong repo. Kết quả: giữ
+   nguyên session id `803dffd0-…`, và agent trả lời "Em đã ghi nhớ nó trong cuộc hội thoại này", "không thể cung cấp
+   bất kỳ phần nào của mật mã". Agent nhớ là có mật mã nhưng từ chối nói ra vì mô tả A cấm lặp lại; đây là lỗi thiết
+   kế đề bài của tôi. Khác hẳn B1/B3/B2 trả lời "KHÔNG NHỚ" vì chạy session mới.
+5. **Auto-memory không rò.** Trên Mac mini không có thư mục `memory/` nào cho repo này. Mật mã chỉ nằm trong transcript
+   `~/.claude/projects/-Users-phannhatquang-crew-spike-policy-repo/803dffd0-….jsonl` (transcript của session A, cũng
+   là nơi Claude cần để `--resume`). Không có file `.md` nào trong `~/.claude/projects` chứa mật mã. Vì B trả lời
+   "không nhớ", không có false positive. Repo `policy-repo` vẫn sạch, vẫn `61ac0a7 init`.
+6. **Tác dụng phụ của 6a:** sau run B3, dòng `agent_task_sessions` có `task_key = A` bị ghi đè bằng session mới của B3
+   (`27ef04fc-…`, `last_run_id=87b2b1a7-…`). Dùng `taskKey` của A cho issue khác sẽ làm A mất session gốc. 6b
+   (`resumeFromRunId`) thì ghi dưới `taskKey` của B, không đụng A.
+
+### Kết luận Step 6
+
+- **Tầng Paperclip: làm được qua API stock, thủ công.** `POST /api/agents/:id/wakeup` với `payload.taskKey=<A>` hoặc
+  `payload.resumeFromRunId=<run cuối của A>` đưa đúng session của A vào run của B. 6b sạch hơn 6a vì không ghi đè
+  session của A.
+- **Tầng adapter `claude_local` trên SSH: KHÔNG resume được, kể cả trong cùng một issue**, do codec làm rơi
+  `remoteExecution`. Vì vậy dùng chung session (và cả việc giữ session giữa các heartbeat của cùng một issue) trên Mac
+  qua SSH **cần vá adapter**. Vá là thêm `remoteExecution` vào `serialize`/`deserialize` của `sessionCodec`
+  (`claude-local/src/server/index.ts`), không phải hook một dòng ở đầu hàm. Đây là một upstream bug nên báo hoặc gửi
+  PR lên upstream. Nếu không, phải tính vào ngân sách hook/patch của Global Constraints.
+- **Muốn tự động (mọi wake của B kế thừa session A)** thì ngoài bản vá adapter vẫn cần **hook lõi một dòng ở đầu
+  `enqueueWakeup`** (`heartbeat.ts`) để đặt `resumeFromRunId` theo chuỗi issue, như đã đề xuất. Plugin SDK không có
+  đường nào.
+
+Kết luận một dòng: **dùng chung session = API stock (thủ công) + bản vá codec của `claude_local` (bắt buộc trên SSH)
++ hook ở đầu `enqueueWakeup` nếu muốn tự động.**
+
+### Dọn dẹp
+
+- Agent `mac-claude-policy` đã pause; cả bốn agent S4 đều `paused`, 0 key còn hiệu lực (ba key của Step 1–5 đã revoke
+  từ lần trước; lần này không tạo key). 0 run `queued`/`running` trong company S4.
+- Không còn process `claude` nào chạy trong `policy-repo` trên Mac mini.
+- Đã xóa `/tmp/s4spike` trên VPS.
+- **Giữ lại** để Trợ Lý kiểm: environment `mac-mini-policy` (in_place, trỏ `policy-repo`), repo
+  `~/crew-spike/policy-repo` và các transcript trong `~/.claude/projects/-Users-phannhatquang-crew-spike-policy-repo/`
+  (chứa mật mã đồ chơi), các issue CREA-13…16. Xóa khi S4 đóng hẳn.
+
+### Quan sát phụ
+
+- Agent vẫn xưng "Đại Ca" dù có `--setting-sources project,local`, nên có một nguồn hướng dẫn cá nhân chưa bị chặn.
+  Chưa truy nguồn; gói `moi-truong` đang theo dõi việc nạp cấu hình.
+- Run handoff `finish_successful_run_handoff` tự sinh sau run B1. Với SSH, mỗi run như vậy là thêm một session mới,
+  tốn thêm quota.
+
+---
+
+## Kết luận Step 7 (S4, bản cuối)
+
+| Hạng mục | Kết quả |
+|---|---|
+| Gate review → integrator (docs) → owner | **Đạt** (CREA-1). Đủ ba decision; owner approve qua API bằng board. |
+| Runtime chặn đồng bộ | Agent không phải participant hiện tại mà chuyển `done` hoặc đổi assignee thì nhận 422; reviewer sau escalation nhận 422; stage approval không có participant hợp lệ nhận 422; agent ghi thiếu run id nhận 403/401; ghi lên issue `in_progress` không đúng run checkout nhận 409; wake issue còn blocker thì `skipped`, không tạo run. |
+| Chỉ thấy sau khi đã ghi | Agent sửa hoặc xóa `executionPolicy`, stage review auto-skip, board override, số vòng changes requested. Nguồn: `activity_log`/plugin event `issue.updated`, `issue_execution_decisions`. |
+| Bypass xác nhận thật | (1) Executor xóa policy rồi tự đóng (CREA-2). (2) Executor rút gọn policy, bỏ gate docs và owner (CREA-3). (3) Stage review chỉ có executor bị bỏ qua lặng lẽ (CREA-5). (4) Board ép `done` (CREA-4). Ngoài ra, comment `## Review: APPROVED` tự duyệt stage (CREA-6). |
+| Vòng sửa | `maxReviewRounds` của stock đủ cho rule "tối đa N vòng rồi chuyển owner" (CREA-8, CREA-9). |
+| Blockers | **Đạt** (CREA-10/11). |
+| Dùng chung session (Step 6) | Paperclip chuyển đúng session qua API stock (thủ công). `claude_local` trên SSH **không resume** vì codec làm rơi `remoteExecution` (upstream bug, cần vá adapter). Muốn tự động thì thêm hook ở đầu `enqueueWakeup`. |
+
+Số patch hoặc hook lõi S4 đề xuất cho S7 cân nhắc:
+
+1. **H2 mở rộng:** đầu `runUpdate`, từ chối `done` khi chưa qua đủ stage **và** từ chối khi actor là agent mà patch có
+   `executionPolicy`. Không có phần thứ hai thì bypass 1–2 vẫn mở.
+2. **Vá codec `claude_local`:** giữ `remoteExecution` trong session params. Không phải hook một dòng; nên đưa lên
+   upstream. Nếu thiếu bản vá này thì agent trên Mac **không bao giờ resume session**, kể cả trong cùng một issue.
+   Điều này ảnh hưởng tới cả S2/R1, không riêng Step 6.
+3. **Hook đầu `enqueueWakeup`** (tùy chọn): chỉ cần nếu Crew muốn chuỗi issue tự kế thừa session.
