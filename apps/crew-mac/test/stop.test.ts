@@ -120,6 +120,17 @@ describe('stopMembers', () => {
     expect(result).toEqual({ matched: 1, killed: 1, remaining: 1 });
   });
 
+  it('process không đọc được thời điểm sinh còn sống ngay sau TERM thì tính vào remaining, không KILL', async () => {
+    const oddAfterTerm = [
+      '    1     0     1 ??       10-00:00:00 /sbin/launchd',
+      '  601   600   600 ??             lạ claude',
+    ].join('\n');
+    const { signals, sleeps, result } = await run([BEFORE, oddAfterTerm], [601]);
+    expect(signals).toEqual(['SIGTERM 601']);
+    expect(sleeps).toEqual([5_000]);
+    expect(result).toEqual({ matched: 1, killed: 0, remaining: 1 });
+  });
+
   it('không có gì để dừng thì không gửi signal, không chờ', async () => {
     const { signals, sleeps, result } = await run([BEFORE], []);
     expect(signals).toEqual([]);

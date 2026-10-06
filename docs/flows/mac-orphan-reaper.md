@@ -66,7 +66,8 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
    - Chờ, quét lại, gửi `SIGKILL` cho đúng process đã chọn còn sống (so pid và thời điểm sinh để tránh pid bị cấp
      lại; không so pgid vì process có thể đổi group sau TERM). KILL theo group chỉ với group đã nhận TERM theo group
      và vẫn chỉ gồm process đã chọn.
-   - Chờ 200 ms rồi đếm phần còn lại; process trùng pid mà thời điểm sinh không đọc được vẫn tính là còn.
+   - Chờ 200 ms rồi đếm phần còn lại. Process trùng pid mà thời điểm sinh không đọc được không bị KILL nhưng vẫn tính
+     vào `remaining`, kể cả khi nó còn ngay sau TERM.
 4. `apps/crew-mac/src/commands/stop-run.ts` → `stopRun`: kiểm `runId`, kiểm `root` bằng `rootGuardReason`
    (`apps/crew-mac/src/paths.ts`), resolve `root`, đọc `kern.boottime`, chọn, dừng. Không còn process nào thì xóa
    `<root>/.paperclip-runtime/runs/<runId>`, trừ khi `.paperclip-runtime` hoặc `runs` là symlink. `formatStopLine`

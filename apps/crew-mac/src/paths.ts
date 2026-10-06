@@ -87,6 +87,10 @@ export function rootGuardReason(root: string, home: string, allowedRoot: string)
 export function forbiddenRootReason(home: string, root: string): string | null {
   if (!isAbsolute(root)) return 'thư mục gốc worktree phải là đường dẫn tuyệt đối';
   const abs = comparablePath(root);
+  const homeAbs = comparablePath(home);
+  if (abs === '/' || abs === homeAbs || homeAbs.startsWith(`${abs}/`)) {
+    return 'không đặt ở HOME hay thư mục cha của HOME: agent sẽ quét và ghi khắp thư mục của owner';
+  }
   const under = (base: string) => {
     const b = comparablePath(base);
     return abs === b || abs.startsWith(`${b}/`);

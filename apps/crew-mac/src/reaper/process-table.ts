@@ -136,6 +136,6 @@ export function parseBootTime(text: string): number | null {
 }
 
 export async function readBootTime(runner: CommandRunner): Promise<number | null> {
-  const result = await runner.run('sysctl', ['-n', 'kern.boottime'], { timeoutMs: 10_000 });
+  const result = await runner.run('/usr/sbin/sysctl', ['-n', 'kern.boottime'], { timeoutMs: 10_000 });
   return result.code === 0 ? parseBootTime(result.stdout) : null;
 }

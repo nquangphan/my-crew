@@ -24,6 +24,10 @@ describe('forbiddenRootReason', () => {
     ['/Users/owner/Desktop/agents', 'Desktop'],
     ['/Users/owner/Downloads', 'Downloads'],
     ['relative/path', 'tuyệt đối'],
+    ['/Users/owner', 'HOME'],
+    ['/users/OWNER', 'HOME'],
+    ['/Users', 'HOME'],
+    ['/', 'HOME'],
   ])('từ chối %s', (root, word) => {
     expect(forbiddenRootReason(home, root)).toContain(word);
   });

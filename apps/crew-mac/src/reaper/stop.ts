@@ -89,7 +89,11 @@ export async function stopMembers(
 
   const afterTerm = await listProcesses(deps.runner, deps.now());
   const survivors = afterTerm.filter((p) => chosen.some((c) => sameForKill(c, p)));
-  if (survivors.length === 0) return { matched: chosen.length, killed: 0, remaining: 0 };
+  // Process trùng pid mà thời điểm sinh không đọc được: không KILL (có thể là pid đã cấp lại) nhưng vẫn tính là còn.
+  const unknown = afterTerm.filter(
+    (p) => chosen.some((c) => sameForCount(c, p)) && !chosen.some((c) => sameForKill(c, p)),
+  ).length;
+  if (survivors.length === 0) return { matched: chosen.length, killed: 0, remaining: unknown };
 
   for (const target of plan(afterTerm, survivors, deps.selfPid, termGroups)) send(deps, target, 'SIGKILL');
   await deps.sleep(AFTER_KILL_MS);

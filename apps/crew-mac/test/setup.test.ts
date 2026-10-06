@@ -134,6 +134,11 @@ describe('crew-mac setup', () => {
     },
   );
 
+  it('từ chối thư mục worktree là chính HOME', async () => {
+    const { home, ctx } = fakeMac();
+    await expect(setup(ctx, { paperclipKey: PAPERCLIP_PUB, worktreeRoot: home })).rejects.toThrow('HOME');
+  });
+
   it('từ chối khi chưa có phiên desktop', async () => {
     const { ctx } = fakeMac({ gui: false });
     await expect(setup(ctx, { paperclipKey: PAPERCLIP_PUB })).rejects.toThrow('phiên desktop');

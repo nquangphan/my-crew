@@ -10,6 +10,7 @@ import {
   parseEtime,
   parseLsofCwd,
   parsePsTree,
+  readBootTime,
   readCwds,
 } from '../src/reaper/process-table.js';
 import {
@@ -116,6 +117,14 @@ describe('đọc bảng process (tty, etime) và cwd', () => {
   it('đọc kern.boottime', () => {
     expect(parseBootTime('{ sec = 1791153820, usec = 427391 } Mon Oct  5 05:43:40 2026')).toBe(1_791_153_820);
     expect(parseBootTime('lạ')).toBeNull();
+  });
+
+  it('readBootTime gọi sysctl bằng đường dẫn tuyệt đối', async () => {
+    const runner = new FakeRunner().on('/usr/sbin/sysctl', () => ({
+      stdout: '{ sec = 1791153820, usec = 1 } Mon Oct  5 05:43:40 2026\n',
+    }));
+    expect(await readBootTime(runner)).toBe(1_791_153_820);
+    expect(runner.commands()).toEqual(['/usr/sbin/sysctl -n kern.boottime']);
   });
 
   it('đổi etime ra giây', () => {
