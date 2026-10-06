@@ -72,4 +72,31 @@ describe('crew-claude-run', () => {
     const started = Number(readFileSync(join(dir, 'started'), 'utf8').trim());
     expect(Math.abs(started - Math.floor(Date.now() / 1000))).toBeLessThan(5);
   });
+
+  it.skipIf(process.platform !== 'darwin')(
+    'started là thời điểm SINH của process, không phải lúc wrapper chạy (profile chậm không làm lệch)',
+    async () => {
+      const root = newRoot();
+      const bornAt = Math.floor(Date.now() / 1000);
+      // Mô phỏng phiên SSH: shell sinh ra, mất 3 giây (profile chậm), rồi exec wrapper trong cùng process.
+      const child = spawn(
+        '/bin/sh',
+        ['-c', `sleep 3; exec /bin/sh '${WRAPPER_SOURCE}' -c 'exec sleep 301'`],
+        {
+          cwd: root,
+          env: { ...process.env, PAPERCLIP_RUN_ID: RUN_A, CREW_CLAUDE_BIN: '/bin/sh' },
+          detached: true,
+          stdio: 'ignore',
+        },
+      );
+      child.unref();
+      groups.push(child.pid as number);
+      await sleep(3_800);
+      const dir = join(root, '.paperclip-runtime', 'runs', RUN_A);
+      const started = Number(readFileSync(join(dir, 'started'), 'utf8').trim());
+      expect(Math.abs(started - bornAt)).toBeLessThanOrEqual(1);
+      expect(readFileSync(join(dir, 'pgid'), 'utf8').trim()).toBe(String(child.pid));
+    },
+    10_000,
+  );
 });

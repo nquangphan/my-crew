@@ -9,7 +9,11 @@ if [ -n "${PAPERCLIP_RUN_ID:-}" ]; then
     *)
       dir="$PWD/.paperclip-runtime/runs/$PAPERCLIP_RUN_ID"
       if mkdir -p "$dir" 2>/dev/null; then
-        date +%s > "$dir/started"
+        # started = the time THIS process was born (epoch seconds), not the time this line runs:
+        # the SSH session sources the owner's profile before exec'ing the wrapper, and a slow
+        # profile would otherwise push started past the birth of the session leader.
+        elapsed=$(ps -o etime= -p $$ | awk -F'[-:]' '{ n = NF; s = $n + $(n-1) * 60; if (n >= 3) s += $(n-2) * 3600; if (n >= 4) s += $(n-3) * 86400; print s }')
+        echo $(( $(date +%s) - ${elapsed:-0} )) > "$dir/started.tmp" && mv "$dir/started.tmp" "$dir/started"
         ps -o pgid= -p $$ | tr -d ' ' > "$dir/pgid.tmp" && mv "$dir/pgid.tmp" "$dir/pgid"
       fi
       ;;
