@@ -43,6 +43,35 @@ Cân **theo thứ việc chạm vào**, không theo cảm giác khó. Một dòn
 
 Chạy trên Codex thay vì Claude Code thì dùng tier tương ứng (nhanh/chuẩn/mạnh) theo allowlist thật của máy, ghi đúng model ID.
 
+## Chia ticket theo gói ngữ cảnh
+
+Gói ngữ cảnh là thứ agent phải nạp vào đầu trước khi viết được dòng đầu tiên: file nguồn, symbol, doc flow, spec, report trước đó. **Vẽ gói trước, rồi mới cắt ticket bên trong gói.** Đừng cắt ticket theo deliverable rồi mới đi gom lại; cắt kiểu đó dễ ra những ticket vắt qua hai vùng code, và agent nào nhận nó cũng phải nạp cả hai.
+
+1. **Vẽ gói từ plan.** Liệt kê các vùng mà plan sẽ đụng: những file, symbol, server hay máy nào mà nhiều bước cùng phải đọc hoặc cùng phải dựng. Mỗi vùng là một gói. Hai bước cùng phải nạp phần lớn những file nặng thì chung một gói, kể cả khi deliverable khác nhau. File nặng ở đây là lõi Paperclip (`heartbeat.ts`, `issues.ts`), spec dài, report khảo sát dài. Môi trường đang chạy (server, SSH tới Mac, DB) cũng tính là ngữ cảnh.
+2. **Cắt ticket bên trong gói.** Mỗi ticket là một deliverable đủ nhỏ để review riêng, và **chỉ nằm trong một gói**. Ticket nào cần hai gói thì cắt đôi, nối bằng phụ thuộc, và cho nửa sau đọc report của nửa trước chứ không đọc lại nguồn. Nếu không cắt được thì ghi rõ lý do vào bảng.
+3. **Xếp thứ tự trong gói** sao cho ticket sau dùng lại cái mà ticket trước vừa đọc.
+
+**Hai ticket cùng gói thì gộp làm một.** Gộp lại mà quá lớn để review một lượt thì giữ nhiều ticket, nhưng giao chung cho một subagent làm lần lượt để giữ ngữ cảnh làm việc chung. Hai ticket cùng gói mà giao cho hai agent thì Đại Ca phải trả tiền nạp gói đó hai lần.
+
+Mỗi ticket ghi vào bảng ticket của plan (`plans/<plan>/tickets.md`, hoặc bảng ticket trong `plan.md` nếu plan đã có):
+
+| Cột | Ghi gì |
+|---|---|
+| ID · việc | Ngắn, một deliverable kiểm được |
+| Gói | Tên nhóm ngữ cảnh, ví dụ `core-hook`, `mac-ssh`, `docs-kit` |
+| Nạp gì | 3–7 đường dẫn/symbol của gói. Ticket cùng gói thì chỉ ghi phần **thêm** so với gói |
+| Phụ thuộc | ID ticket phải xong trước |
+| Model | Theo §Chọn model, cân theo ticket nặng nhất của gói |
+| Worker · trạng thái | Agent nào đang giữ gói, và ticket đang ở đâu |
+
+Thêm:
+
+- **Ticket cùng gói chạy nối tiếp trên một worker.**
+- **Song song chỉ giữa các gói khác nhau**, và chỉ khi file ghi rời nhau (không chung schema, lockfile, migration).
+- **Gói chưa rõ thì một scout vẽ gói trước.** Scout ghi danh sách file/symbol và chỗ nào từng cắn người vào `plans/<plan>/goi-<ten>.md`. Worker đọc file ghi chú đó, không mỗi đứa tự đi mò lại cùng một vùng.
+- **Gói nhỏ (vài file ngắn, đọc mất chưa tới một phút) thì đừng cố gom.** Song song vẫn rẻ hơn ngồi chờ.
+- **Ticket cần model mạnh hơn worker đang giữ gói thì không đổi model được giữa chừng.** Hoặc chọn model mạnh từ đầu cho cả gói (ghi lý do), hoặc cho worker cũ viết ghi chú bàn giao rồi spawn agent mạnh đọc ghi chú đó, không đọc lại nguồn.
+
 ## Kế hoạch giao ra
 
 Đủ để bước sau chạy không cần hỏi lại: làm gì, chạm file/package/flow nào, đi đường nào, model nào cho từng chặng, nghiệm thu bằng cổng nào (`nghiem-thu`), và **điều gì bạn đang giả định**.

@@ -49,6 +49,8 @@ Mục tiêu: chứng minh bằng chạy thật rằng kiến trúc stock-first �
 **Tiêu chí go:** S1–S4 và S6 đạt. S5 đạt hoặc cần tối đa 3 hook một dòng. Tổng số hook lõi không quá 5.
 **Tiêu chí no-go:** Một trong các điểm S2/S3/S4 chỉ giải được bằng patch sâu trong `heartbeat.ts`/`issues.ts`, hoặc conflict khi nâng không tự động hóa được. Khi đó dừng và báo owner.
 
+Giao việc theo gói ngữ cảnh ở [tickets.md](tickets.md); trong lúc spike mỗi gói ghi file `spike-<gói>.md` riêng, S7 gom về `spike-report.md`.
+
 Thứ tự: S1 → S2 → S3 → S4 → S5 → S6 → S7. S4 và S6 không phụ thuộc Mac, có thể chạy song song với S2/S3 nếu tài nguyên máy cho phép (không chạy hai server Paperclip cùng lúc trên máy 24 GB).
 
 ### Task S1: Dựng Paperclip stock và nối Mac làm SSH environment
@@ -125,7 +127,8 @@ Task này chạy được với agent local trên máy chủ, không cần Mac.
 - [ ] **Step 3: Thử bỏ qua gate.** Dùng token của agent executor gọi API `PATCH` issue sang `done` khi đang ở stage reviewer. Thử thêm agent reviewer tự review chính task mình thực thi. Kỳ vọng cả hai bị chặn hoặc chuyển hướng. Ghi request/response (đã ẩn token).
 - [ ] **Step 4: Vòng sửa.** Reviewer chọn changes requested sáu lần liên tiếp. Ghi lại xem plugin có nhận được event cho mỗi quyết định không (dùng plugin mẫu của SDK hoặc log activity) để làm cơ sở cho rule "tối đa 5 vòng rồi chuyển owner".
 - [ ] **Step 5: Blockers.** Tạo issue B bị chặn bởi issue A. Kiểm B không được wake trước khi A `done`.
-- [ ] **Step 6: Ghi kết luận S4.** Liệt kê gate nào runtime chặn đồng bộ, gate nào chỉ quan sát được sau commit, và các đường bypass còn lại (ví dụ board user).
+- [ ] **Step 6: Dùng chung session giữa hai issue.** Session của agent được giữ theo `(agent, adapter, taskKey)`, mặc định `taskKey` = issue id (`deriveTaskKey` trong `heartbeat.ts`), nên hai issue giao cùng agent mặc định chạy hai session riêng. Tạo hai issue A → B (B bị chặn bởi A) cùng giao `executor`, thử đặt cùng một `taskKey` cho cả hai qua đường API/wake context mà stock cho phép. Kỳ vọng run của B resume session của A (kiểm `agent_task_sessions` và session id trong log run). Ghi rõ một trong ba kết luận: làm được qua API stock; cần plugin; cần hook lõi.
+- [ ] **Step 7: Ghi kết luận S4.** Liệt kê gate nào runtime chặn đồng bộ, gate nào chỉ quan sát được sau commit, các đường bypass còn lại (ví dụ board user), và cách dùng chung session ở Step 6.
 
 ### Task S5: Kiểm tải của Mac trước khi spawn
 
@@ -207,8 +210,8 @@ Mỗi phase dưới đây chỉ được bắt đầu khi đã có detailed plan
 **R1-2 Workflow Superpowers và gate.** Superpowers được cài và ghim phiên bản trên Mac, kèm cách chặn nạp skill chéo (port registry/isolation từ v2). Template `executionPolicy` gồm reviewer, integrator và owner. Plugin áp rule 5 vòng sửa. Integrator merge, chạy docs-kit trên merged commit và chỉ approve khi docs hợp lệ.
 *Nghiệm thu:* Agent không bỏ qua được review/owner/docs qua API. Vòng sửa thứ 6 được chuyển cho owner. Merge mà docs lỗi thì issue chưa `done`.
 
-**R1-3 Trợ Lý.** Agent Trợ Lý chạy trên Mac, đọc docs dự án, dùng skill Superpowers (brainstorm, plan) để tách yêu cầu thành issue con có blockers và execution policy qua API Paperclip, hỏi owner khi thiếu thông tin. Port các policy thuần từ v2 (`model-policy`, `workflow-policy`, `completion-policy`) nếu còn phù hợp.
-*Nghiệm thu:* Một yêu cầu nhỏ, một bug và một yêu cầu research đi từ text trên web tới issue con, thực thi, review, merge và docs-sync.
+**R1-3 Trợ Lý.** Agent Trợ Lý chạy trên Mac, đọc docs dự án, dùng skill Superpowers (brainstorm, plan) để tách yêu cầu thành issue con có blockers và execution policy qua API Paperclip, hỏi owner khi thiếu thông tin. Chia issue con theo gói ngữ cảnh: ticket cùng gói thì gộp, gộp quá lớn thì giao cùng một agent chạy lần lượt (blocker nối tiếp) và dùng chung session theo cách S4 Step 6 đã kiểm. Port các policy thuần từ v2 (`model-policy`, `workflow-policy`, `completion-policy`) nếu còn phù hợp.
+*Nghiệm thu:* Một yêu cầu nhỏ, một bug và một yêu cầu research đi từ text trên web tới issue con, thực thi, review, merge và docs-sync. Một yêu cầu có hai issue con cùng gói thì hai issue đó do cùng một agent làm lần lượt, và run thứ hai resume đúng session của run thứ nhất.
 
 **R1-4 UI Crew trong Paperclip.** UI extension qua plugin: map yêu cầu và issue con với dependency và vòng sửa (port từ `v2/web/src/graph`), trạng thái docs, trạng thái máy. Không làm lại board/list/dialog đã có trong Paperclip.
 *Nghiệm thu:* Playwright với API/DB thật: tạo yêu cầu, mở map, mở dialog issue, owner trả lời approval.

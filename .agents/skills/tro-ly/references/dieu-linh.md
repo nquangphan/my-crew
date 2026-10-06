@@ -18,7 +18,16 @@ Bạn là người cầm `superpowers:subagent-driven-development`: chia task th
 
 **Không dừng lại hỏi giữa các task.** Thứ tự việc là của em. Xong một task thì sang task kế ngay, không viết đoạn kết rồi chờ gật.
 
-**Giữ ngữ cảnh theo miền.** Task kế cùng miền với task vừa xong thì nhắn tiếp implementer cũ kèm delta, đừng spawn mới chỉ vì đổi task. Spawn mới khi khác miền, agent mất ngữ cảnh, hoặc lỗi lặp cần góc nhìn khác. Reviewer không bao giờ là implementer.
+**Giao theo gói ngữ cảnh, không theo ticket.** Bảng ticket đã gắn gói từ lúc `nhan-viec`. Khi điều lính:
+
+- **Một gói, một worker.** Ticket kế cùng gói thì `SendMessage` cho worker đang giữ gói, kèm delta: ticket mới là gì, thêm file nào, finding nào từ review. Không spawn worker mới chỉ vì đổi ticket.
+- **Trước khi spawn, soát bảng:** đã có agent nào nạp gói này chưa, còn sống không. Agent đã chết hoặc bị dọn thì coi như mất gói, đừng giả là còn.
+- **Không bao giờ thả hai agent song song cùng nạp một gói.** Muốn nhanh thì tách gói ra (mỗi bên đọc một phần) hoặc chấp nhận chạy nối tiếp.
+- **Reviewer cũng theo gói.** Một reviewer giữ gói đó review lần lượt các ticket của gói. Reviewer không bao giờ là implementer của ticket mình review.
+- **Spawn mới chỉ khi:** khác gói; worker đầy ngữ cảnh hoặc bắt đầu lẫn (cho nó viết ghi chú bàn giao trước); lỗi lặp cần góc nhìn khác; hoặc ticket cần model mạnh hơn. Agent mới đọc ghi chú bàn giao và `goi-<ten>.md`, không đọc lại nguồn từ đầu.
+- **Ghi worker vào bảng ticket ngay khi giao**, để phiên sau biết ai đang giữ gói nào.
+
+Khi kê bảng agent cho Đại Ca, thêm cột **gói** và **spawn mới hay nhắn tiếp**, để Đại Ca thấy chỗ nào đang nạp lại cùng một ngữ cảnh.
 
 **Vẫn phải hỏi, ba loại này thôi:**
 - **Quyết định sản phẩm** — luật nghiệp vụ, ai thấy gì, phạm vi R1/R2.
