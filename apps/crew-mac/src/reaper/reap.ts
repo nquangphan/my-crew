@@ -1,8 +1,10 @@
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { CommandRunner } from '../system.js';
-import { listProcesses } from './process-table.js';
-import { groupIsRunOnly, type ReaperState, type ReapTarget, selectTargets } from './select.js';
+import { listProcesses, readCwds } from './process-table.js';
+import { collectRunMembers, descendants } from './run-members.js';
+import { type OrphanRun, type ReaperState, selectTargets } from './select.js';
+import { type StopResult, stopMembers } from './stop.js';
 
 export interface ReapDeps {
   runner: CommandRunner;
@@ -21,6 +23,14 @@ export interface ReapOptions {
   logPath: string;
 }
 
+export interface ReapTarget extends OrphanRun {
+  /** Worktree của run = cwd của claude (đã resolve symlink); null khi không đọc được. */
+  root: string | null;
+  members: number[];
+  /** Kết quả dừng; không có khi dry-run. */
+  result?: StopResult;
+}
+
 export function readReaperState(path: string): ReaperState {
   try {
     const raw = JSON.parse(readFileSync(path, 'utf8')) as Partial<ReaperState>;
@@ -36,58 +46,54 @@ export function vnTime(date: Date): string {
   return date.toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
 }
 
-function send(deps: ReapDeps, pid: number, sig: 'SIGTERM' | 'SIGKILL'): void {
+function realOrNull(path: string | undefined): string | null {
+  if (path === undefined) return null;
   try {
-    deps.signal(pid, sig);
+    return realpathSync(path);
   } catch {
-    // Process hoặc group đã thoát giữa chừng (ESRCH): bỏ qua.
+    return null;
   }
 }
 
-/** Những gì nhận TERM: cả group khi group chỉ gồm process của run, cộng các process con đã sang group khác. */
-function termTargets(t: ReapTarget): number[] {
-  return t.killGroup ? [-t.pgid, ...t.strays.map((s) => s.pid)] : t.pids;
-}
-
 export async function reapOnce(deps: ReapDeps, options: ReapOptions): Promise<ReapTarget[]> {
-  const procs = await listProcesses(deps.runner);
-  const { targets, nextState } = selectTargets(
+  const procs = await listProcesses(deps.runner, deps.now());
+  const { targets: orphans, nextState } = selectTargets(
     procs,
     readReaperState(options.statePath),
     deps.now(),
     options.graceMs,
     deps.selfPid,
   );
+  const claudeCwds =
+    orphans.length > 0
+      ? await readCwds(
+          deps.runner,
+          orphans.map((o) => o.pid),
+        )
+      : new Map();
+  const targets: ReapTarget[] = [];
   const log: string[] = [];
-  for (const t of targets) {
+  for (const orphan of orphans) {
+    const root = realOrNull(claudeCwds.get(orphan.pid));
+    // Không đọc được worktree thì chỉ còn nhánh con cháu của claude.
+    const members =
+      root === null
+        ? descendants(orphan.pid, procs).filter((pid) => pid !== deps.selfPid)
+        : (await collectRunMembers(deps.runner, procs, { runId: orphan.runId, root }, deps.selfPid)).members;
+    const target: ReapTarget = { ...orphan, root, members };
     log.push(
-      `${vnTime(deps.now())} ${options.dryRun ? 'SẼ DỌN' : 'TERM'} run=${t.runId} pid=${t.pid} pgid=${t.pgid} ` +
-        `pids=${t.pids.join(',')}${t.killGroup ? ' (cả group)' : ''} mồ côi từ ${vnTime(new Date(t.orphanSince))}`,
+      `${vnTime(deps.now())} ${options.dryRun ? 'SẼ DỌN' : 'TERM'} run=${orphan.runId} pid=${orphan.pid} ` +
+        `root=${root ?? '?'} pids=${members.join(',')} mồ côi từ ${vnTime(new Date(orphan.orphanSince))}`,
     );
-  }
-  if (!options.dryRun && targets.length > 0) {
-    for (const t of targets) for (const pid of termTargets(t)) send(deps, pid, 'SIGTERM');
-    await deps.sleep(options.termWaitMs);
-    const aliveList = await listProcesses(deps.runner);
-    const alive = new Map(aliveList.map((p) => [p.pid, p]));
-    const selfPgid = alive.get(deps.selfPid)?.pgid ?? null;
-    for (const t of targets) {
-      // Chỉ KILL process còn đúng group đã ghi lúc chọn, tránh trúng pid đã bị tái dùng.
-      const leftInGroup = t.pids.filter((pid) => alive.get(pid)?.pgid === t.pgid);
-      const leftStrays = t.strays.filter((s) => alive.get(s.pid)?.pgid === s.pgid).map((s) => s.pid);
-      // Kiểm lại group sau khi chờ: pgid có thể đã được cấp cho group khác, hoặc group đã lẫn process lạ.
-      const groupStillRun =
-        t.killGroup && leftInGroup.length > 0 && groupIsRunOnly(t.pgid, t.runId, aliveList, selfPgid);
-      if (groupStillRun) {
-        send(deps, -t.pgid, 'SIGKILL');
-        for (const pid of leftStrays) send(deps, pid, 'SIGKILL');
-      } else {
-        for (const pid of [...leftInGroup, ...leftStrays]) send(deps, pid, 'SIGKILL');
-      }
-      const left = [...leftInGroup, ...leftStrays];
-      if (left.length > 0) log.push(`${vnTime(deps.now())} KILL run=${t.runId} pids=${left.join(',')}`);
-      delete nextState.orphanSince[`${t.pid}:${t.runId}`];
+    if (!options.dryRun) {
+      target.result = await stopMembers(deps, procs, members, options.termWaitMs);
+      const r = target.result;
+      log.push(
+        `${vnTime(deps.now())} XONG run=${orphan.runId} matched=${r.matched} killed=${r.killed} remaining=${r.remaining}`,
+      );
+      delete nextState.orphanSince[`${orphan.pid}:${orphan.runId}`];
     }
+    targets.push(target);
   }
   mkdirSync(dirname(options.statePath), { recursive: true, mode: 0o700 });
   writeFileSync(options.statePath, `${JSON.stringify(nextState, null, 2)}\n`, { mode: 0o600 });
