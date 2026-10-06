@@ -1,6 +1,6 @@
 # Ticket spike stock-first
 
-Bảng giao việc cho Phần 1 của [plan.md](plan.md). Nội dung từng bước vẫn nằm trong plan; file này chỉ ghi chia gói ngữ cảnh, ai giữ gói và trạng thái.
+Bảng giao việc cho Phần 1 của [plan.md](plan.md). Bản xem online, trạng thái cập nhật trực tiếp: https://claude.ai/artifact/14g64yScV5ZwaT9cNUEjh5 (dữ liệu ở collection `packs`, `tickets`, `log`). Nội dung từng bước vẫn nằm trong plan; file này chỉ ghi chia gói ngữ cảnh, ai giữ gói và trạng thái.
 
 Luật chia: vẽ gói ngữ cảnh trước rồi mới cắt ticket. Ticket cùng gói thì gộp; gộp quá lớn để review một lượt thì giữ nhiều ticket nhưng giao chung một worker làm lần lượt. Không có hai agent song song cùng nạp một gói. Reviewer cũng theo gói và không review ticket mình làm.
 
