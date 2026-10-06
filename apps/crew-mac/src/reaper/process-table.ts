@@ -128,3 +128,14 @@ export async function readCwds(runner: CommandRunner, pids: readonly number[]): 
   }
   return cwds;
 }
+
+/** `sysctl -n kern.boottime` → epoch giây; null khi không đọc được. */
+export function parseBootTime(text: string): number | null {
+  const match = /sec = (\d+)/.exec(text);
+  return match ? Number(match[1]) : null;
+}
+
+export async function readBootTime(runner: CommandRunner): Promise<number | null> {
+  const result = await runner.run('sysctl', ['-n', 'kern.boottime'], { timeoutMs: 10_000 });
+  return result.code === 0 ? parseBootTime(result.stdout) : null;
+}

@@ -48,7 +48,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/cli.ts` | CLI | `main`, `USAGE`, `defaultContext`, `sshServerPort` |
 | `apps/crew-mac/src/system.ts` | Chạy lệnh có giới hạn thời gian (SIGKILL) | `createRunner`, `CommandRunner` |
 | `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext`, `SetupError` |
-| `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn | `macPaths`, `forbiddenRootReason` |
+| `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
 | `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt | `readManifest`, `writeManifest` |
 | `apps/crew-mac/src/zshenv.ts` | Khối PATH | `upsertPathBlock`, `removePathBlock`, `removeSpikePathLines` |

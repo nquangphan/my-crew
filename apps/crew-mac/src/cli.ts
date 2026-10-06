@@ -5,10 +5,10 @@ import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
-import { formatStopLine, RUN_ID_UUID, stopRun } from './commands/stop-run.js';
+import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
 import type { MacContext } from './context.js';
-import { readManifest } from './manifest.js';
+import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
 import { createRunner } from './system.js';
@@ -71,6 +71,14 @@ function parseFlags(
     return n;
   };
   return { has: (flag: string) => flags.has(flag), value, number };
+}
+
+function manifestOrNull(path: string): Manifest | null {
+  try {
+    return readManifest(path);
+  } catch {
+    return null;
+  }
 }
 
 export function stableNodePath(): string {
@@ -178,6 +186,10 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         if (!Number.isInteger(waitSeconds) || waitSeconds < 0 || waitSeconds > MAX_TERM_WAIT_SECONDS) {
           throw new UsageError(`--term-wait-seconds phải là số nguyên 0–${MAX_TERM_WAIT_SECONDS}`);
         }
+        const manifest = manifestOrNull(macPaths(ctx.home).manifest);
+        if (manifest === null) {
+          throw new UsageError('chưa chạy "crew-mac setup" trên máy này (không biết thư mục worktree)');
+        }
         const result = await stopRun(
           {
             runner: ctx.runner,
@@ -186,7 +198,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             now: ctx.now,
             selfPid: process.pid,
           },
-          { runId, root, termWaitMs: waitSeconds * 1000 },
+          { runId, root, termWaitMs: waitSeconds * 1000, allowedRoot: manifest.worktreeRoot, home: ctx.home },
         );
         io.out(formatStopLine(result));
         return 0;
@@ -212,6 +224,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             dryRun: flags.has('--dry-run'),
             statePath: paths.reaperState,
             logPath: paths.reaperLog,
+            worktreeRoot: manifestOrNull(paths.manifest)?.worktreeRoot ?? null,
+            home: ctx.home,
           },
         );
         if (targets.length > 0)
@@ -222,6 +236,10 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         throw new UsageError(command === undefined ? 'thiếu lệnh' : `không có lệnh ${command}`);
     }
   } catch (error) {
+    if (error instanceof StopRunInputError) {
+      io.err(`crew-mac: ${error.message}`);
+      return 2;
+    }
     if (error instanceof UsageError) {
       io.err(`crew-mac: ${error.message}\n\n${USAGE}`);
       return 2;

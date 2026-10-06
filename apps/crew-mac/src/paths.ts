@@ -49,7 +49,7 @@ export type MacPaths = ReturnType<typeof macPaths>;
  * Đường dẫn thật để so sánh: resolve symlink của phần đã tồn tại gần nhất, nối phần chưa tồn tại phía sau,
  * rồi hạ chữ thường vì APFS mặc định không phân biệt hoa thường.
  */
-function comparablePath(path: string): string {
+export function comparablePath(path: string): string {
   let existing = resolve(path);
   const rest: string[] = [];
   while (!existsSync(existing)) {
@@ -65,6 +65,22 @@ function comparablePath(path: string): string {
     // Không đọc được (quyền): giữ đường dẫn đã resolve.
   }
   return join(real, ...rest).toLowerCase();
+}
+
+/**
+ * Lý do không được quét theo cwd ở `root` (worktree của một run), hoặc null nếu được: `root` phải nằm hẳn dưới thư
+ * mục worktree đã cài (`allowedRoot`), không phải `/`, HOME hay thư mục cha của HOME.
+ */
+export function rootGuardReason(root: string, home: string, allowedRoot: string): string | null {
+  if (!isAbsolute(root)) return 'root phải là đường dẫn tuyệt đối';
+  const r = comparablePath(root);
+  const h = comparablePath(home);
+  const a = comparablePath(allowedRoot);
+  if (r === '/') return 'root là gốc ổ đĩa';
+  if (r === h || h.startsWith(`${r}/`)) return 'root là HOME hoặc thư mục cha của HOME';
+  if (!r.startsWith(`${a === '/' ? '' : a}/`) || r === a)
+    return `root không nằm dưới thư mục worktree ${allowedRoot}`;
+  return null;
 }
 
 /** Lý do không được đặt worktree ở `root`, hoặc null nếu được. */

@@ -78,6 +78,8 @@ function setupDeps(trees: string[]) {
     dryRun: false,
     statePath: join(dir, 'state.json'),
     logPath: join(dir, 'reaper.log'),
+    worktreeRoot: realpathSync(tmpdir()) as string | null,
+    home: '/Users/khong-phai-home',
   };
   return { deps, options, signals, sleeps, dir, root, runner };
 }
@@ -132,6 +134,21 @@ describe('reapOnce', () => {
     expect(target?.result).toEqual({ matched: 4, killed: 1, remaining: 0 });
   });
 
+  it('worktree của claude nằm ngoài thư mục worktree đã cài thì chỉ dọn con cháu của claude', async () => {
+    const t = setupDeps([TREE, ONLY_LAUNCHD]);
+    due(t);
+    const [target] = await reapOnce(t.deps, { ...t.options, worktreeRoot: '/Users/owner/crew-agents' });
+    expect(target?.members).toEqual([80001, 80002]);
+    expect(t.signals.some((s) => s.includes('80100') || s.includes('80000'))).toBe(false);
+  });
+
+  it('chưa có manifest (không biết thư mục worktree) thì chỉ dọn con cháu của claude', async () => {
+    const t = setupDeps([TREE, ONLY_LAUNCHD]);
+    due(t);
+    const [target] = await reapOnce(t.deps, { ...t.options, worktreeRoot: null });
+    expect(target?.members).toEqual([80001, 80002]);
+  });
+
   it('dry-run không gửi signal', async () => {
     const t = setupDeps([TREE]);
     due(t);
@@ -184,6 +201,8 @@ describe('reapOnce', () => {
             dryRun: true,
             statePath: join(dir, 'state.json'),
             logPath: join(dir, 'reaper.log'),
+            worktreeRoot: realpathSync(tmpdir()),
+            home: '/Users/khong-phai-home',
           },
         );
         const mine = targets.find((x) => x.runId === runId);

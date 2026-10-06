@@ -30,9 +30,24 @@ function send(deps: StopDeps, pid: number, sig: 'SIGTERM' | 'SIGKILL'): void {
   }
 }
 
-/** Cùng một process: cùng pid, cùng pgid và cùng thời điểm sinh (sai số 1 giây do etime làm tròn). */
-function same(a: ProcInfo, b: ProcInfo): boolean {
-  return a.pid === b.pid && a.pgid === b.pgid && Math.abs(a.startedAt - b.startedAt) <= 1;
+/**
+ * Cùng một process để gửi KILL: cùng pid và cùng thời điểm sinh (sai số 1 giây do etime làm tròn). Không xét pgid,
+ * vì process có thể đổi group sau TERM. Thời điểm sinh không đọc được thì không KILL (có thể là pid đã cấp lại).
+ */
+function sameForKill(a: ProcInfo, b: ProcInfo): boolean {
+  return (
+    a.pid === b.pid &&
+    Number.isFinite(a.startedAt) &&
+    Number.isFinite(b.startedAt) &&
+    Math.abs(a.startedAt - b.startedAt) <= 1
+  );
+}
+
+/** Đếm phần còn lại thì thận trọng ngược lại: thời điểm sinh không đọc được vẫn tính là còn. */
+function sameForCount(a: ProcInfo, b: ProcInfo): boolean {
+  if (a.pid !== b.pid) return false;
+  if (!Number.isFinite(a.startedAt) || !Number.isFinite(b.startedAt)) return true;
+  return Math.abs(a.startedAt - b.startedAt) <= 1;
 }
 
 /**
@@ -73,12 +88,12 @@ export async function stopMembers(
   await deps.sleep(termWaitMs);
 
   const afterTerm = await listProcesses(deps.runner, deps.now());
-  const survivors = afterTerm.filter((p) => chosen.some((c) => same(c, p)));
+  const survivors = afterTerm.filter((p) => chosen.some((c) => sameForKill(c, p)));
   if (survivors.length === 0) return { matched: chosen.length, killed: 0, remaining: 0 };
 
   for (const target of plan(afterTerm, survivors, deps.selfPid, termGroups)) send(deps, target, 'SIGKILL');
   await deps.sleep(AFTER_KILL_MS);
   const afterKill = await listProcesses(deps.runner, deps.now());
-  const remaining = afterKill.filter((p) => chosen.some((c) => same(c, p))).length;
+  const remaining = afterKill.filter((p) => chosen.some((c) => sameForCount(c, p))).length;
   return { matched: chosen.length, killed: survivors.length, remaining };
 }

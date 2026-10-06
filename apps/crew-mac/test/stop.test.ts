@@ -97,6 +97,29 @@ describe('stopMembers', () => {
     expect(result).toEqual({ matched: 1, killed: 1, remaining: 1 });
   });
 
+  it('process đổi group sau TERM vẫn bị KILL và được đếm đúng', async () => {
+    const moved = [
+      '    1     0     1 ??       10-00:00:00 /sbin/launchd',
+      '  611     1   777 ??             00:50 make',
+    ].join('\n');
+    const { signals, result } = await run([BEFORE, moved, moved], [601, 610, 611]);
+    expect(signals).toEqual(['SIGTERM -610', 'SIGTERM 601', 'SIGKILL 611']);
+    expect(result).toEqual({ matched: 3, killed: 1, remaining: 1 });
+  });
+
+  it('etime không đọc được sau KILL thì vẫn tính vào remaining', async () => {
+    const stuckOdd = [
+      '    1     0     1 ??       10-00:00:00 /sbin/launchd',
+      '  601   600   600 ??             lạ claude',
+    ].join('\n');
+    const afterTerm = [
+      '    1     0     1 ??       10-00:00:00 /sbin/launchd',
+      '  601   600   600 ??             01:50 claude',
+    ].join('\n');
+    const { result } = await run([BEFORE, afterTerm, stuckOdd], [601]);
+    expect(result).toEqual({ matched: 1, killed: 1, remaining: 1 });
+  });
+
   it('không có gì để dừng thì không gửi signal, không chờ', async () => {
     const { signals, sleeps, result } = await run([BEFORE], []);
     expect(signals).toEqual([]);

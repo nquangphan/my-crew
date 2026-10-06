@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { describe, expect, it } from 'vitest';
 import { main } from '../src/cli.js';
-import { formatStopLine, stopRun } from '../src/commands/stop-run.js';
+import { setup } from '../src/commands/setup.js';
+import { formatStopLine, StopRunInputError, stopRun } from '../src/commands/stop-run.js';
 import { createRunner } from '../src/system.js';
-import { fakeMac } from './helpers/fake-mac.js';
+import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 import { FakeRunner } from './helpers/fake-runner.js';
 
 const RUN = '11111111-2222-4333-8444-555555555555';
@@ -15,6 +16,9 @@ const RUN_B = '99999999-2222-4333-8444-555555555555';
 const NOW = new Date('2026-10-06T07:05:00.000Z');
 const NOW_SEC = Math.floor(NOW.getTime() / 1000);
 const ONLY_LAUNCHD = '    1     0     1 ??       10-00:00:00 /sbin/launchd';
+// Mọi worktree thử nằm trong thư mục tạm; HOME giả nằm ngoài nó.
+const TMP = realpathSync(tmpdir());
+const GUARD = { allowedRoot: TMP, home: '/Users/khong-phai-home' };
 
 function worktree(runs: Record<string, { started: number; pgid?: number }>): string {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'crew-stop-root-')));
@@ -86,7 +90,7 @@ describe('stopRun', () => {
       [RUN_B]: { started: NOW_SEC - 60 },
     });
     const h = harness(root, [TREE, ONLY_LAUNCHD], ARGV, ENV);
-    const result = await stopRun(h.deps, { runId: RUN, root, termWaitMs: 1_000 });
+    const result = await stopRun(h.deps, { runId: RUN, root, termWaitMs: 1_000, ...GUARD });
     expect(result).toMatchObject({ matched: 5, killed: 0, remaining: 0, members: [600, 601, 610, 611, 700] });
     for (const untouched of ['800', '900']) expect(h.signals.some((s) => s.includes(untouched))).toBe(false);
     expect(existsSync(join(root, '.paperclip-runtime', 'runs', RUN))).toBe(false);
@@ -98,17 +102,51 @@ describe('stopRun', () => {
     const root = worktree({ [RUN]: { started: NOW_SEC - 240, pgid: 600 } });
     const stuck = [ONLY_LAUNCHD, '  601   600   600 ??             03:59 claude'].join('\n');
     const h = harness(root, [TREE, stuck, stuck], ARGV, ENV);
-    const result = await stopRun(h.deps, { runId: RUN, root, termWaitMs: 1_000 });
+    const result = await stopRun(h.deps, { runId: RUN, root, termWaitMs: 1_000, ...GUARD });
     // Không có run B nên tool 800 (sinh sau run A, cwd trong worktree) cũng thuộc run A.
     expect(result).toMatchObject({ matched: 6, killed: 1, remaining: 1 });
     expect(existsSync(join(root, '.paperclip-runtime', 'runs', RUN))).toBe(true);
   });
 
   it('worktree hay file run không có: chỉ còn con cháu của claude, không lỗi', async () => {
-    const h = harness('/khong/ton/tai', [TREE, ONLY_LAUNCHD], ARGV, ENV);
-    const result = await stopRun(h.deps, { runId: RUN, root: '/khong/ton/tai', termWaitMs: 1_000 });
+    const missing = join(TMP, `chua-co-worktree-${process.pid}`);
+    const h = harness(missing, [TREE, ONLY_LAUNCHD], ARGV, ENV);
+    const result = await stopRun(h.deps, { runId: RUN, root: missing, termWaitMs: 1_000, ...GUARD });
     expect(result).toMatchObject({ matched: 3, members: [601, 610, 611] });
     expect(h.runner.commands().some((c) => c.includes('lsof'))).toBe(false);
+  });
+
+  it.each([
+    ['/', 'gốc ổ đĩa'],
+    [join(TMP, 'home-gia'), 'HOME'],
+    [TMP, 'tổ tiên của HOME'],
+    ['/Users/owner/khac', 'ngoài thư mục worktree'],
+  ])('root %s bị từ chối (%s)', async (root) => {
+    const h = harness(root, [TREE], ARGV, ENV);
+    await expect(
+      stopRun(h.deps, { runId: RUN, root, termWaitMs: 0, allowedRoot: TMP, home: join(TMP, 'home-gia') }),
+    ).rejects.toThrow(StopRunInputError);
+    expect(h.signals).toEqual([]);
+  });
+
+  it('runId không phải UUID thì từ chối', async () => {
+    const root = worktree({});
+    const h = harness(root, [TREE], ARGV, ENV);
+    await expect(stopRun(h.deps, { runId: '../../x', root, termWaitMs: 0, ...GUARD })).rejects.toThrow(
+      StopRunInputError,
+    );
+  });
+
+  it('.paperclip-runtime là symlink thì không xóa gì', async () => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'crew-stop-root-')));
+    const elsewhere = realpathSync(mkdtempSync(join(tmpdir(), 'crew-stop-elsewhere-')));
+    mkdirSync(join(elsewhere, 'runs', RUN), { recursive: true });
+    writeFileSync(join(elsewhere, 'runs', RUN, 'started'), `${NOW_SEC - 240}\n`);
+    symlinkSync(elsewhere, join(root, '.paperclip-runtime'));
+    const h = harness(root, [TREE, ONLY_LAUNCHD], ARGV, ENV);
+    const result = await stopRun(h.deps, { runId: RUN, root, termWaitMs: 0, ...GUARD });
+    expect(result.remaining).toBe(0);
+    expect(existsSync(join(elsewhere, 'runs', RUN))).toBe(true);
   });
 
   it('máy nhiều process: một lần gọi lsof cho đúng ứng viên và xong dưới 8 giây', async () => {
@@ -127,7 +165,7 @@ describe('stopRun', () => {
     const tree = [TREE, ...noise].join('\n');
     const h = harness(root, [tree, ONLY_LAUNCHD], ARGV, ENV);
     const started = Date.now();
-    await stopRun(h.deps, { runId: RUN, root, termWaitMs: 0 });
+    await stopRun(h.deps, { runId: RUN, root, termWaitMs: 0, ...GUARD });
     expect(Date.now() - started).toBeLessThan(8_000);
     const lsof = h.runner.calls.filter((c) => c.command === '/usr/sbin/lsof');
     expect(lsof).toHaveLength(1);
@@ -175,7 +213,7 @@ describe('stopRun', () => {
             now: () => new Date(),
             selfPid: process.pid,
           },
-          { runId, root, termWaitMs: 1_000 },
+          { runId, root, termWaitMs: 1_000, ...GUARD },
         );
         expect(result.remaining).toBe(0);
         expect(result.matched).toBeGreaterThanOrEqual(3);
@@ -194,8 +232,7 @@ describe('stopRun', () => {
 });
 
 describe('crew-mac stop-run', () => {
-  function io(env: NodeJS.ProcessEnv = {}) {
-    const mac = fakeMac();
+  function io(env: NodeJS.ProcessEnv = {}, mac = fakeMac()) {
     mac.runner.on('/bin/ps', () => ({ stdout: `${ONLY_LAUNCHD}\n` }));
     const out: string[] = [];
     const err: string[] = [];
@@ -207,11 +244,30 @@ describe('crew-mac stop-run', () => {
   }
 
   it('in đúng một dòng kết quả và thoát 0', async () => {
+    const mac = fakeMac();
+    await setup(mac.ctx, { paperclipKey: PAPERCLIP_PUB });
+    const t = io({}, mac);
+    const root = join(mac.home, 'crew-agents', 'repo-a');
+    expect(await main(['stop-run', '--run-id', RUN, '--root', root], t.io)).toBe(0);
+    expect(t.out).toEqual(['crew-stop matched=0 killed=0 remaining=0']);
+  });
+
+  it('root ngoài thư mục worktree đã cài thì thoát 2', async () => {
+    const mac = fakeMac();
+    await setup(mac.ctx, { paperclipKey: PAPERCLIP_PUB });
+    for (const root of [mac.home, '/', join(mac.home, 'Documents')]) {
+      const t = io({}, mac);
+      expect(await main(['stop-run', '--run-id', RUN, '--root', root], t.io)).toBe(2);
+      expect(t.out).toEqual([]);
+    }
+  });
+
+  it('chưa chạy crew-mac setup thì thoát 2', async () => {
     const t = io();
     expect(await main(['stop-run', '--run-id', RUN, '--root', '/Users/owner/crew-agents/repo-a'], t.io)).toBe(
-      0,
+      2,
     );
-    expect(t.out).toEqual(['crew-stop matched=0 killed=0 remaining=0']);
+    expect(t.err.join('\n')).toContain('setup');
   });
 
   it.each([

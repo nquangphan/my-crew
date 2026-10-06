@@ -16,6 +16,15 @@ export interface RunSpec {
   nextStarted: number | null;
   /** Process group wrapper đã ghi (`pgid`); null khi không có. */
   pgid: number | null;
+  /** Thời điểm máy khởi động (`kern.boottime`); sau `started` thì pid/pgid của run cũ không còn ý nghĩa. */
+  bootTime: number | null;
+}
+
+/** `started` dùng được khi có và máy chưa khởi động lại sau đó; không thì bỏ nhánh (b') và (c). */
+function usableStarted(spec: RunSpec): number | null {
+  if (spec.started === null) return null;
+  if (spec.bootTime !== null && spec.bootTime > spec.started) return null;
+  return spec.started;
 }
 
 /** etime của ps làm tròn xuống giây nên so sánh thời điểm sinh có sai số 1 giây. */
@@ -55,8 +64,9 @@ function neverTouch(p: ProcInfo, selfPid: number): boolean {
 }
 
 function inWindow(p: ProcInfo, spec: RunSpec): boolean {
-  if (spec.started === null) return false;
-  if (p.startedAt < spec.started - CLOCK_SLACK_SEC) return false;
+  const started = usableStarted(spec);
+  if (started === null || !Number.isFinite(p.startedAt)) return false;
+  if (p.startedAt < started - CLOCK_SLACK_SEC) return false;
   return spec.nextStarted === null || p.startedAt < spec.nextStarted - CLOCK_SLACK_SEC;
 }
 
@@ -75,7 +85,7 @@ function claudeBranch(procs: readonly ProcInfo[], spec: RunSpec): Set<number> {
  * run id của run khác. Lọc trước để chỉ gọi lsof cho đúng các pid này.
  */
 export function orphanCandidates(procs: readonly ProcInfo[], spec: RunSpec, selfPid: number): number[] {
-  if (spec.root === null || spec.started === null) return [];
+  if (spec.root === null || usableStarted(spec) === null) return [];
   const branch = claudeBranch(procs, spec);
   return procs
     .filter(
@@ -113,9 +123,20 @@ export function selectRunMembers(
   const byPid = new Map(procs.map((p) => [p.pid, p]));
   const selected = claudeBranch(procs, spec);
 
-  if (spec.pgid !== null && spec.pgid > 1) {
-    for (const p of procs)
-      if (p.pgid === spec.pgid && p.tty === '??' && inWindow(p, spec)) selected.add(p.pid);
+  // (c) chỉ khi group đó vẫn là group của run: leader sinh đúng lúc run bắt đầu, hoặc group có con cháu của claude.
+  // Không thì pgid có thể đã được cấp cho group khác (PID quay vòng).
+  const started = usableStarted(spec);
+  if (spec.pgid !== null && spec.pgid > 1 && started !== null) {
+    const pgid = spec.pgid;
+    const leader = byPid.get(pgid);
+    const leaderIsRun =
+      leader !== undefined &&
+      Number.isFinite(leader.startedAt) &&
+      Math.abs(leader.startedAt - started) <= CLOCK_SLACK_SEC;
+    const hasClaudeBranch = procs.some((p) => p.pgid === pgid && selected.has(p.pid));
+    if (leaderIsRun || hasClaudeBranch) {
+      for (const p of procs) if (p.pgid === pgid && p.tty === '??' && inWindow(p, spec)) selected.add(p.pid);
+    }
   }
 
   if (spec.root !== null) {
@@ -203,6 +224,7 @@ export async function collectRunMembers(
   procs: readonly ProcInfo[],
   run: { runId: string; root: string },
   selfPid: number,
+  bootTime: number | null,
 ): Promise<{ spec: RunSpec; members: number[] }> {
   const window = runWindow(readRunStarts(run.root), run.runId);
   const spec: RunSpec = {
@@ -211,6 +233,7 @@ export async function collectRunMembers(
     started: window.started,
     nextStarted: window.nextStarted,
     pgid: readRunPgid(run.root, run.runId),
+    bootTime,
   };
   const cwds = await readCwds(runner, orphanCandidates(procs, spec, selfPid));
   return { spec, members: selectRunMembers(procs, spec, selfPid, cwds) };

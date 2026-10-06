@@ -17,8 +17,10 @@ hai đường:
 
 - `crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]`, qua launcher ổn định
   `~/.crew/bin/crew-mac` (flow `mac-setup`). In đúng một dòng `crew-stop matched=<n> killed=<n> remaining=<n>`,
-  thoát 0. Thoát 2 khi đầu vào sai (`--run-id` không phải UUID, `--root` không tuyệt đối, `--term-wait-seconds`
-  ngoài 0–20); thoát 1 khi không đọc được bảng process.
+  thoát 0. Thoát 2 khi đầu vào sai: `--run-id` không phải UUID, `--term-wait-seconds` ngoài 0–20, chưa chạy
+  `crew-mac setup`, hoặc `--root` không tuyệt đối, là `/`, là HOME hay thư mục cha của HOME, hay không nằm hẳn dưới
+  thư mục worktree đã cài (`manifest.worktreeRoot`; so sau khi resolve symlink, không phân biệt hoa thường). Thoát 1
+  khi không đọc được bảng process.
 - LaunchAgent `com.2p.crew-mac-reaper` (do `crew-mac setup` cài), `StartInterval` 60 giây; chạy tay:
   `crew-mac reap [--grace-seconds 60] [--dry-run]`.
 
@@ -48,7 +50,12 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
      - (b') process mồ côi: cwd dưới worktree (đã resolve symlink, không phân biệt hoa thường), không tty
        (`??`), sinh trong cửa sổ của run, và chuỗi cha đi lên chỉ gặp launchd hoặc process cũng thỏa (b'). Gặp
        Terminal, editor hay app nào khác thì loại;
-     - (c) process trong group wrapper đã ghi, không tty, sinh trong cửa sổ của run.
+     - (c) process trong group wrapper đã ghi, không tty, sinh trong cửa sổ của run. Chỉ áp dụng khi group đó vẫn là
+       của run: leader (pid = `pgid`) còn sống và sinh trong ±1 giây quanh `started`, hoặc group có con cháu của
+       claude thuộc (a). Không thì pgid có thể đã được cấp cho group khác của owner.
+
+     Máy khởi động lại sau `started` (`kern.boottime` > `started`) thì bỏ cả (b') lẫn (c), chỉ còn (a). Thời điểm sinh
+     không đọc được (`etime` lạ) thì coi như nằm ngoài cửa sổ.
 
      Không bao giờ chọn launchd, `sshd`/`sshd-session` hay chính process đang chạy. So thời điểm sinh có sai số 1
      giây vì `etime` làm tròn.
@@ -56,15 +63,19 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 3. `apps/crew-mac/src/reaper/stop.ts` → `stopMembers`:
    - Gửi `SIGTERM` theo group cho group chỉ gồm process đã chọn (và không phải group của chính mình), còn lại theo
      từng pid.
-   - Chờ, quét lại, gửi `SIGKILL` cho đúng process đã chọn còn sống (so pid, pgid và thời điểm sinh để tránh pid bị
-     cấp lại). KILL theo group chỉ với group đã nhận TERM theo group và vẫn chỉ gồm process đã chọn.
-   - Chờ 200 ms rồi đếm phần còn lại.
-4. `apps/crew-mac/src/commands/stop-run.ts` → `stopRun`: resolve `--root`, chọn, dừng. Không còn process nào thì xóa
-   `<root>/.paperclip-runtime/runs/<runId>`. `formatStopLine` in dòng kết quả.
+   - Chờ, quét lại, gửi `SIGKILL` cho đúng process đã chọn còn sống (so pid và thời điểm sinh để tránh pid bị cấp
+     lại; không so pgid vì process có thể đổi group sau TERM). KILL theo group chỉ với group đã nhận TERM theo group
+     và vẫn chỉ gồm process đã chọn.
+   - Chờ 200 ms rồi đếm phần còn lại; process trùng pid mà thời điểm sinh không đọc được vẫn tính là còn.
+4. `apps/crew-mac/src/commands/stop-run.ts` → `stopRun`: kiểm `runId`, kiểm `root` bằng `rootGuardReason`
+   (`apps/crew-mac/src/paths.ts`), resolve `root`, đọc `kern.boottime`, chọn, dừng. Không còn process nào thì xóa
+   `<root>/.paperclip-runtime/runs/<runId>`, trừ khi `.paperclip-runtime` hoặc `runs` là symlink. `formatStopLine`
+   in dòng kết quả.
 5. `apps/crew-mac/src/reaper/select.ts` → `selectTargets`: claude `--print` có run id mà chuỗi cha không còn
    `sshd`/`sshd-session` (`isOrphaned`). Ghi thời điểm thấy mồ côi lần đầu vào state; quá thời hạn (mặc định 60 giây,
    tối thiểu 60) thì chọn.
-6. `apps/crew-mac/src/reaper/reap.ts` → `reapOnce`: lấy worktree = cwd của claude mồ côi, chọn process của run bằng
+6. `apps/crew-mac/src/reaper/reap.ts` → `reapOnce`: lấy worktree = cwd của claude mồ côi. Worktree không qua
+   `rootGuardReason` (hoặc chưa có manifest) thì chỉ dọn con cháu của claude. Không thì chọn process của run bằng
    `collectRunMembers`, rồi dừng bằng `stopMembers` (chờ 10 giây sau TERM). Ghi `~/.crew-mac/reaper/reaper.log` (giờ
    Asia/Ho_Chi_Minh) và `state.json`.
 

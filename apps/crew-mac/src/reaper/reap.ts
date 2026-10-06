@@ -1,7 +1,8 @@
 import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { rootGuardReason } from '../paths.js';
 import type { CommandRunner } from '../system.js';
-import { listProcesses, readCwds } from './process-table.js';
+import { listProcesses, readBootTime, readCwds } from './process-table.js';
 import { collectRunMembers, descendants } from './run-members.js';
 import { type OrphanRun, type ReaperState, selectTargets } from './select.js';
 import { type StopResult, stopMembers } from './stop.js';
@@ -21,6 +22,9 @@ export interface ReapOptions {
   dryRun: boolean;
   statePath: string;
   logPath: string;
+  /** Thư mục worktree đã cài (`manifest.worktreeRoot`); null khi chưa cài: chỉ dọn con cháu của claude. */
+  worktreeRoot: string | null;
+  home: string;
 }
 
 export interface ReapTarget extends OrphanRun {
@@ -71,15 +75,24 @@ export async function reapOnce(deps: ReapDeps, options: ReapOptions): Promise<Re
           orphans.map((o) => o.pid),
         )
       : new Map();
+  const bootTime = orphans.length > 0 ? await readBootTime(deps.runner) : null;
   const targets: ReapTarget[] = [];
   const log: string[] = [];
   for (const orphan of orphans) {
-    const root = realOrNull(claudeCwds.get(orphan.pid));
+    const cwdRoot = realOrNull(claudeCwds.get(orphan.pid));
+    // Chỉ quét theo cwd khi worktree nằm hẳn dưới thư mục worktree đã cài (không phải /, HOME hay cha của HOME).
+    const root =
+      cwdRoot !== null &&
+      options.worktreeRoot !== null &&
+      rootGuardReason(cwdRoot, options.home, options.worktreeRoot) === null
+        ? cwdRoot
+        : null;
     // Không đọc được worktree thì chỉ còn nhánh con cháu của claude.
     const members =
       root === null
         ? descendants(orphan.pid, procs).filter((pid) => pid !== deps.selfPid)
-        : (await collectRunMembers(deps.runner, procs, { runId: orphan.runId, root }, deps.selfPid)).members;
+        : (await collectRunMembers(deps.runner, procs, { runId: orphan.runId, root }, deps.selfPid, bootTime))
+            .members;
     const target: ReapTarget = { ...orphan, root, members };
     log.push(
       `${vnTime(deps.now())} ${options.dryRun ? 'SẼ DỌN' : 'TERM'} run=${orphan.runId} pid=${orphan.pid} ` +

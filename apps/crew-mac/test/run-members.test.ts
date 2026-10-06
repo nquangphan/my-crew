@@ -6,6 +6,7 @@ import {
   LSOF_BATCH,
   listProcesses,
   type ProcInfo,
+  parseBootTime,
   parseEtime,
   parseLsofCwd,
   parsePsTree,
@@ -102,9 +103,21 @@ function select(rows: Row[], spec: RunSpec, selfPid = 999): number[] {
   return selectRunMembers(procsOf(rows), spec, selfPid, cwdsOf(rows));
 }
 
-const SPEC: RunSpec = { runId: RUN, root: ROOT, started: START, nextStarted: null, pgid: 600 };
+const SPEC: RunSpec = {
+  runId: RUN,
+  root: ROOT,
+  started: START,
+  nextStarted: null,
+  pgid: 600,
+  bootTime: null,
+};
 
 describe('đọc bảng process (tty, etime) và cwd', () => {
+  it('đọc kern.boottime', () => {
+    expect(parseBootTime('{ sec = 1791153820, usec = 427391 } Mon Oct  5 05:43:40 2026')).toBe(1_791_153_820);
+    expect(parseBootTime('lạ')).toBeNull();
+  });
+
   it('đổi etime ra giây', () => {
     expect(parseEtime('00:05')).toBe(5);
     expect(parseEtime('01:02:03')).toBe(3_723);
@@ -205,6 +218,38 @@ describe('selectRunMembers', () => {
   it('không chọn sshd, launchd hay chính mình', () => {
     const pids = select(table(), { ...SPEC, root: '/', started: START - 86_400, pgid: 1 }, 611);
     for (const pid of [1, 500, 501, 611]) expect(pids).not.toContain(pid);
+  });
+
+  it('pgid đã ghi bị cấp lại cho group không tty khác của owner: không chọn theo group', () => {
+    // Group 1300: helper GUI của owner, sinh sau started, cwd ngoài worktree; leader không sinh lúc run bắt đầu.
+    const rows = [
+      ...table(),
+      proc(1300, 1, 1300, { comm: 'Helper', cwd: '/Applications', startedAt: START + 50 }),
+      proc(1301, 1300, 1300, { comm: 'Helper (Renderer)', cwd: '/', startedAt: START + 51 }),
+    ];
+    const pids = select(rows, { ...SPEC, pgid: 1300 });
+    expect(pids).not.toContain(1300);
+    expect(pids).not.toContain(1301);
+  });
+
+  it('group đã ghi vẫn được chọn khi có thành viên là con cháu của claude dù leader đã chết', () => {
+    const rows = table().filter((p) => p.pid !== 610);
+    // Leader 610 đã chết: 611 về launchd và cwd ngoài worktree, còn 612 vẫn là con của claude trong group 610.
+    const orphaned = rows.map((p) => (p.pid === 611 ? { ...p, ppid: 1, cwd: '/tmp/khac' } : p));
+    const withClaudeChild = [...orphaned, proc(612, 601, 610, { comm: 'node', cwd: '/tmp/khac' })];
+    const pids = select(withClaudeChild, { ...SPEC, pgid: 610 });
+    expect(pids).toContain(611);
+    expect(pids).toContain(612);
+  });
+
+  it('máy đã khởi động lại sau khi run bắt đầu: chỉ còn con cháu của claude', () => {
+    expect(select(table(), { ...SPEC, bootTime: START + 60 })).toEqual([601, 610, 611]);
+    expect(orphanCandidates(procsOf(table()), { ...SPEC, bootTime: START + 60 }, 999)).toEqual([]);
+  });
+
+  it('thời điểm sinh không đọc được (etime lạ) thì không nằm trong cửa sổ', () => {
+    const rows = [...table(), proc(1400, 1, 1400, { comm: 'sleep', cwd: ROOT, startedAt: Number.NaN })];
+    expect(select(rows, { ...SPEC, pgid: null })).not.toContain(1400);
   });
 
   it('hai run cùng worktree: dừng run A muộn không giết mồ côi sinh sau khi run B bắt đầu', () => {
