@@ -640,6 +640,38 @@ flows:
     entrypoints: []
     files: []
     tests: []
+  mac-setup:
+    title: Cài và kiểm Mac chạy agent (crew-mac)
+    doc: docs/flows/mac-setup.md
+    entrypoints:
+      - apps/crew-mac/src/cli.ts
+    files:
+      - apps/crew-mac/src/system.ts
+      - apps/crew-mac/src/context.ts
+      - apps/crew-mac/src/paths.ts
+      - apps/crew-mac/src/fs-util.ts
+      - apps/crew-mac/src/manifest.ts
+      - apps/crew-mac/src/zshenv.ts
+      - apps/crew-mac/src/authorized-keys.ts
+      - apps/crew-mac/src/plist.ts
+      - apps/crew-mac/src/sshd-config.ts
+      - apps/crew-mac/src/launchctl.ts
+      - apps/crew-mac/src/tailscale.ts
+      - apps/crew-mac/src/wrapper.ts
+      - apps/crew-mac/src/commands/setup.ts
+      - apps/crew-mac/src/commands/doctor.ts
+      - apps/crew-mac/src/commands/uninstall.ts
+    tests:
+      - apps/crew-mac/test/system.test.ts
+      - apps/crew-mac/test/zshenv.test.ts
+      - apps/crew-mac/test/authorized-keys.test.ts
+      - apps/crew-mac/test/render.test.ts
+      - apps/crew-mac/test/system-wrappers.test.ts
+      - apps/crew-mac/test/crew-claude-run.test.ts
+      - apps/crew-mac/test/setup.test.ts
+      - apps/crew-mac/test/doctor.test.ts
+      - apps/crew-mac/test/uninstall.test.ts
+      - apps/crew-mac/test/cli.test.ts
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

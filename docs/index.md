@@ -44,6 +44,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | `apps/daemon/src/roles` | Vai trò agent theo bước (prompt, model, cổng, report, merge/push, thất bại) |
 | `apps/desktop/src/main`, `apps/desktop/src/daemon-host` | App Electron: tiến trình main (cửa sổ, tray, cập nhật) và tiến trình con chạy daemon + thao tác trình cài đặt/sức khỏe |
 | `apps/desktop/src/renderer` | Giao diện React của app desktop: trình cài đặt, sức khỏe, job, log, cài đặt project |
+| `apps/crew-mac/src` | CLI `crew-mac` cho Crew v3: cài sshd phiên desktop, key Paperclip, PATH, kiểm sức khỏe Mac (kể cả hộp thoại quyền macOS) và dọn process `claude` mồ côi |
 
 ## Danh sách flow
 
@@ -67,6 +68,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Đồng bộ và xem docs](flows/docs-sync-viewer.md) | `docs-sync-viewer` | `apps/api/src/routes/docs-routes.ts`, `apps/web/src/routes/project-docs.tsx` |
 | [Phát sự kiện và SSE](flows/event-delivery.md) | `event-delivery` | `apps/api/src/routes/stream-routes.ts` |
 | [Nghiệm thu: merge cục bộ, cổng pre-push và push](flows/local-merge.md) | `local-merge` | `apps/daemon/src/roles/merge-policy.ts` |
+| [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |
 | [Điều khiển máy từ web (thao tác từ xa trong danh sách cho phép)](flows/machine-control.md) | `machine-control` | `apps/api/src/routes/machine-command-routes.ts`, `apps/web/src/components/machine-control.tsx` |
 | [Ghép máy và xác thực máy](flows/machine-pairing.md) | `machine-pairing` | `apps/api/src/routes/machine-routes.ts` |
 | [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx`, `apps/web/src/routes/account.tsx` |

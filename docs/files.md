@@ -105,6 +105,32 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/sweeper.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/ticket-service.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/transition.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/crew-mac/src/authorized-keys.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/cli.ts` | [mac-setup](flows/mac-setup.md) (điểm vào) |
+| `apps/crew-mac/src/commands/doctor.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/commands/setup.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/commands/uninstall.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/context.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/fs-util.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/launchctl.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/manifest.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/paths.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/plist.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/sshd-config.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/tailscale.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/wrapper.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/zshenv.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/test/authorized-keys.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/crew-claude-run.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/doctor.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/render.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/setup.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/system-wrappers.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/system.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/uninstall.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/daemon/src/api/vps-client.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
 | `apps/daemon/src/cli.ts` | [daemon-runtime](flows/daemon-runtime.md) (điểm vào) |
 | `apps/daemon/src/commands/doctor.ts` | [daemon-health](flows/daemon-health.md) (điểm vào) |
