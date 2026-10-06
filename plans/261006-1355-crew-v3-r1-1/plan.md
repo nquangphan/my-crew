@@ -93,7 +93,7 @@ Còn chờ owner: duyệt push fork để mở PR upstream cho P1–P4; chọn n
 - Mọi ticket đạt review riêng: RL-1, RL-2, RT-1, RT-2, RT-3, RT-4, MS-1, MS-2, MS-3 (MS-3 thêm giữa chừng: `crew-mac stop-run` nhận diện process của run theo cây cha–con và worktree, vì Bash tool của Claude Code chạy trong process group và session riêng). Review toàn nhánh (fable) cùng một đợt sửa.
 - AC-1 trên máy thật (Mac mini + VPS spike, commit server `1b85a07ed`): 12/13 tiêu chí đạt — issue chạy `in_place` đúng worktree agent, hủy run dừng process ~6 giây và issue chuyển `blocked`, restart server không chạy song song, mất mạng thì reaper dọn sau 138 giây, Mac quá tải/không vào được/hết hạn chờ đúng, restore đọc đúng 39 issue và 81 run. Không đạt: mất mạng dẫn tới commit trùng vì retry làm lại việc process cũ đã kịp commit; spec Review Focus 1 vẫn đạt.
 - `crew-mac` đã cài trên Mac mini (`~/.crew/app/crew-mac`, LaunchAgent `com.2p.crew-mac-sshd`, `com.2p.crew-mac-reaper`), worktree agent `~/crew-agents/mac-claude`.
-- Nhánh fork chỉ gộp cục bộ vào `v3`, chưa push (PR upstream cho P1–P4 để sau, cần owner duyệt).
+- Fork đã push lên `origin` (`github.com/nquangphan/crew-paperclip`, public), nhánh `v3` tại `e1c3dd2db`. Owner chốt không mở PR upstream.
 
 ## Việc bắt buộc đầu R1-2 (chuyển từ R1-1)
 
@@ -106,4 +106,21 @@ Còn chờ owner: duyệt push fork để mở PR upstream cho P1–P4; chọn n
 7. Logic thật của H2 (chặn `done` khi chưa đủ stage, chặn agent sửa/xóa `executionPolicy`).
 
 Danh sách minor hoãn và mọi ruling nằm trong [sdd-ledger.md](sdd-ledger.md).
+
+## Fork Paperclip: kéo bản upstream mới về, kiểm rồi merge
+
+Owner chốt 06/10/2026: không gửi PR lên `paperclipai/paperclip`; mọi phần riêng của Crew mang theo trong fork và kiểm lại mỗi lần nâng.
+
+- **Repo:** `.worktrees/paperclip-v3` (repo riêng). Remote `origin` = `github.com/nquangphan/crew-paperclip` (fork public của Crew), `upstream` = `github.com/paperclipai/paperclip` (MIT). Nhánh làm việc `v3`; gốc là tag `v2026.1001.0` (`8f8a0ab7e`).
+- **Phần Crew mang theo**, liệt kê đủ trong `crew/release/core-hooks.json` của fork:
+  - Hook một dòng: H1 `claimQueuedRun` (cổng tải), H2 `runUpdate` (no-op, logic ở R1-2), H3 `releaseRunLease` của SSH driver (dừng process trên Mac).
+  - Vá adapter/driver: P1 metadata `in_place` của SSH driver, P2 `claude_local` chạy `in_place`, P3 `sessionCodec` giữ `remoteExecution`, P4 dòng log resume. P3 cũng đúng với `codex_local` nhưng chưa vá.
+  - Code riêng: `server/src/crew/`, `packages/crew-plugin/`, `crew/release/`, `crew/ops/`.
+- **Cách nâng:**
+  1. `git -C .worktrees/paperclip-v3 fetch upstream --tags`, chọn tag stable mới (xem `gh release list -R paperclipai/paperclip`).
+  2. `crew/release/upgrade.sh <tag> --base v3`: tạo worktree và nhánh `sync/paperclip-<tag>`, merge upstream, rồi tự chạy `crew/release/verify.sh` (kiểm mốc hook theo `core-hooks.json`, test vá, `tsc` server/claude-local/plugin). Mã thoát: 64–67 lỗi đầu vào/merge, 2 conflict ở mã nguồn (in danh sách file), 3–6 bước kiểm đỏ.
+  3. Conflict hay kiểm đỏ: sửa trên nhánh `sync/...`; mốc hook trôi thì đặt lại đúng một dòng đầu hàm và cập nhật `core-hooks.json`. Đọc diff lockfile của commit `chore(sync): restore Crew lockfile importer` trước khi gộp.
+  4. Xanh: review diff, merge `sync/...` vào `v3`, `git push origin v3`.
+  5. Deploy bằng `crew/ops/` (overlay trên image upstream đúng tag mới, backup trước, rollback có sẵn) và chạy lại các kịch bản S3/S5 của AC-1 trước khi coi là xong.
+- Diễn tập 06/10/2026 trên `upstream/master`: 0 conflict ở mã nguồn, 1 file test conflict (đã tách test Crew ra file riêng sau đó).
 
