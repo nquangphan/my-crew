@@ -109,16 +109,20 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/cli.ts` | [mac-setup](flows/mac-setup.md) (điểm vào) |
 | `apps/crew-mac/src/commands/doctor.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/setup.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/commands/stop-run.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (điểm vào) |
 | `apps/crew-mac/src/commands/uninstall.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/context.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/fs-util.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/launchctl.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/launcher.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/manifest.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/paths.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/plist.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/reaper/process-table.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/reaper/reap.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (điểm vào) |
+| `apps/crew-mac/src/reaper/run-members.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/reaper/select.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
+| `apps/crew-mac/src/reaper/stop.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/sshd-config.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/tailscale.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -131,7 +135,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/reaper-reap.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/reaper-select.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/render.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/run-members.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/setup.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/stop-run.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
+| `apps/crew-mac/test/stop.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/system-wrappers.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/system.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/uninstall.test.ts` | [mac-setup](flows/mac-setup.md) (test) |

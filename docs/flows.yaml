@@ -658,6 +658,7 @@ flows:
       - apps/crew-mac/src/launchctl.ts
       - apps/crew-mac/src/tailscale.ts
       - apps/crew-mac/src/wrapper.ts
+      - apps/crew-mac/src/launcher.ts
       - apps/crew-mac/src/commands/setup.ts
       - apps/crew-mac/src/commands/doctor.ts
       - apps/crew-mac/src/commands/uninstall.ts
@@ -673,14 +674,20 @@ flows:
       - apps/crew-mac/test/uninstall.test.ts
       - apps/crew-mac/test/cli.test.ts
   mac-orphan-reaper:
-    title: Dọn process claude mồ côi trên Mac (crew-mac reap)
+    title: Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)
     doc: docs/flows/mac-orphan-reaper.md
     entrypoints:
+      - apps/crew-mac/src/commands/stop-run.ts
       - apps/crew-mac/src/reaper/reap.ts
     files:
+      - apps/crew-mac/src/reaper/run-members.ts
+      - apps/crew-mac/src/reaper/stop.ts
       - apps/crew-mac/src/reaper/process-table.ts
       - apps/crew-mac/src/reaper/select.ts
     tests:
+      - apps/crew-mac/test/run-members.test.ts
+      - apps/crew-mac/test/stop.test.ts
+      - apps/crew-mac/test/stop-run.test.ts
       - apps/crew-mac/test/reaper-select.test.ts
       - apps/crew-mac/test/reaper-reap.test.ts
 shared:
