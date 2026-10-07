@@ -10,6 +10,7 @@ import {
 import { isAbsolute, join, relative, sep } from 'node:path';
 import type { MacContext } from '../context.js';
 import { comparablePath } from '../paths.js';
+import { shQuote } from '../system.js';
 import { superpowersPinDir, type WorkflowPin } from './pin.js';
 
 export type Origin = 'pinned' | 'paperclip' | 'project' | 'blocked';
@@ -26,6 +27,8 @@ export interface DiscoveredSource {
   fix?: string;
 }
 
+/** Đoạn có trong lý do khi git quá hạn (doctor dừng quét các worktree còn lại khi gặp). */
+export const GIT_TIMEOUT = 'git quá hạn';
 export const UNTRACKED_REASON = 'không được git track trong worktree agent';
 export const IGNORED_REASON = 'bị git ignore trong worktree agent';
 export const DIRTY_REASON = 'đã sửa so với commit (chưa commit) trong worktree agent';
@@ -89,7 +92,7 @@ async function readGit(ctx: MacContext, root: string): Promise<GitView> {
     prefix: '',
     tracked: new Map(),
     status: new Map(),
-    error: r.timedOut ? 'git quá hạn 10 giây' : r.stderr.trim().split('\n')[0] || `git thoát mã ${r.code}`,
+    error: r.timedOut ? `${GIT_TIMEOUT} 10 giây` : r.stderr.trim().split('\n')[0] || `git thoát mã ${r.code}`,
   });
   const git = (args: string[]) => ctx.runner.run('/usr/bin/git', ['--no-optional-locks', ...args], opts);
   // `--show-prefix` thay vì tự tính từ `--show-toplevel`: APFS không phân biệt hoa thường nên đường dẫn git trả
@@ -142,6 +145,8 @@ function fileIssue(git: GitView, root: string, abs: string): FileIssue | null {
     };
   }
   const rel = toPosix(relative(root, abs));
+  const r = shQuote(root);
+  const f = shQuote(rel);
   const key = git.prefix ? `${git.prefix}/${rel}` : rel;
   const mode = git.tracked.get(key);
   if (mode === undefined) {
@@ -150,7 +155,7 @@ function fileIssue(git: GitView, root: string, abs: string): FileIssue | null {
       [...git.status].some(([path, code]) => code === '!!' && path.endsWith('/') && key.startsWith(path));
     return {
       reason: ignored ? IGNORED_REASON : UNTRACKED_REASON,
-      fix: `Xử lý: commit (git -C ${root} add ${ignored ? '-f ' : ''}-- ${rel} rồi commit) hoặc xóa file đó.`,
+      fix: `Xử lý: commit (git -C ${r} add ${ignored ? '-f ' : ''}-- ${f} rồi commit) hoặc xóa file đó.`,
       dirty: false,
     };
   }
@@ -170,8 +175,8 @@ function fileIssue(git: GitView, root: string, abs: string): FileIssue | null {
   const code = git.status.get(key);
   if (code === undefined || code === '!!') return null;
   const fix = code.startsWith('A')
-    ? `Xem: git -C ${root} diff --cached -- ${rel}; bỏ: git -C ${root} rm --cached -- ${rel} rồi xóa file, hoặc commit.`
-    : `Xem: git -C ${root} diff HEAD -- ${rel}; bỏ: git -C ${root} checkout HEAD -- ${rel}, hoặc commit.`;
+    ? `Xem: git -C ${r} diff --cached -- ${f}; bỏ: git -C ${r} rm --cached -- ${f} rồi xóa file, hoặc commit.`
+    : `Xem: git -C ${r} diff HEAD -- ${f}; bỏ: git -C ${r} checkout HEAD -- ${f}, hoặc commit.`;
   return { reason: DIRTY_REASON, fix, dirty: true };
 }
 

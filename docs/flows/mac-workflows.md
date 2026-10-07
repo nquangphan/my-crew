@@ -68,7 +68,8 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
    - `SKILL.md`, `.claude/agents|commands/*.md` đã track mà sửa dở **chỉ cảnh báo**: `workflow-check` vẫn thoát 0 và in
      thêm `crew-workflow warn: …`. Agent làm việc trên repo có skill (như chính repo Crew) là việc hợp lệ, và một run bị
      ngắt giữa chừng không được làm mọi lần chạy lại kẹt 78.
-   - Mỗi dòng chặn/cảnh báo có lệnh xử lý cụ thể (`DiscoveredSource.fix`, `describeSource`):
+   - Mỗi dòng chặn/cảnh báo có lệnh xử lý cụ thể (`DiscoveredSource.fix`, `describeSource`). `<root>` và `<file>` được
+     quote bằng `shQuote`, nên chạy nguyên văn được cả khi đường dẫn có dấu cách hay nháy đơn:
      - sửa dở: `Xem: git -C <root> diff HEAD -- <file>; bỏ: git -C <root> checkout HEAD -- <file>, hoặc commit.`
        Với file mới `git add`: `diff --cached`, `rm --cached`;
      - chưa track: `commit (git -C <root> add -- <file> rồi commit) hoặc xóa file đó` (`add -f` khi bị ignore).
@@ -209,7 +210,7 @@ bản ghim (hoặc không còn cài).
   - hook (bỏ qua `.logs/` và file không phải script), `.mcp.json`;
   - `settings.local.json` bật hook hoặc chỉ có quyền; `settings.json` chưa track;
   - superpowers bật trong repo luôn `pinned` kể cả khi owner gỡ plugin, plugin khác là `project`;
-  - git lỗi hoặc quá hạn; số lệnh git cố định; worktree là thư mục con của repo; đường dẫn khác hoa thường (APFS);
+  - git lỗi hoặc quá hạn; số lệnh git cố định; lệnh xử lý quote đường dẫn có dấu cách và nháy đơn (chạy thật lệnh `checkout`); worktree là thư mục con của repo; đường dẫn khác hoa thường (APFS);
   - sửa dở: `SKILL.md`/agent chỉ cảnh báo, `settings.json`/script hook chặn, kèm lệnh xử lý; nguồn chưa track kèm lệnh.
 - `apps/crew-mac/test/workflow-check.test.ts`:
   - `workflowCheck`: sạch, `--plugin-dir` là cache owner, thư mục ghim bị sửa, mất bit thực thi hoặc chưa cài, skill

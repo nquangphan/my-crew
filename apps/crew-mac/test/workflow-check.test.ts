@@ -94,7 +94,7 @@ describe('workflowCheck', () => {
     expect(r.ok).toBe(false);
     expect(r.lines).toContain(
       `crew-workflow blocked: ${root}/.claude/skills/stray (không được git track trong worktree agent). ` +
-        `Xử lý: commit (git -C ${root} add -- .claude/skills/stray/SKILL.md rồi commit) hoặc xóa file đó.`,
+        `Xử lý: commit (git -C '${root}' add -- '.claude/skills/stray/SKILL.md' rồi commit) hoặc xóa file đó.`,
     );
   });
 
@@ -107,7 +107,7 @@ describe('workflowCheck', () => {
     expect(r.lines[0]).toMatch(/^crew-workflow ok /);
     expect(r.lines[1]).toBe(
       `crew-workflow warn: ${root}/.claude/skills/du-an (đã sửa so với commit (chưa commit) trong worktree agent). ` +
-        `Xem: git -C ${root} diff HEAD -- .claude/skills/du-an/SKILL.md; bỏ: git -C ${root} checkout HEAD -- .claude/skills/du-an/SKILL.md, hoặc commit.`,
+        `Xem: git -C '${root}' diff HEAD -- '.claude/skills/du-an/SKILL.md'; bỏ: git -C '${root}' checkout HEAD -- '.claude/skills/du-an/SKILL.md', hoặc commit.`,
     );
   });
 });

@@ -445,7 +445,28 @@ describe('crew-mac doctor', () => {
       status: 'fail',
       detail: expect.stringContaining('.claude/settings.json'),
     });
-    expect(failed?.hint).toContain(`git -C ${wt} checkout HEAD -- .claude/settings.json`);
+    expect(failed?.hint).toContain(`git -C '${wt}' checkout HEAD -- '.claude/settings.json'`);
+  });
+
+  it('worktree-workflows: git quá hạn ở worktree đầu thì dừng, không kiểm các worktree còn lại', async () => {
+    const mac = await installed(okSsh);
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    for (const name of ['a', 'b', 'c']) {
+      mkdirSync(join(root, name, '.claude', 'skills', 's'), { recursive: true });
+      writeFileSync(join(root, name, '.claude', 'skills', 's', 'SKILL.md'), 's');
+    }
+    const roots: string[] = [];
+    mac.runner.on('/usr/bin/git', (args) => {
+      roots.push(args[args.indexOf('-C') + 1] as string);
+      return { code: 137, timedOut: true };
+    });
+    const r = (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+      (c) => c.id === 'worktree-workflows',
+    );
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('git quá hạn');
+    expect(r?.detail).toContain('dừng kiểm các worktree còn lại');
+    expect(new Set(roots)).toEqual(new Set([join(root, 'a')]));
   });
 
   it('claude treo: phép thử fail và trỏ sang check TCC', async () => {

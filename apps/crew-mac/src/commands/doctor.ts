@@ -6,9 +6,10 @@ import { serviceState } from '../launchctl.js';
 import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
 import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
+import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
-import { discoverSources } from '../workflows/inventory.js';
+import { discoverSources, GIT_TIMEOUT } from '../workflows/inventory.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
@@ -93,10 +94,6 @@ export function tccHint(prompt: PendingPrompt): string {
     `muốn truy cập ${known.what}, bấm "Allow". Nếu không thấy hộp thoại: System Settings → Privacy & Security → ` +
     `${known.section}, bật quyền cho ${prompt.subject}. Claude Code cập nhật bản mới thì đường dẫn đổi và macOS hỏi lại.`
   );
-}
-
-function shQuote(value: string): string {
-  return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 /** Script chạy phía Mac: tự SIGKILL claude khi quá hạn để không để lại process treo (claude bỏ qua SIGTERM). */
@@ -345,6 +342,8 @@ function checkSuperpowersPin(ctx: MacContext): CheckResult {
  * worktree nào sẽ làm run thoát 78 thì `fail` kèm lệnh xử lý, chỉ có cảnh báo thì `warn`. Phần bản ghim do
  * `superpowers-pin` kiểm.
  */
+const WORKTREE_WORKFLOWS_BUDGET_MS = 60_000;
+
 async function checkWorktreeWorkflows(ctx: MacContext, manifest: Manifest): Promise<CheckResult> {
   const base = { id: 'worktree-workflows', title: 'Nguồn skill trong các worktree agent' };
   const root = manifest.worktreeRoot;
@@ -368,12 +367,27 @@ async function checkWorktreeWorkflows(ctx: MacContext, manifest: Manifest): Prom
   const blocked: string[] = [];
   const warned: string[] = [];
   const fixes: string[] = [];
-  for (const name of names) {
-    for (const s of await discoverSources(ctx, join(root, name))) {
+  const startedAt = Date.now();
+  for (const [i, name] of names.entries()) {
+    if (Date.now() - startedAt > WORKTREE_WORKFLOWS_BUDGET_MS) {
+      warned.push(
+        `quá ${WORKTREE_WORKFLOWS_BUDGET_MS / 1000} giây, dừng kiểm các worktree còn lại (${names.slice(i).join(', ')})`,
+      );
+      break;
+    }
+    const sources = await discoverSources(ctx, join(root, name));
+    for (const s of sources) {
       if (s.origin === 'blocked') blocked.push(`${name}: ${s.path} (${s.reason})`);
       else if (s.warning) warned.push(`${name}: ${s.path} (${s.warning})`);
       else continue;
       if (s.fix) fixes.push(`${s.path}: ${s.fix}`);
+    }
+    // git treo (thường do hộp thoại quyền TCC) thì các worktree sau cũng treo: dừng như checkCrewDocs.
+    if (sources.some((s) => s.reason?.includes(GIT_TIMEOUT))) {
+      const rest = names.slice(i + 1);
+      if (rest.length > 0)
+        blocked.push(`git quá hạn ở ${name}, dừng kiểm các worktree còn lại (${rest.join(', ')})`);
+      break;
     }
   }
   if (blocked.length > 0) {

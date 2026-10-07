@@ -55,3 +55,8 @@ export function createRunner(): CommandRunner {
     },
   };
 }
+
+/** Quote một đối số cho shell POSIX (dùng trong script gửi qua SSH và lệnh xử lý in cho người chạy lại). */
+export function shQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}

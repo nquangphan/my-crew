@@ -157,7 +157,7 @@ describe('discoverSources', () => {
     const sources = await discoverSources(ctx, dir);
     const skill = at(sources, join(dir, '.claude', 'skills', 'tracked'));
     expect(skill).toMatchObject({ origin: 'project', warning: DIRTY_REASON });
-    expect(skill?.fix).toContain(`git -C ${dir} diff HEAD -- .claude/skills/tracked/SKILL.md`);
+    expect(skill?.fix).toContain(`git -C '${dir}' diff HEAD -- '.claude/skills/tracked/SKILL.md'`);
     expect(at(sources, join(dir, '.claude', 'agents', 'a.md'))).toMatchObject({
       origin: 'project',
       warning: DIRTY_REASON,
@@ -165,9 +165,31 @@ describe('discoverSources', () => {
     for (const rel of ['.claude/hooks/pre.cjs', '.claude/settings.json']) {
       const s = at(sources, join(dir, ...rel.split('/')));
       expect(s).toMatchObject({ origin: 'blocked', reason: DIRTY_REASON });
-      expect(s?.fix).toContain(`git -C ${dir} diff HEAD -- ${rel}`);
-      expect(s?.fix).toContain(`git -C ${dir} checkout HEAD -- ${rel}`);
+      expect(s?.fix).toContain(`git -C '${dir}' diff HEAD -- '${rel}'`);
+      expect(s?.fix).toContain(`git -C '${dir}' checkout HEAD -- '${rel}'`);
     }
+  });
+
+  it('lệnh xử lý quote đường dẫn có dấu cách và nháy đơn, chạy nguyên văn được', async () => {
+    const { ctx } = realGitCtx();
+    const base = mkdtempSync(join(tmpdir(), "crew inv it's-"));
+    const dir = join(base, 'work tree');
+    mkdirSync(join(dir, '.claude', 'skills', 'my skill'), { recursive: true });
+    writeFileSync(join(dir, '.claude', 'skills', 'my skill', 'SKILL.md'), 'x');
+    writeFileSync(join(dir, '.claude', 'settings.json'), '{}');
+    git(dir, 'init', '-q');
+    git(dir, 'add', '.');
+    git(dir, 'commit', '-q', '-m', 'init');
+    writeFileSync(join(dir, '.claude', 'settings.json'), '{"hooks":{}}');
+    const s = at(await discoverSources(ctx, dir), join(dir, '.claude', 'settings.json'));
+    const quotedRoot = `'${dir.replaceAll("'", "'\\''")}'`;
+    expect(s?.fix).toContain(`git -C ${quotedRoot} checkout HEAD -- '.claude/settings.json'`);
+    const undo = /bỏ: (git -C .+? checkout HEAD -- '[^']*')/.exec(s?.fix ?? '')?.[1] as string;
+    execFileSync('/bin/sh', ['-c', undo]);
+    expect(at(await discoverSources(ctx, dir), join(dir, '.claude', 'settings.json'))).toBeUndefined();
+    writeFileSync(join(dir, '.claude', 'skills', 'my skill', 'SKILL.md'), 'sửa dở');
+    const skill = at(await discoverSources(ctx, dir), join(dir, '.claude', 'skills', 'my skill'));
+    expect(skill?.fix).toContain(`diff HEAD -- '.claude/skills/my skill/SKILL.md'`);
   });
 
   it('nguồn chưa track vẫn chặn, kèm cách xử lý', async () => {
@@ -177,7 +199,7 @@ describe('discoverSources', () => {
     writeFileSync(join(dir, '.claude', 'agents', 'moi.md'), 'x');
     const s = at(await discoverSources(ctx, dir), join(dir, '.claude', 'agents', 'moi.md'));
     expect(s).toMatchObject({ origin: 'blocked', reason: UNTRACKED_REASON });
-    expect(s?.fix).toContain(`git -C ${dir} add -- .claude/agents/moi.md`);
+    expect(s?.fix).toContain(`git -C '${dir}' add -- '.claude/agents/moi.md'`);
   });
 
   it('đường dẫn worktree khác hoa thường với đường dẫn git trả (APFS) vẫn khớp', async () => {
