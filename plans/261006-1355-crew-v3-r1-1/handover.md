@@ -27,7 +27,7 @@ Viết ngày 07/10/2026 (Asia/Ho_Chi_Minh) cho **Claude Code chạy trên chính
 - **Script vận hành gắn cứng đường dẫn trên MacBook:** `crew/ops/overlay-source.sh` có `FORK=/Users/phannhatquang/Documents/projects/crew/.worktrees/paperclip-r1-1` (worktree đó đã gỡ). Trước lần deploy kế tiếp, sửa thành tham số hoặc tính theo vị trí script, trỏ vào fork checkout trên Mac mini. `watch-run.sh` SSH vào Mac mini cổng 2222 — chạy trên chính Mac mini vẫn được nhưng không cần.
 - **Tài khoản Claude** trên Mac mini là `congtu.kids` (Max) — dùng chung hạn mức với chính agent Paperclip; từng chạm 96% hạn mức tuần. Kiểm hạn mức trước việc nặng; agent thử dùng haiku.
 - **Cổng tải:** phiên làm việc nặng của bạn (install, test) làm tăng load của chính Mac mini; nếu load 1 phút vượt 8 thì run Paperclip sẽ nằm chờ. Đó là đúng thiết kế, không phải lỗi.
-- **Bảng theo dõi online** ở mục 6 thuộc tài khoản claude.ai của MacBook; từ tài khoản Mac mini bạn không mở/sửa được — nhờ owner chia sẻ, hoặc ghi tiến độ vào ledger trong repo.
+- **Không dùng trang theo dõi online, không tạo trang mới** (owner chốt 07/10/2026). Ghi tiến độ vào ledger của plan trong repo.
 - Skill điều phối `.agents/skills/tro-ly/` có trong repo; bộ nhớ riêng của Trợ Lý (`.agents/memory/tro-ly/`) không nằm trong repo — tài liệu này thay cho nó.
 
 ## 1. Đang ở đâu
@@ -96,7 +96,6 @@ Viết ngày 07/10/2026 (Asia/Ho_Chi_Minh) cho **Claude Code chạy trên chính
 - **Quy trình:** Superpowers (`writing-plans`, `subagent-driven-development`, review mỗi ticket, review toàn nhánh cuối bằng `opus`, một đợt sửa). Ghi ledger cho mỗi plan; mọi quyết định tự chốt ghi dạng `Ruling: … — vì … — sai thì …`.
 - **Test theo tầng:** implementer chạy test phần mình đổi; reviewer đọc log, không chạy lại suite; full suite chỉ khi phát hành.
 - **Báo cáo bằng tiếng Việt, xưng em, gọi owner là Đại Ca**, nói rõ giao việc gì, model nào, tạo mới hay nhắn tiếp.
-- **Bảng theo dõi online:** https://claude.ai/artifact/14g64yScV5ZwaT9cNUEjh5 (chỉ owner mở được). Dữ liệu ở các collection `packs`, `tickets`, `log`, `todo`; cập nhật bằng công cụ ArtifactData mỗi lần giao việc, review hay nghiệm thu.
 
 ## 7. Còn treo
 
