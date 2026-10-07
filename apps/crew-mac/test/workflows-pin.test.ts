@@ -1,8 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { installSuperpowersPin, readInstalledPlugins } from '../src/workflows/install.js';
+import { installSuperpowersPin, missingExecutables, readInstalledPlugins } from '../src/workflows/install.js';
 import { agentExtraArgs, SUPERPOWERS_PIN, superpowersPinDir } from '../src/workflows/pin.js';
 import { assertSkillAllowed, samePin } from '../src/workflows/policy.js';
 import { treeChecksum } from '../src/workflows/tree-checksum.js';
@@ -47,6 +56,19 @@ describe('pin', () => {
       version: '6.4.1',
       revision: '5bf4e78011075bcfc0dc295f0724994cd123ee71',
       checksum: '3f0ff8c82c0795dae8de3cc3ef358364d4f3de81e78b86e1d64b03ac2f9cbd9a',
+      executables: [
+        'hooks/run-hook.cmd',
+        'hooks/session-start',
+        'skills/brainstorming/scripts/start-server.sh',
+        'skills/brainstorming/scripts/stop-server.sh',
+        'skills/executing-plans/scripts/task-done',
+        'skills/executing-plans/scripts/task-start',
+        'skills/subagent-driven-development/scripts/review-package',
+        'skills/subagent-driven-development/scripts/sdd-workspace',
+        'skills/subagent-driven-development/scripts/task-brief',
+        'skills/systematic-debugging/find-polluter.sh',
+        'skills/writing-skills/render-graphs.js',
+      ],
     });
     expect(superpowersPinDir('/Users/a')).toBe('/Users/a/.crew/workflows/superpowers/6.4.1-5bf4e7801107');
     expect(agentExtraArgs('/p')).toEqual(['--setting-sources', 'project,local', '--plugin-dir', '/p']);
@@ -124,6 +146,39 @@ describe('installSuperpowersPin', () => {
     const dir = installSuperpowersPin(ctx, FIXTURE_PIN).dir;
     writeFileSync(join(dir, 'a.txt'), 'bị sửa\n');
     expect(() => installSuperpowersPin(ctx, FIXTURE_PIN)).toThrow(/lệch checksum/);
+  });
+
+  it('giữ bit thực thi khi copy; bản ghim mất bit thì setup đặt lại, checksum không đổi', () => {
+    const { ctx } = fakeMac();
+    const { dir } = installSuperpowersPin(ctx);
+    expect(statSync(join(dir, 'dir', 'b.txt')).mode & 0o111).not.toBe(0);
+    expect(missingExecutables(dir, FIXTURE_PIN)).toEqual([]);
+    chmodSync(join(dir, 'dir', 'b.txt'), 0o644);
+    expect(missingExecutables(dir, FIXTURE_PIN)).toEqual(['dir/b.txt']);
+    expect(installSuperpowersPin(ctx)).toEqual({ dir, changed: true });
+    expect(missingExecutables(dir, FIXTURE_PIN)).toEqual([]);
+    expect(treeChecksum(dir).checksum).toBe(FIXTURE_PIN.checksum);
+  });
+
+  it('cây owner mất bit thực thi thì bản ghim vẫn có bit theo danh sách của pin', () => {
+    const { home, ctx } = fakeMac({ ownerSuperpowers: false });
+    const installPath = seedOwnerPlugin(home);
+    chmodSync(join(installPath, 'dir', 'b.txt'), 0o644);
+    const { dir } = installSuperpowersPin(ctx);
+    expect(missingExecutables(dir, FIXTURE_PIN)).toEqual([]);
+  });
+
+  it('dọn mọi bản tạm cũ của thư mục ghim (pid khác) khi bắt đầu', () => {
+    const { ctx } = fakeMac();
+    const dir = superpowersPinDir(ctx.home, FIXTURE_PIN);
+    const stale = `${dir}.tmp-99999`;
+    mkdirSync(stale, { recursive: true });
+    writeFileSync(join(stale, 'rác'), 'x');
+    installSuperpowersPin(ctx);
+    expect(existsSync(stale)).toBe(false);
+    mkdirSync(stale);
+    expect(installSuperpowersPin(ctx).changed).toBe(false);
+    expect(existsSync(stale)).toBe(false);
   });
 
   it('bản tạm dở dang của lần trước không cản lần cài sau', () => {

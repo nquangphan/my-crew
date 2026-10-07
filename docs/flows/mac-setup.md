@@ -37,8 +37,9 @@ không cần token và không login lại.
    dừng với `SetupError` khi máy còn nguyên. `SetupReport.superpowers` trả thư mục ghim và `extraArgs` cho agent.
 3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent và cổng, LaunchAgent reaper (`checkReaper`),
    PATH, launcher (`checkLauncher`: có, chạy được, còn trỏ tới node và `cli.js` tồn tại), Superpowers ghim
-   (`checkSuperpowersPin`, id `superpowers-pin`: thư mục ghim có, không phải symlink, đúng checksum; kèm bản owner
-   đang cài trong `installed_plugins.json`), wrapper (`checkWrapper`: có,
+   (`checkSuperpowersPin`, id `superpowers-pin`: thư mục ghim có, không phải symlink, đúng checksum, file trong
+   `executables` có bit thực thi, không thì `fail`; bản owner đang cài trong `installed_plugins.json` khác bản ghim
+   thì `warn`), wrapper (`checkWrapper`: có,
    chạy được qua sshd agent, giống bản trong repo), thư mục worktree, `crew-docs` (`checkCrewDocs`: dừng ngay sau lần quá hạn đầu tiên (đọc config hay `--version`) và có trần tổng 60 giây; mỗi worktree cấp 1 dưới thư mục worktree, kể cả symlink, có `docs/flows.yaml` thì chạy qua chính
    sshd agent, giống `checkWrapper`, để bắt treo TCC: đọc `crew-docs.bundle`, `crew-docs.runtime` và git dir bằng `git config`, rồi chạy
    `node <bundle> --version` (node theo PATH của agent, hợp đồng của integrator với `check --range`) và
@@ -110,7 +111,7 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 ## Tests
 
 - `apps/crew-mac/test/setup.test.ts`: cài lần đầu, ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
-- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `superpowers-pin` (thiếu, lệch checksum, symlink), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail) và của app khác (warn), `isAgentTccSubject`, chưa đăng nhập, IP đổi, quá tải.
+- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `superpowers-pin` (thiếu, lệch checksum, symlink, mất bit thực thi, bản owner khác pin), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail) và của app khác (warn), `isAgentTccSubject`, chưa đăng nhập, IP đổi, quá tải.
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.
 - `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.

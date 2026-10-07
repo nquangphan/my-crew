@@ -94,8 +94,11 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 
 ## Dữ liệu
 
-- File: `<worktree>/.paperclip-runtime/runs/<runId>/{pgid,started}` (wrapper ghi, `stop-run` xóa khi xong),
-  `~/.crew-mac/reaper/state.json` (`orphanSince` theo `pid:runId`), `~/.crew-mac/reaper/reaper.log`.
+- File: `<worktree>/.paperclip-runtime/runs/<runId>/{pgid,started}` (wrapper ghi, `stop-run` xóa khi xong). Wrapper
+  ghi hai file này SAU bước `crew-mac workflow-check` (flow `mac-workflows`), muộn khoảng 0,3–2 giây sau khi process
+  sinh. `stop-run` gọi trong khe đó không thấy `pgid` và chưa có `claude` để bắt, nên run có thể vẫn chạy tiếp; reaper
+  dọn nó khi quá ngưỡng mồ côi. Run bị chặn ở bước kiểm (thoát 78) thì không có hai file.
+- `~/.crew-mac/reaper/state.json` (`orphanSince` theo `pid:runId`), `~/.crew-mac/reaper/reaper.log`.
 - Gọi ngoài: `ps`, `lsof`, `kill`.
 
 ## Giới hạn

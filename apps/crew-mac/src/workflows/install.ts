@@ -1,5 +1,15 @@
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { type MacContext, SetupError } from '../context.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir, type WorkflowPin } from './pin.js';
 import { treeChecksum } from './tree-checksum.js';
@@ -52,17 +62,61 @@ function pathExists(path: string): boolean {
   }
 }
 
+/** File trong `pin.executables` thiếu (không phải file thường) hoặc không có bit thực thi nào. */
+export function missingExecutables(dir: string, pin: WorkflowPin): string[] {
+  return pin.executables.filter((rel) => {
+    try {
+      const st = lstatSync(join(dir, rel));
+      return !st.isFile() || (st.mode & 0o111) === 0;
+    } catch {
+      return true;
+    }
+  });
+}
+
+/** Đặt lại bit thực thi theo danh sách của pin (không đổi nội dung, nên không đổi checksum). Trả true nếu có sửa. */
+function ensureExecutables(dir: string, pin: WorkflowPin): boolean {
+  const missing = missingExecutables(dir, pin);
+  for (const rel of missing) {
+    const path = join(dir, rel);
+    let mode: number;
+    try {
+      const st = lstatSync(path);
+      if (!st.isFile()) throw new Error('không phải file thường');
+      mode = st.mode & 0o777;
+    } catch {
+      throw new SetupError(
+        `Bản Superpowers ${pin.version} không có file thực thi ${rel} như pin ghi; kiểm lại SUPERPOWERS_PIN.`,
+      );
+    }
+    chmodSync(path, mode | 0o111);
+  }
+  return missing.length > 0;
+}
+
+/** Xóa bản tạm `<dir>.tmp-*` còn sót của lần setup bị ngắt (mọi pid). */
+function removeStaleTemps(dir: string): void {
+  const parent = dirname(dir);
+  if (!existsSync(parent)) return;
+  const prefix = `${basename(dir)}.tmp-`;
+  for (const entry of readdirSync(parent)) {
+    if (entry.startsWith(prefix)) rmSync(join(parent, entry), { recursive: true, force: true });
+  }
+}
+
 /**
- * Copy bản Superpowers owner đã cài (đúng version, revision, checksum) vào thư mục ghim của crew-mac. Thư mục ghim có
- * sẵn đúng checksum thì không làm gì; lệch thì từ chối ghi đè (owner xóa tay rồi chạy lại).
+ * Copy bản Superpowers owner đã cài (đúng version, revision, checksum) vào thư mục ghim của crew-mac, giữ quyền file
+ * và đặt bit thực thi theo `pin.executables`. Thư mục ghim có sẵn đúng checksum thì chỉ sửa bit thực thi nếu mất;
+ * lệch checksum thì từ chối ghi đè (owner xóa tay rồi chạy lại).
  */
 export function installSuperpowersPin(
   ctx: MacContext,
   pin: WorkflowPin = ctx.superpowersPin,
 ): { dir: string; changed: boolean } {
   const dir = superpowersPinDir(ctx.home, pin);
+  removeStaleTemps(dir);
   if (pathExists(dir)) {
-    if (checksumOrNull(dir) === pin.checksum) return { dir, changed: false };
+    if (checksumOrNull(dir) === pin.checksum) return { dir, changed: ensureExecutables(dir, pin) };
     throw new SetupError(
       `${dir} lệch checksum so với bản ghim Superpowers ${pin.version}; xóa thư mục đó rồi chạy lại crew-mac setup.`,
     );
@@ -81,10 +135,10 @@ export function installSuperpowersPin(
     );
   }
   const tmp = `${dir}.tmp-${process.pid}`;
-  rmSync(tmp, { recursive: true, force: true });
   mkdirSync(dirname(dir), { recursive: true, mode: 0o700 });
   const inUse = join(source.installPath, '.in_use');
   try {
+    // cpSync giữ mode của từng file; ensureExecutables chỉ bù khi cây nguồn đã mất bit.
     cpSync(source.installPath, tmp, {
       recursive: true,
       verbatimSymlinks: true,
@@ -93,6 +147,7 @@ export function installSuperpowersPin(
     if (checksumOrNull(tmp) !== pin.checksum) {
       throw new SetupError('Bản copy Superpowers lệch checksum (cây nguồn đổi giữa chừng?); không cài.');
     }
+    ensureExecutables(tmp, pin);
     renameSync(tmp, dir);
   } finally {
     rmSync(tmp, { recursive: true, force: true });

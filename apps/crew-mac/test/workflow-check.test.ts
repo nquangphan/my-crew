@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -66,6 +66,14 @@ describe('workflowCheck', () => {
     const r = await workflowCheck(ctx, { root: worktree(), pluginDir: pinDir });
     expect(r.ok).toBe(false);
     expect(r.lines.join('\n')).toContain('WORKFLOW_SOURCE_MISMATCH');
+  });
+
+  it('file thực thi của bản ghim mất bit x thì blocked', async () => {
+    const { ctx, pinDir } = installedMac();
+    chmodSync(join(pinDir, 'dir', 'b.txt'), 0o644);
+    const r = await workflowCheck(ctx, { root: worktree(), pluginDir: pinDir });
+    expect(r.ok).toBe(false);
+    expect(r.lines.join('\n')).toContain('thiếu bit thực thi: dir/b.txt');
   });
 
   it('thư mục ghim chưa cài thì blocked, không ném lỗi', async () => {

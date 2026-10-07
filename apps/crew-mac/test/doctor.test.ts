@@ -17,7 +17,7 @@ import {
 import { setup } from '../src/commands/setup.js';
 import { macPaths } from '../src/paths.js';
 import { superpowersPinDir } from '../src/workflows/pin.js';
-import { FIXTURE_PIN, fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import { FIXTURE_PIN, fakeMac, installedPluginsFile, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
 // Dòng log thật của tccd trên Mac mini ngày 06/10/2026 (rút gọn phần đuôi): hộp thoại quyền ổ ngoài đang chờ.
 const TCC_LOG = [
@@ -376,6 +376,37 @@ describe('crew-mac doctor', () => {
     });
     symlinkSync('/etc', dir);
     expect(await pinCheck()).toMatchObject({ status: 'fail', detail: expect.stringContaining('symlink') });
+  });
+
+  it('superpowers-pin: file thực thi mất bit x thì fail; bản owner khác pin thì warn', async () => {
+    const { ctx, home } = await installed(okSsh);
+    const dir = superpowersPinDir(home, FIXTURE_PIN);
+    const pinCheck = async () =>
+      (await doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'superpowers-pin',
+      );
+    chmodSync(join(dir, 'dir', 'b.txt'), 0o644);
+    expect(await pinCheck()).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('thiếu bit thực thi: dir/b.txt'),
+      hint: expect.stringContaining('crew-mac setup'),
+    });
+    chmodSync(join(dir, 'dir', 'b.txt'), 0o755);
+    writeFileSync(
+      installedPluginsFile(home),
+      JSON.stringify({
+        plugins: {
+          'superpowers@claude-plugins-official': [
+            { installPath: '/x', version: '9.9.10', gitCommitSha: 'a' },
+          ],
+        },
+      }),
+    );
+    expect(await pinCheck()).toMatchObject({
+      status: 'warn',
+      detail: expect.stringContaining('9.9.10'),
+      hint: expect.stringContaining('SUPERPOWERS_PIN'),
+    });
   });
 
   it('claude treo: phép thử fail và trỏ sang check TCC', async () => {

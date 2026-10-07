@@ -2,6 +2,7 @@ import { type Dirent, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { comparablePath } from '../paths.js';
+import { missingExecutables } from '../workflows/install.js';
 import { discoverSources } from '../workflows/inventory.js';
 import { superpowersPinDir, type WorkflowPin } from '../workflows/pin.js';
 import { assertSkillAllowed } from '../workflows/policy.js';
@@ -31,6 +32,12 @@ export async function workflowCheck(
   } else {
     try {
       assertSkillAllowed(pin, { ...pin, checksum: treeChecksum(expected).checksum });
+      const missing = missingExecutables(expected, pin);
+      if (missing.length > 0) {
+        lines.push(
+          blocked(`${expected} (thiếu bit thực thi: ${missing.join(', ')}; chạy lại crew-mac setup)`),
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       lines.push(

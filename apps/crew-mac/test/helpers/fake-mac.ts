@@ -24,6 +24,7 @@ export const FIXTURE_PIN: WorkflowPin = {
   version: '9.9.9',
   revision: 'f'.repeat(40),
   checksum: '887ad97e9e3f192940fb5320cd393c82f31fa65da974ee62ff923e37fe75b6e5',
+  executables: ['dir/b.txt'],
 };
 
 export function installedPluginsFile(home: string): string {
@@ -48,7 +49,7 @@ export function seedOwnerPlugin(
   mkdirSync(join(installPath, 'dir'), { recursive: true });
   mkdirSync(join(installPath, '.in_use'), { recursive: true });
   writeFileSync(join(installPath, 'a.txt'), 'a\n');
-  writeFileSync(join(installPath, 'dir', 'b.txt'), 'b\n');
+  writeFileSync(join(installPath, 'dir', 'b.txt'), 'b\n', { mode: 0o755 });
   writeFileSync(join(installPath, '.in_use', 'lock'), 'x\n');
   writeFileSync(
     installedPluginsFile(home),

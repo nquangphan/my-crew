@@ -7,7 +7,7 @@ import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
 import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
 import { tailscaleIpv4 } from '../tailscale.js';
-import { readInstalledPlugins } from '../workflows/install.js';
+import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
@@ -307,12 +307,28 @@ function checkSuperpowersPin(ctx: MacContext): CheckResult {
     if (sum.checksum !== pin.checksum) {
       return { ...base, status: 'fail', detail: `${dir} lệch checksum bản ghim`, hint: reinstall };
     }
+    const missing = missingExecutables(dir, pin);
+    if (missing.length > 0) {
+      return {
+        ...base,
+        status: 'fail',
+        detail: `${dir} thiếu bit thực thi: ${missing.join(', ')} (hook Superpowers sẽ không chạy)`,
+        hint: 'Chạy lại "crew-mac setup" để đặt lại bit thực thi.',
+      };
+    }
     const owner = readInstalledPlugins(ctx.home, SUPERPOWERS_PLUGIN_KEY).map((e) => e.version);
-    return {
-      ...base,
-      status: 'ok',
-      detail: `${dir} (${sum.files} file); bản owner đang cài: ${owner.join(', ') || 'không có'}`,
-    };
+    const detail = `${dir} (${sum.files} file); bản owner đang cài: ${owner.join(', ') || 'không có'}`;
+    if (!owner.includes(pin.version)) {
+      return {
+        ...base,
+        status: 'warn',
+        detail: `${detail} (khác bản ghim ${pin.version}; agent vẫn chỉ nạp bản ghim)`,
+        hint:
+          'Muốn agent dùng bản owner đang cài: nâng SUPERPOWERS_PIN, chạy lại "crew-mac setup" và cập nhật ' +
+          'adapterConfig.extraArgs. Không thì bỏ qua cảnh báo này.',
+      };
+    }
+    return { ...base, status: 'ok', detail };
   } catch (err) {
     return {
       ...base,
