@@ -90,6 +90,8 @@ Còn chờ owner: duyệt push fork để mở PR upstream cho P1–P4; chọn n
 
 ## Kết quả (06/10/2026)
 
+Bàn giao cho agent làm tiếp (Claude trên Mac mini): [handover.md](handover.md).
+
 - Mọi ticket đạt review riêng: RL-1, RL-2, RT-1, RT-2, RT-3, RT-4, MS-1, MS-2, MS-3 (MS-3 thêm giữa chừng: `crew-mac stop-run` nhận diện process của run theo cây cha–con và worktree, vì Bash tool của Claude Code chạy trong process group và session riêng). Review toàn nhánh (fable) cùng một đợt sửa.
 - AC-1 trên máy thật (Mac mini + VPS spike, commit server `1b85a07ed`): 12/13 tiêu chí đạt — issue chạy `in_place` đúng worktree agent, hủy run dừng process ~6 giây và issue chuyển `blocked`, restart server không chạy song song, mất mạng thì reaper dọn sau 138 giây, Mac quá tải/không vào được/hết hạn chờ đúng, restore đọc đúng 39 issue và 81 run. Không đạt: mất mạng dẫn tới commit trùng vì retry làm lại việc process cũ đã kịp commit; spec Review Focus 1 vẫn đạt.
 - `crew-mac` đã cài trên Mac mini (`~/.crew/app/crew-mac`, LaunchAgent `com.2p.crew-mac-sshd`, `com.2p.crew-mac-reaper`), worktree agent `~/crew-agents/mac-claude`.
