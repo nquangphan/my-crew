@@ -7,6 +7,7 @@ import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
 import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
+import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
 import type { MacContext } from './context.js';
 import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths } from './paths.js';
@@ -22,6 +23,8 @@ Cách dùng:
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
+  crew-mac workflow-check --root <worktree tuyệt đối> --plugin-dir <thư mục tuyệt đối>   (wrapper gọi trước mỗi run)
+  crew-mac run-init-check --root <worktree tuyệt đối> --log <file stream-json | ->   (kiểm system/init của một run)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -40,6 +43,9 @@ class UsageError extends Error {}
  */
 const DEFAULT_TERM_WAIT_SECONDS = 5;
 const MAX_TERM_WAIT_SECONDS = 20;
+
+/** Mã thoát khi workflow bị chặn (EX_CONFIG); wrapper cũng thoát mã này. */
+const WORKFLOW_BLOCKED_EXIT = 78;
 
 /** Ngưỡng mồ côi thấp nhất: ngắn hơn thì dễ dọn nhầm run vừa mất mạng chốc lát. */
 const MIN_GRACE_SECONDS = 60;
@@ -238,6 +244,27 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         if (targets.length > 0)
           io.out(`Đã xử lý ${targets.length} run mồ côi; chi tiết ở ${paths.reaperLog}.`);
         return 0;
+      }
+      case 'workflow-check': {
+        const flags = parseFlags(args, ['--root', '--plugin-dir']);
+        const root = flags.value('--root');
+        const pluginDir = flags.value('--plugin-dir');
+        if (!root || !isAbsolute(root)) throw new UsageError('--root phải là đường dẫn tuyệt đối');
+        if (!pluginDir || !isAbsolute(pluginDir))
+          throw new UsageError('--plugin-dir phải là đường dẫn tuyệt đối');
+        const report = await workflowCheck(ctx, { root, pluginDir });
+        for (const line of report.lines) (report.ok ? io.out : io.err)(line);
+        return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
+      }
+      case 'run-init-check': {
+        const flags = parseFlags(args, ['--root', '--log']);
+        const root = flags.value('--root');
+        const log = flags.value('--log');
+        if (!root || !isAbsolute(root)) throw new UsageError('--root phải là đường dẫn tuyệt đối');
+        if (!log) throw new UsageError('--log cần file stream-json của run (hoặc - để đọc stdin)');
+        const report = await runInitCheck(ctx, { root, log: readFileSync(log === '-' ? 0 : log, 'utf8') });
+        for (const line of report.lines) (report.ok ? io.out : io.err)(line);
+        return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
       }
       default:
         throw new UsageError(command === undefined ? 'thiếu lệnh' : `không có lệnh ${command}`);

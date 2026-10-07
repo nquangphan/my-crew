@@ -70,7 +70,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Nghiệm thu: merge cục bộ, cổng pre-push và push](flows/local-merge.md) | `local-merge` | `apps/daemon/src/roles/merge-policy.ts` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |
 | [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |
-| [Ghim Superpowers và chặn nạp skill chéo trên Mac](flows/mac-workflows.md) | `mac-workflows` | `apps/crew-mac/src/workflows/install.ts` |
+| [Ghim Superpowers và chặn nạp skill chéo trên Mac](flows/mac-workflows.md) | `mac-workflows` | `apps/crew-mac/src/workflows/install.ts`, `apps/crew-mac/src/commands/workflow-check.ts` |
 | [Điều khiển máy từ web (thao tác từ xa trong danh sách cho phép)](flows/machine-control.md) | `machine-control` | `apps/api/src/routes/machine-command-routes.ts`, `apps/web/src/components/machine-control.tsx` |
 | [Ghép máy và xác thực máy](flows/machine-pairing.md) | `machine-pairing` | `apps/api/src/routes/machine-routes.ts` |
 | [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx`, `apps/web/src/routes/account.tsx` |

@@ -13,6 +13,7 @@ không cần token và không login lại.
 - `crew-mac setup --paperclip-key <file .pub>`: chạy trong Terminal trên màn hình Mac. In `adapterConfig.command` và
   `adapterConfig.extraArgs` (Superpowers đã ghim, flow `mac-workflows`) cần đặt cho agent `claude_local`.
 - `crew-mac doctor [--no-probe]`: chạy bất kỳ lúc nào, kể cả qua SSH.
+- `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`).
 - `crew-mac uninstall [--force]`: chạy trong Terminal trên màn hình Mac (qua sshd agent thì bị từ chối, trừ khi có `--force`).
 
 ## Các bước
@@ -75,7 +76,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/tailscale.ts` | IP Tailscale | `tailscaleIpv4` |
 | `apps/crew-mac/src/wrapper.ts` | Đường dẫn nguồn wrapper | `WRAPPER_SOURCE` |
 | `apps/crew-mac/src/launcher.ts` | Script `~/.crew/bin/crew-mac` | `renderLauncher`, `parseLauncher` |
-| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
+| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: với run Paperclip, đòi đúng một `--plugin-dir` và gọi `crew-mac workflow-check` (từ chối thì thoát 78, không chạy agent; flow `mac-workflows`), ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
 | `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `SetupReport`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
 | `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkWrapper`, `checkLauncher`, `checkSuperpowersPin`, `checkReaper`, `checkCrewDocs`, `parsePendingTccPrompts`, `printProbeScript` |
 | `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers` |
@@ -103,14 +104,14 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 ## Flow liên quan
 
 - `mac-orphan-reaper`: LaunchAgent dọn process `claude --print` mồ côi do `setup` cài.
-- `mac-workflows`: bản Superpowers ghim mà `setup` cài và `doctor` kiểm.
+- `mac-workflows`: bản Superpowers ghim mà `setup` cài và `doctor` kiểm; wrapper gọi `workflow-check` trước mỗi run.
 - `runtime-updates`: bản v2 xử lý quyền ổ đĩa bằng app desktop đã ký; v3 R1 chưa dùng.
 
 ## Tests
 
 - `apps/crew-mac/test/setup.test.ts`: cài lần đầu, ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
 - `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `superpowers-pin` (thiếu, lệch checksum, symlink), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail) và của app khác (warn), `isAgentTccSubject`, chưa đăng nhập, IP đổi, quá tải.
-- `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu.
+- `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.
 - `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.
 - Các test còn lại kiểm từng module thuần (`zshenv`, `authorized-keys`, `render`, `system-wrappers`, `system`).

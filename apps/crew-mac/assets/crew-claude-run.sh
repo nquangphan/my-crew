@@ -3,7 +3,36 @@
 # Records this run's process group so the server (H3) and the crew-mac orphan reaper can stop
 # the whole run later, then becomes the agent CLI. The SSH session already gives
 # this process its own group, and every exec in the chain keeps the same PID.
+#
+# Runs started by Paperclip must load exactly one --plugin-dir (the pinned Superpowers copy) and nothing from
+# outside the allow-list: `crew-mac workflow-check` decides, and any refusal exits 78 without starting the agent.
+# CREW_MAC_BIN and CREW_CLAUDE_BIN exist for tests only.
 if [ -n "${PAPERCLIP_RUN_ID:-}" ]; then
+  plugin_dir=""
+  plugin_dirs=0
+  prev=""
+  for arg in "$@"; do
+    if [ "$prev" = "--plugin-dir" ]; then
+      plugin_dir=$arg
+      plugin_dirs=$((plugin_dirs + 1))
+    else
+      case "$arg" in
+        --plugin-dir=*)
+          plugin_dir=${arg#--plugin-dir=}
+          plugin_dirs=$((plugin_dirs + 1))
+          ;;
+      esac
+    fi
+    prev=$arg
+  done
+  if [ "$plugin_dirs" -ne 1 ]; then
+    echo "crew-workflow blocked: cần đúng một --plugin-dir (bản Superpowers đã ghim) trong adapterConfig.extraArgs, có $plugin_dirs; chạy \"crew-mac setup\" để xem giá trị" >&2
+    exit 78
+  fi
+  "${CREW_MAC_BIN:-$HOME/.crew/bin/crew-mac}" workflow-check --root "$PWD" --plugin-dir "$plugin_dir" >&2 || {
+    echo "crew-workflow blocked: crew-mac workflow-check từ chối run này (xem các dòng trên)" >&2
+    exit 78
+  }
   case "$PAPERCLIP_RUN_ID" in
     *[!0-9a-fA-F-]*) ;;
     *)
