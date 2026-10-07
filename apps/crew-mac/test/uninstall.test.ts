@@ -15,7 +15,8 @@ import { uninstall } from '../src/commands/uninstall.js';
 import { SetupError } from '../src/context.js';
 import { macPaths, SPIKE_LABEL, SSHD_LABEL } from '../src/paths.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY, SPIKE_PATH_COMMENT } from '../src/zshenv.js';
-import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import { fakeMac, LIVE_PS, LIVE_RUN_ID, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import type { FakeRunner } from './helpers/fake-runner.js';
 
 const OWNER_KEY = 'ssh-ed25519 AAAAOwnerKey owner@macbook';
 
@@ -34,6 +35,41 @@ function seedSpike(home: string) {
 }
 
 describe('crew-mac uninstall', () => {
+  it('còn run Paperclip đang chạy thì từ chối và chưa gỡ gì', async () => {
+    const { home, ctx } = fakeMac({ ps: LIVE_PS });
+    seedSpike(home);
+    await expect(uninstall(ctx)).rejects.toThrow(SetupError);
+    await expect(uninstall(ctx)).rejects.toThrow(LIVE_RUN_ID);
+    expect(existsSync(macPaths(home).spikePlist)).toBe(true);
+  });
+
+  it('--force thì gỡ dù còn run', async () => {
+    const { home, ctx } = fakeMac({ ps: LIVE_PS });
+    seedSpike(home);
+    const report = await uninstall(ctx, { force: true });
+    expect(report.removed).toContain(macPaths(home).spikePlist);
+  });
+
+  it('claude -p thủ công của owner (không có PAPERCLIP_RUN_ID) không tính là run', async () => {
+    const { home, ctx } = fakeMac({
+      ps: {
+        tree: '  5151     1  5151 ttys001  00:10 claude\n',
+        argv: '  5151 claude -p hi\n',
+        env: '  5151 claude -p hi HOME=/Users/a\n',
+      },
+    });
+    seedSpike(home);
+    await expect(uninstall(ctx)).resolves.toBeDefined();
+  });
+
+  it('không đọc được bảng process thì từ chối, trừ --force', async () => {
+    const { home, ctx } = fakeMac();
+    (ctx.runner as FakeRunner).on('/bin/ps', () => ({ code: 1, stderr: 'ps: lỗi' }));
+    seedSpike(home);
+    await expect(uninstall(ctx)).rejects.toThrow(/bảng process/);
+    await expect(uninstall(ctx, { force: true })).resolves.toBeDefined();
+  });
+
   it('~/.zshenv có khối mở mà thiếu dòng đóng thì dừng và giữ nguyên file', async () => {
     const { home, ctx } = fakeMac();
     const broken = `export A=1\n${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\nexport OWNER=giu\n`;

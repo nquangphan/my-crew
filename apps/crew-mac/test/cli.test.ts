@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { main, sshServerPort, USAGE } from '../src/cli.js';
-import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import { fakeMac, LIVE_PS, LIVE_RUN_ID, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
 function io(mac: ReturnType<typeof fakeMac>, env: NodeJS.ProcessEnv = {}) {
   const out: string[] = [];
@@ -43,6 +43,15 @@ describe('crew-mac CLI', () => {
     expect(await main(['uninstall'], viaAgent.io)).toBe(2);
     expect(viaAgent.err.join('\n')).toContain('Terminal trên màn hình Mac');
     const forced = io(mac, { SSH_CONNECTION: '100.88.1.2 51234 100.102.189.67 2222' });
+    expect(await main(['uninstall', '--force'], forced.io)).toBe(0);
+  });
+
+  it('uninstall từ chối khi còn run Paperclip, --force thì gỡ', async () => {
+    const mac = fakeMac({ ps: LIVE_PS });
+    const refused = io(mac);
+    expect(await main(['uninstall'], refused.io)).toBe(1);
+    expect(refused.err.join('\n')).toContain(LIVE_RUN_ID);
+    const forced = io(mac);
     expect(await main(['uninstall', '--force'], forced.io)).toBe(0);
   });
 

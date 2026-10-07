@@ -13,6 +13,9 @@ import {
   SPIKE_LABEL,
   SSHD_LABEL,
 } from '../paths.js';
+import { listProcesses } from '../reaper/process-table.js';
+import { isClaudePrint } from '../reaper/run-members.js';
+import type { CommandRunner } from '../system.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
 export interface UninstallReport {
@@ -28,8 +31,34 @@ function manifestOrNull(path: string): Manifest | null {
   }
 }
 
-export async function uninstall(ctx: MacContext): Promise<UninstallReport> {
+/** Run id của các `claude --print` do Paperclip chạy (PAPERCLIP_RUN_ID trong env), không tính claude thủ công. */
+export async function liveRunIds(runner: CommandRunner): Promise<string[]> {
+  const procs = await listProcesses(runner);
+  return [...new Set(procs.filter(isClaudePrint).map((p) => p.runId as string))].sort();
+}
+
+export async function uninstall(
+  ctx: MacContext,
+  options: { force?: boolean } = {},
+): Promise<UninstallReport> {
   if (ctx.platform !== 'darwin') throw new SetupError('crew-mac chỉ chạy trên macOS.');
+  if (!options.force) {
+    let live: string[];
+    try {
+      live = await liveRunIds(ctx.runner);
+    } catch (err) {
+      throw new SetupError(
+        `Không đọc được bảng process (${err instanceof Error ? err.message : String(err)}); ` +
+          'không chắc còn run nào đang chạy. Thêm --force nếu chắc chắn.',
+      );
+    }
+    if (live.length > 0) {
+      throw new SetupError(
+        `Còn ${live.length} run Paperclip đang chạy trên máy này (${live.join(', ')}). ` +
+          'Hủy hoặc chờ các run đó xong trên Paperclip rồi chạy lại, hoặc thêm --force.',
+      );
+    }
+  }
   const paths = macPaths(ctx.home);
   const manifest = manifestOrNull(paths.manifest);
   // Kiểm ~/.zshenv trước mọi thao tác: khối hỏng thì dừng khi chưa gỡ gì.

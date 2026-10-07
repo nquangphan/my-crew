@@ -353,6 +353,12 @@ async function checkClaudePrint(
   return { ...base, status: 'fail', detail: `mã ${result.code}: ${result.stdout.trim().slice(-300)}` };
 }
 
+/** Hộp thoại quyền của chính agent (claude theo version hoặc node chạy crew-mac/claude) thì chặn agent; app khác thì không. */
+export function isAgentTccSubject(subject: string): boolean {
+  const name = basename(subject);
+  return name === 'claude' || name === 'node' || /\/claude\/versions\/[^/]+$/.test(subject);
+}
+
 async function checkTccPending(ctx: MacContext, window: string): Promise<CheckResult> {
   const base = { id: 'tcc-pending', title: 'Hộp thoại quyền macOS đang chờ' };
   const result = await ctx.runner.run(
@@ -365,14 +371,26 @@ async function checkTccPending(ctx: MacContext, window: string): Promise<CheckRe
   const { pending, unparsed } = parsePendingTccPrompts(result.stdout);
   const unreadable =
     unparsed > 0 ? `${unparsed} dòng AUTHREQ_PROMPTING không đọc được (định dạng log khác dự kiến)` : '';
-  if (pending.length > 0) {
+  const agent = pending.filter((p) => isAgentTccSubject(p.subject));
+  const other = pending.filter((p) => !isAgentTccSubject(p.subject));
+  const describe = (list: PendingPrompt[]) =>
+    list.map((p) => `${p.at} ${p.service} cho ${p.subject}`).join('; ');
+  if (agent.length > 0) {
     return {
       ...base,
       status: 'fail',
-      detail: [pending.map((p) => `${p.at} ${p.service} cho ${p.subject}`).join('; '), unreadable]
+      detail: [describe(agent), other.length > 0 ? `app khác: ${describe(other)}` : '', unreadable]
         .filter(Boolean)
         .join('; '),
-      hint: pending.map(tccHint).join('\n'),
+      hint: agent.map(tccHint).join('\n'),
+    };
+  }
+  if (other.length > 0) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: [`không phải agent: ${describe(other)}`, unreadable].filter(Boolean).join('; '),
+      hint: other.map(tccHint).join('\n'),
     };
   }
   if (unparsed > 0) {
@@ -388,9 +406,9 @@ async function checkTccPending(ctx: MacContext, window: string): Promise<CheckRe
 
 async function checkLoad(ctx: MacContext): Promise<CheckResult> {
   const [loadavg, ncpu, pressure] = await Promise.all([
-    ctx.runner.run('sysctl', ['-n', 'vm.loadavg'], { timeoutMs: 10_000 }),
-    ctx.runner.run('sysctl', ['-n', 'hw.ncpu'], { timeoutMs: 10_000 }),
-    ctx.runner.run('memory_pressure', ['-Q'], { timeoutMs: 10_000 }),
+    ctx.runner.run('/usr/sbin/sysctl', ['-n', 'vm.loadavg'], { timeoutMs: 10_000 }),
+    ctx.runner.run('/usr/sbin/sysctl', ['-n', 'hw.ncpu'], { timeoutMs: 10_000 }),
+    ctx.runner.run('/usr/bin/memory_pressure', ['-Q'], { timeoutMs: 10_000 }),
   ]);
   const load = parseLoad(loadavg.stdout, ncpu.stdout, pressure.stdout);
   const detail = `load 1 phút ${load.load1} / ${load.ncpu} CPU, RAM trống ${load.freePct}%`;

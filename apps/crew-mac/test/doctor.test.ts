@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   doctor,
+  isAgentTccSubject,
   parseLoad,
   parsePendingTccPrompts,
   printProbeScript,
@@ -41,8 +42,10 @@ async function installed(
     .on('/usr/bin/nc', () => ({}))
     .on('ssh', (args) => sshHandler(args.at(-1) as string))
     .on('/usr/bin/log', () => ({ stdout: 'Timestamp               Ty Process[PID:TID]\n' }))
-    .on('sysctl', (args) => ({ stdout: args.includes('vm.loadavg') ? '{ 1.47 1.53 1.45 }\n' : '10\n' }))
-    .on('memory_pressure', () => ({ stdout: 'System-wide memory free percentage: 55%\n' }));
+    .on('/usr/sbin/sysctl', (args) => ({
+      stdout: args.includes('vm.loadavg') ? '{ 1.47 1.53 1.45 }\n' : '10\n',
+    }))
+    .on('/usr/bin/memory_pressure', () => ({ stdout: 'System-wide memory free percentage: 55%\n' }));
   return mac;
 }
 
@@ -51,6 +54,17 @@ const okSsh = (remote: string) => {
   if (remote.includes('crew-claude-run')) return { stdout: '2.1.289 (Claude Code)\n' };
   return { stdout: 'ok\n' };
 };
+
+describe('isAgentTccSubject', () => {
+  it('nhận claude, bản claude theo version và node', () => {
+    expect(isAgentTccSubject('/Users/a/.local/share/claude/versions/2.1.289')).toBe(true);
+    expect(isAgentTccSubject('/Users/a/.local/bin/claude')).toBe(true);
+    expect(isAgentTccSubject('/opt/homebrew/bin/node')).toBe(true);
+    expect(isAgentTccSubject('/opt/homebrew/Cellar/node/24.11.0/bin/node')).toBe(true);
+    expect(isAgentTccSubject('/Applications/Orca.app')).toBe(false);
+    expect(isAgentTccSubject('/Applications/Claude.app')).toBe(false);
+  });
+});
 
 describe('parsePendingTccPrompts', () => {
   it('chỉ trả hộp thoại chưa có kết quả', () => {
@@ -208,6 +222,17 @@ describe('crew-mac doctor', () => {
     expect(results.some((r) => r.id === 'claude-print-git')).toBe(false);
   });
 
+  it('hộp thoại TCC của app khác (không phải agent) chỉ warn', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/log', () => ({
+      stdout: TCC_LOG.replace('/Users/owner/.local/share/claude/versions/2.1.289', '/Applications/Orca.app'),
+    }));
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    const tcc = results.find((r) => r.id === 'tcc-pending');
+    expect(tcc?.status).toBe('warn');
+    expect(tcc?.detail).toContain('Orca.app');
+  });
+
   it('Claude chưa đăng nhập trong phiên sshd thì fail', async () => {
     const { ctx } = await installed((remote) =>
       remote.includes('auth status') ? { stdout: JSON.stringify({ loggedIn: false }) } : okSsh(remote),
@@ -255,14 +280,14 @@ describe('crew-mac doctor', () => {
 
   it('không đọc được số liệu tải thì cảnh báo', async () => {
     const mac = await installed(okSsh);
-    mac.runner.on('memory_pressure', () => ({ code: 1, stdout: '' }));
+    mac.runner.on('/usr/bin/memory_pressure', () => ({ code: 1, stdout: '' }));
     const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.find((r) => r.id === 'load')?.status).toBe('warn');
   });
 
   it('máy quá tải thì cảnh báo', async () => {
     const mac = await installed(okSsh);
-    mac.runner.on('sysctl', (args) => ({
+    mac.runner.on('/usr/sbin/sysctl', (args) => ({
       stdout: args.includes('vm.loadavg') ? '{ 25.0 20.0 18.0 }\n' : '10\n',
     }));
     const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });

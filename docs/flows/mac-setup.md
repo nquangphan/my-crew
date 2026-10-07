@@ -12,7 +12,7 @@ không cần token và không login lại.
 
 - `crew-mac setup --paperclip-key <file .pub>`: chạy trong Terminal trên màn hình Mac.
 - `crew-mac doctor [--no-probe]`: chạy bất kỳ lúc nào, kể cả qua SSH.
-- `crew-mac uninstall`: chạy trong Terminal trên màn hình Mac (qua sshd agent thì bị từ chối, trừ khi có `--force`).
+- `crew-mac uninstall [--force]`: chạy trong Terminal trên màn hình Mac (qua sshd agent thì bị từ chối, trừ khi có `--force`).
 
 ## Các bước
 
@@ -36,11 +36,12 @@ không cần token và không login lại.
    `claude auth status` qua chính sshd agent (`sshArgs`, `-F /dev/null`, key doctor), phép thử `claude -p` trong git
    repo tạm, chạy trong process group riêng và `SIGKILL` cả group khi quá hạn hoặc khi xong (`printProbeScript`),
    hộp thoại TCC đang chờ (`/usr/bin/log show`, `parsePendingTccPrompts`, `tccHint`; dòng log lệch định dạng thì
-   cảnh báo), tải máy (`parseLoad`; số liệu không đọc được thì cảnh báo).
+   cảnh báo; chỉ `fail` khi hộp thoại thuộc agent, xem `isAgentTccSubject`), tải máy (`parseLoad`; số liệu không đọc được thì cảnh báo; gọi `/usr/sbin/sysctl` và `/usr/bin/memory_pressure` bằng đường dẫn tuyệt đối).
 4. `apps/crew-mac/src/commands/uninstall.ts` → `uninstall`: bootout và xóa plist crew-mac lẫn spike
    (`com.2p.crew-spike-sshd`), gỡ key theo comment, gỡ khối PATH và hai dòng PATH spike, xóa `~/.crew-mac` và
    `~/.crew-spike-sshd`, wrapper và launcher (và `~/.crew/bin` nếu rỗng). Không đụng phần còn lại của `~/.crew` (của `crewd` v2).
-   Giữ nguyên thư mục worktree.
+   Giữ nguyên thư mục worktree. Từ chối khi còn `claude --print` có `PAPERCLIP_RUN_ID` (run Paperclip đang chạy,
+   `liveRunIds`) hoặc không đọc được bảng process; `--force` bỏ qua cả kiểm này lẫn kiểm phiên sshd agent.
 
 ## Files
 
@@ -63,7 +64,7 @@ không cần token và không login lại.
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
 | `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
 | `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkWrapper`, `checkLauncher`, `checkReaper`, `parsePendingTccPrompts`, `printProbeScript` |
-| `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall` |
+| `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `liveRunIds` |
 
 ## Dữ liệu
 
@@ -74,14 +75,14 @@ không cần token và không login lại.
 - Wrapper ghi `<worktree>/.paperclip-runtime/runs/<runId>/pgid` và `started` cho mỗi run. `started` là thời điểm
   SINH của process wrapper (epoch giây), không phải lúc wrapper chạy, để profile chậm của owner không làm lệch.
   `crew-mac stop-run` và reaper đọc hai file này (flow `mac-orphan-reaper`).
-- Gọi ngoài: `launchctl`, `ssh-keygen`, `ssh`, `nc`, `tailscale`, `/usr/bin/log`, `sysctl`, `memory_pressure`, `claude`.
+- Gọi ngoài: `launchctl`, `ssh-keygen`, `ssh`, `nc`, `tailscale`, `/usr/bin/log`, `/bin/ps`, `/usr/sbin/sysctl`, `/usr/bin/memory_pressure`, `claude`.
 - Không đọc hay ghi `~/.claude`, Keychain hay plugin của owner.
 
 ## Lưu ý quyền macOS (TCC)
 
 Quyền đọc vùng được bảo vệ gắn theo đường dẫn binary Claude (`~/.local/share/claude/versions/<bản>`). Mỗi lần Claude
 Code tự cập nhật, macOS có thể hỏi lại; khi hộp thoại chưa được bấm thì mọi lần đọc vùng đó của agent treo im lặng.
-R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. Ký số app cố định quyền là việc của R2.
+R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tcc-pending` chỉ `fail` khi hộp thoại thuộc `claude` (kể cả `…/claude/versions/<bản>`) hoặc `node`; hộp thoại của app khác chỉ `warn`. Ký số app cố định quyền là việc của R2.
 
 ## Flow liên quan
 
@@ -91,8 +92,8 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. Ký
 ## Tests
 
 - `apps/crew-mac/test/setup.test.ts`: cài lần đầu, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
-- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, claude treo, hộp thoại TCC đang chờ, chưa đăng nhập, IP đổi, quá tải.
+- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, claude treo, hộp thoại TCC của agent (fail) và của app khác (warn), `isAgentTccSubject`, chưa đăng nhập, IP đổi, quá tải.
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu.
-- `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi.
-- `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, mã thoát của doctor, chặn uninstall qua sshd agent.
+- `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công không tính là run.
+- `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.
 - Các test còn lại kiểm từng module thuần (`zshenv`, `authorized-keys`, `render`, `system-wrappers`, `system`).

@@ -18,7 +18,7 @@ export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 Cách dùng:
   crew-mac setup --paperclip-key <file .pub | chuỗi key> [--port 2222] [--worktree-root <thư mục>]
   crew-mac doctor [--no-probe] [--tcc-window 24h] [--probe-timeout 90]
-  crew-mac uninstall [--force]
+  crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
 
@@ -172,7 +172,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
           );
           return 2;
         }
-        const report = await uninstall(ctx);
+        const report = await uninstall(ctx, { force: flags.has('--force') });
         io.out(report.removed.length === 0 ? 'Không còn gì để gỡ.' : `Đã gỡ: ${report.removed.join(', ')}`);
         for (const kept of report.kept)
           io.out(`Giữ nguyên thư mục worktree ${kept} (có thể còn việc của agent).`);

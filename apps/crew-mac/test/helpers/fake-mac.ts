@@ -8,6 +8,15 @@ import { FakeRunner } from './fake-runner.js';
 export const PAPERCLIP_PUB =
   'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaperclipTestKey000000000000000000000000 paperclip@vps';
 
+export const LIVE_RUN_ID = '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c10';
+
+/** Bảng process có một run Paperclip đang chạy (`claude --print` mang PAPERCLIP_RUN_ID trong env). */
+export const LIVE_PS = {
+  tree: '  4242     1  4242 ??       00:42 claude\n',
+  argv: '  4242 /Users/a/.local/bin/claude --print --output-format stream-json\n',
+  env: `  4242 /Users/a/.local/bin/claude --print --output-format stream-json PAPERCLIP_RUN_ID=${LIVE_RUN_ID} HOME=/Users/a\n`,
+};
+
 export function fakeMac(
   options: {
     tailscaleIp?: string | null;
@@ -15,6 +24,7 @@ export function fakeMac(
     spikeLoaded?: boolean;
     nodePath?: string;
     cliPath?: string;
+    ps?: { tree: string; argv: string; env: string };
   } = {},
 ) {
   const home = mkdtempSync(join(tmpdir(), 'crew-mac-home-'));
@@ -42,6 +52,12 @@ export function fakeMac(
       if (verb === 'bootout')
         return loaded.delete(labelOf(target)) ? {} : { code: 3, stderr: 'No such process' };
       return { code: 1 };
+    })
+    .on('/bin/ps', (args) => {
+      const ps = options.ps ?? { tree: '', argv: '', env: '' };
+      if (args.includes('-E')) return { stdout: ps.env };
+      if (args.some((a) => a.includes('comm='))) return { stdout: ps.tree };
+      return { stdout: ps.argv };
     })
     .on('tailscale', tailscale)
     .on('/Applications/Tailscale.app/Contents/MacOS/Tailscale', tailscale)
