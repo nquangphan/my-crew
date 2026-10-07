@@ -8,6 +8,7 @@ import { type Manifest, readManifest } from '../manifest.js';
 import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
+import { discoverSources } from '../workflows/inventory.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
@@ -339,6 +340,61 @@ function checkSuperpowersPin(ctx: MacContext): CheckResult {
   }
 }
 
+/**
+ * Chạy phần quét nguồn của `workflow-check` (`discoverSources`) cho từng worktree cấp 1 dưới thư mục worktree:
+ * worktree nào sẽ làm run thoát 78 thì `fail` kèm lệnh xử lý, chỉ có cảnh báo thì `warn`. Phần bản ghim do
+ * `superpowers-pin` kiểm.
+ */
+async function checkWorktreeWorkflows(ctx: MacContext, manifest: Manifest): Promise<CheckResult> {
+  const base = { id: 'worktree-workflows', title: 'Nguồn skill trong các worktree agent' };
+  const root = manifest.worktreeRoot;
+  if (!existsSync(root)) return { ...base, status: 'ok', detail: `chưa có ${root}` };
+  let names: string[];
+  try {
+    names = readdirSync(root, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith('.'))
+      .filter((e) => {
+        try {
+          return statSync(join(root, e.name)).isDirectory();
+        } catch {
+          return false;
+        }
+      })
+      .map((e) => e.name)
+      .sort();
+  } catch (err) {
+    return { ...base, status: 'warn', detail: `không đọc được ${root}: ${(err as Error).message}` };
+  }
+  const blocked: string[] = [];
+  const warned: string[] = [];
+  const fixes: string[] = [];
+  for (const name of names) {
+    for (const s of await discoverSources(ctx, join(root, name))) {
+      if (s.origin === 'blocked') blocked.push(`${name}: ${s.path} (${s.reason})`);
+      else if (s.warning) warned.push(`${name}: ${s.path} (${s.warning})`);
+      else continue;
+      if (s.fix) fixes.push(`${s.path}: ${s.fix}`);
+    }
+  }
+  if (blocked.length > 0) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `run trong worktree sẽ thoát 78: ${blocked.join('; ')}`,
+      hint: fixes.join('\n'),
+    };
+  }
+  if (warned.length > 0) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `nguồn sửa dở (run vẫn chạy): ${warned.join('; ')}`,
+      hint: fixes.join('\n'),
+    };
+  }
+  return { ...base, status: 'ok', detail: `${names.length} worktree, không có nguồn bị chặn` };
+}
+
 function checkWorktreeRoot(ctx: MacContext, manifest: Manifest): CheckResult {
   const base = { id: 'worktree-root', title: 'Thư mục worktree' };
   const reason = forbiddenRootReason(ctx.home, manifest.worktreeRoot);
@@ -666,6 +722,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(checkLauncher(ctx, paths));
   results.push(checkSuperpowersPin(ctx));
   results.push(checkWorktreeRoot(ctx, manifest));
+  results.push(await checkWorktreeWorkflows(ctx, manifest));
   results.push(await checkCrewDocs(ctx, paths, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));

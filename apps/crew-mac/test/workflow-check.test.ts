@@ -93,7 +93,21 @@ describe('workflowCheck', () => {
     const r = await workflowCheck(ctx, { root, pluginDir: pinDir });
     expect(r.ok).toBe(false);
     expect(r.lines).toContain(
-      `crew-workflow blocked: ${root}/.claude/skills/stray (không được git track trong worktree agent)`,
+      `crew-workflow blocked: ${root}/.claude/skills/stray (không được git track trong worktree agent). ` +
+        `Xử lý: commit (git -C ${root} add -- .claude/skills/stray/SKILL.md rồi commit) hoặc xóa file đó.`,
+    );
+  });
+
+  it('SKILL.md đã track mà sửa dở thì run vẫn chạy, in dòng warn kèm lệnh xem', async () => {
+    const { ctx, pinDir } = installedMac();
+    const root = worktree();
+    writeFileSync(join(root, '.claude', 'skills', 'du-an', 'SKILL.md'), 'sửa dở');
+    const r = await workflowCheck(ctx, { root, pluginDir: pinDir });
+    expect(r.ok).toBe(true);
+    expect(r.lines[0]).toMatch(/^crew-workflow ok /);
+    expect(r.lines[1]).toBe(
+      `crew-workflow warn: ${root}/.claude/skills/du-an (đã sửa so với commit (chưa commit) trong worktree agent). ` +
+        `Xem: git -C ${root} diff HEAD -- .claude/skills/du-an/SKILL.md; bỏ: git -C ${root} checkout HEAD -- .claude/skills/du-an/SKILL.md, hoặc commit.`,
     );
   });
 });

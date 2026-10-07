@@ -3,7 +3,7 @@ import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { comparablePath } from '../paths.js';
 import { missingExecutables } from '../workflows/install.js';
-import { discoverSources } from '../workflows/inventory.js';
+import { describeSource, discoverSources } from '../workflows/inventory.js';
 import { superpowersPinDir, type WorkflowPin } from '../workflows/pin.js';
 import { assertSkillAllowed } from '../workflows/policy.js';
 import { checkInitEvent, findInitEvent } from '../workflows/run-init.js';
@@ -48,15 +48,15 @@ export async function workflowCheck(
     }
   }
   const sources = await discoverSources(ctx, input.root, pin);
-  for (const s of sources.filter((x) => x.origin === 'blocked')) {
-    lines.push(blocked(`${s.path} (${s.reason ?? 'nguồn ngoài danh sách cho phép'})`));
-  }
+  for (const s of sources.filter((x) => x.origin === 'blocked')) lines.push(blocked(describeSource(s)));
   if (lines.length > 0) return { ok: false, lines };
+  const warnings = sources.filter((s) => s.warning).map((s) => `crew-workflow warn: ${describeSource(s)}`);
   const count = (origin: string) => sources.filter((s) => s.origin === origin).length;
   return {
     ok: true,
     lines: [
       `crew-workflow ok pin=${pin.workflow}@${pin.version} project=${count('project')} pinned-dup=${count('pinned')}`,
+      ...warnings,
     ],
   };
 }

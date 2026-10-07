@@ -60,15 +60,26 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
        chấm như `.logs/` bỏ qua, vì hook của repo Crew ghi `.claude/hooks/.logs/hook-log.jsonl` (bị ignore) mỗi run;
      - `.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`.
    - Mọi file khác (script phụ của skill, output tạm, `__pycache__`, `*.pyc`, `.DS_Store`, `._*`) bỏ qua.
-   - Một file nguồn nạp bị chặn khi:
-     - chưa track (`không được git track…`) hoặc bị ignore (`bị git ignore…`);
-     - đã track mà đang sửa dở hoặc mới `git add` (`đã sửa so với commit…`);
-     - là symlink đã track trỏ ra ngoài worktree.
+   - Một file nguồn nạp bị chặn (run thoát 78) khi:
+     - chưa track (`không được git track…`) hoặc bị ignore (`bị git ignore…`), với mọi loại nguồn;
+     - là symlink đã track trỏ ra ngoài worktree;
+     - là `settings*.json`, script hook hoặc `.mcp.json` đã track mà đang sửa dở hoặc mới `git add`
+       (`đã sửa so với commit…`): đó là đường chạy lệnh.
+   - `SKILL.md`, `.claude/agents|commands/*.md` đã track mà sửa dở **chỉ cảnh báo**: `workflow-check` vẫn thoát 0 và in
+     thêm `crew-workflow warn: …`. Agent làm việc trên repo có skill (như chính repo Crew) là việc hợp lệ, và một run bị
+     ngắt giữa chừng không được làm mọi lần chạy lại kẹt 78.
+   - Mỗi dòng chặn/cảnh báo có lệnh xử lý cụ thể (`DiscoveredSource.fix`, `describeSource`):
+     - sửa dở: `Xem: git -C <root> diff HEAD -- <file>; bỏ: git -C <root> checkout HEAD -- <file>, hoặc commit.`
+       Với file mới `git add`: `diff --cached`, `rm --cached`;
+     - chưa track: `commit (git -C <root> add -- <file> rồi commit) hoặc xóa file đó` (`add -f` khi bị ignore).
    - Git lỗi hay quá hạn 10 giây thì mọi nguồn bị chặn với lý do `không kiểm được git: …`.
-   - Chỉ hai lệnh git cho cả cây (`ls-files -s -z` và `status --porcelain -z --ignored=matching --untracked-files=all`,
-     cả hai giới hạn trong `.claude` và `.mcp.json`), có `--no-optional-locks` để không tranh lock index với git của
-     run. Trên checkout Crew và `my-crew` mất khoảng 35 ms.
-   - Giả định `--root` là gốc repo.
+   - Ba lệnh git cho cả cây, có `--no-optional-locks` để không tranh lock index với git của run:
+     - `rev-parse --show-prefix`: `--root` là thư mục con của repo vẫn khớp. Không tự tính từ `--show-toplevel`, vì
+       APFS không phân biệt hoa thường: git trả `…/Projects/crew` trong khi run ở `…/projects/crew`;
+     - `ls-files --full-name -s -z`;
+     - `status --porcelain -z --ignored=matching --untracked-files=all`.
+     - Hai lệnh sau giới hạn trong `.claude` và `.mcp.json`. Worktree không có cả hai thì không gọi git. Trên checkout
+       Crew và `my-crew` mất khoảng 50 ms.
 8. `apps/crew-mac/src/commands/workflow-check.ts` → `runInitCheck`, với `apps/crew-mac/src/workflows/run-init.ts`:
    - `findInitEvent` lấy dòng `type=system, subtype=init` đầu tiên, không lấy dòng đầu: khi có hook SessionStart,
      dòng đầu là `system/hook_started`.
@@ -91,17 +102,22 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
 | `--plugin-dir` = thư mục ghim, đúng checksum | `pinned` |
 | Dưới `<root>/.paperclip-runtime/` (skill Paperclip qua `--add-dir`) | `paperclip` |
 | File nguồn nạp trong `.claude/{skills,agents,commands,hooks}/*`, `.claude/settings.json`, `.mcp.json` đã commit và sạch | `project` (owner cho phép, O6) |
-| Cùng các file đó nhưng chưa track, bị ignore, đang sửa dở, hoặc là symlink trỏ ra ngoài worktree | `blocked` |
+| Cùng các file đó nhưng chưa track, bị ignore, hoặc là symlink trỏ ra ngoài worktree | `blocked` |
+| `settings*.json`, script hook, `.mcp.json` đã track mà sửa dở | `blocked` |
+| `SKILL.md`, agent/command `*.md` đã track mà sửa dở | `project` kèm `warning` (dòng `crew-workflow warn`, không chặn) |
 | `<root>/.claude/settings.local.json` có `enabledPlugins` hoặc `hooks`, hoặc không đọc được | `blocked` |
 | `enabledPlugins` của `settings.json` có `superpowers@*` | `pinned`: run chỉ nạp bản `--plugin-dir`, kể cả khi bản owner khác version (đo 07/10/2026); không đọc `installed_plugins.json` mỗi run |
 | Plugin khác trong `enabledPlugins` của `settings.json` đã commit | `project` |
 
-**Đọc log khi run bị chặn:** run fail và stderr của nó có các dòng `crew-workflow blocked: <đường dẫn> (<lý do>)`.
+**Đọc log khi run bị chặn:** run fail và stderr của nó có các dòng
+`crew-workflow blocked: <đường dẫn> (<lý do>). <lệnh xử lý>`. Chạy đúng lệnh in ra trong worktree rồi retry.
+`crew-mac doctor` (check `worktree-workflows`) quét trước mọi worktree cấp 1 dưới thư mục worktree: `fail` khi worktree
+nào sẽ làm run thoát 78, `warn` khi chỉ có cảnh báo, kèm cùng lệnh xử lý.
 
 - `không được git track trong worktree agent`: commit hoặc xóa đường dẫn đó trong worktree.
 - `settings.local.json bật plugin hoặc hook`: bỏ `enabledPlugins`/`hooks` khỏi file đó.
 - `WORKFLOW_SOURCE_MISMATCH`: thư mục ghim bị sửa (xóa rồi chạy `crew-mac setup`).
-- `bị git ignore` hay `đã sửa so với commit`: commit file nguồn đó, hoặc bỏ nó khỏi worktree.
+- `bị git ignore` hay `đã sửa so với commit`: làm theo lệnh in kèm (xem diff, `checkout HEAD --` hoặc commit).
 - `thiếu bit thực thi`: chạy lại `crew-mac setup`.
 - `không kiểm được git`: kiểm `/usr/bin/git` (Command Line Tools) và quyền TCC của git dir.
 - `không phải bản ghim` hay `cần đúng một --plugin-dir`: sửa `adapterConfig.extraArgs` theo dòng `crew-mac setup` in ra.
@@ -158,7 +174,7 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/workflows/pin.ts` | Bản ghim, thư mục ghim, `extraArgs` | `SUPERPOWERS_PIN`, `SUPERPOWERS_PLUGIN_KEY`, `superpowersPinDir`, `agentExtraArgs` |
 | `apps/crew-mac/src/workflows/policy.ts` | So bản ghim | `samePin`, `assertSkillAllowed` |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
-| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree | `classifyOrigin`, `discoverSources`, `Origin`, `DiscoveredSource` |
+| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree | `classifyOrigin`, `discoverSources`, `describeSource`, `Origin`, `DiscoveredSource` |
 | `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS` |
 | `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run (flow `mac-setup` giữ phần `pgid`/`started`) | — |
@@ -193,10 +209,11 @@ bản ghim (hoặc không còn cài).
   - hook (bỏ qua `.logs/` và file không phải script), `.mcp.json`;
   - `settings.local.json` bật hook hoặc chỉ có quyền; `settings.json` chưa track;
   - superpowers bật trong repo luôn `pinned` kể cả khi owner gỡ plugin, plugin khác là `project`;
-  - git lỗi hoặc quá hạn; số lệnh git cố định.
+  - git lỗi hoặc quá hạn; số lệnh git cố định; worktree là thư mục con của repo; đường dẫn khác hoa thường (APFS);
+  - sửa dở: `SKILL.md`/agent chỉ cảnh báo, `settings.json`/script hook chặn, kèm lệnh xử lý; nguồn chưa track kèm lệnh.
 - `apps/crew-mac/test/workflow-check.test.ts`:
   - `workflowCheck`: sạch, `--plugin-dir` là cache owner, thư mục ghim bị sửa, mất bit thực thi hoặc chưa cài, skill
-    chưa track.
+    chưa track (dòng chặn kèm lệnh xử lý), `SKILL.md` sửa dở (ok kèm dòng `warn`).
   - `runInitCheck`: init sau dòng hook; skill cá nhân, plugin user-scope, Superpowers từ cache owner, agent lạ, MCP
     `user`; thiếu bản ghim; log không có init; plugin project và skill Paperclip được phép.
   - CLI: mã 0/2/78/1.

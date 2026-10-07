@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -140,12 +140,72 @@ describe('discoverSources', () => {
     });
   });
 
-  it('nguồn nạp đã track mà đang sửa dở thì chặn', async () => {
+  it('SKILL.md và agent đã track mà sửa dở chỉ cảnh báo; settings.json và script hook sửa dở thì chặn', async () => {
     const { ctx } = realGitCtx();
     const dir = worktree();
+    mkdirSync(join(dir, '.claude', 'agents'));
+    writeFileSync(join(dir, '.claude', 'agents', 'a.md'), 'agent');
+    mkdirSync(join(dir, '.claude', 'hooks'));
+    writeFileSync(join(dir, '.claude', 'hooks', 'pre.cjs'), 'hook');
+    writeFileSync(join(dir, '.claude', 'settings.json'), '{}');
+    git(dir, 'add', '.');
+    git(dir, 'commit', '-q', '-m', 'more');
     writeFileSync(join(dir, '.claude', 'skills', 'tracked', 'SKILL.md'), '---\nname: tracked\n---\nsửa dở\n');
+    writeFileSync(join(dir, '.claude', 'agents', 'a.md'), 'agent sửa dở');
+    writeFileSync(join(dir, '.claude', 'hooks', 'pre.cjs'), 'hook sửa dở');
+    writeFileSync(join(dir, '.claude', 'settings.json'), '{"hooks":{}}');
     const sources = await discoverSources(ctx, dir);
-    expect(at(sources, join(dir, '.claude', 'skills', 'tracked'))).toMatchObject({
+    const skill = at(sources, join(dir, '.claude', 'skills', 'tracked'));
+    expect(skill).toMatchObject({ origin: 'project', warning: DIRTY_REASON });
+    expect(skill?.fix).toContain(`git -C ${dir} diff HEAD -- .claude/skills/tracked/SKILL.md`);
+    expect(at(sources, join(dir, '.claude', 'agents', 'a.md'))).toMatchObject({
+      origin: 'project',
+      warning: DIRTY_REASON,
+    });
+    for (const rel of ['.claude/hooks/pre.cjs', '.claude/settings.json']) {
+      const s = at(sources, join(dir, ...rel.split('/')));
+      expect(s).toMatchObject({ origin: 'blocked', reason: DIRTY_REASON });
+      expect(s?.fix).toContain(`git -C ${dir} diff HEAD -- ${rel}`);
+      expect(s?.fix).toContain(`git -C ${dir} checkout HEAD -- ${rel}`);
+    }
+  });
+
+  it('nguồn chưa track vẫn chặn, kèm cách xử lý', async () => {
+    const { ctx } = realGitCtx();
+    const dir = worktree();
+    mkdirSync(join(dir, '.claude', 'agents'));
+    writeFileSync(join(dir, '.claude', 'agents', 'moi.md'), 'x');
+    const s = at(await discoverSources(ctx, dir), join(dir, '.claude', 'agents', 'moi.md'));
+    expect(s).toMatchObject({ origin: 'blocked', reason: UNTRACKED_REASON });
+    expect(s?.fix).toContain(`git -C ${dir} add -- .claude/agents/moi.md`);
+  });
+
+  it('đường dẫn worktree khác hoa thường với đường dẫn git trả (APFS) vẫn khớp', async () => {
+    const { ctx } = realGitCtx();
+    const dir = worktree();
+    const upper = dir.replace(/crew-inv-([^/]*)$/, (_m, rest: string) => `CREW-INV-${rest}`);
+    if (!existsSync(upper)) return; // ổ phân biệt hoa thường: không áp dụng
+    const sources = await discoverSources(ctx, join(upper, 'packages', '..'));
+    expect(sources).toEqual([
+      { path: join(upper, '.claude', 'skills', 'tracked'), kind: 'skill', origin: 'project' },
+    ]);
+  });
+
+  it('worktree là thư mục con của repo: đường dẫn git tính từ gốc repo vẫn khớp', async () => {
+    const { ctx } = realGitCtx();
+    const repo = mkdtempSync(join(tmpdir(), 'crew-inv-repo-'));
+    git(repo, 'init', '-q');
+    const sub = join(repo, 'packages', 'app');
+    mkdirSync(join(sub, '.claude', 'skills', 'x'), { recursive: true });
+    writeFileSync(join(sub, '.claude', 'skills', 'x', 'SKILL.md'), 'x');
+    writeFileSync(join(sub, '.claude', 'settings.json'), '{}');
+    git(repo, 'add', '.');
+    git(repo, 'commit', '-q', '-m', 'init');
+    const clean = await discoverSources(ctx, sub);
+    expect(clean.filter((s) => s.origin === 'blocked')).toEqual([]);
+    expect(at(clean, join(sub, '.claude', 'skills', 'x'))?.origin).toBe('project');
+    writeFileSync(join(sub, '.claude', 'settings.json'), '{"hooks":{}}');
+    expect(at(await discoverSources(ctx, sub), join(sub, '.claude', 'settings.json'))).toMatchObject({
       origin: 'blocked',
       reason: DIRTY_REASON,
     });
@@ -285,7 +345,7 @@ describe('discoverSources', () => {
     };
     const sources = await discoverSources(ctx, dir);
     expect(sources.filter((s) => s.origin === 'project')).toHaveLength(4);
-    expect(calls).toBeLessThanOrEqual(2);
+    expect(calls).toBeLessThanOrEqual(3);
   });
 
   it('thư mục ghim không có trong worktree thì không lọt vào danh sách', async () => {

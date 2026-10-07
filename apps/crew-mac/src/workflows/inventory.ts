@@ -18,7 +18,12 @@ export interface DiscoveredSource {
   path: string;
   kind: 'skill' | 'agent' | 'command' | 'hook' | 'plugin' | 'settings' | 'mcp';
   origin: Origin;
+  /** Lý do chặn (`origin === 'blocked'`). */
   reason?: string;
+  /** Cảnh báo không chặn (skill, agent, command đã track mà sửa dở). */
+  warning?: string;
+  /** Lệnh xem và gỡ vấn đề, cho dòng `crew-workflow blocked|warn` và doctor. */
+  fix?: string;
 }
 
 export const UNTRACKED_REASON = 'không được git track trong worktree agent';
@@ -43,6 +48,12 @@ export function classifyOrigin(input: {
   return 'blocked';
 }
 
+/** `<đường dẫn> (<lý do>). <cách xử lý>` cho dòng `crew-workflow blocked|warn` và doctor. */
+export function describeSource(s: DiscoveredSource): string {
+  const why = s.reason ?? s.warning ?? 'nguồn ngoài danh sách cho phép';
+  return `${s.path} (${why})${s.fix ? `. ${s.fix}` : ''}`;
+}
+
 /** Rác của hệ điều hành và công cụ, không bao giờ là nguồn claude nạp. */
 function isJunk(name: string): boolean {
   return (
@@ -55,7 +66,9 @@ function isJunk(name: string): boolean {
 }
 
 interface GitView {
-  /** Đường dẫn (tương đối gốc worktree, dấu `/`) → mode git (`120000` là symlink). */
+  /** Đường dẫn của `root` tính từ gốc repo (`''` khi `root` là gốc), dấu `/`. */
+  prefix: string;
+  /** Đường dẫn (tính từ gốc repo, dấu `/`) → mode git (`120000` là symlink). */
   tracked: Map<string, string>;
   /** Đường dẫn → mã `XY` của `git status --porcelain`; `!!` là bị ignore, thư mục bị ignore kết thúc bằng `/`. */
   status: Map<string, string>;
@@ -63,40 +76,42 @@ interface GitView {
   error: string | null;
 }
 
-const GIT_PATHS = ['--', '.claude', '.mcp.json'];
+const toPosix = (path: string) => path.split(sep).join('/');
 
 /**
- * Hai lệnh git cho cả `.claude/` và `.mcp.json`: danh sách file đã track (kèm mode) và trạng thái (chưa track, bị
- * ignore, đã sửa), không giữ lock của index để không tranh với git của chính run. Giả định `root` là gốc repo (worktree của agent): đường dẫn của hai lệnh cùng tính từ đó.
+ * Ba lệnh git cho cả `.claude/` và `.mcp.json` của worktree: vị trí của `root` trong repo (`rev-parse --show-prefix`,
+ * để `root` là thư mục con vẫn đúng), danh sách file đã track (kèm mode, `--full-name`) và trạng thái (chưa track, bị
+ * ignore, đã sửa; porcelain luôn tính từ gốc repo). Không giữ lock của index để không tranh với git của chính run.
  */
 async function readGit(ctx: MacContext, root: string): Promise<GitView> {
   const opts = { timeoutMs: 10_000 };
-  const describe = (r: { code: number; stderr: string; timedOut: boolean }) =>
-    r.timedOut ? 'git quá hạn 10 giây' : r.stderr.trim().split('\n')[0] || `git thoát mã ${r.code}`;
-  const files = await ctx.runner.run(
-    '/usr/bin/git',
-    ['--no-optional-locks', '-C', root, 'ls-files', '-s', '-z', ...GIT_PATHS],
-    opts,
-  );
-  if (files.code !== 0 || files.timedOut)
-    return { tracked: new Map(), status: new Map(), error: describe(files) };
-  const st = await ctx.runner.run(
-    '/usr/bin/git',
-    [
-      '--no-optional-locks',
-      '-C',
-      root,
-      'status',
-      '--porcelain=v1',
-      '-z',
-      '--no-renames',
-      '--ignored=matching',
-      '--untracked-files=all',
-      ...GIT_PATHS,
-    ],
-    opts,
-  );
-  if (st.code !== 0 || st.timedOut) return { tracked: new Map(), status: new Map(), error: describe(st) };
+  const fail = (r: { code: number; stderr: string; timedOut: boolean }): GitView => ({
+    prefix: '',
+    tracked: new Map(),
+    status: new Map(),
+    error: r.timedOut ? 'git quá hạn 10 giây' : r.stderr.trim().split('\n')[0] || `git thoát mã ${r.code}`,
+  });
+  const git = (args: string[]) => ctx.runner.run('/usr/bin/git', ['--no-optional-locks', ...args], opts);
+  // `--show-prefix` thay vì tự tính từ `--show-toplevel`: APFS không phân biệt hoa thường nên đường dẫn git trả
+  // (`…/Projects/crew`) và đường dẫn của run (`…/projects/crew`) có thể khác chữ dù cùng thư mục.
+  const top = await git(['-C', root, 'rev-parse', '--show-prefix']);
+  if (top.code !== 0 || top.timedOut) return fail(top);
+  const prefix = top.stdout.trim().replace(/\/$/, '');
+  const paths = ['--', '.claude', '.mcp.json'];
+  const files = await git(['-C', root, 'ls-files', '--full-name', '-s', '-z', ...paths]);
+  if (files.code !== 0 || files.timedOut) return fail(files);
+  const st = await git([
+    '-C',
+    root,
+    'status',
+    '--porcelain=v1',
+    '-z',
+    '--no-renames',
+    '--ignored=matching',
+    '--untracked-files=all',
+    ...paths,
+  ]);
+  if (st.code !== 0 || st.timedOut) return fail(st);
   const tracked = new Map<string, string>();
   for (const entry of files.stdout.split('\0')) {
     const tab = entry.indexOf('\t');
@@ -106,31 +121,58 @@ async function readGit(ctx: MacContext, root: string): Promise<GitView> {
   for (const entry of st.stdout.split('\0')) {
     if (entry.length > 3) status.set(entry.slice(3), entry.slice(0, 2));
   }
-  return { tracked, status, error: null };
+  return { prefix, tracked, status, error: null };
 }
 
-/** Lý do một file nguồn nạp trong worktree không được dùng, null khi nó đã commit, sạch và không trỏ ra ngoài. */
-function fileReason(git: GitView, root: string, abs: string): string | null {
-  if (git.error) return `không kiểm được git: ${git.error}`;
-  const rel = relative(root, abs).split(sep).join('/');
-  const mode = git.tracked.get(rel);
+interface FileIssue {
+  reason: string;
+  /** Lệnh xử lý cụ thể, chạy được nguyên văn (đường dẫn tính từ `root`). */
+  fix: string;
+  /** Đã track mà sửa dở: chỉ chặn khi file là đường thực thi (settings, hook, `.mcp.json`). */
+  dirty: boolean;
+}
+
+/** Vấn đề của một file nguồn nạp trong worktree, null khi nó đã commit, sạch và không trỏ ra ngoài. */
+function fileIssue(git: GitView, root: string, abs: string): FileIssue | null {
+  if (git.error) {
+    return {
+      reason: `không kiểm được git: ${git.error}`,
+      fix: `Xử lý: kiểm /usr/bin/git (Command Line Tools) và quyền đọc ${root}, rồi chạy lại.`,
+      dirty: false,
+    };
+  }
+  const rel = toPosix(relative(root, abs));
+  const key = git.prefix ? `${git.prefix}/${rel}` : rel;
+  const mode = git.tracked.get(key);
   if (mode === undefined) {
     const ignored =
-      git.status.get(rel) === '!!' ||
-      [...git.status].some(([path, code]) => code === '!!' && path.endsWith('/') && rel.startsWith(path));
-    return ignored ? IGNORED_REASON : UNTRACKED_REASON;
+      git.status.get(key) === '!!' ||
+      [...git.status].some(([path, code]) => code === '!!' && path.endsWith('/') && key.startsWith(path));
+    return {
+      reason: ignored ? IGNORED_REASON : UNTRACKED_REASON,
+      fix: `Xử lý: commit (git -C ${root} add ${ignored ? '-f ' : ''}-- ${rel} rồi commit) hoặc xóa file đó.`,
+      dirty: false,
+    };
   }
   if (mode === '120000') {
-    let target: string;
+    let target = '';
     try {
       target = realpathSync(abs);
-    } catch {
-      return 'symlink hỏng trong worktree agent';
+    } catch {}
+    if (!target || !contained(root, target)) {
+      return {
+        reason: target ? `symlink trỏ ra ngoài worktree: ${target}` : 'symlink hỏng trong worktree agent',
+        fix: `Xử lý: thay symlink ${rel} bằng nội dung trong repo rồi commit.`,
+        dirty: false,
+      };
     }
-    if (!contained(root, target)) return `symlink trỏ ra ngoài worktree: ${target}`;
   }
-  const code = git.status.get(rel);
-  return code !== undefined && code !== '!!' ? DIRTY_REASON : null;
+  const code = git.status.get(key);
+  if (code === undefined || code === '!!') return null;
+  const fix = code.startsWith('A')
+    ? `Xem: git -C ${root} diff --cached -- ${rel}; bỏ: git -C ${root} rm --cached -- ${rel} rồi xóa file, hoặc commit.`
+    : `Xem: git -C ${root} diff HEAD -- ${rel}; bỏ: git -C ${root} checkout HEAD -- ${rel}, hoặc commit.`;
+  return { reason: DIRTY_REASON, fix, dirty: true };
 }
 
 function isSymlink(path: string): boolean {
@@ -245,12 +287,23 @@ export async function discoverSources(
       ];
     }
   }
+  const hasSources =
+    existsSync(claudeDir) || existsSync(join(root, '.mcp.json')) || isSymlink(join(root, '.mcp.json'));
+  if (!hasSources) return [];
   const git = await readGit(ctx, root);
   const found: DiscoveredSource[] = [];
+  /** Skill, agent, command sửa dở chỉ cảnh báo (agent làm việc trên chính skill của repo); còn lại chặn. */
   const judge = (path: string, kind: DiscoveredSource['kind'], files: string[]) => {
-    const reason = files.map((f) => fileReason(git, root, f)).find((r) => r !== null) ?? null;
-    const origin = reason ? 'blocked' : classifyOrigin({ path, root, pinDir, tracked: true });
-    found.push({ path, kind, origin, ...(reason ? { reason } : {}) });
+    const issues = files.map((f) => fileIssue(git, root, f)).filter((i): i is FileIssue => i !== null);
+    const warnOnly = kind === 'skill' || kind === 'agent' || kind === 'command';
+    const blocking = issues.find((i) => !(i.dirty && warnOnly));
+    if (blocking) {
+      found.push({ path, kind, origin: 'blocked', reason: blocking.reason, fix: blocking.fix });
+      return;
+    }
+    const origin = classifyOrigin({ path, root, pinDir, tracked: true });
+    const warning = issues[0];
+    found.push({ path, kind, origin, ...(warning ? { warning: warning.reason, fix: warning.fix } : {}) });
   };
   for (const [kind, sub] of [
     ['skill', 'skills'],
@@ -286,8 +339,9 @@ export async function discoverSources(
   }
   const shared = join(claudeDir, 'settings.json');
   if (existsSync(shared)) {
-    const reason = fileReason(git, root, shared);
-    if (reason) found.push({ path: shared, kind: 'settings', origin: 'blocked', reason });
+    const issue = fileIssue(git, root, shared);
+    if (issue)
+      found.push({ path: shared, kind: 'settings', origin: 'blocked', reason: issue.reason, fix: issue.fix });
     for (const key of enabledPluginKeys(readJson(shared))) {
       const path = `${shared}#${key}`;
       if (key.startsWith(`${pin.workflow}@`)) {
@@ -298,8 +352,8 @@ export async function discoverSources(
         found.push({
           path,
           kind: 'plugin',
-          origin: reason ? 'blocked' : 'project',
-          ...(reason ? { reason } : {}),
+          origin: issue ? 'blocked' : 'project',
+          ...(issue ? { reason: issue.reason, fix: issue.fix } : {}),
         });
       }
     }

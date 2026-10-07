@@ -341,6 +341,7 @@ describe('crew-mac doctor', () => {
       ['launcher', 'ok'],
       ['superpowers-pin', 'ok'],
       ['worktree-root', 'ok'],
+      ['worktree-workflows', 'ok'],
       ['crew-docs', 'ok'],
       ['claude-auth', 'ok'],
       ['claude-print-git', 'ok'],
@@ -407,6 +408,44 @@ describe('crew-mac doctor', () => {
       detail: expect.stringContaining('9.9.10'),
       hint: expect.stringContaining('SUPERPOWERS_PIN'),
     });
+  });
+
+  it('worktree-workflows: worktree sẽ bị chặn thì fail kèm lệnh xử lý; chỉ sửa dở SKILL.md thì warn', async () => {
+    const mac = await installed(okSsh);
+    // Chỉ git chạy thật (repo tạm); các lệnh khác vẫn qua runner giả của máy khỏe.
+    mac.runner.on('/usr/bin/git', (args) => {
+      const r = spawnSync('/usr/bin/git', [...args], { encoding: 'utf8' });
+      return { code: r.status ?? 1, stdout: r.stdout, stderr: r.stderr };
+    });
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    const wt = join(root, 'executor');
+    mkdirSync(join(wt, '.claude', 'skills', 's'), { recursive: true });
+    writeFileSync(join(wt, '.claude', 'skills', 's', 'SKILL.md'), 's');
+    writeFileSync(join(wt, '.claude', 'settings.json'), '{}');
+    for (const args of [
+      ['init', '-q'],
+      ['add', '.'],
+      ['commit', '-q', '-m', 'i'],
+    ]) {
+      spawnSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
+        cwd: wt,
+      });
+    }
+    mkdirSync(join(root, '.an'), { recursive: true });
+    const check = async () =>
+      (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'worktree-workflows',
+      );
+    expect(await check()).toMatchObject({ status: 'ok', detail: expect.stringContaining('1 worktree') });
+    writeFileSync(join(wt, '.claude', 'skills', 's', 'SKILL.md'), 'sửa dở');
+    expect(await check()).toMatchObject({ status: 'warn', detail: expect.stringContaining('executor') });
+    writeFileSync(join(wt, '.claude', 'settings.json'), '{"hooks":{}}');
+    const failed = await check();
+    expect(failed).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('.claude/settings.json'),
+    });
+    expect(failed?.hint).toContain(`git -C ${wt} checkout HEAD -- .claude/settings.json`);
   });
 
   it('claude treo: phép thử fail và trỏ sang check TCC', async () => {
