@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
-import { basename } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { readText } from '../fs-util.js';
 import { serviceState } from '../launchctl.js';
@@ -359,6 +359,47 @@ export function isAgentTccSubject(subject: string): boolean {
   return name === 'claude' || name === 'node' || /\/claude\/versions\/[^/]+$/.test(subject);
 }
 
+/**
+ * Hợp đồng cho integrator: trong worktree có `docs/flows.yaml`, `node "$(git config --get crew-docs.bundle)" check
+ * --range <base>..<head>` phải chạy được. Worktree dùng chung git config của repo gốc nên đọc config bằng `git -C`.
+ */
+async function checkCrewDocs(ctx: MacContext, manifest: Manifest): Promise<CheckResult> {
+  const base = { id: 'crew-docs', title: 'crew-docs cho integrator' };
+  if (!existsSync(manifest.worktreeRoot))
+    return { ...base, status: 'warn', detail: 'chưa có thư mục worktree' };
+  const repos = readdirSync(manifest.worktreeRoot, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+    .map((e) => join(manifest.worktreeRoot, e.name))
+    .filter((dir) => existsSync(join(dir, 'docs', 'flows.yaml')));
+  if (repos.length === 0) return { ...base, status: 'ok', detail: 'không có worktree nào dùng crew-docs' };
+  const problems: string[] = [];
+  for (const dir of repos) {
+    const cfg = await ctx.runner.run('/usr/bin/git', ['-C', dir, 'config', '--get', 'crew-docs.bundle'], {
+      timeoutMs: 10_000,
+    });
+    const bundle = cfg.stdout.trim();
+    if (cfg.code !== 0 || bundle === '') {
+      problems.push(`${dir}: chưa có git config crew-docs.bundle`);
+      continue;
+    }
+    if (!existsSync(bundle)) {
+      problems.push(`${dir}: ${bundle} không tồn tại`);
+      continue;
+    }
+    const version = await ctx.runner.run(ctx.nodePath, [bundle, '--version'], { timeoutMs: 15_000 });
+    if (version.code !== 0) problems.push(`${dir}: ${bundle} --version mã ${version.code}`);
+  }
+  if (problems.length > 0) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: problems.join('; '),
+      hint: 'Trong checkout gốc của dự án, chạy "node <đường dẫn crew-docs.cjs> install-hooks" để đặt crew-docs.bundle (worktree dùng chung git config).',
+    };
+  }
+  return { ...base, status: 'ok', detail: `${repos.length} worktree, bundle chạy được` };
+}
+
 async function checkTccPending(ctx: MacContext, window: string): Promise<CheckResult> {
   const base = { id: 'tcc-pending', title: 'Hộp thoại quyền macOS đang chờ' };
   const result = await ctx.runner.run(
@@ -450,6 +491,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkWrapper(ctx, paths, manifest));
   results.push(checkLauncher(ctx, paths));
   results.push(checkWorktreeRoot(ctx, manifest));
+  results.push(await checkCrewDocs(ctx, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));
   results.push(await checkTccPending(ctx, options.tccWindow));

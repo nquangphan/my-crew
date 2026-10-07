@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -54,6 +54,60 @@ const okSsh = (remote: string) => {
   if (remote.includes('crew-claude-run')) return { stdout: '2.1.289 (Claude Code)\n' };
   return { stdout: 'ok\n' };
 };
+
+describe('doctor crew-docs', () => {
+  const OPTIONS = { probe: false, tccWindow: '24h', probeTimeoutSec: 90 };
+
+  it('worktree có docs/flows.yaml mà thiếu crew-docs.bundle thì fail', async () => {
+    const mac = await installed(okSsh);
+    const wt = join(macPaths(mac.home).defaultWorktreeRoot, 'integrator');
+    mkdirSync(join(wt, 'docs'), { recursive: true });
+    writeFileSync(join(wt, 'docs', 'flows.yaml'), 'version: 1\n');
+    mac.runner.on('/usr/bin/git', () => ({ code: 1 }));
+    const r = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('integrator');
+    expect(r?.hint).toContain('install-hooks');
+  });
+
+  it('bundle trỏ tới file không tồn tại hoặc không chạy được thì fail', async () => {
+    const mac = await installed(okSsh);
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    const wt = join(root, 'a');
+    mkdirSync(join(wt, 'docs'), { recursive: true });
+    writeFileSync(join(wt, 'docs', 'flows.yaml'), 'version: 1\n');
+    mac.runner.on('/usr/bin/git', () => ({ stdout: `${root}/khong-co.cjs\n` }));
+    const missing = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    expect(missing?.status).toBe('fail');
+    expect(missing?.detail).toContain('không tồn tại');
+
+    const bundle = join(mac.home, 'crew-docs.cjs');
+    writeFileSync(bundle, '');
+    mac.runner
+      .on('/usr/bin/git', () => ({ stdout: `${bundle}\n` }))
+      .on(mac.ctx.nodePath, () => ({ code: 1 }));
+    const broken = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    expect(broken?.status).toBe('fail');
+    expect(broken?.detail).toContain('--version');
+  });
+
+  it('bundle có và chạy được thì ok; worktree không dùng crew-docs thì bỏ qua', async () => {
+    const mac = await installed(okSsh);
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    const bundle = join(mac.home, 'crew-docs.cjs');
+    writeFileSync(bundle, '');
+    mkdirSync(join(root, 'a', 'docs'), { recursive: true });
+    writeFileSync(join(root, 'a', 'docs', 'flows.yaml'), 'version: 1\n');
+    mkdirSync(join(root, 'b'), { recursive: true });
+    mac.runner
+      .on('/usr/bin/git', () => ({ stdout: `${bundle}\n` }))
+      .on(mac.ctx.nodePath, (args) =>
+        args[1] === '--version' ? { stdout: 'crew-docs 0.1.0\n' } : undefined,
+      );
+    const r = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    expect(r).toMatchObject({ status: 'ok', detail: expect.stringContaining('1 worktree') });
+  });
+});
 
 describe('isAgentTccSubject', () => {
   it('nhận claude, bản claude theo version và node', () => {
@@ -180,6 +234,7 @@ describe('crew-mac doctor', () => {
       ['wrapper', 'ok'],
       ['launcher', 'ok'],
       ['worktree-root', 'ok'],
+      ['crew-docs', 'ok'],
       ['claude-auth', 'ok'],
       ['claude-print-git', 'ok'],
       ['tcc-pending', 'ok'],
