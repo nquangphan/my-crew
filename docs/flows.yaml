@@ -691,6 +691,17 @@ flows:
       - apps/crew-mac/test/stop-run.test.ts
       - apps/crew-mac/test/reaper-select.test.ts
       - apps/crew-mac/test/reaper-reap.test.ts
+  mac-workflows:
+    title: Ghim Superpowers và chặn nạp skill chéo trên Mac
+    doc: docs/flows/mac-workflows.md
+    entrypoints:
+      - apps/crew-mac/src/workflows/install.ts
+    files:
+      - apps/crew-mac/src/workflows/pin.ts
+      - apps/crew-mac/src/workflows/policy.ts
+      - apps/crew-mac/src/workflows/tree-checksum.ts
+    tests:
+      - apps/crew-mac/test/workflows-pin.test.ts
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

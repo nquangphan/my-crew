@@ -12,9 +12,11 @@ import { describe, expect, it } from 'vitest';
 import { setup } from '../src/commands/setup.js';
 import { SetupError } from '../src/context.js';
 import { macPaths, REAPER_LABEL, SSHD_LABEL } from '../src/paths.js';
+import { superpowersPinDir } from '../src/workflows/pin.js';
+import { treeChecksum } from '../src/workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../src/wrapper.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY } from '../src/zshenv.js';
-import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import { FIXTURE_PIN, fakeMac, PAPERCLIP_PUB, seedOwnerPlugin } from './helpers/fake-mac.js';
 
 describe('crew-mac setup', () => {
   it('~/.zshenv có khối mở mà thiếu dòng đóng thì dừng và giữ nguyên file', async () => {
@@ -170,6 +172,30 @@ describe('crew-mac setup', () => {
   it('từ chối khi không có IP Tailscale', async () => {
     const { ctx } = fakeMac({ tailscaleIp: null });
     await expect(setup(ctx, { paperclipKey: PAPERCLIP_PUB })).rejects.toThrow('Tailscale');
+  });
+
+  it('ghim Superpowers vào ~/.crew/workflows và trả extraArgs cho agent', async () => {
+    const { home, ctx } = fakeMac();
+    const dir = superpowersPinDir(home, FIXTURE_PIN);
+    const report = await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    expect(dir).toBe(join(home, '.crew', 'workflows', 'superpowers', '9.9.9-ffffffffffff'));
+    expect(report.superpowers).toEqual({
+      dir,
+      extraArgs: ['--setting-sources', 'project,local', '--plugin-dir', dir],
+    });
+    expect(report.changed).toContain(dir);
+    expect(treeChecksum(dir).checksum).toBe(FIXTURE_PIN.checksum);
+    expect((await setup(ctx)).changed).toEqual([]);
+  });
+
+  it('owner chưa cài Superpowers đúng bản thì setup báo SetupError, không ghi gì', async () => {
+    const { home, ctx } = fakeMac({ ownerSuperpowers: false });
+    seedOwnerPlugin(home, '9.9.8', 'e'.repeat(40));
+    const err = await setup(ctx, { paperclipKey: PAPERCLIP_PUB }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SetupError);
+    expect((err as Error).message).toContain('9.9.9');
+    expect(existsSync(macPaths(home).manifest)).toBe(false);
+    expect(existsSync(macPaths(home).sshdConfig)).toBe(false);
   });
 
   it('lần đầu bắt buộc có key Paperclip', async () => {

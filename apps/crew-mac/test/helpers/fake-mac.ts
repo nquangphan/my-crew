@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import type { MacContext } from '../../src/context.js';
 import { SPIKE_LABEL } from '../../src/paths.js';
+import type { WorkflowPin } from '../../src/workflows/pin.js';
 import { FakeRunner } from './fake-runner.js';
 
 export const PAPERCLIP_PUB =
@@ -17,6 +18,52 @@ export const LIVE_PS = {
   env: `  4242 /Users/a/.local/bin/claude --print --output-format stream-json PAPERCLIP_RUN_ID=${LIVE_RUN_ID} HOME=/Users/a\n`,
 };
 
+/** Pin giả khớp cây `seedOwnerPlugin` (a.txt, dir/b.txt): test không dựng được cây đúng checksum của bản thật. */
+export const FIXTURE_PIN: WorkflowPin = {
+  workflow: 'superpowers',
+  version: '9.9.9',
+  revision: 'f'.repeat(40),
+  checksum: '887ad97e9e3f192940fb5320cd393c82f31fa65da974ee62ff923e37fe75b6e5',
+};
+
+export function installedPluginsFile(home: string): string {
+  return join(home, '.claude', 'plugins', 'installed_plugins.json');
+}
+
+/** Giả lập owner đã cài Superpowers qua /plugin: cây plugin trong cache và một entry của installed_plugins.json. */
+export function seedOwnerPlugin(
+  home: string,
+  version: string = FIXTURE_PIN.version,
+  sha: string = FIXTURE_PIN.revision,
+): string {
+  const installPath = join(
+    home,
+    '.claude',
+    'plugins',
+    'cache',
+    'claude-plugins-official',
+    'superpowers',
+    version,
+  );
+  mkdirSync(join(installPath, 'dir'), { recursive: true });
+  mkdirSync(join(installPath, '.in_use'), { recursive: true });
+  writeFileSync(join(installPath, 'a.txt'), 'a\n');
+  writeFileSync(join(installPath, 'dir', 'b.txt'), 'b\n');
+  writeFileSync(join(installPath, '.in_use', 'lock'), 'x\n');
+  writeFileSync(
+    installedPluginsFile(home),
+    JSON.stringify({
+      version: 2,
+      plugins: {
+        'superpowers@claude-plugins-official': [
+          { scope: 'project', installPath, version, gitCommitSha: sha },
+        ],
+      },
+    }),
+  );
+  return installPath;
+}
+
 export function fakeMac(
   options: {
     tailscaleIp?: string | null;
@@ -25,9 +72,12 @@ export function fakeMac(
     nodePath?: string;
     cliPath?: string;
     ps?: { tree: string; argv: string; env: string };
+    /** Mặc định true: owner đã cài Superpowers đúng `FIXTURE_PIN`. */
+    ownerSuperpowers?: boolean;
   } = {},
 ) {
   const home = mkdtempSync(join(tmpdir(), 'crew-mac-home-'));
+  if (options.ownerSuperpowers !== false) seedOwnerPlugin(home);
   const loaded = new Set<string>(options.spikeLoaded ? [SPIKE_LABEL] : []);
   const labelOf = (target: string | undefined) => String(target).split('/').at(-1) as string;
   const tailscale = () =>
@@ -83,6 +133,7 @@ export function fakeMac(
     out: (line) => out.push(line),
     nodePath: options.nodePath ?? '/opt/homebrew/bin/node',
     cliPath: options.cliPath ?? '/opt/crew/apps/crew-mac/dist/cli.js',
+    superpowersPin: FIXTURE_PIN,
   };
   return { home, ctx, runner, loaded, out };
 }

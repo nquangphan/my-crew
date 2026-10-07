@@ -20,6 +20,8 @@ import {
 import { type PlistSpec, renderPlist } from '../plist.js';
 import { renderSshdConfig } from '../sshd-config.js';
 import { tailscaleIpv4 } from '../tailscale.js';
+import { installSuperpowersPin } from '../workflows/install.js';
+import { agentExtraArgs } from '../workflows/pin.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { upsertPathBlock } from '../zshenv.js';
 
@@ -33,6 +35,8 @@ export interface SetupReport {
   changed: string[];
   restarted: string[];
   manifest: Manifest;
+  /** Thư mục Superpowers đã ghim và `adapterConfig.extraArgs` tương ứng cho agent claude_local. */
+  superpowers: { dir: string; extraArgs: string[] };
 }
 
 /**
@@ -146,6 +150,9 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   const track = (path: string, didChange: boolean) => {
     if (didChange) changed.push(path);
   };
+  // Trước mọi file khác: owner chưa cài đúng bản Superpowers thì dừng khi máy còn nguyên.
+  const pin = installSuperpowersPin(ctx);
+  track(pin.dir, pin.changed);
   mkdirSync(paths.sshdDir, { recursive: true, mode: 0o700 });
   mkdirSync(paths.reaperDir, { recursive: true, mode: 0o700 });
   await ensureKeyPair(ctx, paths.hostKey, 'crew-mac-host', changed);
@@ -199,5 +206,5 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
     installedAt: previous?.installedAt ?? ctx.now().toISOString(),
   };
   track(paths.manifest, writeManifest(paths.manifest, manifest));
-  return { changed, restarted, manifest };
+  return { changed, restarted, manifest, superpowers: { dir: pin.dir, extraArgs: agentExtraArgs(pin.dir) } };
 }

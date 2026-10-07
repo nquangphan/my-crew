@@ -29,6 +29,10 @@ describe('crew-mac CLI', () => {
     expect(await main(['setup', '--paperclip-key', keyFile], t.io)).toBe(0);
     expect(t.out.join('\n')).toContain('sshd agent nghe 100.102.189.67:2222');
     expect(t.out.join('\n')).toContain(`adapterConfig.command = ${mac.home}/.crew/bin/crew-claude-run`);
+    const pinDir = `${mac.home}/.crew/workflows/superpowers/9.9.9-ffffffffffff`;
+    expect(t.out).toContain(
+      `Agent claude_local: đặt adapterConfig.extraArgs = ${JSON.stringify(['--setting-sources', 'project,local', '--plugin-dir', pinDir])}`,
+    );
   });
 
   it('doctor trả 1 khi có check lỗi', async () => {

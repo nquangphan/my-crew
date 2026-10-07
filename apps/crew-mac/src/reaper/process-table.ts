@@ -76,14 +76,15 @@ export function parseLsofCwd(text: string): Map<number, string> {
   return rows;
 }
 
-/**
- * Run id chỉ được tìm trong phần env mà `ps -E` nối sau argv. Prompt của owner (`claude -p "… PAPERCLIP_RUN_ID=…"`)
- * nằm trong argv nên không được tính. Argv rỗng hoặc không khớp đầu chuỗi thì không đoán.
- */
+/** `ps -E` nối được phần env sau argv (dài hơn argv và bắt đầu bằng đúng argv). Binary Apple/SIP thường không. */
 export function isEnvReadable(argvOnly: string, withEnv: string): boolean {
   return argvOnly !== '' && withEnv.startsWith(argvOnly) && withEnv.trim().length > argvOnly.trim().length;
 }
 
+/**
+ * Run id chỉ được tìm trong phần env mà `ps -E` nối sau argv. Prompt của owner (`claude -p "… PAPERCLIP_RUN_ID=…"`)
+ * nằm trong argv nên không được tính. Argv rỗng hoặc không khớp đầu chuỗi thì không đoán.
+ */
 export function extractRunId(argvOnly: string, withEnv: string): string | null {
   if (argvOnly === '' || !withEnv.startsWith(argvOnly)) return null;
   return RUN_ID_RE.exec(withEnv.slice(argvOnly.length))?.[1] ?? null;

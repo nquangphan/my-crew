@@ -16,7 +16,8 @@ import {
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
 import { macPaths } from '../src/paths.js';
-import { fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import { superpowersPinDir } from '../src/workflows/pin.js';
+import { FIXTURE_PIN, fakeMac, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
 // Dòng log thật của tccd trên Mac mini ngày 06/10/2026 (rút gọn phần đuôi): hộp thoại quyền ổ ngoài đang chờ.
 const TCC_LOG = [
@@ -338,6 +339,7 @@ describe('crew-mac doctor', () => {
       ['zshenv-path', 'ok'],
       ['wrapper', 'ok'],
       ['launcher', 'ok'],
+      ['superpowers-pin', 'ok'],
       ['worktree-root', 'ok'],
       ['crew-docs', 'ok'],
       ['claude-auth', 'ok'],
@@ -351,6 +353,29 @@ describe('crew-mac doctor', () => {
     expect(ssh?.args.slice(0, 2)).toEqual(['-F', '/dev/null']);
     expect(ssh?.args).toContain('BatchMode=yes');
     expect(ssh?.args).toContain('owner@100.102.189.67');
+  });
+
+  it('superpowers-pin: thiếu thư mục ghim hoặc lệch checksum thì fail kèm cách sửa', async () => {
+    const { ctx, home } = await installed(okSsh);
+    const dir = superpowersPinDir(home, FIXTURE_PIN);
+    const pinCheck = async () =>
+      (await doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'superpowers-pin',
+      );
+    expect(await pinCheck()).toMatchObject({ status: 'ok', detail: expect.stringContaining('2 file') });
+    writeFileSync(join(dir, 'a.txt'), 'bị sửa\n');
+    expect(await pinCheck()).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('lệch checksum'),
+    });
+    rmSync(dir, { recursive: true });
+    expect(await pinCheck()).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('chưa có'),
+      hint: expect.stringContaining('crew-mac setup'),
+    });
+    symlinkSync('/etc', dir);
+    expect(await pinCheck()).toMatchObject({ status: 'fail', detail: expect.stringContaining('symlink') });
   });
 
   it('claude treo: phép thử fail và trỏ sang check TCC', async () => {

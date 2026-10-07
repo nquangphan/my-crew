@@ -12,6 +12,7 @@ import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
 import { createRunner } from './system.js';
+import { SUPERPOWERS_PIN } from './workflows/pin.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 
@@ -101,6 +102,7 @@ export function defaultContext(env: NodeJS.ProcessEnv, out: (line: string) => vo
     out,
     nodePath: stableNodePath(),
     cliPath: realpathSync(fileURLToPath(import.meta.url)),
+    superpowersPin: SUPERPOWERS_PIN,
   };
 }
 
@@ -135,6 +137,9 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         );
         if (report.restarted.length > 0) io.out(`Đã nạp lại: ${report.restarted.join(', ')}`);
         io.out(`Agent claude_local: đặt adapterConfig.command = ${macPaths(ctx.home).wrapper}`);
+        io.out(
+          `Agent claude_local: đặt adapterConfig.extraArgs = ${JSON.stringify(report.superpowers.extraArgs)}`,
+        );
         io.out('Chạy "crew-mac doctor" để kiểm toàn bộ.');
         return 0;
       }

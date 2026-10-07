@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { readText } from '../fs-util.js';
@@ -7,6 +7,9 @@ import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
 import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
 import { tailscaleIpv4 } from '../tailscale.js';
+import { readInstalledPlugins } from '../workflows/install.js';
+import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
+import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { hasPathBlock } from '../zshenv.js';
 
@@ -284,6 +287,40 @@ function checkLauncher(ctx: MacContext, paths: MacPaths): CheckResult {
     };
   }
   return { ...base, status: 'ok', detail: `${paths.launcher} → ${target.cliPath}` };
+}
+
+/** Bản Superpowers ghim mà agent nạp qua `--plugin-dir`: có thư mục và đúng checksum (wrapper cũng kiểm lúc chạy). */
+function checkSuperpowersPin(ctx: MacContext): CheckResult {
+  const pin = ctx.superpowersPin;
+  const base = { id: 'superpowers-pin', title: `Superpowers ${pin.version} đã ghim` };
+  const dir = superpowersPinDir(ctx.home, pin);
+  const reinstall = `Xóa ${dir} (nếu có) rồi chạy "crew-mac setup".`;
+  let present = true;
+  try {
+    lstatSync(dir);
+  } catch {
+    present = false;
+  }
+  if (!present) return { ...base, status: 'fail', detail: `chưa có ${dir}`, hint: 'Chạy "crew-mac setup".' };
+  try {
+    const sum = treeChecksum(dir);
+    if (sum.checksum !== pin.checksum) {
+      return { ...base, status: 'fail', detail: `${dir} lệch checksum bản ghim`, hint: reinstall };
+    }
+    const owner = readInstalledPlugins(ctx.home, SUPERPOWERS_PLUGIN_KEY).map((e) => e.version);
+    return {
+      ...base,
+      status: 'ok',
+      detail: `${dir} (${sum.files} file); bản owner đang cài: ${owner.join(', ') || 'không có'}`,
+    };
+  } catch (err) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: err instanceof Error ? err.message : String(err),
+      hint: reinstall,
+    };
+  }
 }
 
 function checkWorktreeRoot(ctx: MacContext, manifest: Manifest): CheckResult {
@@ -611,6 +648,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(checkZshenv(paths));
   results.push(await checkWrapper(ctx, paths, manifest));
   results.push(checkLauncher(ctx, paths));
+  results.push(checkSuperpowersPin(ctx));
   results.push(checkWorktreeRoot(ctx, manifest));
   results.push(await checkCrewDocs(ctx, paths, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));

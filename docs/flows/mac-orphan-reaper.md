@@ -37,7 +37,8 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 
 1. `apps/crew-mac/src/reaper/process-table.ts` → `listProcesses`: `ps -axww -o pid=,ppid=,pgid=,tty=,etime=,comm=`
    cho cây process, tty và thời điểm sinh (`startedAt` = lúc quét − `etime`); `ps -axww -o pid=,command=` cho argv;
-   `ps -E …` cho argv kèm env lúc exec. `extractRunId` chỉ tìm `PAPERCLIP_RUN_ID` trong phần env nối sau argv.
+   `ps -E …` cho argv kèm env lúc exec. `extractRunId` chỉ tìm `PAPERCLIP_RUN_ID` trong phần env nối sau argv;
+   `isEnvReadable` cho biết `ps -E` có nối được phần env đó không (binary Apple/SIP thường không).
    `readCwds` hỏi cwd bằng `lsof -a -d cwd -Fpn -p <pid,…>` cho đúng các pid cần, mỗi lô 500 pid.
 2. `apps/crew-mac/src/reaper/run-members.ts`:
    - `readRunStarts` đọc `started` của mọi run trong worktree.

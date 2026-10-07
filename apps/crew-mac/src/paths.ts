@@ -35,8 +35,12 @@ export function macPaths(home: string) {
     spikeDir: join(home, '.crew-spike-sshd'),
     authorizedKeys: join(home, '.ssh', 'authorized_keys'),
     zshenv: join(home, '.zshenv'),
-    /** Dùng chung thư mục ~/.crew với crewd v2: chỉ được đụng tới bin/crew-claude-run. */
+    /**
+     * Dùng chung thư mục ~/.crew với crewd v2: crew-mac chỉ đụng `bin/crew-claude-run`, `bin/crew-mac`, `app/` và
+     * `workflows/`.
+     */
     crewBin: join(home, '.crew', 'bin'),
+    workflowsRoot: join(home, '.crew', 'workflows'),
     wrapper: join(home, '.crew', 'bin', 'crew-claude-run'),
     launcher: join(home, '.crew', 'bin', 'crew-mac'),
     defaultWorktreeRoot: join(home, 'crew-agents'),
