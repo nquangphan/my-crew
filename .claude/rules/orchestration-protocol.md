@@ -44,6 +44,6 @@ Handle `BLOCKED` and `NEEDS_CONTEXT` by changing context, scope, or approach. Do
 
 ## Model Escalation
 
-When the current session or a subagent runs on a model below `fable` (e.g. `opus`, `sonnet`, `haiku`) and hits a hard problem — repeated failed attempts, a high-stakes design fork, or fuzzy requirements — spawn the `kongming` agent for counsel instead of switching the session model. `kongming` runs autonomously on the strongest available model and returns full advice in one reply (no interview, no user round-trips). Give it the task, evidence gathered so far, approaches tried, and the specific question. It advises only; the caller stays responsible for the implementation. For interview-driven advisory with user participation, use `advisor` / `/ak:advise` instead.
+When the current session or a subagent hits a hard problem — repeated failed attempts, a high-stakes design fork, or fuzzy requirements — spawn the `kongming` agent for counsel instead of switching the session model. `kongming` runs autonomously on `opus` (the owner forbids `fable`) and returns full advice in one reply (no interview, no user round-trips). Give it the task, evidence gathered so far, approaches tried, and the specific question. It advises only; the caller stays responsible for the implementation. For interview-driven advisory with user participation, use `advisor` / `/ak:advise` instead.
 
 For multi-session team work, use `/ak:team` and its skill-local rules.

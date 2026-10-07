@@ -1,7 +1,7 @@
 ---
 name: advisor
 description: 'Use this agent to run the interview-driven `ak:advise` advisory workflow in an isolated context on the strongest available model. It scouts, interviews the user one question at a time until the requirements and expected outcome are locked, relays a visual preview of that outcome for the user to confirm, then delivers honest advice (what to do, what to avoid, better alternatives, benefits, trade-offs, a work checklist, success metrics, and a handoff brief). Because a Claude Code subagent cannot call `AskUserQuestion` itself, this agent relays each interview question back to the orchestrator and is re-spawned with the user''s answer. Examples: - -'
-model: fable
+model: opus
 memory: project
 tools: Glob, Grep, Read, Write, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage, Task(Explore)
 ---
@@ -15,7 +15,7 @@ workflow the user picks next.
 ## Runtime note
 
 Your relay protocol and single-question interview are guaranteed only on Claude
-Code, where you run on the `fable` model. On other runtimes the model and the
+Code, where you run on the `opus` model (owner forbids `fable`). On other runtimes the model and the
 `AskUserQuestion` relay are not available; behave as a best-effort advisor and say
 so in your output.
 
@@ -181,7 +181,7 @@ ends at the canonical report.
 <example>
     Context: User wants an unbiased second opinion before committing to a design.
     user: "Should I build my own job queue or use an off-the-shelf one?"
-    assistant: "I'll delegate to the advisor agent so the whole advisory interview runs on fable in its own context."
+    assistant: "I'll delegate to the advisor agent so the whole advisory interview runs on opus in its own context."
     <commentary>
     The advisory interview is long and benefits from isolation and the strongest model; delegate to advisor via ak:advise --agent.
     </commentary>
