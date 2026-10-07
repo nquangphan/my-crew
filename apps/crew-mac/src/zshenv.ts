@@ -2,7 +2,21 @@ import { SetupError } from './context.js';
 
 export const PATH_BLOCK_BEGIN = '# >>> crew-mac path >>>';
 export const PATH_BLOCK_END = '# <<< crew-mac path <<<';
+/** Dòng PATH khi node nằm sẵn trong PATH mặc định; cũng là dòng mà spike stock-first đã thêm. */
 export const PATH_BLOCK_BODY = 'export PATH="$HOME/.local/bin:$PATH"';
+
+/** Thư mục đã có trong PATH mặc định của phiên SSH không tương tác (`/usr/bin:/bin:/usr/sbin:/sbin`). */
+const DEFAULT_PATH_DIRS = new Set(['/usr/bin', '/bin', '/usr/sbin', '/sbin']);
+
+/**
+ * Dòng PATH cho sshd agent: `~/.local/bin` (claude) và thư mục của node (integrator chạy `node <bundle crew-docs>`,
+ * hook pre-commit gọi node). `nodeDir` được escape cho chuỗi nháy kép của shell.
+ */
+export function pathBlockBody(nodeDir: string | null): string {
+  if (nodeDir === null || DEFAULT_PATH_DIRS.has(nodeDir)) return PATH_BLOCK_BODY;
+  const escaped = nodeDir.replace(/[\\"$`]/g, (c) => `\\${c}`);
+  return `export PATH="$HOME/.local/bin:${escaped}:$PATH"`;
+}
 /** Dòng comment mà spike stock-first đã thêm, ngay trên dòng PATH_BLOCK_BODY. */
 export const SPIKE_PATH_COMMENT = '# Crew v3 spike: claude cho phiên SSH không tương tác';
 
@@ -30,16 +44,16 @@ export function removePathBlock(text: string): string {
   return out.join('\n');
 }
 
-export function upsertPathBlock(text: string): string {
+export function upsertPathBlock(text: string, nodeDir: string | null = null): string {
   const without = removePathBlock(text);
   const base = without === '' || without.endsWith('\n') ? without : `${without}\n`;
-  return `${base}${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\n${PATH_BLOCK_END}\n`;
+  return `${base}${PATH_BLOCK_BEGIN}\n${pathBlockBody(nodeDir)}\n${PATH_BLOCK_END}\n`;
 }
 
-export function hasPathBlock(text: string): boolean {
+export function hasPathBlock(text: string, nodeDir: string | null = null): boolean {
   const lines = text.split('\n');
   const begin = lines.indexOf(PATH_BLOCK_BEGIN);
-  return begin >= 0 && lines[begin + 1] === PATH_BLOCK_BODY && lines[begin + 2] === PATH_BLOCK_END;
+  return begin >= 0 && lines[begin + 1] === pathBlockBody(nodeDir) && lines[begin + 2] === PATH_BLOCK_END;
 }
 
 export function removeSpikePathLines(text: string): string {

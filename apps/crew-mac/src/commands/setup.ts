@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { parsePublicKey, upsertKey } from '../authorized-keys.js';
 import { type MacContext, SetupError } from '../context.js';
 import { readText, writeIfChanged } from '../fs-util.js';
@@ -144,7 +144,8 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   const forbidden = forbiddenRootReason(ctx.home, worktreeRoot);
   if (forbidden) throw new SetupError(`${worktreeRoot}: ${forbidden}.`);
   // Tính trước khi ghi gì: khối PATH hỏng trong ~/.zshenv thì dừng khi máy còn nguyên.
-  const zshenvNext = upsertPathBlock(readText(paths.zshenv));
+  // Thư mục của node mà launcher và reaper dùng (symlink ổn định của Homebrew nếu có) cũng vào PATH của sshd agent.
+  const zshenvNext = upsertPathBlock(readText(paths.zshenv), dirname(ctx.nodePath));
 
   const changed: string[] = [];
   const track = (path: string, didChange: boolean) => {

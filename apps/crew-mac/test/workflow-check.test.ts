@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { main } from '../src/cli.js';
 import { runInitCheck, workflowCheck } from '../src/commands/workflow-check.js';
@@ -9,7 +10,7 @@ import type { MacContext } from '../src/context.js';
 import { createRunner } from '../src/system.js';
 import { installSuperpowersPin } from '../src/workflows/install.js';
 import { BUILTIN_AGENTS, BUILTIN_SKILLS } from '../src/workflows/run-init.js';
-import { fakeMac } from './helpers/fake-mac.js';
+import { FIXTURE_PIN, fakeMac } from './helpers/fake-mac.js';
 
 function git(cwd: string, ...args: string[]): void {
   execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
@@ -228,6 +229,66 @@ describe('runInitCheck', () => {
       }),
     );
     expect((await runInitCheck(ctx, { root, log })).ok).toBe(true);
+  });
+});
+
+describe('runInitCheck với system/init thật của run Paperclip (đã ẩn định danh)', () => {
+  // Log thật: superpowers 6.4.1 từ thư mục ghim; test thay đường dẫn và version bằng pin giả.
+  const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'paperclip-run-init.json');
+
+  function realInit(
+    pinDir: string,
+    root: string,
+    mcp?: (servers: { name: string; source: string }[]) => void,
+  ) {
+    const init = JSON.parse(
+      readFileSync(FIXTURE, 'utf8')
+        .replaceAll('__PIN__', pinDir)
+        .replaceAll('__PIN_VERSION__', FIXTURE_PIN.version)
+        .replaceAll('__ROOT__', root),
+    );
+    mcp?.(init.mcp_servers);
+    return streamLog(JSON.stringify(init));
+  }
+
+  function paperclipWorktree(): string {
+    const root = worktree();
+    const skill = join(root, '.paperclip-runtime', 'claude', 'skills', '.claude', 'skills', 'paperclip');
+    mkdirSync(skill, { recursive: true });
+    writeFileSync(join(skill, 'SKILL.md'), '---\nname: paperclip\n---\n');
+    return root;
+  }
+
+  it('hai MCP Paperclip tự gắn (source=dynamic) được cho phép, run sạch đạt', async () => {
+    const { ctx, pinDir } = installedMac();
+    const root = paperclipWorktree();
+    const r = await runInitCheck(ctx, { root, log: realInit(pinDir, root) });
+    expect(r).toEqual({
+      ok: true,
+      lines: ['crew-workflow init ok: superpowers@9.9.9 từ bản ghim, 15 skill superpowers:*'],
+    });
+  });
+
+  it('MCP dynamic khác tên, hoặc tên Paperclip mà nguồn khác dynamic, vẫn bị chặn', async () => {
+    const { ctx, pinDir } = installedMac();
+    const root = paperclipWorktree();
+    const other = await runInitCheck(ctx, {
+      root,
+      log: realInit(pinDir, root, (servers) => servers.push({ name: 'Lạ', source: 'dynamic' })),
+    });
+    expect(other).toEqual({
+      ok: false,
+      lines: ['crew-workflow blocked: mcp Lạ (source=dynamic): ngoài danh sách cho phép'],
+    });
+    const spoof = await runInitCheck(ctx, {
+      root,
+      log: realInit(pinDir, root, (servers) => {
+        (servers[0] as { source: string }).source = 'user';
+      }),
+    });
+    expect(spoof.lines).toEqual([
+      'crew-workflow blocked: mcp Paperclip projects (source=user): ngoài danh sách cho phép',
+    ]);
   });
 });
 

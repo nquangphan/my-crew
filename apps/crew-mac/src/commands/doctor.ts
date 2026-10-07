@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { readText } from '../fs-util.js';
 import { serviceState } from '../launchctl.js';
@@ -215,16 +215,37 @@ async function checkSshdPort(ctx: MacContext, manifest: Manifest): Promise<Check
       };
 }
 
-function checkZshenv(paths: MacPaths): CheckResult {
-  return hasPathBlock(readText(paths.zshenv))
-    ? { id: 'zshenv-path', title: 'PATH cho claude', status: 'ok', detail: paths.zshenv }
+function checkZshenv(ctx: MacContext, paths: MacPaths): CheckResult {
+  const nodeDir = dirname(ctx.nodePath);
+  return hasPathBlock(readText(paths.zshenv), nodeDir)
+    ? { id: 'zshenv-path', title: 'PATH cho claude và node', status: 'ok', detail: paths.zshenv }
     : {
         id: 'zshenv-path',
-        title: 'PATH cho claude',
+        title: 'PATH cho claude và node',
         status: 'fail',
-        detail: `thiếu khối crew-mac trong ${paths.zshenv}`,
+        detail: `khối crew-mac trong ${paths.zshenv} thiếu hoặc không có ~/.local/bin và ${nodeDir}`,
         hint: 'Chạy lại "crew-mac setup".',
       };
+}
+
+/** sshd agent thấy `node` (integrator chạy `node <bundle crew-docs>`, hook pre-commit cũng cần). */
+async function checkAgentNode(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
+  const base = { id: 'agent-node', title: 'node trong PATH của sshd agent' };
+  const result = await ctx.runner.run('ssh', sshArgs(paths, manifest, ctx.user, 'command -v node'), {
+    timeoutMs: 30_000,
+  });
+  const found = result.stdout.trim();
+  if (result.code !== 0 || found === '') {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `sshd agent không thấy node (mã ${result.code}${result.timedOut ? ', quá hạn' : ''})`,
+      hint:
+        `Chạy lại "crew-mac setup" để thêm ${dirname(ctx.nodePath)} vào khối PATH trong ~/.zshenv ` +
+        '(check zshenv-path), rồi chạy lại doctor.',
+    };
+  }
+  return { ...base, status: 'ok', detail: found };
 }
 
 async function checkWrapper(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
@@ -563,6 +584,10 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
     ctx.runner.run('ssh', sshArgs(paths, manifest, ctx.user, command), { timeoutMs });
   const startedAt = Date.now();
   let hung = false;
+  let nodeMissing = false;
+  let placementProblem = false;
+  /** Thiếu hoặc hỏng crew-docs.bundle/runtime: gợi ý install-hooks. */
+  let configProblem = false;
   const cache = new Map<string, Promise<string | null>>();
   const versionProblem = (bundle: string, runtime: string | null): Promise<string | null> => {
     const key = `${runtime ?? ''}\0${bundle}`;
@@ -574,7 +599,15 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
           hung = true;
           return timeoutNote(label, CREW_DOCS_RUN_TIMEOUT_MS / 1000);
         }
-        if (r.stdout.includes('CREW_MISSING')) return `${label}: file không tồn tại hoặc không chạy được`;
+        if (r.stdout.includes('CREW_MISSING')) {
+          configProblem = true;
+          return `${label}: file không tồn tại hoặc không chạy được`;
+        }
+        if (runtime === null && r.code === 127) {
+          nodeMissing = true;
+          return `node không có trong PATH của sshd agent (${label} --version mã 127)`;
+        }
+        if (r.code !== 0) configProblem = true;
         return r.code === 0 ? null : `${label} --version mã ${r.code}`;
       });
       cache.set(key, cached);
@@ -603,9 +636,11 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
     const field = (name: string) => new RegExp(`^${name}=(.*)$`, 'm').exec(cfg.stdout)?.[1]?.trim() ?? '';
     const [bundle, runtime, gitDir] = [field('BUNDLE'), field('RUNTIME'), field('GITDIR')];
     if (bundle === '') {
+      configProblem = true;
       problems.add(`${dir}: chưa có git config crew-docs.bundle`);
       continue;
     }
+    if (runtime === '') configProblem = true;
     if (runtime === '') problems.add(`${dir}: chưa có git config crew-docs.runtime (hook pre-commit cần)`);
     for (const [what, path] of [
       ['bundle', bundle],
@@ -613,6 +648,7 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
       ['git dir', gitDir],
     ] as const) {
       const zone = path === '' ? null : tccProtectedReason(ctx.home, path);
+      if (zone) placementProblem = true;
       if (zone)
         problems.add(
           `${dir}: ${what} ${path} nằm dưới ${zone} (vùng TCC bảo vệ, agent qua sshd sẽ treo chờ hộp thoại)`,
@@ -631,10 +667,21 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
       ...base,
       status: 'fail',
       detail: [...problems].join('; ') + (hung ? '; dừng kiểm các worktree còn lại' : ''),
-      hint:
-        'Dời bundle/runtime và checkout gốc ra ngoài ~/Documents, ~/Desktop, ~/Downloads, /Volumes (ví dụ ~/crew-tools), ' +
-        'rồi trong checkout gốc chạy "node <đường dẫn crew-docs.cjs> install-hooks" để đặt crew-docs.bundle và ' +
-        'crew-docs.runtime (worktree dùng chung git config).',
+      hint: [
+        nodeMissing
+          ? `sshd agent không thấy node: chạy lại "crew-mac setup" để thêm ${dirname(ctx.nodePath)} vào khối PATH ` +
+            'trong ~/.zshenv (xem check agent-node).'
+          : '',
+        placementProblem || hung
+          ? 'Dời bundle/runtime và checkout gốc ra ngoài ~/Documents, ~/Desktop, ~/Downloads, /Volumes (ví dụ ~/crew-tools).'
+          : '',
+        configProblem
+          ? 'Trong checkout gốc chạy "node <đường dẫn crew-docs.cjs> install-hooks" để đặt crew-docs.bundle và ' +
+            'crew-docs.runtime (worktree dùng chung git config).'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
     };
   }
   return {
@@ -731,8 +778,9 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkSshdService(ctx));
   results.push(await checkReaper(ctx));
   results.push(await checkSshdPort(ctx, manifest));
-  results.push(checkZshenv(paths));
+  results.push(checkZshenv(ctx, paths));
   results.push(await checkWrapper(ctx, paths, manifest));
+  results.push(await checkAgentNode(ctx, paths, manifest));
   results.push(checkLauncher(ctx, paths));
   results.push(checkSuperpowersPin(ctx));
   results.push(checkWorktreeRoot(ctx, manifest));

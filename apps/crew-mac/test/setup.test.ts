@@ -77,6 +77,10 @@ describe('crew-mac setup', () => {
     expect(readFileSync(paths.zshenv, 'utf8')).toMatch(
       new RegExp(`^export EDITOR=vim\\n${PATH_BLOCK_BEGIN}`),
     );
+    // node của launcher/reaper (/opt/homebrew/bin/node) phải có trong PATH của sshd agent.
+    expect(readFileSync(paths.zshenv, 'utf8')).toContain(
+      'export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"',
+    );
     expect(readFileSync(paths.knownHosts, 'utf8')).toMatch(/^\[100\.102\.189\.67\]:2222 ssh-ed25519 \S+\n$/);
     expect(readFileSync(paths.wrapper, 'utf8')).toBe(readFileSync(WRAPPER_SOURCE, 'utf8'));
     expect(statSync(paths.wrapper).mode & 0o777).toBe(0o755);

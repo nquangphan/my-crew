@@ -1,7 +1,16 @@
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -338,6 +347,7 @@ describe('crew-mac doctor', () => {
       ['sshd-port', 'ok'],
       ['zshenv-path', 'ok'],
       ['wrapper', 'ok'],
+      ['agent-node', 'ok'],
       ['launcher', 'ok'],
       ['superpowers-pin', 'ok'],
       ['worktree-root', 'ok'],
@@ -467,6 +477,55 @@ describe('crew-mac doctor', () => {
     expect(r?.detail).toContain('git quá hạn');
     expect(r?.detail).toContain('dừng kiểm các worktree còn lại');
     expect(new Set(roots)).toEqual(new Set([join(root, 'a')]));
+  });
+
+  it('agent-node: sshd agent không thấy node thì fail kèm cách sửa; khối PATH thiếu thư mục node thì zshenv-path fail', async () => {
+    const mac = await installed((remote) =>
+      remote.includes('command -v node') ? { code: 1, stdout: '' } : okSsh(remote),
+    );
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'agent-node')).toMatchObject({
+      status: 'fail',
+      hint: expect.stringContaining('crew-mac setup'),
+    });
+    expect(results.find((r) => r.id === 'zshenv-path')?.status).toBe('ok');
+    const zshenv = macPaths(mac.home).zshenv;
+    // installed() dùng node đang chạy test: khối PATH chứa thư mục của nó.
+    const nodeDir = dirname(process.execPath);
+    expect(readFileSync(zshenv, 'utf8')).toContain(`:${nodeDir}:`);
+    writeFileSync(zshenv, readFileSync(zshenv, 'utf8').replace(`:${nodeDir}`, ''));
+    const again = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(again.find((r) => r.id === 'zshenv-path')).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining(nodeDir),
+    });
+  });
+
+  it('crew-docs: node của agent thoát 127 thì gợi ý sửa PATH, không gợi ý dời bundle', async () => {
+    const mac = await installed(okSsh);
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    mkdirSync(join(root, 'integrator', 'docs'), { recursive: true });
+    writeFileSync(join(root, 'integrator', 'docs', 'flows.yaml'), 'version: 1\n');
+    mac.runner.on('ssh', (args) => {
+      const remote = args.at(-1) as string;
+      if (remote.includes('BUNDLE='))
+        return {
+          stdout:
+            'BUNDLE=/Users/owner/crew-tools/crew-docs.cjs\nRUNTIME=/Users/owner/crew-tools/node\nGITDIR=/x/.git\n',
+        };
+      if (remote.includes('--version') && remote.includes('node ') && !remote.includes('ELECTRON'))
+        return { code: 127, stderr: 'zsh: command not found: node' };
+      if (remote.includes('--version') && !remote.includes('crew-claude-run'))
+        return { stdout: 'crew-docs 0.1.0\n' };
+      return okSsh(remote);
+    });
+    const r = (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+      (c) => c.id === 'crew-docs',
+    );
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('node không có trong PATH của sshd agent');
+    expect(r?.hint).toContain('crew-mac setup');
+    expect(r?.hint).not.toContain('Dời');
   });
 
   it('claude treo: phép thử fail và trỏ sang check TCC', async () => {

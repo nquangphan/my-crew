@@ -5,6 +5,7 @@ import {
   PATH_BLOCK_BEGIN,
   PATH_BLOCK_BODY,
   PATH_BLOCK_END,
+  pathBlockBody,
   removePathBlock,
   removeSpikePathLines,
   SPIKE_PATH_COMMENT,
@@ -39,6 +40,22 @@ describe('khối PATH trong ~/.zshenv', () => {
     const text = `export A=1\n${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\nexport OWNER=giu\n`;
     expect(() => removePathBlock(text)).toThrow(SetupError);
     expect(() => upsertPathBlock(text)).toThrow('dòng đóng');
+  });
+
+  it('thêm thư mục của node vào PATH (sshd agent cần node cho crew-docs); thư mục mặc định thì không', () => {
+    expect(pathBlockBody('/opt/homebrew/bin')).toBe('export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"');
+    expect(pathBlockBody('/usr/bin')).toBe(PATH_BLOCK_BODY);
+    expect(pathBlockBody('/Users/a/my "node"/$x')).toBe(
+      'export PATH="$HOME/.local/bin:/Users/a/my \\"node\\"/\\$x:$PATH"',
+    );
+    const once = upsertPathBlock(`export EDITOR=vim\n${BLOCK}`, '/opt/homebrew/bin');
+    expect(once).toBe(
+      `export EDITOR=vim\n${PATH_BLOCK_BEGIN}\nexport PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"\n${PATH_BLOCK_END}\n`,
+    );
+    expect(upsertPathBlock(once, '/opt/homebrew/bin')).toBe(once);
+    expect(hasPathBlock(once, '/opt/homebrew/bin')).toBe(true);
+    expect(hasPathBlock(BLOCK, '/opt/homebrew/bin')).toBe(false);
+    expect(hasPathBlock(once, '/usr/local/bin')).toBe(false);
   });
 
   it('không gỡ dòng PATH giống hệt nếu không đi sau comment spike', () => {

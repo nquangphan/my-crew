@@ -37,6 +37,17 @@ export const BUILTIN_AGENTS: readonly string[] = [
 /** Nguồn MCP được phép: connector của tài khoản claude.ai (không đi qua settings) và `.mcp.json` của repo. */
 const ALLOWED_MCP_SOURCES = new Set(['claudeai', 'project']);
 
+/**
+ * MCP mà Paperclip tự gắn vào mọi run `claude_local` (`source: "dynamic"`, đo trên log run thật 07/10/2026; tool
+ * `mcp__Paperclip_projects__*`, `mcp__Paperclip_connections__*`). Chỉ đúng tên và đúng nguồn này; MCP `dynamic` khác
+ * vẫn bị chặn.
+ */
+export const PAPERCLIP_DYNAMIC_MCP: readonly string[] = ['Paperclip projects', 'Paperclip connections'];
+
+function mcpAllowed(name: string, source: string): boolean {
+  return ALLOWED_MCP_SOURCES.has(source) || (source === 'dynamic' && PAPERCLIP_DYNAMIC_MCP.includes(name));
+}
+
 export interface InitAllowance {
   pin: WorkflowPin;
   pinDir: string;
@@ -129,7 +140,7 @@ export function checkInitEvent(
   }
   for (const m of records(init.mcp_servers)) {
     const source = String(m.source ?? '');
-    if (!ALLOWED_MCP_SOURCES.has(source))
+    if (!mcpAllowed(String(m.name ?? ''), source))
       violations.push(`mcp ${String(m.name ?? '')} (source=${source}): ngoài danh sách cho phép`);
   }
   const pinnedSkills = strings(init.skills).filter((s) => s.startsWith(`${allow.pin.workflow}:`)).length;

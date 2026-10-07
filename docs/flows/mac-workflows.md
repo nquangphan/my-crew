@@ -91,7 +91,9 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
      - **skill:** `BUILTIN_SKILLS` của CLI; tên skill `.claude/skills` đã commit; skill Paperclip (`SKILL.md` dưới
        `.paperclip-runtime`); `<plugin>:<skill>` của plugin được phép.
      - **agent:** `BUILTIN_AGENTS`; `.claude/agents` đã commit; `<plugin>:…`.
-     - **mcp:** nguồn `claudeai` (connector tài khoản) và `project`.
+     - **mcp:** nguồn `claudeai` (connector tài khoản) và `project`; với nguồn `dynamic` chỉ đúng hai MCP Paperclip
+       tự gắn vào mọi run (`PAPERCLIP_DYNAMIC_MCP`: `Paperclip projects`, `Paperclip connections`, đo trên log run thật
+       07/10/2026). MCP `dynamic` tên khác, hay tên Paperclip mà nguồn khác, vẫn bị chặn.
    - Không xét `slash_commands`.
    - CLI nâng bản mà thêm skill dựng sẵn thì `run-init-check` báo `skill <tên>: không rõ nguồn`: thêm tên đó vào
      `BUILTIN_SKILLS`.
@@ -176,7 +178,7 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/workflows/policy.ts` | So bản ghim | `samePin`, `assertSkillAllowed` |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
 | `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree | `classifyOrigin`, `discoverSources`, `describeSource`, `Origin`, `DiscoveredSource` |
-| `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS` |
+| `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
 | `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run (flow `mac-setup` giữ phần `pgid`/`started`) | — |
 
@@ -217,4 +219,6 @@ bản ghim (hoặc không còn cài).
     chưa track (dòng chặn kèm lệnh xử lý), `SKILL.md` sửa dở (ok kèm dòng `warn`).
   - `runInitCheck`: init sau dòng hook; skill cá nhân, plugin user-scope, Superpowers từ cache owner, agent lạ, MCP
     `user`; thiếu bản ghim; log không có init; plugin project và skill Paperclip được phép.
+  - `runInitCheck` với `system/init` thật của run Paperclip (`test/fixtures/paperclip-run-init.json`, đã ẩn định
+    danh): hai MCP Paperclip `dynamic` được phép; MCP `dynamic` khác tên hay tên Paperclip với nguồn khác bị chặn.
   - CLI: mã 0/2/78/1.
