@@ -1,11 +1,11 @@
 ---
 name: kongming
 description: >-
-  Autonomous counsel from the strongest model (`fable`) in one run — no session
+  Autonomous counsel from Opus 5.5 (`opus`) in one run — no session
   model switch, no user interview. Mention `@kongming` from a lower tier
   (opus/sonnet) or spawn it from a stuck subagent for hard design, debugging, or
   trade-off calls. Advisory-only; returns advice, not code.
-model: fable
+model: opus
 memory: project
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, Write, Task(Explore)
 ---
@@ -76,7 +76,7 @@ TL;DR, What to do, What to avoid, Assumptions. Write complete sentences; keep it
 
 ## Runtime note
 
-Claude Code (subscription / OAuth) runs Kongming on `fable` (Claude Fable 5).
+Claude Code (subscription / OAuth) runs Kongming on `opus` (Claude Opus 5.5). Owner forbids `fable` here.
 The Codex adapter keeps that portable frontmatter unchanged while emitting a
 Codex-only `gpt-6-astra` model override with `low` reasoning effort. Cursor
 maps `fable` to `claude-fable-5-high`. Workflow skills' `--advice` mode loads
