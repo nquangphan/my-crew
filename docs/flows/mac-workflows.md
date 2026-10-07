@@ -102,7 +102,7 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
 |---|---|
 | `--plugin-dir` = thư mục ghim, đúng checksum | `pinned` |
 | Dưới `<root>/.paperclip-runtime/` (skill Paperclip qua `--add-dir`) | `paperclip` |
-| File nguồn nạp trong `.claude/{skills,agents,commands,hooks}/*`, `.claude/settings.json`, `.mcp.json` đã commit và sạch | `project` (owner cho phép, O6) |
+| File nguồn nạp trong `.claude/{skills,agents,commands,hooks}/*`, `.claude/settings.json`, `.mcp.json` đã commit và sạch | `project` (owner cho phép agent nạp `.claude/` mà repo đã commit) |
 | Cùng các file đó nhưng chưa track, bị ignore, hoặc là symlink trỏ ra ngoài worktree | `blocked` |
 | `settings*.json`, script hook, `.mcp.json` đã track mà sửa dở | `blocked` |
 | `SKILL.md`, agent/command `*.md` đã track mà sửa dở | `project` kèm `warning` (dòng `crew-workflow warn`, không chặn) |

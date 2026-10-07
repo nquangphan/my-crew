@@ -266,8 +266,8 @@ function enabledPluginKeys(json: Record<string, unknown> | null): string[] {
 /**
  * Mọi nguồn claude nạp từ worktree dưới `--setting-sources project,local` (skill, agent, command, hook, settings,
  * `.mcp.json`, plugin bật trong settings), kèm loại nguồn. Chỉ file claude thật sự nạp mới bị xét: rác hệ điều hành và
- * file phụ trong thư mục skill bỏ qua. Nguồn ngoài worktree (`~/.claude`) không quét ở đây; `--setting-sources` đã chặn
- * chúng (đo ở spike SP-1).
+ * file phụ trong thư mục skill bỏ qua. Nguồn ngoài worktree (`~/.claude`) không quét ở đây: đã đo trên Mac mini rằng
+ * `--setting-sources project,local` không nạp skill, plugin hay hook user-scope của owner.
  */
 export async function discoverSources(
   ctx: MacContext,
