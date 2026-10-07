@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  isEnvReadable,
   LSOF_BATCH,
   listProcesses,
   type ProcInfo,
@@ -41,6 +42,7 @@ function proc(pid: number, ppid: number, pgid: number, extra: Partial<Row> = {})
     comm: 'x',
     command: '',
     runId: null,
+    envReadable: false,
     ...extra,
   };
 }
@@ -153,6 +155,13 @@ describe('đọc bảng process (tty, etime) và cwd', () => {
     );
   });
 
+  it('isEnvReadable chỉ đúng khi ps -E nối thêm env sau argv', () => {
+    expect(isEnvReadable('claude -p', 'claude -p HOME=/x')).toBe(true);
+    expect(isEnvReadable('claude -p', 'claude -p')).toBe(false);
+    expect(isEnvReadable('claude -p', 'khac')).toBe(false);
+    expect(isEnvReadable('', 'HOME=/x')).toBe(false);
+  });
+
   it('listProcesses tính thời điểm sinh từ etime và không gọi lsof', async () => {
     const runner = new FakeRunner().on('/bin/ps', (args) => {
       if (args.includes('-E')) return { stdout: `601 claude --print PAPERCLIP_RUN_ID=${RUN} HOME=/h\n` };
@@ -170,6 +179,7 @@ describe('đọc bảng process (tty, etime) và cwd', () => {
         comm: 'claude',
         command: 'claude --print',
         runId: RUN,
+        envReadable: true,
       },
     ]);
     expect(runner.commands().some((c) => c.includes('lsof'))).toBe(false);

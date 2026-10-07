@@ -14,6 +14,8 @@ export interface ProcInfo {
   command: string;
   /** PAPERCLIP_RUN_ID lấy từ phần env lúc exec (`ps -E`), không bao giờ từ argv. */
   runId: string | null;
+  /** `ps -E` trả được phần env sau argv. Binary Apple/SIP thường không; khi false, `runId === null` không có nghĩa là không có run. */
+  envReadable: boolean;
 }
 
 export interface PsTreeRow {
@@ -78,6 +80,10 @@ export function parseLsofCwd(text: string): Map<number, string> {
  * Run id chỉ được tìm trong phần env mà `ps -E` nối sau argv. Prompt của owner (`claude -p "… PAPERCLIP_RUN_ID=…"`)
  * nằm trong argv nên không được tính. Argv rỗng hoặc không khớp đầu chuỗi thì không đoán.
  */
+export function isEnvReadable(argvOnly: string, withEnv: string): boolean {
+  return argvOnly !== '' && withEnv.startsWith(argvOnly) && withEnv.trim().length > argvOnly.trim().length;
+}
+
 export function extractRunId(argvOnly: string, withEnv: string): string | null {
   if (argvOnly === '' || !withEnv.startsWith(argvOnly)) return null;
   return RUN_ID_RE.exec(withEnv.slice(argvOnly.length))?.[1] ?? null;
@@ -106,6 +112,7 @@ export async function listProcesses(runner: CommandRunner, now: Date = new Date(
       comm: row.comm,
       command,
       runId: extractRunId(command, envs.get(pid) ?? ''),
+      envReadable: isEnvReadable(command, envs.get(pid) ?? ''),
     };
   });
 }

@@ -88,7 +88,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 | `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn của reaper | `reapOnce`, `readReaperState`, `vnTime` |
 | `apps/crew-mac/src/reaper/run-members.ts` | Chọn process của một run | `selectRunMembers`, `orphanCandidates`, `collectRunMembers`, `readRunStarts`, `runWindow` |
 | `apps/crew-mac/src/reaper/stop.ts` | TERM, chờ, KILL | `stopMembers` |
-| `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process, env và cwd | `listProcesses`, `readCwds`, `extractRunId`, `parseEtime` |
+| `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process, env và cwd | `listProcesses`, `readCwds`, `extractRunId`, `isEnvReadable`, `parseEtime` |
 | `apps/crew-mac/src/reaper/select.ts` | Chọn claude mồ côi cho reaper | `selectTargets`, `isOrphaned` |
 
 ## Dữ liệu

@@ -15,8 +15,7 @@ import {
   SSHD_LABEL,
 } from '../paths.js';
 import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
-import { descendants, isClaudeExe, isClaudePrint } from '../reaper/run-members.js';
-import type { CommandRunner } from '../system.js';
+import { descendants, isClaudeExe } from '../reaper/run-members.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
 export interface UninstallReport {
@@ -38,11 +37,16 @@ function exeName(p: ProcInfo): string {
   return basename(p.command.split(/\s+/)[0] ?? '');
 }
 
-/** claude (cả bản `…/claude/versions/<bản>`) hoặc node (claude cài bằng npm chạy dưới tên `node`) ở chế độ --print/-p. */
+/**
+ * claude (cả bản `…/claude/versions/<bản>`) ở chế độ --print/-p, hoặc node chạy script claude (claude cài bằng npm)
+ * ở chế độ đó. `node -p "<expr>"` là cờ eval của node, không phải claude: cần có token chứa "claude" trước cờ.
+ */
 function isPrintAgent(p: ProcInfo): boolean {
-  if (!isClaudeExe(p) && exeName(p) !== 'node') return false;
   const tokens = p.command.split(/\s+/);
-  return tokens.includes('--print') || tokens.includes('-p');
+  const printAt = tokens.findIndex((t) => t === '--print' || t === '-p');
+  if (printAt < 0) return false;
+  if (isClaudeExe(p)) return true;
+  return exeName(p) === 'node' && tokens.slice(1, printAt).some((t) => /claude/.test(t));
 }
 
 export interface UninstallScan {
@@ -52,12 +56,6 @@ export interface UninstallScan {
   unknownPids: number[];
   /** Process con cháu của sshd agent (phiên SSH đang mở, thường là run đang chạy). */
   sshdSessionPids: number[];
-}
-
-/** Run id của các `claude --print` do Paperclip chạy (PAPERCLIP_RUN_ID trong env), không tính claude thủ công. */
-export async function liveRunIds(runner: CommandRunner): Promise<string[]> {
-  const procs = await listProcesses(runner);
-  return [...new Set(procs.filter(isClaudePrint).map((p) => p.runId as string))].sort();
 }
 
 /**
@@ -71,7 +69,7 @@ export async function scanUninstallBlockers(ctx: MacContext): Promise<UninstallS
   for (const p of procs) {
     if (!isPrintAgent(p)) continue;
     if (p.runId !== null) runIds.add(p.runId);
-    else if (p.tty === '??') unknownPids.push(p.pid);
+    else if (p.tty === '??' && !p.envReadable) unknownPids.push(p.pid);
   }
   const sshdSessionPids = new Set<number>();
   for (const label of [SSHD_LABEL, SPIKE_LABEL]) {

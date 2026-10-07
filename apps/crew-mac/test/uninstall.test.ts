@@ -47,6 +47,32 @@ describe('crew-mac uninstall fail-closed', () => {
     await expect(uninstall(e.ctx, { force: true })).resolves.toBeDefined();
   });
 
+  it('claude -p nền đọc được env nhưng không có run id thì không chặn', async () => {
+    const argv = '  4310 /Users/a/.local/bin/claude -p hi\n';
+    const e = fakeMac({
+      ps: {
+        tree: '  4310     1  4310 ??       00:05 claude\n',
+        argv,
+        env: `  4310 /Users/a/.local/bin/claude -p hi HOME=/Users/a\n`,
+      },
+    });
+    seedSpike(e.home);
+    await expect(uninstall(e.ctx)).resolves.toBeDefined();
+  });
+
+  it('node -p "<expr>" (cờ eval của node) không chặn dù không đọc được env', async () => {
+    const cmd = '/opt/homebrew/bin/node -p process.version';
+    const e = fakeMac({
+      ps: {
+        tree: '  4311     1  4311 ??       00:05 node\n',
+        argv: `  4311 ${cmd}\n`,
+        env: `  4311 ${cmd}\n`,
+      },
+    });
+    seedSpike(e.home);
+    await expect(uninstall(e.ctx)).resolves.toBeDefined();
+  });
+
   it('claude cài bằng npm chạy dưới tên node vẫn được nhận là run', async () => {
     const cmd =
       '/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js --print';
@@ -61,7 +87,7 @@ describe('crew-mac uninstall fail-closed', () => {
   });
 
   it('node --print không tty không đọc được env cũng bị từ chối', async () => {
-    const cmd = '/opt/homebrew/bin/node /x/cli.js -p hi';
+    const cmd = '/opt/homebrew/bin/node /x/claude-code/cli.js -p hi';
     const e = fakeMac({
       ps: {
         tree: '  4401     1  4401 ??       00:05 node\n',

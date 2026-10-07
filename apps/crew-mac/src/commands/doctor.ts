@@ -377,6 +377,8 @@ export function tccProtectedReason(home: string, path: string): string | null {
 
 const CREW_DOCS_CONFIG_TIMEOUT_MS = 30_000;
 const CREW_DOCS_RUN_TIMEOUT_MS = 20_000;
+/** Trần tổng thời gian của cả check, kể cả khi mỗi worktree dùng một bundle khác nhau. */
+const CREW_DOCS_TOTAL_BUDGET_MS = 60_000;
 
 function crewDocsConfigScript(dir: string): string {
   return [
@@ -436,6 +438,8 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
     `${what} quá ${sec} giây (có thể do hộp thoại quyền đang chờ, xem check tcc-pending)`;
   const ssh = (command: string, timeoutMs: number) =>
     ctx.runner.run('ssh', sshArgs(paths, manifest, ctx.user, command), { timeoutMs });
+  const startedAt = Date.now();
+  let hung = false;
   const cache = new Map<string, Promise<string | null>>();
   const versionProblem = (bundle: string, runtime: string | null): Promise<string | null> => {
     const key = `${runtime ?? ''}\0${bundle}`;
@@ -443,7 +447,10 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
     if (!cached) {
       const label = runtime === null ? `node ${bundle}` : `${runtime} ${bundle}`;
       cached = ssh(crewDocsVersionScript(bundle, runtime), CREW_DOCS_RUN_TIMEOUT_MS).then((r) => {
-        if (r.timedOut) return timeoutNote(label, CREW_DOCS_RUN_TIMEOUT_MS / 1000);
+        if (r.timedOut) {
+          hung = true;
+          return timeoutNote(label, CREW_DOCS_RUN_TIMEOUT_MS / 1000);
+        }
         if (r.stdout.includes('CREW_MISSING')) return `${label}: file không tồn tại hoặc không chạy được`;
         return r.code === 0 ? null : `${label} --version mã ${r.code}`;
       });
@@ -452,8 +459,12 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
     return cached;
   };
 
-  let hung = false;
   for (const dir of repos) {
+    if (Date.now() - startedAt > CREW_DOCS_TOTAL_BUDGET_MS) {
+      hung = true;
+      problems.add(`quá ${CREW_DOCS_TOTAL_BUDGET_MS / 1000} giây cho cả check crew-docs`);
+      break;
+    }
     const cfg = await ssh(crewDocsConfigScript(dir), CREW_DOCS_CONFIG_TIMEOUT_MS);
     if (cfg.timedOut) {
       problems.add(`${dir}: ${timeoutNote('đọc git config', CREW_DOCS_CONFIG_TIMEOUT_MS / 1000)}`);
@@ -484,12 +495,13 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
           `${dir}: ${what} ${path} nằm dưới ${zone} (vùng TCC bảo vệ, agent qua sshd sẽ treo chờ hộp thoại)`,
         );
     }
-    for (const found of [
-      await versionProblem(bundle, null),
-      runtime === '' ? null : await versionProblem(bundle, runtime),
-    ]) {
-      if (found) problems.add(`${dir}: ${found}`);
+    const nodeProblem = await versionProblem(bundle, null);
+    if (nodeProblem) problems.add(`${dir}: ${nodeProblem}`);
+    if (!hung && runtime !== '') {
+      const runtimeProblem = await versionProblem(bundle, runtime);
+      if (runtimeProblem) problems.add(`${dir}: ${runtimeProblem}`);
     }
+    if (hung) break;
   }
   if (problems.size > 0) {
     return {

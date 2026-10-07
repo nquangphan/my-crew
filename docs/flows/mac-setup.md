@@ -32,7 +32,7 @@ không cần token và không login lại.
    khi ghi gì, yêu cầu owner sửa tay.
 3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent và cổng, LaunchAgent reaper (`checkReaper`),
    PATH, launcher (`checkLauncher`: có, chạy được, còn trỏ tới node và `cli.js` tồn tại), wrapper (`checkWrapper`: có,
-   chạy được qua sshd agent, giống bản trong repo), thư mục worktree, `crew-docs` (`checkCrewDocs`: mỗi worktree cấp 1 dưới thư mục worktree, kể cả symlink, có `docs/flows.yaml` thì chạy qua chính
+   chạy được qua sshd agent, giống bản trong repo), thư mục worktree, `crew-docs` (`checkCrewDocs`: dừng ngay sau lần quá hạn đầu tiên (đọc config hay `--version`) và có trần tổng 60 giây; mỗi worktree cấp 1 dưới thư mục worktree, kể cả symlink, có `docs/flows.yaml` thì chạy qua chính
    sshd agent, giống `checkWrapper`, để bắt treo TCC: đọc `crew-docs.bundle`, `crew-docs.runtime` và git dir bằng `git config`, rồi chạy
    `node <bundle> --version` (node theo PATH của agent, hợp đồng của integrator với `check --range`) và
    `ELECTRON_RUN_AS_NODE=1 <runtime> <bundle> --version` (hook pre-commit của executor); kết quả cache theo cặp runtime/bundle, mỗi lệnh có timeout 30/20 giây
@@ -46,7 +46,7 @@ không cần token và không login lại.
    (`com.2p.crew-spike-sshd`), gỡ key theo comment, gỡ khối PATH và hai dòng PATH spike, xóa `~/.crew-mac` và
    `~/.crew-spike-sshd`, wrapper và launcher (và `~/.crew/bin` nếu rỗng). Không đụng phần còn lại của `~/.crew` (của `crewd` v2).
    Giữ nguyên thư mục worktree. Kiểm theo hướng fail-closed (`scanUninstallBlockers`), từ chối khi còn: `claude`/`node --print` có `PAPERCLIP_RUN_ID`
-   (run Paperclip đang chạy), claude/node `--print` không tty mà không đọc được env (không chắc), con cháu của sshd agent
+   (run Paperclip đang chạy), claude/node `--print` không tty mà `ps -E` thật sự không trả được env (`ProcInfo.envReadable`; không chắc; `node -p "<expr>"` và claude nền đọc được env mà không có run id thì không chặn), con cháu của sshd agent
    (phiên SSH đang mở, không phụ thuộc env), hoặc không đọc được bảng process. `--force` bỏ qua CẢ hai kiểm: phiên sshd của
    chính lệnh uninstall lẫn kiểm run Paperclip. Giữa lúc kiểm và lúc bootout còn một khe ngắn (vài giây) Paperclip có thể giao
    run mới: nên tạm dừng agent trên Paperclip trước khi uninstall.
@@ -72,7 +72,7 @@ không cần token và không login lại.
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
 | `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
 | `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkWrapper`, `checkLauncher`, `checkReaper`, `checkCrewDocs`, `parsePendingTccPrompts`, `printProbeScript` |
-| `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers`, `liveRunIds` |
+| `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers` |
 
 ## Dữ liệu
 

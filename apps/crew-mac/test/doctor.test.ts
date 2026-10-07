@@ -174,6 +174,20 @@ describe('doctor crew-docs', () => {
     expect((await missing.run())?.detail).toContain('không tồn tại');
   });
 
+  it('--version quá hạn thì dừng ngay, kể cả khi mỗi worktree một bundle khác nhau', async () => {
+    let n = 0;
+    const t = await withRepos(['a', 'b', 'c'], (remote) =>
+      remote.includes('BUNDLE=')
+        ? { stdout: cfg(`/o/b${n++}.cjs`, '/o/node') }
+        : { code: 255, timedOut: true },
+    );
+    const r = await t.run();
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('dừng kiểm các worktree còn lại');
+    // 1 lệnh đọc config + 1 lệnh node --version quá hạn, không chạy runtime và không sang worktree sau.
+    expect(t.remotes).toHaveLength(2);
+  });
+
   it('nhiều worktree cùng bundle thì chỉ chạy --version một lần cho mỗi cặp runtime/bundle', async () => {
     const t = await withRepos(['a', 'b', 'c'], healthy);
     const r = await t.run();
