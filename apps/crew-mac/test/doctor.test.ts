@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -58,54 +58,143 @@ const okSsh = (remote: string) => {
 describe('doctor crew-docs', () => {
   const OPTIONS = { probe: false, tccWindow: '24h', probeTimeoutSec: 90 };
 
-  it('worktree có docs/flows.yaml mà thiếu crew-docs.bundle thì fail', async () => {
+  /** Một worktree có docs/flows.yaml; ssh trả config git cho các lệnh crew-docs, còn lại như máy khỏe. */
+  async function withRepos(
+    names: string[],
+    crewDocsSsh: (remote: string) => { code?: number; stdout?: string; timedOut?: boolean },
+  ) {
     const mac = await installed(okSsh);
-    const wt = join(macPaths(mac.home).defaultWorktreeRoot, 'integrator');
-    mkdirSync(join(wt, 'docs'), { recursive: true });
-    writeFileSync(join(wt, 'docs', 'flows.yaml'), 'version: 1\n');
-    mac.runner.on('/usr/bin/git', () => ({ code: 1 }));
-    const r = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    for (const name of names) {
+      mkdirSync(join(root, name, 'docs'), { recursive: true });
+      writeFileSync(join(root, name, 'docs', 'flows.yaml'), 'version: 1\n');
+    }
+    const remotes: string[] = [];
+    mac.runner.on('ssh', (args) => {
+      const remote = args.at(-1) as string;
+      if (/crew-docs|BUNDLE=|--version/.test(remote) && !remote.includes('crew-claude-run')) {
+        remotes.push(remote);
+        return crewDocsSsh(remote);
+      }
+      return okSsh(remote);
+    });
+    const run = async () => (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    return { mac, root, remotes, run };
+  }
+
+  const cfg = (bundle: string, runtime: string, gitDir = '/Users/owner/crew-tools/repo/.git') =>
+    `BUNDLE=${bundle}\nRUNTIME=${runtime}\nGITDIR=${gitDir}\n`;
+  const GOOD = cfg('/Users/owner/crew-tools/crew-docs.cjs', '/Users/owner/crew-tools/node');
+  const healthy = (remote: string) =>
+    remote.includes('BUNDLE=') ? { stdout: GOOD } : { stdout: 'crew-docs 0.1.0\n' };
+
+  it('thiếu crew-docs.bundle thì fail', async () => {
+    const t = await withRepos(['integrator'], () => ({ stdout: 'BUNDLE=\nRUNTIME=\nGITDIR=/x/.git\n' }));
+    const r = await t.run();
     expect(r?.status).toBe('fail');
     expect(r?.detail).toContain('integrator');
+    expect(r?.detail).toContain('crew-docs.bundle');
     expect(r?.hint).toContain('install-hooks');
   });
 
-  it('bundle trỏ tới file không tồn tại hoặc không chạy được thì fail', async () => {
-    const mac = await installed(okSsh);
-    const root = macPaths(mac.home).defaultWorktreeRoot;
-    const wt = join(root, 'a');
-    mkdirSync(join(wt, 'docs'), { recursive: true });
-    writeFileSync(join(wt, 'docs', 'flows.yaml'), 'version: 1\n');
-    mac.runner.on('/usr/bin/git', () => ({ stdout: `${root}/khong-co.cjs\n` }));
-    const missing = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
-    expect(missing?.status).toBe('fail');
-    expect(missing?.detail).toContain('không tồn tại');
-
-    const bundle = join(mac.home, 'crew-docs.cjs');
-    writeFileSync(bundle, '');
-    mac.runner
-      .on('/usr/bin/git', () => ({ stdout: `${bundle}\n` }))
-      .on(mac.ctx.nodePath, () => ({ code: 1 }));
-    const broken = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
-    expect(broken?.status).toBe('fail');
-    expect(broken?.detail).toContain('--version');
+  it('chạy qua sshd agent: node theo PATH của agent và runtime Electron của hook', async () => {
+    const t = await withRepos(['a'], healthy);
+    const r = await t.run();
+    expect(r).toMatchObject({ status: 'ok', detail: expect.stringContaining('1 worktree') });
+    expect(t.remotes.some((c) => c.includes('node ') && c.includes('--version'))).toBe(true);
+    expect(t.remotes.some((c) => c.includes('ELECTRON_RUN_AS_NODE=1'))).toBe(true);
   });
 
-  it('bundle có và chạy được thì ok; worktree không dùng crew-docs thì bỏ qua', async () => {
-    const mac = await installed(okSsh);
-    const root = macPaths(mac.home).defaultWorktreeRoot;
-    const bundle = join(mac.home, 'crew-docs.cjs');
-    writeFileSync(bundle, '');
-    mkdirSync(join(root, 'a', 'docs'), { recursive: true });
-    writeFileSync(join(root, 'a', 'docs', 'flows.yaml'), 'version: 1\n');
-    mkdirSync(join(root, 'b'), { recursive: true });
-    mac.runner
-      .on('/usr/bin/git', () => ({ stdout: `${bundle}\n` }))
-      .on(mac.ctx.nodePath, (args) =>
-        args[1] === '--version' ? { stdout: 'crew-docs 0.1.0\n' } : undefined,
+  it('worktree không có docs/flows.yaml thì bỏ qua, không gọi ssh crew-docs', async () => {
+    const t = await withRepos([], healthy);
+    mkdirSync(join(t.root, 'b'), { recursive: true });
+    const r = await t.run();
+    expect(r).toMatchObject({ status: 'ok', detail: expect.stringContaining('không có worktree') });
+    expect(t.remotes).toEqual([]);
+  });
+
+  it('bundle hoặc runtime dưới ~/Documents, ~/Desktop, ~/Downloads, /Volumes thì fail kèm gợi ý dời', async () => {
+    for (const bundle of ['Documents/p/crew-docs.cjs', 'Desktop/x.cjs', 'Downloads/x.cjs']) {
+      const t = await withRepos(['a'], (remote) =>
+        remote.includes('BUNDLE=')
+          ? { stdout: cfg(`__HOME__/${bundle}`, '/Users/owner/crew-tools/node') }
+          : { stdout: 'crew-docs 0.1.0\n' },
       );
-    const r = (await doctor(mac.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
-    expect(r).toMatchObject({ status: 'ok', detail: expect.stringContaining('1 worktree') });
+      t.mac.runner.on('ssh', (args) => {
+        const remote = args.at(-1) as string;
+        if (remote.includes('BUNDLE='))
+          return { stdout: cfg(`${t.mac.home}/${bundle}`, '/Users/owner/crew-tools/node') };
+        return remote.includes('--version') && !remote.includes('crew-claude-run')
+          ? { stdout: 'crew-docs 0.1.0\n' }
+          : okSsh(remote);
+      });
+      const r = await t.run();
+      expect(r?.status).toBe('fail');
+      expect(r?.detail).toContain('vùng TCC');
+      expect(r?.hint).toContain('Dời');
+    }
+    const vol = await withRepos(['a'], (remote) =>
+      remote.includes('BUNDLE=')
+        ? { stdout: cfg('/Volumes/X/crew-docs.cjs', '/Users/owner/crew-tools/node') }
+        : { stdout: 'crew-docs 0.1.0\n' },
+    );
+    expect((await vol.run())?.detail).toContain('/Volumes');
+  });
+
+  it('git dir dưới vùng TCC cũng fail', async () => {
+    const t = await withRepos(['a'], (remote) =>
+      remote.includes('BUNDLE=')
+        ? { stdout: cfg('/o/crew-docs.cjs', '/o/node', '/Volumes/Disk/repo/.git') }
+        : { stdout: 'crew-docs 0.1.0\n' },
+    );
+    const r = await t.run();
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('git dir');
+  });
+
+  it('quá hạn (treo TCC) thì fail và nói rõ quá hạn, dừng kiểm worktree còn lại', async () => {
+    const t = await withRepos(['a', 'b'], (remote) =>
+      remote.includes('BUNDLE=') ? { code: 255, stdout: '', timedOut: true } : { stdout: '' },
+    );
+    const r = await t.run();
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('quá 30 giây');
+    expect(r?.detail).toContain('tcc-pending');
+    expect(t.remotes).toHaveLength(1);
+  });
+
+  it('--version quá hạn hoặc file thiếu thì fail', async () => {
+    const slow = await withRepos(['a'], (remote) =>
+      remote.includes('BUNDLE=') ? { stdout: GOOD } : { code: 255, timedOut: true },
+    );
+    expect((await slow.run())?.detail).toContain('quá 20 giây');
+    const missing = await withRepos(['a'], (remote) =>
+      remote.includes('BUNDLE=') ? { stdout: GOOD } : { code: 92, stdout: 'CREW_MISSING\n' },
+    );
+    expect((await missing.run())?.detail).toContain('không tồn tại');
+  });
+
+  it('nhiều worktree cùng bundle thì chỉ chạy --version một lần cho mỗi cặp runtime/bundle', async () => {
+    const t = await withRepos(['a', 'b', 'c'], healthy);
+    const r = await t.run();
+    expect(r?.status).toBe('ok');
+    expect(t.remotes.filter((c) => c.includes('--version'))).toHaveLength(2);
+  });
+
+  it('thư mục worktree không đọc được thì warn, không làm sập doctor; symlink worktree được theo link', async () => {
+    const bad = await installed(okSsh);
+    const root = macPaths(bad.home).defaultWorktreeRoot;
+    rmSync(root, { recursive: true });
+    writeFileSync(root, 'file thường');
+    const warn = (await doctor(bad.ctx, OPTIONS)).find((c) => c.id === 'crew-docs');
+    expect(warn?.status).toBe('warn');
+
+    const t = await withRepos([], healthy);
+    const real = join(t.mac.home, 'real-repo');
+    mkdirSync(join(real, 'docs'), { recursive: true });
+    writeFileSync(join(real, 'docs', 'flows.yaml'), 'version: 1\n');
+    symlinkSync(real, join(t.root, 'linked'));
+    expect(await t.run()).toMatchObject({ status: 'ok', detail: expect.stringContaining('1 worktree') });
   });
 });
 
@@ -117,6 +206,7 @@ describe('isAgentTccSubject', () => {
     expect(isAgentTccSubject('/opt/homebrew/Cellar/node/24.11.0/bin/node')).toBe(true);
     expect(isAgentTccSubject('/Applications/Orca.app')).toBe(false);
     expect(isAgentTccSubject('/Applications/Claude.app')).toBe(false);
+    expect(isAgentTccSubject('/Applications/Weird.app', 'com.anthropic.claude-code')).toBe(true);
   });
 });
 
@@ -129,6 +219,7 @@ describe('parsePendingTccPrompts', () => {
           at: '2026-10-06 10:41:02.207',
           service: 'kTCCServiceSystemPolicyRemovableVolumes',
           subject: '/Users/owner/.local/share/claude/versions/2.1.289',
+          identifier: 'com.anthropic.claude-code',
         },
       ],
       unparsed: 0,
@@ -280,12 +371,41 @@ describe('crew-mac doctor', () => {
   it('hộp thoại TCC của app khác (không phải agent) chỉ warn', async () => {
     const mac = await installed(okSsh);
     mac.runner.on('/usr/bin/log', () => ({
-      stdout: TCC_LOG.replace('/Users/owner/.local/share/claude/versions/2.1.289', '/Applications/Orca.app'),
+      stdout: TCC_LOG.replace(
+        '/Users/owner/.local/share/claude/versions/2.1.289',
+        '/Applications/Orca.app',
+      ).replace('identifier=com.anthropic.claude-code', 'identifier=com.orca.app'),
     }));
     const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     const tcc = results.find((r) => r.id === 'tcc-pending');
     expect(tcc?.status).toBe('warn');
     expect(tcc?.detail).toContain('Orca.app');
+  });
+
+  it('có cả hộp thoại agent lẫn app khác thì fail, hint chỉ của agent', async () => {
+    const mac = await installed(okSsh);
+    const orca =
+      '2026-10-06 11:00:00.000 Df tccd[1:1] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=1.1, service=kTCCServiceSystemPolicyDocumentsFolder, subject=Sub:{/Applications/Orca.app}Resp:{TCCDProcess: identifier=com.orca.app, pid=9}';
+    mac.runner.on('/usr/bin/log', () => ({ stdout: `${TCC_LOG}\n${orca}` }));
+    const tcc = (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+      (r) => r.id === 'tcc-pending',
+    );
+    expect(tcc?.status).toBe('fail');
+    expect(tcc?.detail).toContain('app khác:');
+    expect(tcc?.hint).toContain('2.1.289');
+    expect(tcc?.hint).not.toContain('Orca');
+  });
+
+  it('identifier com.anthropic.claude-code đủ để coi là agent dù đường dẫn lạ', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/log', () => ({
+      stdout:
+        '2026-10-06 11:00:00.000 Df tccd[1:1] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=2.2, service=kTCCServiceSystemPolicyDocumentsFolder, subject=Sub:{/opt/cask/Weird.app/Contents/MacOS/x}Resp:{TCCDProcess: identifier=com.anthropic.claude-code, pid=9}',
+    }));
+    const tcc = (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+      (r) => r.id === 'tcc-pending',
+    );
+    expect(tcc?.status).toBe('fail');
   });
 
   it('Claude chưa đăng nhập trong phiên sshd thì fail', async () => {

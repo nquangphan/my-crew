@@ -31,12 +31,15 @@ export interface PendingPrompt {
   at: string;
   service: string;
   subject: string;
+  /** `identifier=` của TCCDProcess trong cùng dòng log; null khi dòng không có. */
+  identifier: string | null;
 }
 
 export const TCC_PREDICATE =
   'process == "tccd" AND (eventMessage CONTAINS "AUTHREQ_PROMPTING" OR eventMessage CONTAINS "AUTHREQ_RESULT")';
 
-const PROMPT_RE = /^(\S+ \S+) .*AUTHREQ_PROMPTING: msgID=([\d.]+), service=(\w+), subject=Sub:\{([^}]*)\}/;
+const PROMPT_RE =
+  /^(\S+ \S+) .*AUTHREQ_PROMPTING: msgID=([\d.]+), service=(\w+), subject=Sub:\{([^}]*)\}(?:.*?TCCDProcess: identifier=([^,}\s]+))?/;
 const RESULT_RE = /AUTHREQ_RESULT: msgID=([\d.]+),/;
 
 /**
@@ -60,6 +63,7 @@ export function parsePendingTccPrompts(logText: string): { pending: PendingPromp
         at: prompt[1] as string,
         service: prompt[3] as string,
         subject: prompt[4] as string,
+        identifier: prompt[5] ?? null,
       });
       continue;
     }
@@ -353,51 +357,156 @@ async function checkClaudePrint(
   return { ...base, status: 'fail', detail: `mã ${result.code}: ${result.stdout.trim().slice(-300)}` };
 }
 
+const CLAUDE_CODE_IDENTIFIER = 'com.anthropic.claude-code';
+
 /** Hộp thoại quyền của chính agent (claude theo version hoặc node chạy crew-mac/claude) thì chặn agent; app khác thì không. */
-export function isAgentTccSubject(subject: string): boolean {
+export function isAgentTccSubject(subject: string, identifier: string | null = null): boolean {
+  if (identifier === CLAUDE_CODE_IDENTIFIER) return true;
   const name = basename(subject);
   return name === 'claude' || name === 'node' || /\/claude\/versions\/[^/]+$/.test(subject);
 }
 
+/** Vùng TCC bảo vệ: process của agent (qua sshd) chạm vào đây thì treo im lặng chờ hộp thoại. */
+export function tccProtectedReason(home: string, path: string): string | null {
+  for (const dir of ['Documents', 'Desktop', 'Downloads']) {
+    const root = `${home}/${dir}`;
+    if (path === root || path.startsWith(`${root}/`)) return `~/${dir}`;
+  }
+  return path === '/Volumes' || path.startsWith('/Volumes/') ? '/Volumes' : null;
+}
+
+const CREW_DOCS_CONFIG_TIMEOUT_MS = 30_000;
+const CREW_DOCS_RUN_TIMEOUT_MS = 20_000;
+
+function crewDocsConfigScript(dir: string): string {
+  return [
+    `cd ${shQuote(dir)} || exit 90`,
+    'echo "BUNDLE=$(git config --get crew-docs.bundle)"',
+    'echo "RUNTIME=$(git config --get crew-docs.runtime)"',
+    'echo "GITDIR=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"',
+  ].join('; ');
+}
+
+/** Chạy bundle bằng đúng thứ hook dùng: `node` theo PATH của agent, hoặc runtime Electron với ELECTRON_RUN_AS_NODE. */
+function crewDocsVersionScript(bundle: string, runtime: string | null): string {
+  const run =
+    runtime === null
+      ? `node ${shQuote(bundle)} --version`
+      : `ELECTRON_RUN_AS_NODE=1 ${shQuote(runtime)} ${shQuote(bundle)} --version`;
+  const check =
+    runtime === null
+      ? `[ -f ${shQuote(bundle)} ]`
+      : `[ -f ${shQuote(bundle)} ] && [ -x ${shQuote(runtime)} ]`;
+  return `${check} || { echo CREW_MISSING; exit 92; }; ${run}`;
+}
+
 /**
  * Hợp đồng cho integrator: trong worktree có `docs/flows.yaml`, `node "$(git config --get crew-docs.bundle)" check
- * --range <base>..<head>` phải chạy được. Worktree dùng chung git config của repo gốc nên đọc config bằng `git -C`.
+ * --range <base>..<head>` phải chạy được, và hook pre-commit (runtime + bundle từ git config) cũng vậy. Kiểm bằng
+ * chính sshd agent như `checkWrapper`, để bắt treo TCC mà process của doctor (đã có quyền) không thấy.
  */
-async function checkCrewDocs(ctx: MacContext, manifest: Manifest): Promise<CheckResult> {
+async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
   const base = { id: 'crew-docs', title: 'crew-docs cho integrator' };
   if (!existsSync(manifest.worktreeRoot))
     return { ...base, status: 'warn', detail: 'chưa có thư mục worktree' };
-  const repos = readdirSync(manifest.worktreeRoot, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
-    .map((e) => join(manifest.worktreeRoot, e.name))
-    .filter((dir) => existsSync(join(dir, 'docs', 'flows.yaml')));
-  if (repos.length === 0) return { ...base, status: 'ok', detail: 'không có worktree nào dùng crew-docs' };
-  const problems: string[] = [];
-  for (const dir of repos) {
-    const cfg = await ctx.runner.run('/usr/bin/git', ['-C', dir, 'config', '--get', 'crew-docs.bundle'], {
-      timeoutMs: 10_000,
-    });
-    const bundle = cfg.stdout.trim();
-    if (cfg.code !== 0 || bundle === '') {
-      problems.push(`${dir}: chưa có git config crew-docs.bundle`);
-      continue;
-    }
-    if (!existsSync(bundle)) {
-      problems.push(`${dir}: ${bundle} không tồn tại`);
-      continue;
-    }
-    const version = await ctx.runner.run(ctx.nodePath, [bundle, '--version'], { timeoutMs: 15_000 });
-    if (version.code !== 0) problems.push(`${dir}: ${bundle} --version mã ${version.code}`);
+  let repos: string[];
+  try {
+    repos = readdirSync(manifest.worktreeRoot)
+      .filter((name) => !name.startsWith('.'))
+      .map((name) => join(manifest.worktreeRoot, name))
+      .filter((dir) => {
+        try {
+          // statSync theo symlink: worktree dạng link tới thư mục vẫn được kiểm.
+          return statSync(dir).isDirectory() && existsSync(join(dir, 'docs', 'flows.yaml'));
+        } catch {
+          return false;
+        }
+      });
+  } catch (err) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `không đọc được ${manifest.worktreeRoot}: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
-  if (problems.length > 0) {
+  if (repos.length === 0) return { ...base, status: 'ok', detail: 'không có worktree nào dùng crew-docs' };
+
+  const problems = new Set<string>();
+  const timeoutNote = (what: string, sec: number) =>
+    `${what} quá ${sec} giây (có thể do hộp thoại quyền đang chờ, xem check tcc-pending)`;
+  const ssh = (command: string, timeoutMs: number) =>
+    ctx.runner.run('ssh', sshArgs(paths, manifest, ctx.user, command), { timeoutMs });
+  const cache = new Map<string, Promise<string | null>>();
+  const versionProblem = (bundle: string, runtime: string | null): Promise<string | null> => {
+    const key = `${runtime ?? ''}\0${bundle}`;
+    let cached = cache.get(key);
+    if (!cached) {
+      const label = runtime === null ? `node ${bundle}` : `${runtime} ${bundle}`;
+      cached = ssh(crewDocsVersionScript(bundle, runtime), CREW_DOCS_RUN_TIMEOUT_MS).then((r) => {
+        if (r.timedOut) return timeoutNote(label, CREW_DOCS_RUN_TIMEOUT_MS / 1000);
+        if (r.stdout.includes('CREW_MISSING')) return `${label}: file không tồn tại hoặc không chạy được`;
+        return r.code === 0 ? null : `${label} --version mã ${r.code}`;
+      });
+      cache.set(key, cached);
+    }
+    return cached;
+  };
+
+  let hung = false;
+  for (const dir of repos) {
+    const cfg = await ssh(crewDocsConfigScript(dir), CREW_DOCS_CONFIG_TIMEOUT_MS);
+    if (cfg.timedOut) {
+      problems.add(`${dir}: ${timeoutNote('đọc git config', CREW_DOCS_CONFIG_TIMEOUT_MS / 1000)}`);
+      hung = true;
+      break;
+    }
+    if (cfg.code !== 0) {
+      problems.add(
+        `${dir}: không vào được qua sshd agent (mã ${cfg.code}): ${(cfg.stderr || cfg.stdout).trim().slice(0, 150)}`,
+      );
+      continue;
+    }
+    const field = (name: string) => new RegExp(`^${name}=(.*)$`, 'm').exec(cfg.stdout)?.[1]?.trim() ?? '';
+    const [bundle, runtime, gitDir] = [field('BUNDLE'), field('RUNTIME'), field('GITDIR')];
+    if (bundle === '') {
+      problems.add(`${dir}: chưa có git config crew-docs.bundle`);
+      continue;
+    }
+    if (runtime === '') problems.add(`${dir}: chưa có git config crew-docs.runtime (hook pre-commit cần)`);
+    for (const [what, path] of [
+      ['bundle', bundle],
+      ['runtime', runtime],
+      ['git dir', gitDir],
+    ] as const) {
+      const zone = path === '' ? null : tccProtectedReason(ctx.home, path);
+      if (zone)
+        problems.add(
+          `${dir}: ${what} ${path} nằm dưới ${zone} (vùng TCC bảo vệ, agent qua sshd sẽ treo chờ hộp thoại)`,
+        );
+    }
+    for (const found of [
+      await versionProblem(bundle, null),
+      runtime === '' ? null : await versionProblem(bundle, runtime),
+    ]) {
+      if (found) problems.add(`${dir}: ${found}`);
+    }
+  }
+  if (problems.size > 0) {
     return {
       ...base,
       status: 'fail',
-      detail: problems.join('; '),
-      hint: 'Trong checkout gốc của dự án, chạy "node <đường dẫn crew-docs.cjs> install-hooks" để đặt crew-docs.bundle (worktree dùng chung git config).',
+      detail: [...problems].join('; ') + (hung ? '; dừng kiểm các worktree còn lại' : ''),
+      hint:
+        'Dời bundle/runtime và checkout gốc ra ngoài ~/Documents, ~/Desktop, ~/Downloads, /Volumes (ví dụ ~/crew-tools), ' +
+        'rồi trong checkout gốc chạy "node <đường dẫn crew-docs.cjs> install-hooks" để đặt crew-docs.bundle và ' +
+        'crew-docs.runtime (worktree dùng chung git config).',
     };
   }
-  return { ...base, status: 'ok', detail: `${repos.length} worktree, bundle chạy được` };
+  return {
+    ...base,
+    status: 'ok',
+    detail: `${repos.length} worktree, bundle và runtime chạy được qua sshd agent`,
+  };
 }
 
 async function checkTccPending(ctx: MacContext, window: string): Promise<CheckResult> {
@@ -412,8 +521,8 @@ async function checkTccPending(ctx: MacContext, window: string): Promise<CheckRe
   const { pending, unparsed } = parsePendingTccPrompts(result.stdout);
   const unreadable =
     unparsed > 0 ? `${unparsed} dòng AUTHREQ_PROMPTING không đọc được (định dạng log khác dự kiến)` : '';
-  const agent = pending.filter((p) => isAgentTccSubject(p.subject));
-  const other = pending.filter((p) => !isAgentTccSubject(p.subject));
+  const agent = pending.filter((p) => isAgentTccSubject(p.subject, p.identifier));
+  const other = pending.filter((p) => !isAgentTccSubject(p.subject, p.identifier));
   const describe = (list: PendingPrompt[]) =>
     list.map((p) => `${p.at} ${p.service} cho ${p.subject}`).join('; ');
   if (agent.length > 0) {
@@ -491,7 +600,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkWrapper(ctx, paths, manifest));
   results.push(checkLauncher(ctx, paths));
   results.push(checkWorktreeRoot(ctx, manifest));
-  results.push(await checkCrewDocs(ctx, manifest));
+  results.push(await checkCrewDocs(ctx, paths, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));
   results.push(await checkTccPending(ctx, options.tccWindow));

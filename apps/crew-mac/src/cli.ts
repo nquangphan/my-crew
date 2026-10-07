@@ -168,7 +168,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         ) {
           io.err(
             `crew-mac: phiên này đi qua sshd cổng ${sshPort}; uninstall sẽ cắt chính phiên này giữa chừng. ` +
-              'Chạy trong Terminal trên màn hình Mac, hoặc thêm --force nếu chắc chắn.',
+              'Chạy trong Terminal trên màn hình Mac, hoặc thêm --force nếu chắc chắn (--force bỏ qua CẢ kiểm phiên sshd agent LẪN kiểm run Paperclip).',
           );
           return 2;
         }

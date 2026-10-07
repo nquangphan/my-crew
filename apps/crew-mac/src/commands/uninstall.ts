@@ -1,8 +1,9 @@
 import { existsSync, lstatSync, readdirSync, rmSync } from 'node:fs';
+import { basename } from 'node:path';
 import { removeKeysByComment } from '../authorized-keys.js';
 import { type MacContext, SetupError } from '../context.js';
 import { readText, writeIfChanged } from '../fs-util.js';
-import { bootout } from '../launchctl.js';
+import { bootout, serviceState } from '../launchctl.js';
 import { type Manifest, readManifest } from '../manifest.js';
 import {
   DOCTOR_KEY_COMMENT,
@@ -13,8 +14,8 @@ import {
   SPIKE_LABEL,
   SSHD_LABEL,
 } from '../paths.js';
-import { listProcesses } from '../reaper/process-table.js';
-import { isClaudePrint } from '../reaper/run-members.js';
+import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
+import { descendants, isClaudeExe, isClaudePrint } from '../reaper/run-members.js';
 import type { CommandRunner } from '../system.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
@@ -31,10 +32,86 @@ function manifestOrNull(path: string): Manifest | null {
   }
 }
 
+const FORCE_NOTE = '--force bỏ qua CẢ kiểm phiên sshd agent LẪN kiểm run Paperclip.';
+
+function exeName(p: ProcInfo): string {
+  return basename(p.command.split(/\s+/)[0] ?? '');
+}
+
+/** claude (cả bản `…/claude/versions/<bản>`) hoặc node (claude cài bằng npm chạy dưới tên `node`) ở chế độ --print/-p. */
+function isPrintAgent(p: ProcInfo): boolean {
+  if (!isClaudeExe(p) && exeName(p) !== 'node') return false;
+  const tokens = p.command.split(/\s+/);
+  return tokens.includes('--print') || tokens.includes('-p');
+}
+
+export interface UninstallScan {
+  /** Run id đọc được từ env của process --print. */
+  runIds: string[];
+  /** Process --print không tty mà không đọc được env: không chắc có phải run Paperclip. */
+  unknownPids: number[];
+  /** Process con cháu của sshd agent (phiên SSH đang mở, thường là run đang chạy). */
+  sshdSessionPids: number[];
+}
+
 /** Run id của các `claude --print` do Paperclip chạy (PAPERCLIP_RUN_ID trong env), không tính claude thủ công. */
 export async function liveRunIds(runner: CommandRunner): Promise<string[]> {
   const procs = await listProcesses(runner);
   return [...new Set(procs.filter(isClaudePrint).map((p) => p.runId as string))].sort();
+}
+
+/**
+ * Quét theo hướng fail-closed: ngoài run id đọc được, coi là "không chắc" mọi process --print không tty mà env
+ * không đọc được, và mọi con cháu của sshd agent (tín hiệu không phụ thuộc env).
+ */
+export async function scanUninstallBlockers(ctx: MacContext): Promise<UninstallScan> {
+  const procs = await listProcesses(ctx.runner);
+  const runIds = new Set<string>();
+  const unknownPids: number[] = [];
+  for (const p of procs) {
+    if (!isPrintAgent(p)) continue;
+    if (p.runId !== null) runIds.add(p.runId);
+    else if (p.tty === '??') unknownPids.push(p.pid);
+  }
+  const sshdSessionPids = new Set<number>();
+  for (const label of [SSHD_LABEL, SPIKE_LABEL]) {
+    const { pid } = await serviceState(ctx.runner, ctx.uid, label);
+    if (pid === null) continue;
+    for (const child of descendants(pid, procs)) if (child !== pid) sshdSessionPids.add(child);
+  }
+  return {
+    runIds: [...runIds].sort(),
+    unknownPids,
+    sshdSessionPids: [...sshdSessionPids].sort((x, y) => x - y),
+  };
+}
+
+async function assertNoLiveRuns(ctx: MacContext): Promise<void> {
+  let scan: UninstallScan;
+  try {
+    scan = await scanUninstallBlockers(ctx);
+  } catch (err) {
+    throw new SetupError(
+      `Không đọc được bảng process (${err instanceof Error ? err.message : String(err)}); ` +
+        `không chắc còn run nào đang chạy. ${FORCE_NOTE}`,
+    );
+  }
+  const reasons: string[] = [];
+  if (scan.runIds.length > 0)
+    reasons.push(
+      `còn ${scan.runIds.length} run Paperclip đang chạy trên máy này (${scan.runIds.join(', ')})`,
+    );
+  if (scan.sshdSessionPids.length > 0)
+    reasons.push(`còn phiên SSH qua sshd agent (pid ${scan.sshdSessionPids.join(', ')})`);
+  if (scan.unknownPids.length > 0)
+    reasons.push(
+      `còn claude/node --print không tty mà không đọc được env nên không chắc có phải run Paperclip (pid ${scan.unknownPids.join(', ')})`,
+    );
+  if (reasons.length > 0) {
+    throw new SetupError(
+      `${reasons.join('; ')}. Hủy hoặc chờ các run xong trên Paperclip (nên tạm dừng agent) rồi chạy lại. ${FORCE_NOTE}`,
+    );
+  }
 }
 
 export async function uninstall(
@@ -42,23 +119,7 @@ export async function uninstall(
   options: { force?: boolean } = {},
 ): Promise<UninstallReport> {
   if (ctx.platform !== 'darwin') throw new SetupError('crew-mac chỉ chạy trên macOS.');
-  if (!options.force) {
-    let live: string[];
-    try {
-      live = await liveRunIds(ctx.runner);
-    } catch (err) {
-      throw new SetupError(
-        `Không đọc được bảng process (${err instanceof Error ? err.message : String(err)}); ` +
-          'không chắc còn run nào đang chạy. Thêm --force nếu chắc chắn.',
-      );
-    }
-    if (live.length > 0) {
-      throw new SetupError(
-        `Còn ${live.length} run Paperclip đang chạy trên máy này (${live.join(', ')}). ` +
-          'Hủy hoặc chờ các run đó xong trên Paperclip rồi chạy lại, hoặc thêm --force.',
-      );
-    }
-  }
+  if (!options.force) await assertNoLiveRuns(ctx);
   const paths = macPaths(ctx.home);
   const manifest = manifestOrNull(paths.manifest);
   // Kiểm ~/.zshenv trước mọi thao tác: khối hỏng thì dừng khi chưa gỡ gì.

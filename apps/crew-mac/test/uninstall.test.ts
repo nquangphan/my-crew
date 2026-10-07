@@ -34,6 +34,76 @@ function seedSpike(home: string) {
   );
 }
 
+describe('crew-mac uninstall fail-closed', () => {
+  const blocked = (e: ReturnType<typeof fakeMac>) => {
+    seedSpike(e.home);
+    return expect(uninstall(e.ctx)).rejects;
+  };
+
+  it('process claude --print không tty mà env không đọc được thì từ chối, claude thủ công có tty thì cho qua', async () => {
+    const argv = '  4300 /Users/a/.local/bin/claude --print --output-format stream-json\n';
+    const e = fakeMac({ ps: { tree: '  4300     1  4300 ??       00:05 claude\n', argv, env: argv } });
+    await (await blocked(e)).toThrow(/không đọc được env/);
+    await expect(uninstall(e.ctx, { force: true })).resolves.toBeDefined();
+  });
+
+  it('claude cài bằng npm chạy dưới tên node vẫn được nhận là run', async () => {
+    const cmd =
+      '/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js --print';
+    const e = fakeMac({
+      ps: {
+        tree: '  4400     1  4400 ??       00:05 node\n',
+        argv: `  4400 ${cmd}\n`,
+        env: `  4400 ${cmd} PAPERCLIP_RUN_ID=${LIVE_RUN_ID} HOME=/Users/a\n`,
+      },
+    });
+    await (await blocked(e)).toThrow(LIVE_RUN_ID);
+  });
+
+  it('node --print không tty không đọc được env cũng bị từ chối', async () => {
+    const cmd = '/opt/homebrew/bin/node /x/cli.js -p hi';
+    const e = fakeMac({
+      ps: {
+        tree: '  4401     1  4401 ??       00:05 node\n',
+        argv: `  4401 ${cmd}\n`,
+        env: `  4401 ${cmd}\n`,
+      },
+    });
+    await (await blocked(e)).toThrow(/không đọc được env/);
+  });
+
+  it('còn phiên sshd của agent (con cháu của job sshd) thì từ chối', async () => {
+    const e = fakeMac({
+      spikeLoaded: true,
+      ps: {
+        tree: '  4242     1  4242 ??  10:00 sshd\n  4500  4242  4500 ??  00:30 sshd-session: owner@notty\n',
+        argv: '  4242 /usr/sbin/sshd -D\n  4500 sshd-session: owner@notty\n',
+        env: '  4242 /usr/sbin/sshd -D\n  4500 sshd-session: owner@notty\n',
+      },
+    });
+    await (await blocked(e)).toThrow(/phiên SSH qua sshd agent \(pid 4500\)/);
+    await expect(uninstall(e.ctx, { force: true })).resolves.toBeDefined();
+  });
+
+  it('sshd agent đang chạy mà không có phiên con thì cho qua', async () => {
+    const e = fakeMac({
+      spikeLoaded: true,
+      ps: {
+        tree: '  4242     1  4242 ??  10:00 sshd\n',
+        argv: '  4242 /usr/sbin/sshd -D\n',
+        env: '  4242 /usr/sbin/sshd -D\n',
+      },
+    });
+    seedSpike(e.home);
+    await expect(uninstall(e.ctx)).resolves.toBeDefined();
+  });
+
+  it('thông báo nói rõ --force bỏ qua cả hai kiểm', async () => {
+    const e = fakeMac({ ps: LIVE_PS });
+    await (await blocked(e)).toThrow(/CẢ kiểm phiên sshd agent LẪN kiểm run Paperclip/);
+  });
+});
+
 describe('crew-mac uninstall', () => {
   it('còn run Paperclip đang chạy thì từ chối và chưa gỡ gì', async () => {
     const { home, ctx } = fakeMac({ ps: LIVE_PS });
