@@ -122,3 +122,4 @@ Tiến độ, tài nguyên, quyết định của owner (O*) và ruling của Tr
 - 20:47 trả `crewLoadGate.maxLoad1` 16 → 8 cho 5 environment (đã xác nhận qua API). Dọn: không còn process codex/vitest/postgres; shm 6/32; 5 thư mục helper `crew-ac3-*` (~6.6MB, không credential) trong temp hệ thống để macOS tự dọn. CRE-15/CRE-20 `blocked` là thử nghiệm R1-2 (06/10), không thuộc phiên này — để nguyên.
 - Còn lại: commit/push fork `crew/r1-3` (HEAD `d457ddb`) → `v3`, plan files, skill tro-ly — chờ owner nói commit/push.
 - 20:50 owner bảo cancel CRE-15, CRE-20 (thử nghiệm R1-2): đã cancelled qua board API; company Crew Spike còn 0 issue mở, 0 run queued/running.
+- 20:58 owner bảo push: fork `crew-paperclip` `v3` 6c20d40 → d457ddb (fast-forward, 31 commit; worktree v3 local đã ff); repo Crew `v3` e6a55b8 → dbc2075 (plan R1-3 + skill tro-ly; quét credential sạch, evidence đã REDACTED; crew-docs check ok).
