@@ -331,6 +331,12 @@ describe('parseLoad', () => {
 });
 
 describe('crew-mac doctor', () => {
+  it('cho phép status bỏ probe TCC dài', async () => {
+    const { ctx, runner } = await installed(() => ({}));
+    await doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90, skipTcc: true });
+    expect(runner.calls.some((call) => call.command === '/usr/bin/log')).toBe(false);
+  });
+
   it('chưa cài thì chỉ báo một lỗi cài đặt', async () => {
     const { ctx } = fakeMac();
     const results = await doctor(ctx, { probe: true, tccWindow: '24h', probeTimeoutSec: 90 });

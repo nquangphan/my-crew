@@ -32,6 +32,7 @@ export function macPaths(home: string) {
     reaperLog: join(root, 'reaper', 'reaper.log'),
     statusConfig: join(home, '.crew', 'status.json'),
     statusLast: join(home, '.crew', 'status-last.json'),
+    statusTcc: join(home, '.crew', 'status-tcc.json'),
     statusLog: join(home, '.crew', 'logs', 'status.log'),
     sshdPlist: join(agents, `${SSHD_LABEL}.plist`),
     reaperPlist: join(agents, `${REAPER_LABEL}.plist`),

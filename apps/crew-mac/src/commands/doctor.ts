@@ -36,6 +36,8 @@ export interface DoctorOptions {
   probe: boolean;
   tccWindow: string;
   probeTimeoutSec: number;
+  /** Status gửi có probe nối tiếp riêng để tránh quét lại 24 giờ. */
+  skipTcc?: boolean;
 }
 
 export interface PendingPrompt {
@@ -836,7 +838,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkCrewDocs(ctx, paths, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));
-  results.push(await checkTccPending(ctx, options.tccWindow));
+  if (!options.skipTcc) results.push(await checkTccPending(ctx, options.tccWindow));
   results.push(await checkLoad(ctx));
   return results;
 }

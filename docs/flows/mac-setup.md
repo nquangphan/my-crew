@@ -61,7 +61,7 @@ không cần token và không login lại.
    hỏng `crew-docs.bundle`/`runtime`); không đọc được thư mục worktree thì `warn`, chưa có thư mục thì `warn`; không worktree nào dùng crew-docs thì bỏ qua),
    `claude auth status` qua chính sshd agent (`sshArgs`, `-F /dev/null`, key doctor), phép thử `claude -p` trong git
    repo tạm, chạy trong process group riêng và `SIGKILL` cả group khi quá hạn hoặc khi xong (`printProbeScript`),
-   hộp thoại TCC đang chờ (`/usr/bin/log show`, `parsePendingTccPrompts`, `tccHint`; dòng log lệch định dạng thì
+   hộp thoại TCC đang chờ (`/usr/bin/log show --last <window>`, `parsePendingTccPrompts`, `tccHint`; doctor luôn dùng cửa sổ 24 giờ; dòng log lệch định dạng thì
    cảnh báo; chỉ `fail` khi hộp thoại thuộc agent, xem `isAgentTccSubject`: subject là claude/node hoặc `identifier=com.anthropic.claude-code` trong cùng dòng log), tải máy (`parseLoad`; số liệu không đọc được thì cảnh báo; gọi `/usr/sbin/sysctl` và `/usr/bin/memory_pressure` bằng đường dẫn tuyệt đối).
 4. `apps/crew-mac/src/commands/uninstall.ts` → `uninstall`: bootout và xóa plist crew-mac lẫn spike
    (`com.2p.crew-spike-sshd`), gỡ key theo comment, gỡ khối PATH và hai dòng PATH spike, xóa `~/.crew-mac` và
@@ -97,6 +97,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook | `configureStatus`, `setStatusSecret`, `sendStatus` |
 | `apps/crew-mac/src/status/sign.ts` | Ký raw body | `signCrewBody` |
 | `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 | `buildMachineReport` |
+| `apps/crew-mac/src/status/tcc.ts` | Probe TCC nối tiếp riêng cho status; checkpoint `~/.crew/status-tcc.json` (0600), quét lần đầu 24 giờ, các lần sau bắt đầu từ mốc đã quét trừ 5 giây theo giờ địa phương kèm offset mà `log show` yêu cầu; giữ `msgId` để ghép kết quả đến ở lượt sau; timeout 20 giây giữ nguyên state và thêm cảnh báo | `probeStatusTcc`, `updateTccPending` |
 | `apps/crew-mac/src/status/docs.ts` | Đọc docs tại commit, kiểm chuẩn và secret-scan | `snapshotCommit`, `buildDocsSnapshot` |
 
 ## Bản tin trạng thái máy
@@ -111,7 +112,7 @@ và đọc lần gửi gần nhất từ `~/.crew/status-last.json` (`at`, `ok`,
 secret qua đối số `-w`, nên process khác có thể thấy đối số này rất ngắn qua `ps`; cần cân nhắc
 helper native dùng Keychain API trực tiếp để loại bỏ rủi ro đó. Không ghi secret vào file hoặc log.
 
-`send` dùng các parser và check của `doctor` để lấy tải máy, hộp thoại TCC, Claude và Superpowers; probe không đọc được trả `null` ở các trường cho phép theo hợp đồng webhook, vẫn gửi bản tin. Bản tin máy và ảnh chụp docs được gửi độc lập; một bên lỗi không chặn bên kia nhưng job trả lỗi.
+`send` dùng các check của `doctor` để lấy tải máy, Claude và Superpowers, nhưng bỏ qua probe TCC dài của doctor. Probe TCC status riêng dùng `~/.crew/status-tcc.json` với quyền `0600`: lần đầu quét `--last 24h`, sau đó quét `--start` từ `scannedUntil` trừ 5 giây theo giờ địa phương, kèm offset múi giờ theo định dạng `/usr/bin/log` yêu cầu. State giữ `scannedUntil` và pending gồm `service`, `client`, `since` cùng `msgId` để ghép `AUTHREQ_RESULT` ở lượt sau; payload chỉ gửi ba trường nghiệp vụ, không gửi `msgId`. Timeout sau 20 giây giữ nguyên state và thêm check `tcc-probe` trạng thái `warn`, tiêu đề `Không đọc kịp log TCC`; không cập nhật mốc. Doctor tương tác vẫn quét 24 giờ như trước. Các probe không đọc được khác trả `null` ở trường cho phép theo hợp đồng webhook, vẫn gửi bản tin. Bản tin máy và ảnh chụp docs được gửi độc lập; một bên lỗi không chặn bên kia nhưng job trả lỗi.
 chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 16 KB, ký HMAC-SHA256 trên
 `<timestamp>.<raw body>` trong header `X-Crew-Signature`, với `X-Crew-Timestamp` là giây Unix.
 Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây. Mọi mã HTTP ngoài
@@ -155,7 +156,7 @@ cùng quy tắc HMAC với bản tin máy. Lệnh chỉ cảnh báo số trang b
 
 Quyền đọc vùng được bảo vệ gắn theo đường dẫn binary Claude (`~/.local/share/claude/versions/<bản>`). Mỗi lần Claude
 Code tự cập nhật, macOS có thể hỏi lại; khi hộp thoại chưa được bấm thì mọi lần đọc vùng đó của agent treo im lặng.
-R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tcc-pending` chỉ `fail` khi hộp thoại thuộc `claude` (kể cả `…/claude/versions/<bản>`) hoặc `node`; hộp thoại của app khác chỉ `warn`. Ký số app cố định quyền là việc của R2.
+R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tcc-pending` chỉ `fail` khi hộp thoại thuộc `claude` (kể cả `…/claude/versions/<bản>`) hoặc `node`; hộp thoại của app khác chỉ `warn`. Status dùng probe nối tiếp riêng để tránh đọc lại 24 giờ mỗi phút. Ký số app cố định quyền là việc của R2.
 
 ## Flow liên quan
 
@@ -170,5 +171,6 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.
 - `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.
+- `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 24 giờ rồi `--start` theo mốc trừ 5 giây, timeout giữ state và phát cảnh báo.
 - `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
 - Các test còn lại kiểm từng module thuần (`zshenv`, `authorized-keys`, `render`, `system-wrappers`, `system`).

@@ -1,10 +1,11 @@
 import { existsSync } from 'node:fs';
 import { hostname } from 'node:os';
-import { doctor, parseLoad, parsePendingTccPrompts, TCC_PREDICATE } from '../commands/doctor.js';
+import { doctor, parseLoad } from '../commands/doctor.js';
 import { readStatusConfig, resolveClaudePath } from '../commands/status.js';
 import type { MacContext } from '../context.js';
 import { readInstalledPlugins } from '../workflows/install.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
+import { probeStatusTcc } from './tcc.js';
 
 export interface MachineReport {
   version: 1;
@@ -33,15 +34,11 @@ export async function buildMachineReport(
 ): Promise<MachineReport> {
   const claudePath = readStatusConfig(ctx)?.claudePath ?? resolveClaudePath(ctx.home);
   const [checks, loadavg, cpu, memory, tcc, version, auth] = await Promise.all([
-    doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 }).catch(() => []),
+    doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90, skipTcc: true }).catch(() => []),
     ctx.runner.run('/usr/sbin/sysctl', ['-n', 'vm.loadavg'], { timeoutMs: 10_000 }),
     ctx.runner.run('/usr/sbin/sysctl', ['-n', 'hw.ncpu'], { timeoutMs: 10_000 }),
     ctx.runner.run('/usr/bin/memory_pressure', ['-Q'], { timeoutMs: 10_000 }),
-    ctx.runner.run(
-      '/usr/bin/log',
-      ['show', '--last', '24h', '--style', 'compact', '--predicate', TCC_PREDICATE],
-      { timeoutMs: 10_000 },
-    ),
+    probeStatusTcc(ctx),
     claudePath
       ? ctx.runner.run(claudePath, ['--version'], { timeoutMs: 10_000 })
       : Promise.resolve({ code: 127, stdout: '' }),
@@ -50,7 +47,7 @@ export async function buildMachineReport(
       : Promise.resolve({ code: 127, stdout: '' }),
   ]);
   const load = parseLoad(loadavg.stdout, cpu.stdout, memory.stdout);
-  const pending = tcc.code === 0 ? parsePendingTccPrompts(tcc.stdout).pending.slice(0, 20) : [];
+  const pending = tcc.pending.slice(0, 20);
   let authState: { loggedIn?: boolean; subscriptionType?: string } = {};
   try {
     authState = JSON.parse(auth.stdout);
@@ -72,10 +69,10 @@ export async function buildMachineReport(
     load1: loadavg.code === 0 && !loadavg.timedOut ? bounded(load.load1, 0, 1000) : null,
     cpuCount: cpu.code === 0 && !cpu.timedOut ? bounded(load.ncpu, 1, 1024) : null,
     memFreePct: memory.code === 0 && !memory.timedOut ? bounded(load.freePct, 0, 100) : null,
-    tccPending: pending.map((p) => ({
-      service: p.service,
-      client: p.subject.slice(0, 200),
-      since: new Date(p.at.replace(' ', 'T')).toISOString(),
+    tccPending: pending.map((prompt) => ({
+      service: prompt.service,
+      client: prompt.client.slice(0, 200),
+      since: prompt.since,
     })),
     claude: {
       version: version.code === 0 ? (/^\d+\.\d+\.\d+/.exec(version.stdout.trim())?.[0] ?? null) : null,
@@ -86,11 +83,14 @@ export async function buildMachineReport(
       pinned: existsSync(superpowersPinDir(ctx.home, ctx.superpowersPin)) ? ctx.superpowersPin.version : null,
       ownerInstalled,
     },
-    checks: checks.map((c) => ({
-      id: c.id,
-      status: c.status === 'fail' ? 'error' : c.status,
-      title: c.title,
-    })),
+    checks: [
+      ...checks.map((c) => ({
+        id: c.id,
+        status: c.status === 'fail' ? ('error' as const) : c.status,
+        title: c.title,
+      })),
+      ...(tcc.check ? [tcc.check] : []),
+    ],
   };
   if (Buffer.byteLength(JSON.stringify(report)) > 16 * 1024) throw new Error('Bản tin máy vượt quá 16 KB');
   return report;
