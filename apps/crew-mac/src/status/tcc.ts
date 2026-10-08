@@ -38,7 +38,7 @@ function readState(path: string): StatusTccState | null {
       return value;
     }
   } catch {
-    // Thiếu state lần đầu hoặc file cũ hỏng: dựng lại từ cửa sổ 24 giờ.
+    // Thiếu state lần đầu hoặc file cũ hỏng: dựng lại từ cửa sổ ngắn ban đầu.
   }
   return null;
 }
@@ -84,7 +84,7 @@ export async function probeStatusTcc(ctx: MacContext): Promise<{
   const startedAt = ctx.now();
   const args = [
     'show',
-    ...(previous ? ['--start', asLocalLogTime(new Date(Date.parse(previous.scannedUntil) - 5_000))] : ['--last', '24h']),
+    ...(previous ? ['--start', asLocalLogTime(new Date(Date.parse(previous.scannedUntil) - 5_000))] : ['--last', '2h']),
     '--style',
     'compact',
     '--predicate',
@@ -92,6 +92,22 @@ export async function probeStatusTcc(ctx: MacContext): Promise<{
   ];
   const result = await ctx.runner.run('/usr/bin/log', args, { timeoutMs: TIMEOUT_MS });
   if (result.timedOut || result.code !== 0) {
+    if (!previous && result.timedOut) {
+      writeIfChanged(
+        paths.statusTcc,
+        JSON.stringify({ scannedUntil: startedAt.toISOString(), pending: [] } satisfies StatusTccState),
+        0o600,
+      );
+      const localTime = asLocalLogTime(startedAt).slice(11, 16);
+      return {
+        pending: [],
+        check: {
+          id: 'tcc-probe',
+          status: 'warn',
+          title: `Bắt đầu theo dõi log TCC từ ${localTime}; hộp thoại cũ hơn xem bằng crew-mac doctor`,
+        },
+      };
+    }
     return {
       pending: previous?.pending ?? [],
       check: { id: 'tcc-probe', status: 'warn', title: 'Không đọc kịp log TCC' },

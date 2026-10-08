@@ -29,7 +29,7 @@ describe('status TCC nối tiếp', () => {
     ]);
   });
 
-  it('lần đầu quét 24 giờ, lần kế tiếp quét từ checkpoint trừ 5 giây', async () => {
+  it('lần đầu quét 2 giờ, lần kế tiếp quét từ checkpoint trừ 5 giây', async () => {
     const { ctx, runner, home } = fakeMac();
     const commands: string[][] = [];
     runner.on('/usr/bin/log', (args) => {
@@ -39,12 +39,27 @@ describe('status TCC nối tiếp', () => {
     await probeStatusTcc(ctx);
     await probeStatusTcc(ctx);
     expect(commands[0]).toContain('--last');
-    expect(commands[0]).toContain('24h');
+    expect(commands[0]).toContain('2h');
     expect(commands[1]).toContain('--start');
     expect(commands[1]).toContain('2026-10-06 13:59:55+0700');
     const state = JSON.parse(readFileSync(join(home, '.crew', 'status-tcc.json'), 'utf8'));
     expect(state.scannedUntil).toBe('2026-10-06T07:00:00.000Z');
     expect(statSync(join(home, '.crew', 'status-tcc.json')).mode & 0o777).toBe(0o600);
+  });
+
+  it('timeout lần đầu vẫn lưu checkpoint rỗng và báo bắt đầu theo dõi', async () => {
+    const { ctx, runner, home } = fakeMac();
+    runner.on('/usr/bin/log', () => ({ code: 137, timedOut: true }));
+    const result = await probeStatusTcc(ctx);
+    const state = JSON.parse(readFileSync(join(home, '.crew', 'status-tcc.json'), 'utf8'));
+    expect(result.pending).toEqual([]);
+    expect(result.check).toEqual({
+      id: 'tcc-probe',
+      status: 'warn',
+      title: 'Bắt đầu theo dõi log TCC từ 14:00; hộp thoại cũ hơn xem bằng crew-mac doctor',
+    });
+    expect(state).toEqual({ scannedUntil: '2026-10-06T07:00:00.000Z', pending: [] });
+    expect(runner.calls.find((c) => c.command === '/usr/bin/log')?.args).toContain('2h');
   });
 
   it('timeout giữ nguyên checkpoint và pending, đồng thời trả cảnh báo', async () => {
