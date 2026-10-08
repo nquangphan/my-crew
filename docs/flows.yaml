@@ -665,6 +665,7 @@ flows:
       - apps/crew-mac/src/commands/status.ts
       - apps/crew-mac/src/status/sign.ts
       - apps/crew-mac/src/status/report.ts
+      - apps/crew-mac/src/status/docs.ts
     tests:
       - apps/crew-mac/test/system.test.ts
       - apps/crew-mac/test/zshenv.test.ts
@@ -678,6 +679,7 @@ flows:
       - apps/crew-mac/test/uninstall.test.ts
       - apps/crew-mac/test/cli.test.ts
       - apps/crew-mac/test/status.test.ts
+      - apps/crew-mac/test/status-docs.test.ts
   mac-orphan-reaper:
     title: Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)
     doc: docs/flows/mac-orphan-reaper.md

@@ -5,7 +5,15 @@ import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
-import { configureStatus, StatusSendError, sendStatus, setStatusSecret } from './commands/status.js';
+import {
+  addStatusRepo,
+  configureStatus,
+  listStatusRepos,
+  removeStatusRepo,
+  StatusSendError,
+  sendStatus,
+  setStatusSecret,
+} from './commands/status.js';
 import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
 import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
@@ -24,6 +32,9 @@ Cách dùng:
   crew-mac status config --url <Paperclip origin> --company <UUID>
   crew-mac status set-secret   (đọc một dòng từ stdin)
   crew-mac status send
+  crew-mac status add-repo <projectId> <đường dẫn repo tuyệt đối>
+  crew-mac status remove-repo <projectId>
+  crew-mac status list-repos
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
@@ -153,7 +164,25 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
           await sendStatus(ctx);
           return 0;
         }
-        throw new UsageError('status cần config, set-secret hoặc send');
+        if (subcommand === 'add-repo') {
+          if (rest.length !== 2) throw new UsageError('add-repo cần projectId và đường dẫn repo');
+          addStatusRepo(ctx, rest[0] as string, rest[1] as string);
+          io.out('Đã thêm repo.');
+          return 0;
+        }
+        if (subcommand === 'remove-repo') {
+          if (rest.length !== 1) throw new UsageError('remove-repo cần projectId');
+          removeStatusRepo(ctx, rest[0] as string);
+          io.out('Đã gỡ repo.');
+          return 0;
+        }
+        if (subcommand === 'list-repos') {
+          if (rest.length !== 0) throw new UsageError('list-repos không nhận đối số');
+          for (const repo of listStatusRepos(ctx))
+            io.out(`${repo.projectId}\t${repo.path}\t${repo.lastCommit ?? 'chưa gửi'}`);
+          return 0;
+        }
+        throw new UsageError('status cần config, set-secret, send, add-repo, remove-repo hoặc list-repos');
       }
       case 'setup': {
         const flags = parseFlags(args, ['--paperclip-key', '--port', '--worktree-root']);

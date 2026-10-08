@@ -126,6 +126,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/reaper/select.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/reaper/stop.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/sshd-config.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/status/docs.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/report.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/sign.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -148,6 +149,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/render.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/run-members.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/setup.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/status-docs.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/stop-run.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/stop.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |

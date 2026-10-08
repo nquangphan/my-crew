@@ -16,6 +16,8 @@ không cần token và không login lại.
 - `crew-mac status config --url <Paperclip origin> --company <UUID>`: lưu origin, `companyId` UUID và sinh `machineId` UUID nếu chưa có.
 - `crew-mac status set-secret`: đọc secret từ stdin và lưu vào Keychain.
 - `crew-mac status send`: gửi bản tin máy v1 tới webhook `machine-status`.
+- `crew-mac status add-repo <projectId> <path>`: đăng ký repo git cho ảnh chụp docs; `remove-repo <projectId>`
+  gỡ repo; `list-repos` xem danh sách và commit gửi cuối.
 - `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`).
 - `crew-mac uninstall [--force]`: chạy trong Terminal trên màn hình Mac (qua sshd agent thì bị từ chối, trừ khi có `--force`).
 
@@ -95,6 +97,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook | `configureStatus`, `setStatusSecret`, `sendStatus` |
 | `apps/crew-mac/src/status/sign.ts` | Ký raw body | `signCrewBody` |
 | `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 | `buildMachineReport` |
+| `apps/crew-mac/src/status/docs.ts` | Đọc docs tại commit, kiểm chuẩn và secret-scan | `snapshotCommit`, `buildDocsSnapshot` |
 
 ## Bản tin trạng thái máy
 
@@ -113,6 +116,24 @@ chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 16 KB,
 `<timestamp>.<raw body>` trong header `X-Crew-Signature`, với `X-Crew-Timestamp` là giây Unix.
 Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây. Mọi mã HTTP ngoài
 2xx là thất bại; `status-last.json` ghi `{at, ok: false, httpStatus}` khi server từ chối.
+
+## Ảnh chụp docs
+
+`~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit}` với quyền `0600`. `projectId` phải là UUID;
+`path` là đường dẫn tuyệt đối tới repo git. Sau khi gửi bản tin máy, `status send` xét từng repo. Nó ưu tiên commit
+`origin/HEAD` đã có tại máy, không fetch. Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cuối cùng
+`HEAD`. Vì vậy repo chỉ có nhánh khác cần đặt `origin/HEAD` để chọn đúng nhánh mặc định.
+
+Khi commit khác `lastCommit`, lệnh dựng ảnh chụp từ mọi file `.md` dưới `docs/` ở commit đó bằng git, không đọc
+working tree. Một git worktree tạm detached được dùng để chạy `crew-docs check --all`; kết quả 0/1/2–3 lần lượt
+thành `auditState` `verified`/`invalid`/`unverified`. Lệnh lấy bundle từ git config `crew-docs.bundle` của repo.
+Mỗi trang được rà secret bằng luật R7 của `crew-docs`; trang bị phát hiện được bỏ khỏi `pages`, chỉ ghi đường dẫn
+và lý do `secret-scan` vào `dropped`. Bản tin chứa title, nội dung, SHA-256, thư mục cha và trạng thái link Markdown
+tương đối (`ok`, `missing`, `external`, `unverified`).
+
+Body JSON tối đa 5 MB. Nếu vượt giới hạn, HTTP khác 2xx hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau
+thử lại. Khi POST `docs-snapshot` thành công, nó mới cập nhật commit đã gửi. Bản tin dùng cùng secret Keychain và
+cùng quy tắc HMAC với bản tin máy. Lệnh chỉ cảnh báo số trang bị bỏ, không ghi nội dung hay chuỗi bí mật ra log.
 
 ## Dữ liệu
 
@@ -147,4 +168,5 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.
 - `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.
+- `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
 - Các test còn lại kiểm từng module thuần (`zshenv`, `authorized-keys`, `render`, `system-wrappers`, `system`).
