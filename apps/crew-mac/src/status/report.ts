@@ -6,6 +6,7 @@ import { SUPERPOWERS_PLUGIN_KEY } from '../workflows/pin.js';
 
 export interface MachineReport {
   version: 1;
+  companyId: string;
   machineId: string;
   hostname: string;
   sentAt: string;
@@ -24,6 +25,7 @@ function finite(value: number): number | null {
 
 export async function buildMachineReport(
   ctx: MacContext,
+  companyId: string,
   machineId: string,
   _env: NodeJS.ProcessEnv = {},
 ): Promise<MachineReport> {
@@ -51,6 +53,7 @@ export async function buildMachineReport(
   const ownerInstalled = readInstalledPlugins(ctx.home, SUPERPOWERS_PLUGIN_KEY)[0]?.version ?? null;
   const report: MachineReport = {
     version: 1,
+    companyId,
     machineId,
     hostname: hostname().slice(0, 255),
     sentAt: ctx.now().toISOString(),

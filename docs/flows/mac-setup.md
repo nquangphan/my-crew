@@ -13,7 +13,7 @@ không cần token và không login lại.
 - `crew-mac setup --paperclip-key <file .pub>`: chạy trong Terminal trên màn hình Mac. In `adapterConfig.command` và
   `adapterConfig.extraArgs` (Superpowers đã ghim, flow `mac-workflows`) cần đặt cho agent `claude_local`.
 - `crew-mac doctor [--no-probe]`: chạy bất kỳ lúc nào, kể cả qua SSH.
-- `crew-mac status config --url <Paperclip origin>`: lưu origin và sinh `machineId` UUID nếu chưa có.
+- `crew-mac status config --url <Paperclip origin> --company <UUID>`: lưu origin, `companyId` UUID và sinh `machineId` UUID nếu chưa có.
 - `crew-mac status set-secret`: đọc secret từ stdin và lưu vào Keychain.
 - `crew-mac status send`: gửi bản tin máy v1 tới webhook `machine-status`.
 - `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`).
@@ -102,7 +102,8 @@ không cần token và không login lại.
 Job ghi log vào `~/.crew/logs/status.log`; `uninstall` gỡ job và plist. `doctor` kiểm job đã nạp
 và đọc lần gửi gần nhất từ `~/.crew/status-last.json` (`at`, `ok`, `httpStatus`).
 
-`~/.crew/status.json` giữ `url` và `machineId` UUID. Secret chỉ nằm trong Keychain với service
+`~/.crew/status.json` giữ `url`, `companyId` UUID và `machineId` UUID. `companyId` bắt buộc khi gửi và
+được đặt ngay sau `version` trong bản tin máy v1. Secret chỉ nằm trong Keychain với service
 `crew-mac-status`, account `crew-mac`; lệnh `set-secret` đọc stdin. CLI `security` buộc truyền
 secret qua đối số `-w`, nên process khác có thể thấy đối số này rất ngắn qua `ps`; cần cân nhắc
 helper native dùng Keychain API trực tiếp để loại bỏ rủi ro đó. Không ghi secret vào file hoặc log.
@@ -110,7 +111,8 @@ helper native dùng Keychain API trực tiếp để loại bỏ rủi ro đó. 
 `send` dùng các parser và check của `doctor` để lấy tải máy, hộp thoại TCC, Claude và Superpowers;
 chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 16 KB, ký HMAC-SHA256 trên
 `<timestamp>.<raw body>` trong header `X-Crew-Signature`, với `X-Crew-Timestamp` là giây Unix.
-Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây.
+Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây. Mọi mã HTTP ngoài
+2xx là thất bại; `status-last.json` ghi `{at, ok: false, httpStatus}` khi server từ chối.
 
 ## Dữ liệu
 

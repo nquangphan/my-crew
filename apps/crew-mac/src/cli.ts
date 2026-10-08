@@ -21,7 +21,7 @@ export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 Cách dùng:
   crew-mac setup --paperclip-key <file .pub | chuỗi key> [--port 2222] [--worktree-root <thư mục>]
   crew-mac doctor [--no-probe] [--tcc-window 24h] [--probe-timeout 90]
-  crew-mac status config --url <Paperclip origin>
+  crew-mac status config --url <Paperclip origin> --company <UUID>
   crew-mac status set-secret   (đọc một dòng từ stdin)
   crew-mac status send
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
@@ -133,10 +133,12 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
       case 'status': {
         const [subcommand, ...rest] = args;
         if (subcommand === 'config') {
-          const flags = parseFlags(rest, ['--url']);
+          const flags = parseFlags(rest, ['--url', '--company']);
           const url = flags.value('--url');
+          const companyId = flags.value('--company');
           if (!url) throw new UsageError('--url là bắt buộc');
-          const config = configureStatus(ctx, url);
+          if (!companyId) throw new UsageError('--company là bắt buộc');
+          const config = configureStatus(ctx, url, companyId);
           io.out(`Đã cấu hình máy ${config.machineId}.`);
           return 0;
         }
