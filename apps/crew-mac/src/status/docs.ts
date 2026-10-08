@@ -122,7 +122,7 @@ export function removeOwnTempDir(path: string): void {
   }
 }
 
-export function buildDocsSnapshot(root: string, commit: string) {
+export function buildDocsSnapshot(root: string, commit: string, repoName = basename(root)) {
   const bundle = checkBundle(root);
   const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-docs-'));
   const checkout = join(tmp, 'checkout');
@@ -134,8 +134,12 @@ export function buildDocsSnapshot(root: string, commit: string) {
       timeout: 60_000,
     });
     const checkExit = audit.status ?? 2;
-    const paths = git(root, ['ls-tree', '-r', '-z', '--name-only', commit, '--', 'docs'])
+    const paths = git(root, ['ls-tree', '-r', '-z', commit, '--', 'docs'])
       .split('\0')
+      .flatMap((entry) => {
+        const match = /^(100644|100755) blob [0-9a-f]+\t(.+)$/.exec(entry);
+        return match?.[2] ? [match[2]] : [];
+      })
       .filter((p) => p.startsWith('docs/') && p.endsWith('.md'))
       .sort();
     // A new temporary repo makes every committed page an added line for docs-kit's R7 scanner.
@@ -146,8 +150,14 @@ export function buildDocsSnapshot(root: string, commit: string) {
     writeFileSync(join(scanRoot, 'docs', 'flows.yaml'), 'version: 1\nflows: {}\n');
     const binaryPaths = new Set<string>();
     const scanPaths = new Map<string, string>();
+    const metadataPaths = new Map<string, string>();
+    writeFileSync(join(scanRoot, 'docs', 'repo-metadata.md'), repoName);
     for (const [index, path] of paths.entries()) {
       const text = git(root, ['show', `${commit}:${path}`]);
+      const title = /^#\s+(.+)$/m.exec(text)?.[1]?.trim() || basename(path, '.md');
+      const metadataPath = `docs/metadata-${index}.md`;
+      metadataPaths.set(metadataPath, path);
+      writeFileSync(join(scanRoot, metadataPath), `${path}\n${title}\n`);
       if (text.includes('\0')) {
         binaryPaths.add(path);
         continue;
@@ -165,19 +175,23 @@ export function buildDocsSnapshot(root: string, commit: string) {
     });
     if (scan.error || scan.status === null || scan.status > 1) throw new Error('Không chạy được secret-scan');
     const droppedPaths = new Set<string>(binaryPaths);
+    const metadataDropped = new Set<string>();
     for (const line of scan.stdout.split('\n')) {
       const match = /^R7 (.+?): line \d+ looks like a credential/.exec(line);
       if (match?.[1]) {
         const path = scanPaths.get(match[1]);
-        if (!path) throw new Error('Secret-scan trả đường dẫn không rõ');
-        droppedPaths.add(path);
+        const metadataPath = metadataPaths.get(match[1]);
+        if (match[1] === 'docs/repo-metadata.md') throw new Error('Tên repo không qua secret-scan');
+        if (metadataPath) metadataDropped.add(metadataPath);
+        else if (path) droppedPaths.add(path);
+        else throw new Error('Secret-scan trả đường dẫn không rõ');
       }
     }
-    if (scan.status === 1 && droppedPaths.size === binaryPaths.size)
+    if (scan.status === 1 && droppedPaths.size === binaryPaths.size && metadataDropped.size === 0)
       throw new Error('Secret-scan không trả kết quả');
     const allDocs = new Set(paths);
     const pages: Page[] = paths
-      .filter((path) => !droppedPaths.has(path))
+      .filter((path) => !droppedPaths.has(path) && !metadataDropped.has(path))
       .map((path) => {
         const text = git(root, ['show', `${commit}:${path}`]);
         const title = /^#\s+(.+)$/m.exec(text)?.[1]?.trim() || basename(path, '.md');
@@ -185,7 +199,7 @@ export function buildDocsSnapshot(root: string, commit: string) {
         return {
           path,
           title,
-          parentPath: parent === 'docs' ? null : parent,
+          parentPath: parent,
           text,
           sha256: createHash('sha256').update(text).digest('hex'),
         };
@@ -196,10 +210,17 @@ export function buildDocsSnapshot(root: string, commit: string) {
       checkExit,
       pages,
       links: pages.flatMap((page) => linksOf(page, pagePaths, allDocs)),
-      dropped: [...droppedPaths]
-        .filter((path) => allDocs.has(path))
-        .sort()
-        .map((path) => ({ path, reason: 'secret-scan' as const })),
+      dropped: (
+        [...droppedPaths]
+          .filter((path) => allDocs.has(path))
+          .sort()
+          .map((path) => ({ path, reason: 'secret-scan' as const })) as {
+          path: string;
+          reason: 'secret-scan' | 'secret-scan-metadata';
+        }[]
+      ).concat(
+        [...metadataDropped].map(() => ({ path: '<đã che>', reason: 'secret-scan-metadata' as const })),
+      ),
     };
   } finally {
     try {

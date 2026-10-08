@@ -3,13 +3,15 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { setup } from '../src/commands/setup.js';
+import { configureStatus, readStatusConfig } from '../src/commands/status.js';
 import { SetupError } from '../src/context.js';
 import { macPaths, REAPER_LABEL, SSHD_LABEL, STATUS_LABEL } from '../src/paths.js';
 import { superpowersPinDir } from '../src/workflows/pin.js';
@@ -19,6 +21,20 @@ import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY } from '../src/zshenv.js';
 import { FIXTURE_PIN, fakeMac, PAPERCLIP_PUB, seedOwnerPlugin } from './helpers/fake-mac.js';
 
 describe('crew-mac setup', () => {
+  it('lưu đường dẫn Claude tuyệt đối để job chạy với PATH launchd tối thiểu', async () => {
+    const { home, ctx } = fakeMac();
+    configureStatus(ctx, 'https://paperclip.example', '22222222-2222-4222-8222-222222222222');
+    const claudePath = join(home, '.local', 'bin', 'claude');
+    mkdirSync(join(home, '.local', 'bin'), { recursive: true });
+    writeFileSync(claudePath, '#!/bin/sh\n', { mode: 0o755 });
+    vi.stubEnv('PATH', '/usr/bin:/bin:/usr/sbin:/sbin');
+    try {
+      await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+      expect(readStatusConfig(ctx)?.claudePath).toBe(realpathSync(claudePath));
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
   it('~/.zshenv có khối mở mà thiếu dòng đóng thì dừng và giữ nguyên file', async () => {
     const { home, ctx } = fakeMac();
     const broken = `export A=1\n${PATH_BLOCK_BEGIN}\n${PATH_BLOCK_BODY}\nexport OWNER=giu\n`;

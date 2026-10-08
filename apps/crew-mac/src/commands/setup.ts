@@ -25,6 +25,7 @@ import { installSuperpowersPin } from '../workflows/install.js';
 import { agentExtraArgs } from '../workflows/pin.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { upsertPathBlock } from '../zshenv.js';
+import { saveConfiguredClaudePath } from './status.js';
 
 export interface SetupOptions {
   paperclipKey?: string;
@@ -230,5 +231,6 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
     installedAt: previous?.installedAt ?? ctx.now().toISOString(),
   };
   track(paths.manifest, writeManifest(paths.manifest, manifest));
+  saveConfiguredClaudePath(ctx);
   return { changed, restarted, manifest, superpowers: { dir: pin.dir, extraArgs: agentExtraArgs(pin.dir) } };
 }

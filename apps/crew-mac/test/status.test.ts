@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { main } from '../src/cli.js';
-import { configureStatus, sendStatus, setStatusSecret } from '../src/commands/status.js';
+import { configureStatus, resolveClaudePath, sendStatus, setStatusSecret } from '../src/commands/status.js';
 import { buildMachineReport } from '../src/status/report.js';
 import { signCrewBody } from '../src/status/sign.js';
 import { fakeMac } from './helpers/fake-mac.js';
@@ -26,13 +26,23 @@ describe('crew-mac status', () => {
   });
 
   it('bản tin giữ đúng shape, bỏ chi tiết check và mọi secret env', async () => {
-    const { ctx, runner } = fakeMac();
+    const { ctx, runner, home } = fakeMac();
+    mkdirSync(join(home, '.local', 'bin'), { recursive: true });
+    const claudePath = join(home, '.local', 'bin', 'claude');
+    writeFileSync(claudePath, '#!/bin/sh\n', { mode: 0o755 });
+    expect(resolveClaudePath(home, '/usr/bin:/bin:/usr/sbin:/sbin')).toBe(realpathSync(claudePath));
+    configureStatus(ctx, 'https://paperclip.example', '22222222-2222-4222-8222-222222222222');
+    const configPath = join(home, '.crew', 'status.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({ ...JSON.parse(readFileSync(configPath, 'utf8')), claudePath }),
+    );
     runner.on('/usr/sbin/sysctl', (args) => ({
       stdout: args.includes('vm.loadavg') ? '{ 2.2 2.0 1.0 }' : '10',
     }));
     runner.on('/usr/bin/memory_pressure', () => ({ stdout: 'System-wide memory free percentage: 52%' }));
     runner.on('/usr/bin/log', () => ({ stdout: '' }));
-    runner.on('claude', (args) => ({
+    runner.on(claudePath, (args) => ({
       stdout: args.includes('--version') ? '2.1.294' : '{"loggedIn":true,"subscriptionType":"max"}',
     }));
     const report = await buildMachineReport(
@@ -58,6 +68,45 @@ describe('crew-mac status', () => {
     expect(body).not.toContain('sk-test-super-secret-value');
     expect(body).not.toContain('SECRET_ACCESS_TOKEN');
     expect(Buffer.byteLength(body)).toBeLessThanOrEqual(16 * 1024);
+  });
+
+  it('probe không đọc được giữ các trường nullable và vẫn tạo bản tin', async () => {
+    const { ctx, runner } = fakeMac({ ownerSuperpowers: false });
+    runner.on('/usr/sbin/sysctl', () => ({ code: 1, timedOut: true }));
+    runner.on('/usr/bin/memory_pressure', () => ({ code: 1, timedOut: true }));
+    runner.on('claude', () => ({ code: 127, timedOut: true }));
+    const report = await buildMachineReport(
+      ctx,
+      '22222222-2222-4222-8222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+    );
+    expect([report.load1, report.cpuCount, report.memFreePct]).toEqual([null, null, null]);
+    expect(report.claude).toEqual({ version: null, loggedIn: null, plan: null });
+    expect(report.superpowers).toEqual({ pinned: null, ownerInstalled: null });
+    expect(report.tccPending).toEqual([]);
+    expect(Array.isArray(report.checks)).toBe(true);
+  });
+
+  it('Claude logout được báo false và plan null', async () => {
+    const { ctx, runner, home } = fakeMac();
+    const claudePath = join(home, '.local', 'bin', 'claude');
+    mkdirSync(join(home, '.local', 'bin'), { recursive: true });
+    writeFileSync(claudePath, '#!/bin/sh\n', { mode: 0o755 });
+    configureStatus(ctx, 'https://paperclip.example', '22222222-2222-4222-8222-222222222222');
+    const configPath = join(home, '.crew', 'status.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({ ...JSON.parse(readFileSync(configPath, 'utf8')), claudePath }),
+    );
+    runner.on(claudePath, (args) => ({
+      stdout: args.includes('--version') ? '2.1.294' : '{"loggedIn":false}',
+    }));
+    const report = await buildMachineReport(
+      ctx,
+      '22222222-2222-4222-8222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+    );
+    expect(report.claude).toEqual({ version: '2.1.294', loggedIn: false, plan: null });
   });
 
   it('set-secret ghi Keychain qua runner và send dùng chữ ký, ghi kết quả', async () => {
@@ -115,7 +164,7 @@ describe('crew-mac status', () => {
   });
 
   it('send từ chối config cũ thiếu companyId và báo tiếng Việt', async () => {
-    const { ctx, home, out } = fakeMac();
+    const { ctx, home } = fakeMac();
     configureStatus(ctx, 'https://paperclip.example', '22222222-2222-4222-8222-222222222222');
     const configPath = join(home, '.crew', 'status.json');
     const config = JSON.parse(readFileSync(configPath, 'utf8'));

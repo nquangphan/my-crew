@@ -4,9 +4,12 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -18,9 +21,10 @@ import {
   listStatusRepos,
   removeStatusRepo,
   sendDocsSnapshots,
+  sendStatus,
 } from '../src/commands/status.js';
-import { fakeMac } from './helpers/fake-mac.js';
 import { buildDocsSnapshot, removeOwnTempDir } from '../src/status/docs.js';
+import { fakeMac } from './helpers/fake-mac.js';
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
 const COMPANY = '22222222-2222-4222-8222-222222222222';
@@ -61,7 +65,9 @@ describe('status docs snapshots', () => {
     writeFileSync(failingBundle, "process.exit(process.argv.includes('--staged') ? 2 : 0);\n");
     git(repo, 'config', 'crew-docs.bundle', failingBundle);
     const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-')));
-    expect(() => buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'))).toThrow('Không chạy được secret-scan');
+    expect(() => buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'))).toThrow(
+      'Không chạy được secret-scan',
+    );
     const after = readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-'));
     expect(after.filter((name) => !before.has(name))).toEqual([]);
   });
@@ -115,12 +121,112 @@ describe('status docs snapshots', () => {
       commit: git(repo, 'rev-parse', 'HEAD'),
     });
     expect(body.pages.map((p: { path: string }) => p.path)).toEqual(['docs/guide/ok.md', 'docs/index.md']);
+    expect(body.pages.map((p: { parentPath: string }) => p.parentPath)).toEqual(['docs/guide', 'docs']);
     expect(body.dropped).toEqual([{ path: 'docs/private.md', reason: 'secret-scan' }]);
     expect(requests[0]?.body).not.toContain('ghp_');
     expect(body.links.map((l: { status: string }) => l.status)).toEqual(['ok', 'missing', 'external']);
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBe(body.commit);
     await sendDocsSnapshots(ctx, fetcher);
     expect(requests).toHaveLength(1);
+  });
+
+  it('bỏ metadata có token và không gửi nếu tên repo có token', async () => {
+    const { ctx, runner, out } = fakeMac();
+    const repo = fixture();
+    const token = ['ghp_', 'a'.repeat(36)].join('');
+    writeFileSync(join(repo, 'docs', `${token}.md`), '# Safe\n');
+    writeFileSync(join(repo, 'docs', 'title.md'), `# ${token}\n`);
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: metadata');
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    let body = '';
+    await sendDocsSnapshots(ctx, async (_url, init) => {
+      body = String(init?.body);
+      return new Response('', { status: 200 });
+    });
+    const snapshot = JSON.parse(body);
+    expect(snapshot.dropped).toContainEqual({ path: '<đã che>', reason: 'secret-scan-metadata' });
+    expect(snapshot.pages.map((page: { path: string }) => page.path)).not.toContain(`docs/${token}.md`);
+    expect(snapshot.pages.map((page: { path: string }) => page.path)).not.toContain('docs/title.md');
+    expect(body + out.join('\n')).not.toContain(token);
+  });
+
+  it('bỏ symlink dù đích ở ngoài docs hoặc là khóa SSH', () => {
+    const repo = fixture();
+    symlinkSync('../../outside.md', join(repo, 'docs', 'outside-link.md'));
+    symlinkSync('/tmp/fake-home/.ssh/id_ed25519', join(repo, 'docs', 'key-link.md'));
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: links');
+    const snapshot = buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'));
+    expect(snapshot.pages.map((page) => page.path)).not.toContain('docs/outside-link.md');
+    expect(snapshot.pages.map((page) => page.path)).not.toContain('docs/key-link.md');
+  });
+
+  it('bỏ gitlink submodule khỏi pages', () => {
+    const repo = fixture();
+    const sha = git(repo, 'rev-parse', 'HEAD');
+    git(repo, 'update-index', '--add', '--cacheinfo', '160000', sha, 'docs/submodule.md');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: gitlink');
+    expect(buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD')).pages.map((p) => p.path)).not.toContain(
+      'docs/submodule.md',
+    );
+  });
+
+  it('tên repo chứa token không gửi snapshot và không lộ tên trong log', async () => {
+    const { ctx, runner, out } = fakeMac();
+    const original = fixture();
+    const token = ['ghp_', 'a'.repeat(36)].join('');
+    const repo = join(mkdtempSync(join(tmpdir(), 'crew-repo-name-')), `crew-${token}`);
+    renameSync(original, repo);
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    let calls = 0;
+    expect(
+      await sendDocsSnapshots(ctx, async () => {
+        calls++;
+        return new Response('', { status: 200 });
+      }),
+    ).toBe(false);
+    expect(calls).toBe(0);
+    expect(out.join('\n')).not.toContain(token);
+  });
+
+  it('gửi docs dù bản tin máy lỗi và báo job thất bại', async () => {
+    const { ctx, runner } = fakeMac();
+    const repo = fixture();
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    const sent: string[] = [];
+    await expect(
+      sendStatus(ctx, async (url) => {
+        sent.push(String(url));
+        return new Response('', { status: String(url).endsWith('machine-status') ? 502 : 200 });
+      }),
+    ).rejects.toThrow();
+    expect(sent).toHaveLength(2);
+    expect(listStatusRepos(ctx)[0]?.lastCommit).toBe(git(repo, 'rev-parse', 'HEAD'));
+  });
+
+  it('giữ bản tin máy thành công khi docs lỗi và báo job thất bại', async () => {
+    const { ctx, runner, home } = fakeMac();
+    const repo = fixture();
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    const sent: string[] = [];
+    await expect(
+      sendStatus(ctx, async (url) => {
+        sent.push(String(url));
+        return new Response('', { status: String(url).endsWith('docs-snapshot') ? 502 : 200 });
+      }),
+    ).rejects.toThrow();
+    expect(sent).toHaveLength(2);
+    expect(JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8')).ok).toBe(true);
+    expect(listStatusRepos(ctx)[0]?.lastCommit).toBeNull();
   });
 
   it('HTTP 502 và body quá 5 MB giữ lastCommit', async () => {

@@ -105,13 +105,13 @@ không cần token và không login lại.
 Job ghi log vào `~/.crew/logs/status.log`; `uninstall` gỡ job và plist. `doctor` kiểm job đã nạp
 và đọc lần gửi gần nhất từ `~/.crew/status-last.json` (`at`, `ok`, `httpStatus`).
 
-`~/.crew/status.json` giữ `url`, `companyId` UUID và `machineId` UUID. `companyId` bắt buộc khi gửi và
+`~/.crew/status.json` giữ `url`, `companyId` UUID, `machineId` UUID và đường dẫn tuyệt đối `claudePath` (không chứa secret). `setup` resolve Claude và cập nhật đường dẫn này nếu đã có cấu hình; `status config` cũng resolve khi tạo cấu hình. Khi cấu hình cũ chưa có đường dẫn, bản tin tìm Claude trong PATH rồi `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, nên job launchd với PATH tối thiểu vẫn chạy được. `companyId` bắt buộc khi gửi và
 được đặt ngay sau `version` trong bản tin máy v1. Secret chỉ nằm trong Keychain với service
 `crew-mac-status`, account `crew-mac`; lệnh `set-secret` đọc stdin. CLI `security` buộc truyền
 secret qua đối số `-w`, nên process khác có thể thấy đối số này rất ngắn qua `ps`; cần cân nhắc
 helper native dùng Keychain API trực tiếp để loại bỏ rủi ro đó. Không ghi secret vào file hoặc log.
 
-`send` dùng các parser và check của `doctor` để lấy tải máy, hộp thoại TCC, Claude và Superpowers;
+`send` dùng các parser và check của `doctor` để lấy tải máy, hộp thoại TCC, Claude và Superpowers; probe không đọc được trả `null` ở các trường cho phép theo hợp đồng webhook, vẫn gửi bản tin. Bản tin máy và ảnh chụp docs được gửi độc lập; một bên lỗi không chặn bên kia nhưng job trả lỗi.
 chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 16 KB, ký HMAC-SHA256 trên
 `<timestamp>.<raw body>` trong header `X-Crew-Signature`, với `X-Crew-Timestamp` là giây Unix.
 Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây. Mọi mã HTTP ngoài
@@ -120,7 +120,7 @@ Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạ
 ## Ảnh chụp docs
 
 `~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit}` với quyền `0600`. `projectId` phải là UUID;
-`path` là đường dẫn tuyệt đối tới repo git. Sau khi gửi bản tin máy, `status send` xét từng repo. Nó ưu tiên commit
+`path` là đường dẫn tuyệt đối tới repo git. Trong cùng lượt gửi, `status send` xét từng repo. Nó ưu tiên commit
 `origin/HEAD` đã có tại máy, không fetch. Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cuối cùng
 `HEAD`. Vì vậy repo chỉ có nhánh khác cần đặt `origin/HEAD` để chọn đúng nhánh mặc định.
 
@@ -128,9 +128,9 @@ Khi commit khác `lastCommit`, lệnh dựng ảnh chụp từ mọi file `.md` 
 working tree. Git worktree và repo secret-scan trong thư mục tạm `crew-mac-docs-*` được xóa sau mỗi lần dựng ảnh chụp.
 Một git worktree tạm detached được dùng để chạy `crew-docs check --all`; kết quả 0/1/2–3 lần lượt
 thành `auditState` `verified`/`invalid`/`unverified`. Lệnh lấy bundle từ git config `crew-docs.bundle` của repo.
-Mỗi trang được rà secret bằng luật R7 của `crew-docs`; trang bị phát hiện được bỏ khỏi `pages`, chỉ ghi đường dẫn
+Chỉ Git blob file thường mode `100644`/`100755` được đưa vào ảnh chụp; symlink và submodule bị bỏ. Mỗi trang được rà secret bằng luật R7 của `crew-docs`, gồm nội dung và metadata sẽ gửi (đường dẫn, title, tên repo). Nếu tên repo bị phát hiện, không gửi ảnh chụp và chỉ log lỗi theo project ID. Trang có metadata bị phát hiện được bỏ khỏi `pages`, ghi `{"path":"<đã che>","reason":"secret-scan-metadata"}` trong `dropped`. Trang chỉ có nội dung bị phát hiện được bỏ khỏi `pages`, ghi đường dẫn
 và lý do `secret-scan` vào `dropped`. File Markdown có byte NUL cũng bị bỏ vì Git coi là binary và R7 không quét
-được các dòng của nó. Bản tin chứa title, nội dung, SHA-256, thư mục cha và trạng thái link Markdown
+được các dòng của nó. Bản tin chứa title, nội dung, SHA-256, `parentPath` là thư mục cha (kể cả `docs` cho file ngay dưới `docs/`) và trạng thái link Markdown
 tương đối (`ok`, `missing`, `external`, `unverified`).
 
 Body JSON tối đa 5 MB. Nếu vượt giới hạn, HTTP khác 2xx hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau

@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import {
+  accessSync,
   chmodSync,
+  constants,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -12,7 +14,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, isAbsolute, join } from 'node:path';
+import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { buildDocsSnapshot, snapshotCommit } from '../status/docs.js';
 import { buildMachineReport } from '../status/report.js';
@@ -22,6 +24,7 @@ export interface StatusConfig {
   url: string;
   companyId?: string;
   machineId: string;
+  claudePath?: string;
 }
 export class StatusSendError extends Error {}
 
@@ -130,6 +133,33 @@ export function readStatusConfig(ctx: MacContext): StatusConfig | null {
   }
 }
 
+export function resolveClaudePath(home: string, pathEnv = process.env.PATH ?? ''): string | null {
+  for (const dir of [
+    ...pathEnv.split(delimiter),
+    join(home, '.local/bin'),
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+  ]) {
+    if (!dir || !isAbsolute(dir)) continue;
+    const candidate = join(dir, 'claude');
+    try {
+      accessSync(candidate, constants.X_OK);
+      return realpathSync(candidate);
+    } catch {
+      /* thử nơi khác */
+    }
+  }
+  return null;
+}
+
+export function saveConfiguredClaudePath(ctx: MacContext): void {
+  const config = readStatusConfig(ctx);
+  if (!config) return;
+  const claudePath = resolveClaudePath(ctx.home);
+  if (claudePath && config.claudePath !== claudePath)
+    writePrivate(statusPath(ctx), { ...config, claudePath });
+}
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function configureStatus(ctx: MacContext, url: string, companyId: string): StatusConfig {
@@ -149,6 +179,7 @@ export function configureStatus(ctx: MacContext, url: string, companyId: string)
     url: parsed.origin,
     companyId,
     machineId: readStatusConfig(ctx)?.machineId ?? randomUUID(),
+    claudePath: resolveClaudePath(ctx.home) ?? readStatusConfig(ctx)?.claudePath,
   };
   writePrivate(statusPath(ctx), config);
   return config;
@@ -169,6 +200,7 @@ export async function setStatusSecret(ctx: MacContext, input: string): Promise<v
 export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<void> {
   let httpStatus: number | null = null;
   let failureMessage = 'crew-mac status: gửi thất bại; kiểm tra cấu hình và secret';
+  let machineFailed = false;
   try {
     const config = readStatusConfig(ctx);
     if (!config) throw new Error('config');
@@ -195,16 +227,22 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
     if (response.status < 200 || response.status >= 300) throw new Error('http');
     writePrivate(lastPath(ctx), { at: ctx.now().toISOString(), ok: true, httpStatus });
   } catch {
+    machineFailed = true;
     writePrivate(lastPath(ctx), { at: ctx.now().toISOString(), ok: false, httpStatus });
     ctx.out(httpStatus === null ? failureMessage : `crew-mac status: gửi thất bại (HTTP ${httpStatus})`);
-    throw new StatusSendError('Gửi trạng thái máy thất bại');
   }
-  await sendDocsSnapshots(ctx, fetcher);
+  let docsFailed = false;
+  try {
+    docsFailed = !(await sendDocsSnapshots(ctx, fetcher));
+  } catch {
+    docsFailed = true;
+  }
+  if (machineFailed || docsFailed) throw new StatusSendError('Gửi trạng thái thất bại');
 }
 
-export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<void> {
+export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<boolean> {
   const repos = listStatusRepos(ctx);
-  if (repos.length === 0) return;
+  if (repos.length === 0) return true;
   const config = readStatusConfig(ctx);
   if (!config?.companyId) throw new Error('Thiếu companyId');
   const found = await ctx.runner.run('security', ['find-generic-password', '-s', 'crew-mac-status', '-w'], {
@@ -212,11 +250,12 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
   });
   const secret = found.stdout.replace(/\r?\n$/, '');
   if (found.code !== 0 || !secret) throw new Error('Không đọc được secret Keychain');
+  let success = true;
   for (const repo of repos) {
     try {
       const commit = snapshotCommit(repo.path);
       if (commit === repo.lastCommit) continue;
-      const snapshot = buildDocsSnapshot(repo.path, commit);
+      const snapshot = buildDocsSnapshot(repo.path, commit, basename(repo.path));
       if (snapshot.dropped.length > 0)
         ctx.out(
           `crew-mac status: đã bỏ ${snapshot.dropped.length} file docs do secret-scan trong repo ${repo.projectId}.`,
@@ -232,6 +271,7 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
       });
       if (Buffer.byteLength(body, 'utf8') > 5 * 1024 * 1024) {
         ctx.out(`crew-mac status: ảnh chụp docs của ${repo.projectId} vượt 5 MB; sẽ thử lại.`);
+        success = false;
         continue;
       }
       const response = await fetcher(`${config.url}/api/plugins/crew.core/webhooks/docs-snapshot`, {
@@ -252,7 +292,9 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
         ),
       );
     } catch {
+      success = false;
       ctx.out(`crew-mac status: không gửi được ảnh chụp docs của ${repo.projectId}; sẽ thử lại.`);
     }
   }
+  return success;
 }
