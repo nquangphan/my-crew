@@ -5,6 +5,7 @@ import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
+import { configureStatus, StatusSendError, sendStatus, setStatusSecret } from './commands/status.js';
 import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
 import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
@@ -20,6 +21,9 @@ export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 Cách dùng:
   crew-mac setup --paperclip-key <file .pub | chuỗi key> [--port 2222] [--worktree-root <thư mục>]
   crew-mac doctor [--no-probe] [--tcc-window 24h] [--probe-timeout 90]
+  crew-mac status config --url <Paperclip origin>
+  crew-mac status set-secret   (đọc một dòng từ stdin)
+  crew-mac status send
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
@@ -126,6 +130,29 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
   try {
     const ctx: MacContext = { ...defaultContext(io.env, io.out), ...io.context };
     switch (command) {
+      case 'status': {
+        const [subcommand, ...rest] = args;
+        if (subcommand === 'config') {
+          const flags = parseFlags(rest, ['--url']);
+          const url = flags.value('--url');
+          if (!url) throw new UsageError('--url là bắt buộc');
+          const config = configureStatus(ctx, url);
+          io.out(`Đã cấu hình máy ${config.machineId}.`);
+          return 0;
+        }
+        if (subcommand === 'set-secret') {
+          if (rest.length > 0) throw new UsageError('set-secret không nhận đối số');
+          await setStatusSecret(ctx, readFileSync(0, 'utf8'));
+          io.out('Đã lưu secret vào Keychain.');
+          return 0;
+        }
+        if (subcommand === 'send') {
+          if (rest.length > 0) throw new UsageError('send không nhận đối số');
+          await sendStatus(ctx);
+          return 0;
+        }
+        throw new UsageError('status cần config, set-secret hoặc send');
+      }
       case 'setup': {
         const flags = parseFlags(args, ['--paperclip-key', '--port', '--worktree-root']);
         const key = flags.value('--paperclip-key');
@@ -270,6 +297,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         throw new UsageError(command === undefined ? 'thiếu lệnh' : `không có lệnh ${command}`);
     }
   } catch (error) {
+    if (error instanceof StatusSendError) return 1;
     if (error instanceof StopRunInputError) {
       io.err(`crew-mac: ${error.message}`);
       return 2;

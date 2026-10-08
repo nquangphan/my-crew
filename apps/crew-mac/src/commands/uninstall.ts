@@ -13,6 +13,7 @@ import {
   SPIKE_KEY_COMMENT,
   SPIKE_LABEL,
   SSHD_LABEL,
+  STATUS_LABEL,
 } from '../paths.js';
 import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
 import { descendants, isClaudeExe } from '../reaper/run-members.js';
@@ -126,10 +127,10 @@ export async function uninstall(
     : null;
   const removed: string[] = [];
 
-  for (const label of [REAPER_LABEL, SSHD_LABEL, SPIKE_LABEL]) {
+  for (const label of [STATUS_LABEL, REAPER_LABEL, SSHD_LABEL, SPIKE_LABEL]) {
     if (await bootout(ctx.runner, ctx.uid, label)) removed.push(`LaunchAgent ${label}`);
   }
-  for (const file of [paths.reaperPlist, paths.sshdPlist, paths.spikePlist]) {
+  for (const file of [paths.statusPlist, paths.reaperPlist, paths.sshdPlist, paths.spikePlist]) {
     if (existsSync(file)) {
       rmSync(file);
       removed.push(file);

@@ -109,6 +109,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/cli.ts` | [mac-setup](flows/mac-setup.md) (điểm vào) |
 | `apps/crew-mac/src/commands/doctor.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/setup.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/commands/status.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/stop-run.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (điểm vào) |
 | `apps/crew-mac/src/commands/uninstall.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/workflow-check.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
@@ -125,6 +126,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/reaper/select.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/reaper/stop.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/sshd-config.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/status/report.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/status/sign.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/tailscale.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/workflows/install.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
@@ -145,6 +148,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/render.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/run-members.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/setup.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/status.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/stop-run.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/stop.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/system-wrappers.test.ts` | [mac-setup](flows/mac-setup.md) (test) |

@@ -3,6 +3,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 
 export const SSHD_LABEL = 'com.2p.crew-mac-sshd';
 export const REAPER_LABEL = 'com.2p.crew-mac-reaper';
+export const STATUS_LABEL = 'com.2p.crew-mac-status';
 export const SPIKE_LABEL = 'com.2p.crew-spike-sshd';
 export const PAPERCLIP_KEY_COMMENT = 'crew-mac-paperclip';
 export const DOCTOR_KEY_COMMENT = 'crew-mac-doctor';
@@ -29,8 +30,12 @@ export function macPaths(home: string) {
     reaperDir: join(root, 'reaper'),
     reaperState: join(root, 'reaper', 'state.json'),
     reaperLog: join(root, 'reaper', 'reaper.log'),
+    statusConfig: join(home, '.crew', 'status.json'),
+    statusLast: join(home, '.crew', 'status-last.json'),
+    statusLog: join(home, '.crew', 'logs', 'status.log'),
     sshdPlist: join(agents, `${SSHD_LABEL}.plist`),
     reaperPlist: join(agents, `${REAPER_LABEL}.plist`),
+    statusPlist: join(agents, `${STATUS_LABEL}.plist`),
     spikePlist: join(agents, `${SPIKE_LABEL}.plist`),
     spikeDir: join(home, '.crew-spike-sshd'),
     authorizedKeys: join(home, '.ssh', 'authorized_keys'),

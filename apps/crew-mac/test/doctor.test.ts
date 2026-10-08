@@ -344,6 +344,8 @@ describe('crew-mac doctor', () => {
       ['tailscale', 'ok'],
       ['sshd-agent', 'ok'],
       ['reaper', 'ok'],
+      ['status-job', 'ok'],
+      ['status-last', 'warn'],
       ['sshd-port', 'ok'],
       ['zshenv-path', 'ok'],
       ['wrapper', 'ok'],

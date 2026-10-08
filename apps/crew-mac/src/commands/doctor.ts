@@ -5,7 +5,14 @@ import { readText } from '../fs-util.js';
 import { serviceState } from '../launchctl.js';
 import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
-import { forbiddenRootReason, type MacPaths, macPaths, REAPER_LABEL, SSHD_LABEL } from '../paths.js';
+import {
+  forbiddenRootReason,
+  type MacPaths,
+  macPaths,
+  REAPER_LABEL,
+  SSHD_LABEL,
+  STATUS_LABEL,
+} from '../paths.js';
 import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
@@ -193,6 +200,45 @@ async function checkReaper(ctx: MacContext): Promise<CheckResult> {
     };
   }
   return { ...base, status: 'ok', detail: `${REAPER_LABEL} chạy mỗi 60 giây` };
+}
+
+async function checkStatusJob(ctx: MacContext): Promise<CheckResult> {
+  const state = await serviceState(ctx.runner, ctx.uid, STATUS_LABEL);
+  return state.loaded
+    ? { id: 'status-job', title: 'Job gửi trạng thái máy', status: 'ok', detail: 'đã nạp, chạy mỗi 60 giây' }
+    : {
+        id: 'status-job',
+        title: 'Job gửi trạng thái máy',
+        status: 'fail',
+        detail: 'chưa nạp',
+        hint: 'Chạy lại "crew-mac setup".',
+      };
+}
+
+function checkStatusLast(ctx: MacContext): CheckResult {
+  const base = { id: 'status-last', title: 'Lần gửi trạng thái máy gần nhất' };
+  try {
+    const value = JSON.parse(readFileSync(macPaths(ctx.home).statusLast, 'utf8')) as {
+      at?: string;
+      ok?: boolean;
+      httpStatus?: number;
+    };
+    if (value.ok === true && typeof value.at === 'string')
+      return { ...base, status: 'ok', detail: `${value.at}, HTTP ${value.httpStatus ?? '?'}` };
+    return {
+      ...base,
+      status: 'warn',
+      detail: 'lần gửi gần nhất thất bại',
+      hint: 'Kiểm tra URL, Keychain và log ~/.crew/logs/status.log.',
+    };
+  } catch {
+    return {
+      ...base,
+      status: 'warn',
+      detail: 'chưa có lần gửi nào',
+      hint: 'Chạy "crew-mac status config --url <origin>" và "crew-mac status set-secret".',
+    };
+  }
 }
 
 async function checkSshdPort(ctx: MacContext, manifest: Manifest): Promise<CheckResult> {
@@ -777,6 +823,8 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkTailscale(ctx, manifest));
   results.push(await checkSshdService(ctx));
   results.push(await checkReaper(ctx));
+  results.push(await checkStatusJob(ctx));
+  results.push(checkStatusLast(ctx));
   results.push(await checkSshdPort(ctx, manifest));
   results.push(checkZshenv(ctx, paths));
   results.push(await checkWrapper(ctx, paths, manifest));

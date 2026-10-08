@@ -16,6 +16,7 @@ import {
   REAPER_LABEL,
   SPIKE_LABEL,
   SSHD_LABEL,
+  STATUS_LABEL,
 } from '../paths.js';
 import { type PlistSpec, renderPlist } from '../plist.js';
 import { renderSshdConfig } from '../sshd-config.js';
@@ -66,6 +67,19 @@ export function reaperPlistSpec(ctx: MacContext, paths: MacPaths): PlistSpec {
     processType: 'Background',
     stdoutPath: paths.reaperLog,
     stderrPath: paths.reaperLog,
+  };
+}
+
+export function statusPlistSpec(ctx: MacContext, paths: MacPaths): PlistSpec {
+  return {
+    label: STATUS_LABEL,
+    programArguments: [ctx.nodePath, ctx.cliPath, 'status', 'send'],
+    keepAlive: false,
+    startIntervalSec: 60,
+    aquaOnly: true,
+    processType: 'Background',
+    stdoutPath: paths.statusLog,
+    stderrPath: paths.statusLog,
   };
 }
 
@@ -156,6 +170,7 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   track(pin.dir, pin.changed);
   mkdirSync(paths.sshdDir, { recursive: true, mode: 0o700 });
   mkdirSync(paths.reaperDir, { recursive: true, mode: 0o700 });
+  mkdirSync(dirname(paths.statusLog), { recursive: true, mode: 0o700 });
   await ensureKeyPair(ctx, paths.hostKey, 'crew-mac-host', changed);
   await ensureKeyPair(ctx, paths.doctorKey, DOCTOR_KEY_COMMENT, changed);
 
@@ -197,6 +212,14 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   track(paths.reaperPlist, reaperPlistChanged);
   if (await ensureService(ctx, REAPER_LABEL, paths.reaperPlist, reaperPlistChanged, false))
     restarted.push(REAPER_LABEL);
+  const statusPlistChanged = writeIfChanged(
+    paths.statusPlist,
+    renderPlist(statusPlistSpec(ctx, paths)),
+    0o644,
+  );
+  track(paths.statusPlist, statusPlistChanged);
+  if (await ensureService(ctx, STATUS_LABEL, paths.statusPlist, statusPlistChanged, false))
+    restarted.push(STATUS_LABEL);
 
   const manifest: Manifest = {
     version: 1,
