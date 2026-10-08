@@ -1,8 +1,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, isAbsolute, join, posix } from 'node:path';
+import { basename, dirname, isAbsolute, join, posix } from 'node:path';
 
 type LinkStatus = 'ok' | 'missing' | 'external' | 'unverified';
 interface Page {
@@ -110,6 +110,18 @@ function checkBundle(root: string): string {
   return path;
 }
 
+export function removeOwnTempDir(path: string): void {
+  try {
+    const realTmpRoot = realpathSync(tmpdir());
+    const realPath = realpathSync(path);
+    if (dirname(realPath) === realTmpRoot && basename(realPath).startsWith('crew-mac-docs-')) {
+      rmSync(realPath, { recursive: true, force: true });
+    }
+  } catch {
+    // The directory may already be gone; never broaden cleanup beyond a verified path.
+  }
+}
+
 export function buildDocsSnapshot(root: string, commit: string) {
   const bundle = checkBundle(root);
   const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-docs-'));
@@ -190,6 +202,10 @@ export function buildDocsSnapshot(root: string, commit: string) {
         .map((path) => ({ path, reason: 'secret-scan' as const })),
     };
   } finally {
-    if (existsSync(checkout)) git(root, ['worktree', 'remove', '--force', checkout]);
+    try {
+      if (existsSync(checkout)) git(root, ['worktree', 'remove', '--force', checkout]);
+    } finally {
+      removeOwnTempDir(tmp);
+    }
   }
 }

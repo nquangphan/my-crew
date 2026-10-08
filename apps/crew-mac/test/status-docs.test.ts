@@ -1,5 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -11,6 +20,7 @@ import {
   sendDocsSnapshots,
 } from '../src/commands/status.js';
 import { fakeMac } from './helpers/fake-mac.js';
+import { buildDocsSnapshot, removeOwnTempDir } from '../src/status/docs.js';
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
 const COMPANY = '22222222-2222-4222-8222-222222222222';
@@ -37,6 +47,36 @@ function fixture() {
 }
 
 describe('status docs snapshots', () => {
+  it('xóa thư mục tạm sau khi dựng ảnh chụp thành công', () => {
+    const repo = fixture();
+    const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-')));
+    buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'));
+    const after = readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-'));
+    expect(after.filter((name) => !before.has(name))).toEqual([]);
+  });
+
+  it('xóa thư mục tạm khi dựng ảnh chụp ném lỗi sau khi tạo worktree', () => {
+    const repo = fixture();
+    const failingBundle = join(repo, 'fail-bundle.cjs');
+    writeFileSync(failingBundle, "process.exit(process.argv.includes('--staged') ? 2 : 0);\n");
+    git(repo, 'config', 'crew-docs.bundle', failingBundle);
+    const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-')));
+    expect(() => buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'))).toThrow('Không chạy được secret-scan');
+    const after = readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-'));
+    expect(after.filter((name) => !before.has(name))).toEqual([]);
+  });
+
+  it('không xóa đường dẫn ngoài tmpdir', () => {
+    const outside = mkdtempSync(join(process.cwd(), 'crew-mac-docs-outside-'));
+    try {
+      writeFileSync(join(outside, 'keep.txt'), 'keep');
+      removeOwnTempDir(outside);
+      expect(statSync(join(outside, 'keep.txt')).isFile()).toBe(true);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it('quản lý repo UUID, đường dẫn tuyệt đối và file mode 0600', () => {
     const { ctx, home } = fakeMac();
     const repo = fixture();
