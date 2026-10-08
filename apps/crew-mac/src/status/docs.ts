@@ -36,8 +36,25 @@ function gitTry(root: string, args: string[]): string | null {
   }
 }
 
-/** Prefer the remote default branch, then local main/master, then HEAD. Never fetch. */
-export function snapshotCommit(root: string): string {
+/** Prefer the fetched remote default branch, then local main/master, then HEAD. */
+export async function snapshotCommit(root: string): Promise<{ commit: string; fetchFailed: boolean }> {
+  let fetchFailed = false;
+  if (gitTry(root, ['remote', 'get-url', 'origin'])) {
+    try {
+      execFileSync(
+        'git',
+        ['-c', 'core.hooksPath=/dev/null', '-C', root, 'fetch', '--quiet', '--no-tags', '--prune', 'origin'],
+        { encoding: 'utf8', timeout: 20_000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
+      );
+    } catch {
+      fetchFailed = true;
+    }
+  }
+  return { commit: snapshotCommitFromRefs(root), fetchFailed };
+}
+
+/** Select an available ref without network access; used to validate repo registration. */
+export function snapshotCommitFromRefs(root: string): string {
   const remote = gitTry(root, ['symbolic-ref', '-q', 'refs/remotes/origin/HEAD']);
   for (const ref of [remote, 'refs/heads/main', 'refs/heads/master', 'HEAD']) {
     if (!ref) continue;

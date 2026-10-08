@@ -121,8 +121,9 @@ Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạ
 ## Ảnh chụp docs
 
 `~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit}` với quyền `0600`. `projectId` phải là UUID;
-`path` là đường dẫn tuyệt đối tới repo git. Trong cùng lượt gửi, `status send` xét từng repo. Nó ưu tiên commit
-`origin/HEAD` đã có tại máy, không fetch. Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cuối cùng
+`path` là đường dẫn tuyệt đối tới repo git. Trong cùng lượt gửi, `status send` xét từng repo. Nó fetch `origin`
+tối đa 20 giây rồi ưu tiên commit `origin/HEAD`; fetch lỗi thì dùng ref sẵn có và chỉ log cảnh báo kèm `projectId`.
+Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cuối cùng
 `HEAD`. Vì vậy repo chỉ có nhánh khác cần đặt `origin/HEAD` để chọn đúng nhánh mặc định.
 
 Khi commit khác `lastCommit`, lệnh dựng ảnh chụp từ mọi file `.md` dưới `docs/` ở commit đó bằng git, không đọc

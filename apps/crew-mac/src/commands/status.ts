@@ -16,7 +16,7 @@ import {
 } from 'node:fs';
 import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
 import type { MacContext } from '../context.js';
-import { buildDocsSnapshot, snapshotCommit } from '../status/docs.js';
+import { buildDocsSnapshot, snapshotCommit, snapshotCommitFromRefs } from '../status/docs.js';
 import { buildMachineReport } from '../status/report.js';
 import { signCrewBody } from '../status/sign.js';
 
@@ -106,7 +106,7 @@ export function addStatusRepo(ctx: MacContext, projectId: string, path: string):
   const top = execFileSync('git', ['-C', canonical, 'rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
   }).trim();
-  if (realpathSync(top) !== canonical || !snapshotCommit(canonical))
+  if (realpathSync(top) !== canonical || !snapshotCommitFromRefs(canonical))
     throw new Error('Đường dẫn không phải repo git');
   mutateRepos(ctx, (repos) => [
     ...repos.filter((repo) => repo.projectId !== projectId),
@@ -253,7 +253,9 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
   let success = true;
   for (const repo of repos) {
     try {
-      const commit = snapshotCommit(repo.path);
+      const selected = await snapshotCommit(repo.path);
+      const { commit } = selected;
+      if (selected.fetchFailed) ctx.out(`Không fetch được origin của ${repo.projectId}`);
       if (commit === repo.lastCommit) continue;
       const snapshot = buildDocsSnapshot(repo.path, commit, basename(repo.path));
       if (snapshot.dropped.length > 0)

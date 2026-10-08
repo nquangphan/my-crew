@@ -23,7 +23,7 @@ import {
   sendDocsSnapshots,
   sendStatus,
 } from '../src/commands/status.js';
-import { buildDocsSnapshot, removeOwnTempDir } from '../src/status/docs.js';
+import { buildDocsSnapshot, removeOwnTempDir, snapshotCommit } from '../src/status/docs.js';
 import { fakeMac } from './helpers/fake-mac.js';
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
@@ -51,6 +51,47 @@ function fixture() {
 }
 
 describe('status docs snapshots', () => {
+  it('fetch origin trước khi chọn commit cho ảnh chụp', async () => {
+    const seed = fixture();
+    const bare = join(mkdtempSync(join(tmpdir(), 'crew-docs-bare-')), 'repo.git');
+    git(seed, 'clone', '--bare', '.', bare);
+    const cloneA = join(mkdtempSync(join(tmpdir(), 'crew-docs-a-')), 'repo');
+    const cloneC = join(mkdtempSync(join(tmpdir(), 'crew-docs-c-')), 'repo');
+    execFileSync('git', ['clone', bare, cloneA], { stdio: 'ignore' });
+    execFileSync('git', ['clone', bare, cloneC], { stdio: 'ignore' });
+    git(cloneA, 'config', 'crew-docs.bundle', resolve('../..', 'packages/docs-kit/dist/crew-docs.cjs'));
+    writeFileSync(join(cloneC, 'docs', 'new.md'), '# New from C\n');
+    git(cloneC, 'add', '-A');
+    git(cloneC, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: from clone C');
+    const pushed = git(cloneC, 'rev-parse', 'HEAD');
+    git(cloneC, 'push', 'origin', 'HEAD:main');
+    const snapshot = await snapshotCommit(cloneA);
+    expect(snapshot).toEqual({ commit: pushed, fetchFailed: false });
+    expect(git(cloneA, 'status', '--porcelain')).toBe('');
+  });
+
+  it('khi fetch origin lỗi, giữ ref cũ và báo cảnh báo', async () => {
+    const { ctx, runner, out } = fakeMac();
+    const repo = fixture();
+    const old = git(repo, 'rev-parse', 'HEAD');
+    git(repo, 'remote', 'add', 'origin', '/path/that/does/not/exist');
+    git(repo, 'update-ref', 'refs/remotes/origin/main', old);
+    git(repo, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main');
+    expect(await snapshotCommit(repo)).toEqual({ commit: old, fetchFailed: true });
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    await sendDocsSnapshots(ctx, async () => new Response('', { status: 200 }));
+    expect(out).toContain(`Không fetch được origin của ${PROJECT}`);
+    expect(out.join('\n')).not.toContain('/path/that/does/not/exist');
+  });
+
+  it('không fetch repo không có origin', async () => {
+    const repo = fixture();
+    const commit = git(repo, 'rev-parse', 'HEAD');
+    expect(await snapshotCommit(repo)).toEqual({ commit, fetchFailed: false });
+  });
+
   it('xóa thư mục tạm sau khi dựng ảnh chụp thành công', () => {
     const repo = fixture();
     const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-')));
