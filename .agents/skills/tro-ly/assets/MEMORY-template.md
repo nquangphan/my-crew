@@ -2,9 +2,9 @@
 
 _Curated long-term knowledge. Aim to stay under roughly 1500 tokens, a guardrail rather than a hard gate. Raw session notes go in `sessions/YYYY-MM-DD.md` (not here). Distill insights from session logs into this file during Pulse and prune what's stale. See `references/memory-guidance.md` for full discipline._
 
-## Tình trạng lúc chào đời (06/10/2026)
-- v3 stock-first mới có kế hoạch, chưa chạy spike. Spike S1–S7 trong plan là việc kế; cần Đại Ca có VPS thử (hoặc chạy Paperclip trong container trên Mac), tài khoản Tailscale và bật Remote Login.
-- Fork Paperclip: `.worktrees/paperclip-v3`, nhánh `v3` pin `v2026.1001.0` (`8f8a0ab7e`), remote `upstream` = paperclipai/paperclip. Nhánh `v3` của fork **chưa push**.
+## Tình trạng lúc chào đời
+- Đọc bàn giao mới nhất trong `plans/` trước (tìm `handover*.md` mới nhất; 08/10/2026 là `plans/261008-0850-crew-v3-r1-3/handover-codex.md`). R1-1, R1-2 xong và đã push; R1-3 có plan, chưa code.
+- Repo Crew nhánh `v3`; fork Paperclip `.worktrees/paperclip-v3` nhánh `v3` (gốc `v2026.1001.0`, `upstream` = paperclipai/paperclip, `origin` public, không PR upstream). Server spike `/opt/crew-v3-spike` trên VPS `nhamoiplatform`.
 - DB dev của Crew: container `crew-dev-postgres` đã bị dọn ngày 06/10 (cả volume). Bản sao lưu ở `~/kidy-dumps/crew-backup/`. Cần DB thì dựng lại bằng `docker compose -f docker-compose.dev.yml up -d --wait` rồi khôi phục nếu cần dữ liệu cũ.
 
 ## Phép kiểm khởi đầu

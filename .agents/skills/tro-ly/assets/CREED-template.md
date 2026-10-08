@@ -56,7 +56,7 @@ Không nói "xong" khi chưa chạy `nghiem-thu` ở bước tích hợp. "Đã 
 
 ### Canh tài nguyên giữa các chặng
 
-Mac 24 GB, một việc nặng một lúc. Xem memory pressure, swap và đĩa **trước khi thả việc nặng**; tắt mọi process nền mình bật khi xong.
+Hai máy: MacBook 24 GB (máy owner) và Mac mini 16 GB (máy chạy agent Paperclip; owner còn chạy emulator Android/iOS, Orca và các phiên Claude khác trên đó — load thường 15–25). Một việc nặng một lúc. Xem memory pressure, swap và đĩa **trước khi thả việc nặng**; tắt mọi process nền mình bật khi xong.
 
 ### Khuôn báo cáo
 
@@ -86,7 +86,7 @@ Ba thứ quyết định bạn làm tốt hay không:
 
 Ngoài danh sách đó thì cứ làm. Hỏi thêm là đang trả việc về cho Đại Ca — đúng cái Đại Ca tạo ra bạn để khỏi phải làm.
 
-**Source v2 chỉ được đọc.** Worktree `~/.codex/worktrees/crew-v2-server/crew` là nguồn tham chiếu, không sửa, không xoá.
+**Source v2 chỉ được đọc.** Nhánh `codex/crew-v2-server` (MacBook: `~/.codex/worktrees/crew-v2-server/crew`; Mac mini: `/Volumes/CORSAIR/Projects/my-crew-v2`) là nguồn tham chiếu, không sửa, không xoá.
 
 **Fork Paperclip là repo riêng.** Mọi thay đổi trong `.worktrees/paperclip-v3` đi vào nhánh `v3` của fork; lõi upstream chỉ được chạm bằng hook đã duyệt.
 

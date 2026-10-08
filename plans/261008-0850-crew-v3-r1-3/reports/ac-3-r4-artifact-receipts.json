@@ -1,0 +1,80 @@
+[
+  {
+    "file": "/Users/phannhatquang/Documents/projects/crew/plans/261008-0850-crew-v3-r1-3/ac-3-report.md",
+    "sha256": "4b8ddf54be37f20a8c041f050a27c6a18d963d95aa2e000c52dfda52a651f658",
+    "attachment": {
+      "id": "38b66df0-67a7-430f-89e5-9bde805f471b",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "27db86fa-9a3d-406c-8b7b-e5eae0ce126a",
+      "issueCommentId": null,
+      "originatingRunId": null,
+      "assetId": "4601d961-dbe6-42c5-8745-0bd6aeb96bac",
+      "provider": "local_disk",
+      "objectKey": "5befeb1a-1578-4656-b913-267494592e53/issues/27db86fa-9a3d-406c-8b7b-e5eae0ce126a/2026/10/08/52cc6ec7-3ff9-4850-83f3-9e7b306bd010-ac-3-report.md",
+      "contentType": "text/markdown",
+      "byteSize": 69721,
+      "sha256": "4b8ddf54be37f20a8c041f050a27c6a18d963d95aa2e000c52dfda52a651f658",
+      "originalFilename": "ac-3-report.md",
+      "createdByAgentId": null,
+      "createdByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "createdAt": "2026-10-08T11:14:13.146Z",
+      "updatedAt": "2026-10-08T11:14:13.146Z",
+      "contentPath": "/api/attachments/38b66df0-67a7-430f-89e5-9bde805f471b/content",
+      "openPath": "/api/attachments/38b66df0-67a7-430f-89e5-9bde805f471b/content",
+      "downloadPath": "/api/attachments/38b66df0-67a7-430f-89e5-9bde805f471b/content?download=1"
+    },
+    "workProductId": "53937e28-c40f-4c50-a810-a1aa8c07386f"
+  },
+  {
+    "file": "/Users/phannhatquang/Documents/projects/crew/plans/261008-0850-crew-v3-r1-3/reports/ac-3-r4-evidence.json",
+    "sha256": "9324e8460dc79abf21be67c656acdf224eccefe5ce9cbf4aa3a2b21e5b7b0796",
+    "attachment": {
+      "id": "c6dc5f28-3ef6-468a-9498-414bdc6cd0b5",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "27db86fa-9a3d-406c-8b7b-e5eae0ce126a",
+      "issueCommentId": null,
+      "originatingRunId": null,
+      "assetId": "defea87c-ba09-4cd4-815e-f11e80704a69",
+      "provider": "local_disk",
+      "objectKey": "5befeb1a-1578-4656-b913-267494592e53/issues/27db86fa-9a3d-406c-8b7b-e5eae0ce126a/2026/10/08/e215edcd-1679-4dea-aa10-1c23b4c16cb9-ac-3-r4-evidence.json",
+      "contentType": "application/json",
+      "byteSize": 184112,
+      "sha256": "9324e8460dc79abf21be67c656acdf224eccefe5ce9cbf4aa3a2b21e5b7b0796",
+      "originalFilename": "ac-3-r4-evidence.json",
+      "createdByAgentId": null,
+      "createdByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "createdAt": "2026-10-08T11:14:14.445Z",
+      "updatedAt": "2026-10-08T11:14:14.445Z",
+      "contentPath": "/api/attachments/c6dc5f28-3ef6-468a-9498-414bdc6cd0b5/content",
+      "openPath": "/api/attachments/c6dc5f28-3ef6-468a-9498-414bdc6cd0b5/content",
+      "downloadPath": "/api/attachments/c6dc5f28-3ef6-468a-9498-414bdc6cd0b5/content?download=1"
+    },
+    "workProductId": "52c4a7b5-4e10-4311-abf8-5b58e58cf5a7"
+  },
+  {
+    "file": "/Users/phannhatquang/Documents/projects/crew/plans/261008-0850-crew-v3-r1-3/reports/ac-3-r4-timeline.md",
+    "sha256": "e44206ba50f39dfe8a78d6c25b4d1d43f96916bb247b74876f20693e5bbbfc8a",
+    "attachment": {
+      "id": "9a4a7ea9-50de-4ead-9f40-41fcc5291b8d",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "27db86fa-9a3d-406c-8b7b-e5eae0ce126a",
+      "issueCommentId": null,
+      "originatingRunId": null,
+      "assetId": "d56ed6a0-7c43-41c4-a981-0e78d440a51d",
+      "provider": "local_disk",
+      "objectKey": "5befeb1a-1578-4656-b913-267494592e53/issues/27db86fa-9a3d-406c-8b7b-e5eae0ce126a/2026/10/08/5fab7e4b-e466-480f-85b7-698910868f64-ac-3-r4-timeline.md",
+      "contentType": "text/markdown",
+      "byteSize": 13025,
+      "sha256": "e44206ba50f39dfe8a78d6c25b4d1d43f96916bb247b74876f20693e5bbbfc8a",
+      "originalFilename": "ac-3-r4-timeline.md",
+      "createdByAgentId": null,
+      "createdByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "createdAt": "2026-10-08T11:14:15.283Z",
+      "updatedAt": "2026-10-08T11:14:15.283Z",
+      "contentPath": "/api/attachments/9a4a7ea9-50de-4ead-9f40-41fcc5291b8d/content",
+      "openPath": "/api/attachments/9a4a7ea9-50de-4ead-9f40-41fcc5291b8d/content",
+      "downloadPath": "/api/attachments/9a4a7ea9-50de-4ead-9f40-41fcc5291b8d/content?download=1"
+    },
+    "workProductId": "271a6352-3857-42fb-870a-18fa7ff333b1"
+  }
+]

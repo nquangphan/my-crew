@@ -1,0 +1,76 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:51:34] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:51:40] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fef6b8d9-e11b-4b02-8004-339f2668778a","agentId":"e36c6fb7-e05a-4876-8c9e-0906ea78883e","runId":"388be0a7-1aa5-4d5c-9a99-764aa4772ddc"}[39m
+[14:51:41] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fef6b8d9-e11b-4b02-8004-339f2668778a","agentId":"e36c6fb7-e05a-4876-8c9e-0906ea78883e","runId":"fc8e98b3-fe2e-4ba1-a3d0-4e38cc3cc949"}[39m
+[14:51:41] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"102438cb-dd69-42c6-b343-cc80642f5abc","agentId":"88c267a3-e889-4599-8fcf-95fb07ba6b51","runId":"80ab3b27-f81f-4ac9-972d-c647b55c6745"}[39m
+[14:51:41] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"102438cb-dd69-42c6-b343-cc80642f5abc","agentId":"88c267a3-e889-4599-8fcf-95fb07ba6b51","runId":"df56ea40-c39f-4531-9a00-5e76a98a93d9"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4d7119e6-9563-495f-b07c-443b451e8035","agentId":"8f731126-ebdb-4c3c-9161-40f0e0cb3266","runId":"6a006ea6-f012-4c57-937a-2b6190a37473"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4d7119e6-9563-495f-b07c-443b451e8035","agentId":"8f731126-ebdb-4c3c-9161-40f0e0cb3266","runId":"e7fd76cb-8a01-4aa3-8928-c4877cf9c7c6"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"86e727c4-b823-41ba-a015-2b5ebba96563","agentId":"023047d8-6291-437d-b4de-40a8f956d9c1","runId":"6f8065f5-2f4d-4260-ac4e-9e02b89f8e26"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e5c8784a-011b-4543-9929-7757b8adeaf6","agentId":"4d2fa350-21c2-4d59-bddd-f1632d59eb19","runId":"2e66af38-c4b9-4587-956a-235ec07d90fb"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"26c53327-e8e5-4bc6-b01b-1e7181ce07bf","agentId":"43ead896-e25b-4690-b832-ac4c72d76f0c","runId":"08a12c3c-1157-4034-aa20-55b4d10d6202"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"efe0c8bb-1182-400d-b566-985f336c5ba8","agentId":"ae9c3464-a9ac-4395-a49b-7d824ef26fb2","runId":"9d7ce370-d957-4cea-a9bb-d7629deffd2f"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"86e727c4-b823-41ba-a015-2b5ebba96563","agentId":"023047d8-6291-437d-b4de-40a8f956d9c1","runId":"c9666f81-8e60-43ea-84a2-518b0f28d0e1"}[39m
+[14:51:42] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e5c8784a-011b-4543-9929-7757b8adeaf6","agentId":"4d2fa350-21c2-4d59-bddd-f1632d59eb19","runId":"dfdb6436-99f8-4df7-b26e-92bbf7e91e41"}[39m
+[14:51:43] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"26c53327-e8e5-4bc6-b01b-1e7181ce07bf","agentId":"43ead896-e25b-4690-b832-ac4c72d76f0c","runId":"9164d973-3e00-4cda-a5b8-b8aac980a51c"}[39m
+[14:51:43] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"efe0c8bb-1182-400d-b566-985f336c5ba8","agentId":"ae9c3464-a9ac-4395-a49b-7d824ef26fb2","runId":"04f29812-b29f-473a-8e6d-99ff4969b07e"}[39m
+[14:51:43] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3f813901-7c51-4195-8c15-853110d136d5","agentId":"f01f8320-86b2-4168-ad6a-7b16d4c9784d","runId":"7bf89f6d-d1dc-4b7d-8a7b-5e437c49de63"}[39m
+[14:51:43] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3f813901-7c51-4195-8c15-853110d136d5","agentId":"f01f8320-86b2-4168-ad6a-7b16d4c9784d","runId":"ba63b8f0-2ae2-4463-8aa9-8751296d9eef"}[39m
+[14:51:43] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"af2ee4d6-ce36-4e3d-a46a-d7a06ff85b34","agentId":"0116f705-58b0-4e9a-9b7a-7af1d5e5bfca","runId":"a4a1c116-e2c9-4d42-bda8-372ab0c86eb3"}[39m
+[14:51:43] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"af2ee4d6-ce36-4e3d-a46a-d7a06ff85b34","agentId":"0116f705-58b0-4e9a-9b7a-7af1d5e5bfca","runId":"2f575d63-083a-42dc-90da-aac83e7dc5c7"}[39m
+ ❯ src/__tests__/crew-bundle-resume.test.ts (29 tests | 4 failed) 6724ms
+     × hai gốc dùng cùng tên gói và blocker chéo: B chạy session mới 432ms
+     × A không phải issue con: không nối 11ms
+     × B không phải issue con: không nối 10ms
+     × cả hai không phải issue con: không nối 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/crew-bundle-resume.test.ts > nối session trong gói khi claim > hai gốc dùng cùng tên gói và blocker chéo: B chạy session mới
+AssertionError: expected 'sess-a' to be null
+
+- Expected:
+null
+
++ Received:
+"sess-a"
+
+ ❯ src/__tests__/crew-bundle-resume.test.ts:254:57
+    252|     await db.update(issues).set({ parentId: otherParentId }).where(eq(…
+    253|     await claimAll();
+    254|     expect((await runtimeOf(s.runB)).sessionId ?? null).toBeNull();
+       |                                                         ^
+    255|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+    256|     expect(run!.contextSnapshot).not.toHaveProperty("resumeFromRunId");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/crew-bundle-resume.test.ts > nối session trong gói khi claim > A không phải issue con: không nối
+ FAIL  src/__tests__/crew-bundle-resume.test.ts > nối session trong gói khi claim > B không phải issue con: không nối
+ FAIL  src/__tests__/crew-bundle-resume.test.ts > nối session trong gói khi claim > cả hai không phải issue con: không nối
+AssertionError: expected 'applied' to be 'skipped' // Object.is equality
+
+Expected: "skipped"
+Received: "applied"
+
+ ❯ src/__tests__/crew-bundle-resume.test.ts:265:56
+    263|     if (root !== "A") await db.update(issues).set({ parentId: null }).…
+    264|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+    265|     expect(await applyBundleResume({ db, run: run! })).toBe("skipped");
+       |                                                        ^
+    266|     const [after] = await db.select().from(heartbeatRuns).where(eq(hea…
+    267|     expect(after!.contextSnapshot).not.toHaveProperty("resumeFromRunId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 25 passed (29)
+   Start at  14:51:27
+   Duration  17.37s (transform 6.78s, setup 138ms, import 10.37s, tests 6.72s, environment 0ms)
+
+undefined
+/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/__tests__/crew-bundle-resume.test.ts

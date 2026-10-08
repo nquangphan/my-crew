@@ -1,0 +1,244 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:34:51] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: waiting comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "comment store down",
+      "stack":
+          Error: comment store down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:122:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:349:20
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:5)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:347:7)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:250:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: waiting marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.recordNotice (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:256:65)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:343:14
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:342:13)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:257:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: waiting comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "comment store down",
+      "stack":
+          Error: comment store down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:122:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:349:20
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:5)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:347:7)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:263:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: expired comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "comment store down",
+      "stack":
+          Error: comment store down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:122:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:360:12
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:359:11)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:266:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: expired marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.recordNotice (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:295:41)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:356:57
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:356:9)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:298:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: block issue failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "issue locked",
+      "stack":
+          Error: issue locked
+              at Object.blockIssue (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:294:39)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:358:56
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:358:11)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:298:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: expired comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:296:40)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:360:12
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:359:11)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:298:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: never-started marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.h.deps.markHeld (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:428:13)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:276:109
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:368:11)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:276:55)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:430:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: releasing the never-started marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.h.deps.releaseHeld (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:455:13)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:285:24)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:457:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: failed closed for a retry, run stays queued[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:488:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:268:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:295:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:708:18)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:478:18
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: failed closed for a retry, run stays queued[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:488:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:268:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:295:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:708:18)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:483:18
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+    }
+[14:34:51] [33mWARN[39m: [36mcrew-load-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:488:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:268:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:295:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:708:18)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-load-gate.test.ts:487:18
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+    }
+[14:34:52] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:34:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"337a450e-9796-4529-9b49-20b9441453c8","agentId":"4c09df4d-a493-4a22-a403-866e75a6d57d","runId":"f54aa3a6-f0ca-4058-a5f9-e7c50aa24b2b"}[39m
+[14:35:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"337a450e-9796-4529-9b49-20b9441453c8","agentId":"4c09df4d-a493-4a22-a403-866e75a6d57d","runId":"84036833-6dd8-4ae5-8bbf-87ac5fb24490"}[39m
+[14:35:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"69672b0f-4f0a-4f23-b007-f2e47ff6e887","agentId":"3438e88c-124a-4307-a29e-b7f0ae48d9d7","runId":"47c3b56a-af44-435c-9afb-65da222b48af"}[39m
+[14:35:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"69672b0f-4f0a-4f23-b007-f2e47ff6e887","agentId":"3438e88c-124a-4307-a29e-b7f0ae48d9d7","runId":"9eab4a09-271c-4818-b638-0bd83ef58b63"}[39m
+[14:35:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"82ee49f6-9b40-4822-bd5a-205a8d84735f","agentId":"470652cd-3ea8-43e7-8125-bc49b741afd8","runId":"acc7254a-12fe-4e98-b116-7367ed8961d4"}[39m
+[14:35:01] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"82ee49f6-9b40-4822-bd5a-205a8d84735f","agentId":"470652cd-3ea8-43e7-8125-bc49b741afd8","runId":"fca5d78a-1007-4573-986b-0ea89482be47"}[39m
+[14:35:03] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:35:03] [33mWARN[39m: [36mcrew-load-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:488:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:268:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:295:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:708:18)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:84:15)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:96:43)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-core-hooks.test.ts:50:21
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    }
+[14:35:03] [33mWARN[39m: [36mcrew onRunLeaseReleased failed; releasing the lease anyway[39m [90m{"leaseId":"lease-1","environmentId":"env-1","status":"expired"}[39m
+    err: {
+      "type": "Error",
+      "message": "ssh timeout",
+      "stack":
+          Error: ssh timeout
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-core-hooks.test.ts:108:15)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:107:39
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:105:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/services/environment-runtime.ts:1209:7)
+    }
+[14:35:06] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:35:10] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0811b022-7a83-4573-83fb-fb04cf8d6f56","agentId":"ec41abfb-6ac5-4fba-8e1b-3df5c71ce212","runId":"81b605c1-2a8f-472c-9d72-951e5f56d027"}[39m
+[14:35:10] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0811b022-7a83-4573-83fb-fb04cf8d6f56","agentId":"ec41abfb-6ac5-4fba-8e1b-3df5c71ce212","runId":"02cd8fe4-e915-41b7-8432-3b85b3dcf45f"}[39m
+[14:35:11] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5b3b7907-12c1-49f4-a633-b3064de0b497","agentId":"4be7e07b-ebf8-4a28-bb03-56fd736133bc","runId":"78ff8ef7-2c6e-45e2-8a99-e6c97c8a4fad"}[39m
+[14:35:11] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5b3b7907-12c1-49f4-a633-b3064de0b497","agentId":"4be7e07b-ebf8-4a28-bb03-56fd736133bc","runId":"b0016e4a-9605-49c2-8c28-36166639c5b4"}[39m
+[14:35:11] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d437cabe-81f0-40bd-9eda-4aee3be159b5","agentId":"fe1f6bfe-44f1-48da-9d69-d4bfea9e17de","runId":"f31dce7a-0e31-41e4-a08a-5a8fb01ed44b"}[39m
+[14:35:12] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d437cabe-81f0-40bd-9eda-4aee3be159b5","agentId":"fe1f6bfe-44f1-48da-9d69-d4bfea9e17de","runId":"7ef61529-b773-46d1-9335-bfbb6bbc563e"}[39m
+[14:35:12] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"42fad35d-84ba-4649-8dcd-960f4758ba19","agentId":"a4fae854-cf0c-45c2-a700-842d7c03e072","runId":"5672bb17-1867-4e42-82f4-3560cca40944"}[39m
+[14:35:12] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"42fad35d-84ba-4649-8dcd-960f4758ba19","agentId":"a4fae854-cf0c-45c2-a700-842d7c03e072","runId":"0abd1e25-2e83-4bbe-8d87-59247fea433d"}[39m
+[14:35:12] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"937bbb5d-fd4e-4ea0-955d-de87238b778d","agentId":"f08cbe4b-f9d9-446c-9e22-1b930778d444","runId":"e1a58067-b7ba-4155-bb2f-78d216c4b6ad"}[39m
+[14:35:12] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"937bbb5d-fd4e-4ea0-955d-de87238b778d","agentId":"f08cbe4b-f9d9-446c-9e22-1b930778d444","runId":"ee4d5ec6-ac71-4816-944d-b834ee147ff3"}[39m
+[14:35:14] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:35:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"faf68637-b54a-4f7e-ba7b-62550143914e","agentId":"e10959af-fc13-4df3-a0d1-f975ad87be71","runId":"d8d087d9-60f3-47f3-921e-27dfe18d6b95"}[39m
+[14:35:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9988b1bb-256b-478a-9827-93a52b7fe88f","agentId":"c1a5461b-cd54-4d60-b220-7d0f5b1da918","runId":"6ce1cab4-787a-4ddd-acc8-6ed2b2356226"}[39m
+[14:35:20] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"2f81200d-f2b4-4e27-8fa0-3bbfab236726","agentId":"372db226-7a86-4782-9a4f-6d408802528f","runId":"99df543e-40e7-402b-813c-cd9187dfbb11"}[39m
+
+ Test Files  5 passed (5)
+      Tests  81 passed (81)
+   Start at  14:34:46
+   Duration  34.14s (transform 5.47s, setup 328ms, import 17.93s, tests 15.28s, environment 0ms)
+

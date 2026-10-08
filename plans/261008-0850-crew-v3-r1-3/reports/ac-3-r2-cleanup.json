@@ -1,0 +1,39 @@
+{
+  "activeRuns": [
+    {
+      "count": 0
+    }
+  ],
+  "issues": [
+    {
+      "identifier": "CRE-34",
+      "status": "cancelled"
+    },
+    {
+      "identifier": "CRE-35",
+      "status": "cancelled"
+    }
+  ],
+  "environments": [
+    {
+      "name": "mac-mini",
+      "maxLoad1": 16
+    },
+    {
+      "name": "mac-mini-reviewer",
+      "maxLoad1": 16
+    },
+    {
+      "name": "mac-mini-integrator",
+      "maxLoad1": 16
+    },
+    {
+      "name": "mac-mini-executor-2",
+      "maxLoad1": 16
+    },
+    {
+      "name": "mac-mini-assistant",
+      "maxLoad1": 16
+    }
+  ]
+}

@@ -24,10 +24,14 @@ _Giữ ở đây để không hỏi lại. Bổ sung mỗi lần có quyết đ�
 - 06/10: Module v2 về transport/journal/ACK do upstream thay; giữ telemetry, policy, workflow registry/isolation, docs-kit, UI map.
 - 06/10: **R1 mỏng** = Superpowers × Claude Code chạy xuyên suốt. BMAD, Codex/API, file/ảnh, app ký và updater sang R2.
 - 06/10: Vẫn phải nâng được Paperclip theo mỗi bản stable của upstream.
-- 06/10: Hook lõi Paperclip: **H2 `beforeIssueWrite`** (đầu `runUpdate` trong `issues.ts`) đã duyệt; **H1 `beforeClaim`** chỉ là dự phòng.
+- 06/10: Hook lõi Paperclip một dòng có registry, trần 5. Sau R1-2 đang 4/5: H1 `beforeClaim`, H2 `beforeIssueWrite`, H3 `onRunLeaseReleased`, H4 `beforeIssueCreate`. H5 `beforeWakeup` duyệt sẵn, chỉ dùng nếu spike R1-3 đỏ.
 - 06/10: **Test theo tầng**, mỗi loại test chạy một lần ở đúng tầng.
 - 06/10: Luật docs **R3 kiểm trên cả lần push**, pre-commit chỉ chặn credential (commit `96eeb745`).
 - 06/10: Dự án dùng **quy trình Superpowers**.
+- 07/10: **Không bao giờ dùng `fable`** (kể cả `kongming`/`advisor`, đã chuyển sang `opus`). Push chỉ khi Đại Ca nói "push"; "commit" thì chỉ commit.
+- 07/10 (R1-2, O1–O11): reviewer và integrator là hai agent riêng; owner duyệt cuối trên issue gốc; docs gate server ép; H4 gắn policy khi tạo issue; template gốc **4 stage** (reviewer → integrator merge+docs → owner → integrator push); agent nạp `.claude/` repo; agent không cancel; vai trò trong file `CREW_POLICY_CONFIG` chỉ đọc; agent thật chạy **sonnet**; mở lại issue → giao lại executor.
+- 08/10 (R1-3, O12–O15): chung session giữa con cùng gói (spike H1 trước, H5 dự phòng); 2 executor song song; Trợ Lý chọn sonnet/opus mỗi issue con, override chỉ `model`/`effort`; research qua reviewer → owner.
+- 08/10: Không dùng trang theo dõi online; tiến độ và tài nguyên ghi vào ledger của plan.
 
 ## Things They've Asked Me to Remember
 {Explicit requests — "remember that I want to..." or "keep track of..."}

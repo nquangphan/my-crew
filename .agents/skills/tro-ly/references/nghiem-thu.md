@@ -35,11 +35,15 @@ Chọn cổng theo thứ đã đổi. Cổng nào không áp dụng thì **nói 
 
 **Cổng 5 — docs khớp code.** `crew-docs check --range <base>..HEAD` đạt trên nhánh tích hợp: mọi file nguồn đổi đều có trang flow được sửa trong cùng lần push.
 
-## Hai thứ dễ tự lừa
+## Những thứ dễ tự lừa
 
 **Đọc nhầm bản.** Bundle `crew-docs` cũ, server chưa restart, tab trình duyệt còn cache — đều cho ra kết quả của code cũ. Kiểm đúng artifact vừa build, đúng process vừa khởi động.
 
 **Lỗi hỏng trễ.** Có thứ vẫn xanh ngay sau khi chạy rồi mới hỏng — lease hết hạn, reaper dọn run sau timeout, kết nối Tailscale rớt giữa chừng. Kiểm ngay sau khi bấm không đủ; phải hỏi "thứ này còn đúng sau khi hết lease / sau khi server restart không".
+
+**Thứ tự giữa các tiến trình của Paperclip.** Test DB dựng thứ tự theo ý người viết test; máy thật thì không. Ở R1-2, cả 4/4 lần chuyển stage trên Mac mini đều kẹt vì route đánh thức agent kế tiếp trước khi lease nhả ~1 giây — mọi test đều xanh. Cổng 4 phải đo **từng lần chuyển stage** (giờ wake, skip, lease release, run mới) và chạy luồng tự đi, **không** đánh thức tay bằng comment owner rồi tính là đạt.
+
+**Agent thật làm trái instructions.** Lần đầu AC-2 dùng haiku: executor commit sai nhánh, integrator tự `PATCH in_progress`. Gate server phải chặn được cả khi agent sai; instructions chỉ là lớp ngoài.
 
 ## Đỏ thì nói đỏ
 

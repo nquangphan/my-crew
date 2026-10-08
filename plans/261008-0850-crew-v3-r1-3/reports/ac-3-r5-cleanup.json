@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-08T13:46:39.829535+00:00",
+  "active": [],
+  "activeLeases": [],
+  "originMain": "5bcc3034837f1aa2762f565ca1e381c22672bb16",
+  "ownerWipSHA256": "df2eb96d9f84ab66c8140324b7e9f4700f6404c82fe5499771f64f1941d598b7",
+  "forkStatus": "",
+  "forkHead": "d457ddbfd4a8fea571bbb8f66e29fec21ea02e4d",
+  "executorGitStatus": "",
+  "executorHead": "aaec947a01cbdfb9315b68e8d991e8be461ac8ec docs(CRE-49): README thêm ví dụ greetAll en/vi, bỏ câu không nhận lang",
+  "claudeProcesses": [
+    "58305 57355 04-11:30:26 claude",
+    "49360 85453    22:09:11 claude",
+    "79225 78864 21-14:19:20 claude",
+    "80511 80106 21-14:19:11 claude",
+    "72637 87028    21:56:21 claude"
+  ],
+  "environments": [
+    {
+      "id": "f92f5dd8-fd34-47df-95a8-6adb87e49ec8",
+      "name": "mac-mini",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "02600795-4017-45d0-a07c-4ddad7b53444",
+      "name": "mac-mini-assistant",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "5e7aa9c4-531c-4fe8-a6d5-fcd4816a244e",
+      "name": "mac-mini-executor-2",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "ffd322ff-670a-4e9c-bab1-6341cb2d38cc",
+      "name": "mac-mini-integrator",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "c37a8692-77b3-4d4a-8f92-2b02bde38ec6",
+      "name": "mac-mini-reviewer",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    }
+  ],
+  "counts": [
+    {
+      "executorTaskSessions": 0,
+      "cancelledIssues": 3
+    }
+  ],
+  "artifactStaging": {
+    "remote": "/opt/crew-v3-spike/ac3-r5-artifacts-Y8PN1p",
+    "removed": true
+  }
+}

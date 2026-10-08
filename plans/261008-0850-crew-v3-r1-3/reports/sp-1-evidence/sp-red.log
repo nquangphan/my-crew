@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:03:09] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+
+ Test Files  1 skipped (1)
+      Tests  3 skipped (3)
+   Start at  14:02:58
+   Duration  58.98s (transform 34.27s, setup 182ms, import 58.50s, tests 0ms, environment 0ms)
+

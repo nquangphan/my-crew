@@ -1,0 +1,16 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:25:10] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:25:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"789d93e0-edc5-43fe-a334-54849557fdb1","agentId":"38324868-dc00-4ddf-ace2-757a87744a16","runId":"f558962f-d175-4b8a-8793-072ef723f6ab"}[39m
+[14:25:22] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"789d93e0-edc5-43fe-a334-54849557fdb1","agentId":"38324868-dc00-4ddf-ace2-757a87744a16","runId":"b669365a-7ab4-4ed8-a990-dc5f16617fa5"}[39m
+[14:25:23] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"6e580270-fc42-4948-ba2e-4ff922857ada","agentId":"899144e0-d72a-4aa0-aa7c-08cff5fb8c84","runId":"3cabd954-bbae-459d-9a20-a3a0e64bb6c5"}[39m
+[14:25:23] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"6e580270-fc42-4948-ba2e-4ff922857ada","agentId":"899144e0-d72a-4aa0-aa7c-08cff5fb8c84","runId":"2fb21cd6-0683-4c32-9453-e5539a1fed30"}[39m
+[14:25:24] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1a554b7f-4bcc-4b51-a942-b00683f5649f","agentId":"33470533-0b3e-416b-bfeb-a5cec3090a83","runId":"c46e144c-9fc9-4c46-8f64-33dcc0dde802"}[39m
+[14:25:24] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1a554b7f-4bcc-4b51-a942-b00683f5649f","agentId":"33470533-0b3e-416b-bfeb-a5cec3090a83","runId":"9896c122-32ca-421c-94cb-833ea8ecd9d2"}[39m
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  14:25:07
+   Duration  17.64s (transform 6.60s, setup 89ms, import 10.24s, tests 7.21s, environment 0ms)
+

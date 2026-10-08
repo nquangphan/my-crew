@@ -67,16 +67,18 @@ Ghi doc thì theo luật docs của repo: sửa `docs/flows/<id>.md` của flow 
 
 ## Canh tài nguyên
 
-Mac 24 GB, có lúc chạy cả phiên khác của Đại Ca. `pnpm install` của fork Paperclip đã lên ~2 GB RSS và từng đẩy memory pressure lên mức cảnh báo. Nên:
+Hai máy: MacBook 24 GB (máy owner) và Mac mini 16 GB (máy chạy agent Paperclip; owner còn chạy emulator Android/iOS, Orca và các phiên Claude khác trên đó — load thường 15–25). Có lúc chạy cả phiên khác của Đại Ca. `pnpm install` của fork Paperclip đã lên ~2 GB RSS và từng đẩy memory pressure lên mức cảnh báo. Nên:
 
 - **Một việc nặng một lúc** (install, build lớn, full suite, server Paperclip + embedded Postgres, Playwright). Việc đọc/sửa nhẹ thì song song được.
 - Xem `memory_pressure`, swap và `df -h /` **trước khi thả việc nặng**, không cần ghi chép từng phút.
+- Run agent trên Mac mini bị cổng tải giữ khi load 1 phút > `maxLoad1` (8). Chờ quá ~10 phút thì báo Đại Ca chọn: tạm dừng việc khác trên Mac mini, hay cho nâng ngưỡng tạm thời (PATCH `metadata.crewLoadGate` của environment, ghi `processes.md`, trả về khi xong). Không tự nâng.
+- Quota Claude của Mac mini dùng chung với agent Paperclip: trước việc nặng hay nghiệm thu thì xem quota; agent thử dùng prompt nhỏ.
 - Mỗi process nền mình bật: ghi lệnh/PID/cổng, tắt khi xong. Theo `.claude/rules/process-management.md`. Không giết process của phiên khác.
 - Postgres dev/test của Crew ở `127.0.0.1:55432`. **Không bao giờ dùng cổng 5432.**
 
 ## Khi kẹt
 
-Thử lại **2 lần**. Vẫn hỏng thì hỏi `kongming`, hoặc ghi lại rồi **đi tiếp task khác**, cuối buổi báo gộp — trừ khi cái hỏng chặn cả kế hoạch thì báo ngay.
+Thử lại **2 lần**. Vẫn hỏng thì hỏi `kongming` (đã chuyển chạy `opus`), hoặc ghi lại rồi **đi tiếp task khác**, cuối buổi báo gộp — trừ khi cái hỏng chặn cả kế hoạch thì báo ngay.
 
 Vòng sửa sau review tối đa **5 lần** cho cùng một gate; lần thứ 5 vẫn đỏ thì chuyển Đại Ca, kèm bằng chứng.
 
@@ -90,7 +92,7 @@ Chỉ những thứ này, ngoài ra cứ làm:
 - **Deploy** lên VPS/production, đổi DNS, Tailscale ACL, SSH key của máy thật.
 - **Xoá** dữ liệu, database, volume, nhánh hay worktree không do mình tạo.
 - **Sửa file được bảo vệ (R6)** khi Đại Ca chưa duyệt: `.claude/**`, `.githooks/**`, `AGENTS.md`, `CLAUDE.md`, mục `source`/`shared`/`unassigned` của `docs/flows.yaml`. Đã duyệt thì commit kèm trailer `Crew-Owner-Approved: <ticket-key>`.
-- **Thêm hook lõi Paperclip** ngoài danh sách đã duyệt (H2 `beforeIssueWrite` đã duyệt; H1 `beforeClaim` chỉ là dự phòng).
+- **Thêm hook lõi Paperclip** ngoài danh sách đã duyệt (đang có 4/5: H1 `beforeClaim`, H2 `beforeIssueWrite`, H3 `onRunLeaseReleased`, H4 `beforeIssueCreate`; H5 `beforeWakeup` chỉ dùng khi spike R1-3 SP-1 đỏ — Đại Ca đã duyệt trước). Đổi đối số của một hook đã có cũng là sửa lõi — cân như thêm hook.
 
 ## Git
 

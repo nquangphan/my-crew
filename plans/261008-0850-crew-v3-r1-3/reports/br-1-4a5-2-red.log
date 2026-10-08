@@ -1,0 +1,118 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[17:35:06] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[17:35:12] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4277ee48-bcfe-4f37-a260-8aecaab356eb","agentId":"37b0e95f-dbff-467c-8457-d5406f1f36b5","runId":"e20a0992-cb43-4bfa-b4d3-db74474ab680"}[39m
+[17:35:13] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4277ee48-bcfe-4f37-a260-8aecaab356eb","agentId":"37b0e95f-dbff-467c-8457-d5406f1f36b5","runId":"05a8d475-43ae-4596-9641-70ee22bbb6e6"}[39m
+[17:35:13] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"36cf99b6-7638-4fd3-97f4-42908dd83902","agentId":"2535cf04-fb88-4fb6-a460-0009d9295276","runId":"484d228a-6e63-4f7d-a66d-77096baaf28e"}[39m
+[17:35:14] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"36cf99b6-7638-4fd3-97f4-42908dd83902","agentId":"2535cf04-fb88-4fb6-a460-0009d9295276","runId":"b88df298-f37a-4ed4-bdde-7509a9d2648c"}[39m
+[17:35:14] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7e26f5f3-cdf5-494d-b38c-e6c1f1ffc12a","agentId":"2d0762ca-e5f1-45b3-b6fc-df7fd0ae0af6","runId":"09be0e88-d911-4baf-9dc3-7e7e15b7d8c0"}[39m
+[17:35:14] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7e26f5f3-cdf5-494d-b38c-e6c1f1ffc12a","agentId":"2d0762ca-e5f1-45b3-b6fc-df7fd0ae0af6","runId":"03e4a206-64a1-4a26-bf44-48b98bf5b070"}[39m
+[17:35:15] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1c570684-ca82-4056-9689-729339ac2276","agentId":"c2a6bb43-6d8f-478f-84cb-b6112b5827ed","runId":"0509bf22-ef45-47f5-b052-afc449e71cd1"}[39m
+[17:35:15] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d47b7c4c-b04a-4aa4-9a65-197c31d9a41b","agentId":"91fd327c-5d91-4f89-b271-0c2b9aeae56e","runId":"7a20dbaa-056b-4d4c-9f01-630ca2cffcbc"}[39m
+[17:35:15] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1c570684-ca82-4056-9689-729339ac2276","agentId":"c2a6bb43-6d8f-478f-84cb-b6112b5827ed","runId":"c5762653-35d8-4f43-8d20-0d769ec4ef6c"}[39m
+[17:35:15] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d47b7c4c-b04a-4aa4-9a65-197c31d9a41b","agentId":"91fd327c-5d91-4f89-b271-0c2b9aeae56e","runId":"d1a3c2c4-0c47-4f61-9148-2ff5608cce98"}[39m
+[17:35:16] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0eb6dfcf-ed45-4e35-a78a-9a4848190f4d","agentId":"e98471e5-fd3e-4ed7-9eea-b1b28401c086","runId":"5592fcd7-8509-4dac-b9d8-651dd5971744"}[39m
+[17:35:16] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0eb6dfcf-ed45-4e35-a78a-9a4848190f4d","agentId":"e98471e5-fd3e-4ed7-9eea-b1b28401c086","runId":"b745192a-93c9-45da-8f8a-fc8b554386f2"}[39m
+[17:35:16] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"bfd4b8b4-548d-46a7-95e2-a6db2d2415d7","agentId":"a9d02253-bef0-4e9d-9521-3deee046030f","runId":"7612bae4-666b-4667-a022-b16c056bc093"}[39m
+[17:35:16] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"bfd4b8b4-548d-46a7-95e2-a6db2d2415d7","agentId":"a9d02253-bef0-4e9d-9521-3deee046030f","runId":"1083cb08-c1e9-4c5a-8c6d-4a16e419355e"}[39m
+[17:35:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fe466825-54a7-4824-bae2-4aba79790db5","agentId":"c70b90a2-2723-4037-9ae5-945b4374db71","runId":"4e72cabd-577a-4a6d-ae64-cb93762f2fed"}[39m
+[17:35:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fe466825-54a7-4824-bae2-4aba79790db5","agentId":"c70b90a2-2723-4037-9ae5-945b4374db71","runId":"f6d2b5bf-259a-40e6-86e8-9e986c95eb5f"}[39m
+[17:35:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"de799e94-9fad-4ebf-99a4-e3c485044424","agentId":"cc993d80-44cb-4366-9555-c5af2092dc8c","runId":"5506fde0-b661-47df-a96f-4988849661ed"}[39m
+[17:35:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"de799e94-9fad-4ebf-99a4-e3c485044424","agentId":"cc993d80-44cb-4366-9555-c5af2092dc8c","runId":"09260367-cbde-4f7b-9d3d-8d4ea010ea42"}[39m
+[17:35:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"be8df912-1f2b-470a-909f-074f99836fd0","agentId":"407a001d-d557-4e4d-8a25-a59cda146484","runId":"9cf0ca4d-4589-44c7-8c41-9d9c674a2d02"}[39m
+[17:35:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"be8df912-1f2b-470a-909f-074f99836fd0","agentId":"407a001d-d557-4e4d-8a25-a59cda146484","runId":"db613480-05a7-4ce3-85da-2077c552f947"}[39m
+[17:35:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"68d6021f-7786-41ba-a076-5225494a6fd7","agentId":"2559d7aa-6d17-496a-8c10-0b12bf0e05b7","runId":"40ee817b-ebb4-4003-bf03-508f72eab6b8"}[39m
+[17:35:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ad6b7da0-ba23-40a0-9720-ee4e9da02442","agentId":"08b790e8-877d-4ebe-a716-e816b3626943","runId":"bdd474d5-d0eb-447f-bc07-2505e5509b5d"}[39m
+[17:35:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"68d6021f-7786-41ba-a076-5225494a6fd7","agentId":"2559d7aa-6d17-496a-8c10-0b12bf0e05b7","runId":"d5f718e3-e3ef-4f04-84a9-a87d62fffb81"}[39m
+[17:35:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ad6b7da0-ba23-40a0-9720-ee4e9da02442","agentId":"08b790e8-877d-4ebe-a716-e816b3626943","runId":"01a560a9-c4b8-4dd6-bbda-da0fcab03e78"}[39m
+[17:35:20] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c381cfb5-3f87-4d22-9c88-765cc853d76c","agentId":"f849ad84-c7ea-46ab-81a2-6cf70e571a6d","runId":"144c10a5-8e2a-4648-b783-d4d1c0318ab2"}[39m
+[17:35:20] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c381cfb5-3f87-4d22-9c88-765cc853d76c","agentId":"f849ad84-c7ea-46ab-81a2-6cf70e571a6d","runId":"a260ff2e-131e-408f-86e1-fb2b9cdf0cd1"}[39m
+[17:35:20] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7edbc307-08a8-47ff-8631-992c0e46380a","agentId":"5ae751c0-7d32-4106-a2ba-a1a4b4a32757","runId":"6fb7a293-9993-40cf-9414-4c488c3a2f00"}[39m
+[17:35:20] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7edbc307-08a8-47ff-8631-992c0e46380a","agentId":"5ae751c0-7d32-4106-a2ba-a1a4b4a32757","runId":"844a61b4-a9c5-49b6-8fea-b14b336083f3"}[39m
+[17:35:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fb278004-ab06-4bca-bf4a-14b690db7bd1","agentId":"4f90fe6a-30bf-4395-876e-3f4c3dbb6910","runId":"21dad99d-2b2f-4ace-8de4-65f74b685613"}[39m
+[17:35:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fb278004-ab06-4bca-bf4a-14b690db7bd1","agentId":"4f90fe6a-30bf-4395-876e-3f4c3dbb6910","runId":"6dd86a45-889c-46b9-bebf-0da35b40bb24"}[39m
+[17:35:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9c4731f2-9e23-4b98-b27f-33f95231b919","agentId":"4309d4d0-ddef-474a-83ca-fb7f01097908","runId":"8e54fc34-a746-4f31-9e6a-aeace8e4a43f"}[39m
+[17:35:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9c4731f2-9e23-4b98-b27f-33f95231b919","agentId":"4309d4d0-ddef-474a-83ca-fb7f01097908","runId":"5cabb5c8-f388-4fb8-a3c8-bf34fb12109d"}[39m
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts (35 tests | 4 failed) 14947ms
+     × claude_local: log chưa finalize là nguồn ID duy nhất, claim B nhận session 781ms
+     × codex_local: log chưa finalize là nguồn ID duy nhất, claim B nhận session 860ms
+     × log init giữ cwd và identity SSH của đúng run 53ms
+     × log mới nhất không init: không lùi về log cũ, bỏ qua run reviewer 46ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > claude_local: log chưa finalize là nguồn ID duy nhất, claim B nhận session
+AssertionError: expected null to be 'fd08d63f-4762-4c74-ba74-371c1e770c99' // Object.is equality
+
+- Expected:
+"fd08d63f-4762-4c74-ba74-371c1e770c99"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:109:52
+    107|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+    108|     expect(calls).toHaveLength(1);
+    109|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+    110|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+    111|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > codex_local: log chưa finalize là nguồn ID duy nhất, claim B nhận session
+AssertionError: expected null to be 'ae57d8bd-c628-4fa6-baa4-81403f33a8da' // Object.is equality
+
+- Expected:
+"ae57d8bd-c628-4fa6-baa4-81403f33a8da"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:109:52
+    107|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+    108|     expect(calls).toHaveLength(1);
+    109|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+    110|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+    111|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > log init giữ cwd và identity SSH của đúng run
+AssertionError: expected 'skipped' to be 'applied' // Object.is equality
+
+Expected: "applied"
+Received: "skipped"
+
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:131:56
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > log mới nhất không init: không lùi về log cũ, bỏ qua run reviewer
+AssertionError: expected undefined to be 'c646def4-aec6-4d3d-af3a-ece8f7d8b85b' // Object.is equality
+
+- Expected:
+"c646def4-aec6-4d3d-af3a-ece8f7d8b85b"
+
++ Received:
+undefined
+
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:159:60
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 31 passed (35)
+   Start at  17:34:49
+   Duration  33.50s (transform 9.69s, setup 446ms, import 17.80s, tests 14.95s, environment 0ms)
+
+undefined
+/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/crew/crew-bundle-resume.cancelled.test.ts

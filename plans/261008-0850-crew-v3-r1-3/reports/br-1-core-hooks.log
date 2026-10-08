@@ -1,0 +1,39 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:31:19] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:31:20] [33mWARN[39m: [36mcrew-load-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:488:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:268:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:295:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:708:18)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:84:15)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:96:43)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-core-hooks.test.ts:50:21
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    }
+[14:31:20] [33mWARN[39m: [36mcrew onRunLeaseReleased failed; releasing the lease anyway[39m [90m{"leaseId":"lease-1","environmentId":"env-1","status":"expired"}[39m
+    err: {
+      "type": "Error",
+      "message": "ssh timeout",
+      "stack":
+          Error: ssh timeout
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-core-hooks.test.ts:108:15)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:107:39
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:105:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/services/environment-runtime.ts:1209:7)
+    }
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  14:31:16
+   Duration  4.46s (transform 2.69s, setup 75ms, import 4.29s, tests 9ms, environment 0ms)
+

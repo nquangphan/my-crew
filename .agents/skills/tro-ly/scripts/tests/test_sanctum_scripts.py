@@ -72,6 +72,10 @@ check("danh sách template khớp assets/", declared == shipped,
 check("tên sanctum khớp tên thư mục skill", ns["SKILL_NAME"] == SKILL.name,
       f"SKILL_NAME={ns['SKILL_NAME']} nhưng thư mục={SKILL.name}")
 
+check("init ghi sẵn tên owner và ngôn ngữ (repo Crew không có config BMAD)",
+      ns.get("OWNER_NAME") == "Đại Ca" and ns.get("LANGUAGE") == "Tiếng Việt",
+      f"OWNER_NAME={ns.get('OWNER_NAME')} LANGUAGE={ns.get('LANGUAGE')}")
+
 wake_ns = constants(SCRIPTS / "wake.py")
 check("wake và init cùng trỏ một sanctum",
       wake_ns["SKILL_NAME"] == ns["SKILL_NAME"],

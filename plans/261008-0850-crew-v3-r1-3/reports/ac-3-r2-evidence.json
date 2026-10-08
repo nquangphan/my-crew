@@ -1,0 +1,2045 @@
+{
+  "state.json": {
+    "root4a": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+    "roots": [
+      "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "37705669-ab7e-4504-9fe0-8153615d4320"
+    ],
+    "started": "2026-10-08T08:52:43.246Z",
+    "root4c": "37705669-ab7e-4504-9fe0-8153615d4320"
+  },
+  "probes.json": [
+    {
+      "id": "f92f5dd8-fd34-47df-95a8-6adb87e49ec8",
+      "result": {
+        "ok": true,
+        "driver": "ssh",
+        "summary": "Connected to phannhatquang@100.102.189.67 and verified the remote workspace path.",
+        "details": {
+          "host": "100.102.189.67",
+          "port": 2222,
+          "username": "phannhatquang",
+          "remoteWorkspacePath": "/Users/phannhatquang/crew-agents/mac-claude",
+          "remoteCwd": "/Users/phannhatquang/crew-agents/mac-claude"
+        }
+      }
+    },
+    {
+      "id": "c37a8692-77b3-4d4a-8f92-2b02bde38ec6",
+      "result": {
+        "ok": true,
+        "driver": "ssh",
+        "summary": "Connected to phannhatquang@100.102.189.67 and verified the remote workspace path.",
+        "details": {
+          "host": "100.102.189.67",
+          "port": 2222,
+          "username": "phannhatquang",
+          "remoteWorkspacePath": "/Users/phannhatquang/crew-agents/reviewer",
+          "remoteCwd": "/Users/phannhatquang/crew-agents/reviewer"
+        }
+      }
+    },
+    {
+      "id": "ffd322ff-670a-4e9c-bab1-6341cb2d38cc",
+      "result": {
+        "ok": true,
+        "driver": "ssh",
+        "summary": "Connected to phannhatquang@100.102.189.67 and verified the remote workspace path.",
+        "details": {
+          "host": "100.102.189.67",
+          "port": 2222,
+          "username": "phannhatquang",
+          "remoteWorkspacePath": "/Users/phannhatquang/crew-agents/integrator",
+          "remoteCwd": "/Users/phannhatquang/crew-agents/integrator"
+        }
+      }
+    },
+    {
+      "id": "5e7aa9c4-531c-4fe8-a6d5-fcd4816a244e",
+      "result": {
+        "ok": true,
+        "driver": "ssh",
+        "summary": "Connected to phannhatquang@100.102.189.67 and verified the remote workspace path.",
+        "details": {
+          "host": "100.102.189.67",
+          "port": 2222,
+          "username": "phannhatquang",
+          "remoteWorkspacePath": "/Users/phannhatquang/crew-agents/mac-claude-2",
+          "remoteCwd": "/Users/phannhatquang/crew-agents/mac-claude-2"
+        }
+      }
+    },
+    {
+      "id": "02600795-4017-45d0-a07c-4ddad7b53444",
+      "result": {
+        "ok": true,
+        "driver": "ssh",
+        "summary": "Connected to phannhatquang@100.102.189.67 and verified the remote workspace path.",
+        "details": {
+          "host": "100.102.189.67",
+          "port": 2222,
+          "username": "phannhatquang",
+          "remoteWorkspacePath": "/Users/phannhatquang/crew-agents/assistant",
+          "remoteCwd": "/Users/phannhatquang/crew-agents/assistant"
+        }
+      }
+    }
+  ],
+  "4a-create.json": {
+    "id": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+    "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+    "conversationAgentId": null,
+    "conversationUserId": null,
+    "conversationState": null,
+    "conversationSessionGeneration": 0,
+    "conversationBoundaryCommentId": null,
+    "projectId": null,
+    "projectWorkspaceId": null,
+    "goalId": null,
+    "parentId": null,
+    "title": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+    "description": "Trên repo thử repo-a: thêm lời chào theo ngôn ngữ cho greet (hàm và test), và ghi cách dùng vào README. Ngôn ngữ hỗ trợ là quyết định sản phẩm chưa chốt: hãy hỏi owner bằng interaction trước khi tạo con. Giữ lời gọi greet(name) tương thích. Phần hàm chia hai bước review nối tiếp: hỗ trợ ngôn ngữ, rồi xử lý fallback cho ngôn ngữ không hỗ trợ; README là gói độc lập chạy song song. Chỉ làm việc nhỏ, không mở rộng phạm vi; không chạm owner-wip.txt. Dùng các worktree riêng và workflow đã ghim.",
+    "status": "todo",
+    "statusVersion": 0,
+    "lastStatusDecisionId": null,
+    "workMode": "standard",
+    "harnessKind": null,
+    "priority": "medium",
+    "reviewPolicy": null,
+    "assigneeAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+    "assigneeUserId": null,
+    "checkoutRunId": null,
+    "executionRunId": null,
+    "executionAgentNameKey": null,
+    "executionLockedAt": null,
+    "createdByAgentId": null,
+    "createdByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+    "responsibleUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+    "issueNumber": 34,
+    "identifier": "CRE-34",
+    "originKind": "manual",
+    "originId": null,
+    "originRunId": null,
+    "originIdentityContextId": null,
+    "continuationIdentityContextId": null,
+    "originFingerprint": "default",
+    "requestDepth": 0,
+    "billingCode": null,
+    "assigneeAdapterOverrides": null,
+    "executionPolicy": {
+      "mode": "normal",
+      "stages": [
+        {
+          "id": "1d0f9674-af14-45e7-8525-c3274388cf63",
+          "type": "review",
+          "participants": [
+            {
+              "id": "b736fa59-1bd3-4cc9-9f21-880ad3bbc803",
+              "type": "agent",
+              "userId": null,
+              "agentId": "946f1a73-4ee0-447e-97b0-58e50bd70000"
+            }
+          ],
+          "approvalsNeeded": 1
+        },
+        {
+          "id": "59fbca02-aa81-4573-8497-d33634ad0557",
+          "type": "review",
+          "participants": [
+            {
+              "id": "4925134e-c366-4621-8e85-be933db783ef",
+              "type": "agent",
+              "userId": null,
+              "agentId": "b7cd2d89-9e3c-4164-ac81-9e0b042a15d1"
+            }
+          ],
+          "approvalsNeeded": 1
+        },
+        {
+          "id": "78260f15-e9d8-45bb-9041-f4081ec4e16f",
+          "type": "approval",
+          "participants": [
+            {
+              "id": "fca7fa15-c67f-4be1-a48f-9d0d8dfd8cec",
+              "type": "user",
+              "userId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+              "agentId": null
+            }
+          ],
+          "approvalsNeeded": 1
+        },
+        {
+          "id": "f47fffbe-8a0c-4b97-b1e2-41b10904a1ac",
+          "type": "review",
+          "participants": [
+            {
+              "id": "2dc9cdcb-ec34-4167-9375-69135cc0f20b",
+              "type": "agent",
+              "userId": null,
+              "agentId": "b7cd2d89-9e3c-4164-ac81-9e0b042a15d1"
+            }
+          ],
+          "approvalsNeeded": 1
+        }
+      ],
+      "commentRequired": true,
+      "maxReviewRounds": 5
+    },
+    "executionState": null,
+    "monitorNextCheckAt": null,
+    "monitorWakeRequestedAt": null,
+    "monitorLastTriggeredAt": null,
+    "monitorAttemptCount": 0,
+    "monitorNotes": null,
+    "monitorScheduledBy": null,
+    "executionWorkspaceId": null,
+    "executionWorkspacePreference": null,
+    "executionWorkspaceSettings": null,
+    "sourceTrust": null,
+    "unblockDescriptor": null,
+    "blockedTransitionAt": null,
+    "blockedOwnerNotifiedAt": null,
+    "startedAt": null,
+    "completedAt": null,
+    "cancelledAt": null,
+    "hiddenAt": null,
+    "createdAt": "2026-10-08T08:52:43.246Z",
+    "updatedAt": "2026-10-08T08:52:43.246Z",
+    "labels": [],
+    "labelIds": [],
+    "watchdog": null,
+    "blockedBy": [],
+    "blocks": [],
+    "relatedWork": {
+      "outbound": [],
+      "inbound": []
+    },
+    "referencedIssueIdentifiers": []
+  },
+  "4a-request.json": {
+    "title": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+    "description": "Trên repo thử repo-a: thêm lời chào theo ngôn ngữ cho greet (hàm và test), và ghi cách dùng vào README. Ngôn ngữ hỗ trợ là quyết định sản phẩm chưa chốt: hãy hỏi owner bằng interaction trước khi tạo con. Giữ lời gọi greet(name) tương thích. Phần hàm chia hai bước review nối tiếp: hỗ trợ ngôn ngữ, rồi xử lý fallback cho ngôn ngữ không hỗ trợ; README là gói độc lập chạy song song. Chỉ làm việc nhỏ, không mở rộng phạm vi; không chạm owner-wip.txt. Dùng các worktree riêng và workflow đã ghim.",
+    "status": "todo",
+    "assigneeAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+    "priority": "medium"
+  },
+  "4a-before-answer.json": {
+    "issue": {
+      "id": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "conversationAgentId": null,
+      "conversationUserId": null,
+      "conversationState": null,
+      "conversationSessionGeneration": 0,
+      "conversationBoundaryCommentId": null,
+      "projectId": null,
+      "projectWorkspaceId": null,
+      "goalId": null,
+      "parentId": null,
+      "title": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+      "description": "Trên repo thử repo-a: thêm lời chào theo ngôn ngữ cho greet (hàm và test), và ghi cách dùng vào README. Ngôn ngữ hỗ trợ là quyết định sản phẩm chưa chốt: hãy hỏi owner bằng interaction trước khi tạo con. Giữ lời gọi greet(name) tương thích. Phần hàm chia hai bước review nối tiếp: hỗ trợ ngôn ngữ, rồi xử lý fallback cho ngôn ngữ không hỗ trợ; README là gói độc lập chạy song song. Chỉ làm việc nhỏ, không mở rộng phạm vi; không chạm owner-wip.txt. Dùng các worktree riêng và workflow đã ghim.",
+      "status": "blocked",
+      "statusVersion": 2,
+      "lastStatusDecisionId": null,
+      "workMode": "standard",
+      "harnessKind": null,
+      "priority": "medium",
+      "reviewPolicy": null,
+      "assigneeAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "assigneeUserId": null,
+      "checkoutRunId": null,
+      "executionRunId": null,
+      "executionAgentNameKey": null,
+      "executionLockedAt": null,
+      "createdByAgentId": null,
+      "createdByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "responsibleUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "issueNumber": 34,
+      "identifier": "CRE-34",
+      "originKind": "manual",
+      "originId": null,
+      "originRunId": null,
+      "originIdentityContextId": null,
+      "continuationIdentityContextId": "50c67cdb-be60-4ee2-be9d-c4667b534d13",
+      "originFingerprint": "default",
+      "requestDepth": 0,
+      "billingCode": null,
+      "assigneeAdapterOverrides": null,
+      "executionPolicy": {
+        "mode": "normal",
+        "stages": [
+          {
+            "id": "1d0f9674-af14-45e7-8525-c3274388cf63",
+            "type": "review",
+            "participants": [
+              {
+                "id": "b736fa59-1bd3-4cc9-9f21-880ad3bbc803",
+                "type": "agent",
+                "userId": null,
+                "agentId": "946f1a73-4ee0-447e-97b0-58e50bd70000"
+              }
+            ],
+            "approvalsNeeded": 1
+          },
+          {
+            "id": "59fbca02-aa81-4573-8497-d33634ad0557",
+            "type": "review",
+            "participants": [
+              {
+                "id": "4925134e-c366-4621-8e85-be933db783ef",
+                "type": "agent",
+                "userId": null,
+                "agentId": "b7cd2d89-9e3c-4164-ac81-9e0b042a15d1"
+              }
+            ],
+            "approvalsNeeded": 1
+          },
+          {
+            "id": "78260f15-e9d8-45bb-9041-f4081ec4e16f",
+            "type": "approval",
+            "participants": [
+              {
+                "id": "fca7fa15-c67f-4be1-a48f-9d0d8dfd8cec",
+                "type": "user",
+                "userId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+                "agentId": null
+              }
+            ],
+            "approvalsNeeded": 1
+          },
+          {
+            "id": "f47fffbe-8a0c-4b97-b1e2-41b10904a1ac",
+            "type": "review",
+            "participants": [
+              {
+                "id": "2dc9cdcb-ec34-4167-9375-69135cc0f20b",
+                "type": "agent",
+                "userId": null,
+                "agentId": "b7cd2d89-9e3c-4164-ac81-9e0b042a15d1"
+              }
+            ],
+            "approvalsNeeded": 1
+          }
+        ],
+        "commentRequired": true,
+        "maxReviewRounds": 5
+      },
+      "executionState": null,
+      "monitorNextCheckAt": null,
+      "monitorWakeRequestedAt": null,
+      "monitorLastTriggeredAt": null,
+      "monitorAttemptCount": 0,
+      "monitorNotes": null,
+      "monitorScheduledBy": null,
+      "executionWorkspaceId": null,
+      "executionWorkspacePreference": null,
+      "executionWorkspaceSettings": null,
+      "sourceTrust": null,
+      "unblockDescriptor": null,
+      "blockedTransitionAt": "2026-10-08T08:54:46.366Z",
+      "blockedOwnerNotifiedAt": null,
+      "startedAt": "2026-10-08T08:52:43.830Z",
+      "completedAt": null,
+      "cancelledAt": null,
+      "hiddenAt": null,
+      "createdAt": "2026-10-08T08:52:43.246Z",
+      "updatedAt": "2026-10-08T08:54:46.426Z",
+      "labels": [],
+      "labelIds": [],
+      "watchdog": null,
+      "ancestors": [],
+      "blockerAttention": {
+        "state": "needs_attention",
+        "reason": "attention_required",
+        "unresolvedBlockerCount": 0,
+        "coveredBlockerCount": 0,
+        "stalledBlockerCount": 0,
+        "attentionBlockerCount": 0,
+        "pendingFinalizeBlockerIssueIds": [],
+        "sampleBlockerIdentifier": null,
+        "sampleStalledBlockerIdentifier": null,
+        "blockingTreeLive": false,
+        "directBlockerIssueId": null,
+        "terminalBlockerIssueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+        "terminalBlocker": null
+      },
+      "reviewAttention": {
+        "state": "none",
+        "paths": [],
+        "reason": null
+      },
+      "successfulRunHandoff": null,
+      "executionBlocker": null,
+      "scheduledRetry": null,
+      "activeRecoveryAction": null,
+      "blockedBy": [],
+      "blocks": [],
+      "relatedWork": {
+        "outbound": [],
+        "inbound": []
+      },
+      "referencedIssueIdentifiers": [],
+      "planDocument": null,
+      "documentSummaries": [],
+      "legacyPlanDocument": null,
+      "project": null,
+      "goal": null,
+      "mentionedProjects": [],
+      "currentExecutionWorkspace": null,
+      "workProducts": [],
+      "linkedCases": [],
+      "externalChannelBinding": null
+    },
+    "children": [
+      {
+        "count": 0
+      }
+    ]
+  },
+  "4a-interactions-before.json": [
+    {
+      "id": "7bac12cd-dedb-402a-aeb7-3885d973559f",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "kind": "ask_user_questions",
+      "status": "pending",
+      "continuationPolicy": "wake_assignee",
+      "requestedResolverPolicy": "human_only",
+      "effectiveResolverPolicy": "human_only",
+      "resolverPolicyProvenance": "explicit",
+      "effectiveResolverPolicySource": "requested",
+      "idempotencyKey": "crew-ask:CRE-34:1",
+      "originCommentIds": [],
+      "sourceCommentId": null,
+      "sourceIdentityContextId": "50c67cdb-be60-4ee2-be9d-c4667b534d13",
+      "sourceRunId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "title": "Trợ Lý cần thêm thông tin",
+      "summary": null,
+      "createdByAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "addresseeAgentId": null,
+      "addresseeUserId": null,
+      "createdByUserId": null,
+      "resolvedByAgentId": null,
+      "resolvedByRunId": null,
+      "resolvedByUserId": null,
+      "payload": {
+        "version": 1,
+        "supersedeOnUserComment": true,
+        "questions": [
+          {
+            "id": "q1",
+            "prompt": "greet cần hỗ trợ những ngôn ngữ nào? (hiện tại chỉ có tiếng Việt: \"Xin chào, <tên>!\")",
+            "selectionMode": "single",
+            "required": true,
+            "options": [
+              {
+                "id": "vi_en",
+                "label": "Tiếng Việt + tiếng Anh (vi, en)"
+              },
+              {
+                "id": "vi_en_ja",
+                "label": "Tiếng Việt + tiếng Anh + tiếng Nhật (vi, en, ja)"
+              },
+              {
+                "id": "vi_en_fr_ja",
+                "label": "Tiếng Việt + tiếng Anh + tiếng Pháp + tiếng Nhật (vi, en, fr, ja)"
+              },
+              {
+                "id": "other",
+                "label": "Khác (ghi rõ danh sách mã ngôn ngữ và câu chào mong muốn)",
+                "freeText": true
+              }
+            ]
+          },
+          {
+            "id": "q2",
+            "prompt": "Khi gọi với ngôn ngữ KHÔNG hỗ trợ (ví dụ greet(\"Crew\", \"de\")) thì greet phải làm gì?",
+            "selectionMode": "single",
+            "required": true,
+            "options": [
+              {
+                "id": "fallback_vi",
+                "label": "Trả câu chào tiếng Việt (fallback mặc định, không báo lỗi)"
+              },
+              {
+                "id": "fallback_en",
+                "label": "Trả câu chào tiếng Anh"
+              },
+              {
+                "id": "throw",
+                "label": "Ném Error nêu rõ ngôn ngữ không hỗ trợ"
+              },
+              {
+                "id": "other",
+                "label": "Khác (ghi rõ)",
+                "freeText": true
+              }
+            ]
+          },
+          {
+            "id": "q3",
+            "prompt": "Dạng lời gọi cho ngôn ngữ (greet(name) hiện tại vẫn phải chạy y như cũ, mặc định tiếng Việt). Đề xuất của em: tham số thứ hai là mã ngôn ngữ.",
+            "selectionMode": "single",
+            "required": true,
+            "options": [
+              {
+                "id": "positional",
+                "label": "greet(\"Crew\", \"en\") — tham số thứ hai là mã ngôn ngữ (đề xuất)"
+              },
+              {
+                "id": "options_obj",
+                "label": "greet(\"Crew\", { lang: \"en\" }) — object tuỳ chọn"
+              },
+              {
+                "id": "other",
+                "label": "Khác (ghi rõ)",
+                "freeText": true
+              }
+            ]
+          }
+        ]
+      },
+      "result": null,
+      "resolvedAt": null,
+      "createdAt": "2026-10-08T08:54:39.188Z",
+      "updatedAt": "2026-10-08T08:54:39.188Z",
+      "resolverPolicy": "human_only",
+      "legacyResolverPolicyAliases": {
+        "requested": "board_only",
+        "effective": "board_only"
+      }
+    }
+  ],
+  "4a-owner-answer.json": {
+    "id": "7bac12cd-dedb-402a-aeb7-3885d973559f",
+    "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+    "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+    "kind": "ask_user_questions",
+    "status": "answered",
+    "continuationPolicy": "wake_assignee",
+    "requestedResolverPolicy": "human_only",
+    "effectiveResolverPolicy": "human_only",
+    "resolverPolicyProvenance": "explicit",
+    "effectiveResolverPolicySource": "requested",
+    "idempotencyKey": "crew-ask:CRE-34:1",
+    "originCommentIds": [],
+    "sourceCommentId": null,
+    "sourceIdentityContextId": "50c67cdb-be60-4ee2-be9d-c4667b534d13",
+    "sourceRunId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+    "title": "Trợ Lý cần thêm thông tin",
+    "summary": null,
+    "createdByAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+    "addresseeAgentId": null,
+    "addresseeUserId": null,
+    "createdByUserId": null,
+    "resolvedByAgentId": null,
+    "resolvedByRunId": null,
+    "resolvedByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+    "payload": {
+      "version": 1,
+      "supersedeOnUserComment": true,
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "greet cần hỗ trợ những ngôn ngữ nào? (hiện tại chỉ có tiếng Việt: \"Xin chào, <tên>!\")",
+          "selectionMode": "single",
+          "required": true,
+          "options": [
+            {
+              "id": "vi_en",
+              "label": "Tiếng Việt + tiếng Anh (vi, en)"
+            },
+            {
+              "id": "vi_en_ja",
+              "label": "Tiếng Việt + tiếng Anh + tiếng Nhật (vi, en, ja)"
+            },
+            {
+              "id": "vi_en_fr_ja",
+              "label": "Tiếng Việt + tiếng Anh + tiếng Pháp + tiếng Nhật (vi, en, fr, ja)"
+            },
+            {
+              "id": "other",
+              "label": "Khác (ghi rõ danh sách mã ngôn ngữ và câu chào mong muốn)",
+              "freeText": true
+            }
+          ]
+        },
+        {
+          "id": "q2",
+          "prompt": "Khi gọi với ngôn ngữ KHÔNG hỗ trợ (ví dụ greet(\"Crew\", \"de\")) thì greet phải làm gì?",
+          "selectionMode": "single",
+          "required": true,
+          "options": [
+            {
+              "id": "fallback_vi",
+              "label": "Trả câu chào tiếng Việt (fallback mặc định, không báo lỗi)"
+            },
+            {
+              "id": "fallback_en",
+              "label": "Trả câu chào tiếng Anh"
+            },
+            {
+              "id": "throw",
+              "label": "Ném Error nêu rõ ngôn ngữ không hỗ trợ"
+            },
+            {
+              "id": "other",
+              "label": "Khác (ghi rõ)",
+              "freeText": true
+            }
+          ]
+        },
+        {
+          "id": "q3",
+          "prompt": "Dạng lời gọi cho ngôn ngữ (greet(name) hiện tại vẫn phải chạy y như cũ, mặc định tiếng Việt). Đề xuất của em: tham số thứ hai là mã ngôn ngữ.",
+          "selectionMode": "single",
+          "required": true,
+          "options": [
+            {
+              "id": "positional",
+              "label": "greet(\"Crew\", \"en\") — tham số thứ hai là mã ngôn ngữ (đề xuất)"
+            },
+            {
+              "id": "options_obj",
+              "label": "greet(\"Crew\", { lang: \"en\" }) — object tuỳ chọn"
+            },
+            {
+              "id": "other",
+              "label": "Khác (ghi rõ)",
+              "freeText": true
+            }
+          ]
+        }
+      ]
+    },
+    "result": {
+      "version": 1,
+      "answers": [
+        {
+          "questionId": "q1",
+          "optionIds": [
+            "vi_en"
+          ]
+        },
+        {
+          "questionId": "q2",
+          "optionIds": [
+            "fallback_vi"
+          ]
+        },
+        {
+          "questionId": "q3",
+          "optionIds": [
+            "positional"
+          ]
+        }
+      ],
+      "summaryMarkdown": "Owner chốt: vi, en; greet(name, lang), mặc định vi; mã không hỗ trợ fallback tiếng Việt. Phạm vi nhỏ như yêu cầu."
+    },
+    "resolvedAt": "2026-10-08T08:55:25.758Z",
+    "createdAt": "2026-10-08T08:54:39.188Z",
+    "updatedAt": "2026-10-08T08:55:25.758Z",
+    "resolverPolicy": "human_only",
+    "legacyResolverPolicyAliases": {
+      "requested": "board_only",
+      "effective": "board_only"
+    }
+  },
+  "4a-comments-final.json": [
+    {
+      "id": "a5b95099-6921-446b-9d2f-bf454864d16d",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "authorAgentId": null,
+      "authorUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "onBehalfOfUserId": null,
+      "authorType": "user",
+      "createdByRunId": null,
+      "derivedAuthorAgentId": null,
+      "derivedCreatedByRunId": null,
+      "derivedAuthorSource": null,
+      "clientRequestId": null,
+      "conversationSessionGeneration": null,
+      "body": "Dừng nghiệm thu: bridge SSH từ chối POST /api/issues/:id/children bằng HTTP 403 Route not allowed. Đã ghi crew-plan trước POST; chưa tạo con. Không sửa code hoặc thay đường API trong nghiệm thu. Báo lead: DEFAULT_SANDBOX_CALLBACK_BRIDGE_ROUTE_ALLOWLIST ở packages/adapter-utils/src/sandbox-callback-bridge.ts thiếu route children. Lỗi chặn bước tách việc dùng chung cho cả ba ca.",
+      "presentation": null,
+      "metadata": null,
+      "deletedAt": null,
+      "deletedByType": null,
+      "deletedByAgentId": null,
+      "deletedByUserId": null,
+      "deletedByRunId": null,
+      "sourceTrust": null,
+      "createdAt": "2026-10-08T09:02:38.290Z",
+      "updatedAt": "2026-10-08T09:02:38.290Z"
+    },
+    {
+      "id": "a5a604de-78fb-443c-b422-a50279a44a5f",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "authorAgentId": null,
+      "authorUserId": null,
+      "onBehalfOfUserId": null,
+      "authorType": "system",
+      "createdByRunId": null,
+      "derivedAuthorAgentId": null,
+      "derivedCreatedByRunId": null,
+      "derivedAuthorSource": null,
+      "clientRequestId": null,
+      "conversationSessionGeneration": null,
+      "body": "Run `391614ad-78be-4684-9d0c-cd5f4b26c1f3` đã bị hủy lúc 16:02:36 08-10. Crew chuyển issue sang `blocked` để không kẹt ở `in_progress`. Muốn chạy tiếp: chuyển issue về `todo` hoặc để comment cho agent.",
+      "presentation": null,
+      "metadata": null,
+      "deletedAt": null,
+      "deletedByType": null,
+      "deletedByAgentId": null,
+      "deletedByUserId": null,
+      "deletedByRunId": null,
+      "sourceTrust": null,
+      "createdAt": "2026-10-08T09:02:36.741Z",
+      "updatedAt": "2026-10-08T09:02:36.741Z"
+    },
+    {
+      "id": "62c4bed1-3e31-49e5-94ef-3ff7ce555b48",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "authorAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "authorUserId": null,
+      "onBehalfOfUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "authorType": "agent",
+      "createdByRunId": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "derivedAuthorAgentId": null,
+      "derivedCreatedByRunId": null,
+      "derivedAuthorSource": null,
+      "clientRequestId": null,
+      "conversationSessionGeneration": null,
+      "body": "crew-plan root=CRE-34 children=3 bundles=2\nrevision=v1\n\nQuyết định owner (interaction 7bac12cd-dedb-402a-aeb7-3885d973559f, đã trả lời 2026-10-08T08:55:25Z):\n- Ngôn ngữ hỗ trợ: `vi`, `en`.\n- Lời gọi: `greet(name, lang)`, tham số thứ hai là mã ngôn ngữ, mặc định `vi`.\n- Mã không hỗ trợ: fallback câu chào tiếng Việt, KHÔNG ném lỗi.\n\nGiả định (tự trả lời từ docs/code, không hỏi thêm):\n- A1: Câu chào tiếng Anh là `\"Hello, <tên>!\"`, giữ đúng khuôn `\"Xin chào, <tên>!\"` của `src/greet.js` (ghép bằng `+`, `trim()` tên trước khi ghép).\n- A2: `greetAll` và `greetLoud` giữ nguyên hành vi hiện tại (chào tiếng Việt), không thêm tham số ngôn ngữ — ngoài phạm vi.\n- A3: `greetAll` hiện viết `names.map(greet)` nên `Array.map` truyền index vào tham số thứ hai; khi `greet` nhận tham số thứ hai là ngôn ngữ thì phải sửa call site thành `names.map((name) => greet(name))` để index không bị hiểu là mã ngôn ngữ. Việc này thuộc con `greet-1` (bắt buộc để test cũ còn xanh).\n- A4: `src/greet.js` thuộc flow `repo-a` nên mọi con sửa file này phải sửa `docs/flows/repo-a.md` trong cùng lần push (luật R3). `README.md` không nằm trong `source.include` của `docs/flows.yaml` nên con README không chịu R3, không cần `crew-docs generate`.\n- A5: Không chạm `owner-wip.txt`, `.claude/**`, `.githooks/**`, `AGENTS.md`, `CLAUDE.md`, và các mục `source`/`shared`/`unassigned` của `docs/flows.yaml` (luật R6).\n\nGói ngữ cảnh:\n- Gói `greet` (≤3 file nặng): `src/greet.js`, `test/greet.test.js`, `docs/flows/repo-a.md`. Hai con nối tiếp, con sau dựng trên con trước.\n- Gói `readme` (1 file): `README.md`. Độc lập, chạy song song với gói `greet`.\n\nChia executor (đếm issue đang mở lúc lập kế hoạch: `37a9e834…` = 2 (CRE-20, CRE-15), `c452d003…` = 0):\n- Gói `greet` → `c452d003-6a7c-4820-9c7a-91d5f762d734` (ít nhất: 0).\n- Gói `readme` → `37a9e834-6aaf-4970-8f89-95dbc8a019f2` (sau khi giao gói `greet`: 2 vs 2, hòa → lấy executor đứng trước danh sách).\n\nThứ tự tạo: `greet-1` → `greet-2` (cần id của `greet-1`) → `readme-1`.\nKhóa tạo con: `crew-child:d1a5427c-37d3-4341-89fc-6335ddbbe35c:v1:<key>`.\n\n---\n\nchild-key=greet-1 · gói `greet` seq=1 · executor `c452d003-6a7c-4820-9c7a-91d5f762d734` · claude-sonnet-5/medium · blocker: không có\n\nPayload:\n```json\n{\n  \"title\": \"greet: hỗ trợ lời chào theo ngôn ngữ (vi, en)\",\n  \"description\": \"Repo thử repo-a, flow `repo-a`. Nạp trước: `docs/index.md`, `docs/flows/repo-a.md`, `src/greet.js`, `test/greet.test.js`.\n\nViệc cần làm — thêm tham số ngôn ngữ cho `greet` trong `src/greet.js`:\n1. `greet(name, lang)` với `lang` mặc định `\\\"vi\\\"`. `lang=\\\"vi\\\"` → `\\\"Xin chào, \\\" + name.trim() + \\\"!\\\"` (y như hiện tại). `lang=\\\"en\\\"` → `\\\"Hello, \\\" + name.trim() + \\\"!\\\"`. Giữ cách ghép chuỗi bằng `+` và `trim()` tên như code hiện có.\n2. `greet(name)` phải chạy y như trước (tiếng Việt) — đây là ràng buộc tương thích của owner.\n3. BẮT BUỘC: `greetAll` đang viết `names.map(greet)`, mà `Array.prototype.map` truyền thêm index vào tham số thứ hai, nên index sẽ bị hiểu là mã ngôn ngữ. Sửa call site thành `names.map((name) => greet(name))` để `greetAll` giữ đúng hành vi cũ. Không thêm tham số ngôn ngữ cho `greetAll`/`greetLoud` (ngoài phạm vi).\n4. Phạm vi con này CHỈ là hai ngôn ngữ hỗ trợ. Hành vi cho mã ngôn ngữ KHÔNG hỗ trợ là việc của con tiếp theo trong gói — đừng làm trước, cũng đừng viết test cho nó.\n5. Cập nhật `docs/flows/repo-a.md` (mục Điểm vào / Các bước / Files / Tests / Ghi chú) mô tả tham số `lang` và bảng câu chào. Bắt buộc theo luật R3 vì `src/greet.js` thuộc flow `repo-a`.\n\nKiểm tra: `node --test test/` (mọi test cũ phải còn xanh). Kiểm docs trước khi push: `crew-docs check --range <base>..HEAD`.\n\nKhông sửa `owner-wip.txt`, `.claude/**`, `.githooks/**`, `AGENTS.md`, `CLAUDE.md`, và các mục `source`/`shared`/`unassigned` của `docs/flows.yaml` (luật R6). Dùng worktree riêng của bạn và workflow đã ghim.\n\nGiả định đã chốt với owner: câu chào tiếng Anh là `\\\"Hello, <tên>!\\\"`; mã ngôn ngữ hỗ trợ đúng hai mã `vi` và `en`.\n\ncrew-bundle id=greet seq=1\ncrew-model complexity=small model=claude-sonnet-5 effort=medium reason=Bám khuôn greet có sẵn trong một module, hai ngôn ngữ, kèm sửa call site greetAll và cập nhật doc flow\ncrew-child key=greet-1 revision=v1\",\n  \"acceptanceCriteria\": [\n    \"greet(\\\"Crew\\\") === \\\"Xin chào, Crew!\\\" (không truyền lang, giữ tương thích)\",\n    \"greet(\\\"Crew\\\", \\\"vi\\\") === \\\"Xin chào, Crew!\\\"\",\n    \"greet(\\\"Crew\\\", \\\"en\\\") === \\\"Hello, Crew!\\\"\",\n    \"greet(\\\"  Crew \\\", \\\"en\\\") === \\\"Hello, Crew!\\\" (vẫn trim tên)\",\n    \"greetAll([\\\"A\\\", \\\"B\\\"]) === [\\\"Xin chào, A!\\\", \\\"Xin chào, B!\\\"] và greetLoud(\\\"Crew\\\") === \\\"XIN CHÀO, CREW!\\\" — không đổi hành vi\",\n    \"test/greet.test.js có test cho câu chào tiếng Việt và tiếng Anh; `node --test test/` xanh toàn bộ\",\n    \"docs/flows/repo-a.md được cập nhật mô tả tham số lang và hai ngôn ngữ hỗ trợ\",\n    \"Không có thay đổi nào ngoài src/greet.js, test/greet.test.js, docs/flows/repo-a.md\"\n  ],\n  \"assigneeAgentId\": \"c452d003-6a7c-4820-9c7a-91d5f762d734\",\n  \"blockParentUntilDone\": true,\n  \"assigneeAdapterOverrides\": { \"adapterConfig\": { \"model\": \"claude-sonnet-5\", \"effort\": \"medium\" } },\n  \"idempotencyKey\": \"crew-child:d1a5427c-37d3-4341-89fc-6335ddbbe35c:v1:greet-1\"\n}\n```\n\n---\n\nchild-key=greet-2 · gói `greet` seq=2 · executor `c452d003-6a7c-4820-9c7a-91d5f762d734` · claude-sonnet-5/medium · blocker: `greet-1` (stack lên `greet-1`)\n\nPayload (`blockedByIssueIds` và `crew-stack on=` điền id/identifier thật của `greet-1` khi tạo):\n```json\n{\n  \"title\": \"greet: fallback tiếng Việt cho ngôn ngữ không hỗ trợ\",\n  \"description\": \"Repo thử repo-a, flow `repo-a`. Dựng tiếp trên con trước cùng gói (hỗ trợ vi/en). Nạp trước: `docs/flows/repo-a.md`, `src/greet.js`, `test/greet.test.js`.\n\nViệc cần làm — quyết định của owner: mã ngôn ngữ KHÔNG hỗ trợ thì `greet` trả câu chào TIẾNG VIỆT, KHÔNG ném lỗi, không log cảnh báo.\n1. `greet(name, lang)` với `lang` không nằm trong `{vi, en}` → `\\\"Xin chào, \\\" + name.trim() + \\\"!\\\"`.\n2. Áp dụng cho cả giá trị không phải chuỗi hoặc rỗng: `undefined`, `null`, `\\\"\\\"`, số (ví dụ `0`, `1`), `\\\"DE\\\"`, `\\\"de-DE\\\"` → đều fallback tiếng Việt. Không phân biệt chữ hoa/thường thì không thuộc phạm vi: chỉ cần `\\\"EN\\\"` không khớp cũng fallback tiếng Việt là đúng, miễn có test ghim rõ hành vi đã chọn.\n3. Không thêm ngôn ngữ mới, không đổi câu chào vi/en của con trước, không thêm tham số cho `greetAll`/`greetLoud`.\n4. Cập nhật `docs/flows/repo-a.md` nêu rõ quy tắc fallback (bắt buộc theo luật R3).\n\nKiểm tra: `node --test test/` (mọi test của con trước phải còn xanh). Kiểm docs trước khi push: `crew-docs check --range <base>..HEAD`.\n\nKhông sửa `owner-wip.txt`, `.claude/**`, `.githooks/**`, `AGENTS.md`, `CLAUDE.md`, và các mục `source`/`shared`/`unassigned` của `docs/flows.yaml` (luật R6). Dùng worktree riêng của bạn và workflow đã ghim.\n\ncrew-bundle id=greet seq=2\ncrew-model complexity=small model=claude-sonnet-5 effort=medium reason=Một nhánh fallback nhỏ trong cùng module, bám khuôn con trước, kèm test và cập nhật doc flow\ncrew-child key=greet-2 revision=v1\ncrew-stack on=<identifier greet-1>\",\n  \"acceptanceCriteria\": [\n    \"greet(\\\"Crew\\\", \\\"de\\\") === \\\"Xin chào, Crew!\\\" (mã không hỗ trợ → fallback tiếng Việt, không ném lỗi)\",\n    \"greet(\\\"Crew\\\", undefined) === \\\"Xin chào, Crew!\\\" và greet(\\\"Crew\\\", \\\"\\\") === \\\"Xin chào, Crew!\\\"\",\n    \"greet(\\\"Crew\\\", 1) === \\\"Xin chào, Crew!\\\" (giá trị không phải mã ngôn ngữ cũng fallback)\",\n    \"greet(\\\"Crew\\\", \\\"vi\\\") === \\\"Xin chào, Crew!\\\" và greet(\\\"Crew\\\", \\\"en\\\") === \\\"Hello, Crew!\\\" — không hồi quy\",\n    \"greet không bao giờ ném lỗi vì mã ngôn ngữ; có test khẳng định điều này\",\n    \"`node --test test/` xanh toàn bộ, gồm cả test của con trước\",\n    \"docs/flows/repo-a.md nêu quy tắc fallback tiếng Việt\",\n    \"Không có thay đổi nào ngoài src/greet.js, test/greet.test.js, docs/flows/repo-a.md\"\n  ],\n  \"assigneeAgentId\": \"c452d003-6a7c-4820-9c7a-91d5f762d734\",\n  \"blockedByIssueIds\": [\"<id greet-1>\"],\n  \"blockParentUntilDone\": true,\n  \"assigneeAdapterOverrides\": { \"adapterConfig\": { \"model\": \"claude-sonnet-5\", \"effort\": \"medium\" } },\n  \"idempotencyKey\": \"crew-child:d1a5427c-37d3-4341-89fc-6335ddbbe35c:v1:greet-2\"\n}\n```\n\n---\n\nchild-key=readme-1 · gói `readme` seq=1 · executor `37a9e834-6aaf-4970-8f89-95dbc8a019f2` · claude-sonnet-5/low · blocker: không có (chạy song song gói `greet`)\n\nPayload:\n```json\n{\n  \"title\": \"README: hướng dẫn dùng greet đa ngôn ngữ\",\n  \"description\": \"Repo thử repo-a. Chỉ sửa `README.md`. Nạp trước: `README.md`, `docs/flows/repo-a.md` để lấy giọng văn; không cần sửa code.\n\nViệc cần làm — thêm mục hướng dẫn sử dụng `greet` theo ngôn ngữ vào `README.md`, viết theo đúng hợp đồng owner đã chốt (ghi theo spec dưới đây, KHÔNG chờ code của gói khác, KHÔNG sửa src/ hay test/):\n- `greet(name)` → `\\\"Xin chào, <tên>!\\\"` (mặc định tiếng Việt, giữ nguyên lời gọi cũ).\n- `greet(name, \\\"vi\\\")` → `\\\"Xin chào, <tên>!\\\"`.\n- `greet(name, \\\"en\\\")` → `\\\"Hello, <tên>!\\\"`.\n- Mã ngôn ngữ không hỗ trợ (ví dụ `greet(\\\"Crew\\\", \\\"de\\\")`) → trả câu chào tiếng Việt, không ném lỗi.\n- Ngôn ngữ hỗ trợ: đúng hai mã `vi` và `en`.\n- Nêu rõ `greetAll` và `greetLoud` vẫn chào tiếng Việt, không nhận tham số ngôn ngữ.\n\nYêu cầu trình bày: một mục `## Cách dùng` (hoặc tên tương đương) với ví dụ code ES module ngắn (`import { greet } from \\\"./src/greet.js\\\";`) và kết quả mong đợi ở dạng comment; chuỗi hiển thị tiếng Việt theo quy ước repo. Thêm dòng lệnh chạy test `node --test test/` nếu README chưa có.\n\nKhông sửa file nào khác ngoài `README.md`. `README.md` không nằm trong `source.include` của `docs/flows.yaml` nên không cần sửa `docs/flows/*.md` và không chạy `crew-docs generate`. Không chạm `owner-wip.txt`, `.claude/**`, `.githooks/**`, `AGENTS.md`, `CLAUDE.md`, `docs/flows.yaml` (luật R6). Dùng worktree riêng của bạn và workflow đã ghim.\n\ncrew-bundle id=readme seq=1\ncrew-model complexity=trivial model=claude-sonnet-5 effort=low reason=Chỉ viết tài liệu một file theo spec đã chốt đầy đủ, không đổi code\ncrew-child key=readme-1 revision=v1\",\n  \"acceptanceCriteria\": [\n    \"README.md có mục hướng dẫn dùng greet với ví dụ cho greet(name), greet(name, \\\"vi\\\") và greet(name, \\\"en\\\")\",\n    \"README.md ghi rõ hai mã ngôn ngữ hỗ trợ là vi và en\",\n    \"README.md ghi rõ mã ngôn ngữ không hỗ trợ sẽ trả câu chào tiếng Việt và không ném lỗi\",\n    \"README.md nêu greetAll và greetLoud vẫn chào tiếng Việt, không nhận tham số ngôn ngữ\",\n    \"Ví dụ code dùng cú pháp ES module đúng với repo (import từ ./src/greet.js)\",\n    \"Chỉ README.md thay đổi; không file nào khác trong repo bị sửa\"\n  ],\n  \"assigneeAgentId\": \"37a9e834-6aaf-4970-8f89-95dbc8a019f2\",\n  \"blockParentUntilDone\": true,\n  \"assigneeAdapterOverrides\": { \"adapterConfig\": { \"model\": \"claude-sonnet-5\", \"effort\": \"low\" } },\n  \"idempotencyKey\": \"crew-child:d1a5427c-37d3-4341-89fc-6335ddbbe35c:v1:readme-1\"\n}\n```\n",
+      "presentation": null,
+      "metadata": {
+        "version": 1,
+        "authorizationReason": "allow_self",
+        "sections": [
+          {
+            "title": "Authorization",
+            "rows": [
+              {
+                "type": "key_value",
+                "label": "Reason",
+                "value": "allow_self"
+              }
+            ]
+          }
+        ]
+      },
+      "deletedAt": null,
+      "deletedByType": null,
+      "deletedByAgentId": null,
+      "deletedByUserId": null,
+      "deletedByRunId": null,
+      "sourceTrust": null,
+      "createdAt": "2026-10-08T08:58:39.294Z",
+      "updatedAt": "2026-10-08T08:58:39.294Z"
+    },
+    {
+      "id": "0499026b-62b0-4194-824a-41dbe05c7008",
+      "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+      "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "authorAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "authorUserId": null,
+      "onBehalfOfUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "authorType": "agent",
+      "createdByRunId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "derivedAuthorAgentId": null,
+      "derivedCreatedByRunId": null,
+      "derivedAuthorSource": null,
+      "clientRequestId": null,
+      "conversationSessionGeneration": null,
+      "body": "Trợ Lý: chờ owner trả lời câu hỏi trong thẻ trên issue này.",
+      "presentation": null,
+      "metadata": {
+        "version": 1,
+        "authorizationReason": "allow_self",
+        "sections": [
+          {
+            "title": "Authorization",
+            "rows": [
+              {
+                "type": "key_value",
+                "label": "Reason",
+                "value": "allow_self"
+              }
+            ]
+          }
+        ]
+      },
+      "deletedAt": null,
+      "deletedByType": null,
+      "deletedByAgentId": null,
+      "deletedByUserId": null,
+      "deletedByRunId": null,
+      "sourceTrust": null,
+      "createdAt": "2026-10-08T08:54:46.413Z",
+      "updatedAt": "2026-10-08T08:54:46.413Z"
+    }
+  ],
+  "skills-sync-test.json": {
+    "before": [
+      {
+        "protectedHash": "b353948afaee1d8655e257418c89a773",
+        "skills": null
+      }
+    ],
+    "response": {
+      "http": 200,
+      "body": {
+        "adapterType": "claude_local",
+        "supported": true,
+        "mode": "ephemeral",
+        "desiredSkills": [
+          "paperclipai/paperclip/paperclip",
+          "paperclipai/paperclip/first-task"
+        ],
+        "desiredSkillEntries": [
+          {
+            "key": "paperclipai/paperclip/paperclip",
+            "versionId": null
+          },
+          {
+            "key": "paperclipai/paperclip/first-task",
+            "versionId": null
+          }
+        ],
+        "entries": [
+          {
+            "key": "paperclipai/paperclip/first-task",
+            "runtimeName": "first-task",
+            "versionId": null,
+            "currentVersionId": null,
+            "desired": true,
+            "managed": true,
+            "state": "configured",
+            "sourcePath": "/app/server/dist/onboarding-assets/first-task/skills/first-task",
+            "targetPath": null,
+            "detail": "Will be materialized into the stable Paperclip-managed Claude prompt bundle on the next run.",
+            "origin": "company_managed",
+            "originLabel": "Managed by Paperclip",
+            "readOnly": false
+          },
+          {
+            "key": "paperclipai/paperclip/paperclip",
+            "runtimeName": "paperclip",
+            "versionId": null,
+            "currentVersionId": null,
+            "desired": true,
+            "managed": true,
+            "state": "configured",
+            "sourcePath": "/app/skills/paperclip",
+            "targetPath": null,
+            "detail": "Will be materialized into the stable Paperclip-managed Claude prompt bundle on the next run.",
+            "origin": "company_managed",
+            "originLabel": "Managed by Paperclip",
+            "readOnly": false
+          },
+          {
+            "key": "paperclipai/paperclip/paperclip-board",
+            "runtimeName": "paperclip-board",
+            "versionId": null,
+            "currentVersionId": null,
+            "desired": false,
+            "managed": true,
+            "state": "available",
+            "sourcePath": "/app/skills/paperclip-board",
+            "targetPath": null,
+            "detail": null,
+            "origin": "company_managed",
+            "originLabel": "Managed by Paperclip",
+            "readOnly": false
+          },
+          {
+            "key": "paperclipai/paperclip/paperclip-converting-plans-to-tasks",
+            "runtimeName": "paperclip-converting-plans-to-tasks",
+            "versionId": null,
+            "currentVersionId": null,
+            "desired": false,
+            "managed": true,
+            "state": "available",
+            "sourcePath": "/app/skills/paperclip-converting-plans-to-tasks",
+            "targetPath": null,
+            "detail": null,
+            "origin": "company_managed",
+            "originLabel": "Managed by Paperclip",
+            "readOnly": false
+          },
+          {
+            "key": "paperclipai/paperclip/paperclip-create-agent",
+            "runtimeName": "paperclip-create-agent",
+            "versionId": null,
+            "currentVersionId": null,
+            "desired": false,
+            "managed": true,
+            "state": "available",
+            "sourcePath": "/app/skills/paperclip-create-agent",
+            "targetPath": null,
+            "detail": null,
+            "origin": "company_managed",
+            "originLabel": "Managed by Paperclip",
+            "readOnly": false
+          },
+          {
+            "key": "paperclipai/paperclip/para-memory-files",
+            "runtimeName": "para-memory-files",
+            "versionId": null,
+            "currentVersionId": null,
+            "desired": false,
+            "managed": true,
+            "state": "available",
+            "sourcePath": "/app/skills/para-memory-files",
+            "targetPath": null,
+            "detail": null,
+            "origin": "company_managed",
+            "originLabel": "Managed by Paperclip",
+            "readOnly": false
+          },
+          {
+            "key": "paperclipai/paperclip/agentmail",
+            "runtimeName": "agentmail",
+            "desired": false,
+            "managed": true,
+            "state": "available",
+            "readOnly": true,
+            "originLabel": "AgentMail assignment",
+            "detail": "Provided automatically when this connector assigns a resource to the agent."
+          }
+        ],
+        "warnings": []
+      }
+    },
+    "after": [
+      {
+        "protectedHash": "b353948afaee1d8655e257418c89a773",
+        "skills": {
+          "paperclipSkillSync": {
+            "desiredSkills": [
+              "paperclipai/paperclip/first-task"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "skills-sync-restored.json": {
+    "response": {
+      "adapterType": "claude_local",
+      "supported": true,
+      "mode": "ephemeral",
+      "desiredSkills": [
+        "paperclipai/paperclip/paperclip"
+      ],
+      "desiredSkillEntries": [
+        {
+          "key": "paperclipai/paperclip/paperclip",
+          "versionId": null
+        }
+      ],
+      "entries": [
+        {
+          "key": "paperclipai/paperclip/first-task",
+          "runtimeName": "first-task",
+          "versionId": null,
+          "currentVersionId": null,
+          "desired": false,
+          "managed": true,
+          "state": "available",
+          "sourcePath": "/app/server/dist/onboarding-assets/first-task/skills/first-task",
+          "targetPath": null,
+          "detail": null,
+          "origin": "company_managed",
+          "originLabel": "Managed by Paperclip",
+          "readOnly": false
+        },
+        {
+          "key": "paperclipai/paperclip/paperclip",
+          "runtimeName": "paperclip",
+          "versionId": null,
+          "currentVersionId": null,
+          "desired": true,
+          "managed": true,
+          "state": "configured",
+          "sourcePath": "/app/skills/paperclip",
+          "targetPath": null,
+          "detail": "Will be materialized into the stable Paperclip-managed Claude prompt bundle on the next run.",
+          "origin": "company_managed",
+          "originLabel": "Managed by Paperclip",
+          "readOnly": false
+        },
+        {
+          "key": "paperclipai/paperclip/paperclip-board",
+          "runtimeName": "paperclip-board",
+          "versionId": null,
+          "currentVersionId": null,
+          "desired": false,
+          "managed": true,
+          "state": "available",
+          "sourcePath": "/app/skills/paperclip-board",
+          "targetPath": null,
+          "detail": null,
+          "origin": "company_managed",
+          "originLabel": "Managed by Paperclip",
+          "readOnly": false
+        },
+        {
+          "key": "paperclipai/paperclip/paperclip-converting-plans-to-tasks",
+          "runtimeName": "paperclip-converting-plans-to-tasks",
+          "versionId": null,
+          "currentVersionId": null,
+          "desired": false,
+          "managed": true,
+          "state": "available",
+          "sourcePath": "/app/skills/paperclip-converting-plans-to-tasks",
+          "targetPath": null,
+          "detail": null,
+          "origin": "company_managed",
+          "originLabel": "Managed by Paperclip",
+          "readOnly": false
+        },
+        {
+          "key": "paperclipai/paperclip/paperclip-create-agent",
+          "runtimeName": "paperclip-create-agent",
+          "versionId": null,
+          "currentVersionId": null,
+          "desired": false,
+          "managed": true,
+          "state": "available",
+          "sourcePath": "/app/skills/paperclip-create-agent",
+          "targetPath": null,
+          "detail": null,
+          "origin": "company_managed",
+          "originLabel": "Managed by Paperclip",
+          "readOnly": false
+        },
+        {
+          "key": "paperclipai/paperclip/para-memory-files",
+          "runtimeName": "para-memory-files",
+          "versionId": null,
+          "currentVersionId": null,
+          "desired": false,
+          "managed": true,
+          "state": "available",
+          "sourcePath": "/app/skills/para-memory-files",
+          "targetPath": null,
+          "detail": null,
+          "origin": "company_managed",
+          "originLabel": "Managed by Paperclip",
+          "readOnly": false
+        },
+        {
+          "key": "paperclipai/paperclip/agentmail",
+          "runtimeName": "agentmail",
+          "desired": false,
+          "managed": true,
+          "state": "available",
+          "readOnly": true,
+          "originLabel": "AgentMail assignment",
+          "detail": "Provided automatically when this connector assigns a resource to the agent."
+        }
+      ],
+      "warnings": []
+    },
+    "db": [
+      {
+        "protectedHash": "b353948afaee1d8655e257418c89a773",
+        "skills": {
+          "paperclipSkillSync": {
+            "desiredSkills": []
+          }
+        }
+      }
+    ]
+  },
+  "research-policy-db.json": [
+    {
+      "id": "37705669-ab7e-4504-9fe0-8153615d4320",
+      "stageCount": 2,
+      "policy": {
+        "mode": "normal",
+        "stages": [
+          {
+            "id": "701f20c5-3bb7-4616-81f6-2db4a6a79375",
+            "type": "review",
+            "participants": [
+              {
+                "id": "2368e03a-9f3f-446e-8e60-6afa423d4c22",
+                "type": "agent",
+                "userId": null,
+                "agentId": "946f1a73-4ee0-447e-97b0-58e50bd70000"
+              }
+            ],
+            "approvalsNeeded": 1
+          },
+          {
+            "id": "bb3febf3-c125-4444-9c73-21ddd71beb6c",
+            "type": "approval",
+            "participants": [
+              {
+                "id": "361d5175-e36e-4f4c-8f96-43bd09e6fe35",
+                "type": "user",
+                "userId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+                "agentId": null
+              }
+            ],
+            "approvalsNeeded": 1
+          }
+        ],
+        "commentRequired": true,
+        "maxReviewRounds": 5
+      }
+    }
+  ],
+  "4c-create.json": {
+    "id": "37705669-ab7e-4504-9fe0-8153615d4320",
+    "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+    "conversationAgentId": null,
+    "conversationUserId": null,
+    "conversationState": null,
+    "conversationSessionGeneration": 0,
+    "conversationBoundaryCommentId": null,
+    "projectId": null,
+    "projectWorkspaceId": null,
+    "goalId": null,
+    "parentId": null,
+    "title": "So sánh hai cách định dạng tên trong greet, đề xuất một",
+    "description": "Research nhỏ trên repo-a, chỉ báo cáo so sánh hai cách định dạng tên trong greet và đề xuất một. Fixture kiểm template trước khi dừng vì bridge /children đang lỗi; chưa chạy nội dung research.",
+    "status": "backlog",
+    "statusVersion": 0,
+    "lastStatusDecisionId": null,
+    "workMode": "standard",
+    "harnessKind": null,
+    "priority": "medium",
+    "reviewPolicy": null,
+    "assigneeAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+    "assigneeUserId": null,
+    "checkoutRunId": null,
+    "executionRunId": null,
+    "executionAgentNameKey": null,
+    "executionLockedAt": null,
+    "createdByAgentId": null,
+    "createdByUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+    "responsibleUserId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+    "issueNumber": 35,
+    "identifier": "CRE-35",
+    "originKind": "manual",
+    "originId": null,
+    "originRunId": null,
+    "originIdentityContextId": null,
+    "continuationIdentityContextId": null,
+    "originFingerprint": "default",
+    "requestDepth": 0,
+    "billingCode": null,
+    "assigneeAdapterOverrides": null,
+    "executionPolicy": {
+      "mode": "normal",
+      "stages": [
+        {
+          "id": "701f20c5-3bb7-4616-81f6-2db4a6a79375",
+          "type": "review",
+          "participants": [
+            {
+              "id": "2368e03a-9f3f-446e-8e60-6afa423d4c22",
+              "type": "agent",
+              "userId": null,
+              "agentId": "946f1a73-4ee0-447e-97b0-58e50bd70000"
+            }
+          ],
+          "approvalsNeeded": 1
+        },
+        {
+          "id": "bb3febf3-c125-4444-9c73-21ddd71beb6c",
+          "type": "approval",
+          "participants": [
+            {
+              "id": "361d5175-e36e-4f4c-8f96-43bd09e6fe35",
+              "type": "user",
+              "userId": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+              "agentId": null
+            }
+          ],
+          "approvalsNeeded": 1
+        }
+      ],
+      "commentRequired": true,
+      "maxReviewRounds": 5
+    },
+    "executionState": null,
+    "monitorNextCheckAt": null,
+    "monitorWakeRequestedAt": null,
+    "monitorLastTriggeredAt": null,
+    "monitorAttemptCount": 0,
+    "monitorNotes": null,
+    "monitorScheduledBy": null,
+    "executionWorkspaceId": null,
+    "executionWorkspacePreference": null,
+    "executionWorkspaceSettings": null,
+    "sourceTrust": null,
+    "unblockDescriptor": null,
+    "blockedTransitionAt": null,
+    "blockedOwnerNotifiedAt": null,
+    "startedAt": null,
+    "completedAt": null,
+    "cancelledAt": null,
+    "hiddenAt": null,
+    "createdAt": "2026-10-08T09:02:38.955Z",
+    "updatedAt": "2026-10-08T09:02:38.955Z",
+    "labels": [
+      {
+        "id": "f7efd416-96e2-4285-9075-c3973ff0d39f",
+        "companyId": "5befeb1a-1578-4656-b913-267494592e53",
+        "name": "research",
+        "color": "#6b7280",
+        "createdAt": "2026-10-08T07:41:30.300Z",
+        "updatedAt": "2026-10-08T07:41:30.300Z"
+      }
+    ],
+    "labelIds": [
+      "f7efd416-96e2-4285-9075-c3973ff0d39f"
+    ],
+    "watchdog": null,
+    "blockedBy": [],
+    "blocks": [],
+    "relatedWork": {
+      "outbound": [],
+      "inbound": []
+    },
+    "referencedIssueIdentifiers": []
+  },
+  "issues-latest.json": [
+    {
+      "id": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "identifier": "CRE-34",
+      "parent": null,
+      "status": "cancelled",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "user": null,
+      "state": null,
+      "created": "2026-10-08T08:52:43.246179+00:00",
+      "updated": "2026-10-08T09:02:38.296+00:00",
+      "description": "Trên repo thử repo-a: thêm lời chào theo ngôn ngữ cho greet (hàm và test), và ghi cách dùng vào README. Ngôn ngữ hỗ trợ là quyết định sản phẩm chưa chốt: hãy hỏi owner bằng interaction trước khi tạo con. Giữ lời gọi greet(name) tương thích. Phần hàm chia hai bước review nối tiếp: hỗ trợ ngôn ngữ, rồi xử lý fallback cho ngôn ngữ không hỗ trợ; README là gói độc lập chạy song song. Chỉ làm việc nhỏ, không mở rộng phạm vi; không chạm owner-wip.txt. Dùng các worktree riêng và workflow đã ghim.",
+      "overrides": null
+    },
+    {
+      "id": "37705669-ab7e-4504-9fe0-8153615d4320",
+      "identifier": "CRE-35",
+      "parent": null,
+      "status": "cancelled",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "user": null,
+      "state": null,
+      "created": "2026-10-08T09:02:38.955923+00:00",
+      "updated": "2026-10-08T09:02:41.316+00:00",
+      "description": "Research nhỏ trên repo-a, chỉ báo cáo so sánh hai cách định dạng tên trong greet và đề xuất một. Fixture kiểm template trước khi dừng vì bridge /children đang lỗi; chưa chạy nội dung research.",
+      "overrides": null
+    }
+  ],
+  "runs-latest.json": [
+    {
+      "id": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "status": "succeeded",
+      "issue": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "wake": "issue_assigned",
+      "started": "2026-10-08T08:52:43.754+00:00",
+      "finished": "2026-10-08T08:55:20.188+00:00",
+      "error": null,
+      "errorCode": null,
+      "before": null,
+      "after": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+      "stage": "dispatching"
+    },
+    {
+      "id": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "status": "cancelled",
+      "issue": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "wake": "issue_commented",
+      "started": "2026-10-08T08:55:27.645+00:00",
+      "finished": "2026-10-08T09:02:36.582+00:00",
+      "error": "Cancelled by a board operator",
+      "errorCode": "cancelled",
+      "before": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+      "after": null,
+      "stage": "dispatching"
+    },
+    {
+      "id": "5d7b5a9d-2acc-4736-8164-d666d0e9a17f",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "status": "cancelled",
+      "issue": "37705669-ab7e-4504-9fe0-8153615d4320",
+      "wake": "issue_status_changed",
+      "started": null,
+      "finished": "2026-10-08T09:02:59.818+00:00",
+      "error": "Cancelled because issue reached terminal status (cancelled) before the queued run could start",
+      "errorCode": "issue_terminal_status",
+      "before": null,
+      "after": null,
+      "stage": null
+    }
+  ],
+  "activity.json": [
+    {
+      "id": "6a83e706-6e32-43ce-9e63-94a2d2df4412",
+      "at": "2026-10-08T08:52:43.297097+00:00",
+      "action": "issue.created",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "title": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+        "status": "todo",
+        "identifier": "CRE-34",
+        "statusDefaulted": false,
+        "statusDefaultReason": "explicit",
+        "assignmentWakeSkipped": false,
+        "assignmentWakeSkipReason": null
+      }
+    },
+    {
+      "id": "acb61540-fc54-4798-8100-f64f4a2b6608",
+      "at": "2026-10-08T08:54:39.211733+00:00",
+      "action": "issue.thread_interaction_created",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "actor": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "details": {
+        "interactionId": "7bac12cd-dedb-402a-aeb7-3885d973559f",
+        "addresseeUserId": null,
+        "interactionKind": "ask_user_questions",
+        "addresseeAgentId": null,
+        "interactionStatus": "pending",
+        "continuationPolicy": "wake_assignee",
+        "effectiveResolverPolicy": "human_only",
+        "requestedResolverPolicy": "human_only",
+        "resolverPolicyProvenance": "explicit",
+        "effectiveResolverPolicySource": "requested"
+      }
+    },
+    {
+      "id": "1b1318b4-5c19-47a5-a91a-cf0c359be5fd",
+      "at": "2026-10-08T08:54:46.402596+00:00",
+      "action": "issue.updated",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "actor": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "details": {
+        "source": "comment",
+        "status": "blocked",
+        "changes": {
+          "status": {
+            "to": "blocked",
+            "from": "in_progress"
+          },
+          "checkoutRunId": {
+            "to": null,
+            "from": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33"
+          },
+          "statusVersion": {
+            "to": 2,
+            "from": 1
+          },
+          "executionRunId": {
+            "to": null,
+            "from": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33"
+          },
+          "executionLockedAt": {
+            "to": null,
+            "from": "2026-10-08T08:52:43.754Z"
+          },
+          "blockedTransitionAt": {
+            "to": "2026-10-08T08:54:46.366Z",
+            "from": null
+          },
+          "executionAgentNameKey": {
+            "to": null,
+            "from": "tro-ly"
+          }
+        },
+        "_previous": {
+          "status": "in_progress",
+          "checkoutRunId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+          "statusVersion": 1,
+          "executionRunId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+          "executionLockedAt": "2026-10-08T08:52:43.754Z",
+          "blockedTransitionAt": null,
+          "executionAgentNameKey": "tro-ly"
+        },
+        "identifier": "CRE-34",
+        "authorizationReason": "allow_self"
+      }
+    },
+    {
+      "id": "2981d4a3-ad88-4337-8db4-0dcbb3d198d0",
+      "at": "2026-10-08T08:54:46.443324+00:00",
+      "action": "issue.comment_added",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "actor": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "details": {
+        "updated": true,
+        "commentId": "0499026b-62b0-4194-824a-41dbe05c7008",
+        "identifier": "CRE-34",
+        "issueTitle": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+        "bodySnippet": "Trợ Lý: chờ owner trả lời câu hỏi trong thẻ trên issue này.",
+        "authorizationReason": "allow_self"
+      }
+    },
+    {
+      "id": "437bd46e-f652-4bd6-b125-5fd2b2495bc9",
+      "at": "2026-10-08T08:55:20.458077+00:00",
+      "action": "crew.remote_stop.started",
+      "entity": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "issue": null,
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "actor": "crew",
+      "details": {
+        "runId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+        "environmentId": "02600795-4017-45d0-a07c-4ddad7b53444"
+      }
+    },
+    {
+      "id": "f00def99-b94a-4a05-8815-2c1e2ea57025",
+      "at": "2026-10-08T08:55:21.438246+00:00",
+      "action": "crew.remote_stop",
+      "entity": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "issue": null,
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "actor": "crew",
+      "details": {
+        "killed": 0,
+        "matched": 0,
+        "outcome": "stopped",
+        "remaining": 0,
+        "leaseStatus": "released",
+        "environmentId": "02600795-4017-45d0-a07c-4ddad7b53444"
+      }
+    },
+    {
+      "id": "13734f13-9d97-4d54-92b0-ea9cf23140ff",
+      "at": "2026-10-08T08:55:25.776736+00:00",
+      "action": "issue.thread_interaction_answered",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "interactionId": "7bac12cd-dedb-402a-aeb7-3885d973559f",
+        "interactionKind": "ask_user_questions",
+        "interactionStatus": "answered",
+        "resolutionActorKind": "user",
+        "answeredQuestionCount": 3,
+        "effectiveResolverPolicy": "human_only",
+        "requestedResolverPolicy": "human_only",
+        "resolverPolicyProvenance": "explicit",
+        "resolverAuthorizationReason": "***REDACTED***",
+        "effectiveResolverPolicySource": "requested"
+      }
+    },
+    {
+      "id": "f222f090-5cbd-4f27-872a-0e6004cfec8f",
+      "at": "2026-10-08T08:55:27.678436+00:00",
+      "action": "issue.question_response_delivered",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "actor": "question-response-delivery",
+      "details": {
+        "adapter": "claude_local",
+        "errorCode": null,
+        "deliveryId": "4dbbe5ab-1868-4be1-bb78-ccf3aee4d22b",
+        "sourceRunId": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+        "targetRunId": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+        "deliveryMode": "wake_fallback",
+        "targetTurnId": null,
+        "correlationId": "question-response:7bac12cd-dedb-402a-aeb7-3885d973559f",
+        "interactionId": "7bac12cd-dedb-402a-aeb7-3885d973559f",
+        "payloadSha256": "0f0c84ca93c5a9ff3e3e6213f22263fbcbe711df7562f8875d2d94a9d67da05c",
+        "deliveryStatus": "fallback_queued"
+      }
+    },
+    {
+      "id": "ddf9a060-6865-48d6-80e5-e78e3554e245",
+      "at": "2026-10-08T08:58:39.350317+00:00",
+      "action": "issue.comment_added",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "actor": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "details": {
+        "commentId": "62c4bed1-3e31-49e5-94ef-3ff7ce555b48",
+        "identifier": "CRE-34",
+        "issueTitle": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+        "bodySnippet": "crew-plan root=CRE-34 children=3 bundles=2\nrevision=v1\n\nQuyết định owner (interaction 7bac12cd-dedb-402a-aeb7-3885d97355",
+        "authorizationReason": "allow_self",
+        "addedReferencedIssues": [
+          {
+            "id": "f5d278c2-e756-40d0-b7e4-636d538937bb",
+            "title": "S3 cancel-r3: sleep 120 rồi commit",
+            "identifier": "CRE-15"
+          },
+          {
+            "id": "42e49a71-ff39-4008-8c77-962db7b066e5",
+            "title": "S5 expire-r1",
+            "identifier": "CRE-20"
+          }
+        ],
+        "currentReferencedIssues": [
+          {
+            "id": "f5d278c2-e756-40d0-b7e4-636d538937bb",
+            "title": "S3 cancel-r3: sleep 120 rồi commit",
+            "identifier": "CRE-15"
+          },
+          {
+            "id": "42e49a71-ff39-4008-8c77-962db7b066e5",
+            "title": "S5 expire-r1",
+            "identifier": "CRE-20"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ce3f8dab-8ae0-4da7-8155-700ae36236a2",
+      "at": "2026-10-08T09:02:36.722725+00:00",
+      "action": "issue.updated",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": null,
+      "actor": "e29d3a17-f50b-4863-9005-ebf98119558d",
+      "details": {
+        "patch": {
+          "status": "blocked"
+        },
+        "pluginId": "e29d3a17-f50b-4863-9005-ebf98119558d",
+        "_previous": {
+          "status": "in_progress",
+          "assigneeUserId": null,
+          "assigneeAgentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd"
+        },
+        "pluginKey": "crew.core",
+        "identifier": "CRE-34",
+        "sourcePluginId": "e29d3a17-f50b-4863-9005-ebf98119558d",
+        "initiatingRunId": null,
+        "sourcePluginKey": "crew.core",
+        "initiatingUserId": null,
+        "initiatingActorId": null,
+        "initiatingAgentId": null,
+        "initiatingActorType": null
+      }
+    },
+    {
+      "id": "39dadebd-0d6a-422b-a997-7a42bdd97015",
+      "at": "2026-10-08T09:02:36.745578+00:00",
+      "action": "heartbeat.cancelled",
+      "entity": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "agentId": "6c27410e-7a14-4439-9e07-cbbfa2a743fd"
+      }
+    },
+    {
+      "id": "4039e802-ab70-47f5-98ec-961572d7208a",
+      "at": "2026-10-08T09:02:36.756473+00:00",
+      "action": "issue.comment.created",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": null,
+      "actor": "e29d3a17-f50b-4863-9005-ebf98119558d",
+      "details": {
+        "pluginId": "e29d3a17-f50b-4863-9005-ebf98119558d",
+        "commentId": "a5a604de-78fb-443c-b422-a50279a44a5f",
+        "pluginKey": "crew.core",
+        "identifier": "CRE-34",
+        "bodySnippet": "Run `391614ad-78be-4684-9d0c-cd5f4b26c1f3` đã bị hủy lúc 16:02:36 08-10. Crew chuyển issue sang `blocked` để không kẹt ở",
+        "sourcePluginId": "e29d3a17-f50b-4863-9005-ebf98119558d",
+        "initiatingRunId": null,
+        "sourcePluginKey": "crew.core",
+        "initiatingUserId": null,
+        "initiatingActorId": null,
+        "initiatingAgentId": null,
+        "initiatingActorType": null
+      }
+    },
+    {
+      "id": "64480d0c-735e-43e8-b1c8-0750205475e6",
+      "at": "2026-10-08T09:02:38.284579+00:00",
+      "action": "issue.updated",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "source": "comment",
+        "status": "cancelled",
+        "changes": {
+          "status": {
+            "to": "cancelled",
+            "from": "blocked"
+          },
+          "cancelledAt": {
+            "to": "2026-10-08T09:02:38.220Z",
+            "from": null
+          },
+          "statusVersion": {
+            "to": 5,
+            "from": 4
+          },
+          "blockedTransitionAt": {
+            "to": null,
+            "from": "2026-10-08T09:02:36.662Z"
+          }
+        },
+        "_previous": {
+          "status": "blocked",
+          "cancelledAt": null,
+          "statusVersion": 4,
+          "blockedTransitionAt": "2026-10-08T09:02:36.662Z"
+        },
+        "identifier": "CRE-34",
+        "authorizationReason": "allow_board_actor"
+      }
+    },
+    {
+      "id": "ec85a4f8-c836-4321-a08f-db9627da5b85",
+      "at": "2026-10-08T09:02:38.319699+00:00",
+      "action": "issue.comment_added",
+      "entity": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "updated": true,
+        "commentId": "a5b95099-6921-446b-9d2f-bf454864d16d",
+        "identifier": "CRE-34",
+        "issueTitle": "Lời chào đa ngôn ngữ và hướng dẫn sử dụng",
+        "bodySnippet": "Dừng nghiệm thu: bridge SSH từ chối POST /api/issues/:id/children bằng HTTP 403 Route not allowed. Đã ghi crew-plan trướ",
+        "authorizationReason": "allow_board_actor",
+        "currentReferencedIssues": [
+          {
+            "id": "f5d278c2-e756-40d0-b7e4-636d538937bb",
+            "title": "S3 cancel-r3: sleep 120 rồi commit",
+            "identifier": "CRE-15"
+          },
+          {
+            "id": "42e49a71-ff39-4008-8c77-962db7b066e5",
+            "title": "S5 expire-r1",
+            "identifier": "CRE-20"
+          }
+        ]
+      }
+    },
+    {
+      "id": "5daa2681-99ec-4caf-94a5-f615f26078f6",
+      "at": "2026-10-08T09:02:38.984326+00:00",
+      "action": "issue.created",
+      "entity": "37705669-ab7e-4504-9fe0-8153615d4320",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "title": "So sánh hai cách định dạng tên trong greet, đề xuất một",
+        "status": "backlog",
+        "identifier": "CRE-35",
+        "statusDefaulted": false,
+        "statusDefaultReason": "explicit",
+        "assignmentWakeSkipped": true,
+        "assignmentWakeSkipReason": "assigned_backlog"
+      }
+    },
+    {
+      "id": "6a442fdf-d7e2-4347-a8f4-43c7d9f1cf17",
+      "at": "2026-10-08T09:02:41.236936+00:00",
+      "action": "crew.remote_stop.started",
+      "entity": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "issue": null,
+      "run": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "actor": "crew",
+      "details": {
+        "runId": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+        "environmentId": "02600795-4017-45d0-a07c-4ddad7b53444"
+      }
+    },
+    {
+      "id": "1bf36f5f-3fd2-4b8b-b578-4ea63ced8894",
+      "at": "2026-10-08T09:02:41.356985+00:00",
+      "action": "issue.updated",
+      "entity": "37705669-ab7e-4504-9fe0-8153615d4320",
+      "issue": null,
+      "run": null,
+      "actor": "Mtye1JcS4JUc3lTZj51hI7nfz1pqMPSI",
+      "details": {
+        "status": "cancelled",
+        "changes": {
+          "status": {
+            "to": "cancelled",
+            "from": "backlog"
+          },
+          "cancelledAt": {
+            "to": "2026-10-08T09:02:41.316Z",
+            "from": null
+          },
+          "statusVersion": {
+            "to": 1,
+            "from": 0
+          }
+        },
+        "_previous": {
+          "status": "backlog",
+          "cancelledAt": null,
+          "statusVersion": 0
+        },
+        "identifier": "CRE-35",
+        "authorizationReason": "allow_board_actor"
+      }
+    },
+    {
+      "id": "1cc6e416-ce87-438c-a887-7635c095dedc",
+      "at": "2026-10-08T09:02:45.34864+00:00",
+      "action": "crew.remote_stop",
+      "entity": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "issue": null,
+      "run": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "actor": "crew",
+      "details": {
+        "killed": 0,
+        "matched": 1,
+        "outcome": "stopped",
+        "remaining": 0,
+        "leaseStatus": "expired",
+        "environmentId": "02600795-4017-45d0-a07c-4ddad7b53444"
+      }
+    }
+  ],
+  "wakes.json": [
+    {
+      "id": "e9f1a3c7-884e-4c47-8cbd-b0b74fa2c37c",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "reason": "issue_assigned",
+      "status": "completed",
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "requested": "2026-10-08T08:52:43.313237+00:00",
+      "claimed": "2026-10-08T08:52:43.754+00:00",
+      "finished": "2026-10-08T08:55:20.235+00:00",
+      "error": null,
+      "issue": "d1a5427c-37d3-4341-89fc-6335ddbbe35c"
+    },
+    {
+      "id": "b7f27ddd-5392-4f8a-bf42-56e40dd3120c",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "reason": "issue_commented",
+      "status": "cancelled",
+      "run": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "requested": "2026-10-08T08:55:25.831342+00:00",
+      "claimed": "2026-10-08T08:55:27.645+00:00",
+      "finished": "2026-10-08T09:02:36.582+00:00",
+      "error": "Cancelled by a board operator",
+      "issue": "d1a5427c-37d3-4341-89fc-6335ddbbe35c"
+    },
+    {
+      "id": "77e4e51a-3970-407f-93dc-adb86c5fd0c8",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "reason": "issue_status_changed",
+      "status": "skipped",
+      "run": "5d7b5a9d-2acc-4736-8164-d666d0e9a17f",
+      "requested": "2026-10-08T09:02:41.377139+00:00",
+      "claimed": null,
+      "finished": "2026-10-08T09:02:59.818+00:00",
+      "error": "Cancelled because issue reached terminal status (cancelled) before the queued run could start",
+      "issue": "37705669-ab7e-4504-9fe0-8153615d4320"
+    }
+  ],
+  "leases.json": [
+    {
+      "id": "e18c9e62-4e24-485c-bbc0-f94871657164",
+      "environment": "02600795-4017-45d0-a07c-4ddad7b53444",
+      "issue": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "run": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "status": "released",
+      "acquired": "2026-10-08T08:52:45.747+00:00",
+      "released": "2026-10-08T08:55:20.465+00:00",
+      "failure": null
+    },
+    {
+      "id": "af909b7c-999f-46a0-bc53-fc4e9d9bc619",
+      "environment": "02600795-4017-45d0-a07c-4ddad7b53444",
+      "issue": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "run": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "status": "expired",
+      "acquired": "2026-10-08T08:55:29.398+00:00",
+      "released": "2026-10-08T09:02:41.248+00:00",
+      "failure": null
+    }
+  ],
+  "sessions.json": [
+    {
+      "id": "39e11c16-2270-4d54-a36d-4338c914b45a",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "task": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+      "lastRun": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "display": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+      "params": {
+        "cwd": "/paperclip/instances/default/workspaces/6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+        "sessionId": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+        "promptBundleKey": "151a5adaca5ac6c7fcfc2ca2bb0fa0bcc4de347a7778908441de34a908efeb53",
+        "remoteExecution": {
+          "host": "100.102.189.67",
+          "port": 2222,
+          "username": "phannhatquang",
+          "remoteCwd": "/Users/phannhatquang/crew-agents/assistant",
+          "transport": "ssh"
+        },
+        "mcpServerIdentity": "[{\"name\":\"Paperclip projects\",\"url\":\"http://100.105.105.12:3100/api/mcp/project-tools\",\"connectionId\":\"paperclip-project-tools\"},{\"name\":\"Paperclip connections\",\"url\":\"http://100.105.105.12:3100/mcp/runtime-tools\",\"connectionId\":\"paperclip-runtime-tools\"}]",
+        "__paperclipConfiguredModel": "claude-opus-5",
+        "__paperclipConfigCategories": [
+          "adapter",
+          "adapterConfig",
+          "agentRuntimeConfig",
+          "instructions",
+          "issueOverrides",
+          "workspaceConfig",
+          "environment",
+          "envBindings",
+          "secrets",
+          "runtimeSkills"
+        ],
+        "__paperclipConfigFingerprint": "v1:sha256:718e2319f34c57735e39abea33f48613f99165b7e9ae320f76eec50e20dc8b3f",
+        "__paperclipConfigFingerprintVersion": 1,
+        "__paperclipConfigCategoryFingerprints": {
+          "adapter": "v1:sha256:9a6b2cbc2b899664d57cbea576e536c32beb5d9673b2fa640585309b1988194a",
+          "secrets": "v1:sha256:3fb261f554e98b180948b2ce7b5cdfd23b1b5db949cd475db9101a8974230868",
+          "envBindings": "v1:sha256:c1aab17ea3046e1ec8219b7fec48a0ccf20a3dfa1dde77eda5fe9df13fdd4abd",
+          "environment": "v1:sha256:d8aa9cdd94f46f85c40e18ffa3fab813f8e97320471c204a17b1f388ac30d12b",
+          "instructions": "v1:sha256:b17a2e4d921c23e5ea929cfa866da61a55a14891390345d2e676574878329f16",
+          "adapterConfig": "v1:sha256:649c43bb9bb34aa494e140bdbab447a28ecec307ef29524f151d2d9027b0b2a8",
+          "runtimeSkills": "v1:sha256:608bc478858fd0a98c12732cb4251b62475c2d4cfc60466dd18843160d68992e",
+          "issueOverrides": "v1:sha256:54a9d829899ea51ff0fa3b2b7ce8fa0e3f5b46b26862931646c05cc2bb623b48",
+          "workspaceConfig": "v1:sha256:7e88fda22ef3cf3a8c5c8dfdb94eeae4e6d5939b88740f38502a38f24675813b",
+          "agentRuntimeConfig": "v1:sha256:334b887f12050a082a7fbfd1ddf3e4a8e351dac9710a6b827e41adde1c710f64"
+        }
+      },
+      "updated": "2026-10-08T08:55:20.419512+00:00"
+    }
+  ],
+  "resume.json": [
+    {
+      "id": "057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "context": {
+        "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+        "resumeFromRunId": null,
+        "crewBundleResume": null,
+        "resumeSessionParams": null,
+        "resumeSessionDisplayId": null
+      },
+      "before": null,
+      "after": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+      "started": "2026-10-08T08:52:43.754+00:00",
+      "finished": "2026-10-08T08:55:20.188+00:00",
+      "status": "succeeded",
+      "usage": {
+        "model": "claude-opus-5",
+        "biller": "anthropic",
+        "costUsd": 0.7315165,
+        "provider": "anthropic",
+        "costStatus": "reported",
+        "billingType": "subscription_included",
+        "inputTokens": 40153,
+        "usageSource": "per_run",
+        "freshSession": true,
+        "outputTokens": 6427,
+        "sessionReused": false,
+        "rawInputTokens": 40153,
+        "sessionRotated": false,
+        "configFreshness": {
+          "session": {
+            "reset": true,
+            "categories": [
+              "adapter",
+              "adapterConfig",
+              "agentRuntimeConfig",
+              "instructions",
+              "issueOverrides",
+              "workspaceConfig",
+              "environment",
+              "envBindings",
+              "secrets",
+              "runtimeSkills"
+            ],
+            "resetReasons": [],
+            "nextFingerprint": "v1:sha256:718e2319f34c57735e39abea33f48613f99165b7e9ae320f76eec50e20dc8b3f",
+            "changedCategories": [],
+            "taskSessionReused": false,
+            "fingerprintVersion": 1,
+            "taskSessionAvailable": false,
+            "storedFingerprintPresent": false
+          },
+          "version": 1,
+          "workspace": {
+            "action": "create",
+            "reasons": [],
+            "categories": [
+              "mode",
+              "projectWorkspace",
+              "strategy",
+              "repo",
+              "lifecycleCommands",
+              "runtimeServices",
+              "environment",
+              "realization"
+            ],
+            "reuseRequested": false,
+            "nextFingerprint": "v1:sha256:549091e68bf09d57fa599a50ee1aed4ae5f9ad3c3d50760a6a7805a144c42f6d",
+            "workspaceReused": false,
+            "activeWorkspaceId": null,
+            "changedCategories": [],
+            "storedFingerprint": null,
+            "fingerprintVersion": 1,
+            "inferredFingerprint": null,
+            "previousWorkspaceId": null,
+            "configSnapshotRefreshed": false,
+            "storedFingerprintPresent": false
+          }
+        },
+        "rawOutputTokens": 6427,
+        "cachedInputTokens": 338803,
+        "taskSessionReused": false,
+        "persistedSessionId": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+        "cacheAdjustedCostUsd": 0.7315165,
+        "rawCachedInputTokens": 338803,
+        "sessionRotationReason": null
+      }
+    },
+    {
+      "id": "391614ad-78be-4684-9d0c-cd5f4b26c1f3",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "context": {
+        "issueId": "d1a5427c-37d3-4341-89fc-6335ddbbe35c",
+        "resumeFromRunId": null,
+        "crewBundleResume": null,
+        "resumeSessionParams": null,
+        "resumeSessionDisplayId": null
+      },
+      "before": "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+      "after": null,
+      "started": "2026-10-08T08:55:27.645+00:00",
+      "finished": "2026-10-08T09:02:36.582+00:00",
+      "status": "cancelled",
+      "usage": null
+    },
+    {
+      "id": "5d7b5a9d-2acc-4736-8164-d666d0e9a17f",
+      "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+      "context": {
+        "issueId": "37705669-ab7e-4504-9fe0-8153615d4320",
+        "resumeFromRunId": null,
+        "crewBundleResume": null,
+        "resumeSessionParams": null,
+        "resumeSessionDisplayId": null
+      },
+      "before": null,
+      "after": null,
+      "started": null,
+      "finished": "2026-10-08T09:02:59.818+00:00",
+      "status": "cancelled",
+      "usage": null
+    }
+  ],
+  "key-revoked.json": {
+    "agent": "6c27410e-7a14-4439-9e07-cbbfa2a743fd",
+    "keyId": "8d32b772-b533-4cb0-b226-46d5c3d8e19a",
+    "response": {
+      "ok": true
+    }
+  },
+  "bridgeDenials": [
+    {
+      "at": "2026-10-08T08:59:39.619Z",
+      "lines": [
+        "HTTP 403",
+        "{\"error\":\"Route not allowed: POST /api/issues/d1a5427c-37d3-4341-89fc-6335ddbbe35c/children\"}"
+      ]
+    }
+  ],
+  "invoke-057f6eca-a5ea-4f0f-bdb9-2b2c5b14ad33": [
+    {
+      "at": "2026-10-08T08:52:57.107Z",
+      "type": "adapter.invoke",
+      "payload": {
+        "cwd": "/Users/phannhatquang/crew-agents/assistant",
+        "command": "ssh://phannhatquang@100.102.189.67:2222//Users/phannhatquang/crew-agents/assistant :: /Users/phannhatquang/.crew/bin/crew-claude-run",
+        "adapterType": "claude_local",
+        "commandArgs": [
+          "--print",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--dangerously-skip-permissions",
+          "--model",
+          "claude-opus-5",
+          "--append-system-prompt-file",
+          "/Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/skills/agent-instructions.md",
+          "--mcp-config",
+          "/Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/mcp-config/mcp-config.json",
+          "--strict-mcp-config",
+          "--add-dir",
+          "/Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/skills",
+          "--setting-sources",
+          "project,local",
+          "--plugin-dir",
+          "/Users/phannhatquang/.crew/workflows/superpowers/6.4.1-5bf4e7801107"
+        ],
+        "commandNotes": [
+          "Using stable Claude prompt bundle 151a5adaca5ac6c7fcfc2ca2bb0fa0bcc4de347a7778908441de34a908efeb53.",
+          "Using full Claude permission bypass for remote execution, including connected tools.",
+          "Injected agent instructions via --append-system-prompt-file /paperclip/instances/default/companies/5befeb1a-1578-4656-b913-267494592e53/agents/6c27410e-7a14-4439-9e07-cbbfa2a743fd/instructions/AGENTS.md (with path directive appended)",
+          "Using 2 Paperclip-managed MCP server(s) from strict config /Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/mcp-config/mcp-config.json."
+        ]
+      }
+    }
+  ],
+  "invoke-391614ad-78be-4684-9d0c-cd5f4b26c1f3": [
+    {
+      "at": "2026-10-08T08:55:38.782Z",
+      "type": "adapter.invoke",
+      "payload": {
+        "cwd": "/Users/phannhatquang/crew-agents/assistant",
+        "command": "ssh://phannhatquang@100.102.189.67:2222//Users/phannhatquang/crew-agents/assistant :: /Users/phannhatquang/.crew/bin/crew-claude-run",
+        "adapterType": "claude_local",
+        "commandArgs": [
+          "--print",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--resume",
+          "47c937c6-c268-4b19-8efc-d86fc4ce79b2",
+          "--dangerously-skip-permissions",
+          "--model",
+          "claude-opus-5",
+          "--mcp-config",
+          "/Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/mcp-config/mcp-config.json",
+          "--strict-mcp-config",
+          "--add-dir",
+          "/Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/skills",
+          "--setting-sources",
+          "project,local",
+          "--plugin-dir",
+          "/Users/phannhatquang/.crew/workflows/superpowers/6.4.1-5bf4e7801107"
+        ],
+        "commandNotes": [
+          "Using full Claude permission bypass for remote execution, including connected tools.",
+          "Using 2 Paperclip-managed MCP server(s) from strict config /Users/phannhatquang/crew-agents/assistant/.paperclip-runtime/claude/mcp-config/mcp-config.json."
+        ]
+      }
+    }
+  ]
+}

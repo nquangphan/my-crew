@@ -37,6 +37,7 @@ Brainstorming là bước **có Đại Ca trong phòng** — nó thuộc về l�
 | Ghi doc flow, đổi chuỗi, quét/đối chiếu số, sửa fixture, edit cơ học có spec đầy đủ | `haiku` |
 | Bám khuôn có sẵn: thêm endpoint/route, component giống cái đã có, test cho code đã rõ | `sonnet` |
 | Hook lõi Paperclip, execution policy, scheduler/claim · schema/migration · auth/phân quyền · SSH/Tailscale/process lifecycle trên Mac · luật `crew-docs` dùng chung · lượt review cuối toàn nhánh (kể cả khi skill bảo dùng model mạnh nhất) | `opus` |
+| Agent thật chạy trong Paperclip (executor, reviewer, integrator, Trợ Lý trên server) | `sonnet` (owner chốt O10: haiku làm trái instructions ở AC-2); issue con chạm lõi/bảo mật/migration thì Trợ Lý đặt `opus` qua `assigneeAdapterOverrides` (O14). Không haiku cho code |
 | Kẹt thật (2 lần sửa hỏng, hoặc ngã rẽ thiết kế rủi ro cao) | Dùng `opus` với góc nhìn mới. **Không tự gọi `fable`** (kể cả qua `kongming`) — Đại Ca cấm; cần thì hỏi Đại Ca trước |
 
 Cân **theo thứ việc chạm vào**, không theo cảm giác khó. Một dòng hook trong `issues.ts` của Paperclip vẫn là `opus`, vì nó chặn mọi lần ghi issue.

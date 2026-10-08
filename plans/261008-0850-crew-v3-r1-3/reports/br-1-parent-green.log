@@ -1,0 +1,28 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:52:18] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[14:52:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d3f31b31-8bfb-4e51-97be-6849216983dc","agentId":"a3d99dbe-5865-4c99-bc5c-c330b33c88d8","runId":"dc6674ae-4e0a-4765-9fef-b777fe38cbbe"}[39m
+[14:52:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d3f31b31-8bfb-4e51-97be-6849216983dc","agentId":"a3d99dbe-5865-4c99-bc5c-c330b33c88d8","runId":"1e129d8c-793c-4669-9b7a-cd094584a777"}[39m
+[14:52:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"23d2fab3-9b2d-4e64-ab37-cd6718bc0c62","agentId":"496e6349-841b-4c9f-9492-b200c29ad233","runId":"5132a0b4-75d8-49ec-96a8-dedb3f163f42"}[39m
+[14:52:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"23d2fab3-9b2d-4e64-ab37-cd6718bc0c62","agentId":"496e6349-841b-4c9f-9492-b200c29ad233","runId":"5ee6eefa-83c3-4dec-b914-73f536fd4d55"}[39m
+[14:52:32] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c2cb1ec7-4c0f-4016-9f06-5c7328acfd6a","agentId":"e112c970-4de6-4c72-86d2-132af3f4bdb8","runId":"06a2f680-b3cc-45df-bd7c-b2e8cefbd7b2"}[39m
+[14:52:32] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c2cb1ec7-4c0f-4016-9f06-5c7328acfd6a","agentId":"e112c970-4de6-4c72-86d2-132af3f4bdb8","runId":"5a4213cb-8593-4d96-b3bb-abf924ae85bb"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7cc470bc-246c-49f7-9e0a-24742ec09cf6","agentId":"766de041-c519-4dbc-8eac-b91ae2448656","runId":"d0fc5d0f-c295-4810-bf72-9fe500418e49"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c0980fe9-e7bb-499b-821e-98530e8d00a7","agentId":"f768e5a0-56df-4e3e-a609-2be335eb1214","runId":"af2e399b-d114-496a-92f5-0b4fc351fefe"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e742cb4d-aada-4870-a3a9-0328adeab6d4","agentId":"37505371-e932-4610-9f4e-4767b06d800d","runId":"4c48e891-1486-4b13-a450-e4f27ea0a72c"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b651e1dc-c0ac-48a4-9542-592c7a93f00c","agentId":"9bbcf804-0d31-43b7-a417-39ba1448d3c6","runId":"f48b59c5-bdf6-4f1d-bf82-2ef35bc94526"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7cc470bc-246c-49f7-9e0a-24742ec09cf6","agentId":"766de041-c519-4dbc-8eac-b91ae2448656","runId":"b8ce95cf-10c6-4738-a5c0-6d8ec4de20a6"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c0980fe9-e7bb-499b-821e-98530e8d00a7","agentId":"f768e5a0-56df-4e3e-a609-2be335eb1214","runId":"0514de1b-9fe7-4a14-80a5-395633bf62e4"}[39m
+[14:52:33] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e742cb4d-aada-4870-a3a9-0328adeab6d4","agentId":"37505371-e932-4610-9f4e-4767b06d800d","runId":"bb939260-3210-4e4e-8bb4-0cdd4ed815a2"}[39m
+[14:52:34] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b651e1dc-c0ac-48a4-9542-592c7a93f00c","agentId":"9bbcf804-0d31-43b7-a417-39ba1448d3c6","runId":"b9527000-60fa-49ed-9f4a-ea6db76cc1bc"}[39m
+[14:52:34] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5c859f73-668a-474f-89f8-7b9ad63140bb","agentId":"363449f4-8a4a-4030-927e-71b26f5918c3","runId":"8aa6f2ea-2e0a-4b14-b038-62dee8e02753"}[39m
+[14:52:34] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5c859f73-668a-474f-89f8-7b9ad63140bb","agentId":"363449f4-8a4a-4030-927e-71b26f5918c3","runId":"adcc6796-6c08-4f70-b6aa-57cc6d4c7961"}[39m
+[14:52:35] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"8fc43f57-061a-4055-b148-c837b6281346","agentId":"d2d14b77-2445-4d4c-a12a-f6a99649081f","runId":"e0dd0c99-b349-47a8-9bba-a36d220d7011"}[39m
+[14:52:35] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"8fc43f57-061a-4055-b148-c837b6281346","agentId":"d2d14b77-2445-4d4c-a12a-f6a99649081f","runId":"dcf6f47c-e05a-4c14-b343-ba75276f9ea7"}[39m
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  14:51:58
+   Duration  38.48s (transform 20.79s, setup 285ms, import 26.79s, tests 11.13s, environment 0ms)
+
