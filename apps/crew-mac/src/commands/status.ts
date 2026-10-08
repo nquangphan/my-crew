@@ -1,6 +1,17 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmodSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmdirSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, dirname, isAbsolute, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { buildDocsSnapshot, snapshotCommit } from '../status/docs.js';
@@ -48,7 +59,41 @@ export function listStatusRepos(ctx: MacContext): StatusRepo[] {
   }
 }
 function writeRepos(ctx: MacContext, repos: StatusRepo[]): void {
-  writePrivate(reposPath(ctx), repos);
+  const path = reposPath(ctx);
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const temporary = `${path}.${randomUUID()}`;
+  try {
+    writeFileSync(temporary, `${JSON.stringify(repos)}\n`, { mode: 0o600 });
+    renameSync(temporary, path);
+  } finally {
+    if (existsSync(temporary)) unlinkSync(temporary);
+  }
+}
+function mutateRepos(ctx: MacContext, mutate: (repos: StatusRepo[]) => StatusRepo[]): void {
+  const lock = `${reposPath(ctx)}.lock`;
+  mkdirSync(dirname(lock), { recursive: true, mode: 0o700 });
+  let locked = false;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    try {
+      mkdirSync(lock, { mode: 0o700 });
+      locked = true;
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > 60_000) rmdirSync(lock);
+      } catch {
+        /* another process released or replaced the lock */
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+    }
+  }
+  if (!locked) throw new Error('Danh sách repo đang được cập nhật');
+  try {
+    writeRepos(ctx, mutate(listStatusRepos(ctx)));
+  } finally {
+    rmdirSync(lock);
+  }
 }
 export function addStatusRepo(ctx: MacContext, projectId: string, path: string): void {
   if (!UUID_PATTERN.test(projectId)) throw new Error('projectId phải là UUID hợp lệ');
@@ -60,16 +105,14 @@ export function addStatusRepo(ctx: MacContext, projectId: string, path: string):
   }).trim();
   if (realpathSync(top) !== canonical || !snapshotCommit(canonical))
     throw new Error('Đường dẫn không phải repo git');
-  const repos = listStatusRepos(ctx).filter((repo) => repo.projectId !== projectId);
-  repos.push({ projectId, path: canonical, lastCommit: null });
-  writeRepos(ctx, repos);
+  mutateRepos(ctx, (repos) => [
+    ...repos.filter((repo) => repo.projectId !== projectId),
+    { projectId, path: canonical, lastCommit: null },
+  ]);
 }
 export function removeStatusRepo(ctx: MacContext, projectId: string): void {
   if (!UUID_PATTERN.test(projectId)) throw new Error('projectId phải là UUID hợp lệ');
-  writeRepos(
-    ctx,
-    listStatusRepos(ctx).filter((repo) => repo.projectId !== projectId),
-  );
+  mutateRepos(ctx, (repos) => repos.filter((repo) => repo.projectId !== projectId));
 }
 
 function writePrivate(path: string, value: unknown): void {
@@ -201,8 +244,13 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
         signal: AbortSignal.timeout(10_000),
       });
       if (response.status < 200 || response.status >= 300) throw new Error(`HTTP ${response.status}`);
-      repo.lastCommit = commit;
-      writeRepos(ctx, repos);
+      mutateRepos(ctx, (current) =>
+        current.map((item) =>
+          item.projectId === repo.projectId && item.path === repo.path
+            ? { ...item, lastCommit: commit }
+            : item,
+        ),
+      );
     } catch {
       ctx.out(`crew-mac status: không gửi được ảnh chụp docs của ${repo.projectId}; sẽ thử lại.`);
     }

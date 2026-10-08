@@ -128,7 +128,8 @@ Khi commit khác `lastCommit`, lệnh dựng ảnh chụp từ mọi file `.md` 
 working tree. Một git worktree tạm detached được dùng để chạy `crew-docs check --all`; kết quả 0/1/2–3 lần lượt
 thành `auditState` `verified`/`invalid`/`unverified`. Lệnh lấy bundle từ git config `crew-docs.bundle` của repo.
 Mỗi trang được rà secret bằng luật R7 của `crew-docs`; trang bị phát hiện được bỏ khỏi `pages`, chỉ ghi đường dẫn
-và lý do `secret-scan` vào `dropped`. Bản tin chứa title, nội dung, SHA-256, thư mục cha và trạng thái link Markdown
+và lý do `secret-scan` vào `dropped`. File Markdown có byte NUL cũng bị bỏ vì Git coi là binary và R7 không quét
+được các dòng của nó. Bản tin chứa title, nội dung, SHA-256, thư mục cha và trạng thái link Markdown
 tương đối (`ok`, `missing`, `external`, `unverified`).
 
 Body JSON tối đa 5 MB. Nếu vượt giới hạn, HTTP khác 2xx hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau

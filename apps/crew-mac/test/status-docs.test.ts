@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -105,5 +105,80 @@ describe('status docs snapshots', () => {
     expect(calls).toBe(1);
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBeNull();
     expect(out.join('\n')).toMatch(/5 MB/);
+  });
+
+  it('không gửi Markdown dạng binary mà git diff bỏ qua khi rà secret', async () => {
+    const { ctx, runner } = fakeMac();
+    const repo = fixture();
+    writeFileSync(join(repo, 'docs', 'binary.md'), `# Binary\0${['ghp_', 'a'.repeat(36)].join('')}\n`);
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: binary');
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    let body = '';
+    await sendDocsSnapshots(ctx, async (_url, init) => {
+      body = String(init?.body);
+      return new Response('', { status: 200 });
+    });
+    expect(body).not.toContain('ghp_');
+    expect(JSON.parse(body).dropped).toContainEqual({ path: 'docs/binary.md', reason: 'secret-scan' });
+  });
+
+  it('giữ đường dẫn Unicode và bỏ secret trong tên file có dấu cách', async () => {
+    const { ctx, runner } = fakeMac();
+    const repo = fixture();
+    writeFileSync(join(repo, 'docs', 'tiếng-việt.md'), '# Tiếng Việt\n');
+    writeFileSync(join(repo, 'docs', 'space name.md'), `# Secret\n${['ghp_', 'a'.repeat(36)].join('')}\n`);
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: names');
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    let body = '';
+    await sendDocsSnapshots(ctx, async (_url, init) => {
+      body = String(init?.body);
+      return new Response('', { status: 200 });
+    });
+    const snapshot = JSON.parse(body);
+    expect(snapshot.pages.map((page: { path: string }) => page.path)).toContain('docs/tiếng-việt.md');
+    expect(snapshot.dropped).toContainEqual({ path: 'docs/space name.md', reason: 'secret-scan' });
+    expect(body).not.toContain('ghp_');
+  });
+
+  it('không ghi đè danh sách repo được sửa trong lúc chờ HTTP', async () => {
+    const { ctx, runner } = fakeMac();
+    const repo = fixture();
+    const second = fixture();
+    const secondId = '33333333-3333-4333-8333-333333333333';
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    await sendDocsSnapshots(ctx, async () => {
+      removeStatusRepo(ctx, PROJECT);
+      addStatusRepo(ctx, secondId, second);
+      return new Response('', { status: 200 });
+    });
+    expect(listStatusRepos(ctx)).toEqual([
+      { projectId: secondId, path: realpathSync(second), lastCommit: null },
+    ]);
+  });
+
+  it('không chạy post-checkout hook của repo và gỡ worktree tạm', async () => {
+    const { ctx, runner } = fakeMac();
+    const repo = fixture();
+    const hook = join(repo, '.git', 'hooks', 'post-checkout');
+    writeFileSync(hook, '#!/bin/sh\nexit 1\n');
+    chmodSync(hook, 0o755);
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    let calls = 0;
+    await sendDocsSnapshots(ctx, async () => {
+      calls++;
+      return new Response('', { status: 200 });
+    });
+    expect(calls).toBe(1);
+    expect(git(repo, 'worktree', 'list', '--porcelain').split('worktree ').length - 1).toBe(1);
   });
 });

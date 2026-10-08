@@ -1,8 +1,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, isAbsolute, join, posix } from 'node:path';
+import { basename, isAbsolute, join, posix } from 'node:path';
 
 type LinkStatus = 'ok' | 'missing' | 'external' | 'unverified';
 interface Page {
@@ -114,16 +114,16 @@ export function buildDocsSnapshot(root: string, commit: string) {
   const bundle = checkBundle(root);
   const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-docs-'));
   const checkout = join(tmp, 'checkout');
-  git(root, ['worktree', 'add', '--detach', checkout, commit]);
   try {
+    git(root, ['-c', 'core.hooksPath=/dev/null', 'worktree', 'add', '--detach', checkout, commit]);
     const audit = spawnSync(process.execPath, [bundle, 'check', '--all'], {
       cwd: checkout,
       encoding: 'utf8',
       timeout: 60_000,
     });
     const checkExit = audit.status ?? 2;
-    const paths = git(root, ['ls-tree', '-r', '--name-only', commit, '--', 'docs'])
-      .split('\n')
+    const paths = git(root, ['ls-tree', '-r', '-z', '--name-only', commit, '--', 'docs'])
+      .split('\0')
       .filter((p) => p.startsWith('docs/') && p.endsWith('.md'))
       .sort();
     // A new temporary repo makes every committed page an added line for docs-kit's R7 scanner.
@@ -132,10 +132,18 @@ export function buildDocsSnapshot(root: string, commit: string) {
     git(scanRoot, ['init', '-q']);
     mkdirSync(join(scanRoot, 'docs'));
     writeFileSync(join(scanRoot, 'docs', 'flows.yaml'), 'version: 1\nflows: {}\n');
-    for (const path of paths) {
-      const full = join(scanRoot, path);
-      mkdirSync(dirname(full), { recursive: true });
-      writeFileSync(full, git(root, ['show', `${commit}:${path}`]));
+    const binaryPaths = new Set<string>();
+    const scanPaths = new Map<string, string>();
+    for (const [index, path] of paths.entries()) {
+      const text = git(root, ['show', `${commit}:${path}`]);
+      if (text.includes('\0')) {
+        binaryPaths.add(path);
+        continue;
+      }
+      const scanPath = `docs/page-${index}.md`;
+      scanPaths.set(scanPath, path);
+      const full = join(scanRoot, scanPath);
+      writeFileSync(full, text);
     }
     git(scanRoot, ['add', '--', 'docs']);
     const scan = spawnSync(process.execPath, [bundle, 'check', '--staged'], {
@@ -144,11 +152,17 @@ export function buildDocsSnapshot(root: string, commit: string) {
       timeout: 60_000,
     });
     if (scan.error || scan.status === null || scan.status > 1) throw new Error('Không chạy được secret-scan');
-    const droppedPaths = new Set<string>();
+    const droppedPaths = new Set<string>(binaryPaths);
     for (const line of scan.stdout.split('\n')) {
       const match = /^R7 (.+?): line \d+ looks like a credential/.exec(line);
-      if (match?.[1]) droppedPaths.add(match[1]);
+      if (match?.[1]) {
+        const path = scanPaths.get(match[1]);
+        if (!path) throw new Error('Secret-scan trả đường dẫn không rõ');
+        droppedPaths.add(path);
+      }
     }
+    if (scan.status === 1 && droppedPaths.size === binaryPaths.size)
+      throw new Error('Secret-scan không trả kết quả');
     const allDocs = new Set(paths);
     const pages: Page[] = paths
       .filter((path) => !droppedPaths.has(path))
@@ -176,6 +190,6 @@ export function buildDocsSnapshot(root: string, commit: string) {
         .map((path) => ({ path, reason: 'secret-scan' as const })),
     };
   } finally {
-    git(root, ['worktree', 'remove', '--force', checkout]);
+    if (existsSync(checkout)) git(root, ['worktree', 'remove', '--force', checkout]);
   }
 }
