@@ -101,8 +101,6 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 ## Flow liên quan
 
 - docs-hooks: `install-hooks`/`ci-workflow` (flow riêng) dùng cùng bundle và gọi `crew-docs check` qua hook.
-- docs-sync-viewer: `docs/flows.yaml` và các trang `docs/flows/<id>.md` mà công cụ này kiểm tra chính là nội
-  dung được daemon đồng bộ và web hiển thị.
 
 ## Tests
 

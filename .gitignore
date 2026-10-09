@@ -13,17 +13,6 @@ coverage/
 *.token
 *.tsbuildinfo
 .claude/worktrees/
-# Desktop app: electron-vite output, the staged app and electron-builder artifacts (dmg).
-apps/desktop/out/
-apps/desktop/.stage/
-apps/desktop/release/
-apps/desktop/test-results/
-apps/desktop/.e2e/
-# VPS deploy: the rendered edge site (scripts/attach-nginx.sh). Root E2E run state and results.
-/edge/
-e2e/.e2e/
-e2e/test-results/
-
 # Local Codex hook logs and runtime state.
 .codex/hooks/.logs/
 .codex/hooks/.agentkit-runtime.json
