@@ -49,3 +49,10 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 2. Bảng runtime/model theo độ khó (§6.1). 3. Điều kiện và trần fallback (tối đa 2 lần/issue; mức large không fallback). 4. Mặc định công tắc và chỉ board bật. 5. Vai trò nào được chạy Codex/OpenCode, số executor.
 - Việc Đại Ca: nạp key OpenCode Go vào Keychain: `security add-generic-password -U -s crew.opencode-go -a crew -w` (lệnh tự hỏi key, không lưu lịch sử).
 - Codex từng trả 400 ngày 08/10; nếu nghiệm thu còn lỗi thì phần Codex dừng.
+
+## R2-5 docs graph/usage — 5 câu (spec `docs/superpowers/specs/2026-10-10-crew-v3-r2-5-docs-usage-design.md` §11). Trợ Lý TẠM theo khuyên.
+1. Hiện ngay trong plugin bằng UI tối thiểu (module dùng lại được cho R3).
+2. Ticket nối vào graph qua `crew-commit` + danh sách file đổi do Mac gửi.
+3. USD hiện, có nhãn "ước tính, không phải hóa đơn".
+4. Dung lượng cache file đính kèm trên Mac đưa vào bản tin máy.
+5. Bảng `docs_pages` cũ giữ nguyên, không xóa.
