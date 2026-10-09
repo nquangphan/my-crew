@@ -4,7 +4,10 @@ import { type AppState, defaultAppState } from '../src/main/app-state.js';
 import {
   CREW_MAC_IDLE_POLL_MS,
   installCrewMacWhenIdle,
-  PROBATION_MS,
+  PROBATION_DOCTOR_MS,
+  PROBATION_LISTENER_MS,
+  PROBATION_MAX_MS,
+  PROBATION_SEND_MS,
   type ProbationDeps,
   runProbation,
 } from '../src/main/update/probation.js';
@@ -23,6 +26,7 @@ function harness(opts: {
   doctor?: CheckResult[];
   sendStatus?: () => Promise<void>;
   rolledBack?: string | null;
+  pending?: string | null;
   hasPrevious?: boolean;
 }) {
   let clock = 0;
@@ -36,7 +40,9 @@ function harness(opts: {
   const events: Array<{ event: string; fields?: Record<string, unknown> }> = [];
   const calls: string[] = [];
   let rolledBack = opts.rolledBack ?? null;
-  const markers = { ok: [] as string[], failed: [] as string[] };
+  const markers = { ok: [] as string[], failed: [] as string[], started: [] as string[] };
+  let pending = opts.pending ?? null;
+  const timers: Array<{ ms: number; fn: () => void; cancelled: boolean }> = [];
   const listenerUpAt = opts.listenerUpAt === undefined ? 0 : opts.listenerUpAt;
   const deps: ProbationDeps = {
     appVersion: '0.1.1',
@@ -69,6 +75,11 @@ function harness(opts: {
       },
       writeOk: (v) => markers.ok.push(v),
       writeFailed: (v) => markers.failed.push(v),
+      writeStarted: (v) => markers.started.push(v),
+      readPending: () => pending,
+      clearPending: () => {
+        pending = null;
+      },
     },
     hasPrevious: () => opts.hasPrevious ?? true,
     spawnRollbackNow: (to) => calls.push(`rollback-now:${to}`),
@@ -77,9 +88,28 @@ function harness(opts: {
       clock += ms;
     },
     now: () => new Date(Date.UTC(2026, 9, 9, 8, 0, 0) + clock),
+    after: (ms, fn) => {
+      const timer = { ms, fn, cancelled: false };
+      timers.push(timer);
+      return () => {
+        timer.cancelled = true;
+      };
+    },
     log: (_level, event, fields) => events.push({ event, fields }),
   };
-  return { deps, state: () => state, events, calls, markers, clock: () => clock };
+  return {
+    deps,
+    state: () => state,
+    events,
+    calls,
+    markers,
+    timers,
+    pending: () => pending,
+    clock: () => clock,
+    advance: (ms: number) => {
+      clock += ms;
+    },
+  };
 }
 
 describe('runProbation', () => {
@@ -96,7 +126,7 @@ describe('runProbation', () => {
   it('listener không lên trong 5 phút: quay lui, thêm badVersions, dừng sshd rồi thoát', async () => {
     const h = harness({ listenerUpAt: null });
     expect(await runProbation(h.deps)).toBe('failed');
-    expect(h.clock()).toBeGreaterThanOrEqual(PROBATION_MS);
+    expect(h.clock()).toBeGreaterThanOrEqual(PROBATION_LISTENER_MS);
     const failed = h.events.find((e) => e.event === 'update-probation-failed');
     expect(failed?.fields?.reason).toBe('sshd không lên');
     expect(h.state().update.badVersions).toEqual(['0.1.1']);
@@ -126,7 +156,7 @@ describe('runProbation', () => {
     expect(tries).toBeGreaterThan(1);
     const failed = h.events.find((e) => e.event === 'update-probation-failed');
     expect(failed?.fields?.reason).toBe('không gửi được bản tin máy');
-    expect(h.clock()).toBeLessThanOrEqual(PROBATION_MS);
+    expect(h.clock()).toBeLessThanOrEqual(PROBATION_SEND_MS);
   });
 
   it('bản tin vốn đã không gửi được trước khi cài (baseline send-status) thì không tính là hỏng', async () => {
@@ -149,6 +179,75 @@ describe('runProbation', () => {
       },
     });
     expect(await runProbation(h.deps)).toBe('passed');
+  });
+
+  it('ghi marker started khi bắt đầu thử (watchdog đếm từ lúc bản mới mở), không ghi khi bỏ qua', async () => {
+    const h = harness({});
+    await runProbation(h.deps);
+    expect(h.markers.started).toEqual(['0.1.1']);
+    const skipped = harness({ state: { updateState: 'idle' } });
+    await runProbation(skipped.deps);
+    expect(skipped.markers.started).toEqual([]);
+  });
+
+  it('mỗi bước có hạn riêng: listener chậm, doctor chậm (TCC 240 giây) và bản tin chỉ được ở phút 4,5 vẫn đạt', async () => {
+    let tries = 0;
+    const h = harness({
+      listenerUpAt: 4 * 60_000,
+      sendStatus: async () => {
+        tries += 1;
+        if (tries < 10) throw new Error('mạng chập chờn');
+      },
+    });
+    h.deps.doctor = async () => {
+      h.advance(240_000);
+      return [check('tcc-pending', 'fail')];
+    };
+    expect(await runProbation(h.deps)).toBe('passed');
+    expect(h.markers.ok).toEqual(['0.1.1']);
+    expect(h.clock()).toBeLessThanOrEqual(PROBATION_MAX_MS);
+  });
+
+  it('doctor không xong trong hạn: hỏng thật, quay lui, lý do nêu hạn', async () => {
+    const h = harness({});
+    h.deps.doctor = () => new Promise<CheckResult[]>(() => undefined);
+    const run = runProbation(h.deps);
+    await new Promise((r) => setTimeout(r, 0));
+    const timer = h.timers.find((t) => t.ms === PROBATION_DOCTOR_MS);
+    expect(timer).toBeDefined();
+    timer?.fn();
+    expect(await run).toBe('failed');
+    const failed = h.events.find((e) => e.event === 'update-probation-failed');
+    expect(failed?.fields?.reason).toBe(`doctor không xong sau ${PROBATION_DOCTOR_MS / 60_000} phút`);
+    expect(h.calls).toEqual(['rollback-now:0.1.1', 'stopForQuit', 'exit:0']);
+  });
+
+  it('doctor xong trong hạn thì hủy hẹn giờ', async () => {
+    const h = harness({});
+    await runProbation(h.deps);
+    expect(h.timers.map((t) => t.cancelled)).toEqual([true]);
+  });
+
+  it('cài trễ (lần cài trước báo lỗi nhưng Squirrel vẫn cài khi app thoát): marker pending = bản đang chạy thì vẫn thử', async () => {
+    const h = harness({ state: { updateState: 'waiting-idle' }, pending: '0.1.1' });
+    expect(await runProbation(h.deps)).toBe('passed');
+    expect(h.markers.started).toEqual(['0.1.1']);
+    expect(h.markers.ok).toEqual(['0.1.1']);
+    expect(h.pending()).toBeNull();
+    expect(h.state().updateState).toBe('idle');
+  });
+
+  it('marker pending của bản khác (Squirrel không cài): xóa, không thử', async () => {
+    const h = harness({ state: { updateState: 'waiting-idle' }, pending: '0.1.2' });
+    expect(await runProbation(h.deps)).toBe('skipped');
+    expect(h.pending()).toBeNull();
+    expect(h.state().updateState).toBe('waiting-idle');
+  });
+
+  it('thử hỏng cũng xóa marker pending', async () => {
+    const h = harness({ listenerUpAt: null, pending: '0.1.1' });
+    expect(await runProbation(h.deps)).toBe('failed');
+    expect(h.pending()).toBeNull();
   });
 
   it('chế độ CLI (supervisor disabled): không đòi listener của app', async () => {

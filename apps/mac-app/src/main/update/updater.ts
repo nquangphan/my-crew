@@ -2,15 +2,20 @@ import type { CheckResult } from '@crew/mac';
 import type { UpdateView } from '../../shared/ipc-contract.js';
 import type { AppContext } from '../app-context.js';
 import type { AppStateStore, UpdateState } from '../app-state.js';
-import type { SshdSupervisor } from '../sshd/supervisor.js';
+import type { SshdRuntime } from '../sshd/register.js';
 import { type DrainAnswer, drainForUpdate } from './drain.js';
 import { SEND_STATUS_BASELINE_ID } from './probation.js';
-import type { RollbackMode } from './rollback.js';
+import type { ProbationMarkers, RollbackMode } from './rollback.js';
 import { judgeCandidate } from './versions.js';
 
 /** Kiểm bản mới lúc mở app, rồi mỗi 1 giờ. */
 export const CHECK_INTERVAL_MS = 60 * 60_000;
 export const DISABLED_UNSIGNED = 'Bản này không ký Developer ID, cập nhật tự động tắt';
+/**
+ * Sau `quitAndInstall`, Squirrel.Mac lấy zip qua proxy local của electron-updater, kiểm chữ ký, giải nén, xếp ShipIt
+ * rồi mới thoát app (thường dưới 1 phút). Quá 5 phút app vẫn sống thì coi như cài hỏng: mở lại cổng, về `waiting-idle`.
+ */
+export const INSTALL_QUIT_TIMEOUT_MS = 5 * 60_000;
 
 interface UpdateInfoLike {
   version: string;
@@ -38,7 +43,8 @@ export interface UpdaterDeps {
   /** Khác null: updater tắt, màn hình hiện lý do. */
   disabledReason: string | null;
   store: Pick<AppStateStore, 'get' | 'update'>;
-  supervisor: Pick<SshdSupervisor, 'pause' | 'resume' | 'activeRuns' | 'stopForQuit'>;
+  supervisor: Pick<SshdRuntime, 'pause' | 'resume' | 'activeRuns' | 'stopForQuit' | 'allowQuitForUpdate'>;
+  markers: Pick<ProbationMarkers, 'writePending' | 'writeCancelled'>;
   doctor(): Promise<CheckResult[]>;
   sendStatus(): Promise<void>;
   askDrain(activeRuns: number | null): Promise<DrainAnswer>;
@@ -51,6 +57,8 @@ export interface UpdaterDeps {
   sleep(ms: number): Promise<void>;
   now(): Date;
   every(ms: number, fn: () => void): () => void;
+  /** Hẹn giờ một lần; trả hàm hủy. */
+  after(ms: number, fn: () => void): () => void;
   log: AppContext['log'];
 }
 
@@ -89,7 +97,9 @@ const BUSY: readonly UpdateState[] = ['downloading', 'installing', 'probation'];
 /**
  * Máy trạng thái `idle → downloading → waiting-idle → installing → (app mới) probation → idle | rolled-back`.
  * Không tự tải (lọc phiên bản trước), không tự cài khi thoát, không hạ bản, không prerelease. Cài: chờ máy rảnh
- * (drain), chép app vào `previous/`, sinh watchdog, ghi `installing`, dừng listener, `quitAndInstall`.
+ * (drain), chép app vào `previous/`, ghi marker `pending`, sinh watchdog, ghi `installing`, cho phép thoát (quit guard
+ * không hỏi lại), dừng listener, `quitAndInstall`. Squirrel báo lỗi hay app không thoát trong hạn: gỡ watchdog, hủy
+ * giấy phép thoát (listener mở lại), về `waiting-idle`; không đưa bản vào `badVersions`.
  */
 export function createUpdater(deps: UpdaterDeps): Updater {
   const enabled = deps.disabledReason === null;
@@ -100,6 +110,8 @@ export function createUpdater(deps: UpdaterDeps): Updater {
   let reason: string | null = deps.disabledReason;
   let lastCheckedAt: string | null = null;
   let installing = false;
+  /** Lần cài đang chờ app thoát: lỗi Squirrel hay hết hạn thì `abortInstall`. */
+  let attempt: { version: string; revoke: () => Promise<void>; cancelTimer: () => void } | null = null;
   let stopTimer: (() => void) | null = null;
   const pending = new Set<Promise<unknown>>();
 
@@ -109,7 +121,23 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     void tracked.finally(() => pending.delete(tracked));
   };
   const setState = (updateState: UpdateState) => deps.store.update((s) => ({ ...s, updateState }));
+  const abortInstall = async (cause: string): Promise<void> => {
+    const current = attempt;
+    if (!current) return;
+    attempt = null;
+    current.cancelTimer();
+    deps.markers.writeCancelled(current.version);
+    await current.revoke();
+    deferred = current.version;
+    reason = `Cài bản mới lỗi: ${cause}. Bấm "Cài khi rảnh" để thử lại.`;
+    await setState('waiting-idle');
+    deps.log('error', 'update-install-failed', { version: current.version, error: cause });
+  };
   const onError = (error: unknown) => {
+    if (attempt) {
+      track(abortInstall(errorText(error)));
+      return;
+    }
     if (isUnpublished(error)) {
       reason = null;
       return;
@@ -165,6 +193,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         deferred = version;
         return;
       }
+      deps.markers.writePending(version);
       deps.spawnRollback('watchdog', version);
       await deps.store.update((s) => ({
         ...s,
@@ -172,8 +201,20 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         update: { ...s.update, from: deps.appVersion, to: version, installedAt: deps.now().toISOString() },
       }));
       deps.log('info', 'update-installing', { from: deps.appVersion, to: version });
+      // Owner đã đồng ý ở bước drain: `before-quit` của Squirrel đi qua quit guard không hỏi lại.
+      const revoke = deps.supervisor.allowQuitForUpdate();
+      attempt = { version, revoke, cancelTimer: () => undefined };
       await deps.supervisor.stopForQuit().catch(() => undefined);
-      deps.autoUpdater().quitAndInstall(false, true);
+      const mine = attempt;
+      mine.cancelTimer = deps.after(INSTALL_QUIT_TIMEOUT_MS, () => {
+        if (attempt === mine)
+          track(abortInstall(`app không thoát sau ${INSTALL_QUIT_TIMEOUT_MS / 60_000} phút`));
+      });
+      try {
+        deps.autoUpdater().quitAndInstall(false, true);
+      } catch (error) {
+        await abortInstall(errorText(error));
+      }
     } finally {
       installing = false;
     }
@@ -250,6 +291,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     stop() {
       stopTimer?.();
       stopTimer = null;
+      attempt?.cancelTimer();
     },
     check,
     async installWhenIdle() {

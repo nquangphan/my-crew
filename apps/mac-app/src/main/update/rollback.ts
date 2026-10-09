@@ -109,25 +109,43 @@ export interface ProbationMarkers {
   writeOk(version: string): void;
   /** Bản mới hỏng và đã tự xử lý: watchdog thôi. */
   writeFailed(version: string): void;
+  /** Bản mới đã mở và bắt đầu thử: watchdog đếm hạn thử từ lúc này. */
+  writeStarted(version: string): void;
+  /** Cài hỏng, app cũ ở lại (Squirrel lỗi): watchdog thôi, không quay lui. */
+  writeCancelled(version: string): void;
+  /**
+   * Bản đã giao cho Squirrel (nội dung `pending`). Còn lại sau khi cài báo lỗi, vì Squirrel có thể đã xếp ShipIt cài
+   * lúc app thoát: bản đó mở lên thì vẫn phải thử.
+   */
+  writePending(version: string): void;
+  readPending(): string | null;
+  clearPending(): void;
 }
 
 export function fileMarkers(support: string): ProbationMarkers {
   const dir = probationDir(support);
   const rolledBack = join(dir, 'rolled-back');
-  const touch = (name: string) => {
+  const pending = join(dir, 'pending');
+  const write = (name: string, content = '') => {
     mkdirSync(dir, { recursive: true, mode: 0o700 });
-    writeFileSync(join(dir, name), '');
+    writeFileSync(join(dir, name), content);
+  };
+  const read = (file: string) => {
+    try {
+      return readFileSync(file, 'utf8').trim() || null;
+    } catch {
+      return null;
+    }
   };
   return {
-    readRolledBack: () => {
-      try {
-        return readFileSync(rolledBack, 'utf8').trim() || null;
-      } catch {
-        return null;
-      }
-    },
+    readRolledBack: () => read(rolledBack),
     clearRolledBack: () => rmSync(rolledBack, { force: true }),
-    writeOk: (version) => touch(`${version}.ok`),
-    writeFailed: (version) => touch(`${version}.failed`),
+    writeOk: (version) => write(`${version}.ok`),
+    writeFailed: (version) => write(`${version}.failed`),
+    writeStarted: (version) => write(`${version}.started`),
+    writeCancelled: (version) => write(`${version}.cancelled`),
+    writePending: (version) => write('pending', `${version}\n`),
+    readPending: () => read(pending),
+    clearPending: () => rmSync(pending, { force: true }),
   };
 }

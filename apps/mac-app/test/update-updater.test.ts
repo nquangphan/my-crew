@@ -10,6 +10,7 @@ import {
   CHECK_INTERVAL_MS,
   createUpdater,
   DISABLED_UNSIGNED,
+  INSTALL_QUIT_TIMEOUT_MS,
   type UpdaterDeps,
 } from '../src/main/update/updater.js';
 
@@ -25,6 +26,8 @@ class FakeAutoUpdater extends EventEmitter implements AutoUpdaterLike {
   allowDowngrade = true;
   allowPrerelease = true;
   calls: string[] = [];
+  /** Lỗi Squirrel giả khi `quitAndInstall`: ném đồng bộ. */
+  installThrows: Error | null = null;
   feed: () => Promise<UpdateInfoLike | null> = async () => null;
   checkError: Error | null = null;
 
@@ -45,6 +48,7 @@ class FakeAutoUpdater extends EventEmitter implements AutoUpdaterLike {
   }
   quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean) {
     this.calls.push(`quitAndInstall:${isSilent}:${isForceRunAfter}`);
+    if (this.installThrows) throw this.installThrows;
   }
 }
 
@@ -68,6 +72,7 @@ function harness(opts: {
   const order: string[] = [];
   const events: Array<{ event: string; fields?: Record<string, unknown> }> = [];
   const timers: Array<{ ms: number; fn: () => void }> = [];
+  const once: Array<{ ms: number; fn: () => void; cancelled: boolean }> = [];
   let clock = 0;
   const deps: UpdaterDeps = {
     autoUpdater: () => fake,
@@ -92,6 +97,16 @@ function harness(opts: {
       stopForQuit: async () => {
         order.push('stopForQuit');
       },
+      allowQuitForUpdate: () => {
+        order.push('allowQuit');
+        return async () => {
+          order.push('revoke');
+        };
+      },
+    },
+    markers: {
+      writePending: (v) => order.push(`pending:${v}`),
+      writeCancelled: (v) => order.push(`cancelled:${v}`),
     },
     doctor: async () => opts.doctor ?? [{ id: 'tcc-pending', title: '', status: 'fail', detail: '' }],
     sendStatus: async () => undefined,
@@ -118,11 +133,18 @@ function harness(opts: {
       timers.push(timer);
       return () => timers.splice(timers.indexOf(timer), 1);
     },
+    after: (ms, fn) => {
+      const timer = { ms, fn, cancelled: false };
+      once.push(timer);
+      return () => {
+        timer.cancelled = true;
+      };
+    },
     log: (_level, event, fields) => events.push({ event, fields }),
   };
   const updater = createUpdater(deps);
   const settle = () => new Promise((r) => setTimeout(r, 0));
-  return { fake, deps, updater, order, events, timers, state: () => state, settle };
+  return { fake, deps, updater, order, events, timers, once, state: () => state, settle };
 }
 
 describe('createUpdater', () => {
@@ -207,8 +229,18 @@ describe('createUpdater', () => {
     });
     expect(h.state().updateState).toBe('installing');
     const tail = h.order.slice(h.order.indexOf('pause'));
-    expect(tail).toEqual(['pause', 'snapshot', 'helper:watchdog:0.1.1', 'state:installing', 'stopForQuit']);
+    expect(tail).toEqual([
+      'pause',
+      'snapshot',
+      'pending:0.1.1',
+      'helper:watchdog:0.1.1',
+      'state:installing',
+      'allowQuit',
+      'stopForQuit',
+    ]);
     expect(h.fake.calls).toEqual(['quitAndInstall:false:true']);
+    // App không thoát trong hạn thì coi như cài hỏng.
+    expect(h.once.map((t) => t.ms)).toEqual([INSTALL_QUIT_TIMEOUT_MS]);
     expect(h.events.map((e) => e.event)).toContain('update-downloaded');
   });
 
@@ -282,6 +314,70 @@ describe('createUpdater', () => {
     });
     await h.updater.check();
     expect(h.updater.view().reason).toBeNull();
+  });
+
+  it('"Cài ngay" khi còn run: cho phép thoát trước khi dừng listener, quit guard không hỏi lại', async () => {
+    const h = harness({ runs: 2, drainAnswer: 'now' });
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    const allow = h.order.indexOf('allowQuit');
+    expect(allow).toBeGreaterThan(h.order.indexOf('askDrain'));
+    expect(allow).toBeLessThan(h.order.indexOf('stopForQuit'));
+    expect(h.fake.calls).toEqual(['quitAndInstall:false:true']);
+    expect(h.order).not.toContain('revoke');
+  });
+
+  it('Squirrel báo lỗi khi cài: hủy giấy phép thoát (listener mở lại), gỡ watchdog, về waiting-idle, không badVersions', async () => {
+    const h = harness({});
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.state().updateState).toBe('installing');
+    h.fake.emit('error', new Error('Code signature did not pass validation'));
+    await h.updater.idle();
+    const tail = h.order.slice(h.order.indexOf('stopForQuit') + 1);
+    expect(tail).toEqual(['cancelled:0.1.1', 'revoke', 'state:waiting-idle']);
+    expect(h.state().update.badVersions).toEqual([]);
+    expect(h.once[0]?.cancelled).toBe(true);
+    expect(h.updater.view().reason).toContain('Cài bản mới lỗi: Code signature did not pass validation');
+    expect(h.events.map((e) => e.event)).toContain('update-install-failed');
+    // Không kẹt: kiểm lại được, và "Cài khi rảnh" chạy lại lần cài.
+    await h.updater.check();
+    expect(h.fake.calls).toContain('checkForUpdates');
+    await h.updater.installWhenIdle();
+    await h.updater.idle();
+    expect(h.fake.calls.filter((c) => c.startsWith('quitAndInstall'))).toHaveLength(2);
+    expect(h.state().updateState).toBe('installing');
+  });
+
+  it('quitAndInstall ném ngay: hủy giấy phép thoát, về waiting-idle', async () => {
+    const h = harness({});
+    h.fake.installThrows = new Error("No update available, can't quit and install");
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.order.slice(h.order.indexOf('stopForQuit') + 1)).toEqual([
+      'cancelled:0.1.1',
+      'revoke',
+      'state:waiting-idle',
+    ]);
+    expect(h.state().update.badVersions).toEqual([]);
+  });
+
+  it('app không thoát trong hạn sau quitAndInstall (Squirrel im lặng): như cài lỗi, cổng không bị bỏ trống', async () => {
+    const h = harness({});
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    h.once[0]?.fn();
+    await h.updater.idle();
+    expect(h.order.slice(h.order.indexOf('stopForQuit') + 1)).toEqual([
+      'cancelled:0.1.1',
+      'revoke',
+      'state:waiting-idle',
+    ]);
+    expect(h.updater.view().reason).toContain('không thoát');
+    // Lỗi đến muộn sau khi đã hủy: không hủy lần hai.
+    h.fake.emit('error', new Error('muộn'));
+    await h.updater.idle();
+    expect(h.order.filter((o) => o === 'revoke')).toHaveLength(1);
   });
 
   it('quay lui tay khi có run: hỏi; đồng ý thì badVersions, helper now, stopForQuit, exit', async () => {

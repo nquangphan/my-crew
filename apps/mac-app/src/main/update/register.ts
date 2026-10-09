@@ -5,7 +5,7 @@ import { macPaths } from '@crew/mac';
 import { app, dialog } from 'electron';
 import electronUpdater from 'electron-updater';
 import type { AppContext } from '../app-context.js';
-import type { SshdSupervisor } from '../sshd/supervisor.js';
+import type { SshdRuntime } from '../sshd/register.js';
 import { installCrewMacWhenIdle, runProbation } from './probation.js';
 import {
   APP_BUNDLE_NAME,
@@ -21,6 +21,16 @@ import { type AutoUpdaterLike, createUpdater, DISABLED_UNSIGNED } from './update
 /** Squirrel.Mac thay bundle tại chỗ, helper quay lui chỉ ghi vào đúng đường dẫn này. */
 const INSTALLED_BUNDLE = `/Applications/${APP_BUNDLE_NAME}`;
 const DOCTOR_OPTS = { probe: false, tccWindow: '24h', probeTimeoutSec: 90 } as const;
+/**
+ * Doctor của probation: chỉ xét hộp thoại quyền mới trong 15 phút (bản mới vừa mở), để `log show` nhanh; hộp thoại cũ
+ * hơn đã nằm trong baseline 24 giờ lúc tải.
+ */
+const PROBATION_DOCTOR_OPTS = { ...DOCTOR_OPTS, tccWindow: '15m' } as const;
+
+const after = (ms: number, fn: () => void) => {
+  const timer = setTimeout(fn, ms);
+  return () => clearTimeout(timer);
+};
 
 function disabledReason(bundle: string | null): string | null {
   if (!app.isPackaged) return 'Bản chạy thử (chưa đóng gói), cập nhật tự động tắt';
@@ -33,7 +43,7 @@ function disabledReason(bundle: string | null): string | null {
  * Updater trong app (kênh `update:*`): probation của bản vừa cài chạy trước, rồi mới kiểm bản mới. Chỉ Main ghi
  * `app.json` (`updateState`, `update.*`); `crew-mac status` đọc `updateState` gửi lên thẻ máy.
  */
-export function registerUpdate(ctx: AppContext, sshd: SshdSupervisor): void {
+export function registerUpdate(ctx: AppContext, sshd: SshdRuntime): void {
   const support = dirname(macPaths(ctx.home).appState);
   const bundle = bundleFromExe(app.getPath('exe'));
   const markers = fileMarkers(support);
@@ -64,6 +74,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdSupervisor): void {
     disabledReason: disabledReason(bundle),
     store: ctx.store,
     supervisor: sshd,
+    markers,
     doctor,
     sendStatus,
     askDrain: async (runs) => {
@@ -103,6 +114,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdSupervisor): void {
       const timer = setInterval(fn, ms);
       return () => clearInterval(timer);
     },
+    after,
     log: ctx.log,
   });
 
@@ -126,7 +138,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdSupervisor): void {
       appVersion: ctx.appVersion,
       store: ctx.store,
       supervisor: sshd,
-      doctor,
+      doctor: () => ctx.ops.call('doctor', { ...PROBATION_DOCTOR_OPTS }),
       sendStatus,
       markers,
       hasPrevious: () => readPreviousVersion(support) !== null,
@@ -134,6 +146,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdSupervisor): void {
       exit,
       sleep: (ms) => sleep(ms),
       now: () => new Date(),
+      after,
       log: ctx.log,
     });
     if (outcome === 'failed' && readPreviousVersion(support) !== null) return; // app đang thoát để quay lui

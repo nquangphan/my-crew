@@ -6,7 +6,7 @@
 
 Ra bản app macOS 2P Crew (bundle `com.2p-solutions.crew.mac`) ký Developer ID, notarize và staple bằng một script
 chạy trên Mac mini, rồi đăng lên GitHub Releases `nquangphan/crew-mac-releases` để updater trong app tự lấy. Trong
-app, updater kiểm bản mới, tải, chờ máy rảnh mới cài, tự kiểm bản mới 5 phút (probation) và tự quay về bản trước khi
+app, updater kiểm bản mới, tải, chờ máy rảnh mới cài, tự kiểm bản mới (probation, tối đa 16 phút) và tự quay về bản trước khi
 hỏng; owner xem và bấm ở màn hình Cập nhật.
 
 ## Điểm vào
@@ -14,7 +14,8 @@ hỏng; owner xem và bấm ở màn hình Cập nhật.
 - `node apps/mac-app/scripts/release.mjs` hoặc `pnpm --filter @crew/mac-app release` (chạy từ bất kỳ đâu trong
   repo; script tự tìm gốc repo bằng git).
 - `src/main/update/register.ts` → `registerUpdate(ctx, sshd)`: một dòng trong `src/main/index.ts`, ngay sau
-  `registerSshd` (supervisor đã `start()`).
+  `registerSshd` (supervisor đã `start()`). `sshd` là `SshdRuntime` (supervisor + quit guard, flow `mac-app-sshd`
+  mục Interface); updater dùng `pause`/`resume`/`activeRuns`/`stopForQuit` và `allowQuitForUpdate`.
 - Màn hình Cập nhật: route `update` (`src/renderer/routes/update.tsx`, `UpdateScreen`).
 
 ## Phát hành
@@ -166,12 +167,18 @@ tải bản mới, Chờ máy rảnh để cài, Đang cài, Đang thử bản m
    `waiting-idle`; tải lại đúng bản đó không hỏi lại; owner bấm "Cài khi rảnh" để chạy lại bước chờ.
 4. Cài: `snapshotPrevious` (xóa `previous/` cũ và marker probation cũ, `ditto` app đang chạy vào
    `~/Library/Application Support/2P Crew/previous/2P Crew.app`, ghi `previous/version`); hỏng thì log
-   `update-install-aborted`, `resume()`, không cài. Rồi sinh helper `watchdog`, ghi `installing` + `update.from`,
-   `update.to`, `update.installedAt`, log `update-installing`, `sshd.stopForQuit()`, `quitAndInstall(false, true)`.
-   Squirrel thay bundle và mở lại app.
-
-Lưu ý: `quitAndInstall` đi qua `before-quit`, nên quit guard (flow `mac-app-sshd`) hỏi lại nếu owner chọn "Cài ngay"
-khi còn run (nút mặc định "Thoát ngay, run vẫn chạy"); khi 0 run guard không hỏi.
+   `update-install-aborted`, `resume()`, không cài. Rồi ghi marker `probation/pending` (bản đích), sinh helper
+   `watchdog`, ghi `installing` + `update.from`, `update.to`, `update.installedAt`, log `update-installing`, rồi đúng
+   thứ tự của flow `mac-app-sshd`: `const revoke = sshd.allowQuitForUpdate()`, `await sshd.stopForQuit()`,
+   `quitAndInstall(false, true)`, hẹn giờ `INSTALL_QUIT_TIMEOUT_MS` (5 phút). Squirrel thay bundle và mở lại app.
+5. Owner đã đồng ý ở bước drain (0 run, hay bấm "Cài ngay, run vẫn chạy"), nên `allowQuitForUpdate` cho mọi
+   `before-quit` sau đó đi qua: quit guard không hỏi lại, không có nút "Hủy" nào để app sống với cổng trống.
+6. Cài hỏng mà app không thoát — `autoUpdater` phát `error` trong lúc chờ thoát (Squirrel tải từ proxy local, kiểm
+   chữ ký, giải nén lỗi), `quitAndInstall` ném ngay, hoặc 5 phút app vẫn sống: ghi `probation/<bản>.cancelled` (watchdog
+   thôi), `await revoke()` (guard về bình thường, `resume()` mở lại listener), `deferred` = bản đó, về `waiting-idle`,
+   màn hình hiện "Cài bản mới lỗi: … Bấm "Cài khi rảnh" để thử lại.", log `update-install-failed`. Không đưa bản vào
+   `badVersions` (bản đó chưa từng chạy). Lỗi đến muộn sau khi đã hủy không hủy lần hai. `check()` chạy lại được (không
+   còn kẹt `installing`). Marker `pending` giữ lại (xem "Squirrel.Mac và helper quay lui").
 
 ### Tự kiểm sau cài (`probation.ts`)
 
@@ -179,12 +186,20 @@ khi còn run (nút mặc định "Thoát ngay, run vẫn chạy"); khi 0 run gua
 
 - Marker `probation/rolled-back` (helper vừa quay lui) → log `update-rolled-back`, thêm bản đó vào `badVersions`,
   `rolled-back`, xóa marker.
+- Không `installing`/`probation`: marker `pending` = bản đang chạy (lần cài trước báo lỗi nhưng ShipIt vẫn cài lúc
+  app thoát) → log `update-installed-late` rồi thử như dưới; `pending` là bản khác → xóa marker, không làm gì.
 - `installing`/`probation` mà bản đang chạy khác `update.to` (Squirrel không thay được) → ghi `<to>.failed` (gỡ
-  watchdog), về `idle`, log `update-install-missing`.
-- `installing`/`probation` và bản đang chạy là `update.to` → `probation`, tối đa 5 phút (`PROBATION_MS`):
-  1. listener của app `running` (chờ, kiểm mỗi 5 giây); supervisor `disabled` (chế độ LaunchAgent) thì bỏ qua;
-  2. `doctor({ probe: false })` không có `fail` nào ngoài `baseline`;
-  3. `sendStatus` gửi được (thử lại mỗi 30 giây tới hết 5 phút), trừ khi `baseline` có `send-status`.
+  watchdog), xóa `pending`, về `idle`, log `update-install-missing`.
+- Bản đang chạy là bản đích → ghi `probation/<bản>.started` (watchdog đếm hạn thử từ đây), `probation`. Mỗi bước có
+  hạn riêng, một bước chậm không ăn vào hạn bước sau:
+
+  | Bước | Hạn | Ghi chú |
+  |---|---|---|
+  | 1. listener của app `running` (kiểm mỗi 5 giây; supervisor `disabled` = chế độ LaunchAgent thì bỏ qua) | 5 phút (`PROBATION_LISTENER_MS`) | Squirrel vừa mở lại app |
+  | 2. `doctor({ probe: false, tccWindow: '15m' })` không có `fail` nào ngoài `baseline` | 6 phút (`PROBATION_DOCTOR_MS`) | check TCC đọc `log show` mất 30–240 giây (timeout 240 giây trong doctor); cửa sổ 15 phút cho nhanh, hộp thoại cũ hơn đã nằm trong baseline 24 giờ. Quá hạn = hỏng thật ("doctor không xong sau 6 phút") |
+  | 3. `sendStatus` gửi được, trừ khi `baseline` có `send-status` | 5 phút (`PROBATION_SEND_MS`), thử lại mỗi 30 giây | mạng chập chờn không đáng quay lui |
+
+  Tổng tối đa `PROBATION_MAX_MS` = 16 phút. Kết thúc (đạt hay hỏng) thì xóa marker `pending`.
 - Đạt → ghi `probation/<bản>.ok`, `idle`, log `update-installed`; rồi `installCrewMacWhenIdle`: chờ 0 run (kiểm mỗi
   10 phút) và gọi `installCrewMacFrom(<resources>/crew-mac)` một lần (crew-mac tự từ chối khi còn run thì chờ tiếp).
 - Hỏng → log `update-probation-failed` kèm lý do ("sshd không lên", "doctor có lỗi mới: <id>", "không gửi được bản
@@ -198,11 +213,51 @@ bằng `/bin/sh` tách rời (`detached`, `stdio: 'ignore'`, `unref`), sống qu
 
 - `now`: ghi `probation/<bản>.failed`, chờ pid thoát, thay `/Applications/2P Crew.app` bằng `previous/2P Crew.app`
   (`mv` sang `.rollback-tmp`, `ditto`, hỏng thì trả bản cũ về, mã 4), ghi `probation/rolled-back`, `open` app.
-- `watchdog` (sinh trước `quitAndInstall`): ngủ 6 phút; có `<bản>.ok` hay `<bản>.failed` thì thôi; không thì bản mới
-  treo hay không mở được: `pkill -TERM` đúng binary `/Applications/2P Crew.app/Contents/MacOS/2P Crew`, rồi quay lui
-  như `now`.
+- `watchdog` (sinh ngay trước `quitAndInstall`, pid = app cũ). Marker "xong" là `<bản>.ok`, `<bản>.failed` hay
+  `<bản>.cancelled`; thấy marker xong ở bất kỳ mốc nào thì thôi. Không đếm giờ khi app cũ còn sống:
+
+  | Mốc | Hạn (mặc định) | Hết hạn |
+  |---|---|---|
+  | 1. Chờ app cũ thoát | không giới hạn; updater ghi `.cancelled` khi cài hỏng mà app cũ ở lại | — |
+  | 2. Từ lúc app cũ thoát, chờ bản mới ghi `.started` | 10 phút (`START_WAIT`) | ShipIt còn chạy thì chờ nó xong tối đa 20 phút (`SHIPIT_WAIT`), quá thì thoát 5 và không đụng app; không có app nào chạy thì `open` app một lần, chờ thêm 10 phút |
+  | 3. Từ lúc thấy `.started`, chờ `.ok`/`.failed` | 20 phút (`WATCH`) ≥ 16 phút probation + biên (test kiểm) | |
+
+  Hết hạn mà không có marker xong (bản mới treo lúc mở, không mở được, hay thử quá hạn): `pkill -TERM` đúng binary
+  `/Applications/2P Crew.app/Contents/MacOS/2P Crew`, rồi quay lui như `now`. Mốc thời gian điển hình khi cài êm:
+  t0 `quitAndInstall` → Squirrel tải từ proxy local, kiểm chữ ký, xếp ShipIt, app cũ thoát (dưới 1 phút) → ShipIt thay
+  bundle và mở bản mới (60–90 giây) → `.started` → probation (thường dưới 1 phút) → `.ok`.
 - Không có `previous/` → thoát 3, không đụng app.
 - Chỉ ghi vào `/Applications/2P Crew.app` (và `.rollback-tmp` cạnh nó) và `~/Library/Application Support/2P Crew/`.
+
+### Squirrel.Mac và helper quay lui
+
+Đọc mã `electron-updater` 6.8.9 (`out/MacUpdater.js`) và chuỗi trong `Squirrel.framework`/`ShipIt` của bản Electron
+đóng gói (chỉ đọc, 09/10/2026):
+
+- `autoInstallOnAppQuit = false` nên lúc tải xong Squirrel chưa nhận gì. `quitAndInstall()` của `MacUpdater` (bỏ qua
+  hai đối số) mới gọi `nativeUpdater.checkForUpdates()`: Squirrel lấy zip qua proxy `127.0.0.1` của electron-updater,
+  kiểm chữ ký theo designated requirement, giải nén, `prepareUpdateForInstallation` ghi `ShipItState.plist` và nạp job
+  launchd ShipIt. Native phát `update-downloaded` → `handleUpdateDownloaded` → `nativeUpdater.quitAndInstall()`
+  (`relaunchToInstallUpdate`: ghi lại yêu cầu với `launchAfterInstallation`, rồi `terminate:`) → `before-quit`.
+- ShipIt (`SQRLTerminationListener`, `waitForTermination`, `runningApplicationsWithBundleIdentifier:`) chờ mọi instance
+  của bundle id thoát rồi mới cài. Tức là: một khi ShipIt đã được xếp, app thoát lúc nào (thoát tay, crash, bị
+  `pkill`) thì ShipIt cài lúc đó — đây là ca của câu hỏi G.
+- Lỗi trước khi xếp ShipIt (tải, chữ ký, giải nén) đến qua sự kiện `error`; lỗi của `relaunchToInstallUpdate` (sau
+  khi đã xếp) cũng qua `error`, khi đó ShipIt có thể vẫn đang chờ.
+
+Thiết kế chặn ca "ShipIt và helper cùng ghi `/Applications/2P Crew.app`":
+
+1. Không còn đường app sống mà Squirrel đã xếp ShipIt và helper đang đếm giờ: `before-quit` của Squirrel không bị quit
+   guard chặn (`allowQuitForUpdate`), và watchdog không đếm gì khi app cũ còn sống (mốc 1).
+2. Cài báo lỗi (hay quá 5 phút) mà app ở lại: updater ghi `.cancelled` trước khi mở lại cổng, helper thôi, không bao
+   giờ `pkill`/chép đè. Nếu ShipIt vẫn được xếp, lần app thoát sau ShipIt cài bản đó: marker `pending` làm bản mới
+   vẫn qua probation khi mở (hỏng thì probation tự quay lui bằng helper `now`, lúc đó ShipIt đã xong vì app mới đang
+   chạy). Ca này không có watchdog: bản mới crash ngay lúc mở thì owner cài tay bản trước từ `previous/`.
+3. Helper chỉ chép đè sau khi không còn process ShipIt của bundle đích (`pgrep -f …/Squirrel.framework/Resources/ShipIt`);
+   ShipIt chạy quá 20 phút thì helper bỏ (mã 5), không ghi cùng lúc.
+
+Cần đo thật ở cổng 5 (UPD-4/AC): thời gian từ `quitAndInstall` tới app cũ thoát và tới `.started`; đường dẫn process
+ShipIt đúng như mẫu `pgrep`; Squirrel lỗi sau khi xếp ShipIt thì lần thoát sau có cài không.
 
 ### Quay lui tay
 
@@ -216,7 +271,8 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 - `update:state` → `UpdateView { current, available, state, previous, enabled, reason, lastCheckedAt }`;
   `update:check`; `update:installWhenIdle` (lỗi "Chưa có bản mới đã tải" khi chưa có); `update:rollback`.
 - `app.log`: `update-available`, `update-skipped-bad`, `update-skipped`, `update-downloaded`, `update-deferred`,
-  `update-install-aborted`, `update-installing`, `update-installed`, `update-install-missing`,
+  `update-install-aborted`, `update-installing`, `update-install-failed`, `update-installed`,
+  `update-installed-late`, `update-install-missing`,
   `update-probation-failed`, `update-rolled-back`, `update-rollback-requested`, `update-error`, `crew-mac-installed`,
   `updater-log` (cảnh báo/lỗi của electron-updater).
 - Màn hình Cập nhật: bản đang chạy, bản mới, bản trước, trạng thái, giờ kiểm cuối (giờ Việt Nam); nút "Kiểm ngay",
@@ -230,12 +286,12 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 | `apps/mac-app/scripts/release-lib.mjs` | Hàm thuần: đối số, tag, cây sạch, chọn danh tính, dựng lệnh, đọc kết quả kiểm | `parseArgs`, `checkTag`, `pickIdentity`, `findDeveloperId`, `buildCommands`, `checkSignature`, `EXIT` |
 | `apps/mac-app/electron-builder.yml` | Mục `publish` (kênh phát hành), tên file phát hành, `extraResources` mang helper quay lui | `publish`, `artifactName`, `extraResources` |
 | `apps/mac-app/src/main/update/register.ts` | Nối updater vào Electron: điều kiện bật, hộp thoại, kênh `update:*`, chạy probation rồi kiểm | `registerUpdate` |
-| `apps/mac-app/src/main/update/updater.ts` | Máy trạng thái kiểm/tải/chờ rảnh/cài, quay lui tay | `createUpdater`, `CHECK_INTERVAL_MS`, `DISABLED_UNSIGNED` |
+| `apps/mac-app/src/main/update/updater.ts` | Máy trạng thái kiểm/tải/chờ rảnh/cài, cài hỏng thì mở lại cổng, quay lui tay | `createUpdater`, `CHECK_INTERVAL_MS`, `INSTALL_QUIT_TIMEOUT_MS`, `DISABLED_UNSIGNED` |
 | `apps/mac-app/src/main/update/versions.ts` | Lọc bản trên feed: tăng, `x.y.z`, không `badVersions`, có zip arm64 | `compareSemver`, `judgeCandidate`, `shouldOffer` |
 | `apps/mac-app/src/main/update/drain.ts` | Chờ máy rảnh trước khi cài | `drainForUpdate`, `DRAIN_POLL_MS`, `DRAIN_MAX_MS` |
-| `apps/mac-app/src/main/update/probation.ts` | Tự kiểm 5 phút sau cài, đọc marker quay lui, cài `crew-mac` mang theo khi rảnh | `runProbation`, `installCrewMacWhenIdle`, `PROBATION_MS` |
+| `apps/mac-app/src/main/update/probation.ts` | Tự kiểm sau cài (hạn riêng từng bước), đọc marker quay lui, cài `crew-mac` mang theo khi rảnh | `runProbation`, `installCrewMacWhenIdle`, `PROBATION_MAX_MS` |
 | `apps/mac-app/src/main/update/rollback.ts` | `previous/`, marker probation, sinh helper, nhận Developer ID | `snapshotPrevious`, `spawnRollbackHelper`, `fileMarkers`, `developerIdFromCodesign` |
-| `apps/mac-app/src/main/update/rollback-helper.sh` | Helper shell tách rời: quay lui ngay hoặc watchdog 6 phút | — |
+| `apps/mac-app/src/main/update/rollback-helper.sh` | Helper shell tách rời: quay lui ngay hoặc watchdog (chờ app cũ thoát, chờ bản mới mở, hạn thử) | — |
 | `apps/mac-app/src/renderer/routes/update.tsx` | Màn hình Cập nhật | `UpdateScreen`, `UPDATE_STATE_LABEL` |
 
 ## Dữ liệu
@@ -247,7 +303,7 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 - Ngoài máy: Apple notary service (bản phát hành), GitHub Releases (chỉ khi `--publish`).
 - Updater đọc/ghi: `app.json` (`updateState`, `update.from/to/installedAt/badVersions/baseline`, chỉ Main ghi),
   `~/Library/Application Support/2P Crew/previous/` (một bản app + `version`), `…/probation/` (`<bản>.ok`,
-  `<bản>.failed`, `rolled-back`), `app.log`. Đọc GitHub Releases `nquangphan/crew-mac-releases` (chỉ khi bật).
+  `<bản>.failed`, `<bản>.started`, `<bản>.cancelled`, `pending`, `rolled-back`), `app.log`. Đọc GitHub Releases `nquangphan/crew-mac-releases` (chỉ khi bật).
   Thay `/Applications/2P Crew.app` (Squirrel khi cài, helper khi quay lui).
 
 ## Flow liên quan
@@ -259,7 +315,8 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 
 ## Tests
 
-- `apps/mac-app/scripts/release-lib.test.mjs` (`node --test`): đối số và cờ mâu thuẫn; tag tại HEAD và semver; cây
+- `apps/mac-app/scripts/release-lib.test.mjs` (`node --test`, chạy trong `pnpm --filter @crew/mac-app test` và
+  `pnpm -r test` sau `vitest run`): đối số và cờ mâu thuẫn; tag tại HEAD và semver; cây
   sạch; đọc danh tính không giữ hash; chọn Developer ID/Apple Development theo loại, team, `--identity`; `CSC_NAME`
   bỏ tiền tố; notary profile có/thiếu/lỗi và câu báo thiếu; JSON notarytool; spctl, designated requirement,
   `codesign -dv`; Info.plist, `app-update.yml`, `latest-mac.yml`; che hash; thư mục ra ngoài `~/Documents`; danh sách lệnh của ba chế độ (không
@@ -268,14 +325,20 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 - `apps/mac-app/test/update-drain.test.ts` (đồng hồ giả): 0 run cài ngay; chờ tới 20 phút, kiểm mỗi 10 giây, không
   hỏi; quá 30 phút mở lại listener rồi hỏi, "Để sau"/"Cài ngay"; bảng process lỗi không cài im lặng.
 - `apps/mac-app/test/update-rollback.test.ts`: bundle từ exe; Developer ID vs Apple Development; `snapshotPrevious`
-  giữ 1 bản (ditto thật trong thư mục tạm), ditto hỏng không có bản trước; spawn tách rời; marker; chạy thật
-  `rollback-helper.sh` trong thư mục tạm (`now`, watchdog có `.ok`/`.failed`/hết giờ, thiếu `previous/` mã 3).
+  giữ 1 bản (ditto thật trong thư mục tạm), ditto hỏng không có bản trước; spawn tách rời; marker (gồm `.started`,
+  `.cancelled`, `pending`); chạy thật `rollback-helper.sh` trong thư mục tạm (`now`; watchdog có `.ok`/`.failed`/hết
+  giờ; chờ app cũ thoát và thôi khi `.cancelled`; hạn thử đếm từ `.started`; `open` một lần khi chưa có app nào chạy;
+  không ghi khi ShipIt còn chạy, quá hạn thì mã 5; bản mới treo lúc mở bị TERM; hạn mặc định ≥ probation + biên;
+  thiếu `previous/` mã 3). Process giả dùng đường dẫn trong thư mục tạm, không khớp app thật.
 - `apps/mac-app/test/update-probation.test.ts` (deps giả): đạt; sshd không lên; doctor lỗi mới; bản tin hỏng (thử
   lại); baseline `send-status`; chế độ LaunchAgent; marker `rolled-back`; không phải `installing`; Squirrel không
-  thay; không có bản trước; cài `crew-mac` khi rảnh và thử lại khi bị từ chối vì run.
+  thay; không có bản trước; ghi `.started`; listener 4 phút + doctor 240 giây + bản tin được ở phút 4,5 vẫn đạt; doctor
+  treo quá hạn thì quay lui; `pending` = bản đang chạy thì vẫn thử, bản khác thì xóa; cài `crew-mac` khi rảnh và thử lại khi bị từ chối vì run.
 - `apps/mac-app/test/update-updater.test.ts` (autoUpdater giả): cấu hình bốn cờ; tắt khi không ký Developer ID;
   kiểm lúc mở/mỗi giờ/khi bấm; bản hợp lệ tải; `badVersions`; không arm64; trình tự cài; baseline `send-status`;
-  "Để sau" và "Cài khi rảnh"; snapshot hỏng; không kiểm khi đang cài; lỗi kiểm và repo chưa có release; quay lui tay
+  "Để sau" và "Cài khi rảnh"; snapshot hỏng; "Cài ngay" khi còn run gọi `allowQuitForUpdate` trước `stopForQuit`;
+  Squirrel `error`/`quitAndInstall` ném/quá 5 phút: `.cancelled`, `revoke()`, `waiting-idle`, không `badVersions`,
+  kiểm và cài lại được; không kiểm khi đang cài; lỗi kiểm và repo chưa có release; quay lui tay
   (hỏi khi có run, hủy, chưa có bản trước); feed giả qua HTTP local (`latest-mac.yml` đọc bằng `parseUpdateInfo` của
   electron-updater + zip giả): arm64 tăng thì tải và cài, x64 hay bản cũ thì không tải.
 - `apps/mac-app/test/renderer/update.test.tsx` (jsdom): route thật; nhãn trạng thái; bộ trạng thái trùng `UPDATE_STATES` của crew-mac; bản/giờ Việt Nam; các nút bật/tắt
