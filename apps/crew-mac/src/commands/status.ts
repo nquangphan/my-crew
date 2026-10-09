@@ -51,6 +51,11 @@ export interface StatusRepo {
   path: string;
   lastCommit: string | null;
   format?: 2;
+  /**
+   * Commit gửi gần nhất ở định dạng 2. crew-mac bản cũ chép nguyên item và chỉ dời `lastCommit`, nên lệch với
+   * `lastCommit` nghĩa là đã có bản cũ chạy xen giữa: phải gửi lại một lần, kèm commit từ mốc này.
+   */
+  formatCommit?: string;
 }
 export function listStatusRepos(ctx: MacContext): StatusRepo[] {
   try {
@@ -62,7 +67,8 @@ export function listStatusRepos(ctx: MacContext): StatusRepo[] {
         !UUID_PATTERN.test(item.projectId) ||
         !isAbsolute(item.path) ||
         !(item.lastCommit === null || /^[0-9a-f]{40}$/.test(item.lastCommit)) ||
-        !(item.format === undefined || item.format === 2)
+        !(item.format === undefined || item.format === 2) ||
+        !(item.formatCommit === undefined || /^[0-9a-f]{40}$/.test(item.formatCommit))
       )
         throw new Error('Danh sách repo không hợp lệ');
       return item as StatusRepo;
@@ -283,10 +289,11 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
       const selected = await snapshotCommit(repo.path);
       const { commit } = selected;
       if (selected.fetchFailed) ctx.out(`Không fetch được origin của ${repo.projectId}`);
-      if (commit === repo.lastCommit && repo.format === 2) continue;
+      const sent = repo.format === 2 && repo.formatCommit === repo.lastCommit ? repo.formatCommit : undefined;
+      if (sent && commit === sent) continue;
       const base =
-        repo.format === 2 && repo.lastCommit && isAncestor(repo.path, repo.lastCommit, commit)
-          ? repo.lastCommit
+        repo.format === 2 && repo.formatCommit && isAncestor(repo.path, repo.formatCommit, commit)
+          ? repo.formatCommit
           : null;
       const snapshot = buildDocsSnapshot(repo.path, commit, basename(repo.path));
       const commits = scrubCommitPaths(repo.path, collectCommits(repo.path, commit, base));
@@ -330,7 +337,7 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
       mutateRepos(ctx, (current) =>
         current.map((item) =>
           item.projectId === repo.projectId && item.path === repo.path
-            ? { ...item, lastCommit: commit, format: 2 as const }
+            ? { ...item, lastCommit: commit, format: 2 as const, formatCommit: commit }
             : item,
         ),
       );

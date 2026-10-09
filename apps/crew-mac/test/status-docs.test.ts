@@ -552,6 +552,29 @@ describe('docs snapshot format 2', () => {
     expect(bodies).toHaveLength(1);
   });
 
+  it('resends after an older crew-mac moved lastCommit but kept format 2, with commits since the last format 2 send', async () => {
+    const { ctx, repo, bodies, fetcher } = setup();
+    await sendDocsSnapshots(ctx, fetcher);
+    const sent = git(repo, 'rev-parse', 'HEAD');
+    writeFileSync(join(repo, 'docs', 'during.md'), '# During\n');
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: during downgrade');
+    const during = git(repo, 'rev-parse', 'HEAD');
+    // The older build copies the item and only moves lastCommit after sending a format 1 snapshot.
+    const path = join(ctx.home, '.crew', 'status-repos.json');
+    const items = JSON.parse(readFileSync(path, 'utf8')) as Array<Record<string, unknown>>;
+    writeFileSync(path, JSON.stringify(items.map((item) => ({ ...item, lastCommit: during }))), {
+      mode: 0o600,
+    });
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(2);
+    const body = JSON.parse(bodies[1] ?? '{}');
+    expect([body.format, body.commit, body.commits.base]).toEqual([2, during, sent]);
+    expect(body.commits.items.map((c: { sha: string }) => c.sha)).toEqual([during]);
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(2);
+  });
+
   it('sends only new commits after the previous snapshot', async () => {
     const { ctx, repo, bodies, fetcher } = setup();
     await sendDocsSnapshots(ctx, fetcher);

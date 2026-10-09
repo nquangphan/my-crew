@@ -1,7 +1,22 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+
+// Lets a test run code (a GC deleting a blob) right when the walk opens a given directory.
+const onRead = vi.hoisted(() => ({ dir: '', run: () => {} }));
+vi.mock('node:fs', async (importOriginal) => {
+  const fs = await importOriginal<typeof import('node:fs')>();
+  const readdirSync = ((dir: string, ...rest: unknown[]) => {
+    if (dir === onRead.dir) {
+      onRead.dir = '';
+      onRead.run();
+    }
+    return (fs.readdirSync as (...args: unknown[]) => unknown)(dir, ...rest);
+  }) as typeof fs.readdirSync;
+  return { ...fs, readdirSync, default: { ...fs, readdirSync } };
+});
+
 import { CACHE_MAX_BYTES } from '../../src/files/config.js';
 import { attachmentPaths } from '../../src/files/paths.js';
 import { attachmentCacheStats } from '../../src/files/stats.js';
@@ -45,4 +60,14 @@ it('counts every file, blob bytes against the limit, and runs', () => {
 it('returns null when the cache does not exist or the walk runs out of time', () => {
   expect(attachmentCacheStats(tmpHome('crew-stats-empty-'))).toBeNull();
   expect(attachmentCacheStats(home(), new Date(), -1)).toBeNull();
+});
+
+it('keeps blob bytes within total bytes when a GC removes a blob during the measurement', () => {
+  const h = home();
+  const p = attachmentPaths(h);
+  onRead.dir = p.root;
+  onRead.run = () => rmSync(join(p.blobs, 'a'.repeat(64)));
+  const stats = attachmentCacheStats(h);
+  expect(stats?.blobBytes).toBeLessThanOrEqual(stats?.bytes ?? -1);
+  expect(stats).toMatchObject({ bytes: 24 + 7 + 5 + 2, blobBytes: 31 });
 });

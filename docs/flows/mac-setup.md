@@ -258,11 +258,17 @@ Body mang `format: 2` và thêm hai trường tùy chọn (`version` vẫn là `
   `{sha, merge, paths}`: `paths` lấy từ `git diff-tree -r -z --root` (commit gốc có đủ file), tối đa 500 path, mỗi path
   tối đa 1024 ký tự, path chứa ký tự điều khiển bị bỏ; merge commit có `paths` rỗng. Mọi path còn được quét R7 (một path
   mỗi dòng của file tạm) và path bị phát hiện bị bỏ. Vượt 200 commit hoặc 500 path thì `truncated: true`. `base` là
-  `lastCommit` khi repo đã ở định dạng 2 và `lastCommit` còn là tổ tiên của commit mới (`git merge-base --is-ancestor`);
-  ngược lại (lần đầu, force-push) `base` là `null` và lấy 200 commit gần nhất.
+  `formatCommit` (commit gửi gần nhất ở định dạng 2) khi nó còn là tổ tiên của commit mới
+  (`git merge-base --is-ancestor`); ngược lại (lần đầu, force-push) `base` là `null` và lấy 200 commit gần nhất.
 
 Repo ghi từ bản cũ chưa có `format` được gửi lại một lần dù commit không đổi; gửi xong, `status-repos.json` ghi
-`format: 2` cùng `lastCommit`. Plugin R2-5 phải lên prod trước khi cài `crew-mac` mới, vì webhook cũ từ chối khóa lạ.
+`format: 2`, `lastCommit` và `formatCommit` (cùng commit đó). Chỉ coi repo đã gửi định dạng 2 khi `formatCommit` bằng
+`lastCommit`: `crew-mac` bản cũ chép nguyên item và chỉ dời `lastCommit`, nên sau khi hạ cấp rồi nâng lại, hai giá trị lệch
+nhau và lệnh gửi lại một lần, kèm các commit tính từ `formatCommit`.
+
+Plugin R2-5 phải lên prod trước khi cài `crew-mac` mới. Webhook docs cũ không từ chối khóa lạ: nó bỏ qua
+`format/manifest/commits` mà vẫn trả 200, nên Mac ghi `format: 2` và không gửi lại, làm mất manifest và danh sách commit
+của commit đó cho tới commit sau. Bản tin máy thì khác: plugin cũ từ chối cả bản tin có key `attachmentCache`.
 
 Body JSON tối đa 5 MB. Nếu body đầy đủ vượt, lệnh gửi lại với mọi `paths` rỗng và `commits.truncated: true`. Nếu vẫn vượt, hoặc HTTP khác 2xx, hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau
 thử lại. Khi POST `docs-snapshot` thành công, nó mới cập nhật commit đã gửi. Bản tin dùng cùng secret Keychain và

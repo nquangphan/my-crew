@@ -51,7 +51,9 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
 ### Số liệu cache cho bản tin máy
 
 `attachmentCacheStats(home, now?, budgetMs = 2000)` (`src/files/stats.ts`) duyệt cache, cộng byte thật của mọi file
-(`lstat`, không theo symlink), đếm blob tên sha256 (không đếm `.part`) và thư mục `runs/`. Quá thời gian, cache không
+(`lstat`, không theo symlink), đếm blob tên sha256 (không đếm `.part`) và thư mục `runs/`. `bytes` và `blobBytes` được
+cộng trong cùng một lượt duyệt từ gốc cache, nên GC xóa blob giữa chừng cũng không làm `blobBytes` vượt `bytes` (plugin bỏ
+key khi `blobBytes > bytes`). Quá thời gian, cache không
 tồn tại hoặc lỗi đọc thì trả `null` và bản tin máy bỏ key `attachmentCache` (xem flow `mac-setup`).
 
 ## Các bước

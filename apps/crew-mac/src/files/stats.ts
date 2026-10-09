@@ -27,15 +27,20 @@ export function attachmentCacheStats(
   const p = attachmentPaths(home);
   const deadline = Date.now() + budgetMs;
   let walked = 0;
-  const walk = (dir: string): number => {
-    let total = 0;
+  let bytes = 0;
+  let blobBytes = 0;
+  // Một lượt duyệt cho cả hai tổng: GC xóa blob giữa chừng cũng không làm blobBytes vượt bytes.
+  const walk = (dir: string, inBlobs: boolean): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (++walked % 256 === 0 && Date.now() > deadline) throw new Error('timeout');
       const full = join(dir, entry.name);
-      if (entry.isDirectory()) total += walk(full);
-      else if (entry.isFile()) total += lstatSync(full).size;
+      if (entry.isDirectory()) walk(full, inBlobs || full === p.blobs);
+      else if (entry.isFile()) {
+        const size = lstatSync(full).size;
+        bytes += size;
+        if (inBlobs) blobBytes += size;
+      }
     }
-    return total;
   };
   const list = (dir: string) => {
     try {
@@ -48,10 +53,9 @@ export function attachmentCacheStats(
   try {
     if (budgetMs < 0) return null;
     lstatSync(p.root);
-    const blobBytes = list(p.blobs).length > 0 ? walk(p.blobs) : 0;
+    walk(p.root, false);
     const blobs = list(p.blobs).filter((e) => e.isFile() && SHA256_NAME.test(e.name)).length;
     const runs = list(p.runs).filter((e) => e.isDirectory()).length;
-    const bytes = walk(p.root);
     return { bytes, blobBytes, blobs, runs, limitBytes: CACHE_MAX_BYTES, measuredAt: now.toISOString() };
   } catch {
     return null;
