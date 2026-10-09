@@ -351,7 +351,7 @@ export async function discoverSources(
     existsSync(claudeDir) ||
     existsSync(join(root, '.mcp.json')) ||
     isSymlink(join(root, '.mcp.json')) ||
-    (bmad && existsSync(join(root, '_bmad')));
+    (bmad && (existsSync(join(root, '_bmad')) || isSymlink(join(root, '_bmad'))));
   if (!hasSources) return [];
   const git = await readGit(ctx, root, bmad);
   const found: DiscoveredSource[] = [];
@@ -513,6 +513,25 @@ function judgeBmad(
   judge: (path: string, kind: DiscoveredSource['kind'], files: string[]) => void,
 ): void {
   const base = join(root, '_bmad');
+  if (isSymlink(base)) {
+    // `setup.py` của BMAD cũng từ chối `_bmad` là symlink; nội dung ngoài worktree còn có thể đổi sau lúc kiểm.
+    let target = '';
+    try {
+      target = realpathSync(base);
+    } catch {}
+    found.push({
+      path: base,
+      kind: 'bmad',
+      origin: 'blocked',
+      reason: !target
+        ? 'symlink hỏng trong worktree agent'
+        : contained(root, target)
+          ? '_bmad là symlink (BMAD chỉ chạy với thư mục thật)'
+          : `symlink trỏ ra ngoài worktree: ${target}`,
+      fix: 'Xử lý: thay symlink _bmad bằng thư mục thật trong repo (xóa link rồi chạy crew-mac bmad setup-project), rồi commit.',
+    });
+    return;
+  }
   const scripts = join(base, 'scripts');
   if (existsSync(scripts) || isSymlink(scripts)) {
     const files = isSymlink(scripts) ? null : readScriptTree(scripts);

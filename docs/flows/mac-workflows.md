@@ -150,6 +150,10 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
      (`bật plugin <tên> ngoài bản ghim, nạp song song với workflow của run`, `PARALLEL_PLUGIN_REASON`): `--plugin-dir`
      chỉ thay plugin trùng tên, nên plugin đó sẽ nạp song song với bản ghim nếu owner cài nó ở user scope.
    - **`_bmad/` (chỉ run BMAD, `judgeBmad`):**
+     - `_bmad` là symlink (đã track hay chưa, trỏ ra ngoài, trong worktree hay hỏng) thì một nguồn `blocked` duy nhất
+       (`symlink trỏ ra ngoài worktree: <đích>`, `_bmad là symlink (BMAD chỉ chạy với thư mục thật)` hoặc
+       `symlink hỏng trong worktree agent`) kèm lệnh thay bằng thư mục thật; không xét tiếp bên trong. `setup.py` của
+       BMAD cũng từ chối `_bmad` symlink.
      - `_bmad/scripts/**` (bỏ rác chưa track, symlink là khác) phải có đúng tập file và từng byte của
        `<thư mục ghim bmad>/skills/bmad/scripts/**` (`compareBmadScripts`, export cho `crew-mac bmad`). Khác thì một
        nguồn `blocked` `BMAD_SCRIPT_MISMATCH_REASON` kèm lệnh `git status`/`checkout HEAD -- _bmad/scripts` hoặc xóa rồi
@@ -209,6 +213,7 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
 | Plugin khác trong `enabledPlugins` của `settings.json` đã commit | `project` |
 | Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, đã commit sạch | `project` |
 | Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, còn file chưa commit | `pinned` |
+| Run BMAD: `_bmad` là symlink | `blocked` |
 | Run BMAD: `_bmad/scripts/**` khác bản ghim (một byte, thừa/thiếu file, symlink, bytecode Python đã track) | `blocked` |
 | Run BMAD: `_bmad/config.toml`, `_bmad/custom/**/*.toml` chưa track, bị ignore hay sửa dở | `blocked` |
 | Run BMAD: `_bmad/config.toml` chưa track, đúng byte bản `setup-project` vừa ghi cho worktree này | `pinned` kèm `warning` |
@@ -436,7 +441,7 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
   - theo workflow của run: run BMAD trên repo bật superpowers bị chặn nạp chéo; run Superpowers trên repo bật
     `bmad-method@bmad` bị chặn, superpowers vẫn `pinned`; run BMAD bật `bmad@*` là `pinned`, `bmad-toolbox@*` bị chặn;
   - `_bmad/` (run BMAD): `_bmad/scripts` giống byte đã commit (`project`), chưa commit (`pinned`), khác một byte, thừa
-    file, symlink (chặn kèm lệnh), `.pyc` đã commit (phẳng hay trong `__pycache__/`) chặn còn `.pyc` chưa track bỏ qua; `config.toml` chưa track/sửa dở và `custom/*.toml` chưa track; `*.user.toml` chưa
+    file, symlink (chặn kèm lệnh), `_bmad` là symlink ra ngoài (đã commit hay chưa), trong worktree, hỏng; `.pyc` đã commit (phẳng hay trong `__pycache__/`) chặn còn `.pyc` chưa track bỏ qua; `config.toml` chưa track/sửa dở và `custom/*.toml` chưa track; `*.user.toml` chưa
     track, đã commit, sửa dở; `_bmad/memory/**`, `_bmad-output/**` không xét; run Superpowers bỏ qua `_bmad/`; repo chỉ
     có `_bmad` vẫn gọi git (giới hạn `_bmad`); `compareBmadScripts`;
   - git lỗi hoặc quá hạn; số lệnh git cố định; lệnh xử lý quote đường dẫn có dấu cách và nháy đơn (chạy thật lệnh `checkout`); worktree là thư mục con của repo; đường dẫn khác hoa thường (APFS);

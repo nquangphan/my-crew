@@ -5,6 +5,8 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -548,6 +550,43 @@ describe('discoverSources theo workflow của run', () => {
     expect(blockedOf(await discoverSources(ctx, flat, ctx.bmadPin))[0]?.reason).toBe(
       BMAD_SCRIPT_MISMATCH_REASON,
     );
+  });
+
+  it('run BMAD: _bmad là symlink (ra ngoài worktree, trong worktree, hỏng; đã commit hay chưa) thì chặn', async () => {
+    const { ctx } = realGitCtx();
+    const outside = mkdtempSync(join(tmpdir(), 'crew-inv-bmad-out-'));
+    copyPinScripts(ctx, outside);
+    const tracked = repo();
+    symlinkSync(join(outside, '_bmad'), join(tracked, '_bmad'));
+    commit(tracked, '_bmad');
+    const real = realpathSync(join(outside, '_bmad'));
+    expect(await discoverSources(ctx, tracked, ctx.bmadPin)).toEqual([
+      {
+        path: join(tracked, '_bmad'),
+        kind: 'bmad',
+        origin: 'blocked',
+        reason: `symlink trỏ ra ngoài worktree: ${real}`,
+        fix: 'Xử lý: thay symlink _bmad bằng thư mục thật trong repo (xóa link rồi chạy crew-mac bmad setup-project), rồi commit.',
+      },
+    ]);
+    const untracked = repo();
+    symlinkSync(join(outside, '_bmad'), join(untracked, '_bmad'));
+    expect(blockedOf(await discoverSources(ctx, untracked, ctx.bmadPin))).toHaveLength(1);
+    const inside = repo();
+    copyPinScripts(ctx, inside);
+    renameSync(join(inside, '_bmad'), join(inside, 'bmad-that'));
+    symlinkSync('bmad-that', join(inside, '_bmad'));
+    expect(blockedOf(await discoverSources(ctx, inside, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(inside, '_bmad'),
+        reason: '_bmad là symlink (BMAD chỉ chạy với thư mục thật)',
+      }),
+    ]);
+    const broken = repo();
+    symlinkSync(join(outside, 'không-có'), join(broken, '_bmad'));
+    expect(blockedOf(await discoverSources(ctx, broken, ctx.bmadPin))).toEqual([
+      expect.objectContaining({ path: join(broken, '_bmad'), reason: 'symlink hỏng trong worktree agent' }),
+    ]);
   });
 
   it('run BMAD: _bmad/scripts chưa commit nhưng giống byte → pinned (run trước bị ngắt)', async () => {
