@@ -1,5 +1,7 @@
-// Port từ v2/server/test/fixtures/attachments/make-fixtures.ts (a13dd7d), bản tối thiểu cho nhận diện byte.
+// Port từ v2/server/test/fixtures/attachments/make-fixtures.ts (a13dd7d): nhận diện byte và trình đọc file.
 import { crc32, deflateSync } from 'node:zlib';
+import type { ExtractContext } from '../../../src/files/extract/index.js';
+import { parserDefaults } from '../../../src/files/extract/limits.js';
 
 export const wordNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 export const sheetNs = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -146,4 +148,143 @@ export function makeOle(streams: readonly string[]): Buffer {
     b[p + 66] = 2;
   }
   return b;
+}
+
+/** Ngữ cảnh trình đọc với trần mặc định v2; `mime` giữ cho giống chữ ký v2, không dùng. */
+export function extractContextFixture(_mime?: string): ExtractContext {
+  return { config: { limits: { ...parserDefaults } }, signal: new AbortController().signal };
+}
+
+export type CorpusStatus =
+  | 'complete'
+  | 'partial'
+  | 'encrypted'
+  | 'corrupt'
+  | 'blocked'
+  | 'unsupported'
+  | 'failed';
+
+/** Corpus v2 phần DOCX/XLSX/CSV/text (ảnh và PDF không qua trình đọc ở Mac). File độc dựng bằng buffer. */
+export function corpusCases(): {
+  name: string;
+  kind: 'text' | 'csv' | 'docx' | 'xlsx';
+  bytes: Buffer;
+  status: CorpusStatus;
+  text?: string;
+}[] {
+  const zeroRatio = makeZip([{ name: 'a', body: 'x', declaredSize: 1 }]);
+  zeroRatio.writeUInt32LE(0, 18);
+  zeroRatio.writeUInt32LE(0, zeroRatio.indexOf(Buffer.from('504b0102', 'hex')) + 20);
+  const invalidCrc = makeZip([{ name: 'a', body: 'x' }]);
+  invalidCrc[14] = (invalidCrc[14] ?? 0) ^ 1;
+  return [
+    { name: 'zip-zero-compressed', kind: 'docx', bytes: zeroRatio, status: 'failed' },
+    { name: 'zip-invalid-crc', kind: 'docx', bytes: invalidCrc, status: 'corrupt' },
+    {
+      name: 'zip-2001-entries',
+      kind: 'docx',
+      bytes: makeZip(Array.from({ length: 2001 }, (_, i) => ({ name: `a${i}`, body: '' }))),
+      status: 'failed',
+    },
+    {
+      name: 'xml-depth-limit',
+      kind: 'docx',
+      bytes: makeOffice('docx', { 'word/document.xml': '<x>'.repeat(70) + '</x>'.repeat(70) }),
+      status: 'failed',
+    },
+    {
+      name: 'embedded-ole-docx',
+      kind: 'docx',
+      bytes: makeOffice('docx', { 'word/embeddings/inert.bin': 'inert' }),
+      status: 'blocked',
+    },
+    { name: 'malformed-csv', kind: 'csv', bytes: Buffer.from('a,"unclosed'), status: 'corrupt' },
+    {
+      name: 'utf16le-text',
+      kind: 'text',
+      bytes: Buffer.concat([Buffer.from([255, 254]), Buffer.from('Việt Nam\n', 'utf16le')]),
+      status: 'complete',
+      text: 'Việt Nam',
+    },
+    { name: 'binary-text', kind: 'text', bytes: Buffer.from([0, 1, 2, 255]), status: 'unsupported' },
+    {
+      name: 'zip-traversal',
+      kind: 'docx',
+      bytes: makeZip([{ name: '../escape', body: 'inert' }]),
+      status: 'corrupt',
+    },
+    {
+      name: 'zip-case-collision',
+      kind: 'docx',
+      bytes: makeZip([
+        { name: 'a', body: '1' },
+        { name: 'A', body: '2' },
+      ]),
+      status: 'corrupt',
+    },
+    {
+      name: 'zip-encrypted',
+      kind: 'docx',
+      bytes: makeZip([{ name: 'a', body: 'inert', flags: 1 }]),
+      status: 'blocked',
+    },
+    {
+      name: 'zip-symlink',
+      kind: 'docx',
+      bytes: makeZip([{ name: 'a', body: 'inert', attrs: 0xa1ff0000 }]),
+      status: 'corrupt',
+    },
+    {
+      name: 'xml-dtd',
+      kind: 'docx',
+      bytes: makeOffice('docx', {
+        'word/document.xml': '<!DOCTYPE a [<!ENTITY x SYSTEM "file:///sentinel">]><a>&x;</a>',
+      }),
+      status: 'blocked',
+    },
+    {
+      name: 'docx-unsupported-drawing',
+      kind: 'docx',
+      bytes: makeOffice('docx', {
+        'word/document.xml': `<w:document xmlns:w="${wordNs}"><w:body><w:p><w:drawing/></w:p></w:body></w:document>`,
+      }),
+      status: 'partial',
+    },
+    {
+      name: 'vietnamese-docx',
+      kind: 'docx',
+      bytes: makeOffice('docx'),
+      status: 'complete',
+      text: 'Xin chào Việt Nam',
+    },
+    { name: 'hidden-xlsx', kind: 'xlsx', bytes: makeOffice('xlsx'), status: 'complete', text: 'Việt Nam' },
+    {
+      name: 'code',
+      kind: 'text',
+      bytes: Buffer.from('const value = "literal";\n// Việt Nam\n'),
+      status: 'complete',
+      text: 'const value',
+    },
+    {
+      name: 'quoted-csv',
+      kind: 'csv',
+      bytes: Buffer.from('name,value\r\n"a\nb","=1+1"\r\n'),
+      status: 'complete',
+      text: '=1+1',
+    },
+    {
+      name: 'macro-docx',
+      kind: 'docx',
+      bytes: makeOffice('docx', { 'word/vbaProject.bin': 'inert' }),
+      status: 'blocked',
+    },
+    {
+      name: 'formula-missing-xlsx',
+      kind: 'xlsx',
+      bytes: makeOffice('xlsx', {
+        'xl/worksheets/sheet1.xml': `<worksheet xmlns="${sheetNs}"><sheetData><row r="1"><c r="A1"><f>1+1</f></c></row></sheetData></worksheet>`,
+      }),
+      status: 'partial',
+    },
+  ];
 }

@@ -407,6 +407,7 @@ describe('collectFiles', () => {
       ['unsupported', ['UNSUPPORTED_ENCODING'], 'khong_doc_duoc', 'khong_utf8'],
       ['corrupt', [], 'hong', 'hong_cau_truc'],
       ['failed', [], 'khong_doc_duoc', 'trinh_doc_loi'],
+      ['failed', ['LIMIT_EXCEEDED'], 'hong', 'hong_cau_truc'],
     ] as const)('status %s %j → %s/%s', async (status, problemCodes, expectStatus, expectReason) => {
       const f1 = file(1, 'data.txt', Buffer.from('abc'));
       const extract: ExtractFn = async () => ({

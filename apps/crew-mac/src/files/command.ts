@@ -6,6 +6,7 @@ import { logError } from './log.js';
 import { attachmentPaths, isUuid } from './paths.js';
 import { renderMarkdown } from './render.js';
 import { collectFiles } from './run.js';
+import { createWorkerExtract } from './worker-client.js';
 
 const MISSING_ENV = 'files: thiếu PAPERCLIP_API_URL hoặc PAPERCLIP_API_KEY (chỉ chạy trong run Paperclip)';
 const INTERNAL_ERROR = 'files: lỗi nội bộ, xem ~/.crew/logs/attachments.log';
@@ -63,6 +64,8 @@ export async function filesCommand(
         bridge: createBridgeClient({ PAPERCLIP_API_URL: url, PAPERCLIP_API_KEY: key }),
         runner: ctx.runner,
         sleep: (ms) => delay(ms),
+        // Chưa có bộ che credential thì `collectFiles` không đưa bản trích ra (file ra `trinh_doc_loi`).
+        extract: createWorkerExtract(paths),
       },
       { issueId: flags.issue, runId: flags.run },
     );

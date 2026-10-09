@@ -186,6 +186,11 @@ function fromExtract(result: ExtractResult, p: AttachmentPaths, sha256: string):
         : fail('bi_chan', 'kieu_cam', { blockLabel: 'khac' });
     case 'corrupt':
       return fail('hong', 'hong_cau_truc');
+    case 'failed':
+      // Cả file vượt trần trình đọc (zip bomb, XML quá sâu, quá nhiều mục): coi là file hỏng, không phải lỗi tạm.
+      return result.problemCodes.includes('LIMIT_EXCEEDED')
+        ? fail('hong', 'hong_cau_truc')
+        : fail('khong_doc_duoc', 'trinh_doc_loi');
     default:
       return fail('khong_doc_duoc', 'trinh_doc_loi');
   }

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && cp src/files/pdf-info.js dist/files/",
+    "build": "tsc -p tsconfig.build.json && node build-files.mjs && cp src/files/pdf-info.js dist/files/",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
@@ -16,5 +16,11 @@
   },
   "bin": {
     "crew-mac": "./dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/yauzl": "^3.4.0",
+    "esbuild": "^0.28.2",
+    "saxes": "6.0.0",
+    "yauzl": "3.4.0"
   }
 }

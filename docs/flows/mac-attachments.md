@@ -8,8 +8,10 @@ Agent `claude_local` chạy trên Mac mini cần đọc ảnh, PDF, DOCX, XLSX, 
 hoặc comment Paperclip. Lệnh `crew-mac files` tải file qua bridge của run, kiểm mã băm, lưu vào một cache cục bộ,
 nhận diện theo byte và in danh sách kèm nguồn, trạng thái và đường dẫn để agent `Read`. Flow có phần nền (kiểu dữ
 liệu, hằng số, cache có kiểm mã băm, dọn cache, log), nhận diện byte, chính sách kiểu, chuẩn bị ảnh, kiểm PDF và
-lệnh (bridge, nguồn, manifest, render). Trích xuất DOCX/XLSX/text/CSV và che credential cắm vào `collectFiles` qua
-`extract` và `redact`; chưa cắm thì các loại đó ra `khong_doc_duoc` + `trinh_doc_loi`.
+lệnh (bridge, nguồn, manifest, render). DOCX/XLSX/text/CSV được trích trong process con `dist/files-worker.cjs`
+(parser port từ v2, gom một file bằng esbuild) và cắm vào `collectFiles` qua `extract`. Che credential cắm qua
+`redact`; khi chưa có `redact` thì các loại đó vẫn ra `khong_doc_duoc` + `trinh_doc_loi` (không đưa chữ chưa che
+cho agent).
 
 ## Điểm vào
 
@@ -31,7 +33,9 @@ Gốc `~/.crew/cache/attachments/` (thư mục 0700, file 0600), do `attachmentP
 ```
 blobs/<sha256>                   bất biến, tên = sha256 thật của bytes
 blobs/<sha256>.part.<pid>.<rand> đang ghi; GC xóa khi cũ hơn 1 giờ
-derived/<sha256>/v<EXTRACTOR_VERSION>/   bản cho agent đọc (đã che), media/, info.json
+derived/<sha256>/v<EXTRACTOR_VERSION>/   bản cho agent đọc: <sha>.<đuôi> (ảnh/PDF), extract/
+derived/<sha256>/v1/extract/     bản trích: <tên>.md|.txt|.csv, media/<n>.<đuôi>, info.json
+derived/<sha256>/v1/.tmp-*       thư mục tạm của worker, đổi tên thành extract/ khi xong
 derived/<sha256>/verified        dấu băm lười: mtime và cỡ của blob lúc kiểm
 runs/<runId>/manifest.json       RunManifest do crew-mac ghi
 runs/<runId>/server-manifest.json, pending, ready   chỉ đường đẩy bằng SSH (hiện không dùng)
@@ -118,7 +122,8 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
     7. Trích xuất: `extract` trả `ExtractResult` ánh xạ theo trạng thái (`complete`→`san_sang`, `partial`→`mot_phan`,
        `encrypted`→`ma_hoa`/`office_ma_hoa`, `blocked`→`bi_chan`/`office_macro`, `unsupported`→`bi_chan`/`kieu_cam`
        nhãn `khac`, riêng mã `UNSUPPORTED_ENCODING` → `khong_doc_duoc`/`khong_utf8`, `corrupt`→`hong`/`hong_cau_truc`,
-       `failed` hoặc ném lỗi → `khong_doc_duoc`/`trinh_doc_loi`). `readPaths` là các file chữ trong `derived/<sha>/v1`,
+       `failed` có mã `LIMIT_EXCEEDED` (zip bomb, XML quá sâu, quá 2000 mục: cả file vượt trần) → `hong`/
+       `hong_cau_truc`, `failed` khác hoặc ném lỗi → `khong_doc_duoc`/`trinh_doc_loi`). `readPaths` là các file chữ trong `derived/<sha>/v1`,
        mỗi file đi qua `redact` (ghi đè tại chỗ, trả `credentialFindings` chỉ có tên luật và số dòng). Có `extract`
        mà thiếu `redact` thì đóng kín: file ra `khong_doc_duoc`/`trinh_doc_loi`, không đưa chữ chưa che cho agent.
     8. `writeRunManifest` (`runs/<runId>/manifest.json`) và mỗi file một dòng log; manifest có thêm các trường tùy
@@ -126,8 +131,42 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
        đã làm sạch) và `ancestorsUnreadable`.
 14. `apps/crew-mac/src/files/render.ts` → `renderMarkdown`: mục `## File đính kèm` cho agent. Không có file thì
     `Không có file đính kèm.`.
-15. `apps/crew-mac/src/files/command.ts` → `filesCommand`: đọc cờ, dựng bridge từ env, gọi `collectFiles`, in
-    markdown hoặc `RunManifest` (`--json`).
+15. `apps/crew-mac/src/files/command.ts` → `filesCommand`: đọc cờ, dựng bridge từ env, gọi `collectFiles` với
+    `extract: createWorkerExtract(paths)` (chưa có `redact`), in markdown hoặc `RunManifest` (`--json`).
+16. `apps/crew-mac/src/files/extract/` (port từ v2 `a13dd7d`, mỗi file ghi nguồn ở dòng đầu):
+    - `limits.ts`: `ParserLimits` và `parserDefaults` giữ nguyên số v2 (giải nén ≤ 100 MiB, mỗi mục ≤ 20 MiB,
+      ≤ 2000 mục zip, tỉ lệ nén ≤ 100, XML sâu ≤ 64, text ≤ 10 MiB, CSV ≤ 100000 dòng × 1000 cột, ô ≤ 1 MiB) và kiểu
+      locator tối thiểu.
+    - `index.ts` (`append`, `missing`, `failure`, `ExtractError`), `text.ts` (giải mã UTF-8/UTF-16 nghiêm, thoát ký tự
+      điều khiển), `csv.ts` (RFC 4180, ghi thêm `completeChars` khi bị cắt), `zip.ts` (kiểm thư mục trung tâm trước
+      khi giải nén: tên chuẩn hóa, không `..`/symlink/mã hóa/ZIP64, CRC, chồng lấn, tỉ lệ nén; đếm byte thật khi
+      giải nén), `xml.ts` (saxes, DTD → chặn, entity lạ → lỗi, độ sâu), `docx.ts`, `xlsx.ts` (locator đoạn/bảng/ô,
+      sheet ẩn, công thức và giá trị tính sẵn, công thức chung, liên kết ngoài không bao giờ mở; macro, OLE,
+      ActiveX → `blocked`). Ảnh nhúng: v2 vẽ lại bằng canvas, ở Mac ghi nguyên byte nếu chữ ký là PNG/JPEG/GIF/WebP,
+      kiểu khác (EMF, WMF…) bị bỏ qua.
+    - `output.ts` → `extractOutputs(kind, bytes, filename)`: dựng file cho agent. Text ra `<tên>.txt` (giữ nguyên,
+      ký tự điều khiển được thoát), CSV ra `<tên>.csv` giữ nguyên bản gốc (bị cắt thì giữ trọn các dòng đã đọc),
+      DOCX ra `<tên>.md` gồm `# <tên file>`, `[đoạn N] …`, `[bảng T, hàng R, ô C] …`, `[đoạn N, ảnh K] media/<n>.png`,
+      mục `## Phần word/header1.xml` cho đầu/chân trang, chú thích; XLSX ra `## Sheet "<tên>"` (thêm ` (ẩn)`),
+      `[<sheet>!B3] giá trị`, công thức `[<sheet>!C1] =1+1 → 2`, thiếu giá trị `→ (chưa có giá trị tính sẵn)`.
+      Ghi chú: sheet ẩn → `sheet_an`, ô thiếu giá trị công thức → `thieu_formula_cache`, ảnh/hình không đọc được →
+      `anh_nhung_bo_qua`, bị cắt vì trần → `vuot_gioi_han`; có ghi chú thì trạng thái `partial`. Tên đầu ra chỉ giữ
+      chữ, số, `._-`, tối đa 80 ký tự, đuôi theo kiểu trích (file `.png` mà byte là chữ vẫn ra `.txt`).
+17. `apps/crew-mac/src/files/worker-entry.ts` (gom thành `dist/files-worker.cjs` bởi `apps/crew-mac/build-files.mjs`,
+    chạy trong script `build`): đọc một dòng JSON `{kind, input, outDir, filename}` từ stdin, đọc blob (≤ 10 MB),
+    gọi `extractOutputs`, ghi đầu ra vào `outDir` (0600, không ghi đè), in một dòng JSON
+    `{status, outputs, notes, problemCodes}`. Mọi lỗi thành `failed` + `EXTRACTOR_FAILED`, không in thông điệp.
+18. `apps/crew-mac/src/files/worker-client.ts` → `createWorkerExtract(paths, {workerPath?, timeoutMs?, maxOldSpaceMb?})`:
+    1. `derived/<sha>/v1/extract/info.json` hợp lệ thì dùng lại, không chạy worker.
+    2. Thiếu bundle (cài hỏng) → `failed`.
+    3. `spawn(process.execPath, ['--max-old-space-size=512', files-worker.cjs])`, cwd và HOME là thư mục tạm riêng
+       (xóa sau), env chỉ `PATH`, `HOME`, `LANG=C.UTF-8` (thêm `ELECTRON_RUN_AS_NODE=1` khi chính crew-mac chạy
+       bằng runtime Electron). stderr bị đọc bỏ, không log. Quá 60 giây hoặc stdout quá 1 MB → `SIGKILL`, chờ
+       process được thu dọn rồi mới trả; thoát khác 0 (kể cả hết bộ nhớ) → `failed`.
+    4. Kiểm chặt phản hồi: trạng thái, mã ghi chú, mã lỗi `[A-Z_]`, đường đầu ra tương đối không `..`, là file thường
+       trong thư mục tạm; thư mục tạm chỉ được có file thường và thư mục (symlink → `failed`); quyền 0700/0600.
+    5. `failed` không lưu (lượt sau thử lại). Còn lại ghi `info.json` rồi `rename` cả thư mục tạm thành `extract/`;
+       lượt chạy khác đã công bố trước thì dùng bản đó. Chữ trong `extract/` chưa che credential.
 
 ## Đầu ra cho agent
 
@@ -198,6 +237,13 @@ MACRO_EXTENSIONS   = docm xlsm pptm dotm xltm
 
 - Hợp đồng khi đổi: tên file trong cache, dạng `RunManifest` và bảng câu cố định là hợp đồng với các bước sau của
   flow và với hướng dẫn agent; đổi dạng thì tăng `EXTRACTOR_VERSION` để bản trích cũ không bị dùng lại.
+- Trình đọc: `extract-ooxml.test.ts` và `extract-text-csv.test.ts` port ca của v2 (giữ tên ca và giá trị mong đợi;
+  bỏ ca của khung worker Docker/frame/verify v2) cùng corpus file xấu dựng bằng buffer (`corpusCases`).
+  `worker.test.ts` build bundle trong `beforeAll` rồi chạy thật: docx/xlsx, zip bomb, DTD, 2001 mục, worker giả
+  treo/in rác/hết bộ nhớ/khai đường ra ngoài/symlink, kiểm env và grep bundle không có `fetch(`, `http(s)`, `net`,
+  `tls`, `dns`, `child_process`.
+- Dependency của trình đọc (`yauzl` 3.4.0, `saxes` 6.0.0, `esbuild`, `@types/yauzl`) là devDependency của
+  `@crew/mac`: chỉ dùng lúc build bundle, bản cài không cần `node_modules`.
 - Test dùng HOME giả trong thư mục tạm; GC kiểm bằng file thưa nên không tốn đĩa. Test bridge dùng `fetch` giả,
   test lệnh dùng máy chủ HTTP local trên `127.0.0.1` (không gọi mạng thật); `command.test.ts` có một ca chạy
   `sips` và `osascript` thật chỉ trên macOS.

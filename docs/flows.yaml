@@ -135,6 +135,17 @@ flows:
       - apps/crew-mac/src/files/render.ts
       - apps/crew-mac/src/files/run.ts
       - apps/crew-mac/src/files/command.ts
+      - apps/crew-mac/src/files/extract/limits.ts
+      - apps/crew-mac/src/files/extract/index.ts
+      - apps/crew-mac/src/files/extract/text.ts
+      - apps/crew-mac/src/files/extract/csv.ts
+      - apps/crew-mac/src/files/extract/zip.ts
+      - apps/crew-mac/src/files/extract/xml.ts
+      - apps/crew-mac/src/files/extract/docx.ts
+      - apps/crew-mac/src/files/extract/xlsx.ts
+      - apps/crew-mac/src/files/extract/output.ts
+      - apps/crew-mac/src/files/worker-entry.ts
+      - apps/crew-mac/src/files/worker-client.ts
     tests:
       - apps/crew-mac/test/files/cache.test.ts
       - apps/crew-mac/test/files/gc.test.ts
@@ -148,6 +159,9 @@ flows:
       - apps/crew-mac/test/files/provenance.test.ts
       - apps/crew-mac/test/files/render.test.ts
       - apps/crew-mac/test/files/run.test.ts
+      - apps/crew-mac/test/files/extract-ooxml.test.ts
+      - apps/crew-mac/test/files/extract-text-csv.test.ts
+      - apps/crew-mac/test/files/worker.test.ts
       - apps/crew-mac/test/files/command.test.ts
       - apps/crew-mac/test/fixtures/attachments/make-fixtures.ts
   mac-orphan-reaper:
