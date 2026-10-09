@@ -50,7 +50,8 @@ export function registerSshd(ctx: AppContext): SshdSupervisor {
     stopForQuit: () => supervisor.stopForQuit(),
     pause: () => supervisor.pause(),
     resume: () => supervisor.resume(),
-    showWaiting: (runs) => ctx.tray.update({ color: 'yellow', runs }),
+    showWaiting: (runs) => ctx.tray.update({ runs, waiting: true }),
+    hideWaiting: () => ctx.tray.update({ waiting: false }),
     sleep: (ms) => sleep(ms),
     log: ctx.log,
   });

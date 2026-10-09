@@ -1,6 +1,14 @@
 import { Menu, type NativeImage, nativeImage, Tray } from 'electron';
+import {
+  type DotColor,
+  effectiveColor,
+  INITIAL_TRAY_STATE,
+  mergeTrayState,
+  type TrayState,
+  trayStatusLabel,
+} from './tray-state.js';
 
-export type DotColor = 'gray' | 'green' | 'yellow' | 'red';
+export type { DotColor, TrayState };
 
 const RGB: Record<DotColor, [number, number, number]> = {
   gray: [142, 150, 163],
@@ -33,12 +41,6 @@ function dot(color: DotColor): NativeImage {
   return image;
 }
 
-export interface TrayState {
-  color: DotColor;
-  /** Số run đang chạy; `null` khi chưa biết (AP-3 điền). */
-  runs: number | null;
-}
-
 export interface TrayActions {
   open: () => void;
   quit: () => void;
@@ -48,12 +50,12 @@ export interface TrayActions {
 export class CrewTray {
   private readonly tray: Tray;
   private readonly images = new Map<DotColor, NativeImage>();
-  private state: TrayState = { color: 'gray', runs: null };
+  private state: TrayState = INITIAL_TRAY_STATE;
 
   constructor(private readonly actions: TrayActions) {
     this.tray = new Tray(this.image('gray'));
     this.tray.setToolTip('2P Crew');
-    this.update(this.state);
+    this.update({});
   }
 
   private image(color: DotColor): NativeImage {
@@ -65,9 +67,11 @@ export class CrewTray {
     return image;
   }
 
-  update(state: TrayState): void {
+  /** Mỗi nguồn (sức khỏe, đếm run, quit guard) chỉ gửi phần của mình. */
+  update(patch: Partial<TrayState>): void {
+    const state = mergeTrayState(this.state, patch);
     this.state = state;
-    this.tray.setImage(this.image(state.color));
+    this.tray.setImage(this.image(effectiveColor(state)));
     this.tray.setTitle(state.runs && state.runs > 0 ? ` ${state.runs}` : '');
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
@@ -82,9 +86,4 @@ export class CrewTray {
   destroy(): void {
     this.tray.destroy();
   }
-}
-
-export function trayStatusLabel(state: TrayState): string {
-  const runs = state.runs === null ? 'chưa rõ số run' : `${state.runs} run đang chạy`;
-  return `2P Crew · ${runs}`;
 }

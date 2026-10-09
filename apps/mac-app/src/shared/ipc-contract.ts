@@ -55,6 +55,8 @@ export interface UpdateView {
   lastCheckedAt: string | null;
 }
 
+export type HealthAction = 'open-privacy' | 'open-terminal';
+
 export type LogFile = 'app' | 'sshd' | 'reaper' | 'status';
 
 export interface AppInfo {
@@ -67,9 +69,13 @@ export interface IpcApi {
   'app:info': { args: []; result: AppInfo };
   'app:reportError': { args: [report: { kind: string; message: string; stack?: string }]; result: undefined };
   'health:run': { args: [probe: boolean]; result: CheckResult[] };
+  /** Việc phụ của màn hình Sức khỏe: mở pane quyền của macOS hoặc Terminal. */
+  'health:action': { args: [action: HealthAction]; result: undefined };
   'health:last': { args: []; result: { at: string; results: CheckResult[] } | null };
   'runs:list': { args: []; result: ActiveRun[] };
   'runs:cancel': { args: [runId: string]; result: { ok: boolean; message: string } };
+  /** Mở trang run trên web Paperclip trong trình duyệt. */
+  'runs:openWeb': { args: [runId: string]; result: { ok: boolean; message: string } };
   'logs:tail': { args: [file: LogFile, lines: number, runId?: string]; result: string[] };
   'logs:reveal': { args: [file: LogFile]; result: undefined };
   'setup:state': { args: []; result: AppState['setup'] };
@@ -96,8 +102,10 @@ export const IPC_CHANNELS = [
   'app:reportError',
   'health:run',
   'health:last',
+  'health:action',
   'runs:list',
   'runs:cancel',
+  'runs:openWeb',
   'logs:tail',
   'logs:reveal',
   'setup:state',

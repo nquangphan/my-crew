@@ -11,6 +11,7 @@ import { isTrustedSender, registerIpc } from './ipc.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
 import { registerPaperclip } from './paperclip/register.js';
+import { registerHealth } from './register-health.js';
 import { registerSshd } from './sshd/register.js';
 import { CrewTray } from './tray.js';
 import { createMainWindow } from './window.js';
@@ -102,8 +103,8 @@ async function start(): Promise<void> {
     return undefined;
   });
   store.onChange(() => window?.webContents.send(STATE_CHANGED_EVENT));
-  registerSshd(ctx); // trả SshdSupervisor: ticket cần thì đổi thành `const sshd = registerSshd(ctx)`
-  // registerHealth(ctx);    // AP-3 (health, runs, logs, notifications)
+  const sshd = registerSshd(ctx);
+  registerHealth(ctx, sshd);
   // registerSetup(ctx);     // AP-5, AP-6
   registerPaperclip(ctx);
   // registerUpdate(ctx);    // UPD-1

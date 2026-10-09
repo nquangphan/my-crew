@@ -76,9 +76,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/app-context.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/app-log.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/app-state.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/health.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/index.ts` | [mac-app](flows/mac-app.md) (điểm vào), [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/login-item.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/logs.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/notifications.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/ops-bridge.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/paperclip/cli-auth.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/paperclip/client.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
@@ -86,26 +89,36 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/paperclip/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/main/paperclip/types.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/quit-guard.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/register-health.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/runs.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/sshd/active-runs.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/backoff.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/register.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (điểm vào), [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/supervisor.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/system-deps.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/takeover.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/tray-state.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/tray.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/window.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/app.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/components/check-row.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/components/ui.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/index.html` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/lib/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/main.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/routes/health.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/routes/logs.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/routes/runs.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/styles.css` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/shared/ipc-contract.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/utility/ops.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/test/app-log.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/app-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/health.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/logs.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/notifications.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ops-bridge.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/paperclip-cli-auth.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/paperclip-client.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
@@ -113,10 +126,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/paperclip-keychain.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/quit-guard.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/renderer/health.test.tsx` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/runs.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/sshd-backoff.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-supervisor.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-system-deps.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-takeover.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
+| `apps/mac-app/test/tray-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |

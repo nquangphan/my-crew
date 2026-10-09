@@ -129,3 +129,104 @@ h1 {
   background: var(--gray-bg);
   color: var(--gray-ink);
 }
+.btn {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) {
+  background: var(--gray-bg);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.btn.danger {
+  border-color: var(--bad-ink);
+  color: var(--bad-ink);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+.check-body {
+  flex: 1;
+}
+.check-title {
+  font-weight: 600;
+}
+.check-hint {
+  margin-top: 2px;
+  color: var(--warn-ink);
+}
+.check-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+}
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+.toolbar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.log-view {
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow: auto;
+  max-height: calc(100vh - 220px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  font:
+    12px / 1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -10,6 +10,8 @@ describe('IPC_CHANNELS', () => {
       'health:last',
       'runs:list',
       'runs:cancel',
+      'runs:openWeb',
+      'health:action',
       'logs:tail',
       'logs:reveal',
       'setup:state',

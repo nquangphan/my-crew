@@ -13,7 +13,7 @@ Quit guard hỏi owner khi còn run.
 ## Điểm vào
 
 - `apps/mac-app/src/main/index.ts` → `registerSshd(ctx)` (`src/main/sshd/register.ts`): dựng bộ giám sát với deps
-  thật, cài quit guard, gọi `start()`. Trả `SshdSupervisor` cho màn hình Run/Sức khỏe (AP-3), wizard (AP-5) và
+  thật, cài quit guard, gọi `start()`. Trả `SshdSupervisor` cho `registerHealth` (màn hình Run/Sức khỏe và tray, flow `mac-app`), wizard (AP-5) và
   updater (UPD-1).
 - Menu tray "Thoát", `Cmd+Q`, hay `app.quit()` của updater đều đi qua `before-quit` của quit guard.
 - Manifest `~/.crew-mac/manifest.json` đổi (`crew-mac setup --sshd-owner app|launchd`, wizard bước sshd): bộ giám sát
@@ -44,8 +44,9 @@ Quit guard hỏi owner khi còn run.
 8. Quit guard (`src/main/quit-guard.ts` → `installQuitGuard`): `before-quit` luôn `preventDefault` trước, đếm run.
    0 run thì `stopForQuit()` rồi `app.quit()` (lần `before-quit` sau được cho qua). Còn run thì hộp thoại
    (`QUIT_BUTTONS`, mặc định "Thoát ngay, run vẫn chạy"):
-   - "Chờ run xong rồi thoát": `pause()`, tray vàng kèm số run, kiểm lại mỗi 10 giây, về 0 thì thoát.
-     Bấm Thoát lần nữa khi đang chờ thì hỏi lại; "Hủy" thì bỏ chờ và `resume()`.
+   - "Chờ run xong rồi thoát": `pause()`, tray `update({ runs, waiting: true })` (chấm vàng, nhãn "Đang chờ N run"),
+     kiểm lại mỗi 10 giây, về 0 thì thoát. Bấm Thoát lần nữa khi đang chờ thì hỏi lại; "Hủy" thì bỏ chờ, `resume()` và
+     `hideWaiting()` (tray bỏ nhãn chờ).
    - "Thoát ngay, run vẫn chạy": `stopForQuit()` rồi thoát; run mới chờ tới khi mở lại app.
    - "Hủy": ở lại.
    Không đọc được bảng process thì vẫn hỏi ("Không đọc được danh sách run trên máy này."), không thoát im lặng.

@@ -160,7 +160,13 @@ flows:
       - apps/mac-app/src/main/ops-bridge.ts
       - apps/mac-app/src/main/login-item.ts
       - apps/mac-app/src/main/tray.ts
+      - apps/mac-app/src/main/tray-state.ts
       - apps/mac-app/src/main/window.ts
+      - apps/mac-app/src/main/register-health.ts
+      - apps/mac-app/src/main/health.ts
+      - apps/mac-app/src/main/runs.ts
+      - apps/mac-app/src/main/logs.ts
+      - apps/mac-app/src/main/notifications.ts
       - apps/mac-app/src/preload/index.ts
       - apps/mac-app/src/shared/ipc-contract.ts
       - apps/mac-app/src/utility/ops.ts
@@ -170,7 +176,17 @@ flows:
       - apps/mac-app/src/renderer/styles.css
       - apps/mac-app/src/renderer/lib/ipc.ts
       - apps/mac-app/src/renderer/components/ui.tsx
+      - apps/mac-app/src/renderer/components/check-row.tsx
+      - apps/mac-app/src/renderer/routes/health.tsx
+      - apps/mac-app/src/renderer/routes/runs.tsx
+      - apps/mac-app/src/renderer/routes/logs.tsx
     tests:
+      - apps/mac-app/test/health.test.ts
+      - apps/mac-app/test/runs.test.ts
+      - apps/mac-app/test/logs.test.ts
+      - apps/mac-app/test/notifications.test.ts
+      - apps/mac-app/test/tray-state.test.ts
+      - apps/mac-app/test/renderer/health.test.tsx
       - apps/mac-app/test/app-state.test.ts
       - apps/mac-app/test/app-log.test.ts
       - apps/mac-app/test/ipc-contract.test.ts
