@@ -17,6 +17,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/commands/workflow-check.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
 | `apps/crew-mac/src/context-factory.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/context.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/files/cache.ts` | [mac-attachments](flows/mac-attachments.md) (điểm vào), [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/config.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/gc.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/log.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/paths.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/types.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/fs-util.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/index.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/install-cli.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -51,6 +57,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/crew-claude-run.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/doctor.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/files/cache.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/gc.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/helpers.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/log.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/install-cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/launcher.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
