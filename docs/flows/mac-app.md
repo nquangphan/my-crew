@@ -216,7 +216,7 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
   Lật fuse làm hỏng chữ ký ad-hoc của binary: bản không ký (`CSC_IDENTITY_AUTO_DISCOVERY=false`) bị kernel giết (mã 137);
   muốn chạy thử phải ký ad-hoc lại (`codesign --force --deep --sign -`) trên bản chép đã bỏ xattr (`ditto --noextattr`).
 - Danh tính ký lấy từ biến `CSC_NAME` lúc chạy, không ghi vào file. Đóng gói thử:
-  `pnpm --filter @crew/mac-app release -- --dev-sign --no-publish` (ký Apple Development) hoặc `--dry-run` (không ký);
+  `pnpm --filter @crew/mac-app release --dev-sign --no-publish` (ký Apple Development) hoặc `--dry-run` (không ký);
   không gọi `electron-builder` trực tiếp (bản không ký đã lật fuse bị kernel giết, và nó không build lại `@crew/mac`).
   Notarize do `scripts/release.mjs` (`scripts/release.mjs`).
 - `safeStorage` chỉ dùng để mã hóa board API key Paperclip trước khi vào Keychain (flow `mac-app-paperclip`: khóa
