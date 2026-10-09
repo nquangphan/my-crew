@@ -14,7 +14,7 @@ export interface WorkflowGcReport {
 export const WORKFLOW_GC_INTERVAL_MS = 60 * 60 * 1000;
 /** Bản ghim cũ vừa đổi trong khoảng này vẫn được giữ (run vừa kết thúc, hoặc owner vừa nâng bản). */
 export const WORKFLOW_GC_RECENT_MS = 24 * 60 * 60 * 1000;
-/** Dấu `.in_use` không đọc được chỉ được coi là còn sống tới tuổi này. */
+/** Dấu `.in_use` cũ hơn tuổi này (theo mtime, tức giờ run ghi dấu) bị xóa, kể cả khi pid còn sống hay dấu hỏng. */
 export const IN_USE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Tên thư mục ghim: `<version>-<12 hex của revision>`. Thứ khác dưới `workflows/<id>/` không phải của crew-mac. */
@@ -41,8 +41,9 @@ function isDirectory(path: string): boolean {
 }
 
 /**
- * Duyệt các dấu `.in_use/<runId>` của một bản ghim: xóa dấu của run đã chết (hoặc dấu hỏng đã quá tuổi) và trả về
- * có còn run nào dùng không. Dấu không đọc được thì coi như còn dùng, vì không chứng minh được run đã xong.
+ * Duyệt các dấu `.in_use/<runId>` của một bản ghim: xóa dấu có pid đã chết hoặc cũ hơn `IN_USE_MAX_AGE_MS` (pid có thể
+ * đã cấp lại cho process khác; dấu hỏng cũng theo tuổi này) và trả về có còn run nào dùng không. Lỗi đọc dấu thì coi
+ * như còn dùng, vì không chứng minh được run đã xong.
  */
 function reapMarks(dir: string, now: number, isAlive: (pid: number) => boolean): boolean {
   const marksDir = join(dir, '.in_use');
@@ -56,8 +57,9 @@ function reapMarks(dir: string, now: number, isAlive: (pid: number) => boolean):
   for (const name of names) {
     const mark = join(marksDir, name);
     try {
+      const fresh = now - statSync(mark).mtimeMs < IN_USE_MAX_AGE_MS;
       const m = MARK.exec(readFileSync(mark, 'utf8').trim());
-      const alive = m !== null ? isAlive(Number(m[1])) : now - statSync(mark).mtimeMs < IN_USE_MAX_AGE_MS;
+      const alive = fresh && (m === null || isAlive(Number(m[1])));
       if (alive) inUse = true;
       else unlinkSync(mark);
     } catch (error) {
@@ -68,8 +70,28 @@ function reapMarks(dir: string, now: number, isAlive: (pid: number) => boolean):
 }
 
 /**
+ * Lần đổi gần nhất của một bản ghim: mtime lớn nhất của thư mục, của `.in_use/` và của từng dấu trong đó. Ghi hay xóa
+ * dấu chỉ đổi mtime của `.in_use/`, không đổi mtime thư mục ghim, nên phải tính cả hai để run vừa chạy làm bản đó
+ * "mới".
+ */
+function lastChangeMs(dir: string): number {
+  let latest = statSync(dir).mtimeMs;
+  const marksDir = join(dir, '.in_use');
+  try {
+    latest = Math.max(latest, lstatSync(marksDir).mtimeMs);
+    for (const name of readdirSync(marksDir)) {
+      try {
+        latest = Math.max(latest, lstatSync(join(marksDir, name)).mtimeMs);
+      } catch {}
+    }
+  } catch {}
+  return latest;
+}
+
+/**
  * Dọn bản workflow ghim cũ dưới `~/.crew/workflows/<id>/`. Giữ bản hiện hành của từng workflow, bản còn dấu `.in_use`
- * của run sống và bản vừa đổi trong 24 giờ; không đụng `*.tmp-*` (việc của lệnh cài) hay tên lạ.
+ * của run sống và bản vừa đổi trong 24 giờ (`lastChangeMs`, đo trước khi xóa dấu); không đụng `*.tmp-*` (việc của
+ * lệnh cài) hay tên lạ.
  */
 export function gcWorkflowPins(
   ctx: MacContext,
@@ -96,7 +118,7 @@ export function gcWorkflowPins(
       if (name.includes('.tmp-') || !PIN_DIR_NAME.test(name) || !isDirectory(dir)) continue;
       let mtime: number;
       try {
-        mtime = statSync(dir).mtimeMs;
+        mtime = lastChangeMs(dir);
       } catch {
         continue;
       }

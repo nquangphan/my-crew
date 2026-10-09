@@ -394,17 +394,21 @@ của từng workflow trong sổ. Mỗi thư mục xử lý theo thứ tự:
 1. Bản hiện hành (`pinDir` của sổ) luôn giữ (`current`), kể cả không có dấu.
 2. Bỏ qua (không báo, không xóa) thư mục `*.tmp-*` (việc của lệnh cài), tên không theo mẫu `<version>-<12 hex>` và
    symlink.
-3. Đọc mọi dấu `.in_use/<runId>` (`<pid> <started>`). Pid còn sống (`process.kill(pid, 0)`; `EPERM` cũng là sống) thì
-   giữ (`in_use`). Pid chết thì xóa dấu. Dấu không parse được coi như sống cho tới khi file dấu cũ hơn 7 ngày
-   (`IN_USE_MAX_AGE_MS`) rồi mới xóa dấu; lỗi đọc dấu khác `ENOENT` cũng coi như còn dùng.
-4. Hết dấu sống mà thư mục đổi trong 24 giờ (`WORKFLOW_GC_RECENT_MS`, theo mtime) thì giữ (`recent`); cũ hơn thì xóa
-   (`rmSync` sau khi `lstat` không phải symlink) và ghi vào `removed`.
+3. Đo lần đổi gần nhất (`lastChangeMs`) trước khi đụng dấu: mtime lớn nhất của thư mục ghim, của `.in_use/` và của
+   từng dấu. Ghi hay xóa dấu chỉ đổi mtime của `.in_use/`, không đổi mtime thư mục ghim, nên phải tính cả hai.
+4. Đọc mọi dấu `.in_use/<runId>` (`<pid> <started>`). Dấu cũ hơn 7 ngày (`IN_USE_MAX_AGE_MS`, theo mtime của file dấu,
+   tức giờ run ghi) thì xóa, kể cả khi pid còn sống (pid có thể đã cấp lại cho process khác) hay dấu không parse được.
+   Còn lại: pid sống (`process.kill(pid, 0)`; `EPERM` cũng là sống) hoặc dấu không parse được thì giữ (`in_use`); pid
+   chết thì xóa dấu. Lỗi đọc dấu khác `ENOENT` coi như còn dùng.
+5. Hết dấu sống mà lần đổi gần nhất ở bước 3 trong 24 giờ (`WORKFLOW_GC_RECENT_MS`) thì giữ (`recent`); cũ hơn thì
+   xóa (`rmSync` sau khi `lstat` không phải symlink) và ghi vào `removed`. Run vừa chạy (dấu ghi trong 24 giờ, pid đã
+   chết) làm bản cũ được giữ thêm.
 
 Khi chạy: `workflows gc` (tay), cuối `setup` và `workflows install`, và `reap` khi `~/.crew/state/workflows-gc.stamp` chưa
 có hoặc cũ hơn `WORKFLOW_GC_INTERVAL_MS` (1 giờ); `reap` chạm stamp (mtime = giờ của `reapOnce`) sau mỗi lần dọn, bỏ
 qua khi `--dry-run`, ghi `GC workflow: đã dọn <n> bản ghim cũ: …` vào `reaper.log`, và lỗi GC (`GC workflow lỗi: …`)
-không làm hỏng lượt reap. Lỗi GC ở `setup`/`install` chỉ in `Không dọn được bản ghim cũ: …`. Hạn chế: dấu của run có
-pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát; chấp nhận vì chỉ tốn đĩa.
+không làm hỏng lượt reap. Lỗi GC ở `setup`/`install` chỉ in `Không dọn được bản ghim cũ: …`. Dấu của run có pid đã
+cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ lúc ghi dấu.
 
 - **Wrapper ghi:** `<thư mục ghim>/.in_use/<runId>` = `<pid> <started epoch giây>\n` (ngoài checksum).
 - **`bmad setup-project`:** chạy `uv` với `setup.py` của bản ghim, ép không mạng (`--offline`, `--no-python-downloads`;
@@ -467,7 +471,8 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
     danh): hai MCP Paperclip `dynamic` được phép; MCP `dynamic` khác tên hay tên Paperclip với nguồn khác bị chặn.
   - CLI: mã 0/2/78/1.
 - `apps/crew-mac/test/workflows-gc.test.ts`: bản hiện hành luôn giữ; dấu pid sống giữ; pid chết và 25 giờ thì xóa dấu rồi
-  thư mục; pid chết nhưng mới đổi thì giữ (`recent`); dấu hỏng sống tới 7 ngày; `*.tmp-*`, tên lạ và symlink không bị
+  thư mục; pid chết nhưng mới đổi thì giữ (`recent`); dấu hỏng sống tới 7 ngày; dấu hợp lệ cũ hơn 7 ngày bị xóa dù pid
+  sống; dấu ghi 2 giờ trước trên thư mục ghim 48 giờ thì giữ (`recent`); `*.tmp-*`, tên lạ và symlink không bị
   đụng; chạy hai lần; `isAlive` mặc định; `workflows gc` (đầu ra, thừa đối số thoát 2) và `install` dọn sau khi cài.
 - `apps/crew-mac/test/crew-claude-run.test.ts` (flow `mac-setup` liệt kê đủ): câu lỗi khi số `--plugin-dir` khác một;
   dấu `.in_use/<runId>` (pid của `claude`, `started` của run), không ghi khi run id lạ, ghi lỗi không chặn run.

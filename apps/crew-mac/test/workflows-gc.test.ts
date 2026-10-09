@@ -19,13 +19,15 @@ function setup() {
   const mac = fakeMac();
   const root = macPaths(mac.home).workflowsRoot;
   const now = mac.ctx.now().getTime();
-  /** Dựng thư mục ghim cũ; `ageMs` là tuổi mtime của thư mục. */
+  /** Dựng thư mục ghim cũ; `ageMs` là tuổi mtime của thư mục, của `.in_use/` và của từng dấu. */
   const oldPin = (rel: string, ageMs: number, marks: Record<string, string> = {}) => {
     const dir = join(root, rel);
     mkdirSync(join(dir, '.in_use'), { recursive: true });
     writeFileSync(join(dir, 'a.txt'), 'x');
     for (const [id, body] of Object.entries(marks)) writeFileSync(join(dir, '.in_use', id), body);
     const at = new Date(now - ageMs);
+    for (const id of Object.keys(marks)) utimesSync(join(dir, '.in_use', id), at, at);
+    utimesSync(join(dir, '.in_use'), at, at);
     utimesSync(dir, at, at);
     return dir;
   };
@@ -88,6 +90,25 @@ describe('gcWorkflowPins', () => {
     expect(existsSync(dir)).toBe(false);
   });
 
+  it('dấu hợp lệ cũ hơn 7 ngày bị xóa kể cả khi pid còn sống (pid đã cấp lại cho process khác)', async () => {
+    const { mac, oldPin } = setup();
+    const dir = oldPin('bmad/6.12.0-aaaaaaaaaaaa', IN_USE_MAX_AGE_MS + HOUR, { [UUID]: '4242 1760000000\n' });
+    const report = gcWorkflowPins(mac.ctx, { isAlive: () => true });
+    expect(report.removed).toEqual([dir]);
+    expect(existsSync(dir)).toBe(false);
+  });
+
+  it('run vừa kết thúc (dấu ghi 2 giờ trước, thư mục ghim 48 giờ) thì giữ (recent) và xóa dấu', async () => {
+    const { mac, now, oldPin } = setup();
+    const dir = oldPin('bmad/6.12.0-aaaaaaaaaaaa', 48 * HOUR, { [UUID]: '4242 1760000000\n' });
+    const recent = new Date(now - 2 * HOUR);
+    utimesSync(join(dir, '.in_use', UUID), recent, recent);
+    utimesSync(join(dir, '.in_use'), recent, recent);
+    const report = gcWorkflowPins(mac.ctx, { isAlive: () => false });
+    expect(report.kept).toContainEqual({ dir, reason: 'recent' });
+    expect(existsSync(join(dir, '.in_use', UUID))).toBe(false);
+  });
+
   it('không đụng thư mục *.tmp-* và thư mục lạ không theo mẫu <version>-<12 hex>', () => {
     const { mac, root, oldPin } = setup();
     const tmp = oldPin('bmad/6.12.0-aaaaaaaaaaaa.tmp-123', 48 * HOUR);
@@ -125,10 +146,12 @@ describe('gcWorkflowPins', () => {
   });
 
   it('isAlive mặc định: pid của chính process này sống, pid không tồn tại thì chết', () => {
-    const { mac, oldPin } = setup();
+    const { mac, now, oldPin } = setup();
     const dir = oldPin('bmad/6.12.0-aaaaaaaaaaaa', 48 * HOUR, { a: `${process.pid} 1760000000\n` });
     expect(gcWorkflowPins(mac.ctx).kept).toContainEqual({ dir, reason: 'in_use' });
     writeFileSync(join(dir, '.in_use', 'a'), '2147483000 1760000000\n');
+    const old = new Date(now - 48 * HOUR);
+    utimesSync(join(dir, '.in_use', 'a'), old, old);
     expect(gcWorkflowPins(mac.ctx).removed).toEqual([dir]);
   });
 
