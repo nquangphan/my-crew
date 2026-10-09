@@ -53,6 +53,7 @@ function harness(
   opts: { owner?: 'app' | 'launchd'; pidFile?: number | null; oldAlive?: 'dies' | 'stuck' } = {},
 ) {
   let owner: 'app' | 'launchd' = opts.owner ?? 'app';
+  let config: string | null = 'Port 2222\nListenAddress 100.105.105.12\n';
   let manifestCb: (() => void) | null = null;
   let nowMs = 1_000_000;
   let nextPid = 600;
@@ -79,7 +80,8 @@ function harness(
       if (child) queueMicrotask(() => child.exit({ code: null, signal: sig }));
     },
     readOwner: () => owner,
-    watchManifest: (cb) => {
+    readListenConfig: () => config,
+    watchConfig: (cb) => {
       manifestCb = cb;
       return () => {
         manifestCb = null;
@@ -109,6 +111,13 @@ function harness(
       owner = next;
       manifestCb?.();
     },
+    /** Ghi `sshd_config` mới (cổng/IP) rồi báo watcher; `null` = file đang ghi dở/không đọc được. */
+    setConfig: (next: string | null) => {
+      config = next;
+      manifestCb?.();
+    },
+    watching: () => manifestCb !== null,
+    alive: () => children.filter((c) => c.alive).map((c) => c.pid),
     advance: (ms: number) => {
       nowMs += ms;
     },
@@ -227,6 +236,133 @@ describe('createSshdSupervisor', () => {
     expect(changes).toContain('disabled');
   });
 
+  it('sshd_config đổi cổng/IP khi đang chạy: TERM listener của mình, chờ thoát hẳn rồi mới sinh listener mới', async () => {
+    const h = harness();
+    h.setTable([
+      proc({ pid: 777, comm: 'sshd-session: u@notty', command: 'sshd-session: u@notty', ppid: 600 }),
+    ]);
+    await h.supervisor.start();
+    // Cả lúc spawn lẫn sau đó không bao giờ có hai listener của app cùng sống.
+    let maxAlive = 0;
+    h.supervisor.onChange(() => {
+      maxAlive = Math.max(maxAlive, h.alive().length);
+    });
+    h.setConfig('Port 2223\nListenAddress 100.105.105.12\n');
+    await flush();
+    expect(h.signals).toEqual([[600, 'SIGTERM']]);
+    expect(h.children).toHaveLength(2);
+    expect(h.alive()).toEqual([601]);
+    expect(maxAlive).toBeLessThanOrEqual(1);
+    expect(h.supervisor.status()).toMatchObject({ state: 'running', pid: 601, restarts: 0 });
+    expect(h.state().sshdPid).toBe(601);
+  });
+
+  it('manifest đổi nhưng sshd_config giữ nguyên: không đụng listener', async () => {
+    const h = harness();
+    await h.supervisor.start();
+    h.setConfig('Port 2222\nListenAddress 100.105.105.12\n');
+    h.setOwner('app');
+    await flush();
+    expect(h.signals).toEqual([]);
+    expect(h.children).toHaveLength(1);
+  });
+
+  it('sshd_config không đọc được (đang ghi dở): giữ listener cũ; đọc được bản mới thì mới nạp lại', async () => {
+    const h = harness();
+    await h.supervisor.start();
+    h.setConfig(null);
+    await flush();
+    expect(h.signals).toEqual([]);
+    h.setConfig('Port 2223\n');
+    await flush();
+    expect(h.signals).toEqual([[600, 'SIGTERM']]);
+    expect(h.alive()).toEqual([601]);
+  });
+
+  it('sshd_config đổi khi đang pause: không sinh; resume sinh theo cấu hình mới, không nạp lại lần nữa', async () => {
+    const h = harness();
+    await h.supervisor.start();
+    await h.supervisor.pause();
+    await flush();
+    h.setConfig('Port 2223\n');
+    await flush();
+    expect(h.children).toHaveLength(1);
+    expect(h.supervisor.status().state).toBe('paused');
+    await h.supervisor.resume();
+    h.setConfig('Port 2223\n');
+    await flush();
+    expect(h.children).toHaveLength(2);
+    expect(h.signals).toEqual([[600, 'SIGTERM']]);
+  });
+
+  it('sshd_config đổi khi đang backoff (ví dụ cổng cũ bị chiếm): sinh ngay theo cấu hình mới, bỏ lượt chờ cũ', async () => {
+    const children: FakeChild[] = [];
+    let release: () => void = () => undefined;
+    let config = 'Port 2222\n';
+    let cb: (() => void) | null = null;
+    const sup = createSshdSupervisor({
+      ...baseDeps(),
+      spawnSshd: () => {
+        const child = new FakeChild(900 + children.length);
+        children.push(child);
+        return child;
+      },
+      readListenConfig: () => config,
+      watchConfig: (fn) => {
+        cb = fn;
+        return () => undefined;
+      },
+      sleep: (ms) =>
+        ms >= 1000
+          ? new Promise<void>((resolve) => {
+              release = resolve;
+            })
+          : Promise.resolve(),
+    });
+    await sup.start();
+    children[0]?.exit({ code: 255, signal: null });
+    await flush();
+    expect(sup.status().state).toBe('backoff');
+    config = 'Port 2223\n';
+    (cb as unknown as () => void)();
+    await flush();
+    expect(children).toHaveLength(2);
+    expect(sup.status()).toMatchObject({ state: 'running', pid: 901 });
+    release();
+    await flush();
+    expect(children).toHaveLength(2);
+  });
+
+  it('chủ là launchd thì đổi sshd_config không làm app sinh listener', async () => {
+    const h = harness({ owner: 'launchd' });
+    await h.supervisor.start();
+    h.setConfig('Port 2223\n');
+    await flush();
+    expect(h.children).toHaveLength(0);
+    expect(h.supervisor.status().state).toBe('disabled');
+  });
+
+  it('stopForQuit rồi thoát bị hủy: resume theo dõi lại cấu hình và sinh lại listener', async () => {
+    const h = harness();
+    await h.supervisor.start();
+    await h.supervisor.stopForQuit();
+    await flush();
+    expect(h.watching()).toBe(false);
+    expect(h.supervisor.status().state).toBe('stopped');
+    await h.supervisor.resume();
+    expect(h.watching()).toBe(true);
+    expect(h.supervisor.status()).toMatchObject({ state: 'running', pid: 601 });
+    expect(h.alive()).toEqual([601]);
+  });
+
+  it('resume khi đang chạy không sinh thêm listener', async () => {
+    const h = harness();
+    await h.supervisor.start();
+    await h.supervisor.resume();
+    expect(h.children).toHaveLength(1);
+    expect(h.signals).toEqual([]);
+  });
+
   it('manifest hỏng thì disabled kèm lỗi, không sinh listener', async () => {
     let spawned = 0;
     const sup = createSshdSupervisor({
@@ -268,7 +404,8 @@ function baseDeps(): SupervisorDeps {
     spawnSshd: () => new FakeChild(900),
     signal: () => undefined,
     readOwner: () => 'app',
-    watchManifest: () => () => undefined,
+    readListenConfig: () => 'Port 2222\n',
+    watchConfig: () => () => undefined,
     sleep: async () => undefined,
     now: () => 0,
     listProcesses: async () => [],

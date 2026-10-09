@@ -12,8 +12,9 @@ export interface SshdSupervisor {
   start(): Promise<void>;
   /** TERM listener của mình, không tự sinh lại; phiên đang mở vẫn sống. */
   pause(): Promise<void>;
+  /** Sau `pause`, hoặc sau `stopForQuit` khi việc thoát bị hủy: theo dõi cấu hình lại và sinh listener. */
   resume(): Promise<void>;
-  /** Như `pause`, dùng khi thoát/cập nhật; thôi theo dõi manifest. */
+  /** Như `pause`, dùng khi thoát/cập nhật; thôi theo dõi cấu hình. */
   stopForQuit(): Promise<void>;
   status(): { state: SupervisorState; pid: number | null; restarts: number; lastError: string | null };
   activeRuns(): Promise<ActiveRun[]>;
@@ -42,7 +43,13 @@ export interface SupervisorDeps {
   signal(pid: number, signal: 'SIGTERM' | 'SIGKILL'): void;
   /** Chủ sshd theo manifest crew-mac; ném lỗi khi manifest hỏng. */
   readOwner(): SshdOwner;
-  watchManifest(cb: () => void): () => void;
+  /**
+   * Dấu cấu hình listener đang dùng (nội dung `sshd_config` cùng dấu host key); null khi không đọc được (đang ghi
+   * dở). Khác dấu lúc sinh thì listener phải nạp lại.
+   */
+  readListenConfig(): string | null;
+  /** Theo dõi manifest, `sshd_config` và host key; trả hàm thôi theo dõi. */
+  watchConfig(cb: () => void): () => void;
   sleep(ms: number): Promise<void>;
   now(): number;
   listProcesses(): Promise<ProcInfo[]>;
@@ -56,6 +63,8 @@ export interface SupervisorDeps {
 /** Chờ tối đa bấy nhiêu cho listener thoát sau TERM, rồi mới SIGKILL. */
 const STOP_WAIT_MS = 5_000;
 const POLL_MS = 250;
+/** Chờ `crew-mac setup` ghi xong loạt file (sshd_config rồi manifest) trước khi so cấu hình. */
+export const CONFIG_SETTLE_MS = 500;
 
 function describeExitCode(exit: SshdExit): string {
   if (exit.error) return `Không chạy được sshd: ${exit.error.message}`;
@@ -81,6 +90,8 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
   /** Tăng mỗi lần chủ động dừng/sinh: lần sinh lại đang chờ backoff của thế hệ cũ bị bỏ. */
   let generation = 0;
   let unwatch: (() => void) | null = null;
+  /** Dấu cấu hình của listener đang sống (đọc ngay trước khi sinh). */
+  let spawnedConfig: string | null = null;
   const exited = new WeakSet<SshdChild>();
   const listeners = new Set<() => void>();
   let queue: Promise<unknown> = Promise.resolve();
@@ -174,6 +185,7 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
     generation += 1;
     const gen = generation;
     state = 'starting';
+    const configSnapshot = deps.readListenConfig();
     let c: SshdChild;
     try {
       c = deps.spawnSshd();
@@ -185,6 +197,7 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
     }
     child = c;
     spawnedAt = deps.now();
+    spawnedConfig = configSnapshot;
     c.onExit((exit) => void onChildExit(c, gen, exit));
     if (c.pid !== undefined && !exited.has(c)) {
       deps.log?.('info', 'sshd-spawned', { pid: c.pid });
@@ -194,20 +207,43 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
     }
   };
 
-  /** Dừng listener của mình (con trực tiếp, không có nguy cơ pid bị dùng lại khi chưa reap). */
-  const stopListener = async (next: 'paused' | 'stopped' | 'disabled') => {
-    generation += 1;
-    state = next;
+  /**
+   * TERM listener của mình (con trực tiếp, không có nguy cơ pid bị dùng lại khi chưa reap), chờ thoát hẳn; quá 5 giây
+   * thì SIGKILL rồi chờ thêm. Phiên `sshd-session` không nhận tín hiệu nào nên vẫn sống.
+   */
+  const terminateChild = async () => {
     const c = child;
     if (c && c.pid !== undefined && !exited.has(c)) {
       deps.signal(c.pid, 'SIGTERM');
       for (let waited = 0; waited < STOP_WAIT_MS && !exited.has(c); waited += POLL_MS) {
         await deps.sleep(POLL_MS);
       }
-      if (!exited.has(c)) deps.signal(c.pid, 'SIGKILL');
+      if (!exited.has(c)) {
+        deps.signal(c.pid, 'SIGKILL');
+        for (let waited = 0; waited < STOP_WAIT_MS && !exited.has(c); waited += POLL_MS) {
+          await deps.sleep(POLL_MS);
+        }
+      }
     }
     child = null;
+  };
+
+  const stopListener = async (next: 'paused' | 'stopped' | 'disabled') => {
+    generation += 1;
+    state = next;
+    await terminateChild();
     await setState(next);
+  };
+
+  /**
+   * Cấu hình đổi (cổng, IP Tailscale, host key): dừng hẳn listener cũ rồi mới sinh listener mới, nên không bao giờ có
+   * hai listener của app cùng lúc. Đang backoff thì bỏ lượt chờ cũ và sinh ngay.
+   */
+  const reloadListener = async () => {
+    generation += 1;
+    await terminateChild();
+    restarts = 0;
+    await spawnListener();
   };
 
   /** Bật theo manifest: không phải app thì `disabled`; là app thì tiếp quản listener cũ rồi sinh mới. */
@@ -232,8 +268,10 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
     await spawnListener();
   };
 
-  const onManifestChange = () =>
-    serial(async () => {
+  const onConfigChange = async () => {
+    await deps.sleep(CONFIG_SETTLE_MS);
+    await serial(async () => {
+      if (unwatch === null) return;
       const next = readOwner();
       // Manifest đang ghi dở hay hỏng: giữ nguyên, lần đổi sau đọc lại.
       if (next === null) return;
@@ -243,13 +281,32 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
         await stopListener('disabled');
       } else if (next === 'app' && state === 'disabled') {
         await enable();
+      } else if (next === 'app' && (state === 'running' || state === 'backoff')) {
+        const current = deps.readListenConfig();
+        if (current === null || current === spawnedConfig) return;
+        deps.log?.('info', 'sshd-config-changed', { pid: currentPid() });
+        await reloadListener();
       }
-    }).catch((error) => deps.log?.('error', 'sshd-manifest-change-failed', { error: errorMessage(error) }));
+    });
+  };
+
+  const watch = () => {
+    unwatch ??= deps.watchConfig(
+      () =>
+        void onConfigChange().catch((error) =>
+          deps.log?.('error', 'sshd-config-change-failed', { error: errorMessage(error) }),
+        ),
+    );
+  };
+
+  /** `stopForQuit` đã chạy: còn là `true` tới khi `resume` (thoát bị hủy) hay `start`. */
+  let stoppedForQuit = false;
 
   return {
     start: () =>
       serial(async () => {
-        unwatch ??= deps.watchManifest(() => void onManifestChange());
+        watch();
+        stoppedForQuit = false;
         if (state === 'running' || state === 'starting' || state === 'backoff') return;
         await enable();
       }),
@@ -260,6 +317,12 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
       }),
     resume: () =>
       serial(async () => {
+        if (stoppedForQuit) {
+          stoppedForQuit = false;
+          watch();
+          if (state === 'stopped' || state === 'disabled') await enable();
+          return;
+        }
         if (state !== 'paused') return;
         await enable();
       }),
@@ -267,6 +330,7 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
       serial(async () => {
         unwatch?.();
         unwatch = null;
+        stoppedForQuit = true;
         if (state === 'disabled' || state === 'stopped') return;
         await stopListener('stopped');
       }),

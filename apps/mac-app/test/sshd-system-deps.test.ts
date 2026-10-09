@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CommandRunner } from '@crew/mac';
@@ -104,5 +104,50 @@ describe('createSystemDeps', () => {
     writeFileSync(join(home, '.crew-mac', 'sshd', 'sshd.pid'), '777\n');
     expect(deps.readOwner()).toBe('app');
     expect(deps.readPidFile()).toBe(777);
+  });
+
+  it('readListenConfig: đổi theo nội dung sshd_config và host key; chưa có sshd_config thì null', () => {
+    const home = mkdtempSync(join(tmpdir(), 'sshd-home-'));
+    const deps = createSystemDeps({ home, runner: runner({}), store: {} as never, log: () => undefined });
+    expect(deps.readListenConfig()).toBeNull();
+    const dir = join(home, '.crew-mac', 'sshd');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'sshd_config'), 'Port 2222\nListenAddress 100.105.105.12\n');
+    writeFileSync(join(dir, 'host_ed25519'), 'k1');
+    const first = deps.readListenConfig();
+    expect(first).toContain('Port 2222');
+    expect(deps.readListenConfig()).toBe(first);
+    writeFileSync(join(dir, 'sshd_config'), 'Port 2223\nListenAddress 100.105.105.12\n');
+    const second = deps.readListenConfig();
+    expect(second).not.toBe(first);
+    utimesSync(join(dir, 'host_ed25519'), new Date(5_000), new Date(5_000));
+    expect(deps.readListenConfig()).not.toBe(second);
+  });
+
+  it('watchConfig: báo khi sshd_config đổi; thôi theo dõi thì im', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'sshd-home-'));
+    const dir = join(home, '.crew-mac', 'sshd');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'sshd_config'), 'Port 2222\n');
+    const deps = createSystemDeps({
+      home,
+      runner: runner({}),
+      store: {} as never,
+      log: () => undefined,
+      watchIntervalMs: 20,
+    });
+    let calls = 0;
+    const stop = deps.watchConfig(() => {
+      calls += 1;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    writeFileSync(join(dir, 'sshd_config'), 'Port 2223\nListenAddress 100.64.0.9\n');
+    for (let i = 0; i < 50 && calls === 0; i++) await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(calls).toBeGreaterThan(0);
+    stop();
+    const seen = calls;
+    writeFileSync(join(dir, 'sshd_config'), 'Port 2224\n');
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(calls).toBe(seen);
   });
 });
