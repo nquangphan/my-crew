@@ -14,7 +14,7 @@ cắm vào các điểm đã chừa.
 
 - Mở `2P Crew.app` (Finder, Dock hoặc login item). `apps/mac-app/src/main/index.ts` → `start`.
 - Lần mở thứ hai chỉ đưa cửa sổ lên (`second-instance`). Đóng cửa sổ không thoát app (`window-all-closed` rỗng);
-  thoát bằng menu tray "Thoát".
+  thoát bằng menu tray "Thoát" (qua quit guard của flow `mac-app-sshd`: còn run thì hỏi).
 - Mở từ login item (`wasOpenedAtLogin`) thì chỉ hiện tray, không mở cửa sổ. Login item không tự bật lúc khởi động:
   wizard (AP-5) bật ở bước `done`.
 
@@ -27,9 +27,11 @@ cắm vào các điểm đã chừa.
 3. `src/main/tray.ts` → `CrewTray`: chấm màu, số run, menu "Mở 2P Crew" và "Thoát". AP-3 gọi `update({ color, runs })`.
 4. `src/main/window.ts` → `createMainWindow`: renderer sandbox, `contextIsolation`, không Node, cấm mở cửa sổ và
    điều hướng ra ngoài, từ chối mọi quyền.
-5. Dòng `registerX(ctx)` của các ticket sau (đang là chú thích trong `index.ts`): sshd (AP-2), sức khỏe/run/log
-   (AP-3), wizard và gỡ v2 (AP-5, AP-6), Paperclip và project (AP-4, PJ-1, PJ-2), cập nhật (UPD-1). Mỗi `registerX`
-   nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
+5. Dòng `registerX(ctx)` của từng module. Đã bật: `registerSshd(ctx)` (bộ giám sát sshd và quit guard, flow
+   `mac-app-sshd`; trả `SshdSupervisor`, ticket cần `activeRuns`/`pause`/`resume` thì đổi dòng thành
+   `const sshd = registerSshd(ctx)`). Còn là chú thích: sức khỏe/run/log (AP-3), wizard và gỡ v2 (AP-5, AP-6),
+   Paperclip và project (AP-4, PJ-1, PJ-2), cập nhật (UPD-1). Mỗi `registerX` nhận `AppContext`
+   (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
    bằng thông báo tiếng Việt của Main; `useStateChanged` nghe sự kiện `state:changed` (không payload, renderer gọi
@@ -90,7 +92,8 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 ## Flow liên quan
 
 - `mac-setup`: thư viện `@crew/mac` mà app gọi (setup, doctor, status, `installCrewMacFrom`).
-- `mac-app-sshd`, `mac-app-paperclip`, `mac-app-update`: các flow của app do ticket sau tạo.
+- `mac-app-sshd`: bộ giám sát sshd agent và quit guard.
+- `mac-app-paperclip`, `mac-app-update`: các flow của app do ticket sau tạo.
 
 ## Tests
 

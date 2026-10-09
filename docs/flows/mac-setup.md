@@ -105,7 +105,8 @@ không cần token và không login lại.
   responsible thật khi app còn sống. Khi app đã chết, hàm hệ thống đó trả chính pid của listener nhưng tccd vẫn gán
   quyền theo bundle app đã lưu (đo ngày 09/10/2026), nên listener mồ côi là `warn` có giải thích, không `fail`.
 - App 2P Crew gọi `setup({ sshdOwner: 'app' })` / `setup({ sshdOwner: 'launchd' })` qua `@crew/mac` (kiểu
-  `SshdOwner` export từ `index.ts`), chỉ khi 0 run.
+  `SshdOwner` export từ `index.ts`), chỉ khi 0 run. Bộ giám sát sshd của app (flow `mac-app-sshd`) dùng thêm
+  `readSshdPid` (đọc pidfile), `createRunner` và kiểu `CommandRunner` (chạy `ps`/`lsof`) export từ `index.ts`.
 
 ## Files
 

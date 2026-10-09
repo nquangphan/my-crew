@@ -176,5 +176,24 @@ flows:
       - apps/mac-app/test/ipc-contract.test.ts
       - apps/mac-app/test/ops-bridge.test.ts
       - apps/mac-app/test/renderer/app.test.tsx
+  mac-app-sshd:
+    title: App 2P Crew giữ sshd agent và thoát an toàn
+    doc: docs/flows/mac-app-sshd.md
+    entrypoints:
+      - apps/mac-app/src/main/sshd/register.ts
+    files:
+      - apps/mac-app/src/main/sshd/register.ts
+      - apps/mac-app/src/main/sshd/supervisor.ts
+      - apps/mac-app/src/main/sshd/system-deps.ts
+      - apps/mac-app/src/main/sshd/takeover.ts
+      - apps/mac-app/src/main/sshd/backoff.ts
+      - apps/mac-app/src/main/sshd/active-runs.ts
+      - apps/mac-app/src/main/quit-guard.ts
+    tests:
+      - apps/mac-app/test/sshd-takeover.test.ts
+      - apps/mac-app/test/sshd-backoff.test.ts
+      - apps/mac-app/test/sshd-supervisor.test.ts
+      - apps/mac-app/test/sshd-system-deps.test.ts
+      - apps/mac-app/test/quit-guard.test.ts
 shared: {}
 unassigned: []

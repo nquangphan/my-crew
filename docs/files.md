@@ -80,6 +80,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/login-item.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/ops-bridge.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/quit-guard.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/sshd/active-runs.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/sshd/backoff.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/sshd/register.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (điểm vào), [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/sshd/supervisor.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/sshd/system-deps.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/sshd/takeover.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/tray.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/window.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -95,7 +102,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/app-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ops-bridge.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/quit-guard.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/sshd-backoff.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
+| `apps/mac-app/test/sshd-supervisor.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
+| `apps/mac-app/test/sshd-system-deps.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
+| `apps/mac-app/test/sshd-takeover.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |

@@ -10,6 +10,7 @@ import { AppStateStore } from './app-state.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
+import { registerSshd } from './sshd/register.js';
 import { CrewTray } from './tray.js';
 import { createMainWindow } from './window.js';
 
@@ -100,7 +101,7 @@ async function start(): Promise<void> {
     return undefined;
   });
   store.onChange(() => window?.webContents.send(STATE_CHANGED_EVENT));
-  // registerSshd(ctx);      // AP-2
+  registerSshd(ctx); // trả SshdSupervisor: ticket cần thì đổi thành `const sshd = registerSshd(ctx)`
   // registerHealth(ctx);    // AP-3 (health, runs, logs, notifications)
   // registerSetup(ctx);     // AP-5, AP-6
   // registerPaperclip(ctx); // AP-4, PJ-1, PJ-2
