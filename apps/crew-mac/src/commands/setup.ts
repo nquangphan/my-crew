@@ -20,17 +20,29 @@ import {
 } from '../paths.js';
 import { type PlistSpec, renderPlist } from '../plist.js';
 import { renderSshdConfig } from '../sshd-config.js';
+import {
+  currentSshdOwner,
+  handOffToApp,
+  resolveSshdOwner,
+  type SshdOwner,
+  takeBackToLaunchd,
+} from '../sshd-owner.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { installSuperpowersPin } from '../workflows/install.js';
 import { agentExtraArgs } from '../workflows/pin.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { upsertPathBlock } from '../zshenv.js';
 import { saveConfiguredClaudePath } from './status.js';
+import { assertNoLiveRuns } from './uninstall.js';
 
 export interface SetupOptions {
   paperclipKey?: string;
   port?: number;
   worktreeRoot?: string;
+  /** Không truyền thì giữ chủ sshd trong manifest (cài mới: `launchd`). */
+  sshdOwner?: SshdOwner;
+  /** Đổi chủ sshd dù còn run hay phiên SSH đang chạy (bootout có thể cắt phiên). */
+  force?: boolean;
 }
 
 export interface SetupReport {
@@ -39,7 +51,12 @@ export interface SetupReport {
   manifest: Manifest;
   /** Thư mục Superpowers đã ghim và `adapterConfig.extraArgs` tương ứng cho agent claude_local. */
   superpowers: { dir: string; extraArgs: string[] };
+  /** Lần chạy này chuyển sshd agent sang app, về LaunchAgent, hay giữ nguyên chủ. */
+  sshdHandoff: 'app' | 'launchd' | 'unchanged';
 }
+
+/** Chờ listener của app thoát sau khi manifest đổi sang `launchd`, trước khi bootstrap LaunchAgent. */
+const TAKE_BACK_WAIT_MS = 15_000;
 
 /**
  * Key của Paperclip và của doctor chỉ vào được từ dải Tailscale và không mở được forwarding (driver SSH của Paperclip
@@ -161,6 +178,19 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   // Tính trước khi ghi gì: khối PATH hỏng trong ~/.zshenv thì dừng khi máy còn nguyên.
   // Thư mục của node mà launcher và reaper dùng (symlink ổn định của Homebrew nếu có) cũng vào PATH của sshd agent.
   const zshenvNext = upsertPathBlock(readText(paths.zshenv), dirname(ctx.nodePath));
+  const sshdOwner = resolveSshdOwner(previous, options.sshdOwner);
+  const switchingOwner = sshdOwner !== currentSshdOwner(previous);
+  // Đổi chủ sshd (bootout hoặc TERM listener) có thể cắt phiên của run: chỉ làm khi 0 run, trừ khi force.
+  if (switchingOwner && !options.force) await assertNoLiveRuns(ctx);
+  const manifest: Manifest = {
+    version: 1,
+    port,
+    listenAddress,
+    worktreeRoot,
+    paperclipKey,
+    installedAt: previous?.installedAt ?? ctx.now().toISOString(),
+    ...(sshdOwner === 'app' ? { sshdOwner } : {}),
+  };
 
   const changed: string[] = [];
   const track = (path: string, didChange: boolean) => {
@@ -200,11 +230,27 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   }
 
   const restarted: string[] = [];
-  const sshdPlistChanged = writeIfChanged(paths.sshdPlist, renderPlist(sshdPlistSpec(paths)), 0o644);
-  track(paths.sshdPlist, sshdPlistChanged);
-  const sshdReload =
-    sshdPlistChanged || changed.includes(paths.sshdConfig) || changed.includes(paths.hostKey);
-  if (await ensureService(ctx, SSHD_LABEL, paths.sshdPlist, sshdReload, true)) restarted.push(SSHD_LABEL);
+  let sshdHandoff: SetupReport['sshdHandoff'] = 'unchanged';
+  if (sshdOwner === 'app') {
+    // App sinh và giữ listener; crew-mac chỉ gỡ LaunchAgent, không tự sinh sshd. Ghi manifest ngay sau bootout để
+    // bước sau có lỗi thì máy vẫn ghi đúng chủ (app thấy `app` và sinh listener).
+    const plistExisted = existsSync(paths.sshdPlist);
+    if ((await handOffToApp(ctx, paths)) || switchingOwner) sshdHandoff = 'app';
+    track(paths.sshdPlist, plistExisted);
+    if (switchingOwner) track(paths.manifest, writeManifest(paths.manifest, manifest));
+  } else {
+    if (switchingOwner) {
+      // Ghi manifest trước để app thấy `launchd` và tự dừng listener, rồi mới chờ và nạp LaunchAgent.
+      track(paths.manifest, writeManifest(paths.manifest, manifest));
+      await takeBackToLaunchd(ctx, paths, { waitMs: TAKE_BACK_WAIT_MS });
+      sshdHandoff = 'launchd';
+    }
+    const sshdPlistChanged = writeIfChanged(paths.sshdPlist, renderPlist(sshdPlistSpec(paths)), 0o644);
+    track(paths.sshdPlist, sshdPlistChanged);
+    const sshdReload =
+      sshdPlistChanged || changed.includes(paths.sshdConfig) || changed.includes(paths.hostKey);
+    if (await ensureService(ctx, SSHD_LABEL, paths.sshdPlist, sshdReload, true)) restarted.push(SSHD_LABEL);
+  }
   const reaperPlistChanged = writeIfChanged(
     paths.reaperPlist,
     renderPlist(reaperPlistSpec(ctx, paths)),
@@ -222,15 +268,14 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   if (await ensureService(ctx, STATUS_LABEL, paths.statusPlist, statusPlistChanged, false))
     restarted.push(STATUS_LABEL);
 
-  const manifest: Manifest = {
-    version: 1,
-    port,
-    listenAddress,
-    worktreeRoot,
-    paperclipKey,
-    installedAt: previous?.installedAt ?? ctx.now().toISOString(),
-  };
-  track(paths.manifest, writeManifest(paths.manifest, manifest));
+  if (writeManifest(paths.manifest, manifest) && !changed.includes(paths.manifest))
+    changed.push(paths.manifest);
   saveConfiguredClaudePath(ctx);
-  return { changed, restarted, manifest, superpowers: { dir: pin.dir, extraArgs: agentExtraArgs(pin.dir) } };
+  return {
+    changed,
+    restarted,
+    manifest,
+    superpowers: { dir: pin.dir, extraArgs: agentExtraArgs(pin.dir) },
+    sshdHandoff,
+  };
 }

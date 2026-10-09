@@ -19,13 +19,17 @@ import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
 import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
 import { type Manifest, readManifest } from './manifest.js';
-import { DEFAULT_PORT, macPaths } from './paths.js';
+import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
+import { resolveSshdOwner, type SshdOwner } from './sshd-owner.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 
 Cách dùng:
   crew-mac setup --paperclip-key <file .pub | chuỗi key> [--port 2222] [--worktree-root <thư mục>]
+                 [--sshd-owner app|launchd] [--force]
+                 --sshd-owner: ai giữ sshd agent (không truyền thì giữ chủ hiện tại); chỉ đổi khi không còn run,
+                 --force bỏ qua kiểm run và phiên sshd agent
   crew-mac doctor [--no-probe] [--tcc-window 24h] [--probe-timeout 90]
   crew-mac status config --url <Paperclip origin> --company <UUID>
   crew-mac status set-secret   (đọc một dòng từ stdin)
@@ -168,15 +172,52 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         throw new UsageError('status cần config, set-secret, send, add-repo, remove-repo hoặc list-repos');
       }
       case 'setup': {
-        const flags = parseFlags(args, ['--paperclip-key', '--port', '--worktree-root']);
+        const flags = parseFlags(
+          args,
+          ['--paperclip-key', '--port', '--worktree-root', '--sshd-owner'],
+          ['--force'],
+        );
         const key = flags.value('--paperclip-key');
+        const ownerFlag = flags.value('--sshd-owner');
+        if (ownerFlag !== undefined && ownerFlag !== 'app' && ownerFlag !== 'launchd')
+          throw new UsageError('--sshd-owner chỉ nhận app hoặc launchd');
+        const sshdOwner = ownerFlag as SshdOwner | undefined;
+        const current = manifestOrNull(macPaths(ctx.home).manifest);
+        const sshPort = sshServerPort(io.env);
+        const agentPort = current?.port ?? DEFAULT_PORT;
+        if (
+          sshdOwner !== undefined &&
+          resolveSshdOwner(current, sshdOwner) !== resolveSshdOwner(current, undefined) &&
+          sshPort !== null &&
+          (sshPort === agentPort || sshPort === DEFAULT_PORT) &&
+          !flags.has('--force')
+        ) {
+          io.err(
+            `crew-mac: phiên này chạy qua chính sshd agent (cổng ${sshPort}); đổi chủ sshd sẽ cắt phiên này giữa chừng. ` +
+              'Chạy trong Terminal trên màn hình Mac, hoặc thêm --force nếu chắc chắn (--force bỏ qua CẢ kiểm phiên sshd agent LẪN kiểm run Paperclip).',
+          );
+          return 2;
+        }
         const report = await setup(ctx, {
           paperclipKey: key === undefined ? undefined : existsSync(key) ? readFileSync(key, 'utf8') : key,
           port: flags.number('--port'),
           worktreeRoot: flags.value('--worktree-root'),
+          sshdOwner,
+          force: flags.has('--force'),
         });
         const m = report.manifest;
         io.out(`sshd agent nghe ${m.listenAddress}:${m.port}; thư mục worktree ${m.worktreeRoot}.`);
+        io.out(
+          m.sshdOwner === 'app'
+            ? 'Chủ sshd agent: app 2P Crew (mở app để app sinh listener; đổi cổng hay IP thì app khởi động lại listener).'
+            : `Chủ sshd agent: LaunchAgent ${SSHD_LABEL}.`,
+        );
+        if (report.sshdHandoff !== 'unchanged')
+          io.out(
+            report.sshdHandoff === 'app'
+              ? 'Đã chuyển sshd agent sang app 2P Crew.'
+              : 'Đã trả sshd agent về LaunchAgent.',
+          );
         io.out(
           report.changed.length === 0
             ? 'Không có file nào thay đổi.'
@@ -226,6 +267,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         }
         const report = await uninstall(ctx, { force: flags.has('--force') });
         io.out(report.removed.length === 0 ? 'Không còn gì để gỡ.' : `Đã gỡ: ${report.removed.join(', ')}`);
+        for (const note of report.notes ?? []) io.out(note);
         for (const kept of report.kept)
           io.out(`Giữ nguyên thư mục worktree ${kept} (có thể còn việc của agent).`);
         return 0;

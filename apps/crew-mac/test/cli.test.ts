@@ -59,6 +59,37 @@ describe('crew-mac CLI', () => {
     expect(await main(['uninstall', '--force'], forced.io)).toBe(0);
   });
 
+  it('setup --sshd-owner từ chối khi chạy qua chính sshd agent, trừ khi có --force', async () => {
+    const mac = fakeMac();
+    expect(await main(['setup', '--paperclip-key', PAPERCLIP_PUB], io(mac).io)).toBe(0);
+    const before = mac.runner.calls.length;
+    const env = { SSH_CONNECTION: '100.1.2.3 5555 100.4.5.6 2222' };
+    const viaAgent = io(mac, env);
+    expect(await main(['setup', '--sshd-owner', 'app'], viaAgent.io)).not.toBe(0);
+    expect(viaAgent.err.join('\n')).toContain('qua chính sshd agent');
+    expect(
+      mac.runner
+        .commands()
+        .slice(before)
+        .some((c) => c.includes('bootout')),
+    ).toBe(false);
+    const forced = io(mac, env);
+    expect(await main(['setup', '--sshd-owner', 'app', '--force'], forced.io)).toBe(0);
+    expect(
+      mac.runner
+        .commands()
+        .slice(before)
+        .some((c) => c.includes('bootout')),
+    ).toBe(true);
+    expect(forced.out.join('\n')).toContain('2P Crew');
+  });
+
+  it('setup --sshd-owner giá trị lạ thì báo cách dùng', async () => {
+    const t = io(fakeMac());
+    expect(await main(['setup', '--sshd-owner', 'systemd'], t.io)).toBe(2);
+    expect(t.err.join('\n')).toContain('--sshd-owner chỉ nhận app hoặc launchd');
+  });
+
   it('reap chạy được với bảng process rỗng và từ chối số giây sai', async () => {
     const mac = fakeMac();
     mac.runner.on('/bin/ps', () => ({ stdout: '    1     0     1 /sbin/launchd\n' }));

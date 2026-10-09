@@ -10,8 +10,9 @@ không cần token và không login lại.
 
 ## Điểm vào
 
-- `crew-mac setup --paperclip-key <file .pub>`: chạy trong Terminal trên màn hình Mac. In `adapterConfig.command` và
-  `adapterConfig.extraArgs` (Superpowers đã ghim, flow `mac-workflows`) cần đặt cho agent `claude_local`.
+- `crew-mac setup --paperclip-key <file .pub> [--sshd-owner app|launchd] [--force]`: chạy trong Terminal trên màn
+  hình Mac. In `adapterConfig.command` và `adapterConfig.extraArgs` (Superpowers đã ghim, flow `mac-workflows`) cần
+  đặt cho agent `claude_local`, và chủ sshd agent hiện tại (xem "Chủ sshd agent").
 - `crew-mac doctor [--no-probe]`: chạy bất kỳ lúc nào, kể cả qua SSH.
 - `crew-mac status config --url <Paperclip origin> --company <UUID>`: lưu origin, `companyId` UUID và sinh `machineId` UUID nếu chưa có.
 - `crew-mac status set-secret`: đọc secret từ stdin và lưu vào Keychain.
@@ -36,13 +37,15 @@ không cần token và không login lại.
    (`WRAPPER_SOURCE`, mode 755), launcher `~/.crew/bin/crew-mac` gọi node và `cli.js` đã cài, thiếu một trong hai thì thoát 127 (`renderLauncher`, mode
    755; đường dẫn ổn định mà phía server gọi `crew-mac stop-run` qua SSH); ghi plist `com.2p.crew-mac-sshd` (`renderPlist`) và nạp bằng `ensureService`;
    ghi plist `com.2p.crew-mac-reaper` (`reaperPlistSpec`, chạy `crew-mac reap` mỗi 60 giây) và nạp bằng
-   `ensureService`; ghi `~/.crew-mac/manifest.json`. Mọi file ghi qua `writeIfChanged`, nên chạy lại không đổi gì;
+   `ensureService`; ghi `~/.crew-mac/manifest.json`. Chế độ app (`sshdOwner: 'app'`) bỏ bước plist sshd, xem
+   "Chủ sshd agent". Mọi file ghi qua `writeIfChanged`, nên chạy lại không đổi gì;
    đường dẫn là symlink (dotfiles của owner) thì ghi vào file đích và giữ symlink, file có sẵn của owner
    (`~/.zshenv`, `authorized_keys`) giữ mode cũ. `~/.zshenv` có dòng mở khối PATH mà thiếu dòng đóng thì dừng trước
    khi ghi gì, yêu cầu owner sửa tay. Trước mọi file khác, `installSuperpowersPin` (flow `mac-workflows`) copy bản
    Superpowers owner đã cài vào `~/.crew/workflows/superpowers/<version>-<rev12>`; owner chưa cài đúng bản ghim thì
    dừng với `SetupError` khi máy còn nguyên. `SetupReport.superpowers` trả thư mục ghim và `extraArgs` cho agent.
-3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent và cổng, LaunchAgent reaper (`checkReaper`),
+3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent theo chủ (`checkSshdService` cho
+   LaunchAgent, `checkAppSshd` cho app) ngay sau đó là `tcc-owner` (`checkTccOwner`), cổng sshd, LaunchAgent reaper (`checkReaper`),
    PATH (`checkZshenv`, id `zshenv-path`: khối có đúng `~/.local/bin` và thư mục node hiện tại), wrapper, node trong
    PATH của sshd agent (`checkAgentNode`, id `agent-node`: `command -v node` qua chính sshd agent, `fail` kèm gợi ý chạy
    lại setup), launcher (`checkLauncher`: có, chạy được, còn trỏ tới node và `cli.js` tồn tại), Superpowers ghim
@@ -62,15 +65,47 @@ không cần token và không login lại.
    `claude auth status` qua chính sshd agent (`sshArgs`, `-F /dev/null`, key doctor), phép thử `claude -p` trong git
    repo tạm, chạy trong process group riêng và `SIGKILL` cả group khi quá hạn hoặc khi xong (`printProbeScript`),
    hộp thoại TCC đang chờ (`/usr/bin/log show --last <window>`, `parsePendingTccPrompts`, `tccHint`; doctor luôn dùng cửa sổ 24 giờ; dòng log lệch định dạng thì
-   cảnh báo; chỉ `fail` khi hộp thoại thuộc agent, xem `isAgentTccSubject`: subject là claude/node hoặc `identifier=com.anthropic.claude-code` trong cùng dòng log), tải máy (`parseLoad`; số liệu không đọc được thì cảnh báo; gọi `/usr/sbin/sysctl` và `/usr/bin/memory_pressure` bằng đường dẫn tuyệt đối).
+   cảnh báo; chỉ `fail` khi hộp thoại thuộc agent, xem `isAgentTccSubject`: subject là claude/node, `identifier=com.anthropic.claude-code` trong cùng dòng log, hoặc subject/identifier là bundle app `com.2p-solutions.crew.mac` vì app là responsible process của run), tải máy (`parseLoad`; số liệu không đọc được thì cảnh báo; gọi `/usr/sbin/sysctl` và `/usr/bin/memory_pressure` bằng đường dẫn tuyệt đối).
 4. `apps/crew-mac/src/commands/uninstall.ts` → `uninstall`: bootout và xóa plist crew-mac lẫn spike
    (`com.2p.crew-spike-sshd`), gỡ key theo comment, gỡ khối PATH và hai dòng PATH spike, xóa `~/.crew-mac` và
    `~/.crew-spike-sshd`, wrapper và launcher (và `~/.crew/bin` nếu rỗng). Không đụng phần còn lại của `~/.crew` (của `crewd` v2).
    Giữ nguyên thư mục worktree. Kiểm theo hướng fail-closed (`scanUninstallBlockers`), từ chối khi còn: `claude`/`node --print` có `PAPERCLIP_RUN_ID`
    (run Paperclip đang chạy), claude/node `--print` không tty mà `ps -E` thật sự không trả được env (`ProcInfo.envReadable`; không chắc; `node -p "<expr>"` và claude nền đọc được env mà không có run id thì không chặn), con cháu của sshd agent
-   (phiên SSH đang mở, không phụ thuộc env), hoặc không đọc được bảng process. `--force` bỏ qua CẢ hai kiểm: phiên sshd của
+   (phiên SSH đang mở, không phụ thuộc env; sshd agent là job launchd, hoặc listener của app tìm theo
+   `~/.crew-mac/sshd/sshd.pid` khi argv đúng listener của crew-mac), hoặc không đọc được bảng process. Chế độ app thì
+   không bootout `com.2p.crew-mac-sshd`, không đụng listener của app, và báo thêm dòng "sshd do app 2P Crew giữ: thoát
+   app để dừng" (`UninstallReport.notes`). `--force` bỏ qua CẢ hai kiểm: phiên sshd của
    chính lệnh uninstall lẫn kiểm run Paperclip. Giữa lúc kiểm và lúc bootout còn một khe ngắn (vài giây) Paperclip có thể giao
    run mới: nên tạm dừng agent trên Paperclip trước khi uninstall.
+
+## Chủ sshd agent
+
+`manifest.json` có trường tùy chọn `sshdOwner` (`'launchd' | 'app'`, không có = `launchd`; `version` vẫn 1).
+
+| Chế độ | Ai sinh listener cổng 2222 | `setup` | `doctor` `sshd-agent` | `doctor` `tcc-owner` |
+|---|---|---|---|---|
+| `launchd` | LaunchAgent `com.2p.crew-mac-sshd` | ghi plist, `ensureService` như cũ | job đang chạy | `warn`: quyền macOS gắn theo bản Claude |
+| `app` | app 2P Crew (process con của app, `/usr/sbin/sshd -D -f ~/.crew-mac/sshd/sshd_config`) | không ghi plist sshd; bootout job nếu đang nạp, xóa plist; không tự sinh sshd | pidfile sống, argv đúng, cha là `…/2P Crew.app/Contents/MacOS/…` | `ok` khi cha là app |
+
+- `setup` không cờ giữ chủ trong manifest (cài mới: `launchd`), để không bao giờ có hai chủ một cổng. Chỉ
+  `--sshd-owner` mới đổi (`resolveSshdOwner`). `SetupReport.sshdHandoff` là `app`, `launchd` hoặc `unchanged`.
+- Đổi chủ (cả hai chiều) dùng `assertNoLiveRuns` của `uninstall`: còn run Paperclip, phiên SSH qua sshd agent hay
+  process không chắc thì `SetupError`, trừ `--force`. `cli.ts` từ chối thêm khi lệnh chạy qua chính sshd agent
+  (`SSH_CONNECTION` trỏ cổng agent), mã 2, trừ `--force`.
+- Sang app (`handOffToApp`): bootout chỉ khi job đang nạp, ghi manifest `app` ngay sau đó.
+- Về launchd (`takeBackToLaunchd`): ghi manifest `launchd` TRƯỚC (app thấy và tự dừng listener), chờ tối đa 15 giây cho
+  pid trong `~/.crew-mac/sshd/sshd.pid` thoát; còn sống và argv đúng listener của crew-mac (`isCrewListener`: đầu là
+  `/usr/sbin/sshd`, có `-f <sshd_config>`, không phải `sshd-session`) thì TERM rồi chờ nhả cổng; pid lạ ngay lần kiểm
+  đầu thì `SetupError` và không bootstrap. Không bao giờ gửi tín hiệu cho `sshd-session`. Sau đó ghi plist và
+  bootstrap như cũ.
+- `doctor` chế độ app (`probeListener`): job launchd sshd vẫn nạp thì `fail` (hai chủ); không có listener hay pid lạ
+  thì `fail`, gợi ý "Mở 2P Crew"; listener mồ côi (cha là launchd pid 1: app đã thoát hoặc crash) thì `warn`; cha
+  khác thì `warn` nêu tên cha.
+- `tcc-owner` kiểm theo chuỗi cha vì Node không gọi được `responsibility_get_pid_responsible_for_pid`; chuỗi cha khớp
+  responsible thật khi app còn sống. Khi app đã chết, hàm hệ thống đó trả chính pid của listener nhưng tccd vẫn gán
+  quyền theo bundle app đã lưu (đo ngày 09/10/2026), nên listener mồ côi là `warn` có giải thích, không `fail`.
+- App 2P Crew gọi `setup({ sshdOwner: 'app' })` / `setup({ sshdOwner: 'launchd' })` qua `@crew/mac` (kiểu
+  `SshdOwner` export từ `index.ts`), chỉ khi 0 run.
 
 ## Files
 
@@ -83,7 +118,8 @@ không cần token và không login lại.
 | `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, reaper, manifest, paths |
 | `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
-| `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt | `readManifest`, `writeManifest` |
+| `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt (kể cả `sshdOwner` tùy chọn) | `readManifest`, `writeManifest` |
+| `apps/crew-mac/src/sshd-owner.ts` | Chủ sshd agent: chuyển sang app, trả về LaunchAgent, đọc listener theo pidfile | `SshdOwner`, `resolveSshdOwner`, `handOffToApp`, `takeBackToLaunchd`, `probeListener`, `isCrewListener`, `APP_BUNDLE_ID` |
 | `apps/crew-mac/src/zshenv.ts` | Khối PATH | `upsertPathBlock`, `pathBlockBody`, `hasPathBlock`, `removePathBlock`, `removeSpikePathLines` |
 | `apps/crew-mac/src/authorized-keys.ts` | Dòng key | `parsePublicKey`, `upsertKey`, `removeKeysByComment` |
 | `apps/crew-mac/src/plist.ts` | Plist LaunchAgent | `renderPlist` |
@@ -93,9 +129,9 @@ không cần token và không login lại.
 | `apps/crew-mac/src/wrapper.ts` | Đường dẫn nguồn wrapper | `WRAPPER_SOURCE` |
 | `apps/crew-mac/src/launcher.ts` | Script `~/.crew/bin/crew-mac` | `renderLauncher`, `parseLauncher` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: với run Paperclip, đòi đúng một `--plugin-dir` và gọi `crew-mac workflow-check` (từ chối thì thoát 78, không chạy agent; flow `mac-workflows`), ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
-| `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `SetupReport`, `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
-| `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkZshenv`, `checkAgentNode`, `checkWrapper`, `checkLauncher`, `checkSuperpowersPin`, `checkWorktreeWorkflows`, `checkReaper`, `checkCrewDocs`, `parsePendingTccPrompts`, `printProbeScript` |
-| `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers` |
+| `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `SetupOptions` (`sshdOwner`, `force`), `SetupReport` (`sshdHandoff`), `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
+| `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkAppSshd`, `checkTccOwner`, `checkZshenv`, `checkAgentNode`, `checkWrapper`, `checkLauncher`, `checkSuperpowersPin`, `checkWorktreeWorkflows`, `checkReaper`, `checkCrewDocs`, `parsePendingTccPrompts`, `printProbeScript` |
+| `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers`, `assertNoLiveRuns` (setup dùng khi đổi chủ sshd) |
 | `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook | `configureStatus`, `setStatusSecret`, `sendStatus` |
 | `apps/crew-mac/src/status/sign.ts` | Ký raw body | `signCrewBody` |
 | `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 | `buildMachineReport` |
@@ -159,7 +195,7 @@ cùng quy tắc HMAC với bản tin máy. Lệnh chỉ cảnh báo số trang b
 
 Quyền đọc vùng được bảo vệ gắn theo đường dẫn binary Claude (`~/.local/share/claude/versions/<bản>`). Mỗi lần Claude
 Code tự cập nhật, macOS có thể hỏi lại; khi hộp thoại chưa được bấm thì mọi lần đọc vùng đó của agent treo im lặng.
-R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tcc-pending` chỉ `fail` khi hộp thoại thuộc `claude` (kể cả `…/claude/versions/<bản>`) hoặc `node`; hộp thoại của app khác chỉ `warn`. Status dùng probe nối tiếp riêng để tránh đọc lại 24 giờ mỗi phút. Ký số app cố định quyền là việc của R2.
+R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tcc-pending` chỉ `fail` khi hộp thoại thuộc `claude` (kể cả `…/claude/versions/<bản>`), `node` hoặc app 2P Crew (`com.2p-solutions.crew.mac`); hộp thoại của app khác chỉ `warn`. Chế độ app thì quyền gắn với bundle app một lần (check `tcc-owner`). Status dùng probe nối tiếp riêng để tránh đọc lại 24 giờ mỗi phút. Ký số app cố định quyền là việc của R2.
 
 ## Flow liên quan
 
@@ -168,12 +204,13 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 
 ## Tests
 
-- `apps/crew-mac/test/setup.test.ts`: cài lần đầu (khối PATH có thư mục node), ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
-- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `agent-node` (sshd agent không thấy node) và `zshenv-path` thiếu thư mục node, `crew-docs` node mã 127 thì gợi ý sửa PATH, `superpowers-pin` (thiếu, lệch checksum, symlink, mất bit thực thi, bản owner khác pin), `worktree-workflows` (sạch, `SKILL.md` sửa dở thì warn, `settings.json` sửa dở thì fail kèm lệnh, git quá hạn thì dừng), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail) và của app khác (warn), `isAgentTccSubject`, chưa đăng nhập, IP đổi, quá tải.
+- `apps/crew-mac/test/sshd-owner.test.ts`: `resolveSshdOwner`, manifest có/không `sshdOwner` và giá trị lạ, `isCrewListener`, `probeListener` (không pidfile, pid chết, pid lạ, listener sống kèm cha), `takeBackToLaunchd` (listener tự thoát thì không kill, mồ côi thì đúng một TERM, `sshd-session` thì báo lỗi không kill, không pidfile thì không gọi `ps`).
+- `apps/crew-mac/test/setup.test.ts`: chủ sshd (sang app: đúng một bootout, xóa plist, config và host key không đổi; chạy lại không đổi gì; còn run thì từ chối, `force` thì chạy; về launchd: manifest ghi trước lần kiểm pid đầu, không kill khi listener tự thoát, pid là `sshd-session` thì không kill không bootstrap, không pidfile thì bootstrap ngay), cài lần đầu (khối PATH có thư mục node), ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
+- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `agent-node` (sshd agent không thấy node) và `zshenv-path` thiếu thư mục node, `crew-docs` node mã 127 thì gợi ý sửa PATH, `superpowers-pin` (thiếu, lệch checksum, symlink, mất bit thực thi, bản owner khác pin), `worktree-workflows` (sạch, `SKILL.md` sửa dở thì warn, `settings.json` sửa dở thì fail kèm lệnh, git quá hạn thì dừng), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail, kể cả của app 2P Crew) và của app khác (warn), `isAgentTccSubject`, chủ sshd và `tcc-owner` (con của app thì đạt, mồ côi thì cảnh báo, cha khác, không listener thì fail, job launchd còn nạp ở chế độ app thì fail, chế độ LaunchAgent thì `tcc-owner` cảnh báo), chưa đăng nhập, IP đổi, quá tải.
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.
-- `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống.
+- `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống; chế độ app không bootout sshd, không kill listener, báo cách dừng, và phiên SSH dưới listener của app thì từ chối.
 - `apps/crew-mac/test/index.test.ts`: thư viện export đủ hàm app cần; `createMacContext` giữ `cliPath` được truyền.
-- `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.
+- `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip, chặn `setup --sshd-owner` qua chính sshd agent (`--force` thì chạy), `--sshd-owner` giá trị lạ.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.
 - `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
 - `apps/crew-mac/test/status.test.ts` báo rõ bước thất bại của `status send` (Keychain, kết nối) mà không lộ secret; `system-wrappers.test.ts` có ca Tailscale dưới PATH tối thiểu.

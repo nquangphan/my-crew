@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import type { MacContext } from '../../src/context.js';
+import type { Manifest } from '../../src/manifest.js';
 import { SPIKE_LABEL } from '../../src/paths.js';
 import type { WorkflowPin } from '../../src/workflows/pin.js';
 import { FakeRunner } from './fake-runner.js';
@@ -137,4 +138,50 @@ export function fakeMac(
     superpowersPin: FIXTURE_PIN,
   };
   return { home, ctx, runner, loaded, out };
+}
+
+/** Manifest hợp lệ tối thiểu (chế độ LaunchAgent, không có trường `sshdOwner`). */
+export const BASE_MANIFEST: Manifest = {
+  version: 1,
+  port: 2222,
+  listenAddress: '100.102.189.67',
+  worktreeRoot: '/Users/owner/crew-agents',
+  paperclipKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaperclipTestKey000000000000000000000000',
+  installedAt: '2026-10-06T07:00:00.000Z',
+};
+
+export const APP_EXECUTABLE = '/Applications/2P Crew.app/Contents/MacOS/2P Crew';
+
+export interface FakeProc {
+  ppid: number;
+  /** argv đầy đủ (`ps -o command=`). */
+  command: string;
+  /** `ps -o comm=`: đường dẫn file thực thi; mặc định là token đầu của `command`. */
+  comm?: string;
+}
+
+/**
+ * Thay handler `/bin/ps` bằng bảng process giả: trả lời `ps -o pid=,ppid=,command= -p <pid>`, `ps -o comm= -p <pid>`
+ * và ba lệnh quét toàn bảng của `listProcesses`. `table` được gọi lại mỗi lần để test cho process sống/chết theo lượt.
+ */
+export function fakeProcs(runner: FakeRunner, table: () => Partial<Record<number, FakeProc>>): void {
+  runner.on('/bin/ps', (args) => {
+    const procs = table();
+    const at = args.indexOf('-p');
+    if (at >= 0) {
+      const pid = Number(args[at + 1]);
+      const proc = procs[pid];
+      if (!proc) return { code: 1 };
+      if (args.includes('comm=')) return { stdout: `${proc.comm ?? proc.command.split(' ')[0]}\n` };
+      return { stdout: `${pid} ${proc.ppid} ${proc.command}\n` };
+    }
+    const rows = Object.entries(procs).filter((row): row is [string, FakeProc] => row[1] !== undefined);
+    if (args.some((a) => a.includes('comm=')))
+      return {
+        stdout: rows
+          .map(([pid, p]) => `${pid} ${p.ppid} ${pid} ?? 01:00 ${p.comm ?? p.command.split(' ')[0]}\n`)
+          .join(''),
+      };
+    return { stdout: rows.map(([pid, p]) => `${pid} ${p.command}\n`).join('') };
+  });
 }

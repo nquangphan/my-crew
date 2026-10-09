@@ -75,6 +75,7 @@ flows:
       - apps/crew-mac/src/paths.ts
       - apps/crew-mac/src/fs-util.ts
       - apps/crew-mac/src/manifest.ts
+      - apps/crew-mac/src/sshd-owner.ts
       - apps/crew-mac/src/zshenv.ts
       - apps/crew-mac/src/authorized-keys.ts
       - apps/crew-mac/src/plist.ts
@@ -99,6 +100,7 @@ flows:
       - apps/crew-mac/test/system-wrappers.test.ts
       - apps/crew-mac/test/crew-claude-run.test.ts
       - apps/crew-mac/test/launcher.test.ts
+      - apps/crew-mac/test/sshd-owner.test.ts
       - apps/crew-mac/test/setup.test.ts
       - apps/crew-mac/test/doctor.test.ts
       - apps/crew-mac/test/uninstall.test.ts

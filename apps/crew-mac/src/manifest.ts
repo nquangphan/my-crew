@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { SetupError } from './context.js';
 import { writeIfChanged } from './fs-util.js';
+import type { SshdOwner } from './sshd-owner.js';
 
 export interface Manifest {
   version: 1;
@@ -9,6 +10,8 @@ export interface Manifest {
   worktreeRoot: string;
   paperclipKey: string;
   installedAt: string;
+  /** Không có = `launchd` (manifest trước khi có app 2P Crew vẫn đọc được). */
+  sshdOwner?: SshdOwner;
 }
 
 export function readManifest(path: string): Manifest | null {
@@ -20,7 +23,8 @@ export function readManifest(path: string): Manifest | null {
     typeof raw.listenAddress !== 'string' ||
     typeof raw.worktreeRoot !== 'string' ||
     typeof raw.paperclipKey !== 'string' ||
-    typeof raw.installedAt !== 'string'
+    typeof raw.installedAt !== 'string' ||
+    (raw.sshdOwner !== undefined && raw.sshdOwner !== 'launchd' && raw.sshdOwner !== 'app')
   ) {
     throw new SetupError(`${path} hỏng; xóa file rồi chạy lại "crew-mac setup".`);
   }

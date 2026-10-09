@@ -17,11 +17,14 @@ import {
 } from '../paths.js';
 import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
 import { descendants, isClaudeExe } from '../reaper/run-members.js';
+import { currentSshdOwner, isCrewListener, readSshdPid } from '../sshd-owner.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
 export interface UninstallReport {
   removed: string[];
   kept: string[];
+  /** Việc crew-mac cố ý không làm (chỉ có khi cần báo). */
+  notes?: string[];
 }
 
 function manifestOrNull(path: string): Manifest | null {
@@ -72,10 +75,19 @@ export async function scanUninstallBlockers(ctx: MacContext): Promise<UninstallS
     if (p.runId !== null) runIds.add(p.runId);
     else if (p.tty === '??' && !p.envReadable) unknownPids.push(p.pid);
   }
-  const sshdSessionPids = new Set<number>();
+  const listeners: number[] = [];
   for (const label of [SSHD_LABEL, SPIKE_LABEL]) {
     const { pid } = await serviceState(ctx.runner, ctx.uid, label);
-    if (pid === null) continue;
+    if (pid !== null) listeners.push(pid);
+  }
+  // Listener do app 2P Crew giữ không phải job launchd: tìm theo pidfile, chỉ khi argv đúng listener của crew-mac.
+  const paths = macPaths(ctx.home);
+  const appListener = readSshdPid(paths.sshdPid);
+  const appListenerProc = procs.find((p) => p.pid === appListener);
+  if (appListenerProc && isCrewListener(appListenerProc.command, paths.sshdConfig))
+    listeners.push(appListenerProc.pid);
+  const sshdSessionPids = new Set<number>();
+  for (const pid of listeners) {
     for (const child of descendants(pid, procs)) if (child !== pid) sshdSessionPids.add(child);
   }
   return {
@@ -85,7 +97,7 @@ export async function scanUninstallBlockers(ctx: MacContext): Promise<UninstallS
   };
 }
 
-async function assertNoLiveRuns(ctx: MacContext): Promise<void> {
+export async function assertNoLiveRuns(ctx: MacContext): Promise<void> {
   let scan: UninstallScan;
   try {
     scan = await scanUninstallBlockers(ctx);
@@ -126,8 +138,12 @@ export async function uninstall(
     ? removeSpikePathLines(removePathBlock(readText(paths.zshenv)))
     : null;
   const removed: string[] = [];
+  const appOwnsSshd = currentSshdOwner(manifest) === 'app';
+  const notes = appOwnsSshd ? ['sshd do app 2P Crew giữ: thoát app để dừng'] : [];
 
-  for (const label of [STATUS_LABEL, REAPER_LABEL, SSHD_LABEL, SPIKE_LABEL]) {
+  // Chế độ app: không bootout sshd và không đụng listener của app (app tự dừng khi thoát).
+  const labels = [STATUS_LABEL, REAPER_LABEL, ...(appOwnsSshd ? [] : [SSHD_LABEL]), SPIKE_LABEL];
+  for (const label of labels) {
     if (await bootout(ctx.runner, ctx.uid, label)) removed.push(`LaunchAgent ${label}`);
   }
   for (const file of [paths.statusPlist, paths.reaperPlist, paths.sshdPlist, paths.spikePlist]) {
@@ -167,5 +183,5 @@ export async function uninstall(
       removed.push(dir);
     }
   }
-  return { removed, kept: manifest ? [manifest.worktreeRoot] : [] };
+  return { removed, kept: manifest ? [manifest.worktreeRoot] : [], ...(notes.length > 0 ? { notes } : {}) };
 }

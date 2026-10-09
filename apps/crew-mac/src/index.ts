@@ -20,3 +20,4 @@ export { type Manifest, readManifest } from './manifest.js';
 export { DEFAULT_PORT, forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL } from './paths.js';
 export { listProcesses, type ProcInfo, readCwds } from './reaper/process-table.js';
 export { isClaudePrint } from './reaper/select.js';
+export type { SshdOwner } from './sshd-owner.js';

@@ -15,7 +15,14 @@ import { uninstall } from '../src/commands/uninstall.js';
 import { SetupError } from '../src/context.js';
 import { macPaths, SPIKE_LABEL, SSHD_LABEL } from '../src/paths.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY, SPIKE_PATH_COMMENT } from '../src/zshenv.js';
-import { fakeMac, LIVE_PS, LIVE_RUN_ID, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import {
+  APP_EXECUTABLE,
+  fakeMac,
+  fakeProcs,
+  LIVE_PS,
+  LIVE_RUN_ID,
+  PAPERCLIP_PUB,
+} from './helpers/fake-mac.js';
 import type { FakeRunner } from './helpers/fake-runner.js';
 
 const OWNER_KEY = 'ssh-ed25519 AAAAOwnerKey owner@macbook';
@@ -237,5 +244,39 @@ describe('crew-mac uninstall', () => {
     await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
     await uninstall(ctx);
     expect(await uninstall(ctx)).toEqual({ removed: [], kept: [] });
+  });
+});
+
+describe('crew-mac uninstall khi app 2P Crew giữ sshd agent', () => {
+  async function appMode(extra: Record<number, { ppid: number; command: string }> = {}) {
+    const mac = fakeMac();
+    await setup(mac.ctx, { paperclipKey: PAPERCLIP_PUB });
+    await setup(mac.ctx, { sshdOwner: 'app' });
+    const paths = macPaths(mac.home);
+    writeFileSync(paths.sshdPid, '4242\n');
+    fakeProcs(mac.runner, () => ({
+      4100: { ppid: 1, command: APP_EXECUTABLE },
+      4242: { ppid: 4100, command: `/usr/sbin/sshd -D -f ${paths.sshdConfig} -E ${paths.sshdLog}` },
+      ...extra,
+    }));
+    return { ...mac, paths };
+  }
+
+  it('không bootout sshd, không đụng listener của app, gỡ phần còn lại và báo cách dừng sshd', async () => {
+    const t = await appMode();
+    const before = t.runner.calls.length;
+    const report = await uninstall(t.ctx);
+    const later = t.runner.commands().slice(before);
+    expect(later).not.toContain(`launchctl bootout gui/501/${SSHD_LABEL}`);
+    expect(later.some((c) => c.startsWith('/bin/kill'))).toBe(false);
+    expect(t.loaded.size).toBe(0);
+    expect(existsSync(t.paths.reaperPlist)).toBe(false);
+    expect(existsSync(t.paths.root)).toBe(false);
+    expect(report.notes).toContain('sshd do app 2P Crew giữ: thoát app để dừng');
+  });
+
+  it('còn phiên SSH qua listener của app thì từ chối', async () => {
+    const t = await appMode({ 4500: { ppid: 4242, command: 'sshd-session: owner@notty' } });
+    await expect(uninstall(t.ctx)).rejects.toThrow(/phiên SSH qua sshd agent \(pid 4500\)/);
   });
 });

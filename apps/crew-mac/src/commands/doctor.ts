@@ -13,6 +13,13 @@ import {
   SSHD_LABEL,
   STATUS_LABEL,
 } from '../paths.js';
+import {
+  APP_BUNDLE_ID,
+  currentSshdOwner,
+  isAppExecutable,
+  type ListenerProbe,
+  probeListener,
+} from '../sshd-owner.js';
 import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
@@ -99,7 +106,7 @@ const SERVICE_VI: Record<string, { what: string; section: string }> = {
 export function tccHint(prompt: PendingPrompt): string {
   const known = SERVICE_VI[prompt.service] ?? { what: prompt.service, section: 'Files and Folders' };
   return (
-    `Mở màn hình Mac (trực tiếp hoặc qua Chrome Remote Desktop), tìm hộp thoại "${basename(prompt.subject)}" ` +
+    `Mở màn hình Mac (trực tiếp hoặc qua Chrome Remote Desktop), tìm hộp thoại "${prompt.subject === APP_BUNDLE_ID ? '2P Crew' : basename(prompt.subject)}" ` +
     `muốn truy cập ${known.what}, bấm "Allow". Nếu không thấy hộp thoại: System Settings → Privacy & Security → ` +
     `${known.section}, bật quyền cho ${prompt.subject}. Claude Code cập nhật bản mới thì đường dẫn đổi và macOS hỏi lại.`
   );
@@ -167,6 +174,112 @@ async function checkTailscale(ctx: MacContext, manifest: Manifest): Promise<Chec
     };
   }
   return { ...base, status: 'ok', detail: ip };
+}
+
+const OPEN_APP_HINT = 'Mở 2P Crew (app giữ sshd agent ở chế độ này).';
+
+/** Chế độ app: listener theo pidfile phải sống, đúng argv của crew-mac, và là con của 2P Crew. */
+async function checkAppSshd(ctx: MacContext, paths: MacPaths, listener: ListenerProbe): Promise<CheckResult> {
+  const base = { id: 'sshd-agent', title: 'sshd agent (do app 2P Crew giữ)' };
+  const launchd = await serviceState(ctx.runner, ctx.uid, SSHD_LABEL);
+  if (launchd.loaded) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `manifest ghi app giữ sshd nhưng LaunchAgent ${SSHD_LABEL} vẫn nạp: hai chủ một cổng`,
+      hint: 'Khi không còn run: chạy "crew-mac setup --sshd-owner app" để gỡ LaunchAgent (hoặc "--sshd-owner launchd" để trả về LaunchAgent).',
+    };
+  }
+  if (listener.kind === 'none') {
+    return {
+      ...base,
+      status: 'fail',
+      detail:
+        listener.pid === null
+          ? `không có listener (chưa có ${paths.sshdPid})`
+          : `listener pid ${listener.pid} trong ${paths.sshdPid} không còn chạy`,
+      hint: OPEN_APP_HINT,
+    };
+  }
+  if (listener.kind === 'foreign') {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `pid ${listener.pid} trong ${paths.sshdPid} không phải listener của crew-mac (${listener.command})`,
+      hint: OPEN_APP_HINT,
+    };
+  }
+  if (listener.parent !== null && isAppExecutable(listener.parent)) {
+    return {
+      ...base,
+      status: 'ok',
+      detail: `listener pid ${listener.pid}, con của 2P Crew (pid ${listener.ppid})`,
+    };
+  }
+  if (listener.ppid === 1) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `listener mồ côi (app đã thoát hoặc crash), pid ${listener.pid}: vẫn nhận run nhưng chết thì không ai sinh lại`,
+      hint: 'Mở 2P Crew để app tiếp quản listener (cùng cổng, không cắt phiên đang chạy).',
+    };
+  }
+  return {
+    ...base,
+    status: 'warn',
+    detail: `listener pid ${listener.pid} có cha là ${listener.parent ?? '?'} (pid ${listener.ppid}), không phải 2P Crew`,
+    hint: 'Dừng tiến trình đã sinh sshd này rồi mở 2P Crew.',
+  };
+}
+
+/**
+ * Quyền macOS (TCC) của run gắn với ai. Kiểm theo chuỗi cha vì Node không gọi được
+ * `responsibility_get_pid_responsible_for_pid`; chuỗi cha khớp responsible thật khi app còn sống. Khi app đã chết,
+ * hàm hệ thống đó trả chính pid của listener nhưng tccd vẫn gán quyền theo bundle app đã lưu (đo thực tế), nên
+ * listener mồ côi chỉ là cảnh báo, không phải lỗi.
+ */
+function checkTccOwner(manifest: Manifest, listener: ListenerProbe | null): CheckResult {
+  const base = { id: 'tcc-owner', title: 'Quyền macOS của run gắn với' };
+  if (currentSshdOwner(manifest) === 'launchd' || listener === null) {
+    return {
+      ...base,
+      status: 'warn',
+      detail:
+        'chế độ LaunchAgent, quyền macOS gắn theo bản Claude (Claude Code cập nhật bản mới thì macOS có thể hỏi lại)',
+      hint: 'Dùng app 2P Crew giữ sshd agent để quyền gắn với app một lần (chỉ chuyển khi không còn run).',
+    };
+  }
+  if (listener.kind !== 'live') {
+    return {
+      ...base,
+      status: 'warn',
+      detail: 'chưa kiểm được: không có listener sshd của crew-mac (xem check sshd-agent)',
+      hint: OPEN_APP_HINT,
+    };
+  }
+  if (listener.parent !== null && isAppExecutable(listener.parent)) {
+    return {
+      ...base,
+      status: 'ok',
+      detail: `sshd là con của 2P Crew, quyền macOS gắn với app (${APP_BUNDLE_ID})`,
+    };
+  }
+  if (listener.ppid === 1) {
+    return {
+      ...base,
+      status: 'warn',
+      detail:
+        'listener mồ côi nên không kiểm được qua chuỗi cha; tccd vẫn gán quyền theo bundle 2P Crew đã lưu lúc app ' +
+        'sinh listener, nên run qua listener này vẫn dùng quyền của app',
+      hint: 'Mở 2P Crew để app tiếp quản listener và kiểm lại.',
+    };
+  }
+  return {
+    ...base,
+    status: 'warn',
+    detail: `quyền macOS gắn theo ${listener.parent ?? `pid ${listener.ppid}`}, không phải 2P Crew`,
+    hint: 'Dừng tiến trình đã sinh sshd này rồi mở 2P Crew.',
+  };
 }
 
 async function checkSshdService(ctx: MacContext): Promise<CheckResult> {
@@ -554,6 +667,8 @@ const CLAUDE_CODE_IDENTIFIER = 'com.anthropic.claude-code';
 /** Hộp thoại quyền của chính agent (claude theo version hoặc node chạy crew-mac/claude) thì chặn agent; app khác thì không. */
 export function isAgentTccSubject(subject: string, identifier: string | null = null): boolean {
   if (identifier === CLAUDE_CODE_IDENTIFIER) return true;
+  // App 2P Crew là responsible process của run: hộp thoại hỏi theo bundle app vẫn chặn agent.
+  if (identifier === APP_BUNDLE_ID || subject === APP_BUNDLE_ID) return true;
   const name = basename(subject);
   return name === 'claude' || name === 'node' || /\/claude\/versions\/[^/]+$/.test(subject);
 }
@@ -823,7 +938,9 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   }
   const results: CheckResult[] = [];
   results.push(await checkTailscale(ctx, manifest));
-  results.push(await checkSshdService(ctx));
+  const listener = currentSshdOwner(manifest) === 'app' ? await probeListener(ctx, paths) : null;
+  results.push(listener === null ? await checkSshdService(ctx) : await checkAppSshd(ctx, paths, listener));
+  results.push(checkTccOwner(manifest, listener));
   results.push(await checkReaper(ctx));
   results.push(await checkStatusJob(ctx));
   results.push(checkStatusLast(ctx));

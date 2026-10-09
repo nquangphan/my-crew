@@ -24,9 +24,16 @@ import {
   tccHint,
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
-import { macPaths } from '../src/paths.js';
+import { macPaths, SSHD_LABEL } from '../src/paths.js';
 import { superpowersPinDir } from '../src/workflows/pin.js';
-import { FIXTURE_PIN, fakeMac, installedPluginsFile, PAPERCLIP_PUB } from './helpers/fake-mac.js';
+import {
+  APP_EXECUTABLE,
+  FIXTURE_PIN,
+  fakeMac,
+  fakeProcs,
+  installedPluginsFile,
+  PAPERCLIP_PUB,
+} from './helpers/fake-mac.js';
 
 // Dòng log thật của tccd trên Mac mini ngày 06/10/2026 (rút gọn phần đuôi): hộp thoại quyền ổ ngoài đang chờ.
 const TCC_LOG = [
@@ -349,6 +356,7 @@ describe('crew-mac doctor', () => {
     expect(results.map((r) => [r.id, r.status])).toEqual([
       ['tailscale', 'ok'],
       ['sshd-agent', 'ok'],
+      ['tcc-owner', 'warn'],
       ['reaper', 'ok'],
       ['status-job', 'ok'],
       ['status-last', 'warn'],
@@ -691,5 +699,96 @@ describe('crew-mac doctor', () => {
     rmSync(paths.launcher);
     results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.find((r) => r.id === 'launcher')?.status).toBe('fail');
+  });
+});
+
+describe('doctor: chủ sshd agent và tcc-owner', () => {
+  const OPTIONS = { probe: false, tccWindow: '24h', probeTimeoutSec: 90 };
+
+  /** Máy khỏe đã chuyển sang chế độ app; `parent` là cha của listener 4242, null thì không có listener. */
+  async function appMode(parent: { pid: number; exe: string } | null) {
+    const mac = await installed(okSsh);
+    await setup(mac.ctx, { sshdOwner: 'app' });
+    const paths = macPaths(mac.home);
+    if (parent !== null) {
+      writeFileSync(paths.sshdPid, '4242\n');
+      fakeProcs(mac.runner, () => ({
+        4242: { ppid: parent.pid, command: `/usr/sbin/sshd -D -f ${paths.sshdConfig} -E ${paths.sshdLog}` },
+        [parent.pid]: { ppid: 0, command: parent.exe, comm: parent.exe },
+      }));
+    } else {
+      fakeProcs(mac.runner, () => ({}));
+    }
+    const results = await doctor(mac.ctx, OPTIONS);
+    const byId = (id: string) => results.find((r) => r.id === id);
+    return { mac, results, sshd: byId('sshd-agent'), tcc: byId('tcc-owner') };
+  }
+
+  it('listener là con của 2P Crew: sshd-agent và tcc-owner đạt, tcc-owner ngay sau sshd-agent', async () => {
+    const t = await appMode({ pid: 4100, exe: APP_EXECUTABLE });
+    expect(t.sshd).toMatchObject({ status: 'ok', detail: expect.stringContaining('con của 2P Crew') });
+    expect(t.tcc).toMatchObject({ status: 'ok', detail: expect.stringContaining('quyền macOS gắn với app') });
+    const ids = t.results.map((r) => r.id);
+    expect(ids.indexOf('tcc-owner')).toBe(ids.indexOf('sshd-agent') + 1);
+  });
+
+  it('app đã thoát hoặc crash (listener mồ côi): cảnh báo, không fail, giải thích TCC vẫn gán theo app', async () => {
+    const t = await appMode({ pid: 1, exe: '/sbin/launchd' });
+    expect(t.sshd).toMatchObject({
+      status: 'warn',
+      detail: expect.stringContaining('listener mồ côi (app đã thoát hoặc crash)'),
+      hint: expect.stringContaining('Mở 2P Crew'),
+    });
+    expect(t.tcc?.status).toBe('warn');
+    expect(t.tcc?.detail).toContain('vẫn gán');
+    expect(t.tcc?.hint).toContain('Mở 2P Crew');
+  });
+
+  it('cha không phải 2P Crew: cảnh báo, nêu tên cha', async () => {
+    const t = await appMode({
+      pid: 777,
+      exe: '/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal',
+    });
+    expect(t.sshd?.status).toBe('warn');
+    expect(t.tcc).toMatchObject({ status: 'warn', detail: expect.stringContaining('Terminal') });
+  });
+
+  it('chế độ app mà không có listener: sshd-agent fail, gợi ý mở app; tcc-owner chỉ cảnh báo', async () => {
+    const t = await appMode(null);
+    expect(t.sshd).toMatchObject({ status: 'fail', hint: 'Mở 2P Crew (app giữ sshd agent ở chế độ này).' });
+    expect(t.tcc?.status).toBe('warn');
+  });
+
+  it('chế độ app mà LaunchAgent sshd vẫn nạp: fail vì hai chủ một cổng', async () => {
+    const mac = await installed(okSsh);
+    await setup(mac.ctx, { sshdOwner: 'app' });
+    mac.loaded.add(SSHD_LABEL);
+    fakeProcs(mac.runner, () => ({}));
+    const sshd = (await doctor(mac.ctx, OPTIONS)).find((r) => r.id === 'sshd-agent');
+    expect(sshd).toMatchObject({ status: 'fail', detail: expect.stringContaining('hai chủ') });
+  });
+
+  it('chế độ LaunchAgent: sshd-agent như cũ, tcc-owner cảnh báo quyền gắn theo bản Claude', async () => {
+    const mac = await installed(okSsh);
+    const results = await doctor(mac.ctx, OPTIONS);
+    expect(results.find((r) => r.id === 'sshd-agent')?.status).toBe('ok');
+    expect(results.find((r) => r.id === 'tcc-owner')).toMatchObject({
+      status: 'warn',
+      detail: expect.stringContaining('chế độ LaunchAgent, quyền macOS gắn theo bản Claude'),
+    });
+    expect(mac.runner.calls.some((c) => c.command === '/bin/ps' && c.args.includes('-p'))).toBe(false);
+  });
+
+  it('hộp thoại quyền của app 2P Crew tính là của agent', async () => {
+    expect(isAgentTccSubject('com.2p-solutions.crew.mac')).toBe(true);
+    expect(isAgentTccSubject('/x/y', 'com.2p-solutions.crew.mac')).toBe(true);
+    expect(isAgentTccSubject('com.2p-solutions.crew')).toBe(false);
+    // Dạng dòng log thật của tccd khi app (responsible) hỏi quyền ổ rời.
+    const line =
+      '2026-10-09 12:08:12.188 Df tccd[75697:6cc2771] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=53246.17344, service=kTCCServiceSystemPolicyRemovableVolumes, subject=Sub:{com.2p-solutions.crew.mac}Resp:{TCCDProcess: identifier=com.2p-solutions.crew.mac, pid=21600, auid=501, euid=501, responsible_path=/Applications/2P Crew.app/Contents/MacOS/2P Crew, binary_path=/Applications/2P Crew.app/Contents/MacOS/2P Crew},';
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/log', () => ({ stdout: `Timestamp\n${line}\n` }));
+    const tcc = (await doctor(mac.ctx, OPTIONS)).find((r) => r.id === 'tcc-pending');
+    expect(tcc?.status).toBe('fail');
   });
 });
