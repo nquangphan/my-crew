@@ -1,7 +1,7 @@
 # Hướng dẫn đóng góp
 
-Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew`. Muốn dựng máy dev trước, xem
-[`guides/dev-setup.md`](guides/dev-setup.md).
+Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew`. Chạy `pnpm install` là đủ để
+dựng máy dev.
 
 ## Thứ tự đọc trước khi sửa code
 
@@ -62,10 +62,7 @@ mạng. Chi tiết cơ chế phát hiện hook và nội dung workflow đó nằ
 [`flows/docs-hooks.md`](flows/docs-hooks.md).
 
 CI chính của repo (không phải workflow riêng của crew-docs) chạy trong `.github/workflows/ci.yml`: job `check`
-gồm typecheck, lint, `crew-docs check --range` rồi `check --all`, toàn bộ test, build web/daemon/desktop, và
-shellcheck script deploy; job `e2e` chạy Playwright toàn hệ thống; job `release`/`runtime-release` build và
-phát hành khi đẩy tag `v*`/`runtime-v*`. Tóm tắt đầy đủ từng bước nằm ở mục CI trong
-[`flows/deployment.md`](flows/deployment.md).
+gồm typecheck, lint, bundle `crew-docs`, `crew-docs check --range` rồi `check --all`, toàn bộ test và build.
 
 ## Thêm file nguồn mới
 
@@ -88,5 +85,5 @@ phát hành khi đẩy tag `v*`/`runtime-v*`. Tóm tắt đầy đủ từng bư
 ## Không commit credential
 
 Không commit mật khẩu, token, khoá ký hay bất kỳ giá trị bí mật thật nào — kể cả trong test hay file mẫu
-(`.env.example` chỉ chứa tên biến và giá trị mẫu cục bộ vô hại). `crew-docs check` chặn credential ở dòng mới
+(file mẫu chỉ chứa tên biến và giá trị mẫu vô hại). `crew-docs check` chặn credential ở dòng mới
 thêm trong diff (luật R7) và không có cách bỏ qua.

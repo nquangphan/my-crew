@@ -1,9 +1,8 @@
 # AGENTS.md
 
-Hướng dẫn cho agent (và người) làm việc trong repo này. Repo `crew` là pnpm TypeScript monorepo cho **2P
-Crew**: `apps/api` (Fastify + Drizzle + PostgreSQL), `apps/web` (React 19 + Vite + TanStack Router/Query),
-`apps/daemon` (daemon `crewd` chạy agent Claude Code trên máy local qua Agent SDK), `packages/shared` (schema
-zod dùng chung) và `packages/docs-kit` (CLI `crew-docs`).
+Hướng dẫn cho agent (và người) làm việc trong repo này. Repo `crew` là pnpm TypeScript monorepo của **2P
+Crew**. Sản phẩm Crew v3 chạy trên bản fork Paperclip nằm ở repo khác; repo này chỉ giữ `apps/crew-mac` (CLI
+`crew-mac` cài và kiểm Mac chạy agent), `packages/docs-kit` (CLI `crew-docs`), cùng `docs/` và `plans/`.
 
 ## Đọc trước tiên
 
@@ -15,20 +14,12 @@ zod dùng chung) và `packages/docs-kit` (CLI `crew-docs`).
 ## Lệnh
 
 - Cài đặt: `pnpm install`
-- Database dev/test (Postgres, container `crew-dev-postgres` trên `127.0.0.1:55432` — không bao giờ dùng cổng
-  5432 mặc định): `docker compose -f docker-compose.dev.yml up -d --wait`
 - Typecheck: `pnpm -r typecheck`
 - Test (tất cả package): `pnpm -r test`
-- Test E2E (web, Playwright, có server và DB riêng): `pnpm --filter @crew/web test:e2e`
 - Lint (biome, toàn repo): `pnpm lint`
 - Build (tất cả package): `pnpm -r build`
-- Chạy API dev (cổng 8787 mặc định, cần `DATABASE_URL`, `SESSION_SECRET` ≥ 32 ký tự, `PUBLIC_ORIGIN`):
-  `pnpm --filter @crew/api dev`
-- Chạy web dev (cổng 5173, proxy `/v1` sang API): `pnpm --filter @crew/web dev`
-- Migrate DB: `pnpm --filter @crew/api db:migrate`
-- Build bundle `crew-docs`: `pnpm --filter @crew/docs-kit build`
-
-Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
+- Build bundle `crew-docs`: `pnpm --filter @crew/docs-kit build` (ra `packages/docs-kit/dist/crew-docs.cjs`)
+- Build `crew-mac`: `pnpm --filter @crew/mac build` (ra `apps/crew-mac/dist/cli.js`)
 
 ## Quy ước
 
