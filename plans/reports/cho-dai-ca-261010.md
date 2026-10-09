@@ -18,3 +18,16 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 - R2-2 nghiệm thu UI (~10 phút ngồi máy): tạo issue kèm file, dán ảnh vào comment, thử file 10 MB + 1 byte trên giao diện.
 - R2-1 P1 đã chốt để R3 (ghi lại để nhớ).
 - PA-1 thêm quyền `companies.read` cho plugin (ngoài plan) để job biết quét company nào. Phủ quyết nếu không muốn.
+
+## R3 — 8 câu từ BA (`plans/261010-0020-crew-v3-r3/ba/ba-report.md` mục 5). Trợ Lý TẠM theo phương án khuyên để chạy tiếp; Đại Ca phủ quyết câu nào thì em đổi.
+1. UI Crew THAY HẲN UI Paperclip ở `crew.2p-solutions.com` (chép bản build vào `server/ui-dist` qua overlay, không sửa lõi, không thêm subdomain).
+2. App 2P Crew trên Mac kéo hàng đợi "việc cần làm trên máy" (thêm project, v.v.); app phải đang mở thì việc mới chạy, UI hiện "Chờ app trên máy X".
+3. KHÔNG có nút để board vượt cổng (ép Done, sửa reviewer/approver); chỉ Duyệt / Yêu cầu sửa / Hủy.
+4. Trang Hướng dẫn có bản tiếng Anh (viết cuối R3 từ bản tiếng Việt); docs dự án vẫn chỉ tiếng Việt.
+5. UI chỉ hiện company có trong cấu hình Crew; ẩn "Crew Spike Policy" (CREA); thêm company "Crew E2E" cho Playwright; R3 không có nút tạo company.
+6. Chặn thêm skill trùng tên skill Superpowers đã ghim; trang Skills R3 chỉ: xem, thêm từ GitHub, bật cho agent, trạng thái sync.
+7. Gỡ agent/project trên web để sau R3; R3 vẫn gỡ bằng app Mac.
+8. Design system bản đầu dùng token/component của Paperclip (đổi tên, logo 2P); đổi màu thương hiệu sau.
+
+## Lỗ hổng quyền BA phát hiện (Trợ Lý sẽ đưa vào kế hoạch R3, báo để Đại Ca biết)
+- Agent `tro-ly` đang có quyền `canCreateAgents`, `canCreateSkills`; agent tạo được project qua API.
