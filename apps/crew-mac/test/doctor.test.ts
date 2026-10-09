@@ -24,6 +24,7 @@ import {
   tccHint,
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
+import { workflowCheck } from '../src/commands/workflow-check.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
 import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
 import {
@@ -475,6 +476,65 @@ describe('crew-mac doctor', () => {
       detail: expect.stringContaining('.claude/settings.json'),
     });
     expect(failed?.hint).toContain(`git -C '${wt}' checkout HEAD -- '.claude/settings.json'`);
+  });
+
+  it('worktree-workflows: mỗi worktree kiểm theo workflow của run gần nhất (dấu của workflow-check); chưa có dấu thì theo Superpowers', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/git', (args) => {
+      const r = spawnSync('/usr/bin/git', [...args], { encoding: 'utf8' });
+      return { code: r.status ?? 1, stdout: r.stdout, stderr: r.stderr };
+    });
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    // Cùng một repo dự án: worktree của agent BMAD và của executor Superpowers, repo bật `bmad@bmad`.
+    for (const name of ['bmad', 'executor']) {
+      const wt = join(root, name);
+      mkdirSync(join(wt, '.claude'), { recursive: true });
+      writeFileSync(join(wt, '.claude', 'settings.json'), '{"enabledPlugins":{"bmad@bmad":true}}');
+      for (const args of [
+        ['init', '-q'],
+        ['add', '.'],
+        ['commit', '-q', '-m', 'i'],
+      ]) {
+        spawnSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
+          cwd: wt,
+        });
+      }
+    }
+    const check = async () =>
+      (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'worktree-workflows',
+      );
+    // Chưa run nào: không biết workflow, giữ hành vi cũ (Superpowers) nên cả hai báo nạp chéo.
+    const before = await check();
+    expect(before?.status).toBe('fail');
+    expect(before?.detail).toContain('bmad: ');
+    expect(before?.detail).toContain('executor: ');
+
+    const bmadRun = await workflowCheck(mac.ctx, {
+      root: join(root, 'bmad'),
+      pluginDir: pinDir(mac.home, FIXTURE_BMAD_PIN),
+    });
+    expect(bmadRun.ok).toBe(true);
+    const execRun = await workflowCheck(mac.ctx, {
+      root: join(root, 'executor'),
+      pluginDir: superpowersPinDir(mac.home, FIXTURE_PIN),
+    });
+    expect(execRun.ok).toBe(false);
+    const after = await check();
+    expect(after?.status).toBe('fail');
+    expect(after?.detail).not.toContain('bmad: ');
+    expect(after?.detail).toContain('executor: ');
+    expect(after?.detail).toContain('nạp chéo');
+
+    writeFileSync(join(root, 'executor', '.claude', 'settings.json'), '{}');
+    spawnSync(
+      '/usr/bin/git',
+      ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qam', 'bo'],
+      {
+        cwd: join(root, 'executor'),
+      },
+    );
+    expect(await check()).toMatchObject({ status: 'ok', detail: expect.stringContaining('2 worktree') });
   });
 
   it('worktree-workflows: git quá hạn ở worktree đầu thì dừng, không kiểm các worktree còn lại', async () => {

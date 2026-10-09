@@ -9,6 +9,7 @@ import { runInitCheck, workflowCheck } from '../src/commands/workflow-check.js';
 import type { MacContext } from '../src/context.js';
 import { createRunner } from '../src/system.js';
 import { installSuperpowersPin } from '../src/workflows/install.js';
+import { lastRunWorkflow, worktreeWorkflowStampPath } from '../src/workflows/inventory.js';
 import { pinDir as workflowPinDir } from '../src/workflows/pin.js';
 import { BUILTIN_AGENTS, BUILTIN_SKILLS } from '../src/workflows/run-init.js';
 import { FIXTURE_BMAD_PIN, FIXTURE_PIN, fakeMac } from './helpers/fake-mac.js';
@@ -102,6 +103,21 @@ describe('workflowCheck', () => {
     mkdirSync(join(dir, '.in_use'));
     writeFileSync(join(dir, '.in_use', '11111111-2222-4333-8444-555555555555'), '4242 1760000000\n');
     expect((await workflowCheck(ctx, { root: bareRepo(), pluginDir: dir })).ok).toBe(true);
+  });
+
+  it('ghi dấu workflow của run cho worktree (kể cả khi bị chặn); --plugin-dir lạ thì không ghi', async () => {
+    const { ctx, home, pinDir } = installedMac();
+    const root = worktree();
+    expect(lastRunWorkflow(home, root)).toBeNull();
+    await workflowCheck(ctx, { root, pluginDir: join(home, 'không-phải-ghim') });
+    expect(lastRunWorkflow(home, root)).toBeNull();
+    await workflowCheck(ctx, { root, pluginDir: workflowPinDir(home, ctx.bmadPin) });
+    expect(lastRunWorkflow(home, root)).toBe('bmad');
+    mkdirSync(join(root, '.claude', 'agents'), { recursive: true });
+    writeFileSync(join(root, '.claude', 'agents', 'chua-track.md'), 'x');
+    expect((await workflowCheck(ctx, { root, pluginDir: pinDir })).ok).toBe(false);
+    expect(lastRunWorkflow(home, root)).toBe('superpowers');
+    expect(readFileSync(worktreeWorkflowStampPath(home, root), 'utf8')).toBe('superpowers\n');
   });
 
   it('--plugin-dir là cache của owner, không phải bản ghim', async () => {

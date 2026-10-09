@@ -108,6 +108,9 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
    - `workflowForPluginDir` tìm workflow có thư mục ghim trùng `--plugin-dir` (so bằng `comparablePath`); đó là workflow
      của run. Không có thì một dòng `--plugin-dir <dir> không phải bản ghim của workflow nào đã chứng nhận (<thư mục
      ghim superpowers>, <thư mục ghim bmad>)` và không quét worktree.
+   - Nhận được workflow thì ghi ngay dấu `~/.crew/state/worktree-workflow/<rootKey>` = `<id>\n` (`recordWorktreeWorkflow`;
+     `rootKey` = 32 hex đầu sha256 của `comparablePath(root)`, dùng chung với dấu `bmad-setup`; chỉ ghi khi đổi, lỗi ghi
+     không làm hỏng run), trước khi xét nguồn, nên run bị chặn vẫn để lại dấu. Doctor đọc dấu này (`lastRunWorkflow`).
    - Thư mục ghim phải đúng checksum, không thì `WORKFLOW_SOURCE_MISMATCH`; file trong `executables` phải có bit
      thực thi, không thì `thiếu bit thực thi: …`.
    - Sau đó gọi `discoverSources(ctx, root, pin của workflow đó)`, có nguồn `blocked` nào thì chặn run. Dòng ok có
@@ -223,7 +226,11 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
 **Đọc log khi run bị chặn:** run fail và stderr của nó có các dòng
 `crew-workflow blocked: <đường dẫn> (<lý do>). <lệnh xử lý>`. Chạy đúng lệnh in ra trong worktree rồi retry.
 `crew-mac doctor` (check `worktree-workflows`) quét trước mọi worktree cấp 1 dưới thư mục worktree: `fail` khi worktree
-nào sẽ làm run thoát 78, `warn` khi chỉ có cảnh báo, kèm cùng lệnh xử lý.
+nào sẽ làm run thoát 78, `warn` khi chỉ có cảnh báo, kèm cùng lệnh xử lý. Mỗi worktree được kiểm theo workflow của run
+gần nhất trong nó (dấu `worktree-workflow` do `workflow-check` ghi); chưa có dấu (chưa run nào qua bản crew-mac này)
+thì kiểm theo Superpowers như trước. Không đoán theo `_bmad/` hay `enabledPlugins`: hai thứ đó nằm trong repo dự án,
+mà agent BMAD và executor Superpowers làm cùng một repo (executor thấy `_bmad/` đã commit, cùng `settings.json`), nên
+chúng không phân biệt được agent; dấu `.in_use` thì GC xóa sau khi run kết thúc và không ghi worktree.
 
 - `không được git track trong worktree agent`: commit hoặc xóa đường dẫn đó trong worktree.
 - `settings.local.json bật plugin hoặc hook`: bỏ `enabledPlugins`/`hooks` khỏi file đó.
@@ -376,7 +383,7 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/bmad/setup-project.ts` | Dựng `_bmad/` bằng `setup.py` của bản ghim | `setupProject`, `readScriptsDir`, `isBmadJunk`, `SetupProjectResult` |
 | `apps/crew-mac/src/workflows/policy.ts` | So bản ghim | `samePin`, `assertSkillAllowed` |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
-| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `bmadSetupStampPath`, `recordBmadSetup`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `BMAD_SETUP_UNCOMMITTED_WARNING`, `Origin`, `DiscoveredSource` |
+| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `bmadSetupStampPath`, `recordBmadSetup`, `worktreeWorkflowStampPath`, `recordWorktreeWorkflow`, `lastRunWorkflow`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `BMAD_SETUP_UNCOMMITTED_WARNING`, `Origin`, `DiscoveredSource` |
 | `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `selectInitWorkflow`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
 | `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`) | — |
@@ -389,7 +396,8 @@ bản ghim (hoặc không còn cài).
   mạng tới `github.com` khi clone.
 - **Ghi:** `~/.crew/workflows/superpowers/<version>-<rev12>/` và `~/.crew/workflows/bmad/<version>-<rev12>/` (mode thư
   mục cha 700; bản tạm `<dir>.tmp-<pid>` chỉ tồn tại trong lúc cài). Uninstall để nguyên các thư mục này, vô hại.
-- **`workflow-check`:** ba lệnh `/usr/bin/git` cho cả worktree và chỉ đọc file trong worktree và thư mục ghim.
+- **`workflow-check`:** ba lệnh `/usr/bin/git` cho cả worktree và chỉ đọc file trong worktree và thư mục ghim; ghi duy
+  nhất dấu `~/.crew/state/worktree-workflow/<rootKey>` (thư mục 700, file 600).
 ## Pin theo run và dọn bản cũ
 
 `apps/crew-mac/src/workflows/workflow-gc.ts` → `gcWorkflowPins(ctx, { isAlive? })` duyệt `~/.crew/workflows/<id>/*`
@@ -465,7 +473,8 @@ cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ 
   - `workflowCheck`: sạch (dòng ok đủ `rev=`/`sum=`), thư mục ghim BMAD (dòng `pin=bmad@…`), run BMAD trên repo bật
     superpowers bị chặn còn run Superpowers cùng repo đạt, thư mục ghim BMAD sửa một byte, dấu `.in_use` không đổi
     checksum, `--plugin-dir` là cache owner (câu liệt kê hai thư mục ghim), thư mục ghim bị sửa, mất bit thực thi hoặc chưa cài, skill
-    chưa track (dòng chặn kèm lệnh xử lý), `SKILL.md` sửa dở (ok kèm dòng `warn`).
+    chưa track (dòng chặn kèm lệnh xử lý), `SKILL.md` sửa dở (ok kèm dòng `warn`); ghi dấu `worktree-workflow` theo
+    workflow của run kể cả khi bị chặn, `--plugin-dir` lạ thì không ghi.
   - `runInitCheck`: init sau dòng hook; skill cá nhân, plugin user-scope, Superpowers từ cache owner, agent lạ, MCP
     `user`; không nạp workflow ghim nào; superpowers chỉ từ cache; log không có init; plugin project và skill
     Paperclip được phép.

@@ -23,8 +23,9 @@ import {
 import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
-import { discoverSources, GIT_TIMEOUT } from '../workflows/inventory.js';
+import { discoverSources, GIT_TIMEOUT, lastRunWorkflow } from '../workflows/inventory.js';
 import { pinDir, SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
+import { certifiedWorkflows } from '../workflows/registry.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { hasPathBlock } from '../zshenv.js';
@@ -660,7 +661,10 @@ async function checkWorktreeWorkflows(ctx: MacContext, manifest: Manifest): Prom
       );
       break;
     }
-    const sources = await discoverSources(ctx, join(root, name));
+    // Worktree chưa có run nào qua workflow-check (không có dấu) thì kiểm theo Superpowers như trước.
+    const last = lastRunWorkflow(ctx.home, join(root, name));
+    const pin = certifiedWorkflows(ctx).find((w) => w.id === last)?.pin ?? ctx.superpowersPin;
+    const sources = await discoverSources(ctx, join(root, name), pin);
     for (const s of sources) {
       if (s.origin === 'blocked') blocked.push(`${name}: ${s.path} (${s.reason})`);
       else if (s.warning) warned.push(`${name}: ${s.path} (${s.warning})`);

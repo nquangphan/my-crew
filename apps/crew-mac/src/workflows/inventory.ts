@@ -54,12 +54,46 @@ export const BMAD_SETUP_UNCOMMITTED_WARNING =
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
 
+/** Tên file dấu theo worktree: 32 hex đầu của sha256 đường dẫn so sánh của root (APFS không phân biệt hoa thường). */
+const rootKey = (root: string) => sha256(comparablePath(root)).slice(0, 32);
+
 /**
- * Dấu `setup-project` của một worktree: `~/.crew/state/bmad-setup/<32 hex đầu của sha256 đường dẫn so sánh của root>`,
- * nội dung là sha256 của `_bmad/config.toml` mà lần dựng đó ghi ra. Nằm ngoài worktree nên không lọt vào commit.
+ * Dấu `setup-project` của một worktree: `~/.crew/state/bmad-setup/<rootKey>`, nội dung là sha256 của
+ * `_bmad/config.toml` mà lần dựng đó ghi ra. Nằm ngoài worktree nên không lọt vào commit.
  */
 export function bmadSetupStampPath(home: string, root: string): string {
-  return join(home, '.crew', 'state', 'bmad-setup', sha256(comparablePath(root)).slice(0, 32));
+  return join(home, '.crew', 'state', 'bmad-setup', rootKey(root));
+}
+
+/**
+ * Dấu workflow của run gần nhất trong một worktree: `~/.crew/state/worktree-workflow/<rootKey>` = `<id workflow>\n`,
+ * do `workflow-check` ghi khi `--plugin-dir` là bản ghim của một workflow đã chứng nhận (kể cả khi run bị chặn sau
+ * đó). Doctor dùng để kiểm mỗi worktree theo đúng workflow của agent giữ nó.
+ */
+export function worktreeWorkflowStampPath(home: string, root: string): string {
+  return join(home, '.crew', 'state', 'worktree-workflow', rootKey(root));
+}
+
+/** Ghi dấu workflow của run (chỉ ghi khi đổi); lỗi ghi không làm hỏng run. */
+export function recordWorktreeWorkflow(home: string, root: string, workflow: string): void {
+  const stamp = worktreeWorkflowStampPath(home, root);
+  try {
+    if (readFileSync(stamp, 'utf8') === `${workflow}\n`) return;
+  } catch {}
+  try {
+    mkdirSync(join(stamp, '..'), { recursive: true, mode: 0o700 });
+    writeFileSync(stamp, `${workflow}\n`, { mode: 0o600 });
+  } catch {}
+}
+
+/** Id workflow của run gần nhất trong worktree, null khi chưa có dấu hay không đọc được. */
+export function lastRunWorkflow(home: string, root: string): string | null {
+  try {
+    const id = readFileSync(worktreeWorkflowStampPath(home, root), 'utf8').trim();
+    return id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Ghi dấu sau khi `setup-project` dựng xong `_bmad/` (không có `config.toml` thì không ghi). */
