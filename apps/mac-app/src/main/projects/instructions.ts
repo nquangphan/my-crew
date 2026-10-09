@@ -16,31 +16,44 @@ export const ROLE_TEMPLATES: Record<RoleTemplate, string> = { assistant, executo
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PIN_RE = /^\/.+\/\.crew\/workflows\/superpowers\/(?!\.\.?$)[^/]+$/;
 
-/** Như `renderInstructions` của fork: chỉ Trợ Lý nhận danh sách executor (của project), thêm vào cuối file. */
+function checkIds(ids: string[], label: string, agentId: string, taken: Set<string>): Set<string> {
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (!UUID_RE.test(id)) throw new Error(`${label} phải là uuid: ${id}`);
+    const key = id.toLowerCase();
+    if (seen.has(key) || taken.has(key)) throw new Error(`${label} trùng: ${id}`);
+    if (key === agentId.toLowerCase())
+      throw new Error(`Trợ Lý không được nằm trong danh sách ${label} của chính nó`);
+    seen.add(key);
+  }
+  return seen;
+}
+
+/**
+ * Như `renderInstructions` của fork: chỉ Trợ Lý nhận danh sách executor và agent BMAD (của project), thêm vào cuối
+ * file. Project app tạo không có agent BMAD nên mục này ghi "Không có. Luôn dùng Superpowers.".
+ */
 export function renderInstructions(
   role: RoleTemplate,
   text: string,
   agentId: string,
   executorIds: string[],
+  bmadIds: string[] = [],
 ): string {
   if (!(role in ROLE_TEMPLATES)) throw new Error(`unknown role: ${role}`);
   if (role !== 'assistant') {
     if (executorIds.length > 0) throw new Error('danh sách executor chỉ assistant nhận');
+    if (bmadIds.length > 0) throw new Error('danh sách agent BMAD chỉ assistant nhận');
     return text;
   }
   if (!UUID_RE.test(agentId)) throw new Error(`assistant phải là uuid: ${agentId}`);
   if (executorIds.length === 0) throw new Error('assistant cần ít nhất một executor');
-  const seen = new Set<string>();
-  for (const id of executorIds) {
-    if (!UUID_RE.test(id)) throw new Error(`executor phải là uuid: ${id}`);
-    const key = id.toLowerCase();
-    if (seen.has(key)) throw new Error(`executor trùng: ${id}`);
-    if (key === agentId.toLowerCase())
-      throw new Error('Trợ Lý không được nằm trong danh sách executor của chính nó');
-    seen.add(key);
-  }
+  const executors = checkIds(executorIds, 'executor', agentId, new Set());
+  checkIds(bmadIds, 'agent BMAD', agentId, executors);
   const list = executorIds.map((id) => `- \`${id}\``).join('\n');
-  return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n`;
+  const bmad =
+    bmadIds.length > 0 ? bmadIds.map((id) => `- \`${id}\``).join('\n') : 'Không có. Luôn dùng Superpowers.';
+  return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n\n## Agent BMAD của company\n\n${bmad}\n`;
 }
 
 /** `extraArgs` ghim Superpowers như `merge-agent-config.mjs`; thư mục phải là bản ghim `~/.crew/workflows/superpowers/<bản>`. */
