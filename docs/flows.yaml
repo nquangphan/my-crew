@@ -210,20 +210,32 @@ flows:
       - apps/mac-app/test/setup-fakes.ts
       - apps/mac-app/test/renderer/setup.test.tsx
   mac-app-paperclip:
-    title: App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain và client REST
+    title: App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project
     doc: docs/flows/mac-app-paperclip.md
     entrypoints:
       - apps/mac-app/src/main/paperclip/client.ts
       - apps/mac-app/src/main/paperclip/register.ts
+      - apps/mac-app/src/main/projects/add-project.ts
+      - apps/mac-app/src/main/projects/remove-project.ts
     files:
       - apps/mac-app/src/main/paperclip/types.ts
       - apps/mac-app/src/main/paperclip/cli-auth.ts
       - apps/mac-app/src/main/paperclip/keychain.ts
+      - apps/mac-app/src/main/projects/progress.ts
+      - apps/mac-app/src/main/projects/instructions.ts
+      - apps/mac-app/src/main/projects/templates/assistant.md
+      - apps/mac-app/src/main/projects/templates/executor.md
+      - apps/mac-app/src/main/projects/templates/reviewer.md
+      - apps/mac-app/src/main/projects/templates/integrator.md
     tests:
       - apps/mac-app/test/paperclip-client.test.ts
       - apps/mac-app/test/paperclip-cli-auth.test.ts
       - apps/mac-app/test/paperclip-keychain.test.ts
       - apps/mac-app/test/paperclip-fake-server.ts
+      - apps/mac-app/test/projects-add.test.ts
+      - apps/mac-app/test/projects-remove.test.ts
+      - apps/mac-app/test/projects-instructions.test.ts
+      - apps/mac-app/test/projects-fixture.ts
   mac-app-sshd:
     title: App 2P Crew giữ sshd agent và thoát an toàn
     doc: docs/flows/mac-app-sshd.md
@@ -243,5 +255,16 @@ flows:
       - apps/mac-app/test/sshd-supervisor.test.ts
       - apps/mac-app/test/sshd-system-deps.test.ts
       - apps/mac-app/test/quit-guard.test.ts
+  mac-app-update:
+    title: Phát hành và cập nhật app 2P Crew
+    doc: docs/flows/mac-app-update.md
+    entrypoints:
+      - apps/mac-app/scripts/release.mjs
+    files:
+      - apps/mac-app/scripts/release.mjs
+      - apps/mac-app/scripts/release-lib.mjs
+      - apps/mac-app/electron-builder.yml
+    tests:
+      - apps/mac-app/scripts/release-lib.test.mjs
 shared: {}
 unassigned: []

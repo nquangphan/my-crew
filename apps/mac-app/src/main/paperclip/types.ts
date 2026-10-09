@@ -90,7 +90,11 @@ export interface PaperclipClient {
   /** Tạo agent `claude_local`, heartbeat tắt, `maxConcurrentRuns = 1`. */
   createAgent(companyId: string, input: ClaudeLocalAgentInput): Promise<{ id: string; status: string }>;
   getAgent(agentId: string): Promise<PaperclipAgent | null>;
+  /** Mọi agent của company (kể cả `terminated`), để tìm lại agent đã tạo khi response bị mất. */
+  agents(companyId: string): Promise<PaperclipAgent[]>;
   pauseAgent(agentId: string): Promise<void>;
+  /** `POST /agents/:id/resume` → `idle`; server từ chối agent `pending_approval`/`terminated` (409). */
+  resumeAgent(agentId: string): Promise<void>;
   patchAgent(agentId: string, patch: Record<string, unknown>): Promise<void>;
   /** `null` khi file chưa có (404). */
   getInstructionsFile(agentId: string, path: 'AGENTS.md'): Promise<InstructionsFile | null>;
@@ -105,6 +109,7 @@ export interface PaperclipClient {
   /** Link mở run trên web: `<origin>/<issuePrefix>/agents/<agentId>/runs/<runId>`. */
   runWebUrl(runId: string): Promise<string>;
   getRoles(companyId: string, projectId: string): Promise<ProjectRoles | null>;
+  /** 400 của plugin (luật vai trò) thành `PaperclipHttpError` có lời từ chối của server trong message. */
   setRoles(companyId: string, projectId: string, roles: ProjectRoles): Promise<void>;
   deleteRoles(companyId: string, projectId: string): Promise<void>;
 }

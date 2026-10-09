@@ -73,6 +73,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/workflows-inventory.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-pin.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/mac-app/electron-builder.yml` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/scripts/release-lib.mjs` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/scripts/release-lib.test.mjs` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/scripts/release.mjs` | [mac-app-update](flows/mac-app-update.md) (điểm vào), [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/src/main/app-context.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/app-log.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/app-state.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -88,6 +92,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/paperclip/keychain.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/paperclip/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/main/paperclip/types.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/add-project.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
+| `apps/mac-app/src/main/projects/instructions.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/progress.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/remove-project.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
+| `apps/mac-app/src/main/projects/templates/assistant.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/templates/executor.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/templates/integrator.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/templates/reviewer.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/quit-guard.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/register-health.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/runs.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -135,6 +147,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/paperclip-client.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/paperclip-fake-server.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/paperclip-keychain.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/projects-add.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/projects-fixture.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/projects-instructions.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/projects-remove.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/quit-guard.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/renderer/health.test.tsx` | [mac-app](flows/mac-app.md) (test) |
