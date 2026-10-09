@@ -247,11 +247,26 @@ flows:
     doc: docs/flows/mac-app-update.md
     entrypoints:
       - apps/mac-app/scripts/release.mjs
+      - apps/mac-app/src/main/update/register.ts
     files:
       - apps/mac-app/scripts/release.mjs
       - apps/mac-app/scripts/release-lib.mjs
       - apps/mac-app/electron-builder.yml
+      - apps/mac-app/src/main/update/register.ts
+      - apps/mac-app/src/main/update/updater.ts
+      - apps/mac-app/src/main/update/versions.ts
+      - apps/mac-app/src/main/update/drain.ts
+      - apps/mac-app/src/main/update/probation.ts
+      - apps/mac-app/src/main/update/rollback.ts
+      - apps/mac-app/src/main/update/rollback-helper.sh
+      - apps/mac-app/src/renderer/routes/update.tsx
     tests:
       - apps/mac-app/scripts/release-lib.test.mjs
+      - apps/mac-app/test/update-versions.test.ts
+      - apps/mac-app/test/update-drain.test.ts
+      - apps/mac-app/test/update-rollback.test.ts
+      - apps/mac-app/test/update-probation.test.ts
+      - apps/mac-app/test/update-updater.test.ts
+      - apps/mac-app/test/renderer/update.test.tsx
 shared: {}
 unassigned: []

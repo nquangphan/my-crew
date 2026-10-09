@@ -15,6 +15,9 @@ extraResources:
       - package.json
       - dist/**
       - assets/**
+  # Helper quay lui của updater (chạy bằng /bin/sh, tách rời khỏi app).
+  - from: src/main/update/rollback-helper.sh
+    to: rollback-helper.sh
 files:
   - out/**
   - package.json

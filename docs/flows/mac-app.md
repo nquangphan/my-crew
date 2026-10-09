@@ -32,8 +32,9 @@ cắm vào các điểm đã chừa.
    điều hướng ra ngoài, từ chối mọi quyền.
 5. Dòng `registerX(ctx)` của từng module. Đã bật: `const sshd = registerSshd(ctx)` (bộ giám sát sshd và quit guard,
    flow `mac-app-sshd`), `registerHealth(ctx, sshd)` (sức khỏe, run, log; xem mục dưới) và `registerPaperclip(ctx)`
-   (đăng nhập Paperclip, flow `mac-app-paperclip`). Còn là chú thích: gỡ v2 (AP-6), project (PJ-1, PJ-2),
-   cập nhật (UPD-1). Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới).
+   (đăng nhập Paperclip, flow `mac-app-paperclip`). Còn là chú thích: gỡ v2 (AP-6), project (PJ-1, PJ-2).
+   Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới) và `registerUpdate(ctx, sshd)` (updater
+   và màn hình Cập nhật, flow `mac-app-update`).
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
@@ -194,7 +195,7 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 
 - `mac-setup`: thư viện `@crew/mac` mà app gọi (setup, doctor, status, `installCrewMacFrom`).
 - `mac-app-sshd`: bộ giám sát sshd agent và quit guard.
-- `mac-app-paperclip`, `mac-app-update`: các flow của app do ticket sau tạo.
+- `mac-app-paperclip`: đăng nhập Paperclip, project. `mac-app-update`: phát hành, updater, màn hình Cập nhật.
 
 ## Tests
 

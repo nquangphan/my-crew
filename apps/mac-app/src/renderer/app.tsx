@@ -5,6 +5,7 @@ import { HealthScreen } from './routes/health';
 import { LogsScreen } from './routes/logs';
 import { RunsScreen } from './routes/runs';
 import { SetupScreen } from './routes/setup';
+import { UpdateScreen } from './routes/update';
 
 export interface RouteDef {
   id: string;
@@ -25,7 +26,7 @@ export const ROUTES: RouteDef[] = [
   { id: 'runs', label: 'Run đang chạy', render: () => <RunsScreen /> },
   { id: 'logs', label: 'Log', render: () => <LogsScreen /> },
   { id: 'projects', label: 'Project', render: () => <Soon title="Project" ticket="PJ-2" /> },
-  { id: 'update', label: 'Cập nhật', render: () => <Soon title="Cập nhật" ticket="UPD-1" /> },
+  { id: 'update', label: 'Cập nhật', render: () => <UpdateScreen /> },
   { id: 'setup', label: 'Cài đặt', render: () => <SetupScreen /> },
 ];
 

@@ -111,6 +111,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/sshd/takeover.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/tray-state.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/tray.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/update/drain.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/update/probation.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/update/register.ts` | [mac-app-update](flows/mac-app-update.md) (điểm vào), [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/update/rollback-helper.sh` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/update/rollback.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/update/updater.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/update/versions.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/src/main/window.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/app.tsx` | [mac-app](flows/mac-app.md) (file) |
@@ -124,6 +131,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/renderer/routes/logs.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/runs.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/setup.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/routes/update.tsx` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/src/renderer/styles.css` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/shared/ipc-contract.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/utility/ops.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -142,6 +150,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/renderer/health.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/renderer/setup.test.tsx` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/renderer/update.test.tsx` | [mac-app-update](flows/mac-app-update.md) (test) |
 | `apps/mac-app/test/runs.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-disk-access.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-fakes.ts` | [mac-app](flows/mac-app.md) (test) |
@@ -153,6 +162,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/sshd-system-deps.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-takeover.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/tray-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/update-drain.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/test/update-probation.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/test/update-rollback.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/test/update-updater.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/test/update-versions.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |

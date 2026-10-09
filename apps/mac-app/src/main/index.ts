@@ -15,6 +15,7 @@ import { registerHealth } from './register-health.js';
 import { registerSetup } from './setup/register.js';
 import { registerSshd } from './sshd/register.js';
 import { CrewTray } from './tray.js';
+import { registerUpdate } from './update/register.js';
 import { createMainWindow } from './window.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -108,7 +109,7 @@ async function start(): Promise<void> {
   const health = registerHealth(ctx, sshd);
   registerPaperclip(ctx);
   registerSetup(ctx, sshd, health); // AP-5; AP-6 thêm bước v2, move trong register.ts
-  // registerUpdate(ctx);    // UPD-1
+  registerUpdate(ctx, sshd);
   void ctx;
 
   app.on('second-instance', showWindow);
