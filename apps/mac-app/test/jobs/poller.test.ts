@@ -35,7 +35,8 @@ const DONE: JobOutcome = { status: 'done', result: { kind: 'check', items: [] } 
 
 function fakes(over: Partial<PollerDeps> = {}) {
   const claims: Array<{ target: PollTarget; at: number }> = [];
-  const submits: Array<{ target: PollTarget; jobId: string; outcome: JobOutcome }> = [];
+  const submits: Array<{ target: PollTarget; jobId: string; outcome: JobOutcome; claimedAt: string | null }> =
+    [];
   const polls: number[] = [];
   let visible = true;
   const deps: PollerDeps = {
@@ -44,8 +45,8 @@ function fakes(over: Partial<PollerDeps> = {}) {
       claims.push({ target, at: Date.now() });
       return null;
     },
-    submit: async (target, _machineId, jobId, outcome) => {
-      submits.push({ target, jobId, outcome });
+    submit: async (target, _machineId, jobId, outcome, claimedAt) => {
+      submits.push({ target, jobId, outcome, claimedAt });
     },
     run: async () => DONE,
     cancelRunning: vi.fn(),
@@ -110,7 +111,10 @@ describe('JobsPoller', () => {
     });
     start(f.deps);
     await vi.advanceTimersByTimeAsync(0);
-    expect(f.submits).toEqual([{ target: B, jobId: makeJob(B).id, outcome: DONE }]);
+    expect(f.submits).toEqual([
+      { target: B, jobId: makeJob(B).id, outcome: DONE, claimedAt: makeJob(B).claimedAt },
+    ]);
+    expect(f.submits[0]?.claimedAt).toBe('2026-10-10T00:00:01.000Z');
   });
 
   it('chu kỳ 5 giây khi cửa sổ hiện, 15 giây khi ẩn', async () => {

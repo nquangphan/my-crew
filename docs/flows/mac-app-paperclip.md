@@ -244,7 +244,8 @@ ký tự điều khiển trừ tab/xuống dòng, che `scheme://user:pass@` (t�
 
 **Báo kết quả** (`remote.ts` → `submit`): `POST …/machine-jobs/:id/result {companyId, machineId, status, result |
 errorCode + errorText}`. `check` thất bại gửi kèm `result`; plugin không nhận `result` khi `failed` (400) thì gửi lại
-không có `result`.
+không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server trả lúc claim; việc đã bị nhận lại thì plugin trả
+409 "Việc đã được nhận lại", app chỉ ghi log và bỏ kết quả cũ, không gửi lại.
 
 ## Files
 

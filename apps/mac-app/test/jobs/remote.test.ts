@@ -93,6 +93,48 @@ describe('submit', () => {
     ]);
   });
 
+  it('có claimedAt thì gửi kèm ở cả done lẫn failed (kể cả lần gửi lại không result); không có thì bỏ trường', async () => {
+    const claimedAt = '2026-10-10T00:00:01.000Z';
+    const { server, target, remote } = await serve((req) =>
+      (req.body as { result?: unknown }).result && (req.body as { status?: string }).status === 'failed'
+        ? { status: 400, body: { error: 'result chỉ gửi khi status là done' } }
+        : { status: 200, body: {} },
+    );
+    await remote.submit(
+      target,
+      MACHINE,
+      JOB,
+      { status: 'done', result: { kind: 'check', items: [] } },
+      claimedAt,
+    );
+    await remote.submit(
+      target,
+      MACHINE,
+      JOB,
+      { status: 'failed', errorCode: 'check_failed', errorText: 'x', result: { kind: 'check', items: [] } },
+      claimedAt,
+    );
+    await remote.submit(target, MACHINE, JOB, { status: 'done', result: { kind: 'check', items: [] } }, null);
+    const bodies = server.requests.map((r) => r.body as Record<string, unknown>);
+    expect(bodies).toHaveLength(4);
+    expect(bodies[0]).toMatchObject({ status: 'done', claimedAt });
+    expect(bodies[1]).toMatchObject({ status: 'failed', claimedAt });
+    expect(bodies[2]).toMatchObject({ status: 'failed', claimedAt });
+    expect(bodies[2]).not.toHaveProperty('result');
+    expect(bodies[3]).not.toHaveProperty('claimedAt');
+  });
+
+  it('409 "Việc đã được nhận lại" ném PaperclipHttpError để poller bỏ kết quả, không gửi lại', async () => {
+    const { server, target, remote } = await serve(() => ({
+      status: 409,
+      body: { error: 'Việc đã được nhận lại' },
+    }));
+    await expect(
+      remote.submit(target, MACHINE, JOB, { status: 'done', result: { kind: 'check', items: [] } }, 'x'),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(server.requests).toHaveLength(1);
+  });
+
   it('failed kèm result mà server từ chối 400 → gửi lại không có result', async () => {
     const { server, target, remote } = await serve((req) =>
       (req.body as { result?: unknown }).result

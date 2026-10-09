@@ -31,7 +31,8 @@ export function registerJobs(ctx: AppContext): void {
   const poller = createJobsPoller({
     loadTargets: () => jobsOps.call('jobTargets'),
     claim: (target, machineId) => remote.claim(target, machineId),
-    submit: (target, machineId, jobId, outcome) => remote.submit(target, machineId, jobId, outcome),
+    submit: (target, machineId, jobId, outcome, claimedAt) =>
+      remote.submit(target, machineId, jobId, outcome, claimedAt),
     run: async (job, target, signal) => {
       const prepared = await remote.prepare(target, job);
       if ('outcome' in prepared) return prepared.outcome;

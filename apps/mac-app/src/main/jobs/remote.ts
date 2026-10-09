@@ -82,11 +82,18 @@ export function createJobsRemote(deps: RemoteDeps) {
 
     /**
      * Báo kết quả. Lỗi đã làm sạch lần nữa ở đây. `check` thất bại gửi kèm danh sách mục kiểm; plugin không nhận
-     * `result` khi `failed` (400) thì gửi lại không có `result`.
+     * `result` khi `failed` (400) thì gửi lại không có `result`. `claimedAt` là đúng giá trị server trả lúc claim: nếu
+     * việc đã bị nhận lại, plugin trả 409 và app bỏ kết quả cũ này.
      */
-    async submit(target: PollTarget, machineId: string, jobId: string, outcome: JobOutcome): Promise<void> {
+    async submit(
+      target: PollTarget,
+      machineId: string,
+      jobId: string,
+      outcome: JobOutcome,
+      claimedAt: string | null = null,
+    ): Promise<void> {
       const path = `${JOBS_PATH}/${id(jobId)}/result`;
-      const base = { companyId: target.companyId, machineId };
+      const base = { companyId: target.companyId, machineId, ...(claimedAt ? { claimedAt } : {}) };
       if (outcome.status === 'done') {
         await call(target, 'POST', path, { ...base, status: 'done', result: outcome.result });
         return;

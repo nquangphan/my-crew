@@ -19,7 +19,14 @@ export interface PollerDeps {
   loadTargets(): Promise<{ machineId: string | null; targets: PollTarget[] }>;
   /** `null` = không có việc (204). Ném `MissingKeyError` khi chưa có board key. */
   claim(target: PollTarget, machineId: string): Promise<MachineJob | null>;
-  submit(target: PollTarget, machineId: string, jobId: string, outcome: JobOutcome): Promise<void>;
+  /** `claimedAt`: giá trị server trả lúc claim; plugin từ chối (409) kết quả của lần nhận đã bị thay. */
+  submit(
+    target: PollTarget,
+    machineId: string,
+    jobId: string,
+    outcome: JobOutcome,
+    claimedAt: string | null,
+  ): Promise<void>;
   /** `signal` bật khi việc quá giờ: phần chạy ở Main phải dừng, không được bắt đầu bước mới. */
   run(job: MachineJob, target: PollTarget, signal: AbortSignal): Promise<JobOutcome>;
   /** Hủy việc đang chạy (giết tiến trình git con rồi tiến trình phụ đang làm việc). */
@@ -111,9 +118,9 @@ export function createJobsPoller(deps: PollerDeps) {
       ...(outcome.status === 'failed' ? { errorCode: outcome.errorCode } : {}),
     });
     try {
-      await deps.submit(target, machineId, job.id, outcome);
+      await deps.submit(target, machineId, job.id, outcome, job.claimedAt);
     } catch (error) {
-      // Việc vẫn `claimed`: hết lease plugin trả về hàng đợi và máy làm lại (mọi việc đều chạy lại được).
+      // 409 (đã nhận lại) cũng rơi vào đây: bỏ kết quả, không gửi lại. Việc vẫn `claimed`: hết lease plugin trả về hàng đợi và máy làm lại (mọi việc đều chạy lại được).
       deps.log('warn', 'machine-job-submit-failed', { jobId: job.id, message: errorText(error) });
     }
   }
