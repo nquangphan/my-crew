@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
+import { parsePendingTccPrompts, TCC_PREDICATE } from '../commands/doctor.js';
 import type { MacContext } from '../context.js';
 import { writeIfChanged } from '../fs-util.js';
 import { macPaths } from '../paths.js';
-import { parsePendingTccPrompts, TCC_PREDICATE } from '../commands/doctor.js';
 
 const RESULT_RE = /AUTHREQ_RESULT: msgID=([\d.]+),/;
 const TIMEOUT_MS = 20_000;
@@ -84,7 +84,9 @@ export async function probeStatusTcc(ctx: MacContext): Promise<{
   const startedAt = ctx.now();
   const args = [
     'show',
-    ...(previous ? ['--start', asLocalLogTime(new Date(Date.parse(previous.scannedUntil) - 5_000))] : ['--last', '2h']),
+    ...(previous
+      ? ['--start', asLocalLogTime(new Date(Date.parse(previous.scannedUntil) - 5_000))]
+      : ['--last', '2h']),
     '--style',
     'compact',
     '--predicate',

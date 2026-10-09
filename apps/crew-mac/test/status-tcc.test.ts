@@ -1,31 +1,47 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { probeStatusTcc, updateTccPending } from '../src/status/tcc.js';
 import { fakeMac } from './helpers/fake-mac.js';
-import { updateTccPending, probeStatusTcc } from '../src/status/tcc.js';
 
 const prompt = (id: string, service: string, client: string, at: string) =>
   `${at} Df tccd[1:1] [com.apple.TCC:access] AUTHREQ_PROMPTING: msgID=${id}, service=${service}, subject=Sub:{${client}}Resp:{TCCDProcess: identifier=com.example.client, pid=9}`;
 
 describe('status TCC nối tiếp', () => {
   it('thêm prompt chưa có result và gỡ prompt đã có result', () => {
-    const pending = updateTccPending([], [
-      prompt('1.1', 'kTCCServiceDesktop', '/Applications/A.app', '2026-10-08 10:00:00.000'),
-      '2026-10-08 10:00:01.000 Df tccd[1:1] [com.apple.TCC:access] AUTHREQ_RESULT: msgID=1.1, authValue=0',
-      prompt('2.2', 'kTCCServiceDocuments', '/Applications/B.app', '2026-10-08 10:00:02.000'),
-    ]);
+    const pending = updateTccPending(
+      [],
+      [
+        prompt('1.1', 'kTCCServiceDesktop', '/Applications/A.app', '2026-10-08 10:00:00.000'),
+        '2026-10-08 10:00:01.000 Df tccd[1:1] [com.apple.TCC:access] AUTHREQ_RESULT: msgID=1.1, authValue=0',
+        prompt('2.2', 'kTCCServiceDocuments', '/Applications/B.app', '2026-10-08 10:00:02.000'),
+      ],
+    );
     expect(pending).toEqual([
-      expect.objectContaining({ service: 'kTCCServiceDocuments', client: '/Applications/B.app', msgId: '2.2' }),
+      expect.objectContaining({
+        service: 'kTCCServiceDocuments',
+        client: '/Applications/B.app',
+        msgId: '2.2',
+      }),
     ]);
   });
 
   it('giữ nhiều client đang chờ và khớp result đến ở lần quét kế tiếp', () => {
-    const first = updateTccPending([], [
-      prompt('1.1', 'kTCCServiceDesktop', '/Applications/A.app', '2026-10-08 10:00:00.000'),
-      prompt('2.2', 'kTCCServiceDocuments', '/Applications/B.app', '2026-10-08 10:00:01.000'),
-    ]);
-    expect(updateTccPending(first, ['2026-10-08 10:00:02.000 AUTHREQ_RESULT: msgID=1.1, authValue=0'])).toEqual([
-      expect.objectContaining({ service: 'kTCCServiceDocuments', client: '/Applications/B.app', msgId: '2.2' }),
+    const first = updateTccPending(
+      [],
+      [
+        prompt('1.1', 'kTCCServiceDesktop', '/Applications/A.app', '2026-10-08 10:00:00.000'),
+        prompt('2.2', 'kTCCServiceDocuments', '/Applications/B.app', '2026-10-08 10:00:01.000'),
+      ],
+    );
+    expect(
+      updateTccPending(first, ['2026-10-08 10:00:02.000 AUTHREQ_RESULT: msgID=1.1, authValue=0']),
+    ).toEqual([
+      expect.objectContaining({
+        service: 'kTCCServiceDocuments',
+        client: '/Applications/B.app',
+        msgId: '2.2',
+      }),
     ]);
   });
 
@@ -68,7 +84,14 @@ describe('status TCC nối tiếp', () => {
     mkdirSync(join(home, '.crew'), { recursive: true });
     const saved = {
       scannedUntil: '2026-10-06T06:00:00.000Z',
-      pending: [{ service: 'kTCCServiceDesktop', client: '/Applications/A.app', since: '2026-10-06T05:00:00.000Z', msgId: '1.1' }],
+      pending: [
+        {
+          service: 'kTCCServiceDesktop',
+          client: '/Applications/A.app',
+          since: '2026-10-06T05:00:00.000Z',
+          msgId: '1.1',
+        },
+      ],
     };
     writeFileSync(path, JSON.stringify(saved), { mode: 0o600 });
     runner.on('/usr/bin/log', () => ({ code: 137, timedOut: true }));
