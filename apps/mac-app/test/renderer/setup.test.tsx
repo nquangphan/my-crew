@@ -148,6 +148,8 @@ it('đăng nhập Paperclip: mở trình duyệt, chờ duyệt, chọn company 
   fireEvent.click(await screen.findByRole('button', { name: 'Đăng nhập' }));
   expect(invoke).toHaveBeenCalledWith('paperclip:login', 'https://crew.2p-solutions.com');
   const select = (await screen.findByLabelText('Company')) as HTMLSelectElement;
+  // Ô Company hiện ngay khi duyệt xong, danh sách company về sau: chờ có lựa chọn mới đổi.
+  await screen.findByRole('option', { name: 'Khác' });
   fireEvent.change(select, { target: { value: 'c2' } });
   fireEvent.click(screen.getByRole('button', { name: 'Tiếp' }));
   await waitFor(() => expect(stepCalls()).toHaveLength(1));
