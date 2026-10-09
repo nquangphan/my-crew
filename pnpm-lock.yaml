@@ -296,15 +296,15 @@ importers:
 
   packages/docs-kit:
     dependencies:
-      '@crew/shared':
-        specifier: workspace:*
-        version: link:../shared
       picomatch:
         specifier: ^4.0.7
         version: 4.0.7
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@types/picomatch':
         specifier: ^4.0.3

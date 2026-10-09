@@ -1,5 +1,5 @@
 import { posix } from 'node:path';
-import { type FlowsManifest, flowsForPath } from '@crew/shared';
+import { type FlowsManifest, flowsForPath } from './flows-schema.js';
 
 export const INDEX_PATH = 'docs/index.md';
 export const FILES_PATH = 'docs/files.md';

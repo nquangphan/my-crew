@@ -35,7 +35,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
    `CheckOutcome.skipped = 'not-initialized'`, không luật nào chạy, code `0` — để chủ dự án còn commit/push
    được trước khi chạy docs-init; `--all`/`--range` không có lối tắt này, vẫn `uninitialized()` (exit 3).
 3. `packages/docs-kit/src/manifest.ts` → `loadManifest()`/`parseManifest()`: parse YAML (`uniqueKeys: true` để
-   bắt flow id trùng) rồi validate bằng schema `FlowsManifest` (`@crew/shared`); `sourceMatcher()` dùng
+   bắt flow id trùng) rồi validate bằng schema `FlowsManifest` (`packages/docs-kit/src/flows-schema.ts`); `sourceMatcher()` dùng
    `picomatch` để khớp `source.include` trừ `source.exclude`.
 4. `packages/docs-kit/src/tree.ts` → `TreeReader`: trừu tượng hoá một phiên bản repo (working tree, index,
    hoặc một commit qua `git cat-file`/`ls-tree`), để cùng một luật chạy được trên cả ba nguồn.
@@ -53,7 +53,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
    `INIT_CHECKLIST`; `--flow <id> --title` tạo một trang flow từ `templates/flow.md`
    (`renderFlowTemplate()`).
 9. `packages/docs-kit/src/commands/where.ts`/`flow.ts` → `whereCommand()`/`flowCommand()`: tra `flow ↔ file`
-   hai chiều qua `flowsForPath()` (schema `@crew/shared`) cho agent dùng trước khi sửa code.
+   hai chiều qua `flowsForPath()` (`packages/docs-kit/src/flows-schema.ts`) cho agent dùng trước khi sửa code.
 
 ## Files
 
@@ -70,6 +70,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 | `packages/docs-kit/src/commands/io.ts` | Giao diện I/O, mã lỗi CLI | `Io`, `EXIT`, `UsageError` |
 | `packages/docs-kit/src/git.ts` | Bọc lệnh git dùng cho mọi luật | `git`, `stagedChanges`, `commitChanges`, `isMerging`, `hasTrailer` |
 | `packages/docs-kit/src/tree.ts` | Đọc file từ working tree/index/commit | `TreeReader`, `workingTreeReader`, `indexReader`, `commitReader` |
+| `packages/docs-kit/src/flows-schema.ts` | Schema zod của `flows.yaml` và tra chủ sở hữu của một path | `FlowsManifest`, `FlowId`, `flowsForPath`, `FLOWS_MANIFEST_PATH` |
 | `packages/docs-kit/src/manifest.ts` | Parse + truy vấn `flows.yaml` | `loadManifest`, `sourceMatcher`, `mappedPaths`, `flowsListing` |
 | `packages/docs-kit/src/generate.ts` | Sinh/so khớp block tự động | `applyBlock`, `isBlockCurrent`, `blockBody` |
 | `packages/docs-kit/src/secret-scan.ts` | Quét credential trong diff | `scanPatch`, `SECRET_RULES`, `findGitleaks` |
@@ -113,3 +114,4 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
   thất bại khi thiếu trailer, đạt với trailer, một `AGENTS.md` lồng trong thư mục con (ví dụ
   `src/checkout/AGENTS.md`) không bị coi là đường dẫn được bảo vệ, và commit docs-init vẫn được miễn như
   `CLAUDE.md`.
+- `packages/docs-kit/test/flows-schema.test.ts`: `flowsForPath()` trả đúng các flow sở hữu một path cùng vai trò, lý do `unassigned` và path lạ.

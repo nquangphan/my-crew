@@ -24,7 +24,7 @@ tự động giữ tiếng Anh, để công cụ không phụ thuộc ngôn ng�
 
 ## 2. `docs/flows.yaml`
 
-Schema nằm ở `@crew/shared` (`FlowsManifest` trong `docs-schemas.ts`).
+Schema nằm ở `packages/docs-kit/src/flows-schema.ts` (`FlowsManifest`).
 
 ```yaml
 version: 1

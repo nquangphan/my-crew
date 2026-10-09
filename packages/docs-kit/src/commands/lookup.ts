@@ -1,6 +1,6 @@
 import { realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { FlowsManifest } from '@crew/shared';
+import type { FlowsManifest } from '../flows-schema.js';
 import { loadManifest } from '../manifest.js';
 import { checkManifest } from '../rules/r1-manifest.js';
 import { notInitialized } from '../rules/r5-initialized.js';

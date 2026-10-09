@@ -1,4 +1,4 @@
-import type { FlowsManifest } from '@crew/shared';
+import type { FlowsManifest } from '../flows-schema.js';
 import { FILES_BLOCK, FLOWS_BLOCK, isBlockCurrent } from '../generate.js';
 import type { TreeReader } from '../tree.js';
 import type { Violation } from './types.js';

@@ -1,4 +1,4 @@
-import { FLOWS_MANIFEST_PATH, FlowsManifest } from '@crew/shared';
+import { FLOWS_MANIFEST_PATH, FlowsManifest } from './flows-schema.js';
 import picomatch from 'picomatch';
 import { parse as parseYaml } from 'yaml';
 import type { TreeReader } from './tree.js';

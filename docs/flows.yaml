@@ -198,6 +198,7 @@ flows:
       - packages/docs-kit/src/commands/io.ts
       - packages/docs-kit/src/git.ts
       - packages/docs-kit/src/tree.ts
+      - packages/docs-kit/src/flows-schema.ts
       - packages/docs-kit/src/manifest.ts
       - packages/docs-kit/src/generate.ts
       - packages/docs-kit/src/secret-scan.ts
@@ -219,6 +220,7 @@ flows:
       - packages/docs-kit/templates/flows.yaml
     tests:
       - packages/docs-kit/test/rules.test.ts
+      - packages/docs-kit/test/flows-schema.test.ts
   docs-hooks:
     title: Hook git và CI của crew-docs
     doc: docs/flows/docs-hooks.md

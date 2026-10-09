@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { FlowId } from '@crew/shared';
+import { FlowId } from '../flows-schema.js';
 import { applyBlock, FILES_BLOCK, FLOWS_BLOCK } from '../generate.js';
 import { FLOWS_MANIFEST_PATH, loadManifest } from '../manifest.js';
 import { renderFlowTemplate, TEMPLATES } from '../templates.js';

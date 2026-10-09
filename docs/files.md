@@ -473,6 +473,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/docs-kit/src/commands/io.ts` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/src/commands/lookup.ts` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/src/commands/where.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/flows-schema.ts` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/src/generate.ts` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/src/git.ts` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/src/hook-installer.ts` | [docs-hooks](flows/docs-hooks.md) (file) |
@@ -496,6 +497,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/docs-kit/templates/flow.md` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/templates/flows.yaml` | [docs-check](flows/docs-check.md) (file) |
 | `packages/docs-kit/templates/index.md` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/test/flows-schema.test.ts` | [docs-check](flows/docs-check.md) (test) |
 | `packages/docs-kit/test/hook-installer.test.ts` | [docs-hooks](flows/docs-hooks.md) (test) |
 | `packages/docs-kit/test/rules.test.ts` | [docs-check](flows/docs-check.md) (test) |
 | `packages/shared/src/agent-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |

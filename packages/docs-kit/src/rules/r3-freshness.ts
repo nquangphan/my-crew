@@ -1,4 +1,4 @@
-import type { FlowsManifest } from '@crew/shared';
+import type { FlowsManifest } from '../flows-schema.js';
 import type { FileChange } from '../git.js';
 import { flowsListing, sourceMatcher } from '../manifest.js';
 import type { Violation } from './types.js';
