@@ -205,7 +205,7 @@ và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ 
 - Có việc thì làm xong và báo kết quả rồi mới hỏi tiếp, nên máy chỉ làm **một việc một lúc**.
 - Đích lỗi (mạng, HTTP) thì lùi dần riêng đích đó: 2, 4, 8… lần chu kỳ, tối đa 60 giây; không ném, đích khác vẫn chạy.
 - Việc trả về phải có `id` uuid, đúng `companyId` của đích và đúng `machineId`; sai thì báo `app_error`, không làm.
-- Việc vượt **8 phút** (lease của plugin là 10 phút) thì app giết tiến trình phụ đang làm và báo `app_error` "quá thời gian".
+- Việc vượt **8 phút** (lease của plugin là 10 phút) thì app báo `app_error` "quá thời gian", bật `AbortSignal` (phần ở Main đang tải skill không được bắt đầu ghi file nữa), giết nhóm tiến trình của mọi `git` đang chạy (op `cancelMachineJob` → `killActiveGit`) rồi giết tiến trình phụ.
 - Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>}` vào `app.json`, tối đa
   30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). Bản tin máy của crew-mac đọc key này
   (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip thì không ghi.
@@ -236,10 +236,10 @@ Vi phạm thì `folder_forbidden`.
 | `prepare-checkouts {projectKey, folder, roles}` | `configureDocsBundle`; mỗi vai trò: worktree `~/crew-agents/<khóa>/<vai>` trên nhánh `branch` của payload (`ensureWorktree`, có rồi thì dùng lại), `.paperclip-runtime/` vào `info/exclude`; có `projectId` thì `addStatusRepo(projectId, <folder>, companyId)` một lần | `{checkouts:[{role, path, head}]}` | `checkout_exists` (thư mục có sẵn không phải worktree của repo này, không đè), `git_failed` |
 | `agent-workspace {projectKey, folder, role, branch}` | như trên cho một vai trò (executor thứ 2 thêm sau), không đụng worktree khác | `{role, path, head}` | như trên |
 | `skill-sync {skillId, slug, version}` | ghi file đã tải vào thư mục tạm cạnh `~/.crew/skills/<company>/<slug>/` rồi đổi tên (thay trọn thư mục cũ); thư mục 0700, file 0600 (`executable` 0700). Đường dẫn file phải tương đối, không `..`, không ký tự điều khiển, ≤ 500 file, ≤ 20 MB | `{sha256, files}` (`treeChecksum` của crew-mac: `<path>\0<sha256 file>\n` đã sắp) | `skill_fetch_failed` |
-| `check {projectKey}` | `doctor` không probe (`skipTcc`) và `workflowCheck` (bản ghim Superpowers) cho từng thư mục trong `~/crew-agents/<khóa>/` | `{items:[{id, status, title}]}`; `fail` của doctor ở `worktree-workflows`/`worktree-root` thành `error`, `fail` ở mục chung của máy (sshd, Tailscale, …) thành `warn` để không chặn project không liên quan; mục workflow `workflow:<vai>` | `check_failed` (có mục `error` của project, hoặc chưa có checkout nào): vẫn gửi `items` trong `result` |
+| `check {projectKey}` | `doctor` không probe (`skipTcc`) và `workflowCheck` (bản ghim Superpowers) cho từng thư mục trong `~/crew-agents/<khóa>/` | `{items:[{id, status, title}]}`; `fail` của doctor ở `wrapper`/`worktree-root` thành `error` (`worktree-workflows` quét cả `~/crew-agents` nên chỉ `warn`, workflow từng ô do `workflow:<vai>` kiểm), `fail` ở mục chung của máy (sshd, Tailscale, …) thành `warn` để không chặn project không liên quan; mục workflow `workflow:<vai>` | `check_failed` (có mục `error` của project, hoặc chưa có checkout nào): vẫn gửi `items` trong `result` |
 
 Mọi lỗi gửi lên là mã cố định cộng câu tiếng Việt đã làm sạch (`sanitize.ts` → `sanitizeJobError`: bỏ mã terminal và
-ký tự điều khiển trừ tab/xuống dòng, che `scheme://user:pass@` và các mẫu secret chép từ plugin, cắt 300 ký tự không cắt
+ký tự điều khiển trừ tab/xuống dòng, che `scheme://user:pass@` (tới `@` cuối trước `/`, nên mật khẩu chứa `@` cũng che hết) và các mẫu secret chép từ plugin, cắt 300 ký tự không cắt
 đôi ký tự). Plugin làm sạch lần nữa.
 
 **Báo kết quả** (`remote.ts` → `submit`): `POST …/machine-jobs/:id/result {companyId, machineId, status, result |
@@ -256,7 +256,7 @@ không có `result`.
 | `apps/mac-app/src/main/paperclip/keychain.ts` | Board key trong Keychain (bản mã) | `createBoardKeyStore`, `BOARD_KEY_SERVICE` |
 | `apps/mac-app/src/main/paperclip/register.ts` | Kênh IPC, `security`, `safeStorage` | `registerPaperclip`, `paperclipClient`, `boardKeys` |
 | `apps/mac-app/src/main/projects/progress.ts` | Tiến độ trong `app.json`, đường dẫn, tên vai trò, lệnh gỡ owner tự chạy | `ProjectDeps`, `ProgressRecorder`, `roleNames`, `projectPaths`, `KEY_RE`, `isLegacyProgress`, `manualRemoveCommand` |
-| `apps/mac-app/src/main/projects/folder.ts` | Kiểm folder owner chọn, worktree agent, `info/exclude`, bundle crew-docs, `git` của owner | `inspectFolder`, `folderGuardReason`, `suggestKey`, `ensureWorktree`, `isWorktreeOf`, `agentBranch`, `ensureRuntimeExcluded`, `configureDocsBundle`, `runGit`, `shellQuote` |
+| `apps/mac-app/src/main/projects/folder.ts` | Kiểm folder owner chọn, worktree agent, `info/exclude`, bundle crew-docs, `git` của owner | `inspectFolder`, `folderGuardReason`, `suggestKey`, `ensureWorktree`, `isWorktreeOf`, `agentBranch`, `ensureRuntimeExcluded`, `configureDocsBundle`, `runGit`, `killActiveGit`, `shellQuote` |
 | `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; chọn folder; thêm/gỡ | `createProjectsIpc` |
 | `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục | `registerProjects` |
 | `apps/mac-app/src/renderer/routes/projects.tsx` | Màn hình Project: danh sách, wizard thêm (Chọn folder), Chạy tiếp, Gỡ khỏi Mac | `ProjectsScreen`, `stepLabel` |

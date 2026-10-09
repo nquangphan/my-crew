@@ -372,6 +372,26 @@ describe('check', () => {
     ]);
   });
 
+  it('doctor fail ở wrapper → failed; worktree-workflows fail → chỉ warn', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    deps.doctor = async () => [
+      { id: 'wrapper', title: 'Wrapper crew-claude-run', status: 'fail', detail: 'thiếu wrapper' },
+      { id: 'worktree-workflows', title: 'Workflow worktree', status: 'fail', detail: 'project khác lỗi' },
+    ];
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'check_failed' });
+    if (outcome.status !== 'failed' || outcome.result?.kind !== 'check') throw new Error('sai kết quả');
+    expect(outcome.result.items.slice(0, 2).map((i) => [i.id, i.status])).toEqual([
+      ['wrapper', 'error'],
+      ['worktree-workflows', 'warn'],
+    ]);
+  });
+
   it('project chưa có checkout nào → check_failed', async () => {
     const { deps } = setup();
     expect(await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps)).toMatchObject(

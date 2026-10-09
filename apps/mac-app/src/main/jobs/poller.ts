@@ -20,9 +20,10 @@ export interface PollerDeps {
   /** `null` = không có việc (204). Ném `MissingKeyError` khi chưa có board key. */
   claim(target: PollTarget, machineId: string): Promise<MachineJob | null>;
   submit(target: PollTarget, machineId: string, jobId: string, outcome: JobOutcome): Promise<void>;
-  run(job: MachineJob, target: PollTarget): Promise<JobOutcome>;
-  /** Hủy việc đang chạy (giết tiến trình phụ đang làm việc). */
-  cancelRunning(): void;
+  /** `signal` bật khi việc quá giờ: phần chạy ở Main phải dừng, không được bắt đầu bước mới. */
+  run(job: MachineJob, target: PollTarget, signal: AbortSignal): Promise<JobOutcome>;
+  /** Hủy việc đang chạy (giết tiến trình git con rồi tiến trình phụ đang làm việc). */
+  cancelRunning(): void | Promise<void>;
   isVisible(): boolean;
   /** Ghi `jobsAgent.lastPollAt` vào `app.json` (bản tin máy đọc). */
   recordPoll(at: Date): Promise<void>;
@@ -63,9 +64,11 @@ export function createJobsPoller(deps: PollerDeps) {
   async function runWithTimeout(job: MachineJob, target: PollTarget): Promise<JobOutcome> {
     const timeoutMs = deps.timeoutMs ?? JOB_TIMEOUT_MS;
     let timeout: ReturnType<typeof setTimeout> | undefined;
+    const abort = new AbortController();
     const expired = new Promise<JobOutcome>((resolve) => {
       timeout = setTimeout(() => {
-        deps.cancelRunning();
+        abort.abort();
+        void Promise.resolve(deps.cancelRunning()).catch(() => undefined);
         resolve({
           status: 'failed',
           errorCode: 'app_error',
@@ -75,7 +78,7 @@ export function createJobsPoller(deps: PollerDeps) {
     });
     try {
       return await Promise.race([
-        deps.run(job, target).catch(
+        deps.run(job, target, abort.signal).catch(
           (error): JobOutcome => ({
             status: 'failed',
             errorCode: 'app_error',

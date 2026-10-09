@@ -1,7 +1,13 @@
-import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { folderGuardReason, inspectFolder, suggestKey } from '../src/main/projects/folder.js';
+import {
+  folderGuardReason,
+  inspectFolder,
+  killActiveGit,
+  runGit,
+  suggestKey,
+} from '../src/main/projects/folder.js';
 import { makeSandbox } from './projects-fixture.js';
 
 const cleanups: Array<() => void> = [];
@@ -95,5 +101,30 @@ describe('suggestKey', () => {
     expect(suggestKey('Đồ án Cũ')).toBe('do-an-cu');
     expect(suggestKey('a'.repeat(50))).toBe('a'.repeat(31));
     expect(suggestKey('---')).toBe('');
+  });
+});
+
+describe('killActiveGit', () => {
+  it('giết cả nhóm tiến trình con của git đang chạy, không để mồ côi', async () => {
+    const s = sandbox();
+    const pidFile = join(s.home, 'ssh.pid');
+    const running = runGit(['ls-remote', 'ssh://example.invalid/x.git'], {
+      env: { ...s.env, GIT_SSH_COMMAND: `sh -c 'echo $$ > ${pidFile}; exec sleep 30'` },
+      timeoutMs: 60_000,
+    });
+    for (let i = 0; i < 100 && !existsSync(pidFile); i++) await new Promise((r) => setTimeout(r, 50));
+    const pid = Number(readFileSync(pidFile, 'utf8').trim());
+    expect(() => process.kill(pid, 0)).not.toThrow();
+    killActiveGit();
+    await running;
+    for (let i = 0; i < 40; i++) {
+      try {
+        process.kill(pid, 0);
+      } catch {
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    throw new Error('tiến trình con của git vẫn sống');
   });
 });

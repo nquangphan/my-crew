@@ -19,7 +19,7 @@ const SECRET_PATTERNS: readonly RegExp[] = [
 ];
 
 /** `scheme://user:pass@` trong URL (git in nguyên remote có credential vào stderr). */
-const URL_USERINFO = /\b([a-z][a-z0-9+.-]*:\/\/)[^/\s@'"]+@/gi;
+const URL_USERINFO = /\b([a-z][a-z0-9+.-]*:\/\/)[^/\s'"]*@/gi;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: mã terminal là thứ bị bỏ
 const ANSI = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
 // Ký tự điều khiển trừ tab và xuống dòng (giữ output git nhiều dòng đọc được).

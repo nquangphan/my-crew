@@ -32,12 +32,20 @@ export function registerJobs(ctx: AppContext): void {
     loadTargets: () => jobsOps.call('jobTargets'),
     claim: (target, machineId) => remote.claim(target, machineId),
     submit: (target, machineId, jobId, outcome) => remote.submit(target, machineId, jobId, outcome),
-    run: async (job, target) => {
+    run: async (job, target, signal) => {
       const prepared = await remote.prepare(target, job);
       if ('outcome' in prepared) return prepared.outcome;
+      // Quá giờ giữa lúc tải skill: không bắt đầu ghi file sau khi đã báo lỗi.
+      if (signal.aborted) throw new Error('Việc đã bị hủy vì quá thời gian');
       return jobsOps.call('runMachineJob', job, prepared.extras);
     },
-    cancelRunning: () => jobsOps.dispose(),
+    cancelRunning: async () => {
+      // Giết nhóm tiến trình git con trước (SIGKILL tiến trình phụ không dọn được con), rồi mới giết tiến trình phụ.
+      await Promise.race([jobsOps.call('cancelMachineJob'), new Promise((r) => setTimeout(r, 2_000))]).catch(
+        () => undefined,
+      );
+      jobsOps.dispose();
+    },
     isVisible: () => BrowserWindow.getAllWindows().some((win) => win.isVisible()),
     recordPoll: async (at) => {
       await ctx.store.update((state) => ({

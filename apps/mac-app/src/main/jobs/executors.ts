@@ -253,8 +253,11 @@ function writeSkill(
 
 const cut = (text: string) => sanitizeJobError(text);
 
-/** Mục doctor thuộc worktree/checkout của project; mục khác là của cả máy nên chỉ cảnh báo, không làm `check` thất bại. */
-const PROJECT_DOCTOR_IDS = new Set(['worktree-workflows', 'worktree-root']);
+/**
+ * Mục doctor làm `check` thất bại: thiếu chúng thì mọi run đều không khởi động được. `worktree-workflows` quét cả
+ * `~/crew-agents` (project khác lỗi cũng đỏ) nên chỉ cảnh báo; workflow từng ô đã có mục `workflow:<ô>` kiểm riêng.
+ */
+const PROJECT_DOCTOR_IDS = new Set(['wrapper', 'worktree-root']);
 
 async function checkJob(projectKey: string, deps: ExecutorDeps): Promise<JobOutcome> {
   const root = join(deps.home, 'crew-agents', projectKey);

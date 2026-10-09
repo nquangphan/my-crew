@@ -27,6 +27,13 @@ describe('sanitizeJobError', () => {
   });
 });
 
+describe('userinfo có @ trong mật khẩu', () => {
+  it('che tới @ cuối trước dấu /', () => {
+    expect(sanitizeJobError('fatal: https://u:p@ss@host/x.git')).toBe('fatal: https://[ĐÃ CHE]@host/x.git');
+    expect(stripUrlCredentials('https://u:p@ss@host/x.git')).toBe('https://host/x.git');
+  });
+});
+
 describe('stripUrlCredentials', () => {
   it('bỏ user:pass của URL remote, giữ URL kiểu scp', () => {
     expect(stripUrlCredentials('https://u:p@github.com/a/b.git')).toBe('https://github.com/a/b.git');

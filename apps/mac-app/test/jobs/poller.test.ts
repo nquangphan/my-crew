@@ -191,6 +191,28 @@ describe('JobsPoller', () => {
     );
   });
 
+  it('hết giờ thì tín hiệu hủy truyền cho run được bật', async () => {
+    let given = false;
+    let seen: AbortSignal | undefined;
+    const f = fakes({
+      loadTargets: async () => ({ machineId: MACHINE, targets: [A] }),
+      run: (_job, _target, signal) => {
+        seen = signal;
+        return new Promise<JobOutcome>(() => undefined);
+      },
+    });
+    f.deps.claim = async () => {
+      if (given) return null;
+      given = true;
+      return makeJob(A);
+    };
+    start(f.deps);
+    await vi.advanceTimersByTimeAsync(8 * 60_000 - 1);
+    expect(seen?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(seen?.aborted).toBe(true);
+  });
+
   it('việc khác company hoặc khác máy → báo app_error, không chạy', async () => {
     let given = false;
     const f = fakes({

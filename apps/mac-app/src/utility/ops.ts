@@ -18,6 +18,7 @@ import {
 } from '@crew/mac';
 import { runJob } from '../main/jobs/executors.js';
 import type { OpsApi, OpsRequest, OpsResponse } from '../main/ops-bridge.js';
+import { killActiveGit } from '../main/projects/folder.js';
 
 export type { OpsRequest, OpsResponse };
 
@@ -63,6 +64,7 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
         targets: listTargets(ctx).map(({ url, companyId }) => ({ url, companyId })),
       };
     },
+    cancelMachineJob: async () => killActiveGit(),
     runMachineJob: async (job, extras) => {
       const ctx = context();
       return runJob(job, extras, {

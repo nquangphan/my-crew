@@ -27,6 +27,8 @@ export interface OpsApi {
   jobTargets(): { machineId: string | null; targets: { url: string; companyId: string }[] };
   /** Làm một việc của hàng đợi máy trên máy này (git, file, crew-mac). Không bao giờ ném: lỗi thành `failed`. */
   runMachineJob(job: MachineJob, extras: JobExtras): Promise<JobOutcome>;
+  /** Giết mọi `git` (cùng con cháu) việc máy đang chạy. */
+  cancelMachineJob(): Promise<void>;
 }
 
 export type OpsName = keyof OpsApi;

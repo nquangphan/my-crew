@@ -156,7 +156,7 @@ bằng `createMacContext` với `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (đ
 bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupError`). Tham số không bao giờ vào log vì
 `setStatusSecret` mang secret. Renderer không có đường tới `@crew/mac`. `addStatusRepo(projectId, path, companyId?)`
 truyền company nhận ảnh chụp docs. Hai op của hàng đợi máy: `jobTargets()` (`machineId` và đích `{url, companyId}` của
-bản tin, từ `readStatusConfig`/`listTargets`) và `runMachineJob(job, extras)` (`runJob` của `src/main/jobs/executors.ts`
+bản tin, từ `readStatusConfig`/`listTargets`) `cancelMachineJob()` (giết nhóm tiến trình `git` đang chạy khi việc quá giờ) và `runMachineJob(job, extras)` (`runJob` của `src/main/jobs/executors.ts`
 với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `doctor` không probe, `workflowCheck` với
 `superpowersPinDir`); hàng đợi dùng một `UtilityOpsBridge` riêng để hủy việc quá giờ bằng `dispose()`.
 

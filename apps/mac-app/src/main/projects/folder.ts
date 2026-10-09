@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
@@ -24,21 +24,52 @@ export type GitRunner = (
 /** `git` của owner (`/usr/bin/git`), không bao giờ hỏi mật khẩu trên terminal. Lỗi chỉ trả mã thoát và stderr. */
 export const runGit: GitRunner = (args, opts) =>
   new Promise((resolve) => {
-    execFile(
-      '/usr/bin/git',
-      args,
-      {
-        env: { ...opts.env, GIT_TERMINAL_PROMPT: '0' },
-        timeout: opts.timeoutMs,
-        encoding: 'utf8',
-        maxBuffer: 16 * 1024 * 1024,
-      },
-      (error, stdout, stderr) => {
-        const code = error ? (typeof error.code === 'number' ? error.code : -1) : 0;
-        resolve({ code, stdout: stdout ?? '', stderr: stderr ?? '' });
-      },
-    );
+    // `spawn` (không phải `execFile`, vốn bỏ `detached`): git ở nhóm tiến trình riêng để giết được cả con cháu.
+    const child = spawn('/usr/bin/git', args, {
+      env: { ...opts.env, GIT_TERMINAL_PROMPT: '0' },
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    activeGit.add(child);
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const cap = (text: string, chunk: string) => (text.length < MAX_GIT_OUTPUT ? text + chunk : text);
+    child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
+      stdout = cap(stdout, chunk);
+    });
+    child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
+      stderr = cap(stderr, chunk);
+    });
+    const timer = setTimeout(() => killGroup(child), opts.timeoutMs);
+    const finish = (code: number) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      activeGit.delete(child);
+      resolve({ code, stdout, stderr });
+    };
+    child.on('error', () => finish(-1));
+    child.on('close', (code) => finish(code ?? -1));
   });
+
+const MAX_GIT_OUTPUT = 16 * 1024 * 1024;
+
+function killGroup(child: ChildProcess): void {
+  try {
+    if (child.pid !== undefined) process.kill(-child.pid, 'SIGKILL');
+  } catch {
+    child.kill('SIGKILL');
+  }
+}
+
+const activeGit = new Set<ChildProcess>();
+
+/** Giết (SIGKILL) cả nhóm tiến trình của mọi `git` đang chạy qua `runGit`; dùng khi hủy việc quá giờ. */
+export function killActiveGit(): void {
+  for (const child of activeGit) killGroup(child);
+  activeGit.clear();
+}
 
 const LOCAL_GIT_TIMEOUT_MS = 30_000;
 const RUNTIME_EXCLUDE = '.paperclip-runtime/';
