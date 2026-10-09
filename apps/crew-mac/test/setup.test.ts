@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   symlinkSync,
   writeFileSync,
@@ -324,14 +325,16 @@ describe('crew-mac setup: chủ sshd agent', () => {
   const pidChecks = (runner: ReturnType<typeof fakeMac>['runner']) =>
     runner.calls.filter((c) => c.command === '/bin/ps' && c.args.includes('-p')).length;
 
-  it('về launchd: ghi manifest trước khi kiểm pid, chờ listener của app thoát, không kill, rồi bootstrap', async () => {
+  it('về launchd: kiểm pid trước, ghi manifest, chờ listener của app thoát, không kill, rồi bootstrap', async () => {
     const t = await appMode();
     writeFileSync(t.paths.sshdPid, '4242\n');
-    let ownerAtFirstCheck: string | undefined | null = null;
+    // Chủ trong manifest lúc mỗi lượt `ps -p` (bỏ các lượt quét cả bảng process của kiểm run).
+    const owners = new Map<number, string | undefined>();
     fakeProcs(t.runner, () => {
       const checks = pidChecks(t.runner);
-      if (checks === 1) ownerAtFirstCheck = readManifest(t.paths.manifest)?.sshdOwner;
-      return checks >= 1 && checks <= 2
+      if (checks > 0 && !owners.has(checks)) owners.set(checks, readManifest(t.paths.manifest)?.sshdOwner);
+      // Lượt 1–2: dò listener (pid và file thực thi của cha); lượt 3: vòng chờ còn thấy; sau đó listener đã thoát.
+      return checks >= 1 && checks <= 3
         ? { 4242: { ppid: 4100, command: t.listener }, 4100: { ppid: 1, command: APP_EXECUTABLE } }
         : { 4100: { ppid: 1, command: APP_EXECUTABLE } };
     });
@@ -339,8 +342,11 @@ describe('crew-mac setup: chủ sshd agent', () => {
 
     const report = await setup(t.ctx, { sshdOwner: 'launchd' });
 
-    expect(ownerAtFirstCheck).toBeUndefined();
-    expect(pidChecks(t.runner)).toBeGreaterThanOrEqual(3);
+    // Dò khi manifest còn là app; vòng chờ chạy sau khi manifest đã là launchd (app thấy và tự dừng listener).
+    const seen = [...owners.entries()].sort(([a], [b]) => a - b).map(([, owner]) => owner);
+    expect(seen.slice(0, 2)).toEqual(['app', 'app']);
+    expect(seen.slice(2).every((o) => o === undefined)).toBe(true);
+    expect(pidChecks(t.runner)).toBeGreaterThanOrEqual(4);
     const later = t.runner.commands().slice(before);
     expect(later.some((c) => c.startsWith('/bin/kill'))).toBe(false);
     expect(later).toContain(`launchctl bootstrap gui/501 ${t.paths.sshdPlist}`);
@@ -350,17 +356,151 @@ describe('crew-mac setup: chủ sshd agent', () => {
     expect(readManifest(t.paths.manifest)?.sshdOwner).toBeUndefined();
   });
 
-  it('về launchd: pid trong pidfile là sshd-session thì không kill, không bootstrap, báo lỗi', async () => {
+  /** `lsof -t` của cổng sshd: danh sách pid đang LISTEN, rỗng (rc 1) khi cổng trống. */
+  const fakeLsof = (runner: ReturnType<typeof fakeMac>['runner'], pids: number[]) =>
+    runner.on('/usr/sbin/lsof', () =>
+      pids.length === 0 ? { code: 1 } : { stdout: pids.map((p) => `${p}\n`).join('') },
+    );
+
+  it('về launchd: pidfile trỏ process lạ và cổng bị process lạ giữ thì báo lỗi TRƯỚC khi ghi manifest', async () => {
     const t = await appMode();
     writeFileSync(t.paths.sshdPid, '4242\n');
     fakeProcs(t.runner, () => ({ 4242: { ppid: 4100, command: 'sshd-session: owner@notty' } }));
+    fakeLsof(t.runner, [777]);
     const before = t.runner.calls.length;
-    await expect(setup(t.ctx, { sshdOwner: 'launchd' })).rejects.toThrow(
-      'pid 4242 không phải listener của crew-mac',
-    );
+    const err = await setup(t.ctx, { sshdOwner: 'launchd' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SetupError);
+    expect((err as Error).message).toContain('pid 4242 không phải listener của crew-mac');
+    expect((err as Error).message).toContain('cổng 2222');
     const later = t.runner.commands().slice(before);
     expect(later.some((c) => c.startsWith('/bin/kill'))).toBe(false);
     expect(later.some((c) => c.startsWith('launchctl bootstrap') && c.includes(SSHD_LABEL))).toBe(false);
+    // Chủ cũ giữ nguyên: app vẫn giữ listener của nó, không ai mất cổng.
+    expect(readManifest(t.paths.manifest)?.sshdOwner).toBe('app');
+  });
+
+  it('về launchd: pidfile trỏ process lạ mà cổng trống thì bootstrap luôn, không kill', async () => {
+    const t = await appMode();
+    writeFileSync(t.paths.sshdPid, '4242\n');
+    fakeProcs(t.runner, () => ({ 4242: { ppid: 4100, command: 'sshd-session: owner@notty' } }));
+    fakeLsof(t.runner, []);
+    const before = t.runner.calls.length;
+    const report = await setup(t.ctx, { sshdOwner: 'launchd' });
+    const later = t.runner.commands().slice(before);
+    expect(later.some((c) => c.startsWith('/bin/kill'))).toBe(false);
+    expect(later).toContain(`launchctl bootstrap gui/501 ${t.paths.sshdPlist}`);
+    expect(report.sshdHandoff).toBe('launchd');
+    expect(readManifest(t.paths.manifest)?.sshdOwner).toBeUndefined();
+    expect(t.loaded.has(SSHD_LABEL)).toBe(true);
+  });
+
+  it('về launchd: pidfile trỏ process lạ và không đọc được cổng thì dừng, giữ chủ app', async () => {
+    const t = await appMode();
+    writeFileSync(t.paths.sshdPid, '4242\n');
+    fakeProcs(t.runner, () => ({ 4242: { ppid: 4100, command: 'sshd-session: owner@notty' } }));
+    t.runner.on('/usr/sbin/lsof', () => ({ code: 1, stderr: 'lsof: lỗi lạ' }));
+    await expect(setup(t.ctx, { sshdOwner: 'launchd' })).rejects.toThrow(SetupError);
+    expect(readManifest(t.paths.manifest)?.sshdOwner).toBe('app');
+  });
+
+  it('về launchd: lần chạy lại sau khi báo lỗi vẫn không ghi launchd khi cổng còn bị giữ', async () => {
+    const t = await appMode();
+    writeFileSync(t.paths.sshdPid, '4242\n');
+    fakeProcs(t.runner, () => ({ 4242: { ppid: 4100, command: 'sshd-session: owner@notty' } }));
+    fakeLsof(t.runner, [777]);
+    await expect(setup(t.ctx, { sshdOwner: 'launchd' })).rejects.toThrow(SetupError);
+    await expect(setup(t.ctx, { sshdOwner: 'launchd' })).rejects.toThrow(SetupError);
+    expect(readManifest(t.paths.manifest)?.sshdOwner).toBe('app');
+    expect(t.loaded.has(SSHD_LABEL)).toBe(false);
+  });
+
+  it('sang app: bootout báo lỗi và job vẫn nạp thì dừng, giữ manifest launchd và plist', async () => {
+    const { home, ctx, loaded } = fakeMac({ bootoutFails: [SSHD_LABEL] });
+    const paths = macPaths(home);
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    const err = await setup(ctx, { sshdOwner: 'app' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SetupError);
+    expect((err as Error).message).toContain(SSHD_LABEL);
+    expect(loaded.has(SSHD_LABEL)).toBe(true);
+    expect(existsSync(paths.sshdPlist)).toBe(true);
+    expect(readManifest(paths.manifest)?.sshdOwner).toBeUndefined();
+  });
+
+  it('sang app: thứ tự ghi manifest app → xóa plist → bootout', async () => {
+    const t = fakeMac();
+    const paths = macPaths(t.home);
+    await setup(t.ctx, { paperclipKey: PAPERCLIP_PUB });
+    const seen: { owner: string | undefined; plist: boolean }[] = [];
+    const launchctl = t.runner;
+    const original = launchctl.run.bind(launchctl);
+    launchctl.run = async (command, args, options) => {
+      if (command === 'launchctl' && args[0] === 'bootout' && String(args[1]).endsWith(SSHD_LABEL))
+        seen.push({ owner: readManifest(paths.manifest)?.sshdOwner, plist: existsSync(paths.sshdPlist) });
+      return original(command, args, options);
+    };
+    await setup(t.ctx, { sshdOwner: 'app' });
+    expect(seen).toEqual([{ owner: 'app', plist: false }]);
+  });
+
+  /**
+   * Tiến trình gọi `setup({ sshdOwner: 'app' })` chết sau từng bước (ghi manifest, xóa plist, bootout). Trạng thái để
+   * lại phải được lần chạy sau đưa về đúng một chủ khớp manifest, dù lần sau là wizard chạy lại (`app`), CLI không cờ
+   * hay CLI lui về `launchd`.
+   */
+  describe('chết giữa chừng khi sang app', () => {
+    type Step = 'manifest' | 'plist' | 'bootout';
+    const STEPS: Step[] = ['manifest', 'plist', 'bootout'];
+
+    async function stoppedAfter(done: Step[]) {
+      const t = fakeMac();
+      const paths = macPaths(t.home);
+      await setup(t.ctx, { paperclipKey: PAPERCLIP_PUB });
+      if (done.includes('manifest')) {
+        const m = readManifest(paths.manifest);
+        writeFileSync(paths.manifest, `${JSON.stringify({ ...m, sshdOwner: 'app' }, null, 2)}\n`);
+      }
+      if (done.includes('plist')) rmSync(paths.sshdPlist);
+      if (done.includes('bootout')) t.loaded.delete(SSHD_LABEL);
+      return { ...t, paths };
+    }
+
+    function expectOneOwner(t: Awaited<ReturnType<typeof stoppedAfter>>, owner: 'app' | 'launchd') {
+      const manifestOwner = readManifest(t.paths.manifest)?.sshdOwner ?? 'launchd';
+      expect(manifestOwner).toBe(owner);
+      expect(t.loaded.has(SSHD_LABEL)).toBe(owner === 'launchd');
+      expect(existsSync(t.paths.sshdPlist)).toBe(owner === 'launchd');
+    }
+
+    for (let k = 0; k <= STEPS.length; k += 1) {
+      const done = STEPS.slice(0, k);
+      const label = k === 0 ? 'chưa bước nào' : `sau ${done.join(' → ')}`;
+
+      it(`${label}: còn ít nhất một chủ thật cho cổng, hoặc manifest đã là app (app tự sinh listener)`, async () => {
+        const t = await stoppedAfter(done);
+        const manifestOwner = readManifest(t.paths.manifest)?.sshdOwner ?? 'launchd';
+        // Không bao giờ: manifest nói launchd mà LaunchAgent không còn (cổng trống, app mở lại thì `disabled`).
+        if (manifestOwner === 'launchd') expect(t.loaded.has(SSHD_LABEL)).toBe(true);
+      });
+
+      it(`${label}: wizard chạy lại sang app thì về đúng một chủ app`, async () => {
+        const t = await stoppedAfter(done);
+        await setup(t.ctx, { sshdOwner: 'app' });
+        expectOneOwner(t, 'app');
+      });
+
+      it(`${label}: CLI không cờ thì về đúng một chủ theo manifest`, async () => {
+        const t = await stoppedAfter(done);
+        const owner = readManifest(t.paths.manifest)?.sshdOwner ?? 'launchd';
+        await setup(t.ctx, {});
+        expectOneOwner(t, owner);
+      });
+
+      it(`${label}: CLI lui về launchd thì về đúng một chủ launchd`, async () => {
+        const t = await stoppedAfter(done);
+        await setup(t.ctx, { sshdOwner: 'launchd' });
+        expectOneOwner(t, 'launchd');
+      });
+    }
   });
 
   it('về launchd: không có pidfile thì bootstrap ngay', async () => {

@@ -109,22 +109,37 @@ describe('crew-mac status', () => {
     expect(report.claude).toEqual({ version: '2.1.294', loggedIn: false, plan: null });
   });
 
+  it('set-secret thoát dấu nháy và gạch chéo ngược theo cú pháp của security -i', async () => {
+    const { ctx, runner } = fakeMac();
+    runner.on('security', () => ({}));
+    await setStatusSecret(ctx, 'a"b\\c$d`e\'f');
+    const call = runner.calls.find((c) => c.command === 'security');
+    expect(call?.args).toEqual(['-i']);
+    expect(call?.options.input).toBe(
+      'add-generic-password -U -s crew-mac-status -a crew-mac -w "a\\"b\\\\c$d`e\'f"\n',
+    );
+  });
+
+  it('set-secret báo lỗi khi security -i trả mã khác 0', async () => {
+    const { ctx, runner } = fakeMac();
+    runner.on('security', () => ({ code: 2 }));
+    await expect(setStatusSecret(ctx, 'x')).rejects.toThrow('Không ghi được secret vào Keychain');
+  });
+
   it('set-secret ghi Keychain qua runner và send dùng chữ ký, ghi kết quả', async () => {
     const { ctx, runner, home } = fakeMac();
     const config = configureStatus(ctx, 'https://paperclip.example', '22222222-2222-4222-8222-222222222222');
     runner.on('security', (args) => (args[0] === 'find-generic-password' ? { stdout: 'test-secret\n' } : {}));
     await setStatusSecret(ctx, 'test-secret\n');
-    const added = runner.calls.find((c) => c.command === 'security' && c.args[0] === 'add-generic-password');
-    expect(added?.args).toEqual([
-      'add-generic-password',
-      '-U',
-      '-s',
-      'crew-mac-status',
-      '-a',
-      'crew-mac',
-      '-w',
-      'test-secret',
-    ]);
+    // Secret đi qua stdin của `security -i`, không nằm trên argv (process cùng user thấy argv qua `ps`).
+    const added = runner.calls.filter(
+      (c) => c.command === 'security' && c.args[0] !== 'find-generic-password',
+    );
+    expect(added.map((c) => c.args)).toEqual([['-i']]);
+    expect(added[0]?.options.input).toBe(
+      'add-generic-password -U -s crew-mac-status -a crew-mac -w "test-secret"\n',
+    );
+    expect(runner.calls.some((c) => c.args.some((a) => a.includes('test-secret')))).toBe(false);
     const requests: Array<{ url: string; init: RequestInit }> = [];
     const fetcher: typeof fetch = async (url, init) => {
       requests.push({ url: String(url), init: init as RequestInit });

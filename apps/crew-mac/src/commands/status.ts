@@ -189,11 +189,13 @@ export async function setStatusSecret(ctx: MacContext, input: string): Promise<v
   const secret = input.replace(/\r?\n$/, '');
   if (!secret || secret.includes('\n') || secret.includes('\r'))
     throw new Error('Secret phải có đúng một dòng');
-  const result = await ctx.runner.run(
-    'security',
-    ['add-generic-password', '-U', '-s', 'crew-mac-status', '-a', 'crew-mac', '-w', secret],
-    { timeoutMs: 10_000 },
-  );
+  // Secret không lên argv (process cùng user đọc được argv qua `ps`): `security -i` đọc lệnh từ stdin. Trong cú pháp
+  // của nó, chuỗi trong nháy kép thoát `\` và `"` bằng gạch chéo ngược (đã thử với `$`, `` ` ``, `'`, dấu cách).
+  const quoted = `"${secret.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+  const result = await ctx.runner.run('security', ['-i'], {
+    timeoutMs: 10_000,
+    input: `add-generic-password -U -s crew-mac-status -a crew-mac -w ${quoted}\n`,
+  });
   if (result.code !== 0) throw new Error('Không ghi được secret vào Keychain');
 }
 
