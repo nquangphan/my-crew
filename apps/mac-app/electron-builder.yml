@@ -1,0 +1,40 @@
+# Đóng gói 2P Crew (bundle com.2p-solutions.crew.mac). Danh tính ký lấy từ biến CSC_NAME lúc chạy, không ghi vào
+# file này. Notarize do scripts/release.mjs (UPD-2) làm; UPD-2 thêm mục `publish`.
+appId: com.2p-solutions.crew.mac
+productName: 2P Crew
+copyright: Copyright © 2P Solutions
+directories:
+  output: dist
+  buildResources: build
+asar: true
+# Bản crew-mac đã build (apps/crew-mac/dist) mang theo để app cài ra ~/.crew/app/crew-mac.
+extraResources:
+  - from: ../crew-mac
+    to: crew-mac
+    filter:
+      - package.json
+      - dist/**
+      - assets/**
+files:
+  - out/**
+  - package.json
+mac:
+  target:
+    - { target: zip, arch: [arm64] }
+    - { target: dmg, arch: [arm64] }
+  artifactName: 2P-Crew-${version}-${arch}-mac.${ext}
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  extendInfo:
+    LSUIElement: false
+    NSDocumentsFolderUsageDescription: Agent Crew chạy trên máy này cần đọc và ghi mã nguồn trong thư mục Tài liệu.
+    NSDesktopFolderUsageDescription: Agent Crew chạy trên máy này cần truy cập thư mục Màn hình nền khi việc yêu cầu.
+    NSDownloadsFolderUsageDescription: Agent Crew chạy trên máy này cần truy cập thư mục Tải về khi việc yêu cầu.
+    NSRemovableVolumesUsageDescription: Agent Crew chạy trên máy này cần truy cập ổ đĩa ngoài khi việc yêu cầu.
+dmg:
+  title: 2P Crew ${version}
+  artifactName: 2P-Crew-${version}-${arch}.${ext}

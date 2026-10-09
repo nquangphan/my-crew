@@ -73,6 +73,29 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/workflows-inventory.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-pin.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/mac-app/src/main/app-context.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/app-log.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/app-state.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/index.ts` | [mac-app](flows/mac-app.md) (điểm vào), [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/login-item.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/ops-bridge.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/tray.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/window.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/app.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/components/ui.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/index.html` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/lib/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/main.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/styles.css` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/shared/ipc-contract.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/utility/ops.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/test/app-log.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/app-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/ops-bridge.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |

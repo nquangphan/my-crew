@@ -29,6 +29,7 @@ docs trước khi đọc code.
 |------|----|----------|
 | [Kiểm tra chuẩn docs (crew-docs)](flows/docs-check.md) | `docs-check` | `packages/docs-kit/src/bin.ts`, `packages/docs-kit/src/cli.ts` |
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
+| [App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)](flows/mac-app.md) | `mac-app` | `apps/mac-app/src/main/index.ts` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |
 | [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |
 | [Ghim Superpowers và chặn nạp skill chéo trên Mac](flows/mac-workflows.md) | `mac-workflows` | `apps/crew-mac/src/workflows/install.ts`, `apps/crew-mac/src/commands/workflow-check.ts` |

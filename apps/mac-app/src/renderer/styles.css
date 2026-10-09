@@ -1,0 +1,131 @@
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --line: #dfe3ea;
+  --ink: #172033;
+  --muted: #5b6578;
+  --accent: #1d5fd1;
+  --accent-bg: #e3ecfb;
+  --ok-bg: #dcfff1;
+  --ok-ink: #164b35;
+  --warn-bg: #fff4d6;
+  --warn-ink: #7a4f00;
+  --bad-bg: #ffe6e3;
+  --bad-ink: #9e2a20;
+  --gray-bg: #e9ecf1;
+  --gray-ink: #3b4557;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    14px / 1.5 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.muted {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+.shell {
+  display: flex;
+  height: 100%;
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 200px;
+  padding: 16px 12px;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+}
+.brand {
+  padding: 4px 8px 12px;
+  font-weight: 600;
+}
+.nav {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nav:hover {
+  background: var(--gray-bg);
+}
+.nav.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.version {
+  margin-top: auto;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.lozenge {
+  display: inline-flex;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.notice {
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+.tone-ok {
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+.tone-warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.tone-bad {
+  background: var(--bad-bg);
+  color: var(--bad-ink);
+}
+.tone-info {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.tone-gray {
+  background: var(--gray-bg);
+  color: var(--gray-ink);
+}

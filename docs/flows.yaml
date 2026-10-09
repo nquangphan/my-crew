@@ -146,5 +146,35 @@ flows:
       - apps/crew-mac/test/workflows-pin.test.ts
       - apps/crew-mac/test/workflows-inventory.test.ts
       - apps/crew-mac/test/workflow-check.test.ts
+  mac-app:
+    title: App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)
+    doc: docs/flows/mac-app.md
+    entrypoints:
+      - apps/mac-app/src/main/index.ts
+    files:
+      - apps/mac-app/src/main/index.ts
+      - apps/mac-app/src/main/app-context.ts
+      - apps/mac-app/src/main/app-state.ts
+      - apps/mac-app/src/main/app-log.ts
+      - apps/mac-app/src/main/ipc.ts
+      - apps/mac-app/src/main/ops-bridge.ts
+      - apps/mac-app/src/main/login-item.ts
+      - apps/mac-app/src/main/tray.ts
+      - apps/mac-app/src/main/window.ts
+      - apps/mac-app/src/preload/index.ts
+      - apps/mac-app/src/shared/ipc-contract.ts
+      - apps/mac-app/src/utility/ops.ts
+      - apps/mac-app/src/renderer/index.html
+      - apps/mac-app/src/renderer/main.tsx
+      - apps/mac-app/src/renderer/app.tsx
+      - apps/mac-app/src/renderer/styles.css
+      - apps/mac-app/src/renderer/lib/ipc.ts
+      - apps/mac-app/src/renderer/components/ui.tsx
+    tests:
+      - apps/mac-app/test/app-state.test.ts
+      - apps/mac-app/test/app-log.test.ts
+      - apps/mac-app/test/ipc-contract.test.ts
+      - apps/mac-app/test/ops-bridge.test.ts
+      - apps/mac-app/test/renderer/app.test.tsx
 shared: {}
 unassigned: []
