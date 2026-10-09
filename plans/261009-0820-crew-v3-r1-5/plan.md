@@ -1,7 +1,7 @@
 ---
 title: "Crew v3 R1-5 — Nâng Paperclip upstream và phát hành v3.0"
 description: "Nâng fork từ v2026.1001.0 lên v2026.1005.0 bằng upgrade.sh; chạy lại nghiệm thu toàn R1 trên máy thật; diễn tập restore; review toàn nhánh; deploy."
-status: in-progress
+status: done
 priority: P1
 effort: 2d
 branch: v3
