@@ -137,7 +137,8 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
   `setup({ sshdOwner: 'launchd', force: true })`, ghi `sshdOwner: 'launchd'` vào `app.json`, bước lỗi với lý do
   (`lastError` của supervisor) và 20 dòng cuối `sshd.log`, nói rõ đã tự chuyển về LaunchAgent; nếu lui cũng lỗi thì chỉ
   owner chạy `crew-mac setup --sshd-owner launchd`. Đã ở chế độ app và listener đang chạy thì `ok`, không gọi `setup`.
-  Xong (thành công hay tự lui) thì làm mới sức khỏe để chấm màu tray cập nhật ngay.
+  Xong (thành công hay tự lui) thì làm mới sức khỏe để chấm màu tray cập nhật ngay. `registerSetup` bọc cả bước trong
+  `sshd.holdQuit(...)` (flow `mac-app-sshd`): bấm Thoát giữa lúc đang đổi chủ sshd thì quit guard chờ bước này xong rồi mới hỏi.
 - **`doctor`** (`createDoctorStep`): `doctor` có thử `claude` (`probe: true`, 90 giây); `ok` khi 0 `fail` (`warn` vẫn
   qua), thông báo liệt kê từng lỗi.
 - **`done`**: chỉ chạy khi tiến độ đã tới `done` (mọi bước trước `ok`); bật login item (`loginItem.set(true)`). macOS
