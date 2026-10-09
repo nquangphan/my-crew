@@ -157,6 +157,12 @@ tối đa 30 phút ("Chờ duyệt agent trên web"); được duyệt rồi m�
 danh sách id executor của project (mục "Executor của company", tên mục giữ như template tham chiếu). `uploadInstructions`
 theo `add-base.mjs`: GET file lấy hash làm `baseHash` (`null` chỉ khi 404), nội dung đã đúng thì không PUT.
 
+Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với `crew/r2-1` @ `c301d7608`,
+gồm dòng FX-10 "Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`" và mục 4 của integrator). Sửa `crew/agents/*.md` ở fork thì
+phải chép lại sang `templates/*.md` và cập nhật sha256 trong `projects-instructions.test.ts`; agent đã tạo từ template cũ
+không tự đổi, phải PUT lại `AGENTS.md` (GET lấy `contentHash` làm `baseHash`). Test cũng khẳng định các câu then chốt
+của FX-10 có trong template integrator.
+
 ## Gỡ khỏi Mac
 
 `removeProject(deps, projectId)`:

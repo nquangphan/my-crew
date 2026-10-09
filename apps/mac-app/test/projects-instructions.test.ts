@@ -14,11 +14,11 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork `paperclip-v3` @ 4dca97106 lúc chép. Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork `crew/r2-1` @ c301d7608 lúc chép (integrator có FX-10 từ e3a90a5c5). Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
   assistant: '8ac1ad754074677ef8dfc413db35e3ab7a4e116d153fd1b0e9b66be73e1a3563',
   executor: '842e2426f80ed752cd315aa79d61529c995b96437922982823b9a101f4cb79c6',
-  integrator: '22a6bcb14a51067a553c375d0366f325fcbf8e99ccfc71c9ab84ff0641f7d18f',
+  integrator: '7fb0c5a4d871692f64ee2e46148c976e19120aae6af207469770fb39ee906731',
   reviewer: 'f7258ce2152535b813371f796b5b6664a5639bff0f85d82c294d585e7cf3658f',
 };
 
@@ -34,6 +34,17 @@ describe('template vai trò', () => {
         role,
       ).toBe(sha);
     }
+  });
+});
+
+describe('template integrator (FX-10)', () => {
+  it('có câu then chốt: xuống dòng sau exit=<DOCS_EXIT> và đọc lại comment', () => {
+    const text = ROLE_TEMPLATES.integrator;
+    expect(text).toContain('Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`');
+    expect(text).toContain('`\\n\\n` ngay sau `exit=<DOCS_EXIT>`');
+    expect(text).toContain('`GET /api/issues/<id>/comments` đọc lại comment vừa đăng');
+    expect(text).toContain('dòng đầu phải kết thúc đúng ở `exit=<DOCS_EXIT>`');
+    expect(text).toContain('Xuống dòng và đọc lại như mục "Ghi bằng chứng rồi quyết định" bước 1.');
   });
 });
 
