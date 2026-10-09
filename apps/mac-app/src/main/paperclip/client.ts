@@ -65,6 +65,11 @@ export interface RequestOptions {
   key?: string;
   /** 404 trả `null` thay vì ném. */
   notFoundNull?: boolean;
+  /**
+   * 400 thì message kèm `error` của server (bỏ key, tối đa 300 ký tự). Chỉ dùng cho route của plugin `crew.core`,
+   * nơi lời từ chối là thông báo cho owner (vd. agent đang giữ vai trò ở project nào).
+   */
+  exposeServerError?: boolean;
 }
 
 /** Một request JSON tới Paperclip, timeout 15 giây; lỗi thành `PaperclipAuthError`/`PaperclipHttpError`. */
@@ -110,6 +115,15 @@ export async function paperclipRequest<T>(
   if (!response.ok) {
     const code =
       isRecord(data) && typeof data.code === 'string' && CODE_RE.test(data.code) ? data.code : null;
+    if (
+      options.exposeServerError &&
+      response.status === 400 &&
+      isRecord(data) &&
+      typeof data.error === 'string'
+    ) {
+      const said = (options.key ? data.error.split(options.key).join('***') : data.error).slice(0, 300);
+      throw new PaperclipHttpError(400, code, `Paperclip từ chối (HTTP 400): ${said}`);
+    }
     throw new PaperclipHttpError(response.status, code);
   }
   return data as T;
@@ -126,11 +140,25 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
   const prefixes = new Map<string, string>();
   const id = (value: string) => encodeURIComponent(value);
 
-  async function call<T>(method: string, path: string, body?: unknown, notFoundNull = false): Promise<T> {
+  async function call<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    notFoundNull = false,
+    exposeServerError = false,
+  ): Promise<T> {
     const key = await deps.readKey();
     if (!key) throw new PaperclipAuthError();
-    return paperclipRequest<T>(base, deps, { method, path, body, key, notFoundNull });
+    return paperclipRequest<T>(base, deps, { method, path, body, key, notFoundNull, exposeServerError });
   }
+
+  const agentView = (agent: PaperclipAgent): PaperclipAgent => ({
+    id: agent.id,
+    name: agent.name,
+    status: agent.status,
+    companyId: agent.companyId,
+    defaultEnvironmentId: agent.defaultEnvironmentId ?? null,
+  });
 
   async function issuePrefix(companyId: string): Promise<string> {
     const cached = prefixes.get(companyId);
@@ -245,18 +273,20 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
 
     async getAgent(agentId) {
       const agent = await call<PaperclipAgent | null>('GET', `/api/agents/${id(agentId)}`, undefined, true);
-      if (!agent) return null;
-      return {
-        id: agent.id,
-        name: agent.name,
-        status: agent.status,
-        companyId: agent.companyId,
-        defaultEnvironmentId: agent.defaultEnvironmentId ?? null,
-      };
+      return agent ? agentView(agent) : null;
+    },
+
+    async agents(companyId) {
+      const list = await call<PaperclipAgent[]>('GET', `/api/companies/${id(companyId)}/agents`);
+      return list.map(agentView);
     },
 
     async pauseAgent(agentId) {
       await call('POST', `/api/agents/${id(agentId)}/pause`);
+    },
+
+    async resumeAgent(agentId) {
+      await call('POST', `/api/agents/${id(agentId)}/resume`);
     },
 
     async patchAgent(agentId, patch) {
@@ -309,13 +339,13 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
 
     async setRoles(companyId, projectId, roles) {
       const { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId } = roles;
-      await call('POST', `${ROLES_PATH}/${id(projectId)}/roles`, {
-        companyId,
-        assistantAgentId,
-        executorAgentIds,
-        reviewerAgentId,
-        integratorAgentId,
-      });
+      await call(
+        'POST',
+        `${ROLES_PATH}/${id(projectId)}/roles`,
+        { companyId, assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId },
+        false,
+        true,
+      );
     },
 
     async deleteRoles(companyId, projectId) {
