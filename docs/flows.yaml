@@ -195,5 +195,16 @@ flows:
       - apps/mac-app/test/sshd-supervisor.test.ts
       - apps/mac-app/test/sshd-system-deps.test.ts
       - apps/mac-app/test/quit-guard.test.ts
+  mac-app-update:
+    title: Phát hành và cập nhật app 2P Crew
+    doc: docs/flows/mac-app-update.md
+    entrypoints:
+      - apps/mac-app/scripts/release.mjs
+    files:
+      - apps/mac-app/scripts/release.mjs
+      - apps/mac-app/scripts/release-lib.mjs
+      - apps/mac-app/electron-builder.yml
+    tests:
+      - apps/mac-app/scripts/release-lib.test.mjs
 shared: {}
 unassigned: []

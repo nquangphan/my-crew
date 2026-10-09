@@ -1,5 +1,5 @@
 # Đóng gói 2P Crew (bundle com.2p-solutions.crew.mac). Danh tính ký lấy từ biến CSC_NAME lúc chạy, không ghi vào
-# file này. Notarize do scripts/release.mjs (UPD-2) làm; UPD-2 thêm mục `publish`.
+# file này. Ký, notarize và đăng do scripts/release.mjs làm (luôn chạy electron-builder với --publish never).
 appId: com.2p-solutions.crew.mac
 productName: 2P Crew
 copyright: Copyright © 2P Solutions
@@ -38,3 +38,9 @@ mac:
 dmg:
   title: 2P Crew ${version}
   artifactName: 2P-Crew-${version}-${arch}.${ext}
+# Kênh phát hành của updater: electron-builder sinh Contents/Resources/app-update.yml và latest-mac.yml từ mục này.
+publish:
+  provider: github
+  owner: nquangphan
+  repo: crew-mac-releases
+  releaseType: release

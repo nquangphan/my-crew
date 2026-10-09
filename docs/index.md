@@ -31,6 +31,7 @@ docs trước khi đọc code.
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
 | [App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)](flows/mac-app.md) | `mac-app` | `apps/mac-app/src/main/index.ts` |
 | [App 2P Crew giữ sshd agent và thoát an toàn](flows/mac-app-sshd.md) | `mac-app-sshd` | `apps/mac-app/src/main/sshd/register.ts` |
+| [Phát hành và cập nhật app 2P Crew](flows/mac-app-update.md) | `mac-app-update` | `apps/mac-app/scripts/release.mjs` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |
 | [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |
 | [Ghim Superpowers và chặn nạp skill chéo trên Mac](flows/mac-workflows.md) | `mac-workflows` | `apps/crew-mac/src/workflows/install.ts`, `apps/crew-mac/src/commands/workflow-check.ts` |

@@ -73,6 +73,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/workflows-inventory.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-pin.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/mac-app/electron-builder.yml` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/scripts/release-lib.mjs` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/scripts/release-lib.test.mjs` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/scripts/release.mjs` | [mac-app-update](flows/mac-app-update.md) (điểm vào), [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/src/main/app-context.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/app-log.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/app-state.ts` | [mac-app](flows/mac-app.md) (file) |
