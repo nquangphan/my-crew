@@ -4,12 +4,12 @@ import type { ExistingMachine } from '../main/setup/import-existing.js';
 import type { V2Detection } from '../main/setup/v2-removal.js';
 
 /**
- * Hợp đồng IPC giữa renderer và Main (Interface I5). AP-1 khai đủ mọi kênh; mỗi ticket sau cài handler của
- * kênh mình bằng `registry.handle(channel, fn)` trong `registerX` của nó. Kênh chưa có handler trả
+ * Hợp đồng IPC giữa renderer và Main. Mọi kênh khai ở đây; mỗi module Main cài handler của kênh mình bằng
+ * `registry.handle(channel, fn)` trong `registerX`. Kênh chưa có handler trả
  * `Chưa hỗ trợ: <kênh>`.
  */
 
-/** Một run `claude -p` đang chạy qua sshd agent (Interface I4, AP-2 điền dữ liệu). */
+/** Một run `claude -p` đang chạy qua sshd agent (do supervisor sshd điền dữ liệu). */
 export interface ActiveRun {
   pid: number;
   runId: string;

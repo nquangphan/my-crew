@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { AppStateStore } from '../src/main/app-state.js';
+import type { FullDiskAccessState } from '../src/main/setup/disk-access.js';
 import { handoffSshd, listenerPids, type SshdHandoffDeps } from '../src/main/setup/sshd-handoff.js';
 import type { SupervisorState } from '../src/main/sshd/supervisor.js';
 
@@ -14,13 +15,18 @@ function harness(opts: {
   status?: () => Status;
   listener?: () => number[];
   setup?: (opt: Record<string, unknown>) => Promise<unknown>;
+  diskAccess?: FullDiskAccessState;
 }) {
   let clock = 0;
   const setupCalls: Array<Record<string, unknown>> = [];
   const dir = mkdtempSync(join(tmpdir(), 'handoff-'));
   const store = new AppStateStore(join(dir, 'app.json'), '0.1.0');
+  const order: string[] = [];
   const supervisor = {
     start: vi.fn(async () => undefined),
+    pause: vi.fn(async () => {
+      order.push('pause');
+    }),
     status: opts.status ?? (() => ({ state: 'running', pid: 777, restarts: 0, lastError: null })),
     activeRuns: async () =>
       Array.from({ length: opts.runs ?? 0 }, (_, i) => ({ pid: i, runId: `r${i}` })) as never,
@@ -30,11 +36,13 @@ function harness(opts: {
       call: (async (op: string, arg: Record<string, unknown>) => {
         expect(op).toBe('setup');
         setupCalls.push(arg);
+        order.push(`setup:${String(arg.sshdOwner)}`);
         return opts.setup ? opts.setup(arg) : { sshdHandoff: arg.sshdOwner };
       }) as never,
     },
     supervisor,
     store,
+    diskAccess: () => opts.diskAccess ?? 'granted',
     readOwner: () => opts.owner ?? 'launchd',
     port: () => 2222,
     listenerPids: async () => (opts.listener ? opts.listener() : [777]),
@@ -44,10 +52,39 @@ function harness(opts: {
     },
     now: () => clock,
   };
-  return { deps, setupCalls, supervisor, store };
+  return { deps, setupCalls, supervisor, store, order };
 }
 
 describe('handoffSshd', () => {
+  it.each(['denied', 'unknown'] as const)(
+    'Full Disk Access %s thì từ chối, không gọi setup và không start supervisor',
+    async (diskAccess) => {
+      const { deps, setupCalls, supervisor } = harness({ diskAccess });
+      const result = await handoffSshd(deps);
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain('Quyền ổ đĩa');
+      expect(setupCalls).toHaveLength(0);
+      expect(supervisor.start).not.toHaveBeenCalled();
+    },
+  );
+
+  it('tự lui thì dừng supervisor trước khi setup launchd', async () => {
+    const { deps, order } = harness({
+      status: () => ({ state: 'backoff', pid: null, restarts: 1, lastError: 'x' }),
+    });
+    await handoffSshd(deps);
+    expect(order).toEqual(['setup:app', 'pause', 'setup:launchd']);
+  });
+
+  it('pause lỗi thì vẫn tự lui về launchd', async () => {
+    const { deps, setupCalls, supervisor } = harness({
+      status: () => ({ state: 'backoff', pid: null, restarts: 1, lastError: 'x' }),
+    });
+    supervisor.pause.mockRejectedValueOnce(new Error('kẹt'));
+    await handoffSshd(deps);
+    expect(setupCalls.at(-1)).toEqual({ sshdOwner: 'launchd', force: true });
+  });
+
   it('còn run đang chạy thì từ chối, không gọi setup', async () => {
     const { deps, setupCalls } = harness({ runs: 1 });
     expect(await handoffSshd(deps)).toEqual({

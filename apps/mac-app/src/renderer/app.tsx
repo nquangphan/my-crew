@@ -13,10 +13,7 @@ export interface RouteDef {
   render: () => ReactNode;
 }
 
-/**
- * Danh sách màn hình của thanh bên. Mỗi ticket sau thay đúng một dòng của mình bằng route thật
- * (AP-3: health/runs/logs, AP-5: setup, PJ-2: projects, UPD-1: update).
- */
+/** Danh sách màn hình của thanh bên: Sức khỏe, Run, Log, Project, Cập nhật, Cài đặt. */
 export const ROUTES: RouteDef[] = [
   { id: 'health', label: 'Sức khỏe', render: () => <HealthScreen /> },
   { id: 'runs', label: 'Run đang chạy', render: () => <RunsScreen /> },

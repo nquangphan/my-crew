@@ -2,11 +2,14 @@ import type { CommandRunner, SshdOwner } from '@crew/mac';
 import type { AppStateStore } from '../app-state.js';
 import type { OpsBridge } from '../ops-bridge.js';
 import type { SshdSupervisor } from '../sshd/supervisor.js';
+import type { FullDiskAccessState } from './disk-access.js';
 
 export interface SshdHandoffDeps {
   ops: Pick<OpsBridge, 'call'>;
-  supervisor: Pick<SshdSupervisor, 'start' | 'status' | 'activeRuns'>;
+  supervisor: Pick<SshdSupervisor, 'start' | 'pause' | 'status' | 'activeRuns'>;
   store: Pick<AppStateStore, 'update'>;
+  /** Trạng thái Full Disk Access hiện tại; chỉ `granted` mới được giao cổng cho app. */
+  diskAccess(): FullDiskAccessState;
   /** Chủ sshd theo manifest crew-mac hiện tại. */
   readOwner(): SshdOwner;
   port(): number;
@@ -15,7 +18,7 @@ export interface SshdHandoffDeps {
   readLogTail(lines: number): string;
   sleep(ms: number): Promise<void>;
   now(): number;
-  /** Thời hạn chờ listener của app (mặc định 15 giây, Review Focus 2). */
+  /** Thời hạn chờ listener của app (mặc định 15 giây, ). */
   timeoutMs?: number;
 }
 
@@ -62,6 +65,14 @@ export async function handoffSshd(deps: SshdHandoffDeps): Promise<HandoffResult>
     return { ok: true, message: 'sshd đã do 2P Crew giữ và đang nghe cổng.' };
   }
 
+  const disk = deps.diskAccess();
+  if (disk !== 'granted') {
+    return {
+      ok: false,
+      message: `Quyền ổ đĩa của 2P Crew chưa được cấp (${disk === 'denied' ? 'bị từ chối' : 'chưa xác định được'}). Chuyển sshd khi chưa cấp thì run đầu tiên chạm thư mục được bảo vệ sẽ treo chờ hộp thoại trên màn hình Mac. Bật 2P Crew trong Cài đặt hệ thống → Truy cập toàn bộ ổ đĩa rồi quay lại.`,
+    };
+  }
+
   if (owner !== 'app') {
     const runs = await deps.supervisor.activeRuns();
     if (runs.length > 0) {
@@ -87,6 +98,8 @@ export async function handoffSshd(deps: SshdHandoffDeps): Promise<HandoffResult>
     failure = `Chuyển sshd sang 2P Crew lỗi: ${errorText(error)}.`;
   }
 
+  // Supervisor đang backoff có thể sinh listener giành cổng với job LaunchAgent vừa nạp lại: dừng nó trước.
+  await deps.supervisor.pause().catch(() => undefined);
   try {
     await deps.ops.call('setup', { sshdOwner: 'launchd', force: true });
   } catch (error) {

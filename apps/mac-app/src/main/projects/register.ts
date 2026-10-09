@@ -3,7 +3,7 @@ import { paperclipClient } from '../paperclip/register.js';
 import { createProjectsIpc } from './ipc.js';
 
 /**
- * Kênh `projects:*` (Interface I5). Tiến độ thêm project nằm trong `app.json` nên mỗi bước ghi đều làm
+ * Kênh `projects:*`. Tiến độ thêm project nằm trong `app.json` nên mỗi bước ghi đều làm
  * `AppStateStore` báo thay đổi, `index.ts` chuyển thành `state:changed` và màn hình Project đọc lại `projects:list`.
  */
 export function registerProjects(ctx: AppContext): void {

@@ -80,6 +80,7 @@ export function registerSetup(
           ops: ctx.ops,
           supervisor: sshd,
           store: ctx.store,
+          diskAccess: () => detectFullDiskAccess(defaultProbes(ctx.home)),
           readOwner: () => manifest()?.sshdOwner ?? 'launchd',
           port: () => manifest()?.port ?? DEFAULT_PORT,
           listenerPids: (port) => listenerPids(runner, port),

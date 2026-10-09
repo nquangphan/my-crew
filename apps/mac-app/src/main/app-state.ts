@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 
 export type UpdateState =
   | 'idle'
@@ -44,6 +44,14 @@ export interface AppState {
   };
   setup: { step: SetupStep; paperclipOrigin: string | null; companyId: string | null };
   projects: Record<string, ProjectProgress>;
+}
+
+/**
+ * Thư mục `userData` của Chromium (Local State, Preferences, Local Storage): thư mục con cạnh `app.json`, để app mới
+ * không đọc hay ghi dữ liệu Chromium của app v2 nằm ngay trong `~/Library/Application Support/2P Crew/`.
+ */
+export function chromiumUserDataDir(appStateFile: string): string {
+  return join(dirname(appStateFile), 'chromium');
 }
 
 export function defaultAppState(appVersion: string): AppState {
