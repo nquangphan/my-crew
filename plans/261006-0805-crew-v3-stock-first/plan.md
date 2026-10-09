@@ -228,6 +228,69 @@ Mỗi phase dưới đây chỉ được bắt đầu khi đã có detailed plan
 - App macOS có chữ ký (bọc `crew-mac`), updater từ xa.
 - Nghiệm thu lại toàn bộ R1 sau mỗi lần nâng upstream.
 
+### R3 — UI Crew mới hoàn toàn
+
+Owner chốt 09/10/2026. Lý do: hiện mở web app thì thấy nhiều nút và tính năng của Paperclip không dùng được hoặc
+không có tác dụng trong Crew, ví dụ: agent tạo trên web chưa phải agent Crew, project trỏ repo khác không tự chạy,
+company không có trong `CREW_POLICY_CONFIG` thì bỏ qua mọi cổng, trang Environments trống khi cờ thử nghiệm tắt.
+
+- Xây một UI riêng cho Crew thay cho UI Paperclip. UI này **chỉ hiện những thao tác có tác dụng thật** trong Crew, lấy
+  từ Paperclip sang. Không có nút hay màn hình nào bấm vào mà không làm được gì.
+- **Bước đầu R3 là BA, trước khi code:** điều một agent BA phân tích kỹ nghiệp vụ, đi qua từng màn hình, nút và
+  flow của Paperclip, đối chiếu với cách Crew thật sự chạy (hook H1–H5, `CREW_POLICY_CONFIG`, vai trò, environment,
+  Mac). Đầu ra:
+  - danh sách mọi nút và flow sẽ có trong UI Crew, mỗi cái ghi rõ tác dụng thật (API nào, đổi gì trong DB hoặc trên
+    Mac) — đây là đầu vào cho phần nghiệm thu Playwright;
+  - danh sách **feature Paperclip không có trong Crew**, mỗi feature kèm lý do (ví dụ: Crew không dùng, bị hook chặn,
+    chưa có luồng làm đủ bước, để R sau). Danh sách này ghi vào docs để không ai hỏi lại "sao không có nút X".
+- **Giữ flow và cách tổ chức của Paperclip:** owner thấy flow, điều hướng và cách chia màn hình của Paperclip đã rõ
+  ràng, dễ hiểu. Cái nào giữ được thì giữ nguyên (company → project → issue, agent, run, approval…); R3 chỉ bỏ thao
+  tác không có tác dụng và thêm phần riêng của Crew, không thiết kế lại cấu trúc.
+- **Clone trước, tự xây sau:** phần nào clone được từ UI Paperclip thì clone cho đỡ tốn thời gian; chỉ tự xây phần
+  Paperclip không có hoặc phải đổi hẳn.
+- **Bắt buộc có design system:** token (màu, chữ, khoảng cách), widget và component dùng chung. Màn hình chỉ ghép từ
+  component, không tự đặt style riêng. Code clone về cũng phải chuyển sang dùng các component này, để sau muốn đổi
+  giao diện chỉ cần sửa design system chứ không phải sửa từng màn hình.
+- Ràng buộc giữ từ R1/R2: vẫn nâng được Paperclip theo mỗi bản stable. UI mới chỉ gọi REST/API của Paperclip và plugin
+  Crew, không thêm sửa lõi ngoài hook đã duyệt.
+- Những thao tác hiện phải làm bằng script (gắn vai trò bằng `apply-roles.sh`, `CREW_POLICY_CONFIG`, environment SSH,
+  `crew-mac status add-repo`) cần thành một luồng trên UI, hoặc không hiện cho đến khi làm được. Ví dụ: thêm agent
+  hoặc thêm project là một luồng làm đủ mọi bước, chứ không chỉ tạo một bản ghi trơn.
+- UI có **hai ngôn ngữ: tiếng Việt và tiếng Anh**, người dùng tự chuyển. Từ R3 bỏ quy ước "UI chỉ tiếng Việt"; docs
+  dự án vẫn tiếng Việt. Mọi chuỗi hiển thị đi qua lớp dịch, không gắn cứng trong component.
+- **Giữ việc tạo agent trên web** (owner chốt 09/10). Phân tích ban đầu, BA và lập kế hoạch R3 kiểm lại:
+  - Hiện một agent Crew cần 6 bước, mới có 3 bước làm được bằng REST stock: (1) tạo agent `claude_local`;
+    (2) ghim Superpowers vào `adapterConfig.extraArgs` và upload `AGENTS.md` theo vai trò (`apply-roles.sh agent`, chỉ là
+    lời gọi REST); (3) environment SSH riêng `workspaceRealizationMode: in_place` trỏ vào một checkout riêng, dùng chung
+    secret SSH (REST `/companies/:id/environments`). Ba bước không có REST: (4) tạo checkout trên Mac và
+    `git config crew-docs.bundle`; (5) vai trò reviewer/integrator nằm trong file `CREW_POLICY_CONFIG` chỉ đọc trên
+    server (O8); (6) khi thêm executor phải render lại `AGENTS.md` của Trợ Lý với danh sách executor mới.
+  - Đề xuất: một wizard "Tạo agent" trên UI Crew. Bước 1–3 và 6 gọi REST bằng phiên của owner, port logic từ
+    `merge-agent-config.mjs`/`render-instructions.mjs` (không chạy shell). Bước 4: `crew-mac` kéo việc "cần dựng
+    workspace" từ plugin qua kênh webhook có ký đang dùng cho trạng thái máy, tự clone và báo lại; server không SSH vào
+    Mac để chạy lệnh. Bước 5: chuyển vai trò sang bảng trong namespace DB của plugin, chỉ owner (board) sửa được, hook đọc
+    bảng này và vẫn đọc được file cũ khi bảng trống. **Owner duyệt 09/10: đổi O8 cho R3** — vai trò sang DB plugin, chỉ owner sửa; agent vẫn không đổi được.
+  - Agent chưa qua đủ 6 bước hiện trạng thái "chưa sẵn sàng" kèm bước đang thiếu và nút làm tiếp. Agent đó không có
+    trong danh sách chọn người nhận issue, nên không có nút giao việc nào bấm mà không chạy.
+  - Model vẫn chọn theo từng issue (O14). Model trong wizard chỉ là mặc định, nên wizard chỉ cho chọn model trong
+    bảng `CREW_COMPLEXITY_MODEL`.
+- **Giữ trang Skills của Paperclip, thêm skill thì tự sync về Mac; agent tạo trên web cũng tự dựng trên Mac** (owner
+  chốt 09/10). Phân tích ban đầu, BA và lập kế hoạch R3 kiểm lại:
+  - Stock đã sync skill theo từng run: adapter `claude_local` (`execute.ts`, asset `skills`) chép skill company đã bật
+    cho agent sang máy qua SSH vào `<cwd>/.paperclip-runtime/claude/skills` rồi truyền bằng `--add-dir`. Crew chưa kiểm
+    đường này: (a) skill có nạp được dưới wrapper và `--setting-sources project,local` không; (b) `.paperclip-runtime`
+    nằm trong checkout `in_place` có làm bẩn cây git mà integrator merge không (cần gitignore hoặc đổi thư mục asset).
+  - Phần còn thiếu là "thêm xong là có trên máy ngay", không phải chờ run kế. Đề xuất dùng cùng kênh kéo việc của
+    `crew-mac` với wizard tạo agent: plugin ghi phiên bản skill mới, `crew-mac` kéo về `~/.crew/skills/<companyId>/`,
+    báo lại hash; trang Skills hiện trạng thái sync theo từng máy ("đã có trên mac-mini, hash …" hoặc lỗi).
+  - Agent tạo trên web đi đúng luồng wizard ở trên: bước dựng workspace do `crew-mac` kéo về làm, xong thì báo lại.
+    Hai việc (skill, agent) dùng chung một hàng đợi "việc cần làm trên máy", không mở kênh thứ hai.
+  - Skill do owner thêm vẫn không được đè Superpowers đã ghim (`--plugin-dir` ở `extraArgs`); BA kiểm thứ tự ưu tiên
+    khi trùng tên skill.
+- Map yêu cầu/issue con của R1-4, trạng thái docs và trạng thái máy được chuyển sang UI mới.
+- *Nghiệm thu:* Playwright đi qua mọi nút và màn hình của UI mới trên API/DB thật; nút nào bấm cũng phải có tác dụng
+  thấy được trong DB hoặc trên máy Mac.
+
 ### Quy trình nâng Paperclip (giữ suốt R1/R2)
 
 1. Mỗi khi upstream ra stable mới: tạo nhánh `sync/paperclip-<tag>` từ nhánh tích hợp và merge tag đó vào.
