@@ -230,3 +230,71 @@ h1 {
   white-space: pre-wrap;
   word-break: break-all;
 }
+.wizard {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.wizard-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wizard-steps li {
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.wizard-steps li.current {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.wizard-steps li.finished {
+  color: var(--ok-ink);
+}
+.wizard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.wizard-card h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field input,
+.field textarea,
+.field select {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+.pre-wrap {
+  white-space: pre-wrap;
+}
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+.kv dt {
+  color: var(--muted);
+}
+.kv dd {
+  margin: 0;
+}

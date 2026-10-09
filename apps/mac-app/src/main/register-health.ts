@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { app, Notification, shell } from 'electron';
 import type { HealthAction } from '../shared/ipc-contract.js';
 import type { AppContext } from './app-context.js';
-import { createHealth } from './health.js';
+import { createHealth, type Health } from './health.js';
 import { createLogs } from './logs.js';
 import { createNotifier } from './notifications.js';
 import { paperclipClient } from './paperclip/register.js';
@@ -16,9 +16,10 @@ const PRIVACY_PANE = 'x-apple.systempreferences:com.apple.preference.security?Pr
 
 /**
  * Màn hình Sức khỏe / Run đang chạy / Log (kênh `health:*`, `runs:*`, `logs:*`) và vòng cập nhật tray:
- * chấm màu theo doctor mỗi 15 phút, số run mỗi 30 giây và mỗi khi trạng thái sshd đổi.
+ * chấm màu theo doctor mỗi 15 phút, số run mỗi 30 giây và mỗi khi trạng thái sshd đổi. Trả `run` để wizard làm mới
+ * màu tray ngay sau khi đổi chủ sshd hay kiểm cuối.
  */
-export function registerHealth(ctx: AppContext, sshd: SshdSupervisor): void {
+export function registerHealth(ctx: AppContext, sshd: SshdSupervisor): Pick<Health, 'run'> {
   const health = createHealth({
     doctor: (opts) => ctx.ops.call('doctor', opts),
     notify: createNotifier({
@@ -67,4 +68,5 @@ export function registerHealth(ctx: AppContext, sshd: SshdSupervisor): void {
     health.stop();
     clearInterval(runsTimer);
   });
+  return { run: (probe) => health.run(probe) };
 }
