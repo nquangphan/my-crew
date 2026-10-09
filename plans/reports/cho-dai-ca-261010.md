@@ -17,3 +17,4 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 - R2-2 lệch 2: plugin đọc chữ ký đầu file (ảnh/PDF/DOCX/XLSX) để bắt file thực thi đổi đuôi, trái câu "không đọc nội dung" trong spec 5.6. Phủ quyết nếu không muốn.
 - R2-2 nghiệm thu UI (~10 phút ngồi máy): tạo issue kèm file, dán ảnh vào comment, thử file 10 MB + 1 byte trên giao diện.
 - R2-1 P1 đã chốt để R3 (ghi lại để nhớ).
+- PA-1 thêm quyền `companies.read` cho plugin (ngoài plan) để job biết quét company nào. Phủ quyết nếu không muốn.

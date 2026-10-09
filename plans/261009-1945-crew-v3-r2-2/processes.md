@@ -4,3 +4,11 @@ Mọi process nền, bản ghi thử trên prod (project, environment, agent, is
 
 | Việc | Lệnh / PID / id | Cổng | Worktree / thư mục | Bắt đầu | Trạng thái | Cách dừng / gỡ |
 |---|---|---|---|---|---|---|
+| SP-0 thư mục đo Mac | `~/crew-r22-probe/` (mẫu, script đo, ws, out) | — | Mac mini | 19:56 | đã gỡ 20:11 (số liệu chép sang scratchpad trước) | `rm -rf ~/crew-r22-probe` |
+| SP-0 thư mục đo VPS | `/tmp/crew-r22-probe/` (body JSON, mẫu upload) | — | VPS nhamoiplatform | 19:57 | đã gỡ 20:11 | `ssh nhamoiplatform 'rm -rf /tmp/crew-r22-probe'` |
+| SP-0 environment prod | `r22-sp0-env` `023a0e01` (TPS, dùng chung secret SSH `fa7b4847`) | — | VPS prod | 19:59 | đã gỡ 20:11: archived (secret `fa7b4847` còn) | `PATCH /environments/023a0e01… {"status":"archived"}` — KHÔNG DELETE |
+| SP-0 project prod | `r22-sp0-probe` `24d2b71b` (TPS) | — | VPS prod | 19:59 | đã gỡ 20:11: DELETE 500 (FK `cost_events_project_id_projects_id_fk`) → archive (`archivedAt` 13:11:16Z) | `PATCH /projects/24d2b71b… {"archivedAt":…}` |
+| SP-0 agent prod | `r22-sp0-probe` `f06f9096` claude_local (TPS, env `023a0e01`) | — | VPS prod | 19:59 | đã gỡ 20:10: pause → DELETE 500 (FK `cost_events_heartbeat_run_id_heartbeat_runs_id_fk`) → `terminate` (status `terminated`, không chạy được nữa) | `POST /agents/f06f9096…/terminate` |
+| SP-0 issue cha prod | TPS-78 `e01d3613` (project `24d2b71b`) | — | VPS prod | 20:00 | đã gỡ 20:10 (GET 404) | `DELETE /issues/e01d3613…` |
+| SP-0 issue con prod | TPS-79 `3f76aeeb` (cha `e01d3613`) + attachment | — | VPS prod | 20:00 | đã gỡ 20:10 (GET 404, kèm 5 attachment) | `DELETE /issues/3f76aeeb…` |
+| SP-0 run đo | run `566b599b` của agent `f06f9096` trên TPS-79; poll nền bhgf60cx7 (Mac, 20 s, ≤ 18 phút) | — | scratchpad | 20:00 | đã xong 20:09 (5 run trên issue, 0 active) | tự thoát khi run xong; kẹt > 15 phút thì `POST /heartbeat-runs/566b599b…/cancel` |
