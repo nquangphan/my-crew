@@ -43,3 +43,9 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 4. Ghim BMAD bản `d009608` (6.13.0-next, kênh -next chứ không phải tag stable).
 5. Agent BMAD tự chọn tiếp ở menu, chỉ hỏi owner một lượt, tối đa 30 story mỗi file.
 - R3 spec §5: 7 chỗ lệch so với BA (6 ý Trợ Lý/agent tự chốt) — đọc `docs/superpowers/specs/2026-10-10-crew-v3-r3-ui-design.md` §5 và phủ quyết nếu cần. R3 ước ~12 ngày công; UI Crew chỉ lên prod khi đăng nhập, cli-auth, tạo yêu cầu, duyệt, hủy đã qua test, có mốc rollback.
+
+## R2-4 runtime — 5 câu (spec `docs/superpowers/specs/2026-10-10-crew-v3-r2-4-runtimes-design.md` §11) + 2 việc
+1. **Duyệt 3 vá adapter P5, P6, P7** (loại adapter-patch, theo dõi trong core-hooks.json). QUAN TRỌNG: adapter `opencode_local` gốc khi chạy qua SSH chạy `rm -rf "$HOME/.claude/skills"` trên Mac (xóa skill của Đại Ca mỗi run) — P6 sửa. Không duyệt P6 thì R2-4 không có OpenCode (công tắc ép tắt).
+2. Bảng runtime/model theo độ khó (§6.1). 3. Điều kiện và trần fallback (tối đa 2 lần/issue; mức large không fallback). 4. Mặc định công tắc và chỉ board bật. 5. Vai trò nào được chạy Codex/OpenCode, số executor.
+- Việc Đại Ca: nạp key OpenCode Go vào Keychain: `security add-generic-password -U -s crew.opencode-go -a crew -w` (lệnh tự hỏi key, không lưu lịch sử).
+- Codex từng trả 400 ngày 08/10; nếu nghiệm thu còn lỗi thì phần Codex dừng.
