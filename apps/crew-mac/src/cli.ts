@@ -25,6 +25,7 @@ import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
 import { resolveSshdOwner, type SshdOwner } from './sshd-owner.js';
+import { gcWorkflowPins } from './workflows/workflow-gc.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 
@@ -330,6 +331,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
             now: ctx.now,
             selfPid: process.pid,
+            gcWorkflowPins: () => gcWorkflowPins(ctx),
           },
           {
             graceMs: graceSeconds * 1000,
@@ -339,6 +341,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             logPath: paths.reaperLog,
             worktreeRoot: manifestOrNull(paths.manifest)?.worktreeRoot ?? null,
             home: ctx.home,
+            workflowsGcStampPath: paths.workflowsGcStamp,
           },
         );
         if (targets.length > 0)

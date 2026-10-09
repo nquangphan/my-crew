@@ -1,5 +1,15 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -403,5 +413,58 @@ describe('lượt quét callback bridge Paperclip sót lại', () => {
     await reapOnce(t.deps, t.options);
     expect(t.signals).toEqual([]);
     expect(t.state().bridgeSince[BRIDGE_PID].since).toBe(NOW.toISOString());
+  });
+});
+
+describe('reapOnce dọn bản workflow ghim cũ', () => {
+  const stampOf = (t: ReturnType<typeof setupDeps>) => join(t.dir, 'workflows-gc.stamp');
+  const withGc = (t: ReturnType<typeof setupDeps>) => {
+    const calls: number[] = [];
+    const deps = {
+      ...t.deps,
+      gcWorkflowPins: () => {
+        calls.push(1);
+        return { removed: ['/x/bmad/old'], kept: [] };
+      },
+    };
+    const options = { ...t.options, workflowsGcStampPath: stampOf(t) };
+    return { calls, deps, options };
+  };
+
+  it('chưa có stamp thì gọi GC, ghi log và chạm stamp', async () => {
+    const t = setupDeps([ONLY_LAUNCHD]);
+    const g = withGc(t);
+    await reapOnce(g.deps, g.options);
+    expect(g.calls).toHaveLength(1);
+    expect(existsSync(stampOf(t))).toBe(true);
+    expect(statSync(stampOf(t)).mtimeMs).toBe(NOW.getTime());
+    expect(readFileSync(t.options.logPath, 'utf8')).toContain('GC workflow: đã dọn 1 bản ghim cũ');
+  });
+
+  it('stamp cũ hơn 1 giờ thì gọi lại, stamp mới thì không gọi', async () => {
+    const t = setupDeps([ONLY_LAUNCHD]);
+    const g = withGc(t);
+    writeFileSync(stampOf(t), '');
+    const stale = new Date(NOW.getTime() - 61 * 60_000);
+    utimesSync(stampOf(t), stale, stale);
+    await reapOnce(g.deps, g.options);
+    expect(g.calls).toHaveLength(1);
+    await reapOnce(g.deps, g.options);
+    expect(g.calls).toHaveLength(1);
+  });
+
+  it('dry-run không gọi GC; lỗi GC chỉ ghi log, không làm hỏng lượt reap', async () => {
+    const t = setupDeps([ONLY_LAUNCHD]);
+    const g = withGc(t);
+    await reapOnce(g.deps, { ...g.options, dryRun: true });
+    expect(g.calls).toEqual([]);
+    const boom = {
+      ...t.deps,
+      gcWorkflowPins: () => {
+        throw new Error('hỏng đĩa');
+      },
+    };
+    expect(await reapOnce(boom, g.options)).toEqual([]);
+    expect(readFileSync(t.options.logPath, 'utf8')).toContain('GC workflow lỗi: hỏng đĩa');
   });
 });

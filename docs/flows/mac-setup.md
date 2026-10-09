@@ -55,7 +55,7 @@ không cần token và không login lại.
    dừng với `SetupError` khi máy còn nguyên. Ngay sau đó `installBmadPin` lắp bản ghim BMAD vào
    `~/.crew/workflows/bmad/<version>-<rev12>` (có sẵn đúng checksum thì không gọi git); không lấy được thì `SetupError`
    khi Superpowers đã ghim nhưng chưa ghi file nào khác. `SetupReport.superpowers` và `SetupReport.bmad` trả thư mục
-   ghim và `extraArgs` cho agent thường và agent vai bmad.
+   ghim và `extraArgs` cho agent thường và agent vai bmad. Cuối `setup` gọi `gcAfterInstall` dọn bản ghim cũ không còn run dùng (flow `mac-workflows`, mục "Pin theo run và dọn bản cũ"); lỗi dọn chỉ in một dòng, không làm hỏng setup.
 3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent theo chủ (`checkSshdService` cho
    LaunchAgent, `checkAppSshd` cho app) ngay sau đó là `tcc-owner` (`checkTccOwner`), cổng sshd, LaunchAgent reaper (`checkReaper`),
    PATH (`checkZshenv`, id `zshenv-path`: khối có đúng `~/.local/bin` và thư mục node hiện tại), wrapper, node trong

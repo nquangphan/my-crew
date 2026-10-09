@@ -30,8 +30,11 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
   đúng checksum).
 - `crew-mac workflows install`: chỉ cài hai bản ghim (Superpowers trước, BMAD sau) rồi in
   `extraArgs (vai thường): […]` và `extraArgs (vai bmad): […]`. Không đụng sshd, launchd hay file nào khác, nên chạy
-  được khi app 2P Crew đang giữ sshd agent. Lỗi cài thì in `crew-mac: <câu lỗi>` và thoát 1; sai cách dùng thoát 2.
-  (`workflows gc` có trong cách dùng, chưa làm.)
+  được khi app 2P Crew đang giữ sshd agent. Cài xong dọn bản ghim cũ như `workflows gc`. Lỗi cài thì in
+  `crew-mac: <câu lỗi>` và thoát 1; sai cách dùng thoát 2.
+- `crew-mac workflows gc`: dọn bản ghim cũ không còn run dùng (mục "Pin theo run và dọn bản cũ"); in
+  `Đã dọn: <n> bản ghim cũ` và mỗi thư mục đã xóa một dòng, thoát 0. `crew-mac setup` và `workflows install` gọi cùng
+  hàm sau khi cài (chỉ in khi có gì bị xóa); `crew-mac reap` gọi tối đa mỗi giờ.
 - `crew-mac doctor` kiểm bản ghim (check `superpowers-pin`, `bmad-pin`).
 - `crew-mac bmad setup-project --root <dir>`: agent BMAD gọi khi repo chưa có `_bmad/scripts`; dựng `_bmad/` bằng
   `setup.py` của bản ghim (mục "BMAD trong repo dự án").
@@ -339,7 +342,8 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/workflows/bmad-pin.ts` | Nguồn và bản ghim BMAD | `BMAD_SOURCE`, `BMAD_PLUGIN_JSON`, `BMAD_PIN` |
 | `apps/crew-mac/src/workflows/bmad-install.ts` | Lắp bản ghim BMAD từ marketplace hoặc clone https | `installBmadPin` |
 | `apps/crew-mac/src/workflows/registry.ts` | Sổ workflow đã chứng nhận | `certifiedWorkflows`, `workflowForPluginDir`, `CertifiedWorkflow` |
-| `apps/crew-mac/src/commands/workflows.ts` | Lệnh `workflows list|install` | `workflowsCommand`, `WORKFLOWS_USAGE` |
+| `apps/crew-mac/src/commands/workflows.ts` | Lệnh `workflows list|install|gc` | `workflowsCommand`, `WORKFLOWS_USAGE` |
+| `apps/crew-mac/src/workflows/workflow-gc.ts` | Dọn bản workflow ghim cũ không còn run dùng | `gcWorkflowPins`, `gcAfterInstall`, `gcReportLines`, `processExists`, `WorkflowGcReport`, `WORKFLOW_GC_INTERVAL_MS`, `WORKFLOW_GC_RECENT_MS`, `IN_USE_MAX_AGE_MS` |
 | `apps/crew-mac/src/commands/bmad.ts` | Lệnh `bmad stories|setup-project` | `bmadCommand`, `BMAD_USAGE` |
 | `apps/crew-mac/src/bmad/epics.ts` | Đọc file epic/story BMAD | `parseEpics`, `BMAD_MAX_STORIES`, `BmadEpic`, `BmadStory`, `EpicsParse` |
 | `apps/crew-mac/src/bmad/answers.ts` | Luật câu trả lời module (port v2) | `checkBmadAnswers`, `BMAD_PERSONAL_KEYS`, `BmadAnswer` |
@@ -360,6 +364,26 @@ bản ghim (hoặc không còn cài).
 - **Ghi:** `~/.crew/workflows/superpowers/<version>-<rev12>/` và `~/.crew/workflows/bmad/<version>-<rev12>/` (mode thư
   mục cha 700; bản tạm `<dir>.tmp-<pid>` chỉ tồn tại trong lúc cài). Uninstall để nguyên các thư mục này, vô hại.
 - **`workflow-check`:** ba lệnh `/usr/bin/git` cho cả worktree và chỉ đọc file trong worktree và thư mục ghim.
+## Pin theo run và dọn bản cũ
+
+`apps/crew-mac/src/workflows/workflow-gc.ts` → `gcWorkflowPins(ctx, { isAlive? })` duyệt `~/.crew/workflows/<id>/*`
+của từng workflow trong sổ. Mỗi thư mục xử lý theo thứ tự:
+
+1. Bản hiện hành (`pinDir` của sổ) luôn giữ (`current`), kể cả không có dấu.
+2. Bỏ qua (không báo, không xóa) thư mục `*.tmp-*` (việc của lệnh cài), tên không theo mẫu `<version>-<12 hex>` và
+   symlink.
+3. Đọc mọi dấu `.in_use/<runId>` (`<pid> <started>`). Pid còn sống (`process.kill(pid, 0)`; `EPERM` cũng là sống) thì
+   giữ (`in_use`). Pid chết thì xóa dấu. Dấu không parse được coi như sống cho tới khi file dấu cũ hơn 7 ngày
+   (`IN_USE_MAX_AGE_MS`) rồi mới xóa dấu; lỗi đọc dấu khác `ENOENT` cũng coi như còn dùng.
+4. Hết dấu sống mà thư mục đổi trong 24 giờ (`WORKFLOW_GC_RECENT_MS`, theo mtime) thì giữ (`recent`); cũ hơn thì xóa
+   (`rmSync` sau khi `lstat` không phải symlink) và ghi vào `removed`.
+
+Khi chạy: `workflows gc` (tay), cuối `setup` và `workflows install`, và `reap` khi `~/.crew/state/workflows-gc.stamp` chưa
+có hoặc cũ hơn `WORKFLOW_GC_INTERVAL_MS` (1 giờ); `reap` chạm stamp (mtime = giờ của `reapOnce`) sau mỗi lần dọn, bỏ
+qua khi `--dry-run`, ghi `GC workflow: đã dọn <n> bản ghim cũ: …` vào `reaper.log`, và lỗi GC (`GC workflow lỗi: …`)
+không làm hỏng lượt reap. Lỗi GC ở `setup`/`install` chỉ in `Không dọn được bản ghim cũ: …`. Hạn chế: dấu của run có
+pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát; chấp nhận vì chỉ tốn đĩa.
+
 - **Wrapper ghi:** `<thư mục ghim>/.in_use/<runId>` = `<pid> <started epoch giây>\n` (ngoài checksum).
 - **`bmad setup-project`:** chạy `uv` với `setup.py` của bản ghim (không mạng: script không có dependency), ghi
   `_bmad/` trong repo dự án, file câu trả lời tạm 0600 dưới thư mục tạm hệ thống (xóa ngay). **`bmad stories`:** chỉ
@@ -418,6 +442,9 @@ bản ghim (hoặc không còn cài).
   - `runInitCheck` với `system/init` thật của run Paperclip (`test/fixtures/paperclip-run-init.json`, đã ẩn định
     danh): hai MCP Paperclip `dynamic` được phép; MCP `dynamic` khác tên hay tên Paperclip với nguồn khác bị chặn.
   - CLI: mã 0/2/78/1.
+- `apps/crew-mac/test/workflows-gc.test.ts`: bản hiện hành luôn giữ; dấu pid sống giữ; pid chết và 25 giờ thì xóa dấu rồi
+  thư mục; pid chết nhưng mới đổi thì giữ (`recent`); dấu hỏng sống tới 7 ngày; `*.tmp-*`, tên lạ và symlink không bị
+  đụng; chạy hai lần; `isAlive` mặc định; `workflows gc` (đầu ra, thừa đối số thoát 2) và `install` dọn sau khi cài.
 - `apps/crew-mac/test/crew-claude-run.test.ts` (flow `mac-setup` liệt kê đủ): câu lỗi khi số `--plugin-dir` khác một;
   dấu `.in_use/<runId>` (pid của `claude`, `started` của run), không ghi khi run id lạ, ghi lỗi không chặn run.
 - `apps/crew-mac/test/bmad-epics.test.ts` (fixture `test/fixtures/bmad/epics-{ok,gap,wrong-epic,no-ac}.md`): file chuẩn

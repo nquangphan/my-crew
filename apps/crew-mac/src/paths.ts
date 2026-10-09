@@ -49,6 +49,8 @@ export function macPaths(home: string) {
      */
     crewBin: join(home, '.crew', 'bin'),
     workflowsRoot: join(home, '.crew', 'workflows'),
+    /** Mtime của file này là lần `reap` gần nhất dọn bản workflow ghim cũ. */
+    workflowsGcStamp: join(home, '.crew', 'state', 'workflows-gc.stamp'),
     wrapper: join(home, '.crew', 'bin', 'crew-claude-run'),
     launcher: join(home, '.crew', 'bin', 'crew-mac'),
     /** Bản crew-mac do app cài (`installCrewMacFrom`); `.prev` là bản lui, `.new` là chỗ chép tạm. */

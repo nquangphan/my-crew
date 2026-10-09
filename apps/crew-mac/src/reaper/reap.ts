@@ -1,7 +1,16 @@
-import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname } from 'node:path';
 import { rootGuardReason } from '../paths.js';
 import type { CommandRunner } from '../system.js';
+import { WORKFLOW_GC_INTERVAL_MS, type WorkflowGcReport } from '../workflows/workflow-gc.js';
 import { listProcesses, type ProcInfo, readBootTime, readCwds } from './process-table.js';
 import { bridgeRoot, collectRunMembers, descendants, isClaudePrint, underRoot } from './run-members.js';
 import { type BridgeSeen, type OrphanRun, type ReaperState, selectTargets } from './select.js';
@@ -14,6 +23,8 @@ export interface ReapDeps {
   sleep: (ms: number) => Promise<void>;
   now: () => Date;
   selfPid: number;
+  /** Dọn bản workflow ghim cũ; chỉ gọi khi `ReapOptions.workflowsGcStampPath` có và stamp đã cũ hơn 1 giờ. */
+  gcWorkflowPins?: () => WorkflowGcReport;
 }
 
 export interface ReapOptions {
@@ -25,6 +36,8 @@ export interface ReapOptions {
   /** Thư mục worktree đã cài (`manifest.worktreeRoot`); null khi chưa cài: chỉ dọn con cháu của claude. */
   worktreeRoot: string | null;
   home: string;
+  /** File stamp giới hạn tần suất dọn bản workflow ghim cũ (`macPaths().workflowsGcStamp`). */
+  workflowsGcStampPath?: string;
 }
 
 export interface ReapTarget extends OrphanRun {
@@ -127,10 +140,36 @@ export async function reapOnce(deps: ReapDeps, options: ReapOptions): Promise<Re
     targets.push(target);
   }
   nextState.bridgeSince = await sweepBridges(deps, options, procs, state.bridgeSince, log);
+  sweepWorkflowPins(deps, options, log);
   mkdirSync(dirname(options.statePath), { recursive: true, mode: 0o700 });
   writeFileSync(options.statePath, `${JSON.stringify(nextState, null, 2)}\n`, { mode: 0o600 });
   if (log.length > 0) appendFileSync(options.logPath, `${log.join('\n')}\n`);
   return targets;
+}
+
+/** Dọn bản workflow ghim cũ tối đa mỗi giờ. Lỗi dọn chỉ ghi log, không làm hỏng lượt reap. */
+function sweepWorkflowPins(deps: ReapDeps, options: ReapOptions, log: string[]): void {
+  const stamp = options.workflowsGcStampPath;
+  if (options.dryRun || stamp === undefined || deps.gcWorkflowPins === undefined) return;
+  const now = deps.now();
+  try {
+    if (now.getTime() - statSync(stamp).mtimeMs < WORKFLOW_GC_INTERVAL_MS) return;
+  } catch {
+    // Chưa có stamp: dọn lần đầu.
+  }
+  try {
+    const report = deps.gcWorkflowPins();
+    mkdirSync(dirname(stamp), { recursive: true, mode: 0o700 });
+    writeFileSync(stamp, '', { mode: 0o600 });
+    utimesSync(stamp, now, now);
+    if (report.removed.length > 0) {
+      log.push(
+        `${vnTime(now)} GC workflow: đã dọn ${report.removed.length} bản ghim cũ: ${report.removed.join(', ')}`,
+      );
+    }
+  } catch (error) {
+    log.push(`${vnTime(now)} GC workflow lỗi: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 /**

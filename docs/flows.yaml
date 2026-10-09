@@ -201,6 +201,7 @@ flows:
       - apps/crew-mac/src/workflows/registry.ts
       - apps/crew-mac/src/workflows/bmad-pin.ts
       - apps/crew-mac/src/workflows/bmad-install.ts
+      - apps/crew-mac/src/workflows/workflow-gc.ts
       - apps/crew-mac/src/bmad/epics.ts
       - apps/crew-mac/src/bmad/answers.ts
       - apps/crew-mac/src/bmad/setup-project.ts
@@ -211,6 +212,7 @@ flows:
       - apps/crew-mac/test/workflows-registry.test.ts
       - apps/crew-mac/test/workflows-bmad-install.test.ts
       - apps/crew-mac/test/workflows-command.test.ts
+      - apps/crew-mac/test/workflows-gc.test.ts
       - apps/crew-mac/test/bmad-epics.test.ts
       - apps/crew-mac/test/bmad-answers.test.ts
       - apps/crew-mac/test/bmad-setup-project.test.ts

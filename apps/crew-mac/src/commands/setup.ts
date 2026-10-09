@@ -32,6 +32,7 @@ import { tailscaleIpv4 } from '../tailscale.js';
 import { installBmadPin } from '../workflows/bmad-install.js';
 import { installSuperpowersPin } from '../workflows/install.js';
 import { agentExtraArgs } from '../workflows/pin.js';
+import { gcAfterInstall } from '../workflows/workflow-gc.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { upsertPathBlock } from '../zshenv.js';
 import { saveConfiguredClaudePath } from './status.js';
@@ -293,6 +294,7 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   if (writeManifest(paths.manifest, manifest) && !changed.includes(paths.manifest))
     changed.push(paths.manifest);
   saveConfiguredClaudePath(ctx);
+  gcAfterInstall(ctx);
   return {
     changed,
     restarted,
