@@ -9,7 +9,10 @@ import type { WorkflowPin } from './pin.js';
  * Số đo checksum và `executables` lấy từ lần đo ngày 10/10/2026 trên Mac mini (258 file: 257 file skill và
  * `.claude-plugin/plugin.json`). Nâng bản: sửa `BMAD_SOURCE.revision`, version trong `BMAD_PLUGIN_JSON` và `BMAD_PIN`
  * (đo lại checksum theo docs/flows/mac-workflows.md), chạy `crew-mac workflows install` trên mọi Mac, rồi
- * `apply-roles.sh agent <id> bmad <thư mục ghim mới>` cho từng agent BMAD.
+ * `apply-roles.sh agent <id> bmad <thư mục ghim mới>` cho từng agent BMAD. Repo dự án đã commit `_bmad/scripts` của
+ * bản cũ sẽ bị `workflow-check` chặn (`khác bản ghim BMAD`) tới khi dựng lại: trong worktree agent BMAD xóa
+ * `_bmad/scripts`, chạy `crew-mac bmad setup-project --root <worktree>` (bỏ qua nếu còn `resolve_config.py`), rồi
+ * commit `_bmad`.
  */
 export const BMAD_SOURCE = {
   repoUrl: 'https://github.com/bmad-code-org/bmad-plugins.git',

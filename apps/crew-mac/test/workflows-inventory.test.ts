@@ -510,6 +510,13 @@ describe('discoverSources theo workflow của run', () => {
     ]);
   });
 
+  it('câu lý do khi script lệch nói đúng hành động: setup-project chỉ chạy sau khi xóa _bmad/scripts', () => {
+    // setup-project bỏ qua (skipped) khi đã có _bmad/scripts/resolve_config.py, nên chỉ "chạy setup-project" là sai.
+    expect(BMAD_SCRIPT_MISMATCH_REASON).toBe(
+      'khác bản ghim BMAD; khôi phục từ commit, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project',
+    );
+  });
+
   it('run BMAD: _bmad/scripts thừa một file hoặc có symlink thì khác bản ghim', async () => {
     const { ctx } = realGitCtx();
     const dir = repo();

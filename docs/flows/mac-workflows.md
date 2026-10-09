@@ -236,8 +236,9 @@ nào sẽ làm run thoát 78, `warn` khi chỉ có cảnh báo, kèm cùng lện
 - `bật workflow <id> khác với workflow của run (nạp chéo)`: bỏ key đó khỏi `enabledPlugins` của
   `.claude/settings.json` rồi commit, hoặc giao issue cho agent của workflow `<id>`.
 - `bật plugin <tên> ngoài bản ghim, nạp song song…`: bỏ key đó khỏi `enabledPlugins` rồi commit.
-- `khác bản ghim BMAD; …`: xem `git status -- _bmad/scripts`; khôi phục bằng `git checkout HEAD -- _bmad/scripts`,
-  hoặc xóa `_bmad/scripts` rồi chạy `crew-mac bmad setup-project`.
+- `khác bản ghim BMAD; khôi phục từ commit, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project`: xem
+  `git status -- _bmad/scripts`; khôi phục bằng `git checkout HEAD -- _bmad/scripts`, hoặc xóa `_bmad/scripts` rồi chạy
+  `crew-mac bmad setup-project` (chạy khi chưa xóa thì lệnh này `skipped`).
 - `lớp cá nhân của BMAD chưa commit`: xóa file `*.user.toml` đó, hoặc commit nếu cả nhóm dùng.
 - `run-init-check`: `nạp nhiều hơn một workflow` (repo hay user scope nạp thêm workflow khác) hoặc
   `không nạp workflow ghim nào` (thiếu `--plugin-dir`).
@@ -346,6 +347,9 @@ bản ghim (hoặc không còn cài).
    file có bit `x` cho `executables`; cập nhật test `workflows-registry`.
 3. Chạy `crew-mac workflows install` trên mọi Mac (bản mới nằm cạnh bản cũ).
 4. `apply-roles.sh agent <id> bmad <thư mục ghim mới>` cho từng agent BMAD.
+5. Repo dự án đã commit `_bmad/scripts` của bản cũ sẽ bị chặn (`khác bản ghim BMAD`) tới khi dựng lại: trong worktree
+   agent BMAD xóa `_bmad/scripts`, chạy `crew-mac bmad setup-project --root <worktree>` (lệnh này bỏ qua khi còn
+   `_bmad/scripts/resolve_config.py`), rồi commit `_bmad`.
 
 **Nâng bản Superpowers:**
 

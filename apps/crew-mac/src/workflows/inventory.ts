@@ -44,8 +44,9 @@ export const CROSS_WORKFLOW_REASON = 'khác với workflow của run (nạp ché
  * `bật plugin <tên> ngoài bản ghim, nạp song song với workflow của run`.
  */
 export const PARALLEL_PLUGIN_REASON = 'ngoài bản ghim, nạp song song với workflow của run';
+/** `setup-project` bỏ qua khi đã có `_bmad/scripts/resolve_config.py`, nên phải xóa `_bmad/scripts` trước khi chạy. */
 export const BMAD_SCRIPT_MISMATCH_REASON =
-  'khác bản ghim BMAD; chạy crew-mac bmad setup-project hoặc checkout lại từ commit';
+  'khác bản ghim BMAD; khôi phục từ commit, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project';
 export const BMAD_PERSONAL_REASON = 'lớp cá nhân của BMAD chưa commit';
 /** Cảnh báo (không chặn) khi `_bmad/config.toml` chưa commit nhưng đúng bản `setup-project` vừa ghi cho worktree này. */
 export const BMAD_SETUP_UNCOMMITTED_WARNING =
