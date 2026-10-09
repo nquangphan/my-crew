@@ -197,6 +197,13 @@ export async function setStatusSecret(ctx: MacContext, input: string): Promise<v
   if (result.code !== 0) throw new Error('Không ghi được secret vào Keychain');
 }
 
+/** Chỉ tên/mã lỗi, không lấy message vì có thể chứa secret hay URL. */
+function errorKind(error: unknown): string {
+  const cause = error instanceof Error ? (error.cause as { code?: unknown } | undefined) : undefined;
+  if (typeof cause?.code === 'string') return cause.code;
+  return error instanceof Error ? error.name : 'lỗi không rõ';
+}
+
 export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<void> {
   let httpStatus: number | null = null;
   let failureMessage = 'crew-mac status: gửi thất bại; kiểm tra cấu hình và secret';
@@ -212,8 +219,13 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
       timeoutMs: 10_000,
     });
     const secret = found.stdout.replace(/\r?\n$/, '');
-    if (found.code !== 0 || !secret) throw new Error('keychain');
+    if (found.code !== 0 || !secret) {
+      failureMessage = `crew-mac status: gửi thất bại (Keychain${found.timedOut ? ' quá hạn' : ` mã ${found.code}`}); kiểm tra secret`;
+      throw new Error('keychain');
+    }
+    failureMessage = 'crew-mac status: gửi thất bại (dựng bản tin máy)';
     const body = JSON.stringify(await buildMachineReport(ctx, config.companyId, config.machineId));
+    failureMessage = 'crew-mac status: gửi thất bại (kết nối tới Paperclip)';
     const response = await fetcher(`${config.url}/api/plugins/crew.core/webhooks/machine-status`, {
       method: 'POST',
       headers: {
@@ -226,8 +238,10 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
     httpStatus = response.status;
     if (response.status < 200 || response.status >= 300) throw new Error('http');
     writePrivate(lastPath(ctx), { at: ctx.now().toISOString(), ok: true, httpStatus });
-  } catch {
+  } catch (error) {
     machineFailed = true;
+    if (httpStatus === null && failureMessage.endsWith('(kết nối tới Paperclip)'))
+      failureMessage = `${failureMessage.slice(0, -1)}: ${errorKind(error)})`;
     writePrivate(lastPath(ctx), { at: ctx.now().toISOString(), ok: false, httpStatus });
     ctx.out(httpStatus === null ? failureMessage : `crew-mac status: gửi thất bại (HTTP ${httpStatus})`);
   }

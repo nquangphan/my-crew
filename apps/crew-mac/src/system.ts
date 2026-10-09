@@ -11,6 +11,8 @@ export interface RunOptions {
   /** Hết hạn thì SIGKILL: claude bỏ qua SIGTERM khi bị TCC chặn. */
   timeoutMs?: number;
   input?: string;
+  /** Biến môi trường thêm vào môi trường hiện tại của process. */
+  env?: Record<string, string>;
 }
 
 export interface CommandRunner {
@@ -21,7 +23,10 @@ export function createRunner(): CommandRunner {
   return {
     run(command, args, options = {}) {
       return new Promise((resolve) => {
-        const child = spawn(command, [...args], { stdio: ['pipe', 'pipe', 'pipe'] });
+        const child = spawn(command, [...args], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          ...(options.env ? { env: { ...process.env, ...options.env } } : {}),
+        });
         let stdout = '';
         let stderr = '';
         let timedOut = false;

@@ -149,7 +149,16 @@ describe('crew-mac status', () => {
     ).rejects.toThrow();
     expect(out).toHaveLength(1);
     expect(out[0]).not.toContain('secret-private');
+    expect(out[0]).toContain('kết nối tới Paperclip: Error');
     expect(JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8')).ok).toBe(false);
+  });
+
+  it('Keychain hết giờ thì báo đúng bước, không nói chung chung', async () => {
+    const { ctx, runner, out } = fakeMac();
+    configureStatus(ctx, 'https://paperclip.example', '22222222-2222-4222-8222-222222222222');
+    runner.on('security', () => ({ code: 137, timedOut: true }));
+    await expect(sendStatus(ctx, async () => new Response('', { status: 200 }))).rejects.toThrow();
+    expect(out[0]).toContain('Keychain quá hạn');
   });
 
   it.each([300, 302, 401, 413, 502])('coi HTTP %i là thất bại và lưu status', async (httpStatus) => {

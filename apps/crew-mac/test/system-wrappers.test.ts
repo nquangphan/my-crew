@@ -46,6 +46,24 @@ describe('tailscaleIpv4', () => {
     expect(await tailscaleIpv4(runner)).toBe('100.102.189.67');
   });
 
+  it('chạy bản GUI trong app như CLI (TAILSCALE_BE_CLI=1) vì launchd không có tailscale trên PATH', async () => {
+    const runner = new FakeRunner()
+      .on('tailscale', () => ({ code: 127 }))
+      .on('/Applications/Tailscale.app/Contents/MacOS/Tailscale', (_args, options) =>
+        options.env?.TAILSCALE_BE_CLI === '1'
+          ? { stdout: '100.102.189.67\n' }
+          : { stdout: 'The Tailscale GUI failed to start\n' },
+      );
+    expect(await tailscaleIpv4(runner)).toBe('100.102.189.67');
+  });
+
+  it('thử cả /usr/local/bin/tailscale khi PATH tối thiểu không có tailscale', async () => {
+    const runner = new FakeRunner()
+      .on('tailscale', () => ({ code: 127 }))
+      .on('/usr/local/bin/tailscale', () => ({ stdout: '100.102.189.67\n' }));
+    expect(await tailscaleIpv4(runner)).toBe('100.102.189.67');
+  });
+
   it('bỏ qua IP ngoài dải 100.64.0.0/10', async () => {
     const runner = new FakeRunner()
       .on('tailscale', () => ({ stdout: '100.200.1.1\n' }))

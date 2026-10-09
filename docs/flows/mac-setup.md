@@ -77,7 +77,7 @@ không cần token và không login lại.
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/crew-mac/src/cli.ts` | CLI | `main`, `USAGE`, `defaultContext`, `sshServerPort` |
-| `apps/crew-mac/src/system.ts` | Chạy lệnh có giới hạn thời gian (SIGKILL), quote đối số shell | `createRunner`, `CommandRunner`, `shQuote` |
+| `apps/crew-mac/src/system.ts` | Chạy lệnh có giới hạn thời gian (SIGKILL), thêm biến môi trường (`RunOptions.env`), quote đối số shell | `createRunner`, `CommandRunner`, `shQuote` |
 | `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`), `SetupError` |
 | `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
@@ -87,7 +87,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/plist.ts` | Plist LaunchAgent | `renderPlist` |
 | `apps/crew-mac/src/sshd-config.ts` | Cấu hình sshd | `renderSshdConfig` |
 | `apps/crew-mac/src/launchctl.ts` | Bọc `launchctl` | `serviceState`, `bootstrap`, `bootout`, `guiSessionAvailable` |
-| `apps/crew-mac/src/tailscale.ts` | IP Tailscale | `tailscaleIpv4` |
+| `apps/crew-mac/src/tailscale.ts` | IP Tailscale: thử `tailscale` theo PATH, `/usr/local/bin/tailscale`, `/opt/homebrew/bin/tailscale`, rồi file trong app; luôn đặt `TAILSCALE_BE_CLI=1` vì dưới launchd (PATH `/usr/bin:/bin:/usr/sbin:/sbin`) file GUI trong app nếu không có biến này sẽ mở GUI, thoát mã 0 và không in IP (từng làm trang Crew báo "Lỗi: Tailscale" dù doctor trong Terminal đạt) | `tailscaleIpv4` |
 | `apps/crew-mac/src/wrapper.ts` | Đường dẫn nguồn wrapper | `WRAPPER_SOURCE` |
 | `apps/crew-mac/src/launcher.ts` | Script `~/.crew/bin/crew-mac` | `renderLauncher`, `parseLauncher` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper `claude` cho agent: với run Paperclip, đòi đúng một `--plugin-dir` và gọi `crew-mac workflow-check` (từ chối thì thoát 78, không chạy agent; flow `mac-workflows`), ghi `pgid`, `started` của run rồi `exec claude`. Đây là bản nguồn; fork Paperclip giữ bản sao ở `server/src/__tests__/fixtures/crew-claude-run.sh` cho test của hook phía server | — |
@@ -173,4 +173,5 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.
 - `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
+- `apps/crew-mac/test/status.test.ts` báo rõ bước thất bại của `status send` (Keychain, kết nối) mà không lộ secret; `system-wrappers.test.ts` có ca Tailscale dưới PATH tối thiểu.
 - Các test còn lại kiểm từng module thuần (`zshenv`, `authorized-keys`, `render`, `system-wrappers`, `system`).

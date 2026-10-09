@@ -11,6 +11,8 @@ export const SPIKE_KEY_COMMENT = 'crew-v3-spike-paperclip';
 export const DEFAULT_PORT = 2222;
 export const TAILSCALE_CANDIDATES = [
   'tailscale',
+  '/usr/local/bin/tailscale',
+  '/opt/homebrew/bin/tailscale',
   '/Applications/Tailscale.app/Contents/MacOS/Tailscale',
 ] as const;
 

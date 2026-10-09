@@ -19,6 +19,17 @@ describe('createRunner', () => {
     expect(result.stdout).toBe('ABC');
   });
 
+  it('thêm biến môi trường vào môi trường của process con', async () => {
+    const result = await createRunner().run(
+      process.execPath,
+      ['-e', 'process.stdout.write(process.env.CREW_TEST_ENV ?? "")'],
+      {
+        env: { CREW_TEST_ENV: 'co' },
+      },
+    );
+    expect(result.stdout).toBe('co');
+  });
+
   it('hết giờ thì SIGKILL kể cả khi process bỏ qua SIGTERM', async () => {
     const started = Date.now();
     const result = await createRunner().run(
