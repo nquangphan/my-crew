@@ -7,6 +7,7 @@ import { createLogs } from './logs.js';
 import { createNotifier } from './notifications.js';
 import { paperclipClient } from './paperclip/register.js';
 import { createRuns } from './runs.js';
+import { LOGIN_ITEMS_SETTINGS_URL } from './setup/v2-removal.js';
 import type { SshdSupervisor } from './sshd/supervisor.js';
 import type { DotColor } from './tray-state.js';
 
@@ -50,6 +51,7 @@ export function registerHealth(ctx: AppContext, sshd: SshdSupervisor): Pick<Heal
   ctx.ipc.handle('health:last', () => health.last());
   ctx.ipc.handle('health:action', async (action: HealthAction) => {
     if (action === 'open-privacy') await shell.openExternal(PRIVACY_PANE);
+    else if (action === 'open-login-items') await shell.openExternal(LOGIN_ITEMS_SETTINGS_URL);
     else if (action === 'open-terminal') execFile('/usr/bin/open', ['-a', 'Terminal'], () => undefined);
     else throw new Error('Việc không hợp lệ');
     return undefined;

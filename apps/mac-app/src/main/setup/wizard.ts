@@ -5,7 +5,7 @@ import type { LoginItem } from '../login-item.js';
 import type { OpsBridge } from '../ops-bridge.js';
 import { isRecord, type StepOutcome, type StepRun } from './types.js';
 
-/** Thứ tự bước của wizard. `v2` và `move` do AP-6 cài; tới khi đó hai bước này đi tiếp ngay. */
+/** Thứ tự bước của wizard. `v2` (gỡ app cũ) phải xong trước `move` vì hai app cùng tên `2P Crew.app`. */
 export const STEP_ORDER: readonly SetupStep[] = [
   'check',
   'v2',

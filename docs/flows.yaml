@@ -175,6 +175,7 @@ flows:
       - apps/mac-app/src/main/setup/machine-step.ts
       - apps/mac-app/src/main/setup/disk-access.ts
       - apps/mac-app/src/main/setup/sshd-handoff.ts
+      - apps/mac-app/src/main/setup/v2-removal.ts
       - apps/mac-app/src/preload/index.ts
       - apps/mac-app/src/shared/ipc-contract.ts
       - apps/mac-app/src/utility/ops.ts
