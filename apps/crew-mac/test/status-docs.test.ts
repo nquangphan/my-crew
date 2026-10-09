@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   mkdirSync,
@@ -23,7 +23,7 @@ import {
   sendDocsSnapshots,
   sendStatus,
 } from '../src/commands/status.js';
-import { buildDocsSnapshot, removeOwnTempDir, snapshotCommit } from '../src/status/docs.js';
+import { buildDocsSnapshot, removeOwnTempDir, SCAN_MANIFEST, snapshotCommit } from '../src/status/docs.js';
 import { fakeMac } from './helpers/fake-mac.js';
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
@@ -90,6 +90,47 @@ describe('status docs snapshots', () => {
     const repo = fixture();
     const commit = git(repo, 'rev-parse', 'HEAD');
     expect(await snapshotCommit(repo)).toEqual({ commit, fetchFailed: false });
+  });
+
+  it('flows.yaml mẫu của bước secret-scan hợp lệ với R1 của bundle docs-kit build từ repo', () => {
+    const scan = mkdtempSync(join(tmpdir(), 'crew-docs-scan-manifest-'));
+    try {
+      git(scan, 'init', '-q');
+      mkdirSync(join(scan, 'docs'));
+      writeFileSync(join(scan, 'docs', 'flows.yaml'), SCAN_MANIFEST);
+      const out = spawnSync(
+        process.execPath,
+        [resolve('../..', 'packages/docs-kit/dist/crew-docs.cjs'), 'check', '--all'],
+        { cwd: scan, encoding: 'utf8' },
+      );
+      expect(out.stdout).not.toMatch(/^R1 /m);
+    } finally {
+      rmSync(scan, { recursive: true, force: true });
+    }
+  });
+
+  it('bundle chạy thêm luật R2/R4 ở --staged vẫn cho kết quả secret-scan, bundle R1 hỏng thì ném lỗi', () => {
+    const repo = fixture();
+    const strict = join(repo, 'strict-bundle.cjs');
+    writeFileSync(
+      strict,
+      [
+        "const fs = require('node:fs');",
+        "if (!process.argv.includes('--staged')) process.exit(0);",
+        "const manifest = fs.readFileSync('docs/flows.yaml', 'utf8');",
+        "if (!/^source:/m.test(manifest)) { console.log('R1 docs/flows.yaml: source: Invalid input'); process.exit(1); }",
+        'console.log(\'R4 docs/index.md: generated "flows" block is missing\');',
+        "for (const f of fs.readdirSync('docs')) {",
+        "  if (f.startsWith('page-') && /ghp_/.test(fs.readFileSync('docs/' + f, 'utf8')))",
+        "    console.log('R7 docs/' + f + ': line 1 looks like a credential');",
+        '}',
+        'process.exit(1);',
+      ].join('\n'),
+    );
+    git(repo, 'config', 'crew-docs.bundle', strict);
+    const snapshot = buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'));
+    expect(snapshot.dropped).toEqual([{ path: 'docs/private.md', reason: 'secret-scan' }]);
+    expect(snapshot.pages.map((p) => p.path)).toContain('docs/index.md');
   });
 
   it('xóa thư mục tạm sau khi dựng ảnh chụp thành công', () => {

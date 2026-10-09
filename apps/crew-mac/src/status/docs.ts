@@ -21,6 +21,12 @@ interface Link {
   status: LinkStatus;
 }
 
+/**
+ * Manifest of the throwaway scan repo. It must satisfy the current flows.yaml schema (R1 needs `source`);
+ * older bundles also run R2/R4 on `--staged`, so the include glob matches no file in the scan repo.
+ */
+export const SCAN_MANIFEST = 'version: 1\nsource:\n  include:\n    - "scan-none/**"\nflows: {}\n';
+
 function git(root: string, args: string[]): string {
   return execFileSync('git', ['-C', root, ...args], {
     encoding: 'utf8',
@@ -164,7 +170,7 @@ export function buildDocsSnapshot(root: string, commit: string, repoName = basen
     mkdirSync(scanRoot);
     git(scanRoot, ['init', '-q']);
     mkdirSync(join(scanRoot, 'docs'));
-    writeFileSync(join(scanRoot, 'docs', 'flows.yaml'), 'version: 1\nflows: {}\n');
+    writeFileSync(join(scanRoot, 'docs', 'flows.yaml'), SCAN_MANIFEST);
     const binaryPaths = new Set<string>();
     const scanPaths = new Map<string, string>();
     const metadataPaths = new Map<string, string>();
@@ -204,8 +210,8 @@ export function buildDocsSnapshot(root: string, commit: string, repoName = basen
         else throw new Error('Secret-scan trả đường dẫn không rõ');
       }
     }
-    if (scan.status === 1 && droppedPaths.size === binaryPaths.size && metadataDropped.size === 0)
-      throw new Error('Secret-scan không trả kết quả');
+    // Only R7 matters here (other rules vary by bundle version); an R1 line means the scan never ran.
+    if (/^R1 /m.test(scan.stdout)) throw new Error('Secret-scan không trả kết quả');
     const allDocs = new Set(paths);
     const pages: Page[] = paths
       .filter((path) => !droppedPaths.has(path) && !metadataDropped.has(path))

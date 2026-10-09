@@ -158,7 +158,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 (kèm trường `app` tùy chọn) | `buildMachineReport`, `MachineReport` |
 | `apps/crew-mac/src/status/app-state.ts` | Đọc ba trường `appVersion`, `sshdOwner`, `updateState` từ `app.json` của app (chỉ đọc) | `readAppState`, `AppReport`, `UPDATE_STATES` |
 | `apps/crew-mac/src/status/tcc.ts` | Probe TCC nối tiếp riêng cho status; checkpoint `~/.crew/status-tcc.json` (0600), lần đầu quét 2 giờ, các lần sau bắt đầu từ mốc đã quét trừ 5 giây theo giờ địa phương kèm offset mà `log show` yêu cầu; giữ `msgId` để ghép kết quả đến ở lượt sau; timeout 20 giây ở lần đầu vẫn ghi checkpoint rỗng và cảnh báo bắt đầu theo dõi, các lần sau giữ nguyên state và thêm cảnh báo | `probeStatusTcc`, `updateTccPending` |
-| `apps/crew-mac/src/status/docs.ts` | Đọc docs tại commit, kiểm chuẩn và secret-scan | `snapshotCommit`, `buildDocsSnapshot` |
+| `apps/crew-mac/src/status/docs.ts` | Đọc docs tại commit, kiểm chuẩn và secret-scan | `snapshotCommit`, `buildDocsSnapshot`, `SCAN_MANIFEST` |
 
 ## Bản tin trạng thái máy
 
@@ -220,6 +220,8 @@ Khi commit khác `lastCommit`, lệnh dựng ảnh chụp từ mọi file `.md` 
 working tree. Git worktree và repo secret-scan trong thư mục tạm `crew-mac-docs-*` được xóa sau mỗi lần dựng ảnh chụp.
 Một git worktree tạm detached được dùng để chạy `crew-docs check --all`; kết quả 0/1/2–3 lần lượt
 thành `auditState` `verified`/`invalid`/`unverified`. Lệnh lấy bundle từ git config `crew-docs.bundle` của repo.
+Repo secret-scan dùng `SCAN_MANIFEST` (`docs/flows.yaml` mẫu có `source` theo schema hiện hành của docs-kit, vì R1 từ chối manifest thiếu `source`). Bundle cũ chạy thêm R2/R4 ở `check --staged` nên exit 1 vẫn hợp lệ: chỉ dòng `R7` quyết định trang nào bị bỏ, và dòng `R1` nghĩa là bước quét không chạy được nên ném lỗi, không gửi ảnh chụp. Nhờ vậy ảnh chụp không phụ thuộc phiên bản bundle gán cho repo.
+
 Chỉ Git blob file thường mode `100644`/`100755` được đưa vào ảnh chụp; symlink và submodule bị bỏ. Mỗi trang được rà secret bằng luật R7 của `crew-docs`, gồm nội dung và metadata sẽ gửi (đường dẫn, title, tên repo). Nếu tên repo bị phát hiện, không gửi ảnh chụp và chỉ log lỗi theo project ID. Trang có metadata bị phát hiện được bỏ khỏi `pages`, ghi `{"path":"<đã che>","reason":"secret-scan-metadata"}` trong `dropped`. Trang chỉ có nội dung bị phát hiện được bỏ khỏi `pages`, ghi đường dẫn
 và lý do `secret-scan` vào `dropped`. File Markdown có byte NUL cũng bị bỏ vì Git coi là binary và R7 không quét
 được các dòng của nó. Bản tin chứa title, nội dung, SHA-256, `parentPath` là thư mục cha (kể cả `docs` cho file ngay dưới `docs/`) và trạng thái link Markdown
