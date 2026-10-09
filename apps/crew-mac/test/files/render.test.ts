@@ -178,6 +178,15 @@ describe('renderMarkdown', () => {
     expect(withFile.split('\n').at(-1)).toBe('Không đọc được file của issue cha qua bridge.');
   });
 
+  it('issue mới tạo → thêm dòng cố định: file có thể còn đang tải lên', () => {
+    const out = renderMarkdown(manifest([], { uploadsMayBePending: true }));
+    expect(out.split('\n')).toEqual([
+      '## File đính kèm',
+      'Không có file đính kèm.',
+      'File đính kèm có thể còn đang tải lên; lượt sau sẽ đọc.',
+    ]);
+  });
+
   it('không in tên/sheet chứa xuống dòng hay ký tự điều khiển', () => {
     const out = renderMarkdown(
       manifest([

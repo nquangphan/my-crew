@@ -97,7 +97,7 @@ describe('worker trích xuất (process con)', () => {
     expect(existsSync(join(req.outDir, 'extract'))).toBe(false);
   });
 
-  it('DOCX có DTD/entity → blocked; zip quá 2000 mục → failed', async () => {
+  it('DOCX có DTD/entity → corrupt (không phải macro); zip quá 2000 mục → failed', async () => {
     const home = fakeHome();
     const extract = createWorkerExtract(attachmentPaths(home), { workerPath: bundle });
     const dtd = stage(
@@ -108,7 +108,7 @@ describe('worker trích xuất (process con)', () => {
       'docx',
       'dtd.docx',
     );
-    expect((await extract(dtd)).status).toBe('blocked');
+    expect(await extract(dtd)).toMatchObject({ status: 'corrupt', problemCodes: ['CORRUPT_XML_DTD'] });
     const many = stage(
       home,
       makeZip(Array.from({ length: 2001 }, (_, i) => ({ name: `a${i}`, body: '' }))),
@@ -116,6 +116,21 @@ describe('worker trích xuất (process con)', () => {
       'many.docx',
     );
     expect(await extract(many)).toMatchObject({ status: 'failed', problemCodes: ['LIMIT_EXCEEDED'] });
+  });
+
+  it('DOCX có mục zip mã hóa → encrypted (mật khẩu), không phải macro', async () => {
+    const home = fakeHome();
+    const extract = createWorkerExtract(attachmentPaths(home), { workerPath: bundle });
+    const req = stage(
+      home,
+      makeZip([
+        { name: '[Content_Types].xml', body: '<Types/>' },
+        { name: 'word/document.xml', body: 'x', flags: 0x801 },
+      ]),
+      'docx',
+      'khoa.docx',
+    );
+    expect(await extract(req)).toMatchObject({ status: 'encrypted', problemCodes: ['PASSWORD_REQUIRED'] });
   });
 
   it('worker treo → bị SIGKILL khi quá hạn, trả failed, process con đã chết', async () => {

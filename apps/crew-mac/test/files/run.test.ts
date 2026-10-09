@@ -1,13 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { type AttachmentMeta, type BridgeClient, BridgeError } from '../../src/files/bridge.js';
 import { readRunManifest } from '../../src/files/cache.js';
-import { attachmentPaths, blobPath } from '../../src/files/paths.js';
+import { GC_LOCK_WAIT_MS } from '../../src/files/config.js';
+import { runGc } from '../../src/files/gc.js';
+import { attachmentPaths, blobPath, derivedDir } from '../../src/files/paths.js';
 import { collectFiles, type ExtractFn, type FilesDeps } from '../../src/files/run.js';
 import { makeOffice, makePng, makeZip } from '../fixtures/attachments/make-fixtures.js';
 import { FakeRunner } from '../helpers/fake-runner.js';
-import { fakeHome, sha256Hex } from './helpers.js';
+import { DAY_MS, fakeHome, seed, sha256Hex } from './helpers.js';
 
 const NOW = new Date('2026-10-09T05:00:00.000Z');
 const RUN = '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c10';
@@ -237,6 +239,121 @@ describe('collectFiles', () => {
     // thứ tự: file mới nhất (createdAt lớn nhất = id nhỏ nhất) được xử lý trước
     expect(m.files[0]?.attachmentId).toBe(uuid(1));
     expect(m.files.at(-1)?.attachmentId).toBe(uuid(45));
+  });
+
+  it('link trong mô tả tới file chưa có trong listing (upload trễ sau lần liệt kê lại) → chua_dong_bo, không tải', async () => {
+    const f1 = file(1, 'a.png', png);
+    const late = uuid(9);
+    const t = setup({
+      issue: {
+        description: `![a](/api/attachments/${f1.meta.id}/content) ![b](/api/attachments/${late}/content)`,
+        createdAt: iso(-30_000),
+      },
+      listings: [[f1], [f1]],
+    });
+    const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
+    expect(m.files).toHaveLength(2);
+    expect(m.files[1]).toMatchObject({
+      attachmentId: late,
+      issueId: ISSUE,
+      relation: 'self',
+      source: 'mô tả TPS-80',
+      filename: 'attachment-00000000',
+      status: 'chua_dong_bo',
+      reason: 'chua_len_kip',
+      readPaths: [],
+    });
+    expect(t.calls.content).toEqual([f1.meta.id]);
+    expect(m.uploadsMayBePending).toBe(true);
+  });
+
+  it('issue cũ: link thiếu trong listing vẫn báo chua_dong_bo; không có cờ đang tải lên', async () => {
+    const late = uuid(9);
+    const t = setup({
+      issue: { description: null, createdAt: iso(-3_600_000) },
+      comments: [
+        {
+          id: 'c1',
+          body: `xem [file](/api/attachments/${late}/content)`,
+          authorAgentId: null,
+          authorUserId: 'u',
+          createdAt: iso(-1000),
+        },
+      ],
+      listings: [[]],
+    });
+    const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
+    expect(m.files).toHaveLength(1);
+    expect(m.files[0]).toMatchObject({
+      source: 'bình luận thứ 1 của TPS-80 (chủ dự án)',
+      status: 'chua_dong_bo',
+      reason: 'chua_len_kip',
+    });
+    expect(m.uploadsMayBePending).toBeUndefined();
+  });
+
+  it('link tới file của issue cha hoặc trong khối code → không thêm dòng chua_dong_bo', async () => {
+    const par = file(2, 'par.png', makePng(12, 12), { issueId: PARENT });
+    const t = setup({
+      issue: {
+        description: `![p](/api/attachments/${par.meta.id}/content)\n\`![x](/api/attachments/${uuid(8)}/content)\``,
+        createdAt: iso(-3_600_000),
+      },
+      listings: [[]],
+      ancestors: [{ id: PARENT, identifier: 'TPS-79' }],
+      ancestorFiles: { [PARENT]: [par] },
+    });
+    const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
+    expect(m.files.map((f) => [f.attachmentId, f.status])).toEqual([[par.meta.id, 'san_sang']]);
+  });
+
+  it('GC của run khác chạy giữa lúc run này dùng blob trúng cache sát hạn 7 ngày → blob và bản dẫn xuất còn nguyên', async () => {
+    const bytes = Buffer.from('ghi chú cũ');
+    const f1 = file(1, 'ghi-chu.txt', bytes);
+    const sha = f1.meta.sha256;
+    const OLD_RUN = '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c01';
+    const OTHER_RUN = '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c02';
+    let paths: ReturnType<typeof attachmentPaths> | undefined;
+    const extract: ExtractFn = async (req) => {
+      // Agent khác trên cùng Mac dọn cache đúng lúc run cũ duy nhất tham chiếu blob vừa quá 7 ngày.
+      await runGc(paths as ReturnType<typeof attachmentPaths>, {
+        now: new Date(NOW.getTime() + 60 * 60 * 1000),
+        currentRunId: OTHER_RUN,
+      });
+      expect(existsSync(req.blobPath)).toBe(true);
+      return { status: 'complete', outputs: [], notes: [], problemCodes: [], credentialFindings: [] };
+    };
+    const t = setup({ listings: [[f1]] }, { extract });
+    paths = t.paths;
+    seed(t.paths, NOW, { runs: [{ id: OLD_RUN, ageDays: 7 - 1 / 48, shas: [sha] }] });
+    writeFileSync(blobPath(t.paths, sha), bytes, { mode: 0o600 });
+    const eightDaysAgo = new Date(NOW.getTime() - 8 * DAY_MS);
+    utimesSync(blobPath(t.paths, sha), eightDaysAgo, eightDaysAgo);
+    mkdirSync(join(derivedDir(t.paths, sha), 'extract'), { recursive: true });
+    writeFileSync(join(derivedDir(t.paths, sha), 'extract', 'ghi-chu.txt'), 'bản trích');
+
+    const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
+    expect(m.files[0]?.status).toBe('san_sang');
+    expect(t.calls.content).toEqual([]);
+    expect(existsSync(blobPath(t.paths, sha))).toBe(true);
+    expect(existsSync(join(derivedDir(t.paths, sha), 'extract', 'ghi-chu.txt'))).toBe(true);
+    expect(existsSync(join(t.paths.runs, OLD_RUN))).toBe(false);
+  });
+
+  it('gc.lock đang bị run khác giữ → chờ khóa rồi mới ghi manifest giữ chỗ', async () => {
+    const f1 = file(1, 'a.png', png);
+    const t = setup({ listings: [[f1]] });
+    const sleep = t.deps.sleep;
+    t.deps.sleep = async (ms) => {
+      await sleep(ms);
+      rmSync(t.paths.gcLock, { force: true });
+    };
+    mkdirSync(t.paths.root, { recursive: true, mode: 0o700 });
+    writeFileSync(t.paths.gcLock, JSON.stringify({ pid: process.pid, at: NOW.getTime() }));
+    const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
+    expect(t.sleeps).toEqual([GC_LOCK_WAIT_MS]);
+    expect(m.files[0]?.status).toBe('san_sang');
+    expect(existsSync(t.paths.gcLock)).toBe(false);
   });
 
   it('issue hiện tại trước, tổ tiên gần trước; file tổ tiên ghi nguồn issue cha', async () => {

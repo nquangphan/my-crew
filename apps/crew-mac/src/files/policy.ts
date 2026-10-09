@@ -50,15 +50,52 @@ export const SNIFF_CHECKED: readonly string[] = [
 ];
 export const MACRO_EXTENSIONS: readonly string[] = ['docm', 'xlsm', 'pptm', 'dotm', 'xltm'];
 
-/** Nhãn theo đuôi cho file có đuôi ngoài danh sách cho phép (cùng cách gọi tên với plugin). */
-const EXTENSION_LABELS: Record<Exclude<BlockLabel, 'khac'>, readonly string[]> = {
+/**
+ * Bảng đuôi → nhãn chuẩn cho file bị chặn theo đuôi (nhãn thuộc tập I2). Plugin crew.core chép nguyên bảng này;
+ * đuôi macro cũng đi qua bảng (`pptm` → `pptx`, `dotm` → `docm`, `xltm` → `xlsm`). Đuôi không có trong bảng → `khac`.
+ */
+export const EXTENSION_LABELS: Readonly<Record<Exclude<BlockLabel, 'khac'>, readonly string[]>> = {
   zip: ['zip', '7z', 'rar', 'gz', 'tgz', 'tar', 'bz2', 'xz'],
-  exe: ['exe', 'msi', 'dmg', 'pkg', 'app', 'bat', 'cmd', 'com', 'scr', 'dll', 'dylib', 'jar', 'apk'],
+  exe: [
+    'exe',
+    'msi',
+    'dmg',
+    'pkg',
+    'app',
+    'bat',
+    'cmd',
+    'com',
+    'scr',
+    'dll',
+    'dylib',
+    'jar',
+    'apk',
+    'ps1',
+    'vbs',
+    'deb',
+    'rpm',
+    'so',
+  ],
   docm: ['docm', 'dotm'],
   xlsm: ['xlsm', 'xltm'],
-  'office-cu': ['doc', 'xls', 'ppt', 'dot', 'xlt', 'pot'],
+  'office-cu': ['doc', 'xls', 'ppt', 'dot', 'xlt', 'pot', 'pps'],
   pptx: ['pptx', 'pptm', 'ppsx', 'potx'],
-  media: ['mp3', 'mp4', 'm4a', 'm4v', 'mov', 'wav', 'avi', 'mkv', 'webm', 'aac', 'flac', 'ogg', 'aiff'],
+  media: [
+    'mp3',
+    'mp4',
+    'm4a',
+    'm4v',
+    'mov',
+    'wav',
+    'avi',
+    'mkv',
+    'webm',
+    'aac',
+    'flac',
+    'ogg',
+    'aiff',
+    'wmv',
+  ],
 };
 
 function labelForExtension(ext: string): BlockLabel {
@@ -86,7 +123,8 @@ export function decide(kind: DetectedKind, filename: string): Decision {
   if (kind === 'encrypted-office') return { action: 'reject', status: 'ma_hoa', reason: 'office_ma_hoa' };
   if (kind === 'macro-office') return blocked('office_macro', blockLabel(kind, filename) ?? 'docm');
   const kindLabel = blockLabel(kind, filename);
-  if (kindLabel) return blocked('kieu_cam', kindLabel);
+  // Byte không nhận ra thì gọi tên theo bảng đuôi (cùng nhãn với plugin), đuôi không có trong bảng → `khac`.
+  if (kindLabel) return blocked('kieu_cam', kind === 'unknown' ? labelForExtension(ext) : kindLabel);
   if (MACRO_EXTENSIONS.includes(ext)) return blocked('office_macro', labelForExtension(ext));
   if (!ALLOWED_EXTENSIONS.includes(ext)) return blocked('kieu_cam', labelForExtension(ext));
   switch (kind) {

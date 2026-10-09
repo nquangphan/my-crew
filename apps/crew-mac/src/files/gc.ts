@@ -44,7 +44,8 @@ function pidAlive(pid: number): boolean {
   }
 }
 
-function tryLock(p: AttachmentPaths, nowMs: number): boolean {
+/** Chiếm `gc.lock` (O_EXCL); khóa của pid chết hoặc quá hạn thì chiếm lại. Trả false khi run khác đang giữ. */
+export function tryLockGc(p: AttachmentPaths, nowMs: number): boolean {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const fd = openSync(p.gcLock, 'wx', 0o600);
@@ -87,12 +88,17 @@ function mtimeMs(path: string): number | null {
   }
 }
 
+/** Sha của file trong manifest, gồm cả `pendingSha256` của manifest giữ chỗ (run đang chạy, chưa xử lý xong). */
 function manifestShas(path: string): string[] {
   try {
-    const parsed = JSON.parse(readFileSync(path, 'utf8')) as { files?: { sha256?: unknown }[] };
-    return (parsed.files ?? [])
-      .map((f) => f.sha256)
-      .filter((s): s is string => typeof s === 'string' && isSha256(s));
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+      files?: { sha256?: unknown }[];
+      pendingSha256?: unknown;
+    };
+    const pending = Array.isArray(parsed.pendingSha256) ? (parsed.pendingSha256 as unknown[]) : [];
+    return [...(parsed.files ?? []).map((f) => f.sha256), ...pending].filter(
+      (s): s is string => typeof s === 'string' && isSha256(s),
+    );
   } catch {
     return [];
   }
@@ -116,7 +122,7 @@ export async function runGc(
   };
   if (!existsSync(p.root)) return report;
   const nowMs = opts.now.getTime();
-  if (!tryLock(p, nowMs)) return { ...report, skippedLocked: true };
+  if (!tryLockGc(p, nowMs)) return { ...report, skippedLocked: true };
   try {
     await yieldTurn();
 
@@ -205,10 +211,14 @@ export async function runGc(
     }
     return report;
   } finally {
-    try {
-      unlinkSync(p.gcLock);
-    } catch {
-      // đã bị chiếm lại vì quá hạn
-    }
+    releaseGcLock(p);
+  }
+}
+
+export function releaseGcLock(p: AttachmentPaths): void {
+  try {
+    unlinkSync(p.gcLock);
+  } catch {
+    // đã bị chiếm lại vì quá hạn
   }
 }

@@ -38,8 +38,9 @@ export function parseXml(bytes: Uint8Array, onNode: (event: XmlEvent) => void, c
   let depth = 0,
     total = 0;
   const parser = newParser();
+  // OOXML hợp lệ không có DTD: có DTD/entity là file bị sửa tay hoặc độc → hỏng cấu trúc, không phải macro.
   parser.on('doctype', () => {
-    throw new ExtractError('ACTIVE_CONTENT_BLOCKED');
+    throw new ExtractError('CORRUPT_XML_DTD');
   });
   parser.on('error', () => {
     throw new ExtractError('CORRUPT_XML');

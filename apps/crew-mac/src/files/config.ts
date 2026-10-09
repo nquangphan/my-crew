@@ -23,3 +23,6 @@ export const RUN_PROTECT_MS = 24 * 60 * 60 * 1000;
 export const GC_LOCK_STALE_MS = 10 * 60 * 1000;
 /** Log xoay vòng khi lớn hơn mốc này. */
 export const LOG_MAX_BYTES = 5 * 1024 * 1024;
+/** Ghi manifest giữ chỗ cần `gc.lock`: run khác đang dọn thì chờ từng nhịp này, tối đa số lần dưới đây. */
+export const GC_LOCK_WAIT_MS = 100;
+export const GC_LOCK_WAIT_TRIES = 50;

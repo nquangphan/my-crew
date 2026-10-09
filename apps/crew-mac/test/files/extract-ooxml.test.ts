@@ -60,7 +60,7 @@ describe('trình đọc OOXML (port v2)', () => {
         () => {},
         extractContextFixture('text/xml').config,
       ),
-    ).toThrow();
+    ).toThrow(/CORRUPT_XML_DTD/);
     const events: string[] = [];
     parseXml(
       Buffer.from(`<z:p xmlns:z="${wordNs}">ok</z:p>`),
@@ -108,6 +108,15 @@ describe('trình đọc OOXML (port v2)', () => {
         extractContextFixture('application/zip'),
       ),
     ).rejects.toThrow(/LIMIT_EXCEEDED/);
+  });
+
+  it('mục zip mã hóa → PASSWORD_REQUIRED (mật khẩu), không phải nội dung chủ động', async () => {
+    await expect(
+      readOfficeParts(
+        makeZip([{ name: 'word/document.xml', body: 'x', flags: 0x801 }]),
+        extractContextFixture('application/zip'),
+      ),
+    ).rejects.toThrow(/PASSWORD_REQUIRED/);
   });
 
   for (const name of ['word/vbaProject.bin', 'word/embeddings/oleObject1.bin'])

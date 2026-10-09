@@ -226,7 +226,8 @@ export function corpusCases(): {
       name: 'zip-encrypted',
       kind: 'docx',
       bytes: makeZip([{ name: 'a', body: 'inert', flags: 1 }]),
-      status: 'blocked',
+      // Lệch v2 (v2 ghi `blocked`): mục zip mã hóa là cần mật khẩu, không phải nội dung chủ động.
+      status: 'encrypted',
     },
     {
       name: 'zip-symlink',
@@ -240,7 +241,8 @@ export function corpusCases(): {
       bytes: makeOffice('docx', {
         'word/document.xml': '<!DOCTYPE a [<!ENTITY x SYSTEM "file:///sentinel">]><a>&x;</a>',
       }),
-      status: 'blocked',
+      // Lệch v2 (v2 ghi `blocked`): DTD trong OOXML là hỏng cấu trúc, không phải macro.
+      status: 'corrupt',
     },
     {
       name: 'docx-unsupported-drawing',

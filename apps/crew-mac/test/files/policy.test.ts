@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ALLOWED_EXTENSIONS, decide, MACRO_EXTENSIONS, SNIFF_CHECKED } from '../../src/files/policy.js';
+import {
+  ALLOWED_EXTENSIONS,
+  decide,
+  EXTENSION_LABELS,
+  MACRO_EXTENSIONS,
+  SNIFF_CHECKED,
+} from '../../src/files/policy.js';
 
 describe('bảng kiểu (giống hệt bản của plugin crew.core)', () => {
   it('ALLOWED_EXTENSIONS', () =>
@@ -9,6 +15,29 @@ describe('bảng kiểu (giống hệt bản của plugin crew.core)', () => {
   it('SNIFF_CHECKED', () =>
     expect(SNIFF_CHECKED.join(' ')).toBe('png jpg jpeg gif webp heic heif pdf docx xlsx'));
   it('MACRO_EXTENSIONS', () => expect(MACRO_EXTENSIONS.join(' ')).toBe('docm xlsm pptm dotm xltm'));
+  // Bảng đuôi → nhãn chuẩn; plugin chép nguyên các chuỗi này.
+  it.each([
+    ['zip', 'zip 7z rar gz tgz tar bz2 xz'],
+    ['exe', 'exe msi dmg pkg app bat cmd com scr dll dylib jar apk ps1 vbs deb rpm so'],
+    ['docm', 'docm dotm'],
+    ['xlsm', 'xlsm xltm'],
+    ['office-cu', 'doc xls ppt dot xlt pot pps'],
+    ['pptx', 'pptx pptm ppsx potx'],
+    ['media', 'mp3 mp4 m4a m4v mov wav avi mkv webm aac flac ogg aiff wmv'],
+  ] as const)('EXTENSION_LABELS %s', (label, exts) => expect(EXTENSION_LABELS[label].join(' ')).toBe(exts));
+  it('EXTENSION_LABELS chỉ có 7 nhãn, đuôi không trùng', () => {
+    expect(Object.keys(EXTENSION_LABELS)).toEqual([
+      'zip',
+      'exe',
+      'docm',
+      'xlsm',
+      'office-cu',
+      'pptx',
+      'media',
+    ]);
+    const all = Object.values(EXTENSION_LABELS).flat();
+    expect(new Set(all).size).toBe(all.length);
+  });
 });
 
 describe('decide', () => {
@@ -82,6 +111,30 @@ describe('decide', () => {
     expect(decide('text', 'a.mp4')).toMatchObject({ reason: 'kieu_cam', label: 'media' });
     expect(decide('text', 'a.tar.gz')).toMatchObject({ reason: 'kieu_cam', label: 'zip' });
   });
+  it.each([
+    ['a.ps1', 'exe'],
+    ['a.vbs', 'exe'],
+    ['a.deb', 'exe'],
+    ['a.rpm', 'exe'],
+    ['libx.so', 'exe'],
+    ['a.pps', 'office-cu'],
+    ['a.wmv', 'media'],
+    ['a.aiff', 'media'],
+  ])('%s → kieu_cam nhãn %s (khớp plugin)', (name, label) =>
+    expect(decide('unknown', name)).toEqual({
+      action: 'reject',
+      status: 'bi_chan',
+      reason: 'kieu_cam',
+      label,
+    }),
+  );
+  it.each([
+    ['a.pptm', 'pptx'],
+    ['a.dotm', 'docm'],
+    ['a.xltm', 'xlsm'],
+  ])('%s → office_macro nhãn %s (nhãn thuộc tập I2)', (name, label) =>
+    expect(decide('docx', name)).toMatchObject({ reason: 'office_macro', label }),
+  );
   it('đuôi macro luôn là office_macro', () => {
     expect(decide('docx', 'a.docm')).toMatchObject({ reason: 'office_macro', label: 'docm' });
     expect(decide('xlsx', 'a.xltm')).toMatchObject({ reason: 'office_macro', label: 'xlsm' });

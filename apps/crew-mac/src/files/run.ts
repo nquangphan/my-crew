@@ -6,19 +6,21 @@ import type { CommandRunner } from '../system.js';
 import { type AttachmentMeta, type BridgeClient, BridgeError, type CommentMeta } from './bridge.js';
 import { ensureCacheDirs, hasBlob, storeBlob, writeRunManifest } from './cache.js';
 import {
+  GC_LOCK_WAIT_MS,
+  GC_LOCK_WAIT_TRIES,
   MAX_FILE_BYTES,
   MAX_FILES_PER_RUN,
   MAX_PDF_PAGES,
   RELIST_DELAY_MS,
   RELIST_IF_ISSUE_YOUNGER_MS,
 } from './config.js';
-import { runGc } from './gc.js';
+import { releaseGcLock, runGc, tryLockGc } from './gc.js';
 import { prepareImage } from './image.js';
 import { logLine } from './log.js';
 import { type AttachmentPaths, attachmentPaths, blobPath, derivedDir, isSha256 } from './paths.js';
 import { inspectPdf, pdfReadHint } from './pdf.js';
 import { decide } from './policy.js';
-import { type SourceText, sanitizeName, sourceFor } from './provenance.js';
+import { extractAttachmentIds, type SourceText, sanitizeName, sourceFor } from './provenance.js';
 import { detectKind } from './sniff.js';
 import {
   type BlockLabel,
@@ -70,6 +72,8 @@ interface Entry {
   issueKey: string;
   relation: 'self' | 'ancestor';
   texts: SourceText[];
+  /** Có link trong mô tả/bình luận nhưng chưa có trong listing (đang tải lên): không tải, báo `chua_dong_bo`. */
+  missing?: true;
 }
 
 type Outcome = Pick<ManifestFile, 'status' | 'reason' | 'notes' | 'readPaths' | 'credentialFindings'> &
@@ -236,7 +240,8 @@ export async function collectFiles(
   let [issue, comments, listing] = await loadSelf();
 
   const issueAge = ctx.now().getTime() - (Date.parse(issue.createdAt) || 0);
-  if (issueAge >= 0 && issueAge < RELIST_IF_ISSUE_YOUNGER_MS) {
+  const issueIsYoung = issueAge >= 0 && issueAge < RELIST_IF_ISSUE_YOUNGER_MS;
+  if (issueIsYoung) {
     await deps.sleep(RELIST_DELAY_MS);
     [issue, comments, listing] = await loadSelf();
   }
@@ -269,12 +274,41 @@ export async function collectFiles(
     relation: 'self',
     texts: selfTexts,
   }));
+  const generatedAt = ctx.now();
+  // Link tới attachment chưa có trong listing nào: file còn đang tải lên sau lần liệt kê cuối. Báo ra thay vì bỏ qua.
+  const listed = new Set([...listing, ...ancestorListings.flat()].map((m) => m.id.toLowerCase()));
+  const linked = [...new Set(selfTexts.flatMap((t) => extractAttachmentIds(t.text)))];
+  for (const id of linked.filter((id) => !listed.has(id)))
+    entries.push({
+      meta: {
+        id,
+        issueId: input.issueId,
+        issueCommentId: null,
+        contentType: '',
+        byteSize: 0,
+        sha256: '',
+        originalFilename: null,
+        createdAt: generatedAt.toISOString(),
+      },
+      issueKey: selfKey,
+      relation: 'self',
+      texts: selfTexts,
+      missing: true,
+    });
   ancestors.forEach((a, i) => {
     for (const meta of newestFirst(ancestorListings[i] ?? []))
       entries.push({ meta, issueKey: a.identifier || a.id.slice(0, 8), relation: 'ancestor', texts: [] });
   });
 
-  const generatedAt = ctx.now();
+  await reserveBlobs(deps, p, {
+    version: 1,
+    runId: input.runId,
+    issueId: input.issueId,
+    transport: 'bridge',
+    generatedAt: generatedAt.toISOString(),
+    files: [],
+    pendingSha256: [...new Set(entries.map((e) => e.meta.sha256).filter(isSha256))],
+  });
   const files = await mapLimit(entries, DOWNLOAD_CONCURRENCY, (entry, index) =>
     processEntry(deps, p, input.runId, entry, index >= MAX_FILES_PER_RUN, generatedAt),
   );
@@ -287,9 +321,30 @@ export async function collectFiles(
     generatedAt: generatedAt.toISOString(),
     files,
     ...(ancestorsUnreadable ? { ancestorsUnreadable: true as const } : {}),
+    ...(issueIsYoung ? { uploadsMayBePending: true as const } : {}),
   };
   writeRunManifest(p, manifest);
   return manifest;
+}
+
+/**
+ * Ghi manifest giữ chỗ (sha run sắp dùng) dưới `gc.lock`, trước khi xét cache. GC của run khác hoặc đã xong trước
+ * (blob nó xóa thì run này tải lại), hoặc chạy sau và thấy manifest này nên không xóa blob/bản dẫn xuất đang dùng.
+ * Chờ khóa không được quá lâu: hết lượt chờ thì vẫn ghi (GC không giữ khóa lâu, khóa quá hạn bị chiếm lại).
+ */
+async function reserveBlobs(deps: FilesDeps, p: AttachmentPaths, manifest: RunManifest): Promise<void> {
+  for (let attempt = 0; attempt < GC_LOCK_WAIT_TRIES; attempt += 1) {
+    if (tryLockGc(p, deps.ctx.now().getTime())) {
+      try {
+        writeRunManifest(p, manifest);
+      } finally {
+        releaseGcLock(p);
+      }
+      return;
+    }
+    await deps.sleep(GC_LOCK_WAIT_MS);
+  }
+  writeRunManifest(p, manifest);
 }
 
 async function processEntry(
@@ -308,7 +363,9 @@ async function processEntry(
 
   let outcome: Outcome;
   try {
-    if (overLimit) {
+    if (entry.missing) {
+      outcome = fail('chua_dong_bo', 'chua_len_kip');
+    } else if (overLimit) {
       outcome = fail('qua_lon', 'vuot_40_file');
     } else if (meta.byteSize > MAX_FILE_BYTES) {
       outcome = fail('qua_lon', 'vuot_10mb');
@@ -335,7 +392,7 @@ async function processEntry(
     now,
     runId,
     attachmentId: meta.id,
-    sha256: meta.sha256,
+    sha256: meta.sha256 || '-',
     bytes: byteSize,
     status: outcome.status,
     reason: outcome.reason,

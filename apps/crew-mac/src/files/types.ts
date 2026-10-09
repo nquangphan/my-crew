@@ -111,6 +111,13 @@ export interface RunManifest {
   files: ManifestFile[];
   /** Có khi listing file của issue tổ tiên bị bridge từ chối: file của issue cha không có trong `files`. */
   ancestorsUnreadable?: true;
+  /** Có khi issue mới tạo (dưới 2 phút): file đính kèm có thể còn đang tải lên, lượt sau sẽ đọc. */
+  uploadsMayBePending?: true;
+  /**
+   * Chỉ có ở manifest giữ chỗ, ghi ngay sau khi liệt kê (trước khi tải/trích): sha run đang dùng để GC của run
+   * khác không xóa. Manifest cuối ghi đè và không còn trường này.
+   */
+  pendingSha256?: string[];
 }
 
 /** Lý do in nguyên văn; không bao giờ chép text lỗi của server hay parser. */

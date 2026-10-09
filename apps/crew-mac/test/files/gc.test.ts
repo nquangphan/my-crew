@@ -122,6 +122,19 @@ describe('runGc', () => {
     expect(existsSync(blobPath(p, fakeSha(2)))).toBe(true);
   });
 
+  it('manifest giữ chỗ (pendingSha256, ghi trước khi tải) cũng được tính là tham chiếu', async () => {
+    const p = setup();
+    seed(p, NOW, { blobs: [{ sha: fakeSha(1), ageDays: 8, bytes: 5 }] });
+    mkdirSync(runDir(p, R1), { recursive: true });
+    writeFileSync(
+      join(runDir(p, R1), 'manifest.json'),
+      JSON.stringify({ version: 1, runId: R1, files: [], pendingSha256: [fakeSha(1)] }),
+    );
+    await runGc(p, { now: NOW, currentRunId: CUR });
+    expect(existsSync(blobPath(p, fakeSha(1)))).toBe(true);
+    expect(existsSync(derivedDir(p, fakeSha(1)))).toBe(true);
+  });
+
   it('server-manifest.json của run cũng được tính là tham chiếu', async () => {
     const p = setup();
     seed(p, NOW, {

@@ -61,7 +61,8 @@ export async function readOfficeParts(
       const key = canonicalPart(name);
       if (normalized.has(key)) return bad();
       normalized.add(key);
-      if (flags & 0x41) throw new ExtractError('ACTIVE_CONTENT_BLOCKED');
+      // Bit 0 (mã hóa) hoặc bit 6 (mã hóa mạnh): mục zip cần mật khẩu.
+      if (flags & 0x41) throw new ExtractError('PASSWORD_REQUIRED');
       if (flags & ~0x808 || ![0, 8].includes(method)) return bad();
       const mode = (attrs >>> 16) & 0xf000;
       if (mode !== 0 && mode !== 0x8000) return bad();

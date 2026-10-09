@@ -1,4 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { inspectPdf, pdfReadHint } from '../../src/files/pdf.js';
@@ -62,6 +66,19 @@ describe('pdfReadHint', () => {
 describe.runIf(process.platform === 'darwin')('inspectPdf (PDFKit thật)', () => {
   it('encrypted.pdf → encrypted', async () =>
     expect(await inspectPdf(createRunner(), fixture('encrypted.pdf'))).toMatchObject({ encrypted: true }));
+  it('PDF chỉ có mật khẩu chủ (khóa quyền in/sửa, mở không cần mật khẩu) → không chặn', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crew-pdf-owner-'));
+    const out = join(dir, 'owner-only.pdf');
+    // Dựng lúc chạy bằng PDFKit: mật khẩu chủ ngẫu nhiên, không có mật khẩu mở.
+    const script = [
+      'ObjC.import("PDFKit");',
+      'function run(a){const d=$.PDFDocument.alloc.initWithURL($.NSURL.fileURLWithPath(a[0]));',
+      'const o=$.NSMutableDictionary.alloc.init;o.setObjectForKey($(a[2]),$.PDFDocumentOwnerPasswordOption);',
+      'return d.writeToFileWithOptions(a[1],o)}',
+    ].join('');
+    execFileSync('osascript', ['-l', 'JavaScript', '-e', script, fixture('text.pdf'), out, randomUUID()]);
+    expect(await inspectPdf(createRunner(), out)).toEqual({ pages: 1, encrypted: false });
+  });
   it.each(['text.pdf', 'scan.pdf'])('%s → có trang, không mã hóa', async (name) => {
     const result = await inspectPdf(createRunner(), fixture(name));
     if (!('pages' in result)) throw new Error('không mở được PDF');
