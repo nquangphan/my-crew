@@ -16,6 +16,8 @@ export { scanUninstallBlockers, uninstall } from './commands/uninstall.js';
 export { type WorkflowReport, workflowCheck } from './commands/workflow-check.js';
 export { type MacContext, SetupError } from './context.js';
 export { createMacContext } from './context-factory.js';
+export { filesCommand } from './files/command.js';
+export type { ManifestFile, RunManifest } from './files/types.js';
 export { type InstallCrewMacResult, installCrewMacFrom } from './install-cli.js';
 export { type Manifest, readManifest } from './manifest.js';
 export { DEFAULT_PORT, forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL } from './paths.js';

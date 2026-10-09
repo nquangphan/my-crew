@@ -31,9 +31,11 @@ export function isSha256(value: string): boolean {
   return SHA256_RE.test(value);
 }
 
-export function isRunId(value: string): boolean {
+export function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
+
+export const isRunId = isUuid;
 
 export function blobPath(p: AttachmentPaths, sha256: string): string {
   if (!isSha256(sha256)) throw new Error('sha256 không hợp lệ');

@@ -84,6 +84,10 @@ export interface ManifestFile {
   /** Đường dẫn tuyệt đối agent `Read`. */
   readPaths: string[];
   credentialFindings: CredentialFinding[];
+  /** Nhãn trong ngoặc của lý do `kieu_cam` và `office_macro`. */
+  blockLabel?: BlockLabel;
+  /** Ghi chú kèm số hoặc tên (đã làm sạch); `notes` chỉ giữ mã. Thiếu thì in câu không tham số. */
+  noteDetails?: { code: NoteCode; count?: number; name?: string }[];
 }
 
 export interface RunManifest {
@@ -94,6 +98,8 @@ export interface RunManifest {
   /** ISO UTC. */
   generatedAt: string;
   files: ManifestFile[];
+  /** Có khi listing file của issue tổ tiên bị bridge từ chối: file của issue cha không có trong `files`. */
+  ancestorsUnreadable?: true;
 }
 
 /** Lý do in nguyên văn; không bao giờ chép text lỗi của server hay parser. */

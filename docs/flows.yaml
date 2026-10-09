@@ -117,7 +117,7 @@ flows:
     title: Đọc file đính kèm trên Mac (crew-mac files)
     doc: docs/flows/mac-attachments.md
     entrypoints:
-      - apps/crew-mac/src/files/cache.ts
+      - apps/crew-mac/src/files/command.ts
     files:
       - apps/crew-mac/src/files/types.ts
       - apps/crew-mac/src/files/config.ts
@@ -130,6 +130,11 @@ flows:
       - apps/crew-mac/src/files/image.ts
       - apps/crew-mac/src/files/pdf.ts
       - apps/crew-mac/src/files/pdf-info.js
+      - apps/crew-mac/src/files/bridge.ts
+      - apps/crew-mac/src/files/provenance.ts
+      - apps/crew-mac/src/files/render.ts
+      - apps/crew-mac/src/files/run.ts
+      - apps/crew-mac/src/files/command.ts
     tests:
       - apps/crew-mac/test/files/cache.test.ts
       - apps/crew-mac/test/files/gc.test.ts
@@ -139,6 +144,11 @@ flows:
       - apps/crew-mac/test/files/policy.test.ts
       - apps/crew-mac/test/files/image.test.ts
       - apps/crew-mac/test/files/pdf.test.ts
+      - apps/crew-mac/test/files/bridge.test.ts
+      - apps/crew-mac/test/files/provenance.test.ts
+      - apps/crew-mac/test/files/render.test.ts
+      - apps/crew-mac/test/files/run.test.ts
+      - apps/crew-mac/test/files/command.test.ts
       - apps/crew-mac/test/fixtures/attachments/make-fixtures.ts
   mac-orphan-reaper:
     title: Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)

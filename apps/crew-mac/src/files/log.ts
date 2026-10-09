@@ -41,3 +41,22 @@ export function logLine(p: AttachmentPaths, f: LogFields): void {
     // log hỏng không được làm hỏng việc đọc file
   }
 }
+
+/** Lỗi nội bộ của lệnh: chỉ ghi tên lớp lỗi (chữ cái), không message vì message có thể chứa dữ liệu bên ngoài. */
+export function logError(p: AttachmentPaths, now: Date, runId: string, error: unknown): void {
+  const name =
+    (error instanceof Error ? error.name : 'Error').replace(/[^A-Za-z]/g, '').slice(0, 40) || 'Error';
+  const line = `${now.toISOString()} ${short(runId, 8)} - - 0 loi_noi_bo - ${name}\n`;
+  try {
+    mkdirSync(dirname(p.log), { recursive: true, mode: 0o700 });
+    const fd = openSync(p.log, 'a', 0o600);
+    try {
+      writeSync(fd, line);
+    } finally {
+      closeSync(fd);
+    }
+    chmodSync(p.log, 0o600);
+  } catch {
+    // log hỏng không được làm hỏng lệnh
+  }
+}

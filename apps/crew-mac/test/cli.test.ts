@@ -122,4 +122,38 @@ describe('crew-mac CLI', () => {
     expect(sshServerPort({ SSH_CONNECTION: '1.2.3.4 5 6.7.8.9 22' })).toBe(22);
     expect(sshServerPort({})).toBeNull();
   });
+  describe('files', () => {
+    const ISSUE = '11111111-1111-4111-8111-111111111111';
+    const RUN = '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c10';
+    const BRIDGE_ENV = { PAPERCLIP_API_URL: 'http://127.0.0.1:1', PAPERCLIP_API_KEY: 'k' };
+
+    it('thiếu --issue hoặc --run thì mã 2', async () => {
+      const t = io(fakeMac(), BRIDGE_ENV);
+      expect(await main(['files'], t.io)).toBe(2);
+      expect(await main(['files', '--issue', ISSUE], t.io)).toBe(2);
+      expect(await main(['files', '--run', RUN], t.io)).toBe(2);
+    });
+
+    it('đối số lạ hoặc --issue/--run không phải UUID thì mã 2', async () => {
+      const t = io(fakeMac(), BRIDGE_ENV);
+      expect(await main(['files', '--issue', 'TPS-80', '--run', RUN], t.io)).toBe(2);
+      expect(await main(['files', '--issue', ISSUE, '--run', '../x'], t.io)).toBe(2);
+      expect(await main(['files', '--issue', ISSUE, '--run', RUN, '--lung-tung'], t.io)).toBe(2);
+    });
+
+    it('thiếu PAPERCLIP_API_URL hoặc PAPERCLIP_API_KEY thì mã 2 với câu cố định', async () => {
+      const t = io(fakeMac(), { PAPERCLIP_API_URL: 'http://127.0.0.1:1' });
+      expect(await main(['files', '--issue', ISSUE, '--run', RUN], t.io)).toBe(2);
+      expect(t.err.join('\n')).toContain(
+        'files: thiếu PAPERCLIP_API_URL hoặc PAPERCLIP_API_KEY (chỉ chạy trong run Paperclip)',
+      );
+    });
+
+    it('--gc-only dọn cache, in số run và blob, không cần env bridge', async () => {
+      const mac = fakeMac();
+      const t = io(mac);
+      expect(await main(['files', '--gc-only'], t.io)).toBe(0);
+      expect(t.out).toEqual(['Đã dọn: 0 run, 0 blob']);
+    });
+  });
 });

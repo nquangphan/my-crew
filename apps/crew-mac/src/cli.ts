@@ -18,6 +18,7 @@ import { uninstall } from './commands/uninstall.js';
 import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
 import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
+import { filesCommand } from './files/command.js';
 import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
@@ -42,6 +43,8 @@ Cách dùng:
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
   crew-mac workflow-check --root <worktree tuyệt đối> --plugin-dir <thư mục tuyệt đối>   (wrapper gọi trước mỗi run)
   crew-mac run-init-check --root <worktree tuyệt đối> --log <file stream-json | ->   (kiểm system/init của một run)
+  crew-mac files --issue <uuid> --run <uuid> [--json]   (agent gọi trong run Paperclip: liệt kê file đính kèm của issue và issue cha)
+  crew-mac files --gc-only   (chỉ dọn cache file đính kèm)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -355,6 +358,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         for (const line of report.lines) (report.ok ? io.out : io.err)(line);
         return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
       }
+      case 'files':
+        return await filesCommand(ctx, args, io.env, { out: io.out, err: io.err });
       default:
         throw new UsageError(command === undefined ? 'thiếu lệnh' : `không có lệnh ${command}`);
     }
