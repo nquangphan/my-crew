@@ -14,12 +14,12 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork `crew/r22-agents` @ c77fdd386 lúc chép (integrator có FX-10 từ e3a90a5c5; cả 4 vai có khối File đính kèm). Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork `crew/r2-5` @ eef987b01 lúc chép (gồm BMAD R2-3, FX-B, FX-L2 "Chốt trạng thái gốc", FX-10 của integrator, khối File đính kèm). Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: 'fd401ef0d761ab10b76e6b2fa32e9afd8baf3c33163ec0e8c42418c4ef5570e4',
+  assistant: 'f67ea1df71920c9b4b03e59ed14d6e7d7df5906495a5dc8d9d22ab59e69fa321',
   executor: '2c4def90ac162a4863a64792d95a9f29ec5c1da4c3acd09c2ac8a6654d979c32',
   integrator: 'd0e0e82338738bb767b3a35e835f134d3fbd319137296ac2bd194b50a6233120',
-  reviewer: 'cc0b7abfd7aa540338033deaafd9a4623bf2b100729dbacbe2611c0493543a48',
+  reviewer: 'aafad9e647b2cce3cf66d9c15672e42e2f9f9db6a418f88e7366e14ac1bd3d44',
 };
 
 describe('template vai trò', () => {
@@ -45,6 +45,16 @@ describe('template integrator (FX-10)', () => {
     expect(text).toContain('`GET /api/issues/<id>/comments` đọc lại comment vừa đăng');
     expect(text).toContain('dòng đầu phải kết thúc đúng ở `exit=<DOCS_EXIT>`');
     expect(text).toContain('Xuống dòng và đọc lại như mục "Ghi bằng chứng rồi quyết định" bước 1.');
+  });
+});
+
+describe('template assistant (BMAD, FX-B, FX-L2)', () => {
+  it('có mục Chọn workflow và Chốt trạng thái gốc', () => {
+    const text = ROLE_TEMPLATES.assistant;
+    expect(text).toContain('\n## Chọn workflow\n');
+    expect(text).toContain('\n## Chốt trạng thái gốc\n');
+    expect(text).toContain('Chỉ đặt `blocked` theo mục "Chốt trạng thái gốc" bên dưới.');
+    expect(text).toContain('crew-workflow id=<superpowers|bmad> reason=<một dòng>');
   });
 });
 
@@ -77,13 +87,27 @@ describe('renderInstructions', () => {
 
   it('assistant cần ≥ 1 executor uuid, không trùng, không chứa chính nó; thêm mục danh sách', () => {
     expect(renderInstructions('assistant', 'Đầu\n\n\n', A, [X1, X2])).toBe(
-      `Đầu\n\n## Executor của company\n\n- \`${X1}\`\n- \`${X2}\`\n`,
+      `Đầu\n\n## Executor của company\n\n- \`${X1}\`\n- \`${X2}\`\n\n## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n`,
     );
     expect(() => renderInstructions('assistant', 'x', A, [])).toThrow('ít nhất một executor');
     expect(() => renderInstructions('assistant', 'x', 'khong-uuid', [X1])).toThrow('uuid');
     expect(() => renderInstructions('assistant', 'x', A, ['khong-uuid'])).toThrow('uuid');
     expect(() => renderInstructions('assistant', 'x', A, [X1, X1.toUpperCase()])).toThrow('trùng');
     expect(() => renderInstructions('assistant', 'x', A, [A])).toThrow('chính nó');
+  });
+
+  it('bmadIds: liệt kê theo thứ tự; chỉ assistant nhận; không trùng executor hay Trợ Lý', () => {
+    const B1 = '66666666-6666-4666-8666-666666666666';
+    const B2 = '77777777-7777-4777-8777-777777777777';
+    expect(
+      renderInstructions('assistant', '# T\n', A, [X1], [B1, B2]).endsWith(
+        `- \`${X1}\`\n\n## Agent BMAD của company\n\n- \`${B1}\`\n- \`${B2}\`\n`,
+      ),
+    ).toBe(true);
+    expect(() => renderInstructions('executor', 'x', A, [], [B1])).toThrow('agent BMAD chỉ assistant nhận');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [X1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [A])).toThrow('chính nó');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], ['khong-uuid'])).toThrow('uuid');
   });
 });
 
