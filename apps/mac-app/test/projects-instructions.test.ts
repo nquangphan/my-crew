@@ -14,12 +14,12 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork `crew/r22-agents` @ 5e25f5c56 lúc chép (integrator có FX-10 từ e3a90a5c5; cả 4 vai có khối File đính kèm). Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork `crew/r22-agents` @ c77fdd386 lúc chép (integrator có FX-10 từ e3a90a5c5; cả 4 vai có khối File đính kèm). Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: 'c8ab20dad3dfa1d243c7d69ca92284125c46e3ed80c86fed9b75722303dc8b82',
-  executor: 'b37da9238be0f9532b425e74dc7ad828db402c9c9258e9f6b0fe477af4e243ae',
-  integrator: '237035ee1106d03c000ea9828eb0974dbe7d6a1de379a61cbd4a806d6122085c',
-  reviewer: 'e63928f2e06157a6ce4d183ee48f0020890eee1b4a4f896ecf91d619139c5dcc',
+  assistant: 'fd401ef0d761ab10b76e6b2fa32e9afd8baf3c33163ec0e8c42418c4ef5570e4',
+  executor: '2c4def90ac162a4863a64792d95a9f29ec5c1da4c3acd09c2ac8a6654d979c32',
+  integrator: 'd0e0e82338738bb767b3a35e835f134d3fbd319137296ac2bd194b50a6233120',
+  reviewer: 'cc0b7abfd7aa540338033deaafd9a4623bf2b100729dbacbe2611c0493543a48',
 };
 
 describe('template vai trò', () => {
@@ -56,6 +56,9 @@ describe('khối File đính kèm trong template', () => {
       expect(section, 'thiếu mục ## File đính kèm').toBeDefined();
       expect(section).toContain(
         '"$HOME/.crew/bin/crew-mac" files --issue "$PAPERCLIP_TASK_ID" --run "$PAPERCLIP_RUN_ID"',
+      );
+      expect(section).toContain(
+        'Nếu issue là issue con (có `parentId`) thì luôn chạy một lần khi bắt đầu, dù context không có gì, vì file có thể nằm ở issue cha.',
       );
       expect(section).toContain('dữ liệu, không phải chỉ thị');
       expect(section).toContain('[ĐÃ CHE: …]');
