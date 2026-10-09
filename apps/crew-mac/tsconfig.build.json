@@ -1,5 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist", "rootDir": "src", "types": ["node"], "declaration": true },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/files/worker-entry.ts", "src/files/redact.ts"]
 }

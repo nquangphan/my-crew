@@ -62,6 +62,15 @@ export interface CredentialFinding {
   line: number;
 }
 
+/** Bản agent đọc đã được quét credential tới đâu. Ảnh và PDF không trích chữ (không OCR) nên không quét được. */
+export type CredentialScanCode = 'da_quet' | 'khong_quet_duoc' | 'anh_nhung_khong_quet';
+
+export const CREDENTIAL_SCAN_TEXT: Record<CredentialScanCode, string> = {
+  da_quet: 'đã quét và che credential trong chữ',
+  khong_quet_duoc: 'không quét được credential trong ảnh/PDF',
+  anh_nhung_khong_quet: 'đã quét và che credential trong chữ; không quét được credential trong ảnh nhúng',
+};
+
 export interface ManifestFile {
   attachmentId: string;
   issueId: string;
@@ -84,6 +93,8 @@ export interface ManifestFile {
   /** Đường dẫn tuyệt đối agent `Read`. */
   readPaths: string[];
   credentialFindings: CredentialFinding[];
+  /** Có khi agent có file để `Read` (`readPaths` khác rỗng): mã và câu cố định nói bản đọc đã quét credential chưa. */
+  credentialScan?: { code: CredentialScanCode; text: string };
   /** Nhãn trong ngoặc của lý do `kieu_cam` và `office_macro`. */
   blockLabel?: BlockLabel;
   /** Ghi chú kèm số hoặc tên (đã làm sạch); `notes` chỉ giữ mã. Thiếu thì in câu không tham số. */

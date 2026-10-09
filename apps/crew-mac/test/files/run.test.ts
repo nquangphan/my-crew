@@ -1,11 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { type AttachmentMeta, type BridgeClient, BridgeError } from '../../src/files/bridge.js';
 import { readRunManifest } from '../../src/files/cache.js';
 import { attachmentPaths, blobPath } from '../../src/files/paths.js';
 import { collectFiles, type ExtractFn, type FilesDeps } from '../../src/files/run.js';
-import { makePng, makeZip } from '../fixtures/attachments/make-fixtures.js';
+import { makeOffice, makePng, makeZip } from '../fixtures/attachments/make-fixtures.js';
 import { FakeRunner } from '../helpers/fake-runner.js';
 import { fakeHome, sha256Hex } from './helpers.js';
 
@@ -174,6 +174,13 @@ describe('collectFiles', () => {
     expect(b?.notes).toEqual(['pdf_doc_theo_trang']);
     expect(b?.readPaths[0]).toMatch(/\.pdf$/);
     expect(b?.source).toBe('đính kèm của issue TPS-80');
+    // Ảnh/PDF đọc thẳng, không trích chữ: manifest nói rõ là không quét được credential.
+    for (const f of [a, b])
+      expect(f?.credentialScan).toEqual({
+        code: 'khong_quet_duoc',
+        text: 'không quét được credential trong ảnh/PDF',
+      });
+    expect(c?.credentialScan).toBeUndefined();
     expect(c?.reason).toBe('kieu_cam');
     expect(c?.blockLabel).toBe('zip');
     expect(c?.readPaths).toEqual([]);
@@ -358,7 +365,7 @@ describe('collectFiles', () => {
     ]);
   });
 
-  describe('extract và redact', () => {
+  describe('extract (chữ đã che trong worker)', () => {
     const extractOk: ExtractFn = async (req) => {
       mkdirSync(req.outDir, { recursive: true });
       writeFileSync(join(req.outDir, 'out.md'), 'nội dung\n');
@@ -370,13 +377,13 @@ describe('collectFiles', () => {
           { code: 'thieu_formula_cache', count: 2 },
         ],
         problemCodes: [],
+        credentialFindings: [{ rule: 'aws-access-key-id', line: 3 }],
       };
     };
 
-    it('extract partial + redact → mot_phan, readPaths là đường tuyệt đối, ghi chú và findings vào manifest', async () => {
+    it('extract partial → mot_phan, readPaths là đường tuyệt đối, ghi chú, findings và trạng thái quét vào manifest', async () => {
       const f1 = file(1, 'data.txt', Buffer.from('abc'));
-      const redact = vi.fn(async () => [{ rule: 'aws-access-key-id', line: 3 }]);
-      const t = setup({ listings: [[f1]] }, { extract: extractOk, redact });
+      const t = setup({ listings: [[f1]] }, { extract: extractOk });
       const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
       const f = m.files[0];
       expect(f?.status).toBe('mot_phan');
@@ -389,14 +396,35 @@ describe('collectFiles', () => {
       expect(f?.readPaths[0]?.startsWith(t.paths.derived)).toBe(true);
       expect(f?.readPaths[0]).toMatch(/out\.md$/);
       expect(f?.credentialFindings).toEqual([{ rule: 'aws-access-key-id', line: 3 }]);
-      expect(redact).toHaveBeenCalledTimes(1);
+      expect(f?.credentialScan).toEqual({ code: 'da_quet', text: 'đã quét và che credential trong chữ' });
     });
 
-    it('có extract mà không có redact → không đưa đường dẫn trích ra (đóng kín)', async () => {
+    it('bản trích có ảnh nhúng → ghi rõ ảnh nhúng không quét được credential', async () => {
+      const f1 = file(1, 'a.docx', makeOffice('docx'));
+      const extract: ExtractFn = async (req) => ({
+        ...(await extractOk(req)),
+        status: 'complete',
+        outputs: [
+          { path: 'out.md', kind: 'text' },
+          { path: 'media/1.png', kind: 'image' },
+        ],
+      });
+      const t = setup({ listings: [[f1]] }, { extract });
+      const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
+      expect(m.files[0]?.credentialScan?.code).toBe('anh_nhung_khong_quet');
+      expect(m.files[0]?.credentialScan?.text).toContain('không quét được credential trong ảnh nhúng');
+    });
+
+    it('extract không báo kết quả che (thiếu credentialFindings) → không đưa đường dẫn trích ra (đóng kín)', async () => {
       const f1 = file(1, 'data.txt', Buffer.from('abc'));
-      const t = setup({ listings: [[f1]] }, { extract: extractOk });
+      const extract = (async (req: Parameters<ExtractFn>[0]) => {
+        const { credentialFindings: _, ...rest } = await extractOk(req);
+        return rest;
+      }) as unknown as ExtractFn;
+      const t = setup({ listings: [[f1]] }, { extract });
       const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
       expect(m.files[0]).toMatchObject({ status: 'khong_doc_duoc', reason: 'trinh_doc_loi', readPaths: [] });
+      expect(m.files[0]?.credentialScan).toBeUndefined();
     });
 
     it.each([
@@ -415,8 +443,9 @@ describe('collectFiles', () => {
         outputs: [],
         notes: [],
         problemCodes: [...problemCodes],
+        credentialFindings: [],
       });
-      const t = setup({ listings: [[f1]] }, { extract, redact: async () => [] });
+      const t = setup({ listings: [[f1]] }, { extract });
       const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
       expect(m.files[0]).toMatchObject({ status: expectStatus, reason: expectReason });
     });
@@ -427,7 +456,7 @@ describe('collectFiles', () => {
       const extract: ExtractFn = async () => {
         throw new Error(LEAK);
       };
-      const t = setup({ listings: [[f1, f2]] }, { extract, redact: async () => [] });
+      const t = setup({ listings: [[f1, f2]] }, { extract });
       const m = await collectFiles(t.deps, { issueId: ISSUE, runId: RUN });
       expect(m.files.map((f) => f.status)).toEqual(['khong_doc_duoc', 'san_sang']);
       expect(JSON.stringify(m)).not.toContain(LEAK);

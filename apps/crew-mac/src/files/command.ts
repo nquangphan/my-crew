@@ -64,7 +64,7 @@ export async function filesCommand(
         bridge: createBridgeClient({ PAPERCLIP_API_URL: url, PAPERCLIP_API_KEY: key }),
         runner: ctx.runner,
         sleep: (ms) => delay(ms),
-        // Chưa có bộ che credential thì `collectFiles` không đưa bản trích ra (file ra `trinh_doc_loi`).
+        // Worker che credential trước khi ghi bản trích (`redact.ts`, gom trong `dist/files-worker.cjs`).
         extract: createWorkerExtract(paths),
       },
       { issueId: flags.issue, runId: flags.run },

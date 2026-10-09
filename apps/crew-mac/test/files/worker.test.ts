@@ -17,7 +17,7 @@ import type { BridgeClient } from '../../src/files/bridge.js';
 import { attachmentPaths, blobPath, derivedDir } from '../../src/files/paths.js';
 import { collectFiles, type ExtractRequest } from '../../src/files/run.js';
 import { createWorkerExtract } from '../../src/files/worker-client.js';
-import { makeOffice, makeZip, wordNs } from '../fixtures/attachments/make-fixtures.js';
+import { makeOffice, makeZip, officeRelNs, sheetNs, wordNs } from '../fixtures/attachments/make-fixtures.js';
 import { FakeRunner } from '../helpers/fake-runner.js';
 import { fakeHome, sha256Hex } from './helpers.js';
 
@@ -64,6 +64,7 @@ describe('worker trích xuất (process con)', () => {
       outputs: [{ path: 'extract/bao-gia.md', kind: 'text' }],
       notes: [],
       problemCodes: [],
+      credentialFindings: [],
     });
     const md = join(req.outDir, 'extract', 'bao-gia.md');
     expect(readFileSync(md, 'utf8')).toContain('[đoạn 1] Xin chào Việt Nam');
@@ -228,11 +229,12 @@ describe('worker trích xuất (process con)', () => {
       outputs: [{ path: 'bang.csv', kind: 'text' }],
       notes: [],
       problemCodes: [],
+      credentialFindings: [],
     });
     expect(readFileSync(join(outDir, 'bang.csv'), 'utf8')).toBe('a,b\n1,2\n');
   });
 
-  it('qua collectFiles: docx thật qua worker + redact → sẵn sàng, đọc bản .md', async () => {
+  it('qua collectFiles: docx thật qua worker → sẵn sàng, đọc bản .md', async () => {
     const home = fakeHome();
     const bytes = makeOffice('docx', {
       'word/document.xml': `<w:document xmlns:w="${wordNs}"><w:body><w:p><w:r><w:t>Giá 771 304</w:t></w:r></w:p></w:body></w:document>`,
@@ -273,7 +275,6 @@ describe('worker trích xuất (process con)', () => {
         runner: new FakeRunner(),
         sleep: async () => {},
         extract: createWorkerExtract(attachmentPaths(home), { workerPath: bundle }),
-        redact: async () => [],
       },
       { issueId, runId: '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c10' },
     );
@@ -283,5 +284,106 @@ describe('worker trích xuất (process con)', () => {
       join(derivedDir(attachmentPaths(home), sha256Hex(bytes)), 'extract', 'bao-gia.md'),
     ]);
     expect(readFileSync(f?.readPaths[0] ?? '', 'utf8')).toContain('[đoạn 1] Giá 771 304');
+  });
+  describe('che credential trong worker trước khi công bố', () => {
+    // Ghép lúc chạy: hook R7 lúc commit chặn chuỗi giống credential nguyên khối.
+    const AWS_KEY = ['AKIA', 'IOSFODNN7', 'EXAMPLE'].join('');
+    const GH_TOKEN = ['ghp', '_', 'A1b2'.repeat(9)].join('');
+    const MARK = 'MỐC-CHỮ-THƯỜNG';
+
+    it('text có khóa → bản trích đã che, findings trong phản hồi và info.json; lần sau dùng lại vẫn có findings', async () => {
+      const home = fakeHome();
+      const req = stage(
+        home,
+        Buffer.from(`${MARK}\naws_access_key_id = ${AWS_KEY}\n`),
+        'text',
+        'ghi-chu.txt',
+      );
+      const first = await createWorkerExtract(attachmentPaths(home), { workerPath: bundle })(req);
+      expect(first).toMatchObject({
+        status: 'complete',
+        outputs: [{ path: 'extract/ghi-chu.txt', kind: 'text' }],
+        credentialFindings: [{ rule: 'aws-access-key-id', line: 2 }],
+      });
+      const text = readFileSync(join(req.outDir, 'extract', 'ghi-chu.txt'), 'utf8');
+      expect(text).toBe(`${MARK}\naws_access_key_id = [ĐÃ CHE: aws-access-key-id]\n`);
+      const info = readFileSync(join(req.outDir, 'extract', 'info.json'), 'utf8');
+      expect(info).toContain('"credentialFindings":[{"rule":"aws-access-key-id","line":2}]');
+      expect(info).not.toContain(AWS_KEY);
+      const again = await createWorkerExtract(attachmentPaths(home), { workerPath: '/khong/co/worker.cjs' })(
+        req,
+      );
+      expect(again).toEqual(first);
+    });
+
+    it('xlsx: ô và tên sheet ẩn chứa token → .md và ghi chú đều đã che', async () => {
+      const home = fakeHome();
+      const xlsx = makeOffice('xlsx', {
+        'xl/workbook.xml': `<workbook xmlns="${sheetNs}" xmlns:r="${officeRelNs}"><sheets><sheet name="Hiện" sheetId="1" r:id="s1"/><sheet name="${GH_TOKEN}" sheetId="2" state="hidden" r:id="s2"/></sheets></workbook>`,
+        'xl/worksheets/sheet1.xml': `<worksheet xmlns="${sheetNs}"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>${GH_TOKEN}</t></is></c></row></sheetData></worksheet>`,
+      });
+      const req = stage(home, xlsx, 'xlsx', 'data.xlsx');
+      const result = await createWorkerExtract(attachmentPaths(home), { workerPath: bundle })(req);
+      expect(result.status).toBe('partial');
+      expect(JSON.stringify(result)).not.toContain(GH_TOKEN);
+      expect(result.notes).toContainEqual({ code: 'sheet_an', name: '[ĐÃ CHE: github-token]' });
+      expect(result.credentialFindings.map((f) => f.rule)).toContain('github-token');
+      const md = readFileSync(join(req.outDir, 'extract', 'data.md'), 'utf8');
+      expect(md).not.toContain(GH_TOKEN);
+      expect(md).toContain('[ĐÃ CHE: github-token]');
+      expect(readFileSync(join(req.outDir, 'extract', 'info.json'), 'utf8')).not.toContain(GH_TOKEN);
+    });
+
+    it('worker không trả credentialFindings (bundle cũ chưa che) → failed, không công bố', async () => {
+      const home = fakeHome();
+      const req = stage(home, Buffer.from('x'), 'text', 'a.txt');
+      const worker = fakeWorker(
+        `const { readFileSync, writeFileSync } = require('node:fs'); const req = JSON.parse(readFileSync(0, 'utf8'));
+         writeFileSync(require('node:path').join(req.outDir, 'a.txt'), 'x');
+         process.stdout.write(JSON.stringify({ status: 'complete', outputs: [{ path: 'a.txt', kind: 'text' }], notes: [], problemCodes: [] }) + '\\n');`,
+      );
+      expect(await createWorkerExtract(attachmentPaths(home), { workerPath: worker })(req)).toMatchObject({
+        status: 'failed',
+        outputs: [],
+      });
+      expect(existsSync(join(req.outDir, 'extract'))).toBe(false);
+    });
+
+    it('findings sai dạng (có giá trị, số dòng lạ) → failed', async () => {
+      const home = fakeHome();
+      const req = stage(home, Buffer.from('x'), 'text', 'a.txt');
+      for (const findings of [
+        [{ rule: 'aws-access-key-id', line: 1, value: 'x' }],
+        [{ rule: 'Có dấu', line: 1 }],
+        [{ rule: 'jwt', line: 0 }],
+      ]) {
+        const worker = fakeWorker(
+          `process.stdout.write(JSON.stringify({ status: 'complete', outputs: [], notes: [], problemCodes: [], credentialFindings: ${JSON.stringify(findings)} }) + '\\n');`,
+        );
+        expect((await createWorkerExtract(attachmentPaths(home), { workerPath: worker })(req)).status).toBe(
+          'failed',
+        );
+      }
+    });
+
+    it('bản trích cũ chưa che (info.json không có credentialFindings) → bỏ, trích và che lại', async () => {
+      const home = fakeHome();
+      const req = stage(home, Buffer.from(`k ${AWS_KEY}\n`), 'text', 'a.txt');
+      const stale = join(req.outDir, 'extract');
+      mkdirSync(stale, { recursive: true, mode: 0o700 });
+      writeFileSync(join(stale, 'a.txt'), `k ${AWS_KEY}\n`, { mode: 0o600 });
+      writeFileSync(
+        join(stale, 'info.json'),
+        JSON.stringify({
+          status: 'complete',
+          outputs: [{ path: 'a.txt', kind: 'text' }],
+          notes: [],
+          problemCodes: [],
+        }),
+      );
+      const result = await createWorkerExtract(attachmentPaths(home), { workerPath: bundle })(req);
+      expect(result.credentialFindings).toEqual([{ rule: 'aws-access-key-id', line: 1 }]);
+      expect(readFileSync(join(stale, 'a.txt'), 'utf8')).toBe('k [ĐÃ CHE: aws-access-key-id]\n');
+    });
   });
 });

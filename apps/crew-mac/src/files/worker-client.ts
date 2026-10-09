@@ -34,7 +34,14 @@ const NOTE_CODES = new Set<NoteCode>([
   'anh_da_thu_nho',
 ]);
 
-const failed = (): ExtractResult => ({ status: 'failed', outputs: [], notes: [], problemCodes: [] });
+const MAX_FINDINGS = 1000;
+const failed = (): ExtractResult => ({
+  status: 'failed',
+  outputs: [],
+  notes: [],
+  problemCodes: [],
+  credentialFindings: [],
+});
 
 export interface WorkerExtractOptions {
   /** Mặc định `dist/files-worker.cjs` cạnh bản build. */
@@ -92,9 +99,18 @@ function parseResponse(value: unknown, outDir: string): ExtractResult | null {
     problemCodes.push(c);
   }
   if (problemCodes.length > 50) return null;
+  // Thiếu danh sách che (bundle cũ chưa che, bản trích cũ) thì coi như chữ chưa che: không dùng.
+  if (!Array.isArray(value.credentialFindings) || value.credentialFindings.length > MAX_FINDINGS) return null;
+  const credentialFindings: ExtractResult['credentialFindings'] = [];
+  for (const f of value.credentialFindings) {
+    if (!isRecord(f) || Object.keys(f).length !== 2) return null;
+    if (typeof f.rule !== 'string' || !/^[a-z0-9-]{1,64}$/.test(f.rule)) return null;
+    if (!Number.isSafeInteger(f.line) || (f.line as number) < 1) return null;
+    credentialFindings.push({ rule: f.rule, line: f.line as number });
+  }
   const status = value.status as ExtractResult['status'];
   if (status !== 'complete' && status !== 'partial' && outputs.length > 0) return null;
-  return { status, outputs, notes, problemCodes };
+  return { status, outputs, notes, problemCodes, credentialFindings };
 }
 
 /** Thư mục chỉ gồm file thường và thư mục con (không symlink); quyền 0700/0600. */
@@ -122,6 +138,13 @@ function readPublished(dir: string): ExtractResult | null {
   } catch {
     return null;
   }
+}
+
+/** Bản đã công bố dùng lại được; có thư mục mà không hợp lệ (ví dụ bản trích cũ chưa che) thì xóa để trích lại. */
+function reusePublished(dir: string): ExtractResult | null {
+  const cached = readPublished(dir);
+  if (!cached && existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+  return cached;
 }
 
 function childEnv(home: string): NodeJS.ProcessEnv {
@@ -177,9 +200,10 @@ function runWorker(
 
 /**
  * Trình trích DOCX/XLSX/CSV/text bằng process con `node --max-old-space-size=512 files-worker.cjs`, hạn 60 giây.
- * Kết quả ghi vào thư mục tạm trong `derived/<sha>/v<N>/` rồi `rename` thành `extract/` khi xong; bản đã có thì
- * dùng lại. Lỗi, quá hạn, phản hồi lạ hay thiếu bundle đều thành `failed` (không ném, không chép text lỗi).
- * Chữ trong `extract/` CHƯA che credential.
+ * Worker che credential trước khi ghi (`redact.ts`, gom trong bundle) và trả `credentialFindings`. Kết quả ghi vào
+ * thư mục tạm trong `derived/<sha>/v<N>/`, danh sách che lưu trong `info.json`, rồi `rename` thành `extract/` khi
+ * xong; bản đã có thì dùng lại cùng danh sách che. Lỗi, quá hạn, phản hồi lạ, thiếu danh sách che hay thiếu bundle
+ * đều thành `failed` (không ném, không chép text lỗi).
  */
 export function createWorkerExtract(_p: AttachmentPaths, opts: WorkerExtractOptions = {}): ExtractFn {
   const workerPath = opts.workerPath ?? defaultWorkerPath();
@@ -187,7 +211,7 @@ export function createWorkerExtract(_p: AttachmentPaths, opts: WorkerExtractOpti
   const maxOldSpaceMb = opts.maxOldSpaceMb ?? WORKER_MAX_OLD_SPACE_MB;
   return async (req: ExtractRequest) => {
     const published = join(req.outDir, EXTRACT_DIR);
-    const cached = readPublished(published);
+    const cached = reusePublished(published);
     if (cached) return cached;
     if (!existsSync(workerPath)) return failed();
 

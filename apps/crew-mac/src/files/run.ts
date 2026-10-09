@@ -20,15 +20,17 @@ import { inspectPdf, pdfReadHint } from './pdf.js';
 import { decide } from './policy.js';
 import { type SourceText, sanitizeName, sourceFor } from './provenance.js';
 import { detectKind } from './sniff.js';
-import type {
-  BlockLabel,
-  CredentialFinding,
-  DetectedKind,
-  FileStatus,
-  ManifestFile,
-  NoteCode,
-  ReasonCode,
-  RunManifest,
+import {
+  type BlockLabel,
+  CREDENTIAL_SCAN_TEXT,
+  type CredentialFinding,
+  type CredentialScanCode,
+  type DetectedKind,
+  type FileStatus,
+  type ManifestFile,
+  type NoteCode,
+  type ReasonCode,
+  type RunManifest,
 } from './types.js';
 
 const DOWNLOAD_CONCURRENCY = 4;
@@ -44,14 +46,16 @@ export interface ExtractRequest {
 }
 export interface ExtractResult {
   status: 'complete' | 'partial' | 'encrypted' | 'blocked' | 'unsupported' | 'corrupt' | 'failed';
-  /** Đường dẫn tương đối `outDir`; chữ chưa che credential. */
+  /** Đường dẫn tương đối `outDir`; chữ ĐÃ che credential trước khi ghi ra đĩa. */
   outputs: { path: string; kind: 'text' | 'image' }[];
+  /** `name` (tên sheet) cũng đã che. */
   notes: { code: NoteCode; count?: number; name?: string }[];
   problemCodes: string[];
+  /** Phát hiện của bộ che: chỉ tên luật và số dòng, không bao giờ có giá trị. */
+  credentialFindings: CredentialFinding[];
 }
+/** Trình trích phải trả chữ đã che; `credentialFindings` thiếu thì coi như chưa che và không đưa ra cho agent. */
 export type ExtractFn = (request: ExtractRequest) => Promise<ExtractResult>;
-/** Che credential trong file trích (ghi đè tại chỗ) và trả danh sách phát hiện (chỉ tên luật và số dòng). */
-export type RedactFn = (path: string) => Promise<CredentialFinding[]>;
 
 export interface FilesDeps {
   ctx: MacContext;
@@ -59,7 +63,6 @@ export interface FilesDeps {
   runner: CommandRunner;
   sleep(ms: number): Promise<void>;
   extract?: ExtractFn;
-  redact?: RedactFn;
 }
 
 interface Entry {
@@ -70,7 +73,12 @@ interface Entry {
 }
 
 type Outcome = Pick<ManifestFile, 'status' | 'reason' | 'notes' | 'readPaths' | 'credentialFindings'> &
-  Partial<Pick<ManifestFile, 'pages' | 'blockLabel' | 'noteDetails' | 'detected'>>;
+  Partial<Pick<ManifestFile, 'pages' | 'blockLabel' | 'noteDetails' | 'detected' | 'credentialScan'>>;
+
+const scan = (code: CredentialScanCode): ManifestFile['credentialScan'] => ({
+  code,
+  text: CREDENTIAL_SCAN_TEXT[code],
+});
 
 const fail = (status: FileStatus, reason: ReasonCode, extra: Partial<Outcome> = {}): Outcome => ({
   status,
@@ -171,11 +179,17 @@ function fromExtract(result: ExtractResult, p: AttachmentPaths, sha256: string):
     ...(n.count !== undefined ? { count: n.count } : {}),
     ...(n.name !== undefined ? { name: sanitizeName(n.name) } : {}),
   }));
+  // Ảnh nhúng (DOCX) đi kèm bản trích không quét được, giống ảnh đính kèm.
+  const credentialScan = scan(
+    result.outputs.some((o) => o.kind === 'image') ? 'anh_nhung_khong_quet' : 'da_quet',
+  );
+  const credentialFindings = result.credentialFindings.map((f) => ({ rule: f.rule, line: f.line }));
+  const ok = { reason: null, notes, noteDetails, readPaths, credentialFindings, credentialScan };
   switch (result.status) {
     case 'complete':
-      return { status: 'san_sang', reason: null, notes, noteDetails, readPaths, credentialFindings: [] };
+      return { status: 'san_sang', ...ok };
     case 'partial':
-      return { status: 'mot_phan', reason: null, notes, noteDetails, readPaths, credentialFindings: [] };
+      return { status: 'mot_phan', ...ok };
     case 'encrypted':
       return fail('ma_hoa', 'office_ma_hoa');
     case 'blocked':
@@ -409,6 +423,7 @@ async function handle(
         notes: prepared.resized ? ['anh_da_thu_nho'] : [],
         readPaths: [readPath],
         credentialFindings: [],
+        credentialScan: scan('khong_quet_duoc'),
       };
     }
     case 'pdf': {
@@ -423,11 +438,11 @@ async function handle(
         pages: info.pages,
         readPaths: [readableCopy(p, sha256, blob, 'pdf')],
         credentialFindings: [],
+        credentialScan: scan('khong_quet_duoc'),
       };
     }
     case 'extract': {
-      // Không có trình đọc thì file không đọc được; có trình đọc mà không có bộ che thì không đưa chữ trích ra.
-      if (!deps.extract || !deps.redact) return fail('khong_doc_duoc', 'trinh_doc_loi');
+      if (!deps.extract) return fail('khong_doc_duoc', 'trinh_doc_loi');
       const result = await deps.extract({
         kind: decision.kind,
         blobPath: blob,
@@ -435,10 +450,9 @@ async function handle(
         filename,
         outDir: derivedDir(p, sha256),
       });
-      const outcome = fromExtract(result, p, sha256);
-      const findings: CredentialFinding[] = [];
-      for (const path of outcome.readPaths) findings.push(...(await deps.redact(path)));
-      return { ...outcome, credentialFindings: findings };
+      // Đóng kín: trình trích không báo kết quả che thì chữ có thể chưa che, không đưa ra cho agent.
+      if (!Array.isArray(result.credentialFindings)) return fail('khong_doc_duoc', 'trinh_doc_loi');
+      return fromExtract(result, p, sha256);
     }
   }
 }

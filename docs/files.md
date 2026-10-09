@@ -38,6 +38,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/files/pdf.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/policy.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/provenance.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/redact.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/render.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/run.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/sniff.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
@@ -87,9 +88,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/files/helpers.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/image.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/log.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/no-leak.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/pdf.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/policy.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/provenance.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/redact.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/render.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/run.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/sniff.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |

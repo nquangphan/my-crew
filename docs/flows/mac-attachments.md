@@ -9,9 +9,9 @@ hoặc comment Paperclip. Lệnh `crew-mac files` tải file qua bridge của ru
 nhận diện theo byte và in danh sách kèm nguồn, trạng thái và đường dẫn để agent `Read`. Flow có phần nền (kiểu dữ
 liệu, hằng số, cache có kiểm mã băm, dọn cache, log), nhận diện byte, chính sách kiểu, chuẩn bị ảnh, kiểm PDF và
 lệnh (bridge, nguồn, manifest, render). DOCX/XLSX/text/CSV được trích trong process con `dist/files-worker.cjs`
-(parser port từ v2, gom một file bằng esbuild) và cắm vào `collectFiles` qua `extract`. Che credential cắm qua
-`redact`; khi chưa có `redact` thì các loại đó vẫn ra `khong_doc_duoc` + `trinh_doc_loi` (không đưa chữ chưa che
-cho agent).
+(parser port từ v2, gom một file bằng esbuild) và cắm vào `collectFiles` qua `extract`. Credential trong chữ trích
+bị che ngay trong process con đó, trước khi ghi ra đĩa, bằng bộ luật built-in R7 của `crew-docs`; ảnh và PDF không
+trích chữ nên manifest ghi rõ là không quét được credential.
 
 ## Điểm vào
 
@@ -34,7 +34,7 @@ Gốc `~/.crew/cache/attachments/` (thư mục 0700, file 0600), do `attachmentP
 blobs/<sha256>                   bất biến, tên = sha256 thật của bytes
 blobs/<sha256>.part.<pid>.<rand> đang ghi; GC xóa khi cũ hơn 1 giờ
 derived/<sha256>/v<EXTRACTOR_VERSION>/   bản cho agent đọc: <sha>.<đuôi> (ảnh/PDF), extract/
-derived/<sha256>/v1/extract/     bản trích: <tên>.md|.txt|.csv, media/<n>.<đuôi>, info.json
+derived/<sha256>/v1/extract/     bản trích đã che: <tên>.md|.txt|.csv, media/<n>.<đuôi>, info.json (kèm danh sách che)
 derived/<sha256>/v1/.tmp-*       thư mục tạm của worker, đổi tên thành extract/ khi xong
 derived/<sha256>/verified        dấu băm lười: mtime và cỡ của blob lúc kiểm
 runs/<runId>/manifest.json       RunManifest do crew-mac ghi
@@ -52,7 +52,8 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
 
 1. `apps/crew-mac/src/files/types.ts`: trạng thái (`FileStatus`), loại nhận diện (`DetectedKind`), mã lý do
    (`ReasonCode`), mã ghi chú (`NoteCode`), `ManifestFile`/`RunManifest`, và các bảng câu cố định `REASON_TEXT`,
-   `NOTE_TEXT`, `STATUS_LABEL`. Lý do luôn in từ bảng này, không chép lỗi của server hay parser.
+   `NOTE_TEXT`, `STATUS_LABEL`, `CREDENTIAL_SCAN_TEXT`. Lý do luôn in từ bảng này, không chép lỗi của server hay
+   parser.
 2. `apps/crew-mac/src/files/config.ts`: hằng số giới hạn (10 MB mỗi file, 40 file mỗi lượt, 200 trang PDF, TTL 7
    ngày, trần cache 2 GB, hạn worker 60 giây/512 MB) và `ATTACHMENT_TRANSPORT = 'bridge'`, chọn theo phép đo bridge
    stock trên prod (mọi lần tải 1, 5, 9,5 MB xong dưới 25 giây, mã băm khớp).
@@ -118,21 +119,26 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
     6. Ảnh và PDF `san_sang` có đường đọc là `derived/<sha>/v1/<sha>.<đuôi>`, một liên kết cứng tới blob (hoặc bản
        JPEG đã đổi), vì công cụ `Read` của Claude Code nhận ảnh và PDF theo đuôi file còn blob thì mang tên sha256.
        PDF ghi `pages`; trên 10 trang thêm ghi chú `pdf_doc_theo_trang`; mã hóa → `ma_hoa`/`pdf_ma_hoa`; trên 200
-       trang → `qua_lon`/`vuot_200_trang`; PDFKit không mở được → `hong`/`hong_cau_truc`.
+       trang → `qua_lon`/`vuot_200_trang`; PDFKit không mở được → `hong`/`hong_cau_truc`. Ảnh và PDF không trích chữ
+       (không OCR) nên manifest có `credentialScan: {code: 'khong_quet_duoc', text: 'không quét được credential trong
+       ảnh/PDF'}`; đầu ra markdown giữ câu mở đầu cấm chép credential thấy trong ảnh.
     7. Trích xuất: `extract` trả `ExtractResult` ánh xạ theo trạng thái (`complete`→`san_sang`, `partial`→`mot_phan`,
        `encrypted`→`ma_hoa`/`office_ma_hoa`, `blocked`→`bi_chan`/`office_macro`, `unsupported`→`bi_chan`/`kieu_cam`
        nhãn `khac`, riêng mã `UNSUPPORTED_ENCODING` → `khong_doc_duoc`/`khong_utf8`, `corrupt`→`hong`/`hong_cau_truc`,
        `failed` có mã `LIMIT_EXCEEDED` (zip bomb, XML quá sâu, quá 2000 mục: cả file vượt trần) → `hong`/
        `hong_cau_truc`, `failed` khác hoặc ném lỗi → `khong_doc_duoc`/`trinh_doc_loi`). `readPaths` là các file chữ trong `derived/<sha>/v1`,
-       mỗi file đi qua `redact` (ghi đè tại chỗ, trả `credentialFindings` chỉ có tên luật và số dòng). Có `extract`
-       mà thiếu `redact` thì đóng kín: file ra `khong_doc_duoc`/`trinh_doc_loi`, không đưa chữ chưa che cho agent.
+       đã che trong worker. `credentialFindings` của manifest lấy từ kết quả trích (chỉ tên luật và số dòng);
+       `credentialScan` là `da_quet`, hoặc `anh_nhung_khong_quet` khi bản trích có ảnh nhúng `media/`. Đóng kín:
+       không có `extract`, hoặc `extract` trả kết quả không có `credentialFindings` (chữ có thể chưa che), thì file
+       ra `khong_doc_duoc`/`trinh_doc_loi` và không có đường dẫn trích.
     8. `writeRunManifest` (`runs/<runId>/manifest.json`) và mỗi file một dòng log; manifest có thêm các trường tùy
        chọn `blockLabel` (nhãn trong ngoặc của `kieu_cam`/`office_macro`), `noteDetails` (ghi chú kèm số hoặc tên
-       đã làm sạch) và `ancestorsUnreadable`.
+       đã làm sạch), `credentialScan` (mã và câu cố định: bản đọc đã quét credential chưa) và `ancestorsUnreadable`.
 14. `apps/crew-mac/src/files/render.ts` → `renderMarkdown`: mục `## File đính kèm` cho agent. Không có file thì
     `Không có file đính kèm.`.
 15. `apps/crew-mac/src/files/command.ts` → `filesCommand`: đọc cờ, dựng bridge từ env, gọi `collectFiles` với
-    `extract: createWorkerExtract(paths)` (chưa có `redact`), in markdown hoặc `RunManifest` (`--json`).
+    `extract: createWorkerExtract(paths)` (che credential nằm trong worker), in markdown hoặc `RunManifest`
+    (`--json`).
 16. `apps/crew-mac/src/files/extract/` (port từ v2 `a13dd7d`, mỗi file ghi nguồn ở dòng đầu):
     - `limits.ts`: `ParserLimits` và `parserDefaults` giữ nguyên số v2 (giải nén ≤ 100 MiB, mỗi mục ≤ 20 MiB,
       ≤ 2000 mục zip, tỉ lệ nén ≤ 100, XML sâu ≤ 64, text ≤ 10 MiB, CSV ≤ 100000 dòng × 1000 cột, ô ≤ 1 MiB) và kiểu
@@ -154,10 +160,21 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
       chữ, số, `._-`, tối đa 80 ký tự, đuôi theo kiểu trích (file `.png` mà byte là chữ vẫn ra `.txt`).
 17. `apps/crew-mac/src/files/worker-entry.ts` (gom thành `dist/files-worker.cjs` bởi `apps/crew-mac/build-files.mjs`,
     chạy trong script `build`): đọc một dòng JSON `{kind, input, outDir, filename}` từ stdin, đọc blob (≤ 10 MB),
-    gọi `extractOutputs`, ghi đầu ra vào `outDir` (0600, không ghi đè), in một dòng JSON
-    `{status, outputs, notes, problemCodes}`. Mọi lỗi thành `failed` + `EXTRACTOR_FAILED`, không in thông điệp.
-18. `apps/crew-mac/src/files/worker-client.ts` → `createWorkerExtract(paths, {workerPath?, timeoutMs?, maxOldSpaceMb?})`:
-    1. `derived/<sha>/v1/extract/info.json` hợp lệ thì dùng lại, không chạy worker.
+    gọi `extractOutputs`, che mọi file chữ và tên trong ghi chú (tên sheet) bằng `redactSecrets`, rồi mới ghi đầu ra
+    vào `outDir` (0600, không ghi đè): chữ chưa che không bao giờ chạm đĩa. In một dòng JSON
+    `{status, outputs, notes, problemCodes, credentialFindings}` (tối đa 1000 phát hiện; mọi giá trị khớp vẫn bị
+    che). Mọi lỗi thành `failed` + `EXTRACTOR_FAILED`, không in thông điệp.
+18. `apps/crew-mac/src/files/redact.ts` → `redactSecrets(text)`: áp mọi luật `SECRET_RULES` của
+    `packages/docs-kit/src/secret-scan.ts` (thêm cờ `g`, bỏ qua `allow`, nên khóa mẫu đuôi `EXAMPLE` vẫn bị che),
+    thay giá trị khớp bằng `[ĐÃ CHE: <luật>]`, trả `findings` `{rule, line}` (dòng đếm từ 1, xếp theo dòng, không
+    có giá trị). Chuỗi khớp trải nhiều dòng được thay kèm đúng số ký tự xuống dòng nên số dòng phía sau không lệch.
+    Khóa PEM: luật R7 chỉ khớp dòng mở đầu, bộ che nối thêm thân khóa tới dòng kết thúc (trong 64 KB) nếu có.
+    File chỉ nằm trong bundle worker: `tsconfig.build.json` loại `redact.ts` và `worker-entry.ts` vì `rootDir: src`
+    không cho import ra ngoài gói (TS6059); bản cài vẫn chỉ cần `dist/**`, không phụ thuộc `@crew/docs-kit`.
+19. `apps/crew-mac/src/files/worker-client.ts` → `createWorkerExtract(paths, {workerPath?, timeoutMs?, maxOldSpaceMb?})`:
+    1. `derived/<sha>/v1/extract/info.json` hợp lệ thì dùng lại (cùng `credentialFindings` đã lưu), không chạy
+       worker. Có `extract/` mà `info.json` không hợp lệ hoặc thiếu danh sách che (bản trích cũ chưa che) thì xóa
+       rồi trích lại.
     2. Thiếu bundle (cài hỏng) → `failed`.
     3. `spawn(process.execPath, ['--max-old-space-size=512', files-worker.cjs])`, cwd và HOME là thư mục tạm riêng
        (xóa sau), env chỉ `PATH`, `HOME`, `LANG=C.UTF-8` (thêm `ELECTRON_RUN_AS_NODE=1` khi chính crew-mac chạy
@@ -165,8 +182,10 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
        process được thu dọn rồi mới trả; thoát khác 0 (kể cả hết bộ nhớ) → `failed`.
     4. Kiểm chặt phản hồi: trạng thái, mã ghi chú, mã lỗi `[A-Z_]`, đường đầu ra tương đối không `..`, là file thường
        trong thư mục tạm; thư mục tạm chỉ được có file thường và thư mục (symlink → `failed`); quyền 0700/0600.
-    5. `failed` không lưu (lượt sau thử lại). Còn lại ghi `info.json` rồi `rename` cả thư mục tạm thành `extract/`;
-       lượt chạy khác đã công bố trước thì dùng bản đó. Chữ trong `extract/` chưa che credential.
+       `credentialFindings` bắt buộc (≤ 1000 mục, mỗi mục đúng hai khóa `rule` `[a-z0-9-]` và `line` ≥ 1); thiếu hay
+       sai dạng (bundle cũ chưa che) → `failed`.
+    5. `failed` không lưu (lượt sau thử lại). Còn lại ghi `info.json` (có `credentialFindings`) rồi `rename` cả thư
+       mục tạm thành `extract/`; lượt chạy khác đã công bố trước thì dùng bản đó.
 
 ## Đầu ra cho agent
 
@@ -234,6 +253,14 @@ MACRO_EXTENSIONS   = docm xlsm pptm dotm xltm
 | `chua_dong_bo` | chưa đồng bộ | `den_sau`, `chua_len_kip` |
 
 ## Điểm cần nhớ
+
+- Không rò rỉ: giá trị khớp luật chỉ còn trong blob gốc (0600). stdout, manifest, log và bản trích chỉ có
+  `[ĐÃ CHE: <luật>]`; stderr của worker bị đọc bỏ; lỗi bridge chỉ mang mã. `redact.test.ts` có một mẫu cho mỗi luật
+  và đếm `SECRET_RULES` (docs-kit thêm luật thì test đỏ cho tới khi thêm mẫu). `no-leak.test.ts` chạy `filesCommand`
+  thật hai lượt (markdown rồi `--json`, lượt hai dùng lại bản trích) với bridge HTTP local trả 500 kèm chuỗi mốc và
+  worker in stderr mốc, rồi tìm khóa/mốc trong stdout, stderr và mọi file dưới `~/.crew` trừ `blobs/`. Chuỗi giống
+  credential trong test được ghép lúc chạy vì hook R7 chặn lúc commit.
+- Chưa che: tên file đính kèm (lấy từ Paperclip, chỉ làm sạch ký tự) và chữ trong ảnh, PDF, ảnh nhúng.
 
 - Hợp đồng khi đổi: tên file trong cache, dạng `RunManifest` và bảng câu cố định là hợp đồng với các bước sau của
   flow và với hướng dẫn agent; đổi dạng thì tăng `EXTRACTOR_VERSION` để bản trích cũ không bị dùng lại.

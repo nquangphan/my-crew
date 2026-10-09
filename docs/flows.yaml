@@ -146,6 +146,7 @@ flows:
       - apps/crew-mac/src/files/extract/output.ts
       - apps/crew-mac/src/files/worker-entry.ts
       - apps/crew-mac/src/files/worker-client.ts
+      - apps/crew-mac/src/files/redact.ts
     tests:
       - apps/crew-mac/test/files/cache.test.ts
       - apps/crew-mac/test/files/gc.test.ts
@@ -163,6 +164,8 @@ flows:
       - apps/crew-mac/test/files/extract-text-csv.test.ts
       - apps/crew-mac/test/files/worker.test.ts
       - apps/crew-mac/test/files/command.test.ts
+      - apps/crew-mac/test/files/redact.test.ts
+      - apps/crew-mac/test/files/no-leak.test.ts
       - apps/crew-mac/test/fixtures/attachments/make-fixtures.ts
   mac-orphan-reaper:
     title: Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)
