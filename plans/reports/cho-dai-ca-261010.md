@@ -35,3 +35,10 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 ## R2-2 — nghiệm thu còn cần ngồi máy (~10 phút)
 - Phần API đã ĐẠT (AC1 API, AC3–AC11; báo cáo `plans/261009-1945-crew-v3-r2-2/reports/ac-r2-2-report.md`).
 - Còn: AC2 (dán ảnh `ac2-second.png` vào comment trên UI), AC5 phần UI (kéo file 10 MB + 1 byte, UI phải từ chối), một ca đính file bằng hộp thoại "New issue". Trợ Lý sẽ giao lại TPS-80 cho `tro-ly` trước khi Đại Ca dán ảnh.
+
+## R2-3 BMAD — 5 câu (spec `docs/superpowers/specs/2026-10-10-crew-v3-r2-3-bmad-design.md` §11). Trợ Lý TẠM theo phương án khuyên.
+1. BMAD chỉ lập epic/story; code từng story vẫn do executor Superpowers.
+2. Trợ Lý chọn BMAD khi company có agent BMAD, là yêu cầu code, và issue gốc có nhãn `bmad` hoặc mô tả đòi rõ epic/story/PRD.
+3. Owner duyệt epic/story ở bước duyệt của chính issue con BMAD.
+4. Ghim BMAD bản `d009608` (6.13.0-next, kênh -next chứ không phải tag stable).
+5. Agent BMAD tự chọn tiếp ở menu, chỉ hỏi owner một lượt, tối đa 30 story mỗi file.
