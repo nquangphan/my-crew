@@ -224,6 +224,7 @@ flows:
       - apps/mac-app/src/main/paperclip/cli-auth.ts
       - apps/mac-app/src/main/paperclip/keychain.ts
       - apps/mac-app/src/main/projects/progress.ts
+      - apps/mac-app/src/main/projects/folder.ts
       - apps/mac-app/src/main/projects/ipc.ts
       - apps/mac-app/src/main/projects/register.ts
       - apps/mac-app/src/main/projects/instructions.ts
@@ -237,6 +238,7 @@ flows:
       - apps/mac-app/test/paperclip-keychain.test.ts
       - apps/mac-app/test/paperclip-fake-server.ts
       - apps/mac-app/test/projects-add.test.ts
+      - apps/mac-app/test/projects-folder.test.ts
       - apps/mac-app/test/projects-remove.test.ts
       - apps/mac-app/test/projects-instructions.test.ts
       - apps/mac-app/test/projects-fixture.ts

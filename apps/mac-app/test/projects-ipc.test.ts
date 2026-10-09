@@ -1,3 +1,5 @@
+import { mkdirSync, realpathSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectProgress } from '../src/main/app-state.js';
 import { createProjectsIpc } from '../src/main/projects/ipc.js';
@@ -23,9 +25,9 @@ afterEach(async () => {
 function progressOf(over: Partial<ProjectProgress> = {}): ProjectProgress {
   return {
     key: 'landing',
-    origin: 'git@github.com:x/landing.git',
+    folder: '/Volumes/CORSAIR/Projects/landing',
     projectId: P_LANDING,
-    done: ['ls-remote', 'mirror', 'project', 'status-repo'],
+    done: ['folder', 'project', 'status-repo'],
     agents: {
       'executor-1': { agentId: 'a1', environmentId: 'e1', checkout: '/h/crew-agents/landing/executor-1' },
       integrator: { agentId: 'a4', environmentId: 'e4', checkout: '/h/crew-agents/landing/integrator' },
@@ -55,7 +57,7 @@ async function listWorld(opts: { progress?: ProjectProgress[]; companyId?: strin
   };
   const fake = fakeOps(sandbox.home, {
     listStatusRepos: () => [
-      { projectId: P_LANDING, path: '/h/crew-projects/landing', lastCommit: 'a'.repeat(40) },
+      { projectId: P_LANDING, path: '/Volumes/CORSAIR/Projects/landing', lastCommit: 'a'.repeat(40) },
       { projectId: P_OLD, path: '/h/repo-a', lastCommit: null },
     ],
   });
@@ -77,7 +79,7 @@ describe('projects:list', () => {
     expect(landing).toMatchObject({
       name: 'Landing',
       onMac: true,
-      docsRepo: '/h/crew-projects/landing',
+      docsRepo: '/Volumes/CORSAIR/Projects/landing',
       lastSentCommit: 'a'.repeat(40),
     });
     expect(landing?.checkouts).toEqual([
@@ -111,7 +113,7 @@ describe('projects:list', () => {
     const pending = progressOf({
       key: 'moi',
       projectId: null,
-      done: ['ls-remote'],
+      done: ['folder'],
       agents: {},
       error: 'git hỏng',
     });
@@ -148,7 +150,7 @@ describe('projects:add và projects:remove (Paperclip giả, HOME giả)', () =>
     const deps = baseDeps(sandbox, paperclip, fake.ops, store);
     const ipc = createProjectsIpc({ deps: () => deps });
 
-    const progress = await ipc.add({ origin: sandbox.origin, name: 'Landing', key: 'landing', executors: 1 });
+    const progress = await ipc.add({ folder: sandbox.folder, name: 'Landing', key: 'landing', executors: 1 });
     expect(progress.error).toBeNull();
     expect(progress.done.at(-1)).toBe('check');
 
@@ -158,15 +160,59 @@ describe('projects:add và projects:remove (Paperclip giả, HOME giả)', () =>
     expect(row?.checkouts.every((c) => /^[0-9a-f]{7,}$/.test(c.head ?? ''))).toBe(true);
 
     const removed = await ipc.remove(progress.projectId as string);
-    expect(removed.manualCommand).toBe('rm -rf ~/crew-agents/landing ~/crew-projects/landing');
+    expect(removed.manualCommand).toMatch(/^git -C .+ worktree remove .+executor-1 && /);
     expect(store.get().projects.landing).toBeUndefined();
   });
 
   it('dữ liệu vào sai thì ném, không đụng Paperclip', async () => {
     const { ipc, client } = await listWorld();
-    await expect(ipc.add({ origin: 'x', name: 'A', key: 'Sai Khoa', executors: 1 })).rejects.toThrow(
+    await expect(ipc.add({ folder: '/x', name: 'A', key: 'Sai Khoa', executors: 1 })).rejects.toThrow(
       'Khóa project',
     );
     expect(client.projects).not.toHaveBeenCalled();
+  });
+});
+
+describe('projects:pickFolder', () => {
+  async function pickWorld(picked: string | null) {
+    const sandbox = makeSandbox();
+    cleanups.push(sandbox.cleanup);
+    const store = await makeStore(sandbox.root);
+    const fake = fakeOps(sandbox.home);
+    const deps = baseDeps(sandbox, { client: {} } as never, fake.ops, store);
+    const pickDirectory = vi.fn(async () => picked);
+    return { sandbox, ipc: createProjectsIpc({ deps: () => deps, pickDirectory }), pickDirectory };
+  }
+
+  it('owner bấm Hủy → null', async () => {
+    const { ipc, pickDirectory } = await pickWorld(null);
+    expect(await ipc.pickFolder()).toBeNull();
+    expect(pickDirectory).toHaveBeenCalledTimes(1);
+  });
+
+  it('repo hợp lệ → đường dẫn gốc, tên và khóa gợi ý từ tên folder, không có vấn đề', async () => {
+    const sandbox = makeSandbox();
+    cleanups.push(sandbox.cleanup);
+    const folder = join(sandbox.root, 'Projects', '2PS Landing');
+    sandbox.git(['clone', '-q', sandbox.origin, folder]);
+    const { ipc } = await pickWorld(folder);
+    expect(await ipc.pickFolder()).toEqual({
+      folder: realpathSync.native(folder),
+      name: '2PS Landing',
+      key: 'p-2ps-landing',
+      problem: null,
+    });
+  });
+
+  it('folder không dùng được → trả lý do tiếng Việt, không ném', async () => {
+    const sandbox = makeSandbox();
+    cleanups.push(sandbox.cleanup);
+    const plain = join(sandbox.root, 'thu-muc-thuong');
+    mkdirSync(plain);
+    const { ipc } = await pickWorld(plain);
+    const choice = await ipc.pickFolder();
+    expect(choice?.folder).toBe(plain);
+    expect(choice?.key).toBe('thu-muc-thuong');
+    expect(choice?.problem).toContain('không phải repo git');
   });
 });

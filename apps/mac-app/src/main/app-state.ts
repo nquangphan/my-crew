@@ -21,9 +21,15 @@ export type SetupStep =
 
 export interface ProjectProgress {
   key: string;
-  origin: string;
+  /** Thư mục repo git owner chọn (gốc worktree chính). Tiến độ của bản cũ (thêm bằng URL git) không có trường này. */
+  folder?: string;
+  /** Chỉ có ở tiến độ bản cũ: URL git đã clone vào `~/crew-projects/<key>`; app báo cần gỡ rồi thêm lại. */
+  origin?: string;
   projectId: string | null;
-  done: Array<'ls-remote' | 'mirror' | 'project' | 'status-repo' | `role:${string}` | 'roles' | 'check'>;
+  /** `ls-remote`, `mirror` chỉ có ở tiến độ bản cũ. */
+  done: Array<
+    'folder' | 'project' | 'status-repo' | `role:${string}` | 'roles' | 'check' | 'ls-remote' | 'mirror'
+  >;
   agents: Record<string, { agentId: string | null; environmentId: string | null; checkout: string }>;
   error: string | null;
 }

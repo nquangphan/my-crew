@@ -5,7 +5,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /**
  * Gỡ project khỏi Mac: pause agent của project (chỉ agent app đã tạo, theo tiến độ trong `app.json`), archive
  * environment riêng của chúng (không bao giờ DELETE: xóa kéo theo secret SSH dùng chung), `crew-mac status
- * remove-repo`, xóa dòng vai trò. Không xóa project trên Paperclip, không xóa checkout: trả lệnh để owner tự chạy.
+ * remove-repo`, xóa dòng vai trò. Không xóa project trên Paperclip, không xóa worktree agent, không đụng folder gốc của
+ * owner: trả lệnh `git -C <folder> worktree remove …` để owner tự chạy.
  * Mỗi bước kiểm trạng thái trước khi ghi nên chạy lại an toàn; tiến độ chỉ bị xóa khi mọi bước xong.
  */
 export async function removeProject(
@@ -54,5 +55,5 @@ export async function removeProject(
     });
   }
   deps.log?.('project-removed', { projectId, key: progress?.key ?? null, steps: removed.length });
-  return { removed, manualCommand: progress ? manualRemoveCommand(progress.key) : '' };
+  return { removed, manualCommand: progress ? manualRemoveCommand(progress) : '' };
 }

@@ -1,12 +1,23 @@
-import { execFile } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
+import { statSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
 import { forbiddenRootReason } from '@crew/mac';
 import type { AddProjectInput } from '../../shared/ipc-contract.js';
 import type { ProjectProgress } from '../app-state.js';
 import type { PaperclipEnvironment, ProjectRoles } from '../paperclip/types.js';
+import {
+  agentBranch,
+  ensureRuntimeExcluded,
+  ensureWorktree,
+  type FolderInfo,
+  type GitResult,
+  type GitRunner,
+  hasEntries,
+  inspectFolder,
+  runGit,
+} from './folder.js';
 import { pinnedExtraArgs, ROLE_TEMPLATES, renderInstructions, uploadInstructions } from './instructions.js';
 import {
+  isLegacyProgress,
   KEY_RE,
   ProgressRecorder,
   type ProgressStep,
@@ -17,39 +28,7 @@ import {
   templateOf,
 } from './progress.js';
 
-export interface GitResult {
-  code: number;
-  stdout: string;
-}
-
-export type GitRunner = (
-  args: string[],
-  opts: { env: NodeJS.ProcessEnv; timeoutMs: number },
-) => Promise<GitResult>;
-
-/** `git` của owner (`/usr/bin/git`), không bao giờ hỏi mật khẩu trên terminal. Lỗi chỉ trả mã thoát. */
-export const runGit: GitRunner = (args, opts) =>
-  new Promise((resolve) => {
-    execFile(
-      '/usr/bin/git',
-      args,
-      {
-        env: { ...opts.env, GIT_TERMINAL_PROMPT: '0' },
-        timeout: opts.timeoutMs,
-        encoding: 'utf8',
-        maxBuffer: 16 * 1024 * 1024,
-      },
-      (error, stdout) => {
-        const code = error ? (typeof error.code === 'number' ? error.code : -1) : 0;
-        resolve({ code, stdout: stdout ?? '' });
-      },
-    );
-  });
-
-const LS_REMOTE_TIMEOUT_MS = 60_000;
-const CLONE_TIMEOUT_MS = 10 * 60_000;
 const LOCAL_GIT_TIMEOUT_MS = 30_000;
-const RUNTIME_EXCLUDE = '.paperclip-runtime/';
 
 /** Một project chỉ chạy một lần thêm tại một thời điểm (hai lần bấm "Chạy tiếp" liền nhau). */
 const running = new Set<string>();
@@ -62,23 +41,16 @@ function validateInput(input: AddProjectInput): void {
   if (typeof input.name !== 'string' || input.name.trim() === '' || input.name.length > 120) {
     throw new Error('Tên project không được trống (tối đa 120 ký tự)');
   }
-  const origin = input.origin;
-  if (
-    typeof origin !== 'string' ||
-    origin === '' ||
-    origin.length > 500 ||
-    origin.startsWith('-') ||
-    /\s/.test(origin)
-  ) {
-    throw new Error('URL git không hợp lệ');
+  if (typeof input.folder !== 'string' || input.folder === '' || input.folder.length > 4096) {
+    throw new Error('Chưa chọn folder project');
   }
 }
 
 /**
- * Thêm project vào Mac và Paperclip. Mỗi bước bỏ qua nếu đã có trong `progress.done`; mỗi id tạo ra được ghi vào
- * `app.json` ngay sau khi có. Lỗi ở một bước thì ghi `progress.error`, pause mọi agent của project đã tạo, rồi trả
- * tiến độ (không ném); chạy lại tiếp từ bước dở. Dữ liệu vào sai, company chưa chọn hay thư mục đã có thì ném trước
- * mọi lời gọi.
+ * Thêm project vào Mac và Paperclip từ một folder repo git có sẵn trên máy (không clone). Mỗi bước bỏ qua nếu đã có
+ * trong `progress.done`; mỗi id tạo ra được ghi vào `app.json` ngay sau khi có. Lỗi ở một bước thì ghi
+ * `progress.error`, pause mọi agent của project đã tạo, rồi trả tiến độ (không ném); chạy lại tiếp từ bước dở. Dữ liệu
+ * vào sai, folder không dùng được, company chưa chọn hay thư mục checkout đã có thì ném trước mọi lời gọi.
  */
 export async function addProject(deps: ProjectDeps, input: AddProjectInput): Promise<ProjectProgress> {
   validateInput(input);
@@ -86,17 +58,31 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
   if (!companyId) throw new Error('Chưa chọn company Paperclip (mục Cài đặt)');
   const paths = projectPaths(deps.home, input.key);
   const roles = roleNames(input.executors);
-  for (const dir of [paths.mirror, ...roles.map(paths.checkout)]) {
+  for (const dir of roles.map(paths.checkout)) {
     const reason = forbiddenRootReason(deps.home, dir);
     if (reason) throw new Error(`${dir}: ${reason}`);
   }
   if (running.has(input.key)) throw new Error(`Project ${input.key} đang được thêm`);
+  const info = await inspectFolder(input.folder, { home: deps.home, env: deps.env });
 
-  let existing: ProjectProgress | undefined = deps.store.get().projects[input.key];
-  if (existing && existing.origin !== input.origin) {
+  const all = deps.store.get().projects;
+  const sameFolder = Object.values(all).find((p) => p.key !== input.key && p.folder === info.root);
+  if (sameFolder) throw new Error(`Folder ${info.root} đã được thêm với khóa ${sameFolder.key}`);
+
+  let existing: ProjectProgress | undefined = all[input.key];
+  if (existing && isLegacyProgress(existing)) {
+    const started = !!existing.projectId || Object.keys(existing.agents).length > 0;
+    if (started) {
+      throw new Error(
+        `Tiến độ thêm "${input.key}" là kiểu cũ (URL git, bản trước): bấm "Gỡ khỏi Mac" rồi thêm lại bằng Chọn folder`,
+      );
+    }
+    existing = undefined;
+  }
+  if (existing && existing.folder !== info.root) {
     const untouched =
       existing.done.length === 0 && !existing.projectId && Object.keys(existing.agents).length === 0;
-    if (!untouched) throw new Error(`Khóa ${input.key} đang dùng cho repo khác (${existing.origin})`);
+    if (!untouched) throw new Error(`Khóa ${input.key} đang dùng cho folder khác (${existing.folder})`);
     existing = undefined;
   }
   if (existing) {
@@ -104,17 +90,15 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
     if (extra.length > 0) {
       throw new Error(`Lần trước đã tạo ${extra.join(', ')}: chọn lại đúng số executor như lần trước`);
     }
-  } else {
-    for (const dir of [paths.agentsRoot, paths.mirror]) {
-      if (existsSync(dir)) throw new Error(`${dir} đã có trên máy: chọn khóa khác hoặc tự xóa thư mục đó`);
-    }
+  } else if (hasEntries(paths.agentsRoot)) {
+    throw new Error(`${paths.agentsRoot} đã có trên máy: chọn khóa khác hoặc tự dời thư mục đó`);
   }
 
   running.add(input.key);
   try {
     const fresh: ProjectProgress = {
       key: input.key,
-      origin: input.origin,
+      folder: info.root,
       projectId: null,
       done: [],
       agents: {},
@@ -125,7 +109,7 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
       projects: { ...s.projects, [input.key]: existing ? { ...existing, error: null } : fresh },
     }));
     const rec = new ProgressRecorder(deps.store, input.key);
-    const run = new AddRun(deps, input, companyId, rec, roles);
+    const run = new AddRun(deps, input, companyId, rec, roles, info);
     try {
       await run.all();
     } catch (error) {
@@ -140,11 +124,18 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
   }
 }
 
+function isFile(path: string): boolean {
+  try {
+    return isAbsolute(path) && statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
 class AddRun {
   private readonly paths: ReturnType<typeof projectPaths>;
   private setupInfo: Promise<{ pinDir: string; extraArgs: string[]; port: number }> | null = null;
   private template: Promise<PaperclipEnvironment> | null = null;
-  private docs: Promise<{ bundle: string; runtime: string | null }> | null = null;
   private readonly git: GitRunner = runGit;
 
   constructor(
@@ -153,19 +144,16 @@ class AddRun {
     private readonly companyId: string,
     private readonly rec: ProgressRecorder,
     private readonly roles: string[],
+    private readonly info: FolderInfo,
   ) {
     this.paths = projectPaths(deps.home, input.key);
   }
 
   async all(): Promise<void> {
-    await this.step('ls-remote', () => this.lsRemote());
-    await this.step('mirror', async () => {
-      await this.ensureClone(this.paths.mirror);
-      await this.configureDocs(this.paths.mirror);
-    });
+    await this.step('folder', () => this.configureDocs());
     await this.step('project', () => this.ensureProject());
     await this.step('status-repo', () =>
-      this.deps.ops.call('addStatusRepo', this.projectId(), this.paths.mirror),
+      this.deps.ops.call('addStatusRepo', this.projectId(), this.info.root),
     );
     for (const role of this.roles) await this.step(`role:${role}`, () => this.ensureRole(role));
     await this.step('roles', () =>
@@ -206,53 +194,27 @@ class AddRun {
     return this.git(args, { env: this.deps.env, timeoutMs });
   }
 
-  private async lsRemote(): Promise<void> {
-    const r = await this.runGit(
-      ['ls-remote', '--exit-code', this.input.origin, 'HEAD'],
-      LS_REMOTE_TIMEOUT_MS,
-    );
-    if (r.code !== 0) {
-      throw new Error(`Không đọc được repo bằng git trên máy này (git ls-remote mã ${r.code})`);
-    }
-  }
-
-  /** Clone thường (không `--mirror`): `crew-mac status` đọc `origin/HEAD` của clone thường. Đã có thì kiểm lại. */
-  private async ensureClone(dir: string): Promise<void> {
-    if (existsSync(dir)) {
-      const url = await this.runGit(['-C', dir, 'remote', 'get-url', 'origin']);
-      if (url.code !== 0 || url.stdout.trim() !== this.input.origin) {
-        throw new Error(`${dir} đã có nhưng không phải bản clone của ${this.input.origin}`);
-      }
-      const head = await this.runGit(['-C', dir, 'rev-parse', '--verify', 'HEAD']);
-      if (head.code !== 0) throw new Error(`${dir} là bản clone dở: tự xóa thư mục đó rồi bấm Chạy tiếp`);
-      return;
-    }
-    mkdirSync(dirname(dir), { recursive: true, mode: 0o755 });
-    const r = await this.runGit(['clone', '--quiet', '--', this.input.origin, dir], CLONE_TIMEOUT_MS);
-    if (r.code !== 0) throw new Error(`git clone vào ${dir} thất bại (mã ${r.code})`);
-  }
-
-  /** Repo có `docs/flows.yaml` thì đặt `crew-docs.bundle` (và `crew-docs.runtime` nếu có) như các repo hiện có. */
-  private async configureDocs(dir: string): Promise<void> {
-    if (!existsSync(join(dir, 'docs', 'flows.yaml'))) return;
-    this.docs ??= this.resolveDocsBundle();
-    const { bundle, runtime } = await this.docs;
+  /**
+   * Nhánh mặc định có `docs/flows.yaml` thì đặt `crew-docs.bundle` (và `crew-docs.runtime` nếu có) trong git config
+   * của repo (chung cho mọi worktree agent). Giá trị owner đã đặt mà còn hợp lệ thì giữ, không ghi đè.
+   */
+  private async configureDocs(): Promise<void> {
+    const dir = this.info.root;
+    const tracked = await this.runGit(['-C', dir, 'cat-file', '-e', `${this.info.baseRef}:docs/flows.yaml`]);
+    if (tracked.code !== 0) return;
+    const current = async (name: string) =>
+      (await this.runGit(['-C', dir, 'config', '--get', name])).stdout.trim();
     const set = async (name: string, value: string) => {
       const r = await this.runGit(['-C', dir, 'config', name, value]);
       if (r.code !== 0) throw new Error(`Không đặt được git config ${name} trong ${dir}`);
     };
+    if (isFile(await current('crew-docs.bundle'))) return;
+    const { bundle, runtime } = await this.resolveDocsBundle();
     await set('crew-docs.bundle', bundle);
-    if (runtime) await set('crew-docs.runtime', runtime);
+    if (runtime && (await current('crew-docs.runtime')) === '') await set('crew-docs.runtime', runtime);
   }
 
   private async resolveDocsBundle(): Promise<{ bundle: string; runtime: string | null }> {
-    const isFile = (path: string) => {
-      try {
-        return isAbsolute(path) && statSync(path).isFile();
-      } catch {
-        return false;
-      }
-    };
     for (const repo of await this.deps.ops.call('listStatusRepos')) {
       const bundle = (
         await this.runGit(['-C', repo.path, 'config', '--get', 'crew-docs.bundle'])
@@ -324,9 +286,9 @@ class AddRun {
     const checkout = this.paths.checkout(role);
     const name = recordName(this.input.key, role);
     await this.rec.setAgent(role, { checkout });
-    await this.ensureClone(checkout);
-    this.ensureExclude(checkout);
-    await this.configureDocs(checkout);
+    const gitDeps = { home: this.deps.home, env: this.deps.env };
+    await ensureWorktree(this.info, checkout, agentBranch(this.input.key, role), gitDeps);
+    await ensureRuntimeExcluded(checkout, gitDeps);
     const setup = await this.getSetupInfo();
     const { client } = this.deps;
 
@@ -395,14 +357,6 @@ class AddRun {
         : {}),
     });
     return created.id;
-  }
-
-  private ensureExclude(checkout: string): void {
-    const file = join(checkout, '.git', 'info', 'exclude');
-    const current = existsSync(file) ? readFileSync(file, 'utf8') : '';
-    if (current.split('\n').some((line) => line.trim() === RUNTIME_EXCLUDE)) return;
-    mkdirSync(dirname(file), { recursive: true });
-    appendFileSync(file, `${current === '' || current.endsWith('\n') ? '' : '\n'}${RUNTIME_EXCLUDE}\n`);
   }
 
   /**

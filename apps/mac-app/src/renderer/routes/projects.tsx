@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AddProjectInput, ProjectRow } from '../../shared/ipc-contract';
+import type { AddProjectInput, FolderChoice, ProjectRow } from '../../shared/ipc-contract';
 import { ErrorBox, Lozenge, Notice, PageHeader } from '../components/ui';
 import { invoke, useStateChanged } from '../lib/ipc';
 
@@ -8,15 +8,14 @@ type Progress = NonNullable<ProjectRow['progress']>;
 const KEY_RE = /^[a-z][a-z0-9-]{1,30}$/;
 const KEY_HINT = 'Khóa chỉ gồm chữ thường, số, dấu gạch ngang, bắt đầu bằng chữ, dài 2–31 ký tự.';
 const FIXED_LABELS: Record<string, string> = {
-  'ls-remote': 'Kiểm tra đọc được repo bằng git',
-  mirror: 'Clone repo docs',
+  folder: 'Kiểm folder và đặt crew-docs',
   project: 'Tạo project trên Paperclip',
   'status-repo': 'Đăng ký repo ảnh chụp docs',
   roles: 'Ghi vai trò của project',
   check: 'Kiểm tra cuối',
 };
 
-/** Tên bước tiếng Việt (`role:<vai>` là tạo checkout, environment và agent của vai đó). */
+/** Tên bước tiếng Việt (`role:<vai>` là tạo worktree, environment và agent của vai đó). */
 export function stepLabel(step: string): string {
   if (step.startsWith('role:')) return `Tạo agent ${step.slice(5)}`;
   return FIXED_LABELS[step] ?? step;
@@ -34,15 +33,7 @@ function expectedSteps(progress: Progress): string[] {
     'reviewer',
     'integrator',
   ];
-  return [
-    'ls-remote',
-    'mirror',
-    'project',
-    'status-repo',
-    ...roles.map((r) => `role:${r}`),
-    'roles',
-    'check',
-  ];
+  return ['folder', 'project', 'status-repo', ...roles.map((r) => `role:${r}`), 'roles', 'check'];
 }
 
 function currentStep(progress: Progress): string | null {
@@ -61,6 +52,21 @@ function ProgressView({
   busy: boolean;
   onResume: () => void;
 }) {
+  if (typeof progress.folder !== 'string') {
+    return (
+      <div>
+        <Notice tone="warn">
+          Tiến độ này từ bản cũ (thêm bằng URL git, clone vào ~/crew-projects). Cần làm lại: bấm "Gỡ khỏi Mac"
+          (nếu có) rồi "Thêm project" và chọn folder repo trên máy.
+        </Notice>
+        {progress.error && (
+          <div role="alert" className="notice tone-bad">
+            {progress.error}
+          </div>
+        )}
+      </div>
+    );
+  }
   const steps = expectedSteps(progress);
   const done = steps.filter((s) => (progress.done as string[]).includes(s)).length;
   if (done === steps.length && !progress.error) return null;
@@ -70,7 +76,7 @@ function ProgressView({
       <p className="muted">
         Đã xong {done}/{steps.length} bước.
         {step && ` Đang ở bước: ${stepLabel(step)}`}
-        {busy && ' (đang chạy; clone có thể mất tới 10 phút, chờ duyệt agent tới 30 phút)'}
+        {busy && ' (đang chạy; chờ duyệt agent trên web có thể tới 30 phút)'}
       </p>
       {progress.error && (
         <div role="alert" className="notice tone-bad">
@@ -95,27 +101,49 @@ function AddForm({
   onSubmit: (input: AddProjectInput) => void;
   onCancel: () => void;
 }) {
-  const [origin, setOrigin] = useState('');
+  const [choice, setChoice] = useState<FolderChoice | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
   const [executors, setExecutors] = useState<1 | 2>(1);
   const keyOk = KEY_RE.test(key);
-  const ready = origin.trim() !== '' && name.trim() !== '' && keyOk && !busy;
+  const ready = !!choice && choice.problem === null && name.trim() !== '' && keyOk && !busy;
+
+  const pick = () => {
+    setPicking(true);
+    setPickError(null);
+    invoke('projects:pickFolder')
+      .then((picked) => {
+        if (!picked) return;
+        setChoice(picked);
+        setName(picked.name);
+        setKey(picked.key);
+      })
+      .catch((e: unknown) => setPickError(messageOf(e)))
+      .finally(() => setPicking(false));
+  };
+
   return (
     <section className="wizard-card" aria-label="Thêm project">
       <h2>Thêm project</h2>
       <p className="muted">
-        App clone repo vào ~/crew-projects và ~/crew-agents trên máy này rồi tạo project, environment và agent
-        trên Paperclip.
+        Chọn thư mục repo git đã có trên máy (folder dưới /Volumes cũng được). App không clone và không đổi gì
+        trong folder đó: mỗi agent làm trong một git worktree riêng ở ~/crew-agents/&lt;khóa&gt;/&lt;vai
+        trò&gt; (nhánh agent/&lt;khóa&gt;-&lt;vai trò&gt;), rồi app tạo project, environment và agent trên
+        Paperclip.
       </p>
-      <label className="field">
-        URL git (origin)
-        <input
-          value={origin}
-          onChange={(e) => setOrigin(e.target.value)}
-          placeholder="git@github.com:org/repo.git"
-        />
-      </label>
+      <div className="field">
+        Folder project
+        <div className="actions">
+          <button type="button" className="btn" onClick={pick} disabled={picking || busy}>
+            Chọn folder
+          </button>
+          {choice && <code className="mono">{choice.folder}</code>}
+        </div>
+      </div>
+      {choice?.problem && <Notice tone="bad">{choice.problem}</Notice>}
+      <ErrorBox message={pickError} />
       <label className="field">
         Tên project
         <input value={name} onChange={(e) => setName(e.target.value)} />
@@ -141,7 +169,7 @@ function AddForm({
           type="button"
           className="btn primary"
           disabled={!ready}
-          onClick={() => onSubmit({ origin: origin.trim(), name: name.trim(), key, executors })}
+          onClick={() => choice && onSubmit({ folder: choice.folder, name: name.trim(), key, executors })}
         >
           Bắt đầu thêm
         </button>
@@ -192,7 +220,7 @@ export function ProjectsScreen() {
   const remove = (row: ProjectRow) => {
     if (
       !window.confirm(
-        `Gỡ "${row.name}" khỏi Mac? App sẽ pause agent, archive environment và bỏ repo docs khỏi bản tin. Thư mục trên máy giữ nguyên.`,
+        `Gỡ "${row.name}" khỏi Mac? App sẽ pause agent, archive environment và bỏ repo docs khỏi bản tin. Folder repo và worktree của agent giữ nguyên.`,
       )
     )
       return;
@@ -234,7 +262,10 @@ export function ProjectsScreen() {
           </ul>
           {removal.manualCommand ? (
             <>
-              <p>Để xóa thư mục trên máy, tự chạy lệnh này trong Terminal (app không xóa giúp):</p>
+              <p>
+                Để bỏ worktree của agent, tự chạy lệnh này trong Terminal (app không xóa giúp; folder repo của
+                bạn không bị đụng, git từ chối nếu worktree còn thay đổi chưa commit):
+              </p>
               <p>
                 <code className="mono">{removal.manualCommand}</code>{' '}
                 <button type="button" className="btn" onClick={() => copy(removal.manualCommand)}>
@@ -244,7 +275,7 @@ export function ProjectsScreen() {
               </p>
             </>
           ) : (
-            <p>Project này không do app thêm nên không có thư mục nào để xóa.</p>
+            <p>Không có thư mục nào để xóa.</p>
           )}
         </Notice>
       )}
@@ -292,7 +323,7 @@ export function ProjectsScreen() {
                 busy={busy}
                 onResume={() =>
                   add({
-                    origin: (row.progress as Progress).origin,
+                    folder: (row.progress as Progress).folder as string,
                     name: row.name,
                     key: (row.progress as Progress).key,
                     executors: executorsOf(row.progress as Progress),
@@ -300,7 +331,7 @@ export function ProjectsScreen() {
                 }
               />
             )}
-            {row.projectId !== '' && row.onMac && (
+            {row.projectId !== '' && (row.onMac || row.progress) && (
               <div className="actions">
                 <button type="button" className="btn danger" onClick={() => remove(row)}>
                   Gỡ khỏi Mac

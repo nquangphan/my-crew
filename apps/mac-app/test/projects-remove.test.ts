@@ -27,7 +27,7 @@ async function added() {
   const fake = fakeOps(sandbox.home);
   const deps = baseDeps(sandbox, paperclip, fake.ops, store);
   const progress = await addProject(deps, {
-    origin: sandbox.origin,
+    folder: sandbox.folder,
     name: 'Landing',
     key: 'landing',
     executors: 1,
@@ -44,7 +44,14 @@ describe('removeProject', () => {
 
     const result = await removeProject(deps, projectId);
 
-    expect(result.manualCommand).toBe('rm -rf ~/crew-agents/landing ~/crew-projects/landing');
+    const folder = progress.folder as string;
+    expect(result.manualCommand).toBe(
+      ['executor-1', 'assistant', 'reviewer', 'integrator']
+        .map(
+          (role) => `git -C ${folder} worktree remove ${join(sandbox.home, 'crew-agents', 'landing', role)}`,
+        )
+        .join(' && '),
+    );
     const writes = paperclip.requests.slice(before).filter((r) => r.method !== 'GET');
     const agentIds = Object.values(progress.agents).map((a) => a.agentId as string);
     const envIds = Object.values(progress.agents).map((a) => a.environmentId as string);
@@ -69,7 +76,10 @@ describe('removeProject', () => {
     expect(paperclip.projects.has(projectId)).toBe(true);
     expect(paperclip.roles.has(projectId)).toBe(false);
     expect(existsSync(join(sandbox.home, 'crew-agents', 'landing', 'reviewer'))).toBe(true);
-    expect(existsSync(join(sandbox.home, 'crew-projects', 'landing'))).toBe(true);
+    expect(sandbox.git(['-C', folder, 'worktree', 'list'])).toContain(
+      join(sandbox.home, 'crew-agents', 'landing', 'reviewer'),
+    );
+    expect(sandbox.git(['-C', folder, 'status', '--porcelain'])).toBe('');
     expect(paperclip.requests.some((r) => r.method === 'DELETE' && !r.path.endsWith('/roles'))).toBe(false);
     expect(store.get().projects.landing).toBeUndefined();
   });
@@ -116,6 +126,41 @@ describe('removeProject', () => {
     expect(fake.calls.at(-1)).toEqual({ op: 'removeStatusRepo', args: [other] });
     expect(result.removed).toEqual(['repo docs khỏi bản tin máy', 'vai trò của project']);
     for (const agent of paperclip.agents.values()) expect(agent.status).toBe('idle');
+  });
+
+  it('đường dẫn có dấu cách hay ký tự lạ thì lệnh in ra được quote cho shell', async () => {
+    const { store, deps, progress, projectId } = await added();
+    await store.update((s) => ({
+      ...s,
+      projects: {
+        landing: {
+          ...progress,
+          folder: "/Volumes/Ổ Ngoài/it's",
+          agents: {
+            reviewer: {
+              agentId: progress.agents.reviewer?.agentId ?? null,
+              environmentId: progress.agents.reviewer?.environmentId ?? null,
+              checkout: '/h/crew-agents/landing/reviewer',
+            },
+          },
+        },
+      },
+    }));
+    const result = await removeProject(deps, projectId);
+    expect(result.manualCommand).toBe(
+      `git -C '/Volumes/Ổ Ngoài/it'\\''s' worktree remove /h/crew-agents/landing/reviewer`,
+    );
+  });
+
+  it('tiến độ kiểu cũ (clone từ URL git) → lệnh xóa thư mục clone như trước', async () => {
+    const { store, deps, progress, projectId } = await added();
+    const { folder: _f, ...rest } = progress;
+    await store.update((s) => ({
+      ...s,
+      projects: { landing: { ...rest, origin: 'git@github.com:x/landing.git' } },
+    }));
+    const result = await removeProject(deps, projectId);
+    expect(result.manualCommand).toBe('rm -rf ~/crew-agents/landing ~/crew-projects/landing');
   });
 
   it('projectId sai dạng → từ chối', async () => {

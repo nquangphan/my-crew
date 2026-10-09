@@ -1,6 +1,8 @@
-import type { AddProjectInput, ProjectRow } from '../../shared/ipc-contract.js';
+import { basename } from 'node:path';
+import type { AddProjectInput, FolderChoice, ProjectRow } from '../../shared/ipc-contract.js';
 import type { ProjectProgress } from '../app-state.js';
-import { addProject, runGit } from './add-project.js';
+import { addProject } from './add-project.js';
+import { inspectFolder, runGit, suggestKey } from './folder.js';
 import { type ProjectDeps, roleNames } from './progress.js';
 import { removeProject } from './remove-project.js';
 
@@ -9,6 +11,8 @@ export interface ProjectsIpcOptions {
   deps: () => ProjectDeps;
   /** Commit rút gọn của HEAD trong một checkout; `null` khi thư mục không phải repo. Mặc định dùng `git`. */
   headOf?: (path: string, env: NodeJS.ProcessEnv) => Promise<string | null>;
+  /** Hộp thoại chọn một thư mục (Electron `dialog.showOpenDialog` ở Main); `null` khi owner bấm Hủy. */
+  pickDirectory?: () => Promise<string | null>;
 }
 
 const ROLE_ORDER = roleNames(2);
@@ -27,7 +31,7 @@ function byRole(a: string, b: string): number {
 }
 
 /**
- * Ba kênh `projects:*`. `list` ghép project từ REST Paperclip với trạng thái Mac: tiến độ và checkout trong
+ * Bốn kênh `projects:*`. `list` ghép project từ REST Paperclip với trạng thái Mac: tiến độ và checkout trong
  * `app.json`, repo ảnh chụp docs (`listStatusRepos`, kèm commit đã gửi cuối). Tiến độ thêm dở mà Paperclip chưa có
  * project vẫn hiện (projectId rỗng) để owner bấm "Chạy tiếp".
  */
@@ -81,6 +85,31 @@ export function createProjectsIpc(options: ProjectsIpcOptions) {
       const orphans = progresses.filter((p) => !p.projectId || !known.has(p.projectId));
       rows.push(...(await Promise.all(orphans.map((p) => rowOf('', p.key, p)))));
       return rows;
+    },
+
+    /** Owner chọn folder; app kiểm ngay (chỉ đọc) và gợi ý tên/khóa từ tên folder. Lỗi folder trả trong `problem`. */
+    async pickFolder(): Promise<FolderChoice | null> {
+      if (!options.pickDirectory) throw new Error('Chưa hỗ trợ chọn folder');
+      const picked = await options.pickDirectory();
+      if (!picked) return null;
+      const deps = options.deps();
+      const name = basename(picked);
+      try {
+        const info = await inspectFolder(picked, { home: deps.home, env: deps.env });
+        return {
+          folder: info.root,
+          name: basename(info.root),
+          key: suggestKey(basename(info.root)),
+          problem: null,
+        };
+      } catch (error) {
+        return {
+          folder: picked,
+          name,
+          key: suggestKey(name),
+          problem: error instanceof Error ? error.message : String(error),
+        };
+      }
     },
 
     add(input: AddProjectInput): Promise<ProjectProgress> {

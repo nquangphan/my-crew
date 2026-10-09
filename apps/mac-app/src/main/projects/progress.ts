@@ -2,13 +2,14 @@ import { join } from 'node:path';
 import type { AppState, AppStateStore, ProjectProgress } from '../app-state.js';
 import type { OpsBridge } from '../ops-bridge.js';
 import type { PaperclipClient } from '../paperclip/types.js';
+import { shellQuote } from './folder.js';
 import type { RoleTemplate } from './instructions.js';
 
 export type ProgressStep = ProjectProgress['done'][number];
 
 /** Những gì thêm/gỡ project cần; Main truyền bản thật, test truyền Paperclip giả, ops giả, HOME giả. */
 export interface ProjectDeps {
-  /** HOME của owner: checkout ở `<home>/crew-agents/<key>/<vai>`, repo docs ở `<home>/crew-projects/<key>`. */
+  /** HOME của owner: worktree agent ở `<home>/crew-agents/<key>/<vai>`. */
   home: string;
   /** Môi trường chạy `git` (đăng nhập git của owner). */
   env: NodeJS.ProcessEnv;
@@ -38,7 +39,6 @@ export function templateOf(role: string): RoleTemplate {
 export function projectPaths(home: string, key: string) {
   const agentsRoot = join(home, 'crew-agents', key);
   return {
-    mirror: join(home, 'crew-projects', key),
     agentsRoot,
     checkout: (role: string) => join(agentsRoot, role),
   };
@@ -47,8 +47,30 @@ export function projectPaths(home: string, key: string) {
 /** Tên agent và environment của một vai trò; dùng để tìm lại bản ghi đã tạo khi response bị mất. */
 export const recordName = (key: string, role: string) => `${key}-${role}`;
 
-export function manualRemoveCommand(key: string): string {
-  return `rm -rf ~/crew-agents/${key} ~/crew-projects/${key}`;
+/** Tiến độ của bản cũ (thêm bằng URL git, clone vào `~/crew-projects`): không có `folder`. */
+export function isLegacyProgress(progress: ProjectProgress): boolean {
+  return typeof progress.folder !== 'string';
+}
+
+/**
+ * Lệnh owner tự chạy để bỏ thư mục trên máy sau khi gỡ: `git -C <folder> worktree remove <checkout>` cho từng worktree
+ * agent (theo thứ tự vai trò, nối bằng `&&`); git từ chối nếu worktree còn thay đổi chưa commit. Không đụng folder
+ * gốc. Tiến độ bản cũ (clone) thì xóa thư mục clone như trước. Không có checkout nào thì rỗng.
+ */
+export function manualRemoveCommand(progress: ProjectProgress): string {
+  if (isLegacyProgress(progress)) {
+    return `rm -rf ~/crew-agents/${progress.key} ~/crew-projects/${progress.key}`;
+  }
+  const order = roleNames(2);
+  const rank = (role: string) => (order.includes(role) ? order.indexOf(role) : order.length);
+  return Object.entries(progress.agents)
+    .filter(([, agent]) => agent.checkout !== '')
+    .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+    .map(
+      ([, agent]) =>
+        `git -C ${shellQuote(progress.folder as string)} worktree remove ${shellQuote(agent.checkout)}`,
+    )
+    .join(' && ');
 }
 
 export function findByProjectId(state: AppState, projectId: string): ProjectProgress | undefined {

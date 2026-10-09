@@ -41,10 +41,19 @@ export interface ProjectRow {
 }
 
 export interface AddProjectInput {
-  origin: string;
+  /** Đường dẫn tuyệt đối tới repo git có sẵn trên máy (chọn bằng `projects:pickFolder`). */
+  folder: string;
   name: string;
   key: string;
   executors: 1 | 2;
+}
+
+/** Folder owner vừa chọn trong hộp thoại: tên/khóa gợi ý từ tên folder; `problem` khác null thì không dùng được. */
+export interface FolderChoice {
+  folder: string;
+  name: string;
+  key: string;
+  problem: string | null;
 }
 
 export interface UpdateView {
@@ -90,6 +99,8 @@ export interface IpcApi {
   'paperclip:loginStatus': { args: []; result: 'pending' | 'approved' | 'expired' | 'cancelled' };
   'paperclip:companies': { args: []; result: { id: string; name: string }[] };
   'projects:list': { args: []; result: ProjectRow[] };
+  /** Mở hộp thoại chọn thư mục của macOS ở Main rồi kiểm folder; `null` khi owner bấm Hủy. */
+  'projects:pickFolder': { args: []; result: FolderChoice | null };
   'projects:add': { args: [input: AddProjectInput]; result: ProjectProgress };
   'projects:remove': { args: [projectId: string]; result: { removed: string[]; manualCommand: string } };
   'update:state': { args: []; result: UpdateView };
@@ -122,6 +133,7 @@ export const IPC_CHANNELS = [
   'paperclip:loginStatus',
   'paperclip:companies',
   'projects:list',
+  'projects:pickFolder',
   'projects:add',
   'projects:remove',
   'update:state',

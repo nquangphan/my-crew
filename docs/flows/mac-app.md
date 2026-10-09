@@ -192,6 +192,9 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 - `~/Library/Application Support/2P Crew/app.json`: trạng thái bền (mode 600, ghi atomic bằng file tạm rồi `rename`,
   chỉ Main ghi, `update(fn)` nối tiếp). File hỏng thì đổi tên thành `app.json.broken-<giờ>` và dùng mặc định.
   `appVersion` luôn là bản đang chạy. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` (flow `mac-setup`).
+  `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
+  chọn); tiến độ bản cũ có `origin` thay cho `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)
+  khai trong `src/shared/ipc-contract.ts` cùng kiểu `FolderChoice`; `AddProjectInput` nhận `folder` thay cho `origin`.
 - `~/Library/Application Support/2P Crew/app.log`: JSON lines, mode 600, xoay một bản `app.log.1` khi vượt 10 MB. Field
   tên nhạy cảm (`token`, `secret`, `authorization`...) ghi `[đã ẩn]`, chuỗi `Bearer ...` và các dạng token quen thuộc
   trong cả dòng bị ẩn.

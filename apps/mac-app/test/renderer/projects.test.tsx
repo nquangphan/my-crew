@@ -54,36 +54,64 @@ it('liệt kê project với checkout, head, repo docs và commit gửi cuối',
   expect(screen.getByText('aaaaaaa')).toBeTruthy();
 });
 
-it('khóa sai dạng thì nút Bắt đầu bị khóa kèm lý do', async () => {
+const PICKED = {
+  folder: '/Volumes/CORSAIR/Projects/2ps-landing',
+  name: '2ps-landing',
+  key: 'p-2ps-landing',
+  problem: null,
+};
+
+it('Chọn folder: mở hộp thoại ở Main, hiện đường dẫn, gợi ý tên và khóa (sửa được); khóa sai thì khóa nút', async () => {
+  handlers['projects:pickFolder'] = () => PICKED;
   await openForm();
-  fill('URL git (origin)', 'git@github.com:x/landing.git');
-  fill('Tên project', 'Landing');
-  fill('Khóa', 'Sai Khoa');
   const start = screen.getByRole('button', { name: 'Bắt đầu thêm' }) as HTMLButtonElement;
+  expect(start.disabled).toBe(true);
+  expect(screen.queryByLabelText('URL git (origin)')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Chọn folder' }));
+  expect(await screen.findByText('/Volumes/CORSAIR/Projects/2ps-landing')).toBeTruthy();
+  expect((screen.getByLabelText('Tên project') as HTMLInputElement).value).toBe('2ps-landing');
+  expect((screen.getByLabelText('Khóa') as HTMLInputElement).value).toBe('p-2ps-landing');
+  expect(start.disabled).toBe(false);
+  fill('Khóa', 'Sai Khoa');
   expect(start.disabled).toBe(true);
   expect(screen.getByText(/Khóa chỉ gồm chữ thường/)).toBeTruthy();
   fill('Khóa', 'landing');
   expect(start.disabled).toBe(false);
 });
 
+it('folder không dùng được thì hiện lý do và khóa nút', async () => {
+  handlers['projects:pickFolder'] = () => ({
+    folder: '/Users/o/Projects/landing/docs',
+    name: 'docs',
+    key: 'docs',
+    problem: 'là thư mục con của repo /Users/o/Projects/landing',
+  });
+  await openForm();
+  fireEvent.click(screen.getByRole('button', { name: 'Chọn folder' }));
+  expect(await screen.findByText(/thư mục con của repo/)).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Bắt đầu thêm' }) as HTMLButtonElement).disabled).toBe(true);
+});
+
 it('gửi đúng dữ liệu với số executor đã chọn', async () => {
+  handlers['projects:pickFolder'] = () => PICKED;
   handlers['projects:add'] = () => ({
     key: 'landing',
-    origin: 'o',
+    folder: PICKED.folder,
     projectId: 'p1',
     done: ['check'],
     agents: {},
     error: null,
   });
   await openForm();
-  fill('URL git (origin)', 'git@github.com:x/landing.git');
+  fireEvent.click(screen.getByRole('button', { name: 'Chọn folder' }));
+  await screen.findByText(PICKED.folder);
   fill('Tên project', 'Landing');
   fill('Khóa', 'landing');
   fireEvent.click(screen.getByLabelText('2 executor'));
   fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu thêm' }));
   await waitFor(() =>
     expect(invoke).toHaveBeenCalledWith('projects:add', {
-      origin: 'git@github.com:x/landing.git',
+      folder: PICKED.folder,
       name: 'Landing',
       key: 'landing',
       executors: 2,
@@ -99,25 +127,25 @@ it('tiến độ lỗi hiện bước hiện tại, message và Chạy tiếp g�
       checkouts: [],
       progress: {
         key: 'landing',
-        origin: 'git@github.com:x/landing.git',
+        folder: '/Volumes/CORSAIR/Projects/landing',
         projectId: 'p1',
-        done: ['ls-remote', 'mirror'],
+        done: ['folder', 'project'],
         agents: {
           'executor-1': { agentId: null, environmentId: null, checkout: '/c' },
           'executor-2': { agentId: null, environmentId: null, checkout: '/d' },
         },
-        error: 'git clone thất bại',
+        error: 'addStatusRepo hỏng',
       },
     }),
   ];
   handlers['projects:add'] = () => rows[0]?.progress;
   render(<ProjectsScreen />);
-  expect(await screen.findByText('git clone thất bại')).toBeTruthy();
-  expect(screen.getByText(/Đang ở bước: Tạo project trên Paperclip/)).toBeTruthy();
+  expect(await screen.findByText('addStatusRepo hỏng')).toBeTruthy();
+  expect(screen.getByText(/Đang ở bước: Đăng ký repo ảnh chụp docs/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Chạy tiếp' }));
   await waitFor(() =>
     expect(invoke).toHaveBeenCalledWith('projects:add', {
-      origin: 'git@github.com:x/landing.git',
+      folder: '/Volumes/CORSAIR/Projects/landing',
       name: 'Landing',
       key: 'landing',
       executors: 2,
@@ -125,11 +153,34 @@ it('tiến độ lỗi hiện bước hiện tại, message và Chạy tiếp g�
   );
 });
 
+it('tiến độ kiểu cũ (URL git) không có Chạy tiếp, báo cần gỡ rồi thêm lại; vẫn gỡ được', async () => {
+  rows = [
+    row({
+      onMac: false,
+      checkouts: [],
+      docsRepo: null,
+      progress: {
+        key: 'landing',
+        origin: 'git@github.com:x/landing.git',
+        projectId: 'p1',
+        done: ['ls-remote', 'mirror', 'project'],
+        agents: {},
+        error: 'git clone thất bại',
+      },
+    }),
+  ];
+  render(<ProjectsScreen />);
+  expect(await screen.findByText(/bản cũ/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Chạy tiếp' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Gỡ khỏi Mac' })).toBeTruthy();
+});
+
 it('Gỡ khỏi Mac hỏi xác nhận rồi hiện lệnh xóa thư mục', async () => {
   rows = [row()];
   handlers['projects:remove'] = () => ({
     removed: ['agent landing-executor-1 đã pause'],
-    manualCommand: 'rm -rf ~/crew-agents/landing ~/crew-projects/landing',
+    manualCommand:
+      'git -C /Volumes/CORSAIR/Projects/landing worktree remove /h/crew-agents/landing/executor-1',
   });
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
   render(<ProjectsScreen />);
@@ -137,11 +188,16 @@ it('Gỡ khỏi Mac hỏi xác nhận rồi hiện lệnh xóa thư mục', asyn
   expect(invoke).not.toHaveBeenCalledWith('projects:remove', 'p1');
   confirm.mockReturnValue(true);
   fireEvent.click(screen.getByRole('button', { name: 'Gỡ khỏi Mac' }));
-  expect(await screen.findByText('rm -rf ~/crew-agents/landing ~/crew-projects/landing')).toBeTruthy();
+  expect(
+    await screen.findByText(
+      'git -C /Volumes/CORSAIR/Projects/landing worktree remove /h/crew-agents/landing/executor-1',
+    ),
+  ).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Chép lệnh' })).toBeTruthy();
 });
 
 it('stepLabel dịch tên bước', () => {
   expect(stepLabel('role:reviewer')).toBe('Tạo agent reviewer');
   expect(stepLabel('check')).toBe('Kiểm tra cuối');
+  expect(stepLabel('folder')).toBe('Kiểm folder và đặt crew-docs');
 });

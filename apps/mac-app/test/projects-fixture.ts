@@ -235,7 +235,10 @@ export function fakeOps(
   return { ops, calls, pinDir };
 }
 
-/** HOME giả + repo git gốc (bare) có `docs/flows.yaml` + bundle crew-docs giả, tất cả dưới thư mục tạm. */
+/**
+ * HOME giả + repo git gốc (bare, làm remote giả) có `docs/flows.yaml` + folder owner (clone của remote đó) + bundle
+ * crew-docs giả, tất cả dưới thư mục tạm.
+ */
 export function makeSandbox() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'crew-pj-')));
   const home = join(root, 'home');
@@ -253,11 +256,15 @@ export function makeSandbox() {
   git(['-C', work, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'đầu']);
   const origin = join(root, 'origin.git');
   git(['clone', '-q', '--bare', work, origin]);
+  // Folder owner chọn: bản clone thường có `origin` và `origin/HEAD`, nằm ngoài HOME (như `/Volumes/...`).
+  const folder = join(root, 'Projects', 'landing');
+  git(['clone', '-q', origin, folder]);
   return {
     root,
     home,
     env,
     origin,
+    folder,
     git,
     cleanup: () => rmSync(root, { recursive: true, force: true }),
   };

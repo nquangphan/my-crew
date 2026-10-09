@@ -21,6 +21,7 @@ describe('IPC_CHANNELS', () => {
       'paperclip:loginStatus',
       'paperclip:companies',
       'projects:list',
+      'projects:pickFolder',
       'projects:add',
       'projects:remove',
       'update:state',
