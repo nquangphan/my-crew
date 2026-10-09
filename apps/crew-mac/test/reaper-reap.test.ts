@@ -98,6 +98,7 @@ describe('reapOnce', () => {
     expect(t.runner.commands().some((c) => c.includes('lsof'))).toBe(false);
     expect(JSON.parse(readFileSync(t.options.statePath, 'utf8'))).toEqual({
       orphanSince: { [`80001:${RUN}`]: '2026-10-06T07:05:00.000Z' },
+      bridgeSince: {},
     });
   });
 
@@ -123,7 +124,10 @@ describe('reapOnce', () => {
       `2026-10-06 14:05:00 TERM run=${RUN} pid=80001 root=${t.root} pids=80000,80001,80002,80100`,
     );
     expect(log).toContain('matched=4 killed=0 remaining=0');
-    expect(JSON.parse(readFileSync(t.options.statePath, 'utf8'))).toEqual({ orphanSince: {} });
+    expect(JSON.parse(readFileSync(t.options.statePath, 'utf8'))).toEqual({
+      orphanSince: {},
+      bridgeSince: {},
+    });
   });
 
   it('process còn sống sau TERM thì KILL theo group đã nhận TERM', async () => {
@@ -218,5 +222,186 @@ describe('reapOnce', () => {
 
   it('vnTime theo Asia/Ho_Chi_Minh', () => {
     expect(vnTime(new Date('2026-10-06T17:30:00.000Z'))).toBe('2026-10-07 00:30:00');
+  });
+});
+
+/**
+ * Chuỗi `ps -axo pid,ppid,etime,command` THẬT của callback bridge Paperclip trên Mac mini (09/10/2026 17:19, run
+ * 165a3c6e của assistant 2ps-landing), đường dẫn user thay bằng HOME giả. Cột pgid/tty không có trong lần chụp đó:
+ * bridge chạy `nohup … &` từ `sh -c` của một lệnh SSH riêng nên group là của shell đã thoát, không tty.
+ */
+const REAL_BRIDGE_PS =
+  '77461     1    00:16 node $HOME/crew-agents/p-2ps-landing/assistant/.paperclip-runtime/claude/paperclip-bridge/server/paperclip-bridge-server.mjs';
+const BRIDGE_PID = 77461;
+const LIVE = '22222222-2222-4333-8444-555555555555';
+
+function bridgeSetup(opts: { claudeCwd?: 'worktree' | 'khac' | 'khong-doc-duoc' } = {}) {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'crew-mac-home-')));
+  const root = join(home, 'crew-agents', 'p-2ps-landing', 'assistant');
+  const other = join(home, 'crew-agents', 'p-2ps-landing', 'reviewer');
+  mkdirSync(root, { recursive: true });
+  mkdirSync(other, { recursive: true });
+  const argvLine = REAL_BRIDGE_PS.replace('$HOME', home).replace(/^(\s*\d+)\s+\d+\s+\S+\s+/, '$1 ');
+  const tree = (alive: boolean) =>
+    [
+      ONLY_LAUNCHD,
+      ...(alive ? ['77461     1 77460 ??        03:00 node'] : []),
+      ...(opts.claudeCwd
+        ? [
+            '77500 44751 77500 ??            00:16 sshd-session: owner@notty',
+            '77503 77500 77503 ??            00:16 claude',
+          ]
+        : []),
+    ].join('\n');
+  const claudeArgv =
+    '77503 claude --print --output-format stream-json --verbose --dangerously-skip-permissions --model claude-opus-5';
+  let treeCall = 0;
+  const aliveAfter: boolean[] = [];
+  const runner = new FakeRunner()
+    .on('/bin/ps', (args) => {
+      if (args.includes('-E'))
+        return {
+          stdout: [
+            `${argvLine} PAPERCLIP_BRIDGE_QUEUE_DIR=${root}/.paperclip-runtime/claude/paperclip-bridge/queue`,
+            `${claudeArgv} PAPERCLIP_RUN_ID=${LIVE}`,
+          ].join('\n'),
+        };
+      if (args.includes('pid=,command=')) return { stdout: [argvLine, claudeArgv].join('\n') };
+      const i = treeCall++;
+      return { stdout: tree(i === 0 || (aliveAfter[i - 1] ?? false)) };
+    })
+    .on('/usr/sbin/lsof', () =>
+      opts.claudeCwd === 'khong-doc-duoc'
+        ? { stdout: '' }
+        : { stdout: `p77503\nfcwd\nn${opts.claudeCwd === 'worktree' ? root : other}\n` },
+    );
+  const dir = mkdtempSync(join(tmpdir(), 'crew-mac-reaper-bridge-'));
+  const signals: string[] = [];
+  const deps = {
+    runner,
+    signal: (pid: number, sig: 'SIGTERM' | 'SIGKILL') => {
+      signals.push(`${sig} ${pid}`);
+    },
+    sleep: async () => {},
+    now: () => NOW,
+    selfPid: 999,
+  };
+  const options = {
+    graceMs: 60_000,
+    termWaitMs: 10_000,
+    dryRun: false,
+    statePath: join(dir, 'state.json'),
+    logPath: join(dir, 'reaper.log'),
+    worktreeRoot: join(home, 'crew-agents') as string | null,
+    home,
+  };
+  const startedAt = NOW_SEC - 180;
+  const seenSince = (since: string, at = startedAt) =>
+    writeFileSync(
+      options.statePath,
+      JSON.stringify({ orphanSince: {}, bridgeSince: { [BRIDGE_PID]: { since, startedAt: at } } }),
+    );
+  const state = () => JSON.parse(readFileSync(options.statePath, 'utf8'));
+  const log = () => {
+    try {
+      return readFileSync(options.logPath, 'utf8');
+    } catch {
+      return '';
+    }
+  };
+  return { deps, options, signals, root, runner, startedAt, seenSince, state, log, aliveAfter };
+}
+
+describe('lượt quét callback bridge Paperclip sót lại', () => {
+  it('lần đầu thấy bridge không có run sống thì chỉ ghi nhận, không gửi signal', async () => {
+    const t = bridgeSetup();
+    expect(await reapOnce(t.deps, t.options)).toEqual([]);
+    expect(t.signals).toEqual([]);
+    expect(t.state()).toEqual({
+      orphanSince: {},
+      bridgeSince: { [BRIDGE_PID]: { since: NOW.toISOString(), startedAt: t.startedAt } },
+    });
+  });
+
+  it('quá 2 phút không có run sống trong worktree thì TERM bridge và ghi log', async () => {
+    const t = bridgeSetup();
+    t.seenSince('2026-10-06T07:02:30.000Z');
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual(['SIGTERM -77460']);
+    expect(t.log()).toContain(`2026-10-06 14:05:00 TERM bridge pid=${BRIDGE_PID} root=${t.root}`);
+    expect(t.log()).toContain(`XONG bridge pid=${BRIDGE_PID} matched=1 killed=0 remaining=0`);
+    expect(t.state()).toEqual({ orphanSince: {}, bridgeSince: {} });
+  });
+
+  it('chưa đủ 2 phút thì giữ nguyên mốc, chưa dọn', async () => {
+    const t = bridgeSetup();
+    t.seenSince('2026-10-06T07:03:30.000Z');
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual([]);
+    expect(t.state().bridgeSince[BRIDGE_PID].since).toBe('2026-10-06T07:03:30.000Z');
+  });
+
+  it('bridge còn sống sau TERM thì KILL', async () => {
+    const t = bridgeSetup();
+    t.aliveAfter.push(true, false);
+    t.seenSince('2026-10-06T07:00:00.000Z');
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual(['SIGTERM -77460', 'SIGKILL -77460']);
+    expect(t.log()).toContain('matched=1 killed=1 remaining=0');
+  });
+
+  it('worktree còn claude của run đang chạy thì không bao giờ giết bridge, và xóa mốc đã ghi', async () => {
+    const t = bridgeSetup({ claudeCwd: 'worktree' });
+    t.seenSince('2026-10-06T07:00:00.000Z');
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual([]);
+    expect(t.state().bridgeSince).toEqual({});
+  });
+
+  it('claude của run ở worktree khác không giữ bridge của worktree này', async () => {
+    const t = bridgeSetup({ claudeCwd: 'khac' });
+    t.seenSince('2026-10-06T07:00:00.000Z');
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual(['SIGTERM -77460']);
+  });
+
+  it('không đọc được cwd của claude thì không dọn bridge nào trong lượt này', async () => {
+    const t = bridgeSetup({ claudeCwd: 'khong-doc-duoc' });
+    t.seenSince('2026-10-06T07:00:00.000Z');
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual([]);
+  });
+
+  it('bridge ngoài thư mục worktree đã cài, hoặc chưa có manifest, thì bỏ qua', async () => {
+    for (const worktreeRoot of ['/Users/owner/crew-agents', null]) {
+      const t = bridgeSetup();
+      t.seenSince('2026-10-06T07:00:00.000Z');
+      await reapOnce(t.deps, { ...t.options, worktreeRoot });
+      expect(t.signals).toEqual([]);
+      expect(t.state().bridgeSince).toEqual({});
+    }
+  });
+
+  it('etime lệch 1 giây giữa hai lượt vẫn là cùng bridge; pid bị cấp lại cho process khác thì đếm lại từ đầu', async () => {
+    const t = bridgeSetup();
+    t.seenSince('2026-10-06T07:00:00.000Z', NOW_SEC - 181);
+    await reapOnce(t.deps, { ...t.options, dryRun: true });
+    expect(t.state().bridgeSince[BRIDGE_PID].since).toBe('2026-10-06T07:00:00.000Z');
+    expect(t.log()).toContain(`SẼ DỌN bridge pid=${BRIDGE_PID}`);
+    expect(t.signals).toEqual([]);
+
+    const u = bridgeSetup();
+    u.seenSince('2026-10-06T07:00:00.000Z', NOW_SEC - 900);
+    await reapOnce(u.deps, u.options);
+    expect(u.signals).toEqual([]);
+    expect(u.state().bridgeSince[BRIDGE_PID]).toEqual({ since: NOW.toISOString(), startedAt: u.startedAt });
+  });
+
+  it('state cũ chưa có bridgeSince hoặc hỏng vẫn đọc được', async () => {
+    const t = bridgeSetup();
+    writeFileSync(t.options.statePath, JSON.stringify({ orphanSince: {}, bridgeSince: { 77461: 'hỏng' } }));
+    await reapOnce(t.deps, t.options);
+    expect(t.signals).toEqual([]);
+    expect(t.state().bridgeSince[BRIDGE_PID].since).toBe(NOW.toISOString());
   });
 });

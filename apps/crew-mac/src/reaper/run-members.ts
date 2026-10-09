@@ -43,6 +43,18 @@ export function isClaudePrint(p: ProcInfo): boolean {
   return tokens.includes('--print') || tokens.includes('-p');
 }
 
+/**
+ * Callback bridge Paperclip: adapter `claude_local` chạy `nohup node <worktree>/.paperclip-runtime/<adapter>/
+ * paperclip-bridge/server/paperclip-bridge-server.mjs &` qua một lệnh SSH riêng nên bridge luôn có PPID 1.
+ */
+const BRIDGE_RE =
+  /^(?:\S*\/)?node\s+(\/.+?)\/\.paperclip-runtime\/[^/\s]+\/paperclip-bridge\/server\/paperclip-bridge-server\.mjs$/;
+
+/** Worktree của callback bridge, lấy từ đường dẫn file bridge trong argv (chưa resolve symlink); null nếu không phải bridge. */
+export function bridgeRoot(p: ProcInfo): string | null {
+  return BRIDGE_RE.exec(p.command)?.[1] ?? null;
+}
+
 export function descendants(rootPid: number, procs: readonly ProcInfo[]): number[] {
   const children = new Map<number, number[]>();
   for (const p of procs) children.set(p.ppid, [...(children.get(p.ppid) ?? []), p.pid]);
@@ -92,6 +104,7 @@ export function orphanCandidates(procs: readonly ProcInfo[], spec: RunSpec, self
       (p) =>
         !neverTouch(p, selfPid) &&
         !branch.has(p.pid) &&
+        bridgeRoot(p) === null &&
         p.tty === '??' &&
         inWindow(p, spec) &&
         (p.runId === null || p.runId === spec.runId),
@@ -100,7 +113,7 @@ export function orphanCandidates(procs: readonly ProcInfo[], spec: RunSpec, self
     .sort((a, b) => a - b);
 }
 
-function underRoot(cwd: string, root: string): boolean {
+export function underRoot(cwd: string, root: string): boolean {
   const c = cwd.toLowerCase();
   const r = root.toLowerCase().replace(/\/+$/, '');
   return r === '' || c === r || c.startsWith(`${r}/`);
@@ -112,6 +125,8 @@ function underRoot(cwd: string, root: string): boolean {
  * (b') process mồ côi: cwd dưới worktree, không tty, sinh trong cửa sổ của run, và chuỗi cha đi lên chỉ gặp launchd
  *      hoặc process cũng thỏa (b'); gặp process nào khác (Terminal, editor, app) thì loại;
  * (c) process trong group wrapper đã ghi, không tty, sinh trong cửa sổ của run.
+ * Callback bridge Paperclip không bao giờ được chọn theo (b') hay (c): bridge sinh trước wrapper nên cửa sổ thời gian
+ * không nhận diện được nó; lượt quét bridge của reaper xử lý riêng.
  * Không bao giờ chọn launchd, sshd/sshd-session hay chính process đang chạy.
  */
 export function selectRunMembers(
@@ -135,7 +150,9 @@ export function selectRunMembers(
       Math.abs(leader.startedAt - started) <= CLOCK_SLACK_SEC;
     const hasClaudeBranch = procs.some((p) => p.pgid === pgid && selected.has(p.pid));
     if (leaderIsRun || hasClaudeBranch) {
-      for (const p of procs) if (p.pgid === pgid && p.tty === '??' && inWindow(p, spec)) selected.add(p.pid);
+      for (const p of procs)
+        if (p.pgid === pgid && p.tty === '??' && bridgeRoot(p) === null && inWindow(p, spec))
+          selected.add(p.pid);
     }
   }
 

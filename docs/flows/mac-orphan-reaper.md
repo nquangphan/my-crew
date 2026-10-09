@@ -59,7 +59,8 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
      không đọc được (`etime` lạ) thì coi như nằm ngoài cửa sổ.
 
      Không bao giờ chọn launchd, `sshd`/`sshd-session` hay chính process đang chạy. So thời điểm sinh có sai số 1
-     giây vì `etime` làm tròn.
+     giây vì `etime` làm tròn. Callback bridge Paperclip (`bridgeRoot` nhận ra) không bao giờ được chọn theo (b') hay
+     (c), vì nó sinh trước wrapper và cửa sổ thời gian không nhận diện được nó. Bước 7 xử lý bridge.
    - `collectRunMembers` ghép các bước trên cho một run.
 3. `apps/crew-mac/src/reaper/stop.ts` → `stopMembers`:
    - Gửi `SIGTERM` theo group cho group chỉ gồm process đã chọn (và không phải group của chính mình), còn lại theo
@@ -80,14 +81,23 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
    `rootGuardReason` (hoặc chưa có manifest) thì chỉ dọn con cháu của claude. Không thì chọn process của run bằng
    `collectRunMembers`, rồi dừng bằng `stopMembers` (chờ 10 giây sau TERM). Ghi `~/.crew-mac/reaper/reaper.log` (giờ
    Asia/Ho_Chi_Minh) và `state.json`.
+7. `apps/crew-mac/src/reaper/reap.ts` → `sweepBridges` (lượt quét bridge, chạy trong mỗi `reapOnce`):
+   - Bridge là process PPID 1, không tty, có argv dạng `node <worktree>/.paperclip-runtime/<adapter>/paperclip-bridge/server/paperclip-bridge-server.mjs`
+     (`bridgeRoot` trong `run-members.ts`). Worktree lấy từ đường dẫn đó, resolve symlink, và phải qua
+     `rootGuardReason`. Chưa có manifest thì bỏ qua.
+   - Worktree còn claude `--print` có run id (cwd dưới worktree, kể cả claude mồ côi chưa dọn) thì không đụng bridge
+     và xóa mốc đã ghi. Không đọc được cwd của một claude nào đó thì bỏ qua cả lượt.
+   - Bridge không có run sống liên tục quá `BRIDGE_GRACE_MS` (2 phút) thì dừng bằng `stopMembers` (TERM, chờ 10
+     giây, KILL), ghi `TERM bridge …`/`XONG bridge …` vào `reaper.log`. Mốc lưu trong `state.json` theo pid kèm thời
+     điểm sinh: lệch 1 giây vẫn là cùng bridge, lệch hơn là pid đã cấp lại nên đếm lại.
 
 ## Files
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/crew-mac/src/commands/stop-run.ts` | Lệnh `stop-run` | `stopRun`, `formatStopLine`, `RUN_ID_UUID` |
-| `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn của reaper | `reapOnce`, `readReaperState`, `vnTime` |
-| `apps/crew-mac/src/reaper/run-members.ts` | Chọn process của một run | `selectRunMembers`, `orphanCandidates`, `collectRunMembers`, `readRunStarts`, `runWindow` |
+| `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn của reaper | `reapOnce`, `sweepBridges`, `BRIDGE_GRACE_MS`, `readReaperState`, `vnTime` |
+| `apps/crew-mac/src/reaper/run-members.ts` | Chọn process của một run | `selectRunMembers`, `orphanCandidates`, `collectRunMembers`, `bridgeRoot`, `readRunStarts`, `runWindow` |
 | `apps/crew-mac/src/reaper/stop.ts` | TERM, chờ, KILL | `stopMembers` |
 | `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process, env và cwd | `listProcesses`, `readCwds`, `extractRunId`, `isEnvReadable`, `parseEtime` |
 | `apps/crew-mac/src/reaper/select.ts` | Chọn claude mồ côi cho reaper | `selectTargets`, `isOrphaned` |
@@ -98,7 +108,8 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
   ghi hai file này SAU bước `crew-mac workflow-check` (flow `mac-workflows`), muộn khoảng 0,3–2 giây sau khi process
   sinh. `stop-run` gọi trong khe đó không thấy `pgid` và chưa có `claude` để bắt, nên run có thể vẫn chạy tiếp; reaper
   dọn nó khi quá ngưỡng mồ côi. Run bị chặn ở bước kiểm (thoát 78) thì không có hai file.
-- `~/.crew-mac/reaper/state.json` (`orphanSince` theo `pid:runId`), `~/.crew-mac/reaper/reaper.log`.
+- `~/.crew-mac/reaper/state.json` (`orphanSince` theo `pid:runId`; `bridgeSince` theo pid bridge, gồm `since` và
+  `startedAt`), `~/.crew-mac/reaper/reaper.log`.
 - Gọi ngoài: `ps`, `lsof`, `kill`.
 
 ## Giới hạn
@@ -118,6 +129,15 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
   dừng run sau 60 giây mồ côi, chậm nhất thêm một chu kỳ 60 giây của LaunchAgent và 10 giây chờ TERM: tổng cộng
   khoảng 2 phút 40 giây kể từ lúc mất mạng.
 
+- Callback bridge Paperclip (`paperclip-bridge-server.mjs`) chạy với PPID 1 là đúng thiết kế. Adapter `claude_local`
+  khởi nó bằng `nohup node … &` qua một lệnh SSH riêng, trước `claude` khoảng 1 giây, rồi `stop()` kill pid trong
+  `.paperclip-runtime/<adapter>/paperclip-bridge/queue/server.pid` khi run xong. Reaper không chọn bridge theo cửa
+  sổ thời gian của run. Nó chỉ dọn bridge khi worktree không còn claude `--print` nào có run id suốt 2 phút, nên
+  không giết bridge của run đang chạy. Cái giá là bridge sót (`stop()` không tới Mac vì mất mạng hay server restart)
+  chỉ tắt sau khi run mồ côi bị dọn thêm 2–3 phút. Một run có bridge mà chưa có claude quá 2 phút sẽ mất bridge;
+  adapter hiện chạy claude ngay sau khi bridge sẵn sàng nên không gặp. Owner tự chạy đúng file bridge đó trong
+  worktree agent thì cũng bị coi là bridge.
+
 ## Flow liên quan
 
 - `mac-setup`: cài và gỡ LaunchAgent reaper, wrapper và launcher `~/.crew/bin/crew-mac`; `doctor` có check `reaper`
@@ -125,8 +145,8 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 
 ## Tests
 
-- `apps/crew-mac/test/run-members.test.ts`: đọc `ps`/`lsof`, cửa sổ thời gian, chọn (a)/(b')/(c), không đụng Terminal, VS Code, claude tương tác của owner, hai run cùng worktree, lsof chỉ cho ứng viên theo lô.
+- `apps/crew-mac/test/run-members.test.ts`: đọc `ps`/`lsof`, cửa sổ thời gian, chọn (a)/(b')/(c), nhận bridge theo đường dẫn (chuỗi `ps` thật) và không bao giờ chọn bridge theo giờ, không đụng Terminal, VS Code, claude tương tác của owner, hai run cùng worktree, lsof chỉ cho ứng viên theo lô.
 - `apps/crew-mac/test/stop.test.ts`: TERM theo group hay theo pid, KILL phần sống sót, pid bị cấp lại, group lẫn process mới, group của chính mình.
 - `apps/crew-mac/test/stop-run.test.ts`: dừng đủ thành phần của run mà không đụng run B hay Terminal, giữ thư mục run khi còn process, một lần gọi lsof và dưới 8 giây trên 6000 process, chạy thật trên macOS (tool tách session và tool mồ côi), kiểm đầu vào CLI.
 - `apps/crew-mac/test/reaper-select.test.ts`: nhận diện claude mồ côi, thời hạn, không đụng phiên owner hay chính reaper.
-- `apps/crew-mac/test/reaper-reap.test.ts`: dọn đủ thành phần của run mồ côi, KILL phần sống sót, dry-run, state hỏng, chạy thật `ps`/`lsof` trên macOS (dry-run), giờ Việt Nam.
+- `apps/crew-mac/test/reaper-reap.test.ts`: dọn đủ thành phần của run mồ côi, KILL phần sống sót, dry-run, state hỏng, chạy thật `ps`/`lsof` trên macOS (dry-run), giờ Việt Nam; lượt quét bridge (chuỗi `ps` thật của bridge, HOME giả): ghi nhận lần đầu, dọn sau 2 phút, KILL bridge còn sống, không đụng bridge của worktree còn run, không đọc được cwd của claude thì bỏ lượt, ngoài thư mục worktree đã cài, pid cấp lại, state cũ.

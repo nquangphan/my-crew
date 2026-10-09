@@ -69,7 +69,10 @@ describe('chọn claude mồ côi của run', () => {
       999,
     );
     expect(targets).toEqual([]);
-    expect(nextState).toEqual({ orphanSince: { '80001:run-dead': '2026-10-06T07:00:00.000Z' } });
+    expect(nextState).toEqual({
+      orphanSince: { '80001:run-dead': '2026-10-06T07:00:00.000Z' },
+      bridgeSince: {},
+    });
   });
 
   it('chưa đủ 60 giây thì chưa chọn', async () => {

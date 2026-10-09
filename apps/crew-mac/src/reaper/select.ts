@@ -3,8 +3,16 @@ import { isClaudePrint, SSHD_RE } from './run-members.js';
 
 export { isClaudePrint };
 
+/** Callback bridge Paperclip đang được đếm giờ: thấy lần đầu lúc `since`, thời điểm sinh `startedAt` (epoch giây). */
+export interface BridgeSeen {
+  since: string;
+  startedAt: number;
+}
+
 export interface ReaperState {
   orphanSince: Record<string, string>;
+  /** Theo pid của bridge PPID 1 mà worktree không còn run sống. */
+  bridgeSince: Record<string, BridgeSeen>;
 }
 
 /** claude `--print` của một run đã mồ côi quá thời hạn. */
@@ -30,13 +38,13 @@ export function isOrphaned(p: ProcInfo, byPid: ReadonlyMap<number, ProcInfo>): b
 
 export function selectTargets(
   procs: ProcInfo[],
-  state: ReaperState,
+  state: Pick<ReaperState, 'orphanSince'>,
   now: Date,
   graceMs: number,
   selfPid: number,
 ): { targets: OrphanRun[]; nextState: ReaperState } {
   const byPid = new Map(procs.map((p) => [p.pid, p]));
-  const nextState: ReaperState = { orphanSince: {} };
+  const nextState: ReaperState = { orphanSince: {}, bridgeSince: {} };
   const targets: OrphanRun[] = [];
   for (const p of procs) {
     if (p.pid === selfPid || !isClaudePrint(p) || !isOrphaned(p, byPid)) continue;

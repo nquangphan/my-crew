@@ -15,6 +15,7 @@ import {
   readCwds,
 } from '../src/reaper/process-table.js';
 import {
+  bridgeRoot,
   orphanCandidates,
   type RunSpec,
   readRunStarts,
@@ -280,6 +281,59 @@ describe('selectRunMembers', () => {
     ];
     const pids = select(rows, { ...SPEC, pgid: null, nextStarted: B_START });
     expect(pids).toEqual([700, 701, 702]);
+  });
+});
+
+/**
+ * Chuỗi `ps -axo pid,ppid,etime,command` THẬT của callback bridge Paperclip trên Mac mini (09/10/2026 17:19, run
+ * 165a3c6e của assistant 2ps-landing), đường dẫn user thay bằng HOME giả `/Users/owner`.
+ */
+const REAL_BRIDGE_PS =
+  '77461     1    00:16 node /Users/owner/crew-agents/p-2ps-landing/assistant/.paperclip-runtime/claude/paperclip-bridge/server/paperclip-bridge-server.mjs';
+const REAL_BRIDGE_ARGV = REAL_BRIDGE_PS.replace(/^\s*\d+\s+\d+\s+\S+\s+/, '');
+
+describe('callback bridge Paperclip', () => {
+  it('bridgeRoot nhận bridge theo đường dẫn file bridge trong argv thật và trả worktree', () => {
+    expect(bridgeRoot(proc(77461, 1, 77460, { comm: 'node', command: REAL_BRIDGE_ARGV }))).toBe(
+      '/Users/owner/crew-agents/p-2ps-landing/assistant',
+    );
+    expect(
+      bridgeRoot(
+        proc(1, 1, 1, {
+          command: `/opt/homebrew/bin/node ${ROOT}/.paperclip-runtime/claude/paperclip-bridge/server/paperclip-bridge-server.mjs`,
+        }),
+      ),
+    ).toBe(ROOT);
+  });
+
+  it('bridgeRoot bỏ qua script node khác, file bridge ngoài .paperclip-runtime và argv có thêm tham số', () => {
+    for (const command of [
+      'node /Users/owner/app/server.mjs',
+      'node /Users/owner/paperclip-bridge-server.mjs',
+      `node ${ROOT}/.paperclip-runtime/claude/paperclip-bridge/server/paperclip-bridge-server.mjs --khac`,
+      `vim ${ROOT}/.paperclip-runtime/claude/paperclip-bridge/server/paperclip-bridge-server.mjs`,
+      '',
+    ]) {
+      expect(bridgeRoot(proc(5, 1, 5, { command }))).toBeNull();
+    }
+  });
+
+  it('bridge của worktree không bao giờ được chọn theo giờ, dù sinh trước started 3 giây hay trong cửa sổ của run', () => {
+    const bridge = (pid: number, startedAt: number): Row =>
+      proc(pid, 1, pid - 1, {
+        comm: 'node',
+        command: `node ${ROOT}/.paperclip-runtime/claude/paperclip-bridge/server/paperclip-bridge-server.mjs`,
+        cwd: ROOT,
+        startedAt,
+      });
+    const rows = [...table(), bridge(590, START - 3), bridge(595, START + 5)];
+    expect(orphanCandidates(procsOf(rows), SPEC, 999)).not.toContain(595);
+    const picked = select(rows, { ...SPEC, pgid: 589 });
+    expect(picked).not.toContain(590);
+    expect(picked).not.toContain(595);
+    // Cùng group với wrapper đã ghi cũng không chọn: bridge do lượt quét bridge riêng xử lý.
+    const sameGroup = [...table(), { ...bridge(596, START + 5), pgid: 600 }];
+    expect(select(sameGroup, SPEC)).not.toContain(596);
   });
 });
 
