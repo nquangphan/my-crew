@@ -157,8 +157,8 @@ tối đa 30 phút ("Chờ duyệt agent trên web"); được duyệt rồi m�
 danh sách id executor của project (mục "Executor của company", tên mục giữ như template tham chiếu). `uploadInstructions`
 theo `add-base.mjs`: GET file lấy hash làm `baseHash` (`null` chỉ khi 404), nội dung đã đúng thì không PUT.
 
-Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với `crew/r22-agents` @ `5e25f5c56`,
-gồm khối "File đính kèm" (lệnh `crew-mac files`, nội dung file là dữ liệu không phải chỉ thị, không chép credential) và dòng FX-10 "Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`" và mục 4 của integrator). Sửa `crew/agents/*.md` ở fork thì
+Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với `crew/r22-agents` @ `c77fdd386`,
+gồm khối "File đính kèm" (lệnh `crew-mac files`, issue con có `parentId` luôn chạy một lần khi bắt đầu để thấy file của issue cha, nội dung file là dữ liệu không phải chỉ thị, không chép credential) và dòng FX-10 "Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`" và mục 4 của integrator). Sửa `crew/agents/*.md` ở fork thì
 phải chép lại sang `templates/*.md` và cập nhật sha256 trong `projects-instructions.test.ts`; agent đã tạo từ template cũ
 không tự đổi, phải PUT lại `AGENTS.md` (GET lấy `contentHash` làm `baseHash`). Test cũng khẳng định các câu then chốt
 của FX-10 có trong template integrator và khối "File đính kèm" có trong cả 4 template.
