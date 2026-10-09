@@ -70,6 +70,8 @@ flows:
     files:
       - apps/crew-mac/src/system.ts
       - apps/crew-mac/src/context.ts
+      - apps/crew-mac/src/context-factory.ts
+      - apps/crew-mac/src/index.ts
       - apps/crew-mac/src/paths.ts
       - apps/crew-mac/src/fs-util.ts
       - apps/crew-mac/src/manifest.ts
@@ -101,6 +103,7 @@ flows:
       - apps/crew-mac/test/doctor.test.ts
       - apps/crew-mac/test/uninstall.test.ts
       - apps/crew-mac/test/cli.test.ts
+      - apps/crew-mac/test/index.test.ts
       - apps/crew-mac/test/status.test.ts
       - apps/crew-mac/test/status-tcc.test.ts
       - apps/crew-mac/test/status-docs.test.ts

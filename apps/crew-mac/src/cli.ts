@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { homedir, userInfo } from 'node:os';
 import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type CheckStatus, doctor } from './commands/doctor.js';
@@ -18,11 +17,10 @@ import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './comma
 import { uninstall } from './commands/uninstall.js';
 import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
 import type { MacContext } from './context.js';
+import { createMacContext } from './context-factory.js';
 import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
-import { createRunner } from './system.js';
-import { SUPERPOWERS_PIN } from './workflows/pin.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 
@@ -105,28 +103,6 @@ function manifestOrNull(path: string): Manifest | null {
   }
 }
 
-export function stableNodePath(): string {
-  for (const candidate of ['/opt/homebrew/bin/node', '/usr/local/bin/node']) {
-    if (existsSync(candidate)) return candidate;
-  }
-  return process.execPath;
-}
-
-export function defaultContext(env: NodeJS.ProcessEnv, out: (line: string) => void): MacContext {
-  return {
-    home: env.HOME ?? homedir(),
-    user: userInfo().username,
-    uid: process.getuid?.() ?? 0,
-    platform: process.platform,
-    runner: createRunner(),
-    now: () => new Date(),
-    out,
-    nodePath: stableNodePath(),
-    cliPath: realpathSync(fileURLToPath(import.meta.url)),
-    superpowersPin: SUPERPOWERS_PIN,
-  };
-}
-
 export function sshServerPort(env: NodeJS.ProcessEnv): number | null {
   const parts = env.SSH_CONNECTION?.trim().split(/\s+/);
   if (parts?.length !== 4) return null;
@@ -139,7 +115,14 @@ const STATUS_LABEL: Record<CheckStatus, string> = { ok: 'ĐẠT', warn: 'CẢNH 
 export async function main(argv: readonly string[], io: CliIo): Promise<number> {
   const [command, ...args] = argv;
   try {
-    const ctx: MacContext = { ...defaultContext(io.env, io.out), ...io.context };
+    const ctx: MacContext = {
+      ...createMacContext({
+        env: io.env,
+        out: io.out,
+        cliPath: realpathSync(fileURLToPath(import.meta.url)),
+      }),
+      ...io.context,
+    };
     switch (command) {
       case 'status': {
         const [subcommand, ...rest] = args;
