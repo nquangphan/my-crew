@@ -152,6 +152,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/health.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/logs.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/main-startup-order.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/notifications.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ops-bridge.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/paperclip-cli-auth.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |

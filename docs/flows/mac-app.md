@@ -20,9 +20,10 @@ cắm vào các điểm đã chừa.
 
 ## Các bước
 
-1. `src/main/index.ts` → `start`: `requestSingleInstanceLock`, đặt `userData` của Chromium = `~/Library/Application Support/2P Crew/chromium`
-   (`chromiumUserDataDir`: thư mục con cạnh `app.json`/`app.log`, để không đụng Local State, Preferences, Local Storage của app v2 nằm
-   ngay trong thư mục cha; HOME lấy từ biến `HOME`), dựng `AppStateStore` và `AppLog`, chờ `app.whenReady()`.
+1. `src/main/index.ts`: đặt `userData` của Chromium = `~/Library/Application Support/2P Crew/chromium` TRƯỚC khi gọi
+   `requestSingleInstanceLock` (`chromiumUserDataDir`: thư mục con cạnh `app.json`/`app.log`, để không đụng Local State, Preferences,
+   Local Storage của app v2 nằm ngay trong thư mục cha; HOME lấy từ biến `HOME`). Khóa một instance nằm trong `userData`: xin khóa
+   trước khi đổi thư mục thì app mới đụng khóa của app v2 đang mở và tự thoát im lặng. Rồi `start` dựng `AppStateStore` và `AppLog`, chờ `app.whenReady()`.
 2. `src/main/ipc.ts` → `registerIpc`: `ipcMain.handle` cho đúng các kênh trong `IPC_CHANNELS`; kiểm URL frame gửi
    (`isTrustedSender`), kênh chưa có handler trả `Chưa hỗ trợ: <kênh>`, lỗi handler thành `{ ok: false, error }`.
 3. `src/main/tray.ts` → `CrewTray`: chấm màu, số run, menu "Mở 2P Crew" và "Thoát". Nhiều nguồn cùng cập nhật bằng

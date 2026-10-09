@@ -192,6 +192,7 @@ flows:
       - apps/mac-app/src/renderer/routes/setup.tsx
       - apps/mac-app/src/renderer/components/wizard-step.tsx
     tests:
+      - apps/mac-app/test/main-startup-order.test.ts
       - apps/mac-app/test/health.test.ts
       - apps/mac-app/test/runs.test.ts
       - apps/mac-app/test/logs.test.ts

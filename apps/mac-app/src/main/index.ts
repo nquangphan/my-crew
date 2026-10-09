@@ -21,6 +21,12 @@ import { createMainWindow } from './window.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
+const home = process.env.HOME ?? homedir();
+const paths = macPaths(home);
+// userData của Chromium phải đổi trước khi xin khóa một instance: khóa nằm trong thư mục userData, mà thư mục
+// mặc định trùng với app 2P Crew cũ (cùng tên), nên xin khóa trước thì app mới tự thoát khi app cũ còn mở.
+app.setPath('userData', chromiumUserDataDir(paths.appState));
+
 // 1. Một instance: lần mở thứ hai chỉ đưa cửa sổ lên.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -29,10 +35,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 async function start(): Promise<void> {
-  const home = process.env.HOME ?? homedir();
-  const paths = macPaths(home);
   const dataDir = dirname(paths.appState);
-  app.setPath('userData', chromiumUserDataDir(paths.appState));
 
   // 2. Trạng thái bền, 3. nhật ký.
   const store = new AppStateStore(paths.appState, app.getVersion());
