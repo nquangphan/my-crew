@@ -91,6 +91,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/quit-guard.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/register-health.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/runs.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/disk-access.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/import-existing.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/machine-check.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/machine-step.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/register.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/sshd-handoff.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/types.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/wizard.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/sshd/active-runs.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/backoff.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/register.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (điểm vào), [mac-app-sshd](flows/mac-app-sshd.md) (file) |
@@ -104,12 +112,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/renderer/app.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/components/check-row.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/components/ui.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/components/wizard-step.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/index.html` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/lib/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/main.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/health.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/logs.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/runs.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/routes/setup.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/styles.css` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/shared/ipc-contract.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/utility/ops.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -127,7 +137,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/quit-guard.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/renderer/health.test.tsx` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/renderer/setup.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/runs.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/setup-disk-access.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/setup-fakes.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/setup-import.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/setup-sshd-handoff.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/setup-wizard.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/sshd-backoff.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-supervisor.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-system-deps.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |

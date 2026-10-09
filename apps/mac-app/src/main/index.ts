@@ -12,6 +12,7 @@ import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
 import { registerPaperclip } from './paperclip/register.js';
 import { registerHealth } from './register-health.js';
+import { registerSetup } from './setup/register.js';
 import { registerSshd } from './sshd/register.js';
 import { CrewTray } from './tray.js';
 import { createMainWindow } from './window.js';
@@ -104,9 +105,9 @@ async function start(): Promise<void> {
   });
   store.onChange(() => window?.webContents.send(STATE_CHANGED_EVENT));
   const sshd = registerSshd(ctx);
-  registerHealth(ctx, sshd);
-  // registerSetup(ctx);     // AP-5, AP-6
+  const health = registerHealth(ctx, sshd);
   registerPaperclip(ctx);
+  registerSetup(ctx, sshd, health); // AP-5; AP-6 thêm bước v2, move trong register.ts
   // registerUpdate(ctx);    // UPD-1
   void ctx;
 

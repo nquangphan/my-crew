@@ -1,5 +1,6 @@
 import type { CheckResult } from '@crew/mac';
 import type { AppState, ProjectProgress, SetupStep, UpdateState } from '../main/app-state.js';
+import type { ExistingMachine } from '../main/setup/import-existing.js';
 
 /**
  * Hợp đồng IPC giữa renderer và Main (Interface I5). AP-1 khai đủ mọi kênh; mỗi ticket sau cài handler của
@@ -80,6 +81,8 @@ export interface IpcApi {
   'logs:reveal': { args: [file: LogFile]; result: undefined };
   'setup:state': { args: []; result: AppState['setup'] };
   'setup:step': { args: [step: SetupStep, input: unknown]; result: StepResult };
+  /** Máy này đã có cài đặt crew-mac chưa (wizard hiện "Nhận cài đặt có sẵn" hay ô nhập key). Chỉ đọc. */
+  'setup:detect': { args: []; result: ExistingMachine };
   'paperclip:login': { args: [origin: string]; result: { approvalUrl: string } };
   'paperclip:loginStatus': { args: []; result: 'pending' | 'approved' | 'expired' | 'cancelled' };
   'paperclip:companies': { args: []; result: { id: string; name: string }[] };
@@ -110,6 +113,7 @@ export const IPC_CHANNELS = [
   'logs:reveal',
   'setup:state',
   'setup:step',
+  'setup:detect',
   'paperclip:login',
   'paperclip:loginStatus',
   'paperclip:companies',

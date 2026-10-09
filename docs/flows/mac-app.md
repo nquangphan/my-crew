@@ -32,8 +32,8 @@ cắm vào các điểm đã chừa.
    điều hướng ra ngoài, từ chối mọi quyền.
 5. Dòng `registerX(ctx)` của từng module. Đã bật: `const sshd = registerSshd(ctx)` (bộ giám sát sshd và quit guard,
    flow `mac-app-sshd`), `registerHealth(ctx, sshd)` (sức khỏe, run, log; xem mục dưới) và `registerPaperclip(ctx)`
-   (đăng nhập Paperclip, flow `mac-app-paperclip`). Còn là chú thích: wizard và gỡ v2 (AP-5, AP-6), project (PJ-1,
-   PJ-2), cập nhật (UPD-1).
+   (đăng nhập Paperclip, flow `mac-app-paperclip`). Còn là chú thích: gỡ v2 (AP-6), project (PJ-1, PJ-2),
+   cập nhật (UPD-1). Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới).
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
@@ -64,6 +64,55 @@ cắm vào các điểm đã chừa.
   `shell.showItemInFolder`.
 - **Tray**: số run làm mới mỗi 30 giây và mỗi khi `sshd.onChange`; màu theo kết quả doctor gần nhất.
 
+## Cài đặt lần đầu (wizard)
+
+`src/main/setup/register.ts` → `registerSetup(ctx, sshd, health)` cài ba kênh `setup:state`, `setup:step`, `setup:detect`.
+Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bước khi màn Sức khỏe báo lỗi ("Chạy lại cài đặt").
+
+- **Thứ tự bước** (`wizard.ts` → `STEP_ORDER`): `check → v2 → move → paperclip → machine → disk-access → sshd → doctor →
+  done`. Bước xong `ok` thì `setup.step` trong `app.json` là bước kế tiếp, nên đóng app giữa chừng rồi mở lại sẽ tiếp từ
+  bước dở. Chỉ chạy được bước đã tới lượt hoặc bước cũ (chạy lại không lùi tiến độ; đã `done` thì chạy lại không đổi
+  tiến độ). Bước ném lỗi thành kết quả `ok: false`. `v2` và `move` (gỡ app v2, chuyển vào Applications) do AP-6 cài; tới
+  khi đó hai bước này đi tiếp ngay.
+- **`check`** (`machine-check.ts`): macOS 15 trở lên (`sw_vers`), Tailscale có IP 100.x
+  (`/Applications/Tailscale.app/Contents/MacOS/Tailscale ip -4`), Claude Code đã đăng nhập
+  (`/bin/zsh -lc 'claude auth status'` có `"loggedIn": true`). Chỉ đọc. Ghim Superpowers do `setup` cài và check
+  `superpowers-pin` của doctor kiểm ở bước `doctor`.
+- **`paperclip`** (`createPaperclipStep`): đăng nhập `cli-auth` chạy ở kênh `paperclip:*` (flow `mac-app-paperclip`: app
+  tự mở trình duyệt, renderer hỏi `paperclip:loginStatus` mỗi 2 giây); bước này xác nhận company chọn có trong tài khoản
+  rồi ghi `setup.companyId`.
+- **`machine`** (`machine-step.ts`, `import-existing.ts`): `setup:detect` đọc manifest crew-mac, `~/.crew/status.json` và
+  hỏi Keychain có mục `crew-mac-status` hay không (không đọc giá trị). Ba loại máy:
+  - `existing` ("Nhận cài đặt có sẵn", chỉ có nút Tiếp): `installCrewMacFrom(<resources>/crew-mac)` → `configureStatus`
+    theo company đã chọn → `setup({})` không cờ, giữ chủ sshd hiện có; không sinh key, không hỏi lại secret. Cài crew-mac
+    bị từ chối vì còn run thì bước lỗi, thử lại khi rảnh.
+  - `fresh`: bắt buộc key `ssh-ed25519 …` và secret webhook (một dòng); cổng mặc định 2222, thư mục mặc định
+    `~/crew-agents` (`forbiddenRootReason` khác null thì lỗi đúng lý do, chưa gọi gì). Secret đi một lần tới
+    `setStatusSecret` rồi bị xóa khỏi input; renderer xóa ô nhập khi xong. Thứ tự `installCrewMacFrom` →
+    `setStatusSecret` → `configureStatus` → `setup`.
+  - `broken` (manifest hỏng): hiện thông báo của `SetupError` và nút "Đã xử lý, kiểm tra lại". App không xóa file trong
+    `~/.crew-mac` hay `~/.crew` (chỉ gọi hàm `@crew/mac`), nên owner tự xử lý theo thông báo.
+  Sau `installCrewMacFrom`, `setup` luôn dùng `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (utility dựng context).
+- **`disk-access`** (`disk-access.ts`, "Quyền ổ đĩa"): owner chốt cấp Truy cập toàn bộ ổ đĩa (FDA) một lần cho 2P Crew
+  và phải xong trước khi nhận run, vì hộp thoại quyền chưa bấm làm `claude` treo (spike SP-1). Dò bằng hai lần đọc chỉ FDA
+  mới mở được (`~/Library/Safari`, `TCC.db`): đọc được `granted`, EPERM/EACCES `denied`, còn lại `unknown`; các nơi này
+  không bao giờ nằm trong hộp thoại xin quyền nên dò không gây hộp thoại. Màn hình dò lúc mở bước và mỗi lần cửa sổ
+  focus lại (`recheck`: chỉ báo trạng thái, không đi tiếp); nút "Mở Cài đặt hệ thống" dùng `health:action`
+  `open-privacy`. Bấm Tiếp khi `denied` vẫn đi tiếp kèm cảnh báo (bước `doctor` vẫn chạy và nhắc lại). Đã bật mà vẫn báo
+  chưa cấp thì thoát và mở lại 2P Crew.
+- **`sshd`** (`sshd-handoff.ts` → `handoffSshd`, Review Focus 2): còn run đang chạy (`supervisor.activeRuns()`) thì từ chối
+  "Có N run đang chạy; chờ run xong rồi chuyển." Không thì `setup({ sshdOwner: 'app' })` → `supervisor.start()` → chờ tối
+  đa 15 giây cho `status().state === 'running'` và `lsof -nP -iTCP:<cổng> -sTCP:LISTEN -t` chỉ có đúng pid của
+  supervisor (có chủ thứ hai thì coi như chưa lên). **Tự lui**: listener không lên (hoặc `setup` sang app lỗi) thì
+  `setup({ sshdOwner: 'launchd', force: true })`, ghi `sshdOwner: 'launchd'` vào `app.json`, bước lỗi với lý do
+  (`lastError` của supervisor) và 20 dòng cuối `sshd.log`, nói rõ đã tự chuyển về LaunchAgent; nếu lui cũng lỗi thì chỉ
+  owner chạy `crew-mac setup --sshd-owner launchd`. Đã ở chế độ app và listener đang chạy thì `ok`, không gọi `setup`.
+  Xong (thành công hay tự lui) thì làm mới sức khỏe để chấm màu tray cập nhật ngay.
+- **`doctor`** (`createDoctorStep`): `doctor` có thử `claude` (`probe: true`, 90 giây); `ok` khi 0 `fail` (`warn` vẫn
+  qua), thông báo liệt kê từng lỗi.
+- **`done`**: chỉ chạy khi tiến độ đã tới `done` (mọi bước trước `ok`); bật login item (`loginItem.set(true)`). macOS
+  còn chờ owner cho phép trong Mục đăng nhập thì vẫn xong, kèm hướng dẫn.
+
 ## Cầu nối crew-mac
 
 `src/main/ops-bridge.ts` → `UtilityOpsBridge.call(op, ...args)` gửi `{ id, op, args }` tới `src/utility/ops.ts` và nhận
@@ -91,11 +140,19 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 | `apps/mac-app/src/main/runs.ts` | Danh sách run, hủy run qua REST, mở link web | `createRuns` |
 | `apps/mac-app/src/main/logs.ts` | Đuôi bốn file log, lọc run id | `createLogs`, `tailFile`, `logPaths` |
 | `apps/mac-app/src/main/notifications.ts` | Thông báo hệ thống | `createNotifier` |
+| `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`) | `registerSetup` |
+| `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước, bước `paperclip`, `doctor`, `done` | `createWizard`, `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep` |
+| `apps/mac-app/src/main/setup/types.ts` | Kiểu kết quả một bước | `StepOutcome`, `StepRun` |
+| `apps/mac-app/src/main/setup/machine-check.ts` | Bước `check`: macOS, Tailscale, Claude Code | `checkMachine` |
+| `apps/mac-app/src/main/setup/import-existing.ts` | Nhận cài đặt có sẵn của máy | `detectExisting` |
+| `apps/mac-app/src/main/setup/machine-step.ts` | Bước `machine` (máy có sẵn, máy mới) | `createMachineStep` |
+| `apps/mac-app/src/main/setup/disk-access.ts` | Dò quyền ổ đĩa (FDA) không hộp thoại | `detectFullDiskAccess`, `diskAccessOutcome` |
+| `apps/mac-app/src/main/setup/sshd-handoff.ts` | Chuyển sshd sang app, tự lui | `handoffSshd`, `listenerPids` |
 | `apps/mac-app/src/main/window.ts` | Cửa sổ renderer sandbox | `createMainWindow` |
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
 | `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi` |
 | `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess | `createOpsHandlers` |
-| `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe, Run đang chạy, Log (`routes/`), `CheckRow` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen` |
+| `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe, Run đang chạy, Log, Cài đặt (`routes/`), `CheckRow`, `WizardStep` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen`, `SetupScreen` |
 
 ## Dữ liệu
 
@@ -151,3 +208,7 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 - `apps/mac-app/test/logs.test.ts`: đuôi file, lọc run id, giới hạn 512 KB, file ngoài danh sách bị từ chối.
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, màn Run và Log, giờ Việt Nam.
+- `apps/mac-app/test/setup-wizard.test.ts`: `check`, bước `machine` (máy có sẵn, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
+- `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
+- `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run, chuyển thành công, tự lui, đã ở chế độ app.
+- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, chạy lại bước.

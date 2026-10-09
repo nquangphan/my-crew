@@ -4,6 +4,7 @@ import { invoke } from './lib/ipc';
 import { HealthScreen } from './routes/health';
 import { LogsScreen } from './routes/logs';
 import { RunsScreen } from './routes/runs';
+import { SetupScreen } from './routes/setup';
 
 export interface RouteDef {
   id: string;
@@ -25,7 +26,7 @@ export const ROUTES: RouteDef[] = [
   { id: 'logs', label: 'Log', render: () => <LogsScreen /> },
   { id: 'projects', label: 'Project', render: () => <Soon title="Project" ticket="PJ-2" /> },
   { id: 'update', label: 'Cập nhật', render: () => <Soon title="Cập nhật" ticket="UPD-1" /> },
-  { id: 'setup', label: 'Cài đặt', render: () => <Soon title="Cài đặt" ticket="AP-5" /> },
+  { id: 'setup', label: 'Cài đặt', render: () => <SetupScreen /> },
 ];
 
 /** `#/health` → `health`; hash lạ về màn hình đầu. */
