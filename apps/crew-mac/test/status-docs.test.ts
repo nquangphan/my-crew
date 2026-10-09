@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   mkdirSync,
@@ -23,7 +24,14 @@ import {
   sendDocsSnapshots,
   sendStatus,
 } from '../src/commands/status.js';
-import { buildDocsSnapshot, removeOwnTempDir, SCAN_MANIFEST, snapshotCommit } from '../src/status/docs.js';
+import {
+  buildDocsSnapshot,
+  collectCommits,
+  isAncestor,
+  removeOwnTempDir,
+  SCAN_MANIFEST,
+  snapshotCommit,
+} from '../src/status/docs.js';
 import { fakeMac } from './helpers/fake-mac.js';
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
@@ -408,5 +416,186 @@ describe('status docs snapshots', () => {
     });
     expect(calls).toBe(1);
     expect(git(repo, 'worktree', 'list', '--porcelain').split('worktree ').length - 1).toBe(1);
+  });
+});
+
+describe('docs snapshot format 2', () => {
+  it('sends flows.yaml text with its sha and marks absent or oversized manifests', () => {
+    const repo = fixture();
+    expect(buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD')).manifest).toEqual({ status: 'absent' });
+    writeFileSync(
+      join(repo, 'docs', 'flows.yaml'),
+      'version: 1\nsource:\n  include: ["src/**"]\nflows: {}\n',
+    );
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-qm', 'manifest');
+    const snap = buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'));
+    expect(snap.manifest).toMatchObject({ status: 'present' });
+    if (snap.manifest.status === 'present') {
+      expect(snap.manifest.sha256).toBe(
+        createHash('sha256').update(snap.manifest.text, 'utf8').digest('hex'),
+      );
+      expect(snap.manifest.text).toContain('flows: {}');
+    }
+    expect(snap.pages.map((p) => p.path)).not.toContain('docs/flows.yaml');
+    writeFileSync(join(repo, 'docs', 'flows.yaml'), `# ${'x'.repeat(600 * 1024)}\n`);
+    git(repo, 'commit', '-qam', 'big');
+    expect(buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD')).manifest).toEqual({
+      status: 'dropped',
+      reason: 'too-large',
+    });
+    git(repo, 'rm', '-q', 'docs/flows.yaml');
+    git(repo, 'commit', '-qm', 'rm');
+    expect(buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD')).manifest).toEqual({ status: 'absent' });
+  });
+
+  it('drops a manifest that trips the secret scan', () => {
+    const repo = fixture();
+    const token = ['ghp_', 'b'.repeat(36)].join('');
+    writeFileSync(join(repo, 'docs', 'flows.yaml'), `version: 1\n# ${token}\n`);
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-qm', 'secret');
+    const snap = buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'));
+    expect(snap.manifest).toEqual({ status: 'dropped', reason: 'secret-scan' });
+    expect(JSON.stringify(snap)).not.toContain(token);
+  });
+
+  it('collects commits newest first with changed paths, merges without paths, root commit included', () => {
+    const repo = fixture();
+    const first = git(repo, 'rev-list', '--max-parents=0', 'HEAD');
+    git(repo, 'switch', '-qc', 'side');
+    writeFileSync(join(repo, 'tên có dấu cách.ts'), 'a');
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-qm', 'side');
+    git(repo, 'switch', '-q', 'main');
+    writeFileSync(join(repo, 'src.ts'), 'b');
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-qm', 'main');
+    git(repo, 'merge', '-q', '--no-ff', '--no-edit', 'side');
+    const head = git(repo, 'rev-parse', 'HEAD');
+    const all = collectCommits(repo, head, null);
+    expect(all.truncated).toBe(false);
+    expect(all.items[0]).toEqual({ sha: head, merge: true, paths: [] });
+    expect(all.items.flatMap((c) => c.paths)).toEqual(
+      expect.arrayContaining(['src.ts', 'tên có dấu cách.ts']),
+    );
+    expect(all.items.find((c) => c.sha === first)?.paths.length).toBeGreaterThan(0);
+    const since = collectCommits(repo, head, first);
+    expect(since.base).toBe(first);
+    expect(since.items.some((c) => c.sha === first)).toBe(false);
+  });
+
+  it('skips paths with control characters and caps commits and paths', () => {
+    const repo = fixture();
+    writeFileSync(join(repo, 'bad\nname.ts'), 'x');
+    for (let i = 0; i < 510; i++) writeFileSync(join(repo, `f${i}.ts`), String(i));
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-qm', 'many');
+    const head = git(repo, 'rev-parse', 'HEAD');
+    const out = collectCommits(repo, head, null);
+    expect(out.items[0]?.paths.length).toBe(500);
+    expect(out.items[0]?.paths.some((p) => p.includes('\n'))).toBe(false);
+    expect(out.truncated).toBe(true);
+    for (let i = 0; i < 205; i++) git(repo, 'commit', '-q', '--allow-empty', '-m', `e${i}`);
+    const capped = collectCommits(repo, git(repo, 'rev-parse', 'HEAD'), null);
+    expect(capped.items.length).toBe(200);
+    expect(capped.truncated).toBe(true);
+  });
+
+  it('isAncestor follows git and survives a rewritten history', () => {
+    const repo = fixture();
+    const a = git(repo, 'rev-parse', 'HEAD');
+    git(repo, 'commit', '-q', '--allow-empty', '-m', 'b');
+    const b = git(repo, 'rev-parse', 'HEAD');
+    expect(isAncestor(repo, a, b)).toBe(true);
+    git(repo, 'reset', '-q', '--hard', a);
+    git(repo, 'commit', '-q', '--allow-empty', '-m', 'c');
+    expect(isAncestor(repo, b, git(repo, 'rev-parse', 'HEAD'))).toBe(false);
+    expect(isAncestor(repo, 'f'.repeat(40), b)).toBe(false);
+  });
+
+  function setup() {
+    const { ctx, runner } = fakeMac();
+    const repo = fixture();
+    configureStatus(ctx, 'https://paperclip.example', COMPANY);
+    addStatusRepo(ctx, PROJECT, repo);
+    runner.on('security', () => ({ stdout: 'test-secret\n' }));
+    const bodies: string[] = [];
+    const fetcher: typeof fetch = async (_url, init) => {
+      bodies.push(String(init?.body));
+      return new Response('', { status: 200 });
+    };
+    return { ctx, repo, bodies, fetcher };
+  }
+
+  it('resends once for a repo recorded before format 2, then stays quiet', async () => {
+    const { ctx, repo, bodies, fetcher } = setup();
+    const head = git(repo, 'rev-parse', 'HEAD');
+    writeFileSync(
+      join(ctx.home, '.crew', 'status-repos.json'),
+      JSON.stringify([{ projectId: PROJECT, path: realpathSync(repo), lastCommit: head }]),
+      { mode: 0o600 },
+    );
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(1);
+    const body = JSON.parse(bodies[0] ?? '{}');
+    expect(body.format).toBe(2);
+    expect(body.commits.base).toBeNull();
+    expect(listStatusRepos(ctx)[0]?.format).toBe(2);
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(1);
+  });
+
+  it('sends only new commits after the previous snapshot', async () => {
+    const { ctx, repo, bodies, fetcher } = setup();
+    await sendDocsSnapshots(ctx, fetcher);
+    const old = git(repo, 'rev-parse', 'HEAD');
+    writeFileSync(join(repo, 'docs', 'more.md'), '# More\n');
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: more');
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(2);
+    const body = JSON.parse(bodies[1] ?? '{}');
+    expect(body.commits.base).toBe(old);
+    expect(body.commits.items).toHaveLength(1);
+    expect(body.commits.items[0].paths).toEqual(['docs/more.md']);
+  });
+
+  it('falls back to a full history when the previous commit is no longer an ancestor', async () => {
+    const { ctx, repo, bodies, fetcher } = setup();
+    git(repo, 'commit', '-q', '--allow-empty', '-m', 'extra');
+    await sendDocsSnapshots(ctx, fetcher);
+    git(repo, 'reset', '-q', '--hard', 'HEAD~1');
+    git(repo, 'commit', '-q', '--allow-empty', '-m', 'rewritten');
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(2);
+    expect(JSON.parse(bodies[1] ?? '{}').commits.base).toBeNull();
+  });
+
+  it('drops commit paths when the full body exceeds 5 MB', async () => {
+    const { ctx, repo, bodies, fetcher } = setup();
+    writeFileSync(join(repo, 'docs', 'large.md'), `# Large\n${'x'.repeat(Math.floor(4.9 * 1024 * 1024))}\n`);
+    const deep = join(repo, ...['a', 'b', 'c', 'd'].map((c) => c.repeat(200)));
+    mkdirSync(deep, { recursive: true });
+    for (let i = 0; i < 500; i++)
+      writeFileSync(join(deep, `f${String(i).padStart(4, '0')}${'z'.repeat(80)}.ts`), '1');
+    git(repo, 'add', '-A');
+    git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'big');
+    await sendDocsSnapshots(ctx, fetcher);
+    expect(bodies).toHaveLength(1);
+    const body = JSON.parse(bodies[0] ?? '{}');
+    expect(body.commits.truncated).toBe(true);
+    expect(body.commits.items.every((c: { paths: string[] }) => c.paths.length === 0)).toBe(true);
+    expect(Buffer.byteLength(bodies[0] ?? '', 'utf8')).toBeLessThanOrEqual(5 * 1024 * 1024);
+  }, 60_000);
+
+  it('rejects an unknown format in status-repos.json', () => {
+    const { ctx } = fakeMac();
+    writeFileSync(
+      join(ctx.home, '.crew', 'status-repos.json'),
+      JSON.stringify([{ projectId: PROJECT, path: '/tmp/x', lastCommit: null, format: 3 }]),
+      { mode: 0o600 },
+    );
+    expect(() => listStatusRepos(ctx)).toThrow('Danh sách repo không hợp lệ');
   });
 });

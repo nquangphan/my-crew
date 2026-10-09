@@ -16,7 +16,14 @@ import {
 } from 'node:fs';
 import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
 import type { MacContext } from '../context.js';
-import { buildDocsSnapshot, snapshotCommit, snapshotCommitFromRefs } from '../status/docs.js';
+import {
+  buildDocsSnapshot,
+  collectCommits,
+  isAncestor,
+  scrubCommitPaths,
+  snapshotCommit,
+  snapshotCommitFromRefs,
+} from '../status/docs.js';
 import { buildMachineReport } from '../status/report.js';
 import { signCrewBody } from '../status/sign.js';
 
@@ -37,10 +44,13 @@ function lastPath(ctx: MacContext): string {
 function reposPath(ctx: MacContext): string {
   return join(ctx.home, '.crew', 'status-repos.json');
 }
+const DOCS_BODY_MAX_BYTES = 5 * 1024 * 1024;
+
 export interface StatusRepo {
   projectId: string;
   path: string;
   lastCommit: string | null;
+  format?: 2;
 }
 export function listStatusRepos(ctx: MacContext): StatusRepo[] {
   try {
@@ -51,7 +61,8 @@ export function listStatusRepos(ctx: MacContext): StatusRepo[] {
         !item ||
         !UUID_PATTERN.test(item.projectId) ||
         !isAbsolute(item.path) ||
-        !(item.lastCommit === null || /^[0-9a-f]{40}$/.test(item.lastCommit))
+        !(item.lastCommit === null || /^[0-9a-f]{40}$/.test(item.lastCommit)) ||
+        !(item.format === undefined || item.format === 2)
       )
         throw new Error('Danh sách repo không hợp lệ');
       return item as StatusRepo;
@@ -272,22 +283,36 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
       const selected = await snapshotCommit(repo.path);
       const { commit } = selected;
       if (selected.fetchFailed) ctx.out(`Không fetch được origin của ${repo.projectId}`);
-      if (commit === repo.lastCommit) continue;
+      if (commit === repo.lastCommit && repo.format === 2) continue;
+      const base =
+        repo.format === 2 && repo.lastCommit && isAncestor(repo.path, repo.lastCommit, commit)
+          ? repo.lastCommit
+          : null;
       const snapshot = buildDocsSnapshot(repo.path, commit, basename(repo.path));
+      const commits = scrubCommitPaths(repo.path, collectCommits(repo.path, commit, base));
       if (snapshot.dropped.length > 0)
         ctx.out(
           `crew-mac status: đã bỏ ${snapshot.dropped.length} file docs do secret-scan trong repo ${repo.projectId}.`,
         );
-      const body = JSON.stringify({
+      const payload = {
         version: 1,
+        format: 2,
         companyId: config.companyId,
         machineId: config.machineId,
         projectId: repo.projectId,
         repo: basename(repo.path),
         commit,
         ...snapshot,
-      });
-      if (Buffer.byteLength(body, 'utf8') > 5 * 1024 * 1024) {
+        commits,
+      };
+      let body = JSON.stringify(payload);
+      if (Buffer.byteLength(body, 'utf8') > DOCS_BODY_MAX_BYTES) {
+        body = JSON.stringify({
+          ...payload,
+          commits: { ...commits, truncated: true, items: commits.items.map((c) => ({ ...c, paths: [] })) },
+        });
+      }
+      if (Buffer.byteLength(body, 'utf8') > DOCS_BODY_MAX_BYTES) {
         ctx.out(`crew-mac status: ảnh chụp docs của ${repo.projectId} vượt 5 MB; sẽ thử lại.`);
         success = false;
         continue;
@@ -305,7 +330,7 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
       mutateRepos(ctx, (current) =>
         current.map((item) =>
           item.projectId === repo.projectId && item.path === repo.path
-            ? { ...item, lastCommit: commit }
+            ? { ...item, lastCommit: commit, format: 2 as const }
             : item,
         ),
       );

@@ -221,13 +221,13 @@ triển khai bản nhận trường `app`.
 
 ## Ảnh chụp docs
 
-`~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit}` với quyền `0600`. `projectId` phải là UUID;
+`~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit, format?}` với quyền `0600`. `format` thiếu hoặc bằng `2`, giá trị khác thì `listStatusRepos` ném `Danh sách repo không hợp lệ`. `projectId` phải là UUID;
 `path` là đường dẫn tuyệt đối tới repo git. Trong cùng lượt gửi, `status send` xét từng repo. Nó fetch `origin`
 tối đa 20 giây rồi ưu tiên commit `origin/HEAD`; fetch lỗi thì dùng ref sẵn có và chỉ log cảnh báo kèm `projectId`.
 Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cuối cùng
 `HEAD`. Vì vậy repo chỉ có nhánh khác cần đặt `origin/HEAD` để chọn đúng nhánh mặc định.
 
-Khi commit khác `lastCommit`, lệnh dựng ảnh chụp từ mọi file `.md` dưới `docs/` ở commit đó bằng git, không đọc
+Khi commit khác `lastCommit` (hoặc repo chưa có `format: 2`, xem cuối mục), lệnh dựng ảnh chụp từ mọi file `.md` dưới `docs/` ở commit đó bằng git, không đọc
 working tree. Git worktree và repo secret-scan trong thư mục tạm `crew-mac-docs-*` được xóa sau mỗi lần dựng ảnh chụp.
 Một git worktree tạm detached được dùng để chạy `crew-docs check --all`; kết quả 0/1/2–3 lần lượt
 thành `auditState` `verified`/`invalid`/`unverified`. Lệnh lấy bundle từ git config `crew-docs.bundle` của repo.
@@ -238,7 +238,24 @@ và lý do `secret-scan` vào `dropped`. File Markdown có byte NUL cũng bị b
 được các dòng của nó. Bản tin chứa title, nội dung, SHA-256, `parentPath` là thư mục cha (kể cả `docs` cho file ngay dưới `docs/`) và trạng thái link Markdown
 tương đối (`ok`, `missing`, `external`, `unverified`).
 
-Body JSON tối đa 5 MB. Nếu vượt giới hạn, HTTP khác 2xx hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau
+Body mang `format: 2` và thêm hai trường tùy chọn (`version` vẫn là `1`, server cũ coi như Mac cũ):
+
+- `manifest`: nội dung `docs/flows.yaml` ở commit đó (chỉ blob thường `100644`/`100755`), tính `sha256` trên UTF-8 của
+  `text`. Ba trạng thái: `present` (`text` tối đa 512 KiB), `absent` (không có file), `dropped` với lý do `too-large`
+  (quá 512 KiB hoặc có byte NUL) hoặc `secret-scan`. Văn bản được quét R7 cùng repo secret-scan, ghi dưới tên tạm
+  `docs/scan-flows-yaml.md` vì `docs/flows.yaml` là manifest mẫu `SCAN_MANIFEST` của repo quét. Manifest không vào `pages`
+  hay `dropped`.
+- `commits`: `{base, truncated, items}` lấy bằng `git rev-list --parents`, mới nhất trước, tối đa 200 commit. Mỗi item là
+  `{sha, merge, paths}`: `paths` lấy từ `git diff-tree -r -z --root` (commit gốc có đủ file), tối đa 500 path, mỗi path
+  tối đa 1024 ký tự, path chứa ký tự điều khiển bị bỏ; merge commit có `paths` rỗng. Mọi path còn được quét R7 (một path
+  mỗi dòng của file tạm) và path bị phát hiện bị bỏ. Vượt 200 commit hoặc 500 path thì `truncated: true`. `base` là
+  `lastCommit` khi repo đã ở định dạng 2 và `lastCommit` còn là tổ tiên của commit mới (`git merge-base --is-ancestor`);
+  ngược lại (lần đầu, force-push) `base` là `null` và lấy 200 commit gần nhất.
+
+Repo ghi từ bản cũ chưa có `format` được gửi lại một lần dù commit không đổi; gửi xong, `status-repos.json` ghi
+`format: 2` cùng `lastCommit`. Plugin R2-5 phải lên prod trước khi cài `crew-mac` mới, vì webhook cũ từ chối khóa lạ.
+
+Body JSON tối đa 5 MB. Nếu body đầy đủ vượt, lệnh gửi lại với mọi `paths` rỗng và `commits.truncated: true`. Nếu vẫn vượt, hoặc HTTP khác 2xx, hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau
 thử lại. Khi POST `docs-snapshot` thành công, nó mới cập nhật commit đã gửi. Bản tin dùng cùng secret Keychain và
 cùng quy tắc HMAC với bản tin máy. Lệnh chỉ cảnh báo số trang bị bỏ, không ghi nội dung hay chuỗi bí mật ra log.
 

@@ -27,6 +27,20 @@ interface Link {
  */
 export const SCAN_MANIFEST = 'version: 1\nsource:\n  include:\n    - "scan-none/**"\nflows: {}\n';
 
+export type FlowsManifestPayload =
+  | { status: 'present'; text: string; sha256: string }
+  | { status: 'absent' }
+  | { status: 'dropped'; reason: 'secret-scan' | 'too-large' };
+export interface CommitsPayload {
+  base: string | null;
+  truncated: boolean;
+  items: { sha: string; merge: boolean; paths: string[] }[];
+}
+export const MANIFEST_MAX_BYTES = 512 * 1024;
+const MAX_COMMITS = 200;
+const MAX_PATHS = 500;
+const MANIFEST_SCAN_PATH = 'docs/scan-flows-yaml.md';
+
 function git(root: string, args: string[]): string {
   return execFileSync('git', ['-C', root, ...args], {
     encoding: 'utf8',
@@ -68,6 +82,69 @@ export function snapshotCommitFromRefs(root: string): string {
     if (sha && /^[0-9a-f]{40}$/.test(sha)) return sha;
   }
   throw new Error('Không tìm được commit mặc định');
+}
+
+export function isAncestor(root: string, ancestor: string, commit: string): boolean {
+  if (!/^[0-9a-f]{40}$/.test(ancestor) || !/^[0-9a-f]{40}$/.test(commit)) return false;
+  return (
+    spawnSync('git', ['-C', root, 'merge-base', '--is-ancestor', ancestor, commit], { timeout: 30_000 })
+      .status === 0
+  );
+}
+
+/** Commits newest first, reachable from `commit` and not from `base`; merges carry no paths. */
+export function collectCommits(root: string, commit: string, base: string | null): CommitsPayload {
+  const args = ['rev-list', '--parents', `--max-count=${MAX_COMMITS + 1}`, commit];
+  if (base) args.push(`^${base}`);
+  const lines = git(root, args).split('\n').filter(Boolean);
+  let truncated = lines.length > MAX_COMMITS;
+  const items = lines.slice(0, MAX_COMMITS).map((line) => {
+    const [sha = '', ...parents] = line.trim().split(' ');
+    if (parents.length > 1) return { sha, merge: true, paths: [] as string[] };
+    const all = git(root, ['diff-tree', '--no-commit-id', '--name-only', '-r', '-z', '--root', sha])
+      .split('\0')
+      .filter((p) => p.length > 0 && p.length <= 1024 && ![...p].some((ch) => ch.charCodeAt(0) < 0x20));
+    if (all.length > MAX_PATHS) truncated = true;
+    return { sha, merge: false, paths: all.slice(0, MAX_PATHS) };
+  });
+  return { base, truncated, items };
+}
+
+/**
+ * File names can hold credentials too, so every commit path goes through the same R7 scan as page text
+ * (one path per line of a throwaway file) and a flagged path is left out of the payload.
+ */
+export function scrubCommitPaths(root: string, commits: CommitsPayload): CommitsPayload {
+  const unique = [...new Set(commits.items.flatMap((c) => c.paths))];
+  if (unique.length === 0) return commits;
+  const bundle = checkBundle(root);
+  const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-docs-'));
+  try {
+    git(tmp, ['init', '-q']);
+    mkdirSync(join(tmp, 'docs'));
+    writeFileSync(join(tmp, 'docs', 'flows.yaml'), SCAN_MANIFEST);
+    writeFileSync(join(tmp, 'docs', 'commit-paths.md'), `${unique.join('\n')}\n`);
+    git(tmp, ['add', '--', 'docs']);
+    const scan = spawnSync(process.execPath, [bundle, 'check', '--staged'], {
+      cwd: tmp,
+      encoding: 'utf8',
+      timeout: 60_000,
+    });
+    if (scan.error || scan.status === null || scan.status > 1 || /^R1 /m.test(scan.stdout))
+      throw new Error('Không chạy được secret-scan');
+    const flagged = new Set<string>();
+    for (const line of scan.stdout.split('\n')) {
+      const match = /^R7 docs\/commit-paths\.md: line (\d+) looks like a credential/.exec(line);
+      const path = match?.[1] ? unique[Number(match[1]) - 1] : undefined;
+      if (path) flagged.add(path);
+    }
+    return {
+      ...commits,
+      items: commits.items.map((c) => ({ ...c, paths: c.paths.filter((p) => !flagged.has(p)) })),
+    };
+  } finally {
+    removeOwnTempDir(tmp);
+  }
 }
 
 function linksOf(page: Page, pagePaths: ReadonlySet<string>, allDocs: ReadonlySet<string>): Link[] {
@@ -190,6 +267,21 @@ export function buildDocsSnapshot(root: string, commit: string, repoName = basen
       const full = join(scanRoot, scanPath);
       writeFileSync(full, text);
     }
+    let manifest: FlowsManifestPayload = { status: 'absent' };
+    if (/^100(644|755) blob /.test(git(root, ['ls-tree', commit, '--', 'docs/flows.yaml']))) {
+      const text = git(root, ['show', `${commit}:docs/flows.yaml`]);
+      if (Buffer.byteLength(text, 'utf8') > MANIFEST_MAX_BYTES || text.includes('\0')) {
+        manifest = { status: 'dropped', reason: 'too-large' };
+      } else {
+        // `docs/flows.yaml` is the scan repo's own manifest, so the text goes under another name.
+        writeFileSync(join(scanRoot, MANIFEST_SCAN_PATH), text);
+        manifest = {
+          status: 'present',
+          text,
+          sha256: createHash('sha256').update(text, 'utf8').digest('hex'),
+        };
+      }
+    }
     git(scanRoot, ['add', '--', 'docs']);
     const scan = spawnSync(process.execPath, [bundle, 'check', '--staged'], {
       cwd: scanRoot,
@@ -204,6 +296,10 @@ export function buildDocsSnapshot(root: string, commit: string, repoName = basen
       if (match?.[1]) {
         const path = scanPaths.get(match[1]);
         const metadataPath = metadataPaths.get(match[1]);
+        if (match[1] === MANIFEST_SCAN_PATH) {
+          manifest = { status: 'dropped', reason: 'secret-scan' };
+          continue;
+        }
         if (match[1] === 'docs/repo-metadata.md') throw new Error('Tên repo không qua secret-scan');
         if (metadataPath) metadataDropped.add(metadataPath);
         else if (path) droppedPaths.add(path);
@@ -231,6 +327,7 @@ export function buildDocsSnapshot(root: string, commit: string, repoName = basen
     return {
       auditState: checkExit === 0 ? 'verified' : checkExit === 1 ? 'invalid' : 'unverified',
       checkExit,
+      manifest,
       pages,
       links: pages.flatMap((page) => linksOf(page, pagePaths, allDocs)),
       dropped: (
