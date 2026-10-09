@@ -9,8 +9,9 @@ import { runInitCheck, workflowCheck } from '../src/commands/workflow-check.js';
 import type { MacContext } from '../src/context.js';
 import { createRunner } from '../src/system.js';
 import { installSuperpowersPin } from '../src/workflows/install.js';
+import { pinDir as workflowPinDir } from '../src/workflows/pin.js';
 import { BUILTIN_AGENTS, BUILTIN_SKILLS } from '../src/workflows/run-init.js';
-import { FIXTURE_PIN, fakeMac } from './helpers/fake-mac.js';
+import { FIXTURE_BMAD_PIN, FIXTURE_PIN, fakeMac } from './helpers/fake-mac.js';
 
 function git(cwd: string, ...args: string[]): void {
   execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
@@ -31,6 +32,16 @@ function worktree(): string {
   return dir;
 }
 
+/** Repo git thật không có `.claude`, `.mcp.json` hay `_bmad`. */
+function bareRepo(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'crew-wfc-bare-'));
+  git(dir, 'init', '-q');
+  writeFileSync(join(dir, 'README.md'), 'x\n');
+  git(dir, 'add', 'README.md');
+  git(dir, 'commit', '-q', '-m', 'init');
+  return dir;
+}
+
 function installedMac(): { ctx: MacContext; home: string; pinDir: string } {
   const mac = fakeMac();
   const ctx = { ...mac.ctx, runner: createRunner() };
@@ -42,7 +53,55 @@ describe('workflowCheck', () => {
     const { ctx, pinDir } = installedMac();
     const r = await workflowCheck(ctx, { root: worktree(), pluginDir: pinDir });
     expect(r.ok).toBe(true);
-    expect(r.lines[0]).toMatch(/^crew-workflow ok pin=superpowers@9\.9\.9 project=2/);
+    expect(r.lines[0]).toBe(
+      `crew-workflow ok pin=superpowers@9.9.9 rev=ffffffffffff sum=${FIXTURE_PIN.checksum.slice(0, 12)} project=2 pinned-dup=0`,
+    );
+  });
+
+  it('--plugin-dir là thư mục ghim BMAD, repo sạch thì ok với dòng pin bmad', async () => {
+    const { ctx } = installedMac();
+    const r = await workflowCheck(ctx, {
+      root: bareRepo(),
+      pluginDir: workflowPinDir(ctx.home, ctx.bmadPin),
+    });
+    expect(r).toEqual({
+      ok: true,
+      lines: [
+        `crew-workflow ok pin=bmad@9.9.9-next rev=bbbbbbbbbbbb sum=${FIXTURE_BMAD_PIN.checksum.slice(0, 12)} project=0 pinned-dup=0`,
+      ],
+    });
+  });
+
+  it('run BMAD trên repo bật superpowers thì blocked nạp chéo; run Superpowers cùng repo vẫn ok', async () => {
+    const { ctx, pinDir: spDir } = installedMac();
+    const root = worktree();
+    writeFileSync(
+      join(root, '.claude', 'settings.json'),
+      JSON.stringify({ enabledPlugins: { 'superpowers@claude-plugins-official': true } }),
+    );
+    git(root, 'add', '.claude/settings.json');
+    git(root, 'commit', '-q', '-m', 's');
+    const bmad = await workflowCheck(ctx, { root, pluginDir: workflowPinDir(ctx.home, ctx.bmadPin) });
+    expect(bmad.ok).toBe(false);
+    expect(bmad.lines.join('\n')).toContain('bật workflow superpowers khác với workflow của run (nạp chéo)');
+    expect((await workflowCheck(ctx, { root, pluginDir: spDir })).ok).toBe(true);
+  });
+
+  it('thư mục ghim BMAD sửa một byte thì WORKFLOW_SOURCE_MISMATCH', async () => {
+    const { ctx } = installedMac();
+    const dir = workflowPinDir(ctx.home, ctx.bmadPin);
+    writeFileSync(join(dir, 'skills', 'm1', 'SKILL.md'), '---\nname: m2\n---\n');
+    const r = await workflowCheck(ctx, { root: bareRepo(), pluginDir: dir });
+    expect(r.ok).toBe(false);
+    expect(r.lines.join('\n')).toContain(`crew-workflow blocked: ${dir} (WORKFLOW_SOURCE_MISMATCH)`);
+  });
+
+  it('dấu .in_use trong thư mục ghim không làm đổi checksum', async () => {
+    const { ctx } = installedMac();
+    const dir = workflowPinDir(ctx.home, ctx.bmadPin);
+    mkdirSync(join(dir, '.in_use'));
+    writeFileSync(join(dir, '.in_use', '11111111-2222-4333-8444-555555555555'), '4242 1760000000\n');
+    expect((await workflowCheck(ctx, { root: bareRepo(), pluginDir: dir })).ok).toBe(true);
   });
 
   it('--plugin-dir là cache của owner, không phải bản ghim', async () => {
@@ -58,7 +117,10 @@ describe('workflowCheck', () => {
     );
     const r = await workflowCheck(ctx, { root: worktree(), pluginDir: cache });
     expect(r.ok).toBe(false);
-    expect(r.lines.join('\n')).toContain('không phải bản ghim');
+    expect(r.lines).toEqual([
+      `crew-workflow blocked: --plugin-dir ${cache} không phải bản ghim của workflow nào đã chứng nhận ` +
+        `(${workflowPinDir(home, FIXTURE_PIN)}, ${workflowPinDir(home, FIXTURE_BMAD_PIN)})`,
+    ]);
   });
 
   it('thư mục ghim bị sửa thì WORKFLOW_SOURCE_MISMATCH', async () => {
@@ -194,14 +256,19 @@ describe('runInitCheck', () => {
     expect(text).toContain('mcp riêng (source=user)');
   });
 
-  it('thiếu superpowers từ bản ghim hoặc không có system/init thì blocked', async () => {
-    const { ctx, pinDir } = installedMac();
+  it('không nạp workflow ghim nào, superpowers chỉ từ cache, hoặc không có system/init thì blocked', async () => {
+    const { ctx, home, pinDir } = installedMac();
     const root = worktree();
     const noPin = JSON.parse(initLine(pinDir)) as { plugins: unknown[] };
     noPin.plugins = noPin.plugins.slice(1);
     const r = await runInitCheck(ctx, { root, log: streamLog(JSON.stringify(noPin)) });
-    expect(r.ok).toBe(false);
-    expect(r.lines.join('\n')).toContain('không nạp Superpowers từ bản ghim');
+    expect(r).toEqual({ ok: false, lines: ['crew-workflow blocked: không nạp workflow ghim nào'] });
+    const cache = join(home, '.claude', 'plugins', 'cache', 'x', 'superpowers', '9.9.9');
+    const fromCache = JSON.parse(initLine(pinDir)) as { plugins: { path: string }[] };
+    (fromCache.plugins[0] as { path: string }).path = cache;
+    const c = await runInitCheck(ctx, { root, log: streamLog(JSON.stringify(fromCache)) });
+    expect(c.ok).toBe(false);
+    expect(c.lines.join('\n')).toContain(`không nạp superpowers từ bản ghim ${pinDir}`);
     const none = await runInitCheck(ctx, { root, log: 'không phải json\n{"type":"result"}\n' });
     expect(none).toEqual({ ok: false, lines: ['crew-workflow blocked: log không có dòng system/init'] });
   });
@@ -229,6 +296,75 @@ describe('runInitCheck', () => {
       }),
     );
     expect((await runInitCheck(ctx, { root, log })).ok).toBe(true);
+  });
+});
+
+describe('runInitCheck run BMAD', () => {
+  /** `system/init` của run BMAD theo hình dạng đo ở SP-0 (claude 2.1.295, `bmad@inline`). */
+  function bmadInit(dir: string, extra: { plugins?: unknown[]; skills?: string[] } = {}) {
+    return streamLog(
+      JSON.stringify({
+        type: 'system',
+        subtype: 'init',
+        plugins: [
+          { name: 'bmad', path: dir, source: 'bmad@inline', version: '9.9.9-next' },
+          { name: 'cc-plugin-telemetry', path: 'builtin', source: 'cc-plugin-telemetry@builtin' },
+          ...(extra.plugins ?? []),
+        ],
+        skills: ['bmad:bmad-prd', 'bmad:bmad-architecture', ...BUILTIN_SKILLS, ...(extra.skills ?? [])],
+        agents: [...BUILTIN_AGENTS],
+        mcp_servers: [{ name: 'claude.ai Claude Docs', status: 'connected', source: 'claudeai' }],
+      }),
+    );
+  }
+
+  it('plugin bmad từ thư mục ghim và skill bmad:* thì đạt', async () => {
+    const { ctx } = installedMac();
+    const dir = workflowPinDir(ctx.home, ctx.bmadPin);
+    expect(await runInitCheck(ctx, { root: bareRepo(), log: bmadInit(dir) })).toEqual({
+      ok: true,
+      lines: ['crew-workflow init ok: bmad@9.9.9-next từ bản ghim, 2 skill bmad:*'],
+    });
+  });
+
+  it('thêm superpowers từ cache owner thì nạp nhiều hơn một workflow', async () => {
+    const { ctx, home } = installedMac();
+    const cache = join(
+      home,
+      '.claude',
+      'plugins',
+      'cache',
+      'claude-plugins-official',
+      'superpowers',
+      '9.9.9',
+    );
+    const log = bmadInit(workflowPinDir(ctx.home, ctx.bmadPin), {
+      plugins: [
+        { name: 'superpowers', path: cache, source: 'superpowers@claude-plugins-official', version: '9.9.9' },
+      ],
+      skills: ['superpowers:brainstorming'],
+    });
+    expect(await runInitCheck(ctx, { root: bareRepo(), log })).toEqual({
+      ok: false,
+      lines: ['crew-workflow blocked: nạp nhiều hơn một workflow (bmad, superpowers)'],
+    });
+  });
+
+  it('plugin bmad từ marketplace, đúng version mà khác checksum thì WORKFLOW_SOURCE_MISMATCH', async () => {
+    const { ctx, home } = installedMac();
+    const market = join(home, '.claude', 'plugins', 'marketplaces', 'bmad');
+    mkdirSync(market, { recursive: true });
+    writeFileSync(join(market, 'README.md'), 'khác\n');
+    const init = JSON.parse(bmadInit(market).split('\n')[2] as string) as { plugins: { source: string }[] };
+    (init.plugins[0] as { source: string }).source = 'bmad@bmad';
+    const r = await runInitCheck(ctx, { root: bareRepo(), log: streamLog(JSON.stringify(init)) });
+    expect(r.ok).toBe(false);
+    expect(r.lines).toContain(
+      `crew-workflow blocked: plugin bmad@bmad (${market}): WORKFLOW_SOURCE_MISMATCH, khác bản ghim 9.9.9-next`,
+    );
+    expect(r.lines).toContain(
+      `crew-workflow blocked: không nạp bmad từ bản ghim ${workflowPinDir(ctx.home, ctx.bmadPin)}`,
+    );
   });
 });
 

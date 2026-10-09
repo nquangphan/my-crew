@@ -11,13 +11,14 @@ import { isAbsolute, join, relative, sep } from 'node:path';
 import type { MacContext } from '../context.js';
 import { comparablePath } from '../paths.js';
 import { shQuote } from '../system.js';
-import { superpowersPinDir, type WorkflowPin } from './pin.js';
+import { WORKFLOW_LABEL, type WorkflowPin, pinDir as workflowPinDir } from './pin.js';
+import { certifiedWorkflows } from './registry.js';
 
 export type Origin = 'pinned' | 'paperclip' | 'project' | 'blocked';
 
 export interface DiscoveredSource {
   path: string;
-  kind: 'skill' | 'agent' | 'command' | 'hook' | 'plugin' | 'settings' | 'mcp';
+  kind: 'skill' | 'agent' | 'command' | 'hook' | 'plugin' | 'settings' | 'mcp' | 'bmad';
   origin: Origin;
   /** Lý do chặn (`origin === 'blocked'`). */
   reason?: string;
@@ -32,6 +33,17 @@ export const GIT_TIMEOUT = 'git quá hạn';
 export const UNTRACKED_REASON = 'không được git track trong worktree agent';
 export const IGNORED_REASON = 'bị git ignore trong worktree agent';
 export const DIRTY_REASON = 'đã sửa so với commit (chưa commit) trong worktree agent';
+/** Đuôi lý do khi repo bật plugin của workflow khác; câu đầy đủ: `bật workflow <id> khác với workflow của run (nạp chéo)`. */
+export const CROSS_WORKFLOW_REASON = 'khác với workflow của run (nạp chéo)';
+/**
+ * Đuôi lý do khi repo bật plugin cùng workflow nhưng khác tên plugin ghim (ví dụ `bmad-method@bmad` trong run BMAD):
+ * `--plugin-dir` chỉ thay plugin trùng tên, nên plugin này nạp song song với bản ghim. Câu đầy đủ:
+ * `bật plugin <tên> ngoài bản ghim, nạp song song với workflow của run`.
+ */
+export const PARALLEL_PLUGIN_REASON = 'ngoài bản ghim, nạp song song với workflow của run';
+export const BMAD_SCRIPT_MISMATCH_REASON =
+  'khác bản ghim BMAD; chạy crew-mac bmad setup-project hoặc checkout lại từ commit';
+export const BMAD_PERSONAL_REASON = 'lớp cá nhân của BMAD chưa commit';
 
 function contained(parent: string, child: string): boolean {
   const rel = relative(comparablePath(parent), comparablePath(child));
@@ -82,11 +94,11 @@ interface GitView {
 const toPosix = (path: string) => path.split(sep).join('/');
 
 /**
- * Ba lệnh git cho cả `.claude/` và `.mcp.json` của worktree: vị trí của `root` trong repo (`rev-parse --show-prefix`,
+ * Ba lệnh git cho cả `.claude/`, `.mcp.json` (và `_bmad/` khi run là BMAD) của worktree: vị trí của `root` trong repo (`rev-parse --show-prefix`,
  * để `root` là thư mục con vẫn đúng), danh sách file đã track (kèm mode, `--full-name`) và trạng thái (chưa track, bị
  * ignore, đã sửa; porcelain luôn tính từ gốc repo). Không giữ lock của index để không tranh với git của chính run.
  */
-async function readGit(ctx: MacContext, root: string): Promise<GitView> {
+async function readGit(ctx: MacContext, root: string, bmad: boolean): Promise<GitView> {
   const opts = { timeoutMs: 10_000 };
   const fail = (r: { code: number; stderr: string; timedOut: boolean }): GitView => ({
     prefix: '',
@@ -100,7 +112,7 @@ async function readGit(ctx: MacContext, root: string): Promise<GitView> {
   const top = await git(['-C', root, 'rev-parse', '--show-prefix']);
   if (top.code !== 0 || top.timedOut) return fail(top);
   const prefix = top.stdout.trim().replace(/\/$/, '');
-  const paths = ['--', '.claude', '.mcp.json'];
+  const paths = ['--', '.claude', '.mcp.json', ...(bmad ? ['_bmad'] : [])];
   const files = await git(['-C', root, 'ls-files', '--full-name', '-s', '-z', ...paths]);
   if (files.code !== 0 || files.timedOut) return fail(files);
   const st = await git([
@@ -274,7 +286,8 @@ export async function discoverSources(
   root: string,
   pin: WorkflowPin = ctx.superpowersPin,
 ): Promise<DiscoveredSource[]> {
-  const pinDir = superpowersPinDir(ctx.home, pin);
+  const pinDir = workflowPinDir(ctx.home, pin);
+  const bmad = pin.workflow === 'bmad';
   const claudeDir = join(root, '.claude');
   if (isSymlink(claudeDir)) {
     let target = '';
@@ -293,9 +306,12 @@ export async function discoverSources(
     }
   }
   const hasSources =
-    existsSync(claudeDir) || existsSync(join(root, '.mcp.json')) || isSymlink(join(root, '.mcp.json'));
+    existsSync(claudeDir) ||
+    existsSync(join(root, '.mcp.json')) ||
+    isSymlink(join(root, '.mcp.json')) ||
+    (bmad && existsSync(join(root, '_bmad')));
   if (!hasSources) return [];
-  const git = await readGit(ctx, root);
+  const git = await readGit(ctx, root, bmad);
   const found: DiscoveredSource[] = [];
   /** Skill, agent, command sửa dở chỉ cảnh báo (agent làm việc trên chính skill của repo); còn lại chặn. */
   const judge = (path: string, kind: DiscoveredSource['kind'], files: string[]) => {
@@ -347,9 +363,28 @@ export async function discoverSources(
     const issue = fileIssue(git, root, shared);
     if (issue)
       found.push({ path: shared, kind: 'settings', origin: 'blocked', reason: issue.reason, fix: issue.fix });
+    const workflows = certifiedWorkflows(ctx);
     for (const key of enabledPluginKeys(readJson(shared))) {
       const path = `${shared}#${key}`;
-      if (key.startsWith(`${pin.workflow}@`)) {
+      const owner = workflows.find((w) => w.pluginKeys.some((re) => re.test(key)));
+      if (owner && owner.id !== pin.workflow) {
+        found.push({
+          path,
+          kind: 'plugin',
+          origin: 'blocked',
+          reason: `bật workflow ${owner.id} ${CROSS_WORKFLOW_REASON}`,
+          fix: `Bỏ "${key}" khỏi enabledPlugins của .claude/settings.json (commit), hoặc giao issue cho agent của workflow ${owner.id}.`,
+        });
+      } else if (owner && !key.startsWith(`${pin.workflow}@`)) {
+        const name = key.slice(0, key.indexOf('@'));
+        found.push({
+          path,
+          kind: 'plugin',
+          origin: 'blocked',
+          reason: `bật plugin ${name} ${PARALLEL_PLUGIN_REASON}`,
+          fix: `Bỏ "${key}" khỏi enabledPlugins của .claude/settings.json (commit); run ${WORKFLOW_LABEL[pin.workflow]} chỉ nạp bản ghim.`,
+        });
+      } else if (owner) {
         // Đo trên Mac mini: có `--plugin-dir` thì claude chỉ nạp bản ghim (`@inline`), kể cả khi khác version với
         // bản repo bật; `run-init-check` vẫn bắt nếu có lúc nạp đôi.
         found.push({ path, kind: 'plugin', origin: 'pinned' });
@@ -365,5 +400,117 @@ export async function discoverSources(
   }
   const mcp = join(root, '.mcp.json');
   if (existsSync(mcp) || isSymlink(mcp)) judge(mcp, 'mcp', [mcp]);
+  if (bmad) judgeBmad(root, git, pinDir, found, judge);
   return found;
+}
+
+/**
+ * Đọc mọi file dưới `dir` (đệ quy, bỏ rác) thành bảng đường dẫn tương đối (dấu `/`) → nội dung. Null khi có symlink
+ * hay entry không phải file thường (không so được byte), hoặc không đọc được.
+ */
+function readScriptTree(dir: string): Map<string, Buffer> | null {
+  const files = new Map<string, Buffer>();
+  const walk = (abs: string, rel: string, depth: number): boolean => {
+    if (depth > 8) return false;
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(abs, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    for (const e of entries) {
+      if (isJunk(e.name)) continue;
+      const path = rel === '' ? e.name : `${rel}/${e.name}`;
+      if (e.isDirectory()) {
+        if (!walk(join(abs, e.name), path, depth + 1)) return false;
+      } else if (e.isFile()) {
+        files.set(path, readFileSync(join(abs, e.name)));
+      } else {
+        return false;
+      }
+    }
+    return true;
+  };
+  return walk(dir, '', 0) ? files : null;
+}
+
+/**
+ * `files` (đường dẫn tương đối dưới `_bmad/scripts`, dấu `/`) có đúng tập file và từng byte của
+ * `<pinDir>/skills/bmad/scripts` không. Rỗng hoặc bản ghim không đọc được là không khớp.
+ */
+export function compareBmadScripts(files: Map<string, Buffer>, pinDir: string): boolean {
+  const pinned = readScriptTree(join(pinDir, 'skills', 'bmad', 'scripts'));
+  if (!pinned || pinned.size === 0 || pinned.size !== files.size) return false;
+  for (const [path, content] of pinned) {
+    const other = files.get(path);
+    if (!other?.equals(content)) return false;
+  }
+  return true;
+}
+
+/** File `*.toml` dưới `dir` (đệ quy, bỏ rác, thư mục chấm và các thư mục con tên trong `skip`). */
+function tomlFiles(dir: string, skip: readonly string[] = []): string[] {
+  return walkFiles(dir, (path) => path.endsWith('.toml')).filter(
+    (path) => !skip.some((sub) => contained(join(dir, sub), path)),
+  );
+}
+
+/**
+ * Nguồn BMAD của worktree (chỉ run BMAD): `_bmad/scripts` phải giống từng byte bản ghim (chưa commit mà giống thì
+ * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và `custom/**.toml` chặn như settings;
+ * lớp cá nhân `*.user.toml` phải commit sạch. `_bmad/memory/**` và `_bmad-output/**` là dữ liệu skill ghi ra, không
+ * phải nguồn nạp.
+ */
+function judgeBmad(
+  root: string,
+  git: GitView,
+  pinDir: string,
+  found: DiscoveredSource[],
+  judge: (path: string, kind: DiscoveredSource['kind'], files: string[]) => void,
+): void {
+  const base = join(root, '_bmad');
+  const scripts = join(base, 'scripts');
+  if (existsSync(scripts) || isSymlink(scripts)) {
+    const files = isSymlink(scripts) ? null : readScriptTree(scripts);
+    if (!files || !compareBmadScripts(files, pinDir)) {
+      const r = shQuote(root);
+      found.push({
+        path: scripts,
+        kind: 'bmad',
+        origin: 'blocked',
+        reason: BMAD_SCRIPT_MISMATCH_REASON,
+        fix:
+          `Xem: git -C ${r} status -- _bmad/scripts; khôi phục: git -C ${r} checkout HEAD -- _bmad/scripts, ` +
+          'hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project.',
+      });
+    } else if (git.error) {
+      const issue = fileIssue(git, root, scripts) as FileIssue;
+      found.push({ path: scripts, kind: 'bmad', origin: 'blocked', reason: issue.reason, fix: issue.fix });
+    } else {
+      const clean = [...files.keys()].every((rel) => fileIssue(git, root, join(scripts, rel)) === null);
+      found.push({ path: scripts, kind: 'bmad', origin: clean ? 'project' : 'pinned' });
+    }
+  }
+  const config = join(base, 'config.toml');
+  if (existsSync(config) || isSymlink(config)) judge(config, 'bmad', [config]);
+  for (const file of tomlFiles(join(base, 'custom')).filter((f) => !f.endsWith('.user.toml')))
+    judge(file, 'bmad', [file]);
+  for (const file of tomlFiles(base, ['scripts', 'memory']).filter((f) => f.endsWith('.user.toml'))) {
+    const issue = fileIssue(git, root, file);
+    if (!issue) {
+      found.push({ path: file, kind: 'bmad', origin: 'project' });
+      continue;
+    }
+    const personal = [UNTRACKED_REASON, IGNORED_REASON, DIRTY_REASON].includes(issue.reason);
+    const rel = toPosix(relative(root, file));
+    found.push({
+      path: file,
+      kind: 'bmad',
+      origin: 'blocked',
+      reason: personal ? BMAD_PERSONAL_REASON : issue.reason,
+      fix: personal
+        ? `Xử lý: xóa ${rel} (lớp cá nhân không dùng trong run agent), hoặc commit nếu cố ý dùng cho cả nhóm.`
+        : issue.fix,
+    });
+  }
 }

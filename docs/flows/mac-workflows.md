@@ -34,10 +34,13 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
   (`workflows gc` có trong cách dùng, chưa làm.)
 - `crew-mac doctor` kiểm bản ghim (check `superpowers-pin`, `bmad-pin`).
 - `crew-mac workflow-check --root <worktree> --plugin-dir <dir>`: wrapper `crew-claude-run` gọi trước mỗi run
-  Paperclip. In `crew-workflow ok pin=superpowers@6.4.1 project=<n> pinned-dup=<n>` và thoát 0, hoặc mỗi nguồn bị
-  chặn một dòng `crew-workflow blocked: <đường dẫn> (<lý do>)` và thoát 78. Đầu vào sai thì thoát 2.
+  Paperclip. Workflow của run là workflow có thư mục ghim trùng `--plugin-dir`. In
+  `crew-workflow ok pin=<id>@<version> rev=<rev12> sum=<checksum12> project=<n> pinned-dup=<n>` (ví dụ
+  `pin=bmad@6.13.0-next rev=d009608292d8 sum=7f62e5cb6033`) và thoát 0, hoặc mỗi nguồn bị chặn một dòng
+  `crew-workflow blocked: <đường dẫn> (<lý do>)` và thoát 78. Đầu vào sai thì thoát 2.
 - `crew-mac run-init-check --root <worktree> --log <file stream-json | ->`: kiểm sau run (nghiệm thu, điều tra), đọc
-  dòng `system/init` của log run. Mã thoát giống `workflow-check`; log không đọc được thì thoát 1.
+  dòng `system/init` của log run, tự nhận workflow của run theo tên plugin. Mã thoát giống `workflow-check`; log không
+  đọc được thì thoát 1.
 
 ## Các bước
 
@@ -86,15 +89,22 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
    - Sau đó chạy `~/.crew/bin/crew-mac workflow-check --root "$PWD" --plugin-dir <dir>`, in ra stderr để vào log run.
      Lệnh này khác 0 hoặc không có `crew-mac` thì thoát 78.
    - Thoát 78 thì không chạy agent, không ghi `pgid`/`started`.
+   - Run id hợp lệ (chỉ hex và `-`): sau `pgid`/`started`, ghi dấu đang dùng `<plugin_dir>/.in_use/<runId>` =
+     `<pid> <started>\n` (`pid` là `$$`, cũng là pid của `claude` sau `exec`), ghi file tạm rồi `mv`. Dấu này nằm ngoài
+     checksum (bỏ `.in_use` ở gốc) và để dọn bản ghim cũ biết bản nào còn run sống. Không ghi được (thư mục chỉ đọc)
+     thì vẫn chạy agent.
    - **Khe `pgid` muộn:** `pgid`/`started` giờ ghi SAU `workflow-check` (khởi động node, hai lệnh git, checksum 231
      file), thường muộn 0,3–2 giây. Trong khe này H3 `crew-mac stop-run` chưa thấy `pgid` và cũng chưa có `claude` để
      bắt, nên run có thể vẫn `exec claude` sau lệnh dừng; reaper dọn nó khi quá ngưỡng mồ côi (60 giây). `started`
      vẫn là thời điểm sinh process nên hợp đồng với reaper không đổi.
-6. `apps/crew-mac/src/commands/workflow-check.ts` → `workflowCheck`:
-   - `--plugin-dir` phải trỏ đúng thư mục ghim (so bằng `comparablePath`), không thì `không phải bản ghim`.
+6. `apps/crew-mac/src/commands/workflow-check.ts` → `workflowCheck(ctx, { root, pluginDir })`:
+   - `workflowForPluginDir` tìm workflow có thư mục ghim trùng `--plugin-dir` (so bằng `comparablePath`); đó là workflow
+     của run. Không có thì một dòng `--plugin-dir <dir> không phải bản ghim của workflow nào đã chứng nhận (<thư mục
+     ghim superpowers>, <thư mục ghim bmad>)` và không quét worktree.
    - Thư mục ghim phải đúng checksum, không thì `WORKFLOW_SOURCE_MISMATCH`; file trong `executables` phải có bit
      thực thi, không thì `thiếu bit thực thi: …`.
-   - Sau đó gọi `discoverSources`, có nguồn `blocked` nào thì chặn run.
+   - Sau đó gọi `discoverSources(ctx, root, pin của workflow đó)`, có nguồn `blocked` nào thì chặn run. Dòng ok có
+     `rev=`/`sum=` (12 ký tự đầu revision và checksum của pin) để log run cho biết đúng bản nào đã nạp.
 7. `apps/crew-mac/src/workflows/inventory.ts` → `discoverSources`: phân loại nguồn claude nạp trong worktree
    (`classifyOrigin`, bảng dưới):
    - **Chỉ file nguồn nạp được xét:**
@@ -123,15 +133,40 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
        APFS không phân biệt hoa thường: git trả `…/Projects/crew` trong khi run ở `…/projects/crew`;
      - `ls-files --full-name -s -z`;
      - `status --porcelain -z --ignored=matching --untracked-files=all`.
-     - Hai lệnh sau giới hạn trong `.claude` và `.mcp.json`. Worktree không có cả hai thì không gọi git. Trên checkout
-       Crew và `my-crew` mất khoảng 50 ms.
+     - Hai lệnh sau giới hạn trong `.claude` và `.mcp.json` (thêm `_bmad` khi run là BMAD). Worktree không có cái nào
+       thì không gọi git. Trên checkout Crew và `my-crew` mất khoảng 50 ms.
+   - **Nạp chéo qua `enabledPlugins`:** key bật trong `.claude/settings.json` khớp `pluginKeys` của workflow khác
+     workflow của run thì `blocked` (`bật workflow <id> khác với workflow của run (nạp chéo)`, hằng
+     `CROSS_WORKFLOW_REASON` là phần đuôi), kèm `Bỏ "<key>" khỏi enabledPlugins của .claude/settings.json (commit),
+     hoặc giao issue cho agent của workflow <id>.`. Key `<id>@*` của chính workflow là `pinned`. Key cùng workflow mà
+     khác tên plugin ghim (`bmad-method@*`, `bmad-toolbox@*` trong run BMAD) cũng `blocked`
+     (`bật plugin <tên> ngoài bản ghim, nạp song song với workflow của run`, `PARALLEL_PLUGIN_REASON`): `--plugin-dir`
+     chỉ thay plugin trùng tên, nên plugin đó sẽ nạp song song với bản ghim nếu owner cài nó ở user scope.
+   - **`_bmad/` (chỉ run BMAD, `judgeBmad`):**
+     - `_bmad/scripts/**` (bỏ rác, symlink là khác) phải có đúng tập file và từng byte của
+       `<thư mục ghim bmad>/skills/bmad/scripts/**` (`compareBmadScripts`, export cho `crew-mac bmad`). Khác thì một
+       nguồn `blocked` `BMAD_SCRIPT_MISMATCH_REASON` kèm lệnh `git status`/`checkout HEAD -- _bmad/scripts` hoặc xóa rồi
+       chạy `crew-mac bmad setup-project`. Giống thì `project` khi mọi file đã commit sạch, `pinned` khi còn file chưa
+       track hay sửa dở (run trước bị ngắt ngay sau `setup-project`).
+     - `_bmad/config.toml`, `_bmad/custom/**/*.toml` (trừ `*.user.toml`) xét như `settings.json`: chưa track, bị ignore
+       hay sửa dở đều chặn (lý do `UNTRACKED_REASON`, `IGNORED_REASON`, `DIRTY_REASON`).
+     - `_bmad/**/*.user.toml` (lớp cá nhân, trừ `scripts/`, `memory/`) chưa track, bị ignore hay sửa dở thì `blocked`
+       `BMAD_PERSONAL_REASON`, kèm `xóa <file> (lớp cá nhân không dùng trong run agent), hoặc commit nếu cố ý dùng cho
+       cả nhóm`.
+     - `_bmad/memory/**` và `_bmad-output/**` là dữ liệu skill ghi ra, không xét.
+   - Run Superpowers không xét `_bmad/` (không có nguồn `kind: 'bmad'`).
 8. `apps/crew-mac/src/commands/workflow-check.ts` → `runInitCheck`, với `apps/crew-mac/src/workflows/run-init.ts`:
    - `findInitEvent` lấy dòng `type=system, subtype=init` đầu tiên, không lấy dòng đầu: khi có hook SessionStart,
      dòng đầu là `system/hook_started`.
-   - `checkInitEvent` so dòng đó với danh sách cho phép:
-     - **plugin:** `*@builtin`; `superpowers` có `path` là thư mục ghim và đúng `version` (bắt buộc có). Một
-       `superpowers` khác chỉ được phép nếu đúng version và checksum cây (khi nạp đôi); plugin `enabledPlugins` của
-       `settings.json` đã commit cũng được phép.
+   - `selectInitWorkflow` nhận workflow của run: plugin không `@builtin` có tên là id workflow đã chứng nhận
+     (`superpowers`, `bmad`). Không có cái nào thì `không nạp workflow ghim nào`; có cả hai thì
+     `nạp nhiều hơn một workflow (bmad, superpowers)`; cả hai là vi phạm, dừng ở đó.
+   - `checkInitEvent` so dòng đó với danh sách cho phép của workflow đã nhận:
+     - **plugin:** `*@builtin`; plugin tên `<id>` có `path` là thư mục ghim và đúng `version` (bắt buộc có, không thì
+       `không nạp <id> từ bản ghim <dir>`). Một plugin `<id>` khác chỉ được phép nếu đúng version và checksum cây (khi
+       nạp đôi), không thì `WORKFLOW_SOURCE_MISMATCH`; plugin `enabledPlugins` của `settings.json` đã commit (không
+       thuộc workflow nào) cũng được phép. Run BMAD báo plugin `bmad`, `source: "bmad@inline"`, skill `bmad:*` (đo SP-0
+       trên claude 2.1.295; `BUILTIN_SKILLS`, `BUILTIN_AGENTS` vẫn khớp).
      - **skill:** `BUILTIN_SKILLS` của CLI; tên skill `.claude/skills` đã commit; skill Paperclip (`SKILL.md` dưới
        `.paperclip-runtime`); `<plugin>:<skill>` của plugin được phép.
      - **agent:** `BUILTIN_AGENTS`; `.claude/agents` đã commit; `<plugin>:…`.
@@ -153,8 +188,15 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
 | `settings*.json`, script hook, `.mcp.json` đã track mà sửa dở | `blocked` |
 | `SKILL.md`, agent/command `*.md` đã track mà sửa dở | `project` kèm `warning` (dòng `crew-workflow warn`, không chặn) |
 | `<root>/.claude/settings.local.json` có `enabledPlugins` hoặc `hooks`, hoặc không đọc được | `blocked` |
-| `enabledPlugins` của `settings.json` có `superpowers@*` | `pinned`: run chỉ nạp bản `--plugin-dir`, kể cả khi bản owner khác version (đo 07/10/2026); không đọc `installed_plugins.json` mỗi run |
+| `enabledPlugins` của `settings.json` có `<id workflow của run>@*` | `pinned`: run chỉ nạp bản `--plugin-dir`, kể cả khi bản owner khác version (đo 07/10/2026); không đọc `installed_plugins.json` mỗi run |
+| `enabledPlugins` có key của workflow khác (`superpowers@*` trong run BMAD; `bmad@*`, `bmad-method@*`, `bmad-toolbox@*` trong run Superpowers) | `blocked` (nạp chéo) |
+| `enabledPlugins` có `bmad-method@*`, `bmad-toolbox@*` trong run BMAD | `blocked` (nạp song song với bản ghim) |
 | Plugin khác trong `enabledPlugins` của `settings.json` đã commit | `project` |
+| Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, đã commit sạch | `project` |
+| Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, còn file chưa commit | `pinned` |
+| Run BMAD: `_bmad/scripts/**` khác bản ghim (một byte, thừa/thiếu file, symlink) | `blocked` |
+| Run BMAD: `_bmad/config.toml`, `_bmad/custom/**/*.toml` chưa track, bị ignore hay sửa dở | `blocked` |
+| Run BMAD: `_bmad/**/*.user.toml` chưa track, bị ignore hay sửa dở | `blocked` (lớp cá nhân) |
 
 **Đọc log khi run bị chặn:** run fail và stderr của nó có các dòng
 `crew-workflow blocked: <đường dẫn> (<lý do>). <lệnh xử lý>`. Chạy đúng lệnh in ra trong worktree rồi retry.
@@ -167,7 +209,16 @@ nào sẽ làm run thoát 78, `warn` khi chỉ có cảnh báo, kèm cùng lện
 - `bị git ignore` hay `đã sửa so với commit`: làm theo lệnh in kèm (xem diff, `checkout HEAD --` hoặc commit).
 - `thiếu bit thực thi`: chạy lại `crew-mac setup`.
 - `không kiểm được git`: kiểm `/usr/bin/git` (Command Line Tools) và quyền TCC của git dir.
-- `không phải bản ghim` hay `cần đúng một --plugin-dir`: sửa `adapterConfig.extraArgs` theo dòng `crew-mac setup` in ra.
+- `không phải bản ghim của workflow nào đã chứng nhận` hay `cần đúng một --plugin-dir`: sửa `adapterConfig.extraArgs`
+  theo `crew-mac workflows list` (thư mục ghim) hoặc dòng `extraArgs` mà `crew-mac workflows install` in ra.
+- `bật workflow <id> khác với workflow của run (nạp chéo)`: bỏ key đó khỏi `enabledPlugins` của
+  `.claude/settings.json` rồi commit, hoặc giao issue cho agent của workflow `<id>`.
+- `bật plugin <tên> ngoài bản ghim, nạp song song…`: bỏ key đó khỏi `enabledPlugins` rồi commit.
+- `khác bản ghim BMAD; …`: xem `git status -- _bmad/scripts`; khôi phục bằng `git checkout HEAD -- _bmad/scripts`,
+  hoặc xóa `_bmad/scripts` rồi chạy `crew-mac bmad setup-project`.
+- `lớp cá nhân của BMAD chưa commit`: xóa file `*.user.toml` đó, hoặc commit nếu cả nhóm dùng.
+- `run-init-check`: `nạp nhiều hơn một workflow` (repo hay user scope nạp thêm workflow khác) hoặc
+  `không nạp workflow ghim nào` (thiếu `--plugin-dir`).
 
 Bản sao wrapper trong fork Paperclip (`server/src/__tests__/fixtures/crew-claude-run.sh`) không có bước kiểm này. Test
 H3 chỉ cần hợp đồng `pgid`/`started`.
@@ -233,10 +284,10 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/commands/workflows.ts` | Lệnh `workflows list|install` | `workflowsCommand`, `WORKFLOWS_USAGE` |
 | `apps/crew-mac/src/workflows/policy.ts` | So bản ghim | `samePin`, `assertSkillAllowed` |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
-| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree | `classifyOrigin`, `discoverSources`, `describeSource`, `Origin`, `DiscoveredSource` |
-| `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
+| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `Origin`, `DiscoveredSource` |
+| `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `selectInitWorkflow`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
 | `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
-| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run (flow `mac-setup` giữ phần `pgid`/`started`) | — |
+| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`) | — |
 
 ## Dữ liệu
 
@@ -246,7 +297,8 @@ bản ghim (hoặc không còn cài).
   mạng tới `github.com` khi clone.
 - **Ghi:** `~/.crew/workflows/superpowers/<version>-<rev12>/` và `~/.crew/workflows/bmad/<version>-<rev12>/` (mode thư
   mục cha 700; bản tạm `<dir>.tmp-<pid>` chỉ tồn tại trong lúc cài). Uninstall để nguyên các thư mục này, vô hại.
-- **`workflow-check`:** gọi `/usr/bin/git -C <root> ls-files` cho từng nguồn và chỉ đọc file trong worktree.
+- **`workflow-check`:** ba lệnh `/usr/bin/git` cho cả worktree và chỉ đọc file trong worktree và thư mục ghim.
+- **Wrapper ghi:** `<thư mục ghim>/.in_use/<runId>` = `<pid> <started epoch giây>\n` (ngoài checksum).
 - **Mã thoát 78** (`EX_CONFIG`) là hợp đồng giữa wrapper và `workflow-check`/`run-init-check`.
 
 ## Flow liên quan
@@ -280,13 +332,26 @@ bản ghim (hoặc không còn cài).
   - hook (bỏ qua `.logs/` và file không phải script), `.mcp.json`;
   - `settings.local.json` bật hook hoặc chỉ có quyền; `settings.json` chưa track;
   - superpowers bật trong repo luôn `pinned` kể cả khi owner gỡ plugin, plugin khác là `project`;
+  - theo workflow của run: run BMAD trên repo bật superpowers bị chặn nạp chéo; run Superpowers trên repo bật
+    `bmad-method@bmad` bị chặn, superpowers vẫn `pinned`; run BMAD bật `bmad@*` là `pinned`, `bmad-toolbox@*` bị chặn;
+  - `_bmad/` (run BMAD): `_bmad/scripts` giống byte đã commit (`project`), chưa commit (`pinned`), khác một byte, thừa
+    file, symlink (chặn kèm lệnh); `config.toml` chưa track/sửa dở và `custom/*.toml` chưa track; `*.user.toml` chưa
+    track, đã commit, sửa dở; `_bmad/memory/**`, `_bmad-output/**` không xét; run Superpowers bỏ qua `_bmad/`; repo chỉ
+    có `_bmad` vẫn gọi git (giới hạn `_bmad`); `compareBmadScripts`;
   - git lỗi hoặc quá hạn; số lệnh git cố định; lệnh xử lý quote đường dẫn có dấu cách và nháy đơn (chạy thật lệnh `checkout`); worktree là thư mục con của repo; đường dẫn khác hoa thường (APFS);
   - sửa dở: `SKILL.md`/agent chỉ cảnh báo, `settings.json`/script hook chặn, kèm lệnh xử lý; nguồn chưa track kèm lệnh.
 - `apps/crew-mac/test/workflow-check.test.ts`:
-  - `workflowCheck`: sạch, `--plugin-dir` là cache owner, thư mục ghim bị sửa, mất bit thực thi hoặc chưa cài, skill
+  - `workflowCheck`: sạch (dòng ok đủ `rev=`/`sum=`), thư mục ghim BMAD (dòng `pin=bmad@…`), run BMAD trên repo bật
+    superpowers bị chặn còn run Superpowers cùng repo đạt, thư mục ghim BMAD sửa một byte, dấu `.in_use` không đổi
+    checksum, `--plugin-dir` là cache owner (câu liệt kê hai thư mục ghim), thư mục ghim bị sửa, mất bit thực thi hoặc chưa cài, skill
     chưa track (dòng chặn kèm lệnh xử lý), `SKILL.md` sửa dở (ok kèm dòng `warn`).
   - `runInitCheck`: init sau dòng hook; skill cá nhân, plugin user-scope, Superpowers từ cache owner, agent lạ, MCP
-    `user`; thiếu bản ghim; log không có init; plugin project và skill Paperclip được phép.
+    `user`; không nạp workflow ghim nào; superpowers chỉ từ cache; log không có init; plugin project và skill
+    Paperclip được phép.
+  - `runInitCheck` run BMAD: plugin `bmad` từ thư mục ghim và skill `bmad:*` đạt; thêm superpowers từ cache owner thì
+    `nạp nhiều hơn một workflow`; plugin `bmad` từ marketplace khác checksum thì `WORKFLOW_SOURCE_MISMATCH`.
   - `runInitCheck` với `system/init` thật của run Paperclip (`test/fixtures/paperclip-run-init.json`, đã ẩn định
     danh): hai MCP Paperclip `dynamic` được phép; MCP `dynamic` khác tên hay tên Paperclip với nguồn khác bị chặn.
   - CLI: mã 0/2/78/1.
+- `apps/crew-mac/test/crew-claude-run.test.ts` (flow `mac-setup` liệt kê đủ): câu lỗi khi số `--plugin-dir` khác một;
+  dấu `.in_use/<runId>` (pid của `claude`, `started` của run), không ghi khi run id lạ, ghi lỗi không chặn run.

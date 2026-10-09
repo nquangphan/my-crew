@@ -1,19 +1,34 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { MacContext } from '../src/context.js';
 import { createRunner } from '../src/system.js';
 import { installSuperpowersPin } from '../src/workflows/install.js';
 import {
+  BMAD_PERSONAL_REASON,
+  BMAD_SCRIPT_MISMATCH_REASON,
+  CROSS_WORKFLOW_REASON,
   classifyOrigin,
+  compareBmadScripts,
   DIRTY_REASON,
   type DiscoveredSource,
   discoverSources,
   IGNORED_REASON,
+  PARALLEL_PLUGIN_REASON,
   UNTRACKED_REASON,
 } from '../src/workflows/inventory.js';
+import { pinDir as workflowPinDir } from '../src/workflows/pin.js';
 import { fakeMac } from './helpers/fake-mac.js';
 
 const root = '/Users/a/crew-agents/exec';
@@ -375,5 +390,253 @@ describe('discoverSources', () => {
     installSuperpowersPin(ctx);
     const sources = await discoverSources(ctx, worktree());
     expect(sources.map((s) => s.origin)).toEqual(['project']);
+  });
+});
+
+describe('discoverSources theo workflow của run', () => {
+  /** Repo git thật đã có một commit (README) để `git status` có HEAD. */
+  function repo(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'crew-inv-wf-'));
+    git(dir, 'init', '-q');
+    writeFileSync(join(dir, 'README.md'), 'x\n');
+    git(dir, 'add', 'README.md');
+    git(dir, 'commit', '-q', '-m', 'init');
+    return dir;
+  }
+
+  function put(dir: string, rel: string, content: string | Buffer): void {
+    mkdirSync(dirname(join(dir, rel)), { recursive: true });
+    writeFileSync(join(dir, rel), content);
+  }
+
+  function commit(dir: string, ...rels: string[]): void {
+    git(dir, 'add', '-f', '--', ...rels);
+    git(dir, 'commit', '-q', '-m', 'c');
+  }
+
+  /** Chép `_bmad/scripts` từ bản ghim BMAD giả (như `setup.py` dựng) vào repo. */
+  function copyPinScripts(ctx: MacContext, dir: string): void {
+    cpSync(
+      join(workflowPinDir(ctx.home, ctx.bmadPin), 'skills', 'bmad', 'scripts'),
+      join(dir, '_bmad', 'scripts'),
+      {
+        recursive: true,
+      },
+    );
+  }
+
+  const blockedOf = (sources: DiscoveredSource[]) => sources.filter((s) => s.origin === 'blocked');
+
+  it('run BMAD: repo bật superpowers trong enabledPlugins thì chặn nạp chéo', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(
+      dir,
+      '.claude/settings.json',
+      JSON.stringify({ enabledPlugins: { 'superpowers@claude-plugins-official': true } }),
+    );
+    commit(dir, '.claude/settings.json');
+    const s = await discoverSources(ctx, dir, ctx.bmadPin);
+    expect(s).toContainEqual(
+      expect.objectContaining({
+        path: join(dir, '.claude', 'settings.json#superpowers@claude-plugins-official'),
+        kind: 'plugin',
+        origin: 'blocked',
+        reason: 'bật workflow superpowers khác với workflow của run (nạp chéo)',
+        fix: 'Bỏ "superpowers@claude-plugins-official" khỏi enabledPlugins của .claude/settings.json (commit), hoặc giao issue cho agent của workflow superpowers.',
+      }),
+    );
+    expect(s.find((x) => x.origin === 'blocked')?.reason).toContain(CROSS_WORKFLOW_REASON);
+  });
+
+  it('run Superpowers: repo bật bmad-method@bmad thì chặn; superpowers vẫn pinned', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(
+      dir,
+      '.claude/settings.json',
+      JSON.stringify({
+        enabledPlugins: { 'superpowers@claude-plugins-official': true, 'bmad-method@bmad': true },
+      }),
+    );
+    commit(dir, '.claude/settings.json');
+    const s = await discoverSources(ctx, dir, ctx.superpowersPin);
+    expect(s.find((x) => x.path.endsWith('#superpowers@claude-plugins-official'))?.origin).toBe('pinned');
+    expect(s.find((x) => x.path.endsWith('#bmad-method@bmad'))).toMatchObject({
+      origin: 'blocked',
+      reason: 'bật workflow bmad khác với workflow của run (nạp chéo)',
+    });
+  });
+
+  it('run BMAD: bmad@ bật trong repo là pinned; bmad-method@ cùng workflow nhưng khác tên plugin thì chặn', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(
+      dir,
+      '.claude/settings.json',
+      JSON.stringify({ enabledPlugins: { 'bmad@x': true, 'bmad-toolbox@bmad': true } }),
+    );
+    commit(dir, '.claude/settings.json');
+    const s = await discoverSources(ctx, dir, ctx.bmadPin);
+    expect(s.find((x) => x.path.endsWith('#bmad@x'))?.origin).toBe('pinned');
+    expect(s.find((x) => x.path.endsWith('#bmad-toolbox@bmad'))).toMatchObject({
+      origin: 'blocked',
+      reason: `bật plugin bmad-toolbox ${PARALLEL_PLUGIN_REASON}`,
+    });
+  });
+
+  it('run BMAD: _bmad/scripts đã commit giống byte bản ghim → project; khác một byte → blocked kèm cách xử lý', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    copyPinScripts(ctx, dir);
+    commit(dir, '_bmad');
+    const same = await discoverSources(ctx, dir, ctx.bmadPin);
+    expect(same).toEqual([{ path: join(dir, '_bmad', 'scripts'), kind: 'bmad', origin: 'project' }]);
+
+    put(dir, '_bmad/scripts/setup.py', 'print("setup!")\n');
+    const changed = await discoverSources(ctx, dir, ctx.bmadPin);
+    expect(blockedOf(changed)).toEqual([
+      {
+        path: join(dir, '_bmad', 'scripts'),
+        kind: 'bmad',
+        origin: 'blocked',
+        reason: BMAD_SCRIPT_MISMATCH_REASON,
+        fix:
+          `Xem: git -C '${dir}' status -- _bmad/scripts; khôi phục: git -C '${dir}' checkout HEAD -- _bmad/scripts, ` +
+          'hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project.',
+      },
+    ]);
+  });
+
+  it('run BMAD: _bmad/scripts thừa một file hoặc có symlink thì khác bản ghim', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    copyPinScripts(ctx, dir);
+    put(dir, '_bmad/scripts/them.py', 'x\n');
+    commit(dir, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))[0]?.reason).toBe(
+      BMAD_SCRIPT_MISMATCH_REASON,
+    );
+    const linked = repo();
+    mkdirSync(join(linked, '_bmad', 'scripts'), { recursive: true });
+    symlinkSync(
+      join(workflowPinDir(ctx.home, ctx.bmadPin), 'skills', 'bmad', 'scripts', 'setup.py'),
+      join(linked, '_bmad', 'scripts', 'setup.py'),
+    );
+    expect(blockedOf(await discoverSources(ctx, linked, ctx.bmadPin))[0]?.reason).toBe(
+      BMAD_SCRIPT_MISMATCH_REASON,
+    );
+  });
+
+  it('run BMAD: _bmad/scripts chưa commit nhưng giống byte → pinned (run trước bị ngắt)', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    copyPinScripts(ctx, dir);
+    writeFileSync(join(dir, '_bmad', 'scripts', '.DS_Store'), 'finder');
+    expect(await discoverSources(ctx, dir, ctx.bmadPin)).toEqual([
+      { path: join(dir, '_bmad', 'scripts'), kind: 'bmad', origin: 'pinned' },
+    ]);
+  });
+
+  it('run BMAD: _bmad/config.toml chưa track → blocked UNTRACKED_REASON; sửa dở → blocked DIRTY_REASON', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(dir, '_bmad/config.toml', '[core]\nproject_name = "a"\n');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(dir, '_bmad', 'config.toml'),
+        kind: 'bmad',
+        reason: UNTRACKED_REASON,
+      }),
+    ]);
+    commit(dir, '_bmad/config.toml');
+    expect(await discoverSources(ctx, dir, ctx.bmadPin)).toEqual([
+      { path: join(dir, '_bmad', 'config.toml'), kind: 'bmad', origin: 'project' },
+    ]);
+    put(dir, '_bmad/config.toml', '[core]\nproject_name = "b"\n');
+    put(dir, '_bmad/custom/bmad-prd.toml', '[x]\n');
+    const dirty = blockedOf(await discoverSources(ctx, dir, ctx.bmadPin));
+    expect(dirty.map((s) => [s.path, s.reason])).toEqual([
+      [join(dir, '_bmad', 'config.toml'), DIRTY_REASON],
+      [join(dir, '_bmad', 'custom', 'bmad-prd.toml'), UNTRACKED_REASON],
+    ]);
+  });
+
+  it('run BMAD: _bmad/custom/bmad-prd.user.toml chưa track → blocked BMAD_PERSONAL_REASON; đã commit sạch → project', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(dir, '_bmad/custom/bmad-prd.user.toml', 'name = "owner"\n');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      {
+        path: join(dir, '_bmad', 'custom', 'bmad-prd.user.toml'),
+        kind: 'bmad',
+        origin: 'blocked',
+        reason: BMAD_PERSONAL_REASON,
+        fix: 'Xử lý: xóa _bmad/custom/bmad-prd.user.toml (lớp cá nhân không dùng trong run agent), hoặc commit nếu cố ý dùng cho cả nhóm.',
+      },
+    ]);
+    commit(dir, '_bmad');
+    expect(await discoverSources(ctx, dir, ctx.bmadPin)).toEqual([
+      { path: join(dir, '_bmad', 'custom', 'bmad-prd.user.toml'), kind: 'bmad', origin: 'project' },
+    ]);
+    put(dir, '_bmad/custom/bmad-prd.user.toml', 'name = "khác"\n');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))[0]?.reason).toBe(BMAD_PERSONAL_REASON);
+  });
+
+  it('run BMAD: _bmad/memory/** và _bmad-output/** không phải nguồn nạp, không xét', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(dir, '_bmad/memory/bmad-prd/log.md', 'nhật ký\n');
+    put(dir, '_bmad/memory/x.user.toml', 'a = 1\n');
+    put(dir, '_bmad-output/planning-artifacts/prd.md', '# PRD\n');
+    expect(await discoverSources(ctx, dir, ctx.bmadPin)).toEqual([]);
+  });
+
+  it('run Superpowers: _bmad/ lạ chưa track không ảnh hưởng (không có nguồn nào kind bmad)', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(dir, '_bmad/config.toml', 'x\n');
+    put(dir, '_bmad/scripts/setup.py', 'khác\n');
+    put(dir, '_bmad/custom/a.user.toml', 'x\n');
+    put(dir, '.claude/skills/s/SKILL.md', 's\n');
+    commit(dir, '.claude');
+    const s = await discoverSources(ctx, dir, ctx.superpowersPin);
+    expect(s.some((x) => x.kind === 'bmad')).toBe(false);
+    expect(blockedOf(s)).toEqual([]);
+  });
+
+  it('repo chỉ có _bmad (không .claude, không .mcp.json): run BMAD vẫn gọi git và xét _bmad', async () => {
+    const mac = fakeMac();
+    const real = createRunner();
+    const calls: string[][] = [];
+    const ctx: MacContext = {
+      ...mac.ctx,
+      runner: {
+        run: (command, args, options) => {
+          calls.push([...args]);
+          return real.run(command, args, options);
+        },
+      },
+    };
+    const dir = repo();
+    put(dir, '_bmad/config.toml', 'x\n');
+    const s = await discoverSources(ctx, dir, ctx.bmadPin);
+    expect(blockedOf(s).map((x) => x.reason)).toEqual([UNTRACKED_REASON]);
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.every((a) => a.includes('_bmad') || a.includes('rev-parse'))).toBe(true);
+    expect(calls.length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe('compareBmadScripts', () => {
+  it('đúng tập file và từng byte của <pin>/skills/bmad/scripts', () => {
+    const { ctx } = realGitCtx();
+    const dir = workflowPinDir(ctx.home, ctx.bmadPin);
+    const files = new Map([['setup.py', readFileSync(join(dir, 'skills', 'bmad', 'scripts', 'setup.py'))]]);
+    expect(compareBmadScripts(files, dir)).toBe(true);
+    expect(compareBmadScripts(new Map([['setup.py', Buffer.from('khác')]]), dir)).toBe(false);
+    expect(compareBmadScripts(new Map([...files, ['tests/a.py', Buffer.from('')]]), dir)).toBe(false);
+    expect(compareBmadScripts(new Map(), dir)).toBe(false);
+    expect(compareBmadScripts(files, join(ctx.home, 'không-có'))).toBe(false);
   });
 });

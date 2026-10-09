@@ -1,12 +1,12 @@
 import { type Dirent, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
-import { comparablePath } from '../paths.js';
 import { missingExecutables } from '../workflows/install.js';
 import { describeSource, discoverSources } from '../workflows/inventory.js';
-import { superpowersPinDir, type WorkflowPin } from '../workflows/pin.js';
+import { pinDir } from '../workflows/pin.js';
 import { assertSkillAllowed } from '../workflows/policy.js';
-import { checkInitEvent, findInitEvent } from '../workflows/run-init.js';
+import { certifiedWorkflows, workflowForPluginDir } from '../workflows/registry.js';
+import { checkInitEvent, findInitEvent, selectInitWorkflow } from '../workflows/run-init.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 
 export interface WorkflowReport {
@@ -17,35 +17,42 @@ export interface WorkflowReport {
 const blocked = (what: string) => `crew-workflow blocked: ${what}`;
 
 /**
- * Kiểm trước mỗi run Paperclip (wrapper gọi): `--plugin-dir` đúng thư mục ghim, thư mục ghim đúng checksum, và worktree
- * không có nguồn `blocked`.
+ * Kiểm trước mỗi run Paperclip (wrapper gọi): `--plugin-dir` là thư mục ghim của đúng một workflow đã chứng nhận
+ * (workflow đó là workflow của run), thư mục ghim đúng checksum, và worktree không có nguồn `blocked` theo workflow này
+ * (gồm nạp chéo workflow khác qua `enabledPlugins` và, với BMAD, `_bmad/`).
  */
 export async function workflowCheck(
   ctx: MacContext,
-  input: { root: string; pluginDir: string; pin?: WorkflowPin },
+  input: { root: string; pluginDir: string },
 ): Promise<WorkflowReport> {
-  const pin = input.pin ?? ctx.superpowersPin;
-  const expected = superpowersPinDir(ctx.home, pin);
-  const lines: string[] = [];
-  if (comparablePath(input.pluginDir) !== comparablePath(expected)) {
-    lines.push(blocked(`--plugin-dir ${input.pluginDir} không phải bản ghim ${expected}`));
-  } else {
-    try {
-      assertSkillAllowed(pin, { ...pin, checksum: treeChecksum(expected).checksum });
-      const missing = missingExecutables(expected, pin);
-      if (missing.length > 0) {
-        lines.push(
-          blocked(`${expected} (thiếu bit thực thi: ${missing.join(', ')}; chạy lại crew-mac setup)`),
-        );
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      lines.push(
+  const workflow = workflowForPluginDir(ctx, input.pluginDir);
+  if (!workflow) {
+    const dirs = certifiedWorkflows(ctx).map((w) => pinDir(ctx.home, w.pin));
+    return {
+      ok: false,
+      lines: [
         blocked(
-          `${expected} (${message === 'WORKFLOW_SOURCE_MISMATCH' ? message : `WORKFLOW_SOURCE_MISMATCH: ${message}`})`,
+          `--plugin-dir ${input.pluginDir} không phải bản ghim của workflow nào đã chứng nhận (${dirs.join(', ')})`,
         ),
-      );
+      ],
+    };
+  }
+  const pin = workflow.pin;
+  const expected = pinDir(ctx.home, pin);
+  const lines: string[] = [];
+  try {
+    assertSkillAllowed(pin, { ...pin, checksum: treeChecksum(expected).checksum });
+    const missing = missingExecutables(expected, pin);
+    if (missing.length > 0) {
+      lines.push(blocked(`${expected} (thiếu bit thực thi: ${missing.join(', ')}; chạy lại crew-mac setup)`));
     }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    lines.push(
+      blocked(
+        `${expected} (${message === 'WORKFLOW_SOURCE_MISMATCH' ? message : `WORKFLOW_SOURCE_MISMATCH: ${message}`})`,
+      ),
+    );
   }
   const sources = await discoverSources(ctx, input.root, pin);
   for (const s of sources.filter((x) => x.origin === 'blocked')) lines.push(blocked(describeSource(s)));
@@ -55,7 +62,8 @@ export async function workflowCheck(
   return {
     ok: true,
     lines: [
-      `crew-workflow ok pin=${pin.workflow}@${pin.version} project=${count('project')} pinned-dup=${count('pinned')}`,
+      `crew-workflow ok pin=${pin.workflow}@${pin.version} rev=${pin.revision.slice(0, 12)} sum=${pin.checksum.slice(0, 12)} ` +
+        `project=${count('project')} pinned-dup=${count('pinned')}`,
       ...warnings,
     ],
   };
@@ -95,16 +103,19 @@ function paperclipSkillNames(root: string): string[] {
 }
 
 /**
- * Kiểm sau run: dòng `system/init` trong log stream-json của run chỉ nạp Superpowers từ thư mục ghim, cộng nguồn được
- * phép (dựng sẵn của CLI, `.claude/` đã commit của repo, Paperclip, connector MCP của tài khoản).
+ * Kiểm sau run: dòng `system/init` trong log stream-json của run chỉ nạp đúng một workflow đã chứng nhận (nhận theo
+ * tên plugin) từ thư mục ghim của nó, cộng nguồn được phép (dựng sẵn của CLI, `.claude/` đã commit của repo,
+ * Paperclip, connector MCP của tài khoản).
  */
 export async function runInitCheck(
   ctx: MacContext,
-  input: { root: string; log: string; pin?: WorkflowPin },
+  input: { root: string; log: string },
 ): Promise<WorkflowReport> {
-  const pin = input.pin ?? ctx.superpowersPin;
   const init = findInitEvent(input.log);
   if (!init) return { ok: false, lines: [blocked('log không có dòng system/init')] };
+  const selected = selectInitWorkflow(init, certifiedWorkflows(ctx));
+  if ('violation' in selected) return { ok: false, lines: [blocked(selected.violation)] };
+  const pin = selected.workflow.pin;
   const sources = (await discoverSources(ctx, input.root, pin)).filter((s) => s.origin !== 'blocked');
   const namesOf = (kind: 'skill' | 'agent') =>
     sources
@@ -116,7 +127,7 @@ export async function runInitCheck(
       });
   const { violations, pinnedSkills } = checkInitEvent(init, {
     pin,
-    pinDir: superpowersPinDir(ctx.home, pin),
+    pinDir: pinDir(ctx.home, pin),
     projectPlugins: sources
       .filter((s) => s.kind === 'plugin' && s.origin === 'project')
       .map((s) => s.path.slice(s.path.lastIndexOf('#') + 1)),

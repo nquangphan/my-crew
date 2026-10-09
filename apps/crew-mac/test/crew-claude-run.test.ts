@@ -1,7 +1,9 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -201,8 +203,86 @@ describe('crew-claude-run', () => {
       const mac = fakeCrewMac(0);
       const claude = fakeClaude();
       const args = ['--plugin-dir', '/pin', '--plugin-dir', '/khac'];
-      expect(runWrapper(root, args, runEnv({ CREW_MAC_BIN: mac.bin, CREW_CLAUDE_BIN: claude.bin }))).toBe(78);
+      const r = spawnSync('/bin/sh', [WRAPPER_SOURCE, ...args], {
+        cwd: root,
+        env: runEnv({ CREW_MAC_BIN: mac.bin, CREW_CLAUDE_BIN: claude.bin }),
+        encoding: 'utf8',
+      });
+      expect(r.status).toBe(78);
+      expect(r.stderr).toBe(
+        'crew-workflow blocked: cần đúng một --plugin-dir (bản workflow đã ghim) trong adapterConfig.extraArgs, có 2; ' +
+          'chạy "crew-mac workflows list" để xem giá trị\n',
+      );
       expect(existsSync(claude.marker)).toBe(false);
+    });
+
+    /** claude giả in pid của chính nó (cũng là pid của wrapper vì `exec` giữ pid) vào `<dir>/claude.pid`. */
+    function pidClaude(): { bin: string; pidFile: string } {
+      const dir = newRoot();
+      const bin = join(dir, 'claude');
+      const pidFile = join(dir, 'claude.pid');
+      writeFileSync(bin, `#!/bin/sh\necho $$ > '${pidFile}'\n`, { mode: 0o755 });
+      return { bin, pidFile };
+    }
+
+    it('workflow-check đạt thì ghi dấu <plugin_dir>/.in_use/<runId> = "<pid claude> <started>"', () => {
+      const root = newRoot();
+      const pin = newRoot();
+      const claude = pidClaude();
+      expect(
+        runWrapper(
+          root,
+          ['--print', '--plugin-dir', pin],
+          runEnv({ CREW_MAC_BIN: fakeCrewMac(0).bin, CREW_CLAUDE_BIN: claude.bin }),
+        ),
+      ).toBe(0);
+      const mark = readFileSync(join(pin, '.in_use', RUN_A), 'utf8');
+      expect(mark).toMatch(/^\d+ \d+\n$/);
+      const [pid, started] = mark.trim().split(' ');
+      expect(pid).toBe(readFileSync(claude.pidFile, 'utf8').trim());
+      const runDir = join(root, '.paperclip-runtime', 'runs', RUN_A);
+      expect(started).toBe(readFileSync(join(runDir, 'started'), 'utf8').trim());
+      expect(existsSync(join(runDir, 'pgid'))).toBe(true);
+      expect(readdirSync(join(pin, '.in_use'))).toEqual([RUN_A]);
+    });
+
+    it('PAPERCLIP_RUN_ID có ký tự lạ thì không ghi .in_use', () => {
+      const root = newRoot();
+      const pin = newRoot();
+      const claude = fakeClaude();
+      expect(
+        runWrapper(
+          root,
+          ['--plugin-dir', pin],
+          runEnv({
+            PAPERCLIP_RUN_ID: 'a/../b',
+            CREW_MAC_BIN: fakeCrewMac(0).bin,
+            CREW_CLAUDE_BIN: claude.bin,
+          }),
+        ),
+      ).toBe(0);
+      expect(existsSync(join(pin, '.in_use'))).toBe(false);
+      expect(existsSync(claude.marker)).toBe(true);
+    });
+
+    it('.in_use không ghi được (thư mục ghim chỉ đọc) thì vẫn chạy agent', () => {
+      const root = newRoot();
+      const pin = newRoot();
+      chmodSync(pin, 0o555);
+      const claude = fakeClaude();
+      try {
+        expect(
+          runWrapper(
+            root,
+            ['--plugin-dir', pin],
+            runEnv({ CREW_MAC_BIN: fakeCrewMac(0).bin, CREW_CLAUDE_BIN: claude.bin }),
+          ),
+        ).toBe(0);
+      } finally {
+        chmodSync(pin, 0o755);
+      }
+      expect(existsSync(join(pin, '.in_use'))).toBe(false);
+      expect(existsSync(claude.marker)).toBe(true);
     });
 
     it('workflow-check từ chối hoặc không có crew-mac thì exit 78, không chạy agent', () => {

@@ -1,5 +1,6 @@
 import { comparablePath } from '../paths.js';
 import type { WorkflowPin } from './pin.js';
+import type { CertifiedWorkflow } from './registry.js';
 
 /**
  * Skill và agent dựng sẵn của Claude Code CLI (đo trên claude 2.1.289, 07/10/2026): có mặt ở mọi run, kể cả khi
@@ -90,6 +91,31 @@ function strings(value: unknown): string[] {
 }
 
 /**
+ * Workflow của run theo `system/init`: plugin không phải `@builtin` có tên là id của workflow đã chứng nhận. Không có
+ * cái nào, hoặc có hơn một id khác nhau (nạp chéo), là vi phạm.
+ */
+export function selectInitWorkflow(
+  init: Record<string, unknown>,
+  workflows: readonly CertifiedWorkflow[],
+): { workflow: CertifiedWorkflow } | { violation: string } {
+  const names = new Set(
+    records(init.plugins)
+      .filter((p) => !String(p.source ?? '').endsWith('@builtin'))
+      .map((p) => String(p.name ?? '')),
+  );
+  const found = workflows.filter((w) => names.has(w.id));
+  if (found.length === 0) return { violation: 'không nạp workflow ghim nào' };
+  if (found.length > 1)
+    return {
+      violation: `nạp nhiều hơn một workflow (${found
+        .map((w) => w.id)
+        .sort()
+        .join(', ')})`,
+    };
+  return { workflow: found[0] as CertifiedWorkflow };
+}
+
+/**
  * So `system/init` của một run với danh sách cho phép. Trả các vi phạm (rỗng là đạt) và số skill của workflow ghim.
  * Không xét `slash_commands`: gồm cả lệnh dựng sẵn của CLI, thay đổi theo bản, và skill đã có trong `skills`.
  */
@@ -121,7 +147,7 @@ export function checkInitEvent(
       violations.push(`plugin ${source} (${path}): ngoài danh sách cho phép`);
     }
   }
-  if (!fromPin) violations.push(`không nạp Superpowers từ bản ghim ${allow.pinDir}`);
+  if (!fromPin) violations.push(`không nạp ${allow.pin.workflow} từ bản ghim ${allow.pinDir}`);
 
   const allowedName = (value: string, plain: Set<string>) => {
     const sep = value.indexOf(':');
