@@ -531,16 +531,33 @@ describe('crew-mac doctor', () => {
     });
   });
 
-  it('agent-uv: sshd agent không thấy uv thì fail kèm lệnh cài', async () => {
+  it('agent-uv: không thấy uv mà máy chưa có agent BMAD thì warn; đã có agent BMAD thì fail kèm lệnh cài', async () => {
     const mac = await installed((remote) =>
       remote.includes('command -v uv') ? { code: 1, stdout: '' } : okSsh(remote),
     );
-    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
-    expect(results.find((r) => r.id === 'agent-uv')).toMatchObject({
-      status: 'fail',
+    const uvCheck = async () =>
+      (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'agent-uv',
+      );
+    expect(await uvCheck()).toMatchObject({
+      status: 'warn',
       title: 'uv trong PATH của sshd agent',
+      detail: expect.stringContaining('chưa có agent BMAD'),
       hint: expect.stringContaining('cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh'),
     });
+    // Run BMAD đã chạy trên máy: dấu `.in_use` trong thư mục ghim BMAD.
+    const marks = join(pinDir(mac.home, FIXTURE_BMAD_PIN), '.in_use');
+    mkdirSync(marks, { recursive: true });
+    writeFileSync(join(marks, '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c10'), '4242 1760000000\n');
+    expect(await uvCheck()).toMatchObject({
+      status: 'fail',
+      hint: expect.stringContaining('cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh'),
+    });
+    rmSync(marks, { recursive: true });
+    expect((await uvCheck())?.status).toBe('warn');
+    // Worktree agent đã dựng BMAD (`_bmad/`).
+    mkdirSync(join(macPaths(mac.home).defaultWorktreeRoot, 'bmad', '_bmad'), { recursive: true });
+    expect(await uvCheck()).toMatchObject({ status: 'fail', detail: expect.stringContaining('agent BMAD') });
     const ok = await installed((remote) =>
       remote.includes('command -v uv') ? { stdout: '/Users/owner/.local/bin/uv\n' } : okSsh(remote),
     );
