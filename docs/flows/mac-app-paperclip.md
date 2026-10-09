@@ -236,7 +236,7 @@ Vi phạm thì `folder_forbidden`.
 | `prepare-checkouts {projectKey, folder, roles}` | `configureDocsBundle`; mỗi vai trò: worktree `~/crew-agents/<khóa>/<vai>` trên nhánh `branch` của payload (`ensureWorktree`, có rồi thì dùng lại), `.paperclip-runtime/` vào `info/exclude`; có `projectId` thì `addStatusRepo(projectId, <folder>, companyId)` một lần | `{checkouts:[{role, path, head}]}` | `checkout_exists` (thư mục có sẵn không phải worktree của repo này, không đè), `git_failed` |
 | `agent-workspace {projectKey, folder, role, branch}` | như trên cho một vai trò (executor thứ 2 thêm sau), không đụng worktree khác | `{role, path, head}` | như trên |
 | `skill-sync {skillId, slug, version}` | ghi file đã tải vào thư mục tạm cạnh `~/.crew/skills/<company>/<slug>/` rồi đổi tên (thay trọn thư mục cũ); thư mục 0700, file 0600 (`executable` 0700). Đường dẫn file phải tương đối, không `..`, không ký tự điều khiển, ≤ 500 file, ≤ 20 MB | `{sha256, files}` (`treeChecksum` của crew-mac: `<path>\0<sha256 file>\n` đã sắp) | `skill_fetch_failed` |
-| `check {projectKey}` | `doctor` không probe (`skipTcc`) và `workflowCheck` (bản ghim Superpowers) cho từng thư mục trong `~/crew-agents/<khóa>/` | `{items:[{id, status, title}]}`; `fail` của doctor thành `error`; mục workflow `workflow:<vai>` | `check_failed` (có mục `error`, hoặc chưa có checkout nào): vẫn gửi `items` trong `result` |
+| `check {projectKey}` | `doctor` không probe (`skipTcc`) và `workflowCheck` (bản ghim Superpowers) cho từng thư mục trong `~/crew-agents/<khóa>/` | `{items:[{id, status, title}]}`; `fail` của doctor ở `worktree-workflows`/`worktree-root` thành `error`, `fail` ở mục chung của máy (sshd, Tailscale, …) thành `warn` để không chặn project không liên quan; mục workflow `workflow:<vai>` | `check_failed` (có mục `error` của project, hoặc chưa có checkout nào): vẫn gửi `items` trong `result` |
 
 Mọi lỗi gửi lên là mã cố định cộng câu tiếng Việt đã làm sạch (`sanitize.ts` → `sanitizeJobError`: bỏ mã terminal và
 ký tự điều khiển trừ tab/xuống dòng, che `scheme://user:pass@` và các mẫu secret chép từ plugin, cắt 300 ký tự không cắt
@@ -280,7 +280,7 @@ không có `result`.
   sạch/không sạch, remote bỏ credential, `folder_not_git`/`folder_missing`/`folder_forbidden`, key lạ), `prepare-checkouts`
   4 vai trò (nhánh, exclude, bundle, `addStatusRepo` một lần, chạy lại cho cùng kết quả, không `projectId` thì không
   add-repo, `checkout_exists`), `agent-workspace` thêm `executor-2` không đụng worktree khác, `skill-sync` (0700, băm
-  cây, thay trọn, đường dẫn xấu không ghi gì), `check` (items, `check_failed` kèm items, chưa có checkout).
+  cây, thay trọn, đường dẫn xấu không ghi gì), `check` (items, lỗi chung của máy → done kèm `warn`, lỗi worktree/workflow → `check_failed` kèm items, chưa có checkout).
 - `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
   riêng đích lỗi, một việc một lúc, quá 8 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có

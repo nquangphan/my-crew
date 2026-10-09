@@ -305,7 +305,7 @@ describe('check', () => {
     expect(calls.workflowCheck).toHaveLength(4);
   });
 
-  it('có mục lỗi → failed check_failed, result vẫn kèm items', async () => {
+  it('workflow của một ô lỗi → failed check_failed, result vẫn kèm items', async () => {
     const { s, deps } = setup();
     await runJob(
       job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
@@ -320,12 +320,56 @@ describe('check', () => {
     const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
     expect(outcome).toMatchObject({ status: 'failed', errorCode: 'check_failed' });
     if (outcome.status !== 'failed') throw new Error('sai kết quả');
-    expect(outcome.errorText).toContain('sshd agent');
+    expect(outcome.errorText).not.toContain('sshd agent');
     expect(outcome.errorText).toContain('reviewer');
     expect(outcome.result).toMatchObject({ kind: 'check' });
     expect(
       outcome.result?.kind === 'check' && outcome.result.items.filter((i) => i.status === 'error'),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+  });
+
+  it('doctor fail ở mục chung của máy → done, mục đó thành warn', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    deps.doctor = async () => [
+      { id: 'sshd-agent', title: 'sshd agent', status: 'fail', detail: 'không nghe cổng 2222' },
+    ];
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome.status).toBe('done');
+    if (outcome.status !== 'done' || outcome.result.kind !== 'check') throw new Error('sai kết quả');
+    expect(outcome.result.items[0]).toMatchObject({ id: 'sshd-agent', status: 'warn' });
+    expect(outcome.result.items[0]?.title).toContain('không nghe cổng 2222');
+    expect(outcome.result.items.some((i) => i.status === 'error')).toBe(false);
+  });
+
+  it('doctor fail ở mục worktree → failed, mục giữ error', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    deps.doctor = async () => [
+      { id: 'worktree-root', title: 'Thư mục worktree', status: 'fail', detail: 'nằm dưới /Volumes' },
+      { id: 'sshd-agent', title: 'sshd agent', status: 'fail', detail: 'không nghe' },
+    ];
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'check_failed' });
+    if (outcome.status !== 'failed' || outcome.result?.kind !== 'check') throw new Error('sai kết quả');
+    expect(outcome.errorText).toContain('Thư mục worktree');
+    expect(outcome.errorText).not.toContain('sshd agent');
+    expect(outcome.result.items.map((i) => [i.id, i.status])).toEqual([
+      ['worktree-root', 'error'],
+      ['sshd-agent', 'warn'],
+      ['workflow:assistant', 'ok'],
+      ['workflow:executor', 'ok'],
+      ['workflow:integrator', 'ok'],
+      ['workflow:reviewer', 'ok'],
+    ]);
   });
 
   it('project chưa có checkout nào → check_failed', async () => {

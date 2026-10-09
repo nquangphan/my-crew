@@ -253,6 +253,9 @@ function writeSkill(
 
 const cut = (text: string) => sanitizeJobError(text);
 
+/** Mục doctor thuộc worktree/checkout của project; mục khác là của cả máy nên chỉ cảnh báo, không làm `check` thất bại. */
+const PROJECT_DOCTOR_IDS = new Set(['worktree-workflows', 'worktree-root']);
+
 async function checkJob(projectKey: string, deps: ExecutorDeps): Promise<JobOutcome> {
   const root = join(deps.home, 'crew-agents', projectKey);
   let roles: string[] = [];
@@ -269,7 +272,7 @@ async function checkJob(projectKey: string, deps: ExecutorDeps): Promise<JobOutc
   }
   const items: CheckItem[] = (await deps.doctor()).map((item) => ({
     id: item.id,
-    status: item.status === 'fail' ? 'error' : item.status,
+    status: item.status === 'fail' ? (PROJECT_DOCTOR_IDS.has(item.id) ? 'error' : 'warn') : item.status,
     title: cut(item.detail ? `${item.title}: ${item.detail}` : item.title),
   }));
   for (const role of roles) {
