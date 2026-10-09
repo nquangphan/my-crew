@@ -107,6 +107,11 @@ describe('addProject', () => {
         '--plugin-dir',
         fake.pinDir,
       ]);
+      // Như agent R1: engine cli (thiếu thì Paperclip chạy ACP và hỏng `adapter_engine_unavailable`), env rỗng,
+      // Trợ Lý chạy opus, executor/reviewer/integrator chạy sonnet.
+      expect(agent?.adapterConfig.engine).toBe('cli');
+      expect(agent?.adapterConfig.env).toEqual({});
+      expect(agent?.adapterConfig.model).toBe(role === 'assistant' ? 'claude-opus-5' : 'claude-sonnet-5');
       expect(agent?.runtimeConfig).toEqual({ heartbeat: { enabled: false, maxConcurrentRuns: 1 } });
       expect(agent?.defaultEnvironmentId).toBe(entry.environmentId);
       expect(agent?.status).toBe('idle');
@@ -410,6 +415,21 @@ describe('addProject', () => {
     });
     const progress = await addProject({ ...baseDeps(sandbox, paperclip, fake.ops, store) }, input);
     expect(progress.error).toContain('nguồn bị chặn');
+    expect(progress.done).not.toContain('check');
+    for (const agent of paperclip.agents.values()) expect(agent.status).toBe('paused');
+  });
+
+  it('agent đọc lại không có engine cli (vd. agent cũ dùng lại) → lỗi ở bước kiểm, không resume', async () => {
+    const { sandbox, paperclip, input, store } = await world();
+    const fake = fakeOps(sandbox.home, {
+      doctor: () => {
+        const [first] = [...paperclip.agents.values()];
+        if (first) delete first.adapterConfig.engine;
+        return [];
+      },
+    });
+    const progress = await addProject(baseDeps(sandbox, paperclip, fake.ops, store), input);
+    expect(progress.error).toContain('engine');
     expect(progress.done).not.toContain('check');
     for (const agent of paperclip.agents.values()) expect(agent.status).toBe('paused');
   });

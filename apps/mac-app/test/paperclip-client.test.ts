@@ -15,6 +15,7 @@ const P = '22222222-2222-4222-8222-222222222222';
 const A = '33333333-3333-4333-8333-333333333333';
 const R = '44444444-4444-4444-8444-444444444444';
 const E = '55555555-5555-4555-8555-555555555555';
+const B = 'abababab-abab-4bab-8bab-abababababab';
 const ROLES = {
   assistantAgentId: A,
   executorAgentIds: [A],
@@ -259,21 +260,45 @@ describe('route', () => {
       body: {
         name: 'repo-x-reviewer',
         adapterType: 'claude_local',
-        adapterConfig: {
-          command: '/Users/owner/.crew/bin/crew-claude-run',
-          extraArgs: ['--setting-sources', 'project,local'],
-          model: 'claude-sonnet-5',
-        },
         runtimeConfig: { heartbeat: { enabled: false, maxConcurrentRuns: 1 } },
         defaultEnvironmentId: E,
       },
     });
+    // Thiếu `engine` thì Paperclip chạy ACP, mà ACP không chạy được trên environment SSH `in_place`
+    // (`adapter_engine_unavailable`). `env` rỗng như agent R1, không mang secret.
+    expect((server.requests[0]?.body as { adapterConfig?: unknown } | undefined)?.adapterConfig).toEqual({
+      engine: 'cli',
+      command: '/Users/owner/.crew/bin/crew-claude-run',
+      extraArgs: ['--setting-sources', 'project,local'],
+      model: 'claude-sonnet-5',
+      env: {},
+    });
+  });
+
+  it('createAgent từ chối khi thiếu model, không gọi mạng', async () => {
+    const { server, client } = await setup(() => ({ status: 201, body: { id: A } }));
+    await expect(
+      client.createAgent(C, {
+        name: 'x',
+        command: '/Users/owner/.crew/bin/crew-claude-run',
+        extraArgs: [],
+        model: '',
+        defaultEnvironmentId: E,
+      }),
+    ).rejects.toThrow('model');
+    expect(server.requests).toHaveLength(0);
   });
 
   it('createAgent từ chối command không phải wrapper crew-claude-run, không gọi mạng', async () => {
     const { server, client } = await setup(() => ({ status: 201, body: { id: A } }));
     await expect(
-      client.createAgent(C, { name: 'x', command: 'claude', extraArgs: [], defaultEnvironmentId: E }),
+      client.createAgent(C, {
+        name: 'x',
+        command: 'claude',
+        extraArgs: [],
+        model: 'claude-sonnet-5',
+        defaultEnvironmentId: E,
+      }),
     ).rejects.toThrow('crew-claude-run');
     expect(server.requests).toHaveLength(0);
   });
@@ -380,15 +405,24 @@ describe('route', () => {
 });
 
 describe('route cho thêm/gỡ project', () => {
-  it('agents: GET /api/companies/:id/agents, giữ id/tên/trạng thái/environment', async () => {
+  it('agents: GET /api/companies/:id/agents, giữ id/tên/trạng thái/environment/engine (không giữ env)', async () => {
     const { server, client } = await setup(() => ({
       status: 200,
       body: [
         { id: A, name: 'a', status: 'paused', companyId: C, defaultEnvironmentId: E, adapterConfig: {} },
+        {
+          id: B,
+          name: 'b',
+          status: 'idle',
+          companyId: C,
+          defaultEnvironmentId: null,
+          adapterConfig: { engine: 'cli', env: { SECRET_KEY: 'không được lộ' } },
+        },
       ],
     }));
     await expect(client.agents(C)).resolves.toEqual([
-      { id: A, name: 'a', status: 'paused', companyId: C, defaultEnvironmentId: E },
+      { id: A, name: 'a', status: 'paused', companyId: C, defaultEnvironmentId: E, engine: null },
+      { id: B, name: 'b', status: 'idle', companyId: C, defaultEnvironmentId: null, engine: 'cli' },
     ]);
     expect(server.requests[0]).toMatchObject({ method: 'GET', path: `/api/companies/${C}/agents` });
   });

@@ -14,6 +14,9 @@ const CODE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const WRAPPER_RE = /^\/.+\/\.crew\/bin\/crew-claude-run$/;
 const ROLES_PATH = '/api/plugins/crew.core/api/projects';
 
+/** Agent như server trả; chỉ đọc `adapterConfig.engine`, không giữ `env` hay key khác của adapterConfig. */
+type AgentResponse = Omit<PaperclipAgent, 'engine'> & { adapterConfig?: { engine?: unknown } | null };
+
 /** 401/403: key hết hạn, bị thu hồi hoặc không còn quyền. */
 export class PaperclipAuthError extends Error {
   constructor() {
@@ -152,12 +155,13 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
     return paperclipRequest<T>(base, deps, { method, path, body, key, notFoundNull, exposeServerError });
   }
 
-  const agentView = (agent: PaperclipAgent): PaperclipAgent => ({
+  const agentView = (agent: AgentResponse): PaperclipAgent => ({
     id: agent.id,
     name: agent.name,
     status: agent.status,
     companyId: agent.companyId,
     defaultEnvironmentId: agent.defaultEnvironmentId ?? null,
+    engine: typeof agent.adapterConfig?.engine === 'string' ? agent.adapterConfig.engine : null,
   });
 
   async function issuePrefix(companyId: string): Promise<string> {
@@ -251,14 +255,19 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       if (!WRAPPER_RE.test(input.command)) {
         throw new Error('command của agent phải là đường dẫn tuyệt đối <home>/.crew/bin/crew-claude-run');
       }
+      if (typeof input.model !== 'string' || input.model === '') throw new Error('Agent phải có model');
       const body = {
         name: input.name,
         ...(input.title === undefined ? {} : { title: input.title }),
         adapterType: 'claude_local',
+        // `engine: 'cli'`: thiếu thì Paperclip chạy ACP, mà ACP chỉ chạy sandbox, không chạy environment SSH
+        // `in_place` (run hỏng `adapter_engine_unavailable`). `env` rỗng như agent R1, không mang secret.
         adapterConfig: {
+          engine: 'cli',
           command: input.command,
           extraArgs: input.extraArgs,
-          ...(input.model === undefined ? {} : { model: input.model }),
+          model: input.model,
+          env: {},
         },
         runtimeConfig: { heartbeat: { enabled: false, maxConcurrentRuns: 1 } },
         defaultEnvironmentId: input.defaultEnvironmentId,
@@ -272,12 +281,12 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
     },
 
     async getAgent(agentId) {
-      const agent = await call<PaperclipAgent | null>('GET', `/api/agents/${id(agentId)}`, undefined, true);
+      const agent = await call<AgentResponse | null>('GET', `/api/agents/${id(agentId)}`, undefined, true);
       return agent ? agentView(agent) : null;
     },
 
     async agents(companyId) {
-      const list = await call<PaperclipAgent[]>('GET', `/api/companies/${id(companyId)}/agents`);
+      const list = await call<AgentResponse[]>('GET', `/api/companies/${id(companyId)}/agents`);
       return list.map(agentView);
     },
 

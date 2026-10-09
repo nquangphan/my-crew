@@ -57,7 +57,8 @@ export interface ClaudeLocalAgentInput {
   /** Đường dẫn tuyệt đối `<home>/.crew/bin/crew-claude-run`. */
   command: string;
   extraArgs: string[];
-  model?: string;
+  /** Bắt buộc, như agent R1 (vd. `claude-sonnet-5`); không đặt thì Claude chạy model mặc định của máy. */
+  model: string;
   defaultEnvironmentId: string;
 }
 
@@ -68,6 +69,8 @@ export interface PaperclipAgent {
   status: string;
   companyId: string;
   defaultEnvironmentId: string | null;
+  /** `adapterConfig.engine`; agent chạy qua environment SSH phải là `cli` (thiếu thì Paperclip dùng ACP và hỏng). */
+  engine: string | null;
 }
 
 export interface InstructionsFile {

@@ -30,6 +30,14 @@ import {
 
 const LOCAL_GIT_TIMEOUT_MS = 30_000;
 
+/** Model theo vai trò như agent R1: Trợ Lý chạy opus, executor/reviewer/integrator chạy sonnet. */
+const AGENT_MODELS: Record<ReturnType<typeof templateOf>, string> = {
+  assistant: 'claude-opus-5',
+  executor: 'claude-sonnet-5',
+  reviewer: 'claude-sonnet-5',
+  integrator: 'claude-sonnet-5',
+};
+
 /** Một project chỉ chạy một lần thêm tại một thời điểm (hai lần bấm "Chạy tiếp" liền nhau). */
 const running = new Set<string>();
 
@@ -316,6 +324,7 @@ class AddRun {
             name,
             command: join(this.deps.home, '.crew', 'bin', 'crew-claude-run'),
             extraArgs: setup.extraArgs,
+            model: AGENT_MODELS[templateOf(role)],
             defaultEnvironmentId: environmentId,
           })
         ).id;
@@ -386,7 +395,7 @@ class AddRun {
     if (agent.status !== 'paused') await client.pauseAgent(agentId);
   }
 
-  /** Kiểm cuối rồi mới resume agent: worktree sạch nguồn skill, vai trò đọc lại khớp. */
+  /** Kiểm cuối rồi mới resume agent: worktree sạch nguồn skill, vai trò đọc lại khớp, mọi agent có engine cli. */
   private async check(): Promise<void> {
     const results = await this.deps.ops.call('doctor', {
       probe: false,
@@ -413,10 +422,18 @@ class AddRun {
     if (JSON.stringify(saved) !== JSON.stringify(expected)) {
       throw new Error('Vai trò đọc lại từ Paperclip không khớp vai trò vừa ghi');
     }
+    const agents = [];
     for (const role of this.roles) {
-      const id = this.agentId(role);
-      const agent = await this.deps.client.getAgent(id);
-      if (agent?.status === 'paused') await this.deps.client.resumeAgent(id);
+      const agent = await this.deps.client.getAgent(this.agentId(role));
+      if (agent?.engine !== 'cli') {
+        throw new Error(
+          `Agent ${recordName(this.input.key, role)} không có adapterConfig.engine=cli (đang là ${agent?.engine ?? 'trống'}): Paperclip sẽ chạy ACP và hỏng trên environment SSH`,
+        );
+      }
+      agents.push(agent);
+    }
+    for (const agent of agents) {
+      if (agent.status === 'paused') await this.deps.client.resumeAgent(agent.id);
     }
   }
 
