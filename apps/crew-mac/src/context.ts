@@ -15,6 +15,8 @@ export interface MacContext {
   cliPath: string;
   /** Bản Superpowers ghim cho agent; CLI luôn dùng `SUPERPOWERS_PIN`, test thay bằng cây giả. */
   superpowersPin: WorkflowPin;
+  /** Bản BMAD ghim cho agent BMAD; CLI luôn dùng `BMAD_PIN`, test thay bằng cây giả. */
+  bmadPin: WorkflowPin;
 }
 
 export class SetupError extends Error {

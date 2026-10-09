@@ -24,7 +24,7 @@ import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
 import { discoverSources, GIT_TIMEOUT } from '../workflows/inventory.js';
-import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
+import { pinDir, SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { hasPathBlock } from '../zshenv.js';
@@ -409,6 +409,26 @@ async function checkAgentNode(ctx: MacContext, paths: MacPaths, manifest: Manife
   return { ...base, status: 'ok', detail: found };
 }
 
+/** sshd agent thấy `uv` (agent BMAD chạy `setup.py` của bản ghim bằng `uv run`). */
+async function checkAgentUv(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
+  const base = { id: 'agent-uv', title: 'uv trong PATH của sshd agent' };
+  const result = await ctx.runner.run('ssh', sshArgs(paths, manifest, ctx.user, 'command -v uv'), {
+    timeoutMs: 30_000,
+  });
+  const found = result.stdout.trim();
+  if (result.code !== 0 || found === '') {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `sshd agent không thấy uv (mã ${result.code}${result.timedOut ? ', quá hạn' : ''})`,
+      hint:
+        'cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh (vào ~/.local/bin, đã có trong khối PATH của ' +
+        '~/.zshenv), rồi chạy lại doctor.',
+    };
+  }
+  return { ...base, status: 'ok', detail: found };
+}
+
 async function checkWrapper(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
   const base = { id: 'wrapper', title: 'Wrapper crew-claude-run' };
   const reinstall = 'Chạy lại "crew-mac setup".';
@@ -515,6 +535,47 @@ function checkSuperpowersPin(ctx: MacContext): CheckResult {
       status: 'fail',
       detail: err instanceof Error ? err.message : String(err),
       hint: reinstall,
+    };
+  }
+}
+
+/** Bản BMAD ghim mà agent BMAD nạp qua `--plugin-dir`: có thư mục, đúng checksum, đủ bit thực thi. */
+function checkBmadPin(ctx: MacContext): CheckResult {
+  const pin = ctx.bmadPin;
+  const base = { id: 'bmad-pin', title: `BMAD ${pin.version} đã ghim` };
+  const dir = pinDir(ctx.home, pin);
+  const install = 'Chạy "crew-mac workflows install".';
+  try {
+    lstatSync(dir);
+  } catch {
+    return { ...base, status: 'fail', detail: `chưa có ${dir}`, hint: install };
+  }
+  try {
+    const sum = treeChecksum(dir);
+    if (sum.checksum !== pin.checksum) {
+      return {
+        ...base,
+        status: 'fail',
+        detail: `${dir} lệch checksum bản ghim`,
+        hint: `Xóa ${dir} rồi chạy "crew-mac workflows install".`,
+      };
+    }
+    const missing = missingExecutables(dir, pin);
+    if (missing.length > 0) {
+      return {
+        ...base,
+        status: 'fail',
+        detail: `${dir} thiếu bit thực thi: ${missing.join(', ')}`,
+        hint: `${install} để đặt lại bit thực thi.`,
+      };
+    }
+    return { ...base, status: 'ok', detail: `${dir} (${sum.files} file)` };
+  } catch (err) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: err instanceof Error ? err.message : String(err),
+      hint: `Xóa ${dir} rồi chạy "crew-mac workflows install".`,
     };
   }
 }
@@ -948,8 +1009,10 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(checkZshenv(ctx, paths));
   results.push(await checkWrapper(ctx, paths, manifest));
   results.push(await checkAgentNode(ctx, paths, manifest));
+  results.push(await checkAgentUv(ctx, paths, manifest));
   results.push(checkLauncher(ctx, paths));
   results.push(checkSuperpowersPin(ctx));
+  results.push(checkBmadPin(ctx));
   results.push(checkWorktreeRoot(ctx, manifest));
   results.push(await checkWorktreeWorkflows(ctx, manifest));
   results.push(await checkCrewDocs(ctx, paths, manifest));

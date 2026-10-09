@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
 import type { MacContext } from './context.js';
 import { createRunner } from './system.js';
+import { BMAD_PIN } from './workflows/bmad-pin.js';
 import { SUPERPOWERS_PIN } from './workflows/pin.js';
 
 export function stableNodePath(): string {
@@ -28,5 +29,6 @@ export function createMacContext(input: {
     nodePath: input.nodePath ?? stableNodePath(),
     cliPath: input.cliPath,
     superpowersPin: SUPERPOWERS_PIN,
+    bmadPin: BMAD_PIN,
   };
 }

@@ -1,10 +1,13 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import type { MacContext } from '../../src/context.js';
 import type { Manifest } from '../../src/manifest.js';
 import { SPIKE_LABEL } from '../../src/paths.js';
-import type { WorkflowPin } from '../../src/workflows/pin.js';
+import { BMAD_PLUGIN_JSON } from '../../src/workflows/bmad-pin.js';
+import { pinDir, type WorkflowPin } from '../../src/workflows/pin.js';
+import { treeChecksum } from '../../src/workflows/tree-checksum.js';
 import { FakeRunner } from './fake-runner.js';
 
 export const PAPERCLIP_PUB =
@@ -27,6 +30,81 @@ export const FIXTURE_PIN: WorkflowPin = {
   checksum: '887ad97e9e3f192940fb5320cd393c82f31fa65da974ee62ff923e37fe75b6e5',
   executables: ['dir/b.txt'],
 };
+
+/** Cây BMAD đã lắp tối thiểu: hai skill (một từ mỗi cây nguồn) và plugin.json của Crew. */
+export function writeBmadTree(dir: string): void {
+  mkdirSync(join(dir, 'skills', 'm1'), { recursive: true });
+  mkdirSync(join(dir, 'skills', 'bmad', 'scripts'), { recursive: true });
+  mkdirSync(join(dir, '.claude-plugin'), { recursive: true });
+  writeFileSync(join(dir, 'skills', 'm1', 'SKILL.md'), '---\nname: m1\n---\n');
+  writeFileSync(join(dir, 'skills', 'bmad', 'scripts', 'setup.py'), 'print("setup")\n', { mode: 0o755 });
+  chmodSync(join(dir, 'skills', 'bmad', 'scripts', 'setup.py'), 0o755);
+  writeFileSync(join(dir, '.claude-plugin', 'plugin.json'), BMAD_PLUGIN_JSON);
+}
+
+const FIXTURE_BMAD_CHECKSUM = (() => {
+  const dir = mkdtempSync(join(tmpdir(), 'crew-bmad-ref-'));
+  writeBmadTree(dir);
+  return treeChecksum(dir).checksum;
+})();
+
+/** Pin BMAD giả khớp `writeBmadTree`; checksum tính lúc nạp module vì cây chứa `BMAD_PLUGIN_JSON` thật. */
+export function fixtureBmadPin(revision: string = 'b'.repeat(40)): WorkflowPin {
+  return {
+    workflow: 'bmad',
+    version: '9.9.9-next',
+    revision,
+    checksum: FIXTURE_BMAD_CHECKSUM,
+    executables: ['skills/bmad/scripts/setup.py'],
+  };
+}
+
+export const FIXTURE_BMAD_PIN: WorkflowPin = fixtureBmadPin();
+
+export function gitIn(cwd: string, ...args: string[]): string {
+  return execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim();
+}
+
+/**
+ * Repo git thật dạng `bmad-plugins` ở `dir` (mặc định marketplace `bmad` dưới HOME): `plugins/method/skills/m1` và
+ * `plugins/toolbox/skills/bmad/scripts/setup.py` (0755), cộng một file ngoài hai cây. `duplicate` thêm skill `m1` vào
+ * cây toolbox.
+ */
+export function seedBmadMarketplace(
+  home: string,
+  options: { dir?: string; duplicate?: boolean } = {},
+): { dir: string; revision: string } {
+  const dir = options.dir ?? join(home, '.claude', 'plugins', 'marketplaces', 'bmad');
+  const method = join(dir, 'plugins', 'method', 'skills', 'm1');
+  const scripts = join(dir, 'plugins', 'toolbox', 'skills', 'bmad', 'scripts');
+  mkdirSync(method, { recursive: true });
+  mkdirSync(scripts, { recursive: true });
+  writeFileSync(join(dir, 'README.md'), 'bmad-plugins\n');
+  writeFileSync(join(method, 'SKILL.md'), '---\nname: m1\n---\n');
+  writeFileSync(join(scripts, 'setup.py'), 'print("setup")\n', { mode: 0o755 });
+  chmodSync(join(scripts, 'setup.py'), 0o755);
+  if (options.duplicate) {
+    mkdirSync(join(dir, 'plugins', 'toolbox', 'skills', 'm1'), { recursive: true });
+    writeFileSync(join(dir, 'plugins', 'toolbox', 'skills', 'm1', 'SKILL.md'), 'trùng\n');
+  }
+  gitIn(dir, 'init', '-q');
+  gitIn(dir, 'add', '.');
+  gitIn(dir, 'commit', '-q', '-m', 'init');
+  return { dir, revision: gitIn(dir, 'rev-parse', 'HEAD') };
+}
+
+/** Cho `/usr/bin/git` và `/usr/bin/tar` của FakeRunner chạy lệnh thật (vẫn ghi nhận từng lời gọi). */
+export function passThroughGitTar(runner: FakeRunner): FakeRunner {
+  const real = (command: string) => (args: readonly string[]) => {
+    const r = spawnSync(command, [...args], { encoding: 'utf8' });
+    return { code: r.status ?? 1, stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
+  };
+  return runner.on('/usr/bin/git', real('/usr/bin/git')).on('/usr/bin/tar', real('/usr/bin/tar'));
+}
 
 export function installedPluginsFile(home: string): string {
   return join(home, '.claude', 'plugins', 'installed_plugins.json');
@@ -78,10 +156,13 @@ export function fakeMac(
     ownerSuperpowers?: boolean;
     /** Các label mà `launchctl bootout` báo lỗi và job vẫn nạp. */
     bootoutFails?: string[];
+    /** Mặc định true: bản ghim BMAD `FIXTURE_BMAD_PIN` đã có sẵn dưới ~/.crew/workflows (setup không phải tải). */
+    bmadInstalled?: boolean;
   } = {},
 ) {
   const home = mkdtempSync(join(tmpdir(), 'crew-mac-home-'));
   if (options.ownerSuperpowers !== false) seedOwnerPlugin(home);
+  if (options.bmadInstalled !== false) writeBmadTree(pinDir(home, FIXTURE_BMAD_PIN));
   const loaded = new Set<string>(options.spikeLoaded ? [SPIKE_LABEL] : []);
   const labelOf = (target: string | undefined) => String(target).split('/').at(-1) as string;
   const tailscale = () =>
@@ -141,6 +222,7 @@ export function fakeMac(
     nodePath: options.nodePath ?? '/opt/homebrew/bin/node',
     cliPath: options.cliPath ?? '/opt/crew/apps/crew-mac/dist/cli.js',
     superpowersPin: FIXTURE_PIN,
+    bmadPin: FIXTURE_BMAD_PIN,
   };
   return { home, ctx, runner, loaded, out };
 }

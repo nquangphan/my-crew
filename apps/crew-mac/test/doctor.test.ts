@@ -25,9 +25,10 @@ import {
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
-import { superpowersPinDir } from '../src/workflows/pin.js';
+import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
 import {
   APP_EXECUTABLE,
+  FIXTURE_BMAD_PIN,
   FIXTURE_PIN,
   fakeMac,
   fakeProcs,
@@ -364,8 +365,10 @@ describe('crew-mac doctor', () => {
       ['zshenv-path', 'ok'],
       ['wrapper', 'ok'],
       ['agent-node', 'ok'],
+      ['agent-uv', 'ok'],
       ['launcher', 'ok'],
       ['superpowers-pin', 'ok'],
+      ['bmad-pin', 'ok'],
       ['worktree-root', 'ok'],
       ['worktree-workflows', 'ok'],
       ['crew-docs', 'ok'],
@@ -493,6 +496,59 @@ describe('crew-mac doctor', () => {
     expect(r?.detail).toContain('git quá hạn');
     expect(r?.detail).toContain('dừng kiểm các worktree còn lại');
     expect(new Set(roots)).toEqual(new Set([join(root, 'a')]));
+  });
+
+  it('bmad-pin: đạt khi đúng checksum; thiếu, lệch checksum, mất bit x thì fail kèm cách sửa', async () => {
+    const { ctx, home } = await installed(okSsh);
+    const dir = pinDir(home, FIXTURE_BMAD_PIN);
+    const pinCheck = async () =>
+      (await doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'bmad-pin',
+      );
+    expect(await pinCheck()).toMatchObject({
+      status: 'ok',
+      title: 'BMAD 9.9.9-next đã ghim',
+      detail: expect.stringContaining('3 file'),
+    });
+    const script = join(dir, 'skills', 'bmad', 'scripts', 'setup.py');
+    chmodSync(script, 0o644);
+    expect(await pinCheck()).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('thiếu bit thực thi: skills/bmad/scripts/setup.py'),
+      hint: expect.stringContaining('crew-mac workflows install'),
+    });
+    chmodSync(script, 0o755);
+    writeFileSync(join(dir, 'skills', 'm1', 'SKILL.md'), 'sửa\n');
+    expect(await pinCheck()).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('lệch checksum'),
+    });
+    rmSync(dir, { recursive: true });
+    expect(await pinCheck()).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('chưa có'),
+      hint: expect.stringContaining('crew-mac workflows install'),
+    });
+  });
+
+  it('agent-uv: sshd agent không thấy uv thì fail kèm lệnh cài', async () => {
+    const mac = await installed((remote) =>
+      remote.includes('command -v uv') ? { code: 1, stdout: '' } : okSsh(remote),
+    );
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'agent-uv')).toMatchObject({
+      status: 'fail',
+      title: 'uv trong PATH của sshd agent',
+      hint: expect.stringContaining('cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh'),
+    });
+    const ok = await installed((remote) =>
+      remote.includes('command -v uv') ? { stdout: '/Users/owner/.local/bin/uv\n' } : okSsh(remote),
+    );
+    const again = await doctor(ok.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(again.find((r) => r.id === 'agent-uv')).toMatchObject({
+      status: 'ok',
+      detail: '/Users/owner/.local/bin/uv',
+    });
   });
 
   it('agent-node: sshd agent không thấy node thì fail kèm cách sửa; khối PATH thiếu thư mục node thì zshenv-path fail', async () => {

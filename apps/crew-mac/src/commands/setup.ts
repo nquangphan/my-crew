@@ -29,6 +29,7 @@ import {
   takeBackToLaunchd,
 } from '../sshd-owner.js';
 import { tailscaleIpv4 } from '../tailscale.js';
+import { installBmadPin } from '../workflows/bmad-install.js';
 import { installSuperpowersPin } from '../workflows/install.js';
 import { agentExtraArgs } from '../workflows/pin.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
@@ -52,6 +53,8 @@ export interface SetupReport {
   manifest: Manifest;
   /** Thư mục Superpowers đã ghim và `adapterConfig.extraArgs` tương ứng cho agent claude_local. */
   superpowers: { dir: string; extraArgs: string[] };
+  /** Thư mục BMAD đã ghim và `extraArgs` cho agent vai bmad. */
+  bmad: { dir: string; extraArgs: string[] };
   /** Lần chạy này chuyển sshd agent sang app, về LaunchAgent, hay giữ nguyên chủ. */
   sshdHandoff: 'app' | 'launchd' | 'unchanged';
 }
@@ -197,9 +200,12 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   const track = (path: string, didChange: boolean) => {
     if (didChange) changed.push(path);
   };
-  // Trước mọi file khác: owner chưa cài đúng bản Superpowers thì dừng khi máy còn nguyên.
+  // Trước mọi file khác: owner chưa cài đúng bản Superpowers, hay không lấy được BMAD, thì dừng khi máy còn nguyên
+  // (chỉ có thể đã thêm bản ghim dưới ~/.crew/workflows). Superpowers trước BMAD.
   const pin = installSuperpowersPin(ctx);
   track(pin.dir, pin.changed);
+  const bmad = await installBmadPin(ctx);
+  track(bmad.dir, bmad.source !== 'existing');
   mkdirSync(paths.sshdDir, { recursive: true, mode: 0o700 });
   mkdirSync(paths.reaperDir, { recursive: true, mode: 0o700 });
   mkdirSync(dirname(paths.statusLog), { recursive: true, mode: 0o700 });
@@ -292,6 +298,7 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
     restarted,
     manifest,
     superpowers: { dir: pin.dir, extraArgs: agentExtraArgs(pin.dir) },
+    bmad: { dir: bmad.dir, extraArgs: agentExtraArgs(bmad.dir) },
     sshdHandoff,
   };
 }

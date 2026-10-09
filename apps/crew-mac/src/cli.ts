@@ -16,6 +16,7 @@ import {
 import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
 import { runInitCheck, workflowCheck } from './commands/workflow-check.js';
+import { WORKFLOWS_USAGE, workflowsCommand } from './commands/workflows.js';
 import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
 import { filesCommand } from './files/command.js';
@@ -45,6 +46,7 @@ Cách dùng:
   crew-mac run-init-check --root <worktree tuyệt đối> --log <file stream-json | ->   (kiểm system/init của một run)
   crew-mac files --issue <uuid> --run <uuid> [--json]   (agent gọi trong run Paperclip: liệt kê file đính kèm của issue và issue cha)
   crew-mac files --gc-only   (chỉ dọn cache file đính kèm)
+  ${WORKFLOWS_USAGE}   (xem, cài riêng bản ghim workflow; không đụng sshd)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -237,6 +239,9 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         io.out(
           `Agent claude_local: đặt adapterConfig.extraArgs = ${JSON.stringify(report.superpowers.extraArgs)}`,
         );
+        io.out(
+          `Agent BMAD (vai bmad): đặt adapterConfig.extraArgs = ${JSON.stringify(report.bmad.extraArgs)}`,
+        );
         io.out('Chạy "crew-mac doctor" để kiểm toàn bộ.');
         return 0;
       }
@@ -358,6 +363,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         for (const line of report.lines) (report.ok ? io.out : io.err)(line);
         return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
       }
+      case 'workflows':
+        return await workflowsCommand(ctx, args, io.err);
       case 'files':
         return await filesCommand(ctx, args, io.env, { out: io.out, err: io.err });
       default:

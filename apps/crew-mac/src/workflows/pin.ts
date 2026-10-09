@@ -1,8 +1,14 @@
 import { join } from 'node:path';
 import { macPaths } from '../paths.js';
 
+/** Workflow đã chứng nhận; cũng là tên plugin trong `system/init` của run (plugin.json `name`). */
+export type WorkflowId = 'superpowers' | 'bmad';
+
+/** Tên hiển thị trong câu báo cho owner. */
+export const WORKFLOW_LABEL: Record<WorkflowId, string> = { superpowers: 'Superpowers', bmad: 'BMAD' };
+
 export interface WorkflowPin {
-  workflow: 'superpowers';
+  workflow: WorkflowId;
   version: string;
   revision: string;
   checksum: string;
@@ -39,8 +45,13 @@ export const SUPERPOWERS_PIN: WorkflowPin = {
 
 export const SUPERPOWERS_PLUGIN_KEY = 'superpowers@claude-plugins-official';
 
-export function superpowersPinDir(home: string, pin: WorkflowPin = SUPERPOWERS_PIN): string {
+/** Thư mục ghim của một workflow: `~/.crew/workflows/<workflow>/<version>-<rev12>`. */
+export function pinDir(home: string, pin: WorkflowPin): string {
   return join(macPaths(home).workflowsRoot, pin.workflow, `${pin.version}-${pin.revision.slice(0, 12)}`);
+}
+
+export function superpowersPinDir(home: string, pin: WorkflowPin = SUPERPOWERS_PIN): string {
+  return pinDir(home, pin);
 }
 
 /** Đặt vào `adapterConfig.extraArgs` của agent claude_local: không nạp nguồn user, chỉ plugin ở thư mục ghim. */

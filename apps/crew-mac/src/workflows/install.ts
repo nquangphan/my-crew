@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { type MacContext, SetupError } from '../context.js';
-import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir, type WorkflowPin } from './pin.js';
+import { pinDir, SUPERPOWERS_PLUGIN_KEY, WORKFLOW_LABEL, type WorkflowPin } from './pin.js';
 import { treeChecksum } from './tree-checksum.js';
 
 export interface InstalledPlugin {
@@ -45,7 +45,7 @@ export function readInstalledPlugins(home: string, key: string): InstalledPlugin
   });
 }
 
-function checksumOrNull(dir: string): string | null {
+export function checksumOrNull(dir: string): string | null {
   try {
     return treeChecksum(dir).checksum;
   } catch {
@@ -53,7 +53,7 @@ function checksumOrNull(dir: string): string | null {
   }
 }
 
-function pathExists(path: string): boolean {
+export function pathExists(path: string): boolean {
   try {
     lstatSync(path);
     return true;
@@ -75,7 +75,7 @@ export function missingExecutables(dir: string, pin: WorkflowPin): string[] {
 }
 
 /** Đặt lại bit thực thi theo danh sách của pin (không đổi nội dung, nên không đổi checksum). Trả true nếu có sửa. */
-function ensureExecutables(dir: string, pin: WorkflowPin): boolean {
+export function ensureExecutables(dir: string, pin: WorkflowPin): boolean {
   const missing = missingExecutables(dir, pin);
   for (const rel of missing) {
     const path = join(dir, rel);
@@ -86,7 +86,7 @@ function ensureExecutables(dir: string, pin: WorkflowPin): boolean {
       mode = st.mode & 0o777;
     } catch {
       throw new SetupError(
-        `Bản Superpowers ${pin.version} không có file thực thi ${rel} như pin ghi; kiểm lại SUPERPOWERS_PIN.`,
+        `Bản ${WORKFLOW_LABEL[pin.workflow]} ${pin.version} không có file thực thi ${rel} như pin ghi; kiểm lại hằng số pin.`,
       );
     }
     chmodSync(path, mode | 0o111);
@@ -95,7 +95,7 @@ function ensureExecutables(dir: string, pin: WorkflowPin): boolean {
 }
 
 /** Xóa bản tạm `<dir>.tmp-*` còn sót của lần setup bị ngắt (mọi pid). */
-function removeStaleTemps(dir: string): void {
+export function removeStaleTemps(dir: string): void {
   const parent = dirname(dir);
   if (!existsSync(parent)) return;
   const prefix = `${basename(dir)}.tmp-`;
@@ -113,7 +113,7 @@ export function installSuperpowersPin(
   ctx: MacContext,
   pin: WorkflowPin = ctx.superpowersPin,
 ): { dir: string; changed: boolean } {
-  const dir = superpowersPinDir(ctx.home, pin);
+  const dir = pinDir(ctx.home, pin);
   removeStaleTemps(dir);
   if (pathExists(dir)) {
     if (checksumOrNull(dir) === pin.checksum) return { dir, changed: ensureExecutables(dir, pin) };

@@ -11,8 +11,9 @@ không cần token và không login lại.
 ## Điểm vào
 
 - `crew-mac setup --paperclip-key <file .pub> [--sshd-owner app|launchd] [--force]`: chạy trong Terminal trên màn
-  hình Mac. In `adapterConfig.command` và `adapterConfig.extraArgs` (Superpowers đã ghim, flow `mac-workflows`) cần
-  đặt cho agent `claude_local`, và chủ sshd agent hiện tại (xem "Chủ sshd agent").
+  hình Mac. In `adapterConfig.command` và hai dòng `adapterConfig.extraArgs` (agent thường: Superpowers đã ghim; agent
+  vai bmad: BMAD đã ghim; flow `mac-workflows`) cần đặt cho agent `claude_local`, và chủ sshd agent hiện tại (xem
+  "Chủ sshd agent").
 - `crew-mac doctor [--no-probe]`: chạy bất kỳ lúc nào, kể cả qua SSH.
 - `crew-mac status config --url <Paperclip origin> --company <UUID>`: lưu origin, `companyId` UUID và sinh `machineId` UUID nếu chưa có.
 - `crew-mac status set-secret`: đọc secret từ stdin và lưu vào Keychain.
@@ -20,6 +21,8 @@ không cần token và không login lại.
 - `crew-mac status add-repo <projectId> <path>`: đăng ký repo git cho ảnh chụp docs; `remove-repo <projectId>`
   gỡ repo; `list-repos` xem danh sách và commit gửi cuối.
 - `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`).
+- `crew-mac workflows list [--json] | install`: xem sổ workflow đã chứng nhận, hoặc chỉ cài hai bản ghim mà không chạy
+  lại cả `setup` (không đụng sshd/launchd; dùng khi app 2P Crew đang giữ sshd agent). Chi tiết ở flow `mac-workflows`.
 - `crew-mac files --issue <uuid> --run <uuid> [--json]`: agent gọi trong run Paperclip để lấy danh sách file đính
   kèm của issue và issue cha; `crew-mac files --gc-only` chỉ dọn cache. Toàn bộ nằm ở flow `mac-attachments`;
   `cli.ts` chỉ chuyển `files` sang `filesCommand` (truyền `io.env`, không đọc `process.env` trực tiếp).
@@ -46,15 +49,20 @@ không cần token và không login lại.
    (`~/.zshenv`, `authorized_keys`) giữ mode cũ. `~/.zshenv` có dòng mở khối PATH mà thiếu dòng đóng thì dừng trước
    khi ghi gì, yêu cầu owner sửa tay. Trước mọi file khác, `installSuperpowersPin` (flow `mac-workflows`) copy bản
    Superpowers owner đã cài vào `~/.crew/workflows/superpowers/<version>-<rev12>`; owner chưa cài đúng bản ghim thì
-   dừng với `SetupError` khi máy còn nguyên. `SetupReport.superpowers` trả thư mục ghim và `extraArgs` cho agent.
+   dừng với `SetupError` khi máy còn nguyên. Ngay sau đó `installBmadPin` lắp bản ghim BMAD vào
+   `~/.crew/workflows/bmad/<version>-<rev12>` (có sẵn đúng checksum thì không gọi git); không lấy được thì `SetupError`
+   khi Superpowers đã ghim nhưng chưa ghi file nào khác. `SetupReport.superpowers` và `SetupReport.bmad` trả thư mục
+   ghim và `extraArgs` cho agent thường và agent vai bmad.
 3. `apps/crew-mac/src/commands/doctor.ts` → `doctor`: Tailscale, sshd agent theo chủ (`checkSshdService` cho
    LaunchAgent, `checkAppSshd` cho app) ngay sau đó là `tcc-owner` (`checkTccOwner`), cổng sshd, LaunchAgent reaper (`checkReaper`),
    PATH (`checkZshenv`, id `zshenv-path`: khối có đúng `~/.local/bin` và thư mục node hiện tại), wrapper, node trong
    PATH của sshd agent (`checkAgentNode`, id `agent-node`: `command -v node` qua chính sshd agent, `fail` kèm gợi ý chạy
-   lại setup), launcher (`checkLauncher`: có, chạy được, còn trỏ tới node và `cli.js` tồn tại), Superpowers ghim
+   lại setup), uv trong PATH của sshd agent (`checkAgentUv`, id `agent-uv`: `command -v uv` qua chính sshd agent, agent
+   BMAD chạy `setup.py` bằng `uv run`; `fail` kèm lệnh `cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh`), launcher (`checkLauncher`: có, chạy được, còn trỏ tới node và `cli.js` tồn tại), Superpowers ghim
    (`checkSuperpowersPin`, id `superpowers-pin`: thư mục ghim có, không phải symlink, đúng checksum, file trong
    `executables` có bit thực thi, không thì `fail`; bản owner đang cài trong `installed_plugins.json` khác bản ghim
-   thì `warn`), wrapper (`checkWrapper`: có,
+   thì `warn`), BMAD ghim (`checkBmadPin`, id `bmad-pin`, tiêu đề `BMAD <version> đã ghim`: thiếu, lệch checksum hay
+   thiếu bit thực thi thì `fail` kèm `crew-mac workflows install`), wrapper (`checkWrapper`: có,
    chạy được qua sshd agent, giống bản trong repo), thư mục worktree, nguồn skill của từng worktree
    (`checkWorktreeWorkflows`, id `worktree-workflows`: `discoverSources` của flow `mac-workflows` cho mỗi worktree cấp 1,
    bỏ thư mục chấm; dừng ngay sau lần git quá hạn đầu tiên và có trần tổng 60 giây, kèm dòng "dừng kiểm các worktree còn lại"; `fail` khi worktree nào sẽ làm run thoát 78, `warn` khi chỉ có cảnh báo, hint là lệnh xử lý), `crew-docs` (`checkCrewDocs`: dừng ngay sau lần quá hạn đầu tiên (đọc config hay `--version`) và có trần tổng 60 giây; mỗi worktree cấp 1 dưới thư mục worktree, kể cả symlink, có `docs/flows.yaml` thì chạy qua chính
@@ -136,9 +144,9 @@ không cần token và không login lại.
 |-----------|---------|--------------|
 | `apps/crew-mac/src/cli.ts` | CLI (lệnh `files` chuyển sang flow `mac-attachments`) | `main`, `USAGE`, `sshServerPort` |
 | `apps/crew-mac/src/system.ts` | Chạy lệnh có giới hạn thời gian (SIGKILL), thêm biến môi trường (`RunOptions.env`), quote đối số shell | `createRunner`, `CommandRunner`, `shQuote` |
-| `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`), `SetupError` |
-| `apps/crew-mac/src/context-factory.ts` | Dựng `MacContext` dùng chung cho CLI và app (`cliPath` do người gọi truyền) | `createMacContext`, `stableNodePath` |
-| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), reaper, manifest, paths |
+| `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`, `bmadPin`), `SetupError` |
+| `apps/crew-mac/src/context-factory.ts` | Dựng `MacContext` dùng chung cho CLI và app (`cliPath` do người gọi truyền) | `createMacContext` (pin CLI: `SUPERPOWERS_PIN`, `BMAD_PIN`), `stableNodePath` |
+| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), reaper, manifest, paths |
 | `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows` và `appState` = `~/Library/Application Support/2P Crew/app.json`, file của app, crew-mac chỉ đọc; `crewMacDir` = `~/.crew/app/crew-mac`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
 | `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt (kể cả `sshdOwner` tùy chọn) | `readManifest`, `writeManifest` |
@@ -239,14 +247,15 @@ cùng quy tắc HMAC với bản tin máy. Lệnh chỉ cảnh báo số trang b
 - File trên Mac: `~/.crew-mac/` (manifest, sshd config, host key, key doctor, known_hosts),
   `~/Library/LaunchAgents/com.2p.crew-mac-sshd.plist`, `~/Library/LaunchAgents/com.2p.crew-mac-reaper.plist`, khối `# >>> crew-mac path >>>` trong `~/.zshenv`, dòng key
   `crew-mac-paperclip` và `crew-mac-doctor` trong `~/.ssh/authorized_keys`, wrapper `~/.crew/bin/crew-claude-run`,
-  launcher `~/.crew/bin/crew-mac`, bản Superpowers ghim `~/.crew/workflows/superpowers/<version>-<rev12>` (uninstall
-  để nguyên, vô hại), thư mục worktree (mặc định `~/crew-agents`).
+  launcher `~/.crew/bin/crew-mac`, bản Superpowers ghim `~/.crew/workflows/superpowers/<version>-<rev12>` và bản BMAD
+  ghim `~/.crew/workflows/bmad/<version>-<rev12>` (uninstall để nguyên, vô hại), thư mục worktree (mặc định `~/crew-agents`).
 - Wrapper ghi `<worktree>/.paperclip-runtime/runs/<runId>/pgid` và `started` cho mỗi run. `started` là thời điểm
   SINH của process wrapper (epoch giây), không phải lúc wrapper chạy, để profile chậm của owner không làm lệch.
   `crew-mac stop-run` và reaper đọc hai file này (flow `mac-orphan-reaper`).
-- Gọi ngoài: `/usr/bin/git` (đọc `crew-docs.bundle`), `launchctl`, `ssh-keygen`, `ssh`, `nc`, `tailscale`, `/usr/bin/log`, `/bin/ps`, `/usr/sbin/sysctl`, `/usr/bin/memory_pressure`, `claude`.
-- Chỉ đọc (không ghi) `~/.claude/plugins/installed_plugins.json` và cây plugin Superpowers owner đã cài để copy bản
-  ghim. Không đọc hay ghi phần khác của `~/.claude` hay Keychain.
+- Gọi ngoài: `/usr/bin/git` (đọc `crew-docs.bundle`; `cat-file`/`archive` marketplace `bmad`, hoặc `clone` https khi
+  lắp bản ghim BMAD), `/usr/bin/tar`, `launchctl`, `ssh-keygen`, `ssh`, `nc`, `tailscale`, `/usr/bin/log`, `/bin/ps`, `/usr/sbin/sysctl`, `/usr/bin/memory_pressure`, `claude`.
+- Chỉ đọc (không ghi) `~/.claude/plugins/installed_plugins.json`, cây plugin Superpowers owner đã cài để copy bản
+  ghim, và repo marketplace `~/.claude/plugins/marketplaces/bmad` (qua git) để lấy bản BMAD. Không đọc hay ghi phần khác của `~/.claude` hay Keychain.
 
 ## Lưu ý quyền macOS (TCC)
 
@@ -258,17 +267,18 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 
 - `mac-orphan-reaper`: LaunchAgent dọn process `claude --print` mồ côi do `setup` cài.
 - `mac-attachments`: lệnh `crew-mac files` agent gọi để đọc file đính kèm (bridge, cache, nhận diện, manifest).
-- `mac-workflows`: bản Superpowers ghim mà `setup` cài và `doctor` kiểm; wrapper gọi `workflow-check` trước mỗi run.
+- `mac-workflows`: bản Superpowers và BMAD ghim mà `setup` (hoặc `workflows install`) cài và `doctor` kiểm; wrapper gọi
+  `workflow-check` trước mỗi run.
 
 ## Tests
 
 - `apps/crew-mac/test/sshd-owner.test.ts`: `resolveSshdOwner`, manifest có/không `sshdOwner` và giá trị lạ, `isCrewListener` (cả chuỗi thật `sshd: /usr/sbin/sshd … [listener] 0 of 10-100 startups`), `probeListener` (không pidfile, pid chết, pid lạ, listener sống kèm cha), `takeBackToLaunchd` (listener tự thoát thì không kill, mồ côi thì đúng một TERM, pid thành `sshd-session` thì trả về không kill, không pidfile thì không gọi `ps`).
-- `apps/crew-mac/test/setup.test.ts`: chủ sshd (sang app: đúng một bootout, xóa plist, config và host key không đổi; chạy lại không đổi gì; còn run thì từ chối, `force` thì chạy; sang app: bootout lỗi mà job còn nạp thì `SetupError`, manifest và plist giữ nguyên; thứ tự manifest → xóa plist → bootout; chết sau từng bước thì wizard chạy lại, CLI không cờ hay CLI về launchd đều ra đúng một chủ; về launchd: dò pid khi manifest còn `app` rồi mới ghi `launchd`, không kill khi listener tự thoát, pid lạ mà cổng bị giữ hoặc `lsof` lỗi thì `SetupError` trước khi ghi manifest (chạy lại vẫn vậy), pid lạ mà cổng trống thì bootstrap, không pidfile thì bootstrap ngay), cài lần đầu (khối PATH có thư mục node), ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
-- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `agent-node` (sshd agent không thấy node) và `zshenv-path` thiếu thư mục node, `crew-docs` node mã 127 thì gợi ý sửa PATH, `superpowers-pin` (thiếu, lệch checksum, symlink, mất bit thực thi, bản owner khác pin), `worktree-workflows` (sạch, `SKILL.md` sửa dở thì warn, `settings.json` sửa dở thì fail kèm lệnh, git quá hạn thì dừng), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail, kể cả của app 2P Crew) và của app khác (warn), `isAgentTccSubject`, chủ sshd và `tcc-owner` (con của app thì đạt, mồ côi thì cảnh báo, cha khác, không listener thì fail, job launchd còn nạp ở chế độ app thì fail, chế độ LaunchAgent thì `tcc-owner` cảnh báo), chưa đăng nhập, IP đổi, quá tải.
+- `apps/crew-mac/test/setup.test.ts`: chủ sshd (sang app: đúng một bootout, xóa plist, config và host key không đổi; chạy lại không đổi gì; còn run thì từ chối, `force` thì chạy; sang app: bootout lỗi mà job còn nạp thì `SetupError`, manifest và plist giữ nguyên; thứ tự manifest → xóa plist → bootout; chết sau từng bước thì wizard chạy lại, CLI không cờ hay CLI về launchd đều ra đúng một chủ; về launchd: dò pid khi manifest còn `app` rồi mới ghi `launchd`, không kill khi listener tự thoát, pid lạ mà cổng bị giữ hoặc `lsof` lỗi thì `SetupError` trước khi ghi manifest (chạy lại vẫn vậy), pid lạ mà cổng trống thì bootstrap, không pidfile thì bootstrap ngay), cài lần đầu (khối PATH có thư mục node), ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, cài bản ghim BMAD từ marketplace và trả `extraArgs` vai bmad, BMAD có sẵn thì không gọi git, BMAD không lấy được thì `SetupError` sau khi Superpowers đã ghim, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
+- `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `agent-node` (sshd agent không thấy node) và `zshenv-path` thiếu thư mục node, `crew-docs` node mã 127 thì gợi ý sửa PATH, `superpowers-pin` (thiếu, lệch checksum, symlink, mất bit thực thi, bản owner khác pin), `bmad-pin` (đạt, mất bit thực thi, lệch checksum, thiếu), `agent-uv` (không thấy uv thì fail kèm lệnh cài, thấy thì đạt), `worktree-workflows` (sạch, `SKILL.md` sửa dở thì warn, `settings.json` sửa dở thì fail kèm lệnh, git quá hạn thì dừng), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail, kể cả của app 2P Crew) và của app khác (warn), `isAgentTccSubject`, chủ sshd và `tcc-owner` (con của app thì đạt, mồ côi thì cảnh báo, cha khác, không listener thì fail, job launchd còn nạp ở chế độ app thì fail, chế độ LaunchAgent thì `tcc-owner` cảnh báo), chưa đăng nhập, IP đổi, quá tải.
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.
 - `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống; chế độ app không bootout sshd, không kill listener, báo cách dừng, và phiên SSH dưới listener của app thì từ chối.
 - `apps/crew-mac/test/index.test.ts`: thư viện export đủ hàm app cần; `createMacContext` giữ `cliPath` được truyền.
-- `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip, chặn `setup --sshd-owner` qua chính sshd agent (`--force` thì chạy), `--sshd-owner` giá trị lạ, câu in ở chế độ app (app nạp lại cấu hình; đổi cổng thì in cấu hình mới), lệnh `files` (thiếu cờ, UUID sai, thiếu env bridge, `--gc-only`).
+- `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs` (vai thường và vai bmad), mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip, chặn `setup --sshd-owner` qua chính sshd agent (`--force` thì chạy), `--sshd-owner` giá trị lạ, câu in ở chế độ app (app nạp lại cấu hình; đổi cổng thì in cấu hình mới), lệnh `files` (thiếu cờ, UUID sai, thiếu env bridge, `--gc-only`).
 - `apps/crew-mac/test/install-cli.test.ts`: thay bản cũ và giữ một bản lui, cài lần đầu, gọi lại cùng nội dung thì không đổi gì, cùng version khác nội dung thì cài, còn run thì từ chối, thiếu `dist/cli.js` hoặc `version` thì `SetupError`, chỉ một bản lui, lỗi rename thứ hai thì khôi phục. Mọi ca dùng HOME giả.
 - `apps/crew-mac/test/status-app.test.ts`: `readAppState` (đủ ba trường, mọi `updateState`, file thiếu/hỏng/giá trị lạ/quá 32 ký tự thì null) và bản tin có hoặc không có key `app`.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.

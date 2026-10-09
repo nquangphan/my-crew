@@ -15,6 +15,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/commands/stop-run.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (điểm vào) |
 | `apps/crew-mac/src/commands/uninstall.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/workflow-check.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
+| `apps/crew-mac/src/commands/workflows.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
 | `apps/crew-mac/src/context-factory.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/context.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/files/bridge.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
@@ -67,10 +68,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/status/tcc.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/tailscale.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/workflows/bmad-install.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
+| `apps/crew-mac/src/workflows/bmad-pin.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/install.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
 | `apps/crew-mac/src/workflows/inventory.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/pin.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/policy.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
+| `apps/crew-mac/src/workflows/registry.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/run-init.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/wrapper.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -117,8 +121,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/system.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/uninstall.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/workflow-check.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/workflows-bmad-install.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/workflows-command.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-inventory.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-pin.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/workflows-registry.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/mac-app/electron-builder.yml` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/scripts/release-lib.mjs` | [mac-app-update](flows/mac-app-update.md) (file) |

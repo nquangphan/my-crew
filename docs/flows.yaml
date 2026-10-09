@@ -185,21 +185,28 @@ flows:
       - apps/crew-mac/test/reaper-select.test.ts
       - apps/crew-mac/test/reaper-reap.test.ts
   mac-workflows:
-    title: Ghim Superpowers và chặn nạp skill chéo trên Mac
+    title: Ghim Superpowers và BMAD, chặn nạp chéo trên Mac
     doc: docs/flows/mac-workflows.md
     entrypoints:
       - apps/crew-mac/src/workflows/install.ts
       - apps/crew-mac/src/commands/workflow-check.ts
+      - apps/crew-mac/src/commands/workflows.ts
     files:
       - apps/crew-mac/src/workflows/pin.ts
       - apps/crew-mac/src/workflows/policy.ts
       - apps/crew-mac/src/workflows/tree-checksum.ts
       - apps/crew-mac/src/workflows/inventory.ts
       - apps/crew-mac/src/workflows/run-init.ts
+      - apps/crew-mac/src/workflows/registry.ts
+      - apps/crew-mac/src/workflows/bmad-pin.ts
+      - apps/crew-mac/src/workflows/bmad-install.ts
     tests:
       - apps/crew-mac/test/workflows-pin.test.ts
       - apps/crew-mac/test/workflows-inventory.test.ts
       - apps/crew-mac/test/workflow-check.test.ts
+      - apps/crew-mac/test/workflows-registry.test.ts
+      - apps/crew-mac/test/workflows-bmad-install.test.ts
+      - apps/crew-mac/test/workflows-command.test.ts
   mac-app:
     title: App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)
     doc: docs/flows/mac-app.md

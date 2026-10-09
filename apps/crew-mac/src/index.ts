@@ -14,6 +14,7 @@ export {
 export { stopRun } from './commands/stop-run.js';
 export { scanUninstallBlockers, uninstall } from './commands/uninstall.js';
 export { type WorkflowReport, workflowCheck } from './commands/workflow-check.js';
+export { WORKFLOWS_USAGE, workflowsCommand } from './commands/workflows.js';
 export { type MacContext, SetupError } from './context.js';
 export { createMacContext } from './context-factory.js';
 export { filesCommand } from './files/command.js';
@@ -26,3 +27,14 @@ export { isClaudePrint } from './reaper/select.js';
 export { isCrewListener, readSshdPid, type SshdOwner } from './sshd-owner.js';
 export { type AppReport, readAppState } from './status/app-state.js';
 export { type CommandRunner, createRunner } from './system.js';
+export { type BmadInstallResult, installBmadPin } from './workflows/bmad-install.js';
+export { BMAD_PIN, BMAD_PLUGIN_JSON, BMAD_SOURCE, type BmadSource } from './workflows/bmad-pin.js';
+export {
+  agentExtraArgs,
+  pinDir,
+  SUPERPOWERS_PIN,
+  superpowersPinDir,
+  type WorkflowId,
+  type WorkflowPin,
+} from './workflows/pin.js';
+export { type CertifiedWorkflow, certifiedWorkflows, workflowForPluginDir } from './workflows/registry.js';

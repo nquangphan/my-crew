@@ -1,4 +1,4 @@
-# Ghim Superpowers và chặn nạp skill chéo trên Mac
+# Ghim Superpowers và BMAD, chặn nạp chéo trên Mac
 
 > Flow `mac-workflows`. Danh sách file chính thức nằm trong `docs/flows.yaml`; `crew-docs flow mac-workflows` in ra đúng danh sách đó.
 
@@ -9,10 +9,30 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
 (6.4.2): agent dùng đúng workflow mà owner đang dùng. Run không bao giờ đọc thẳng cache plugin của owner, vì cache
 đó đổi mỗi khi owner nâng plugin; run chỉ đọc một bản copy riêng có checksum cố định.
 
+Cạnh Superpowers, Crew ghim **BMAD** cho agent lập epic/story: repo chính thức `bmad-plugins`
+(`https://github.com/bmad-code-org/bmad-plugins.git`) ở revision `d009608292d8a2ea4df846de7dca2f0d78a9e22d`
+(6.13.0-next). Hai cây skill `plugins/method/skills` (bmad-method, 21 skill) và `plugins/toolbox/skills` (bmad-toolbox,
+8 skill) được lắp thành **một** plugin tên `bmad` (tên plugin = id workflow, vì `run-init` so tên plugin trong
+`system/init` với `pin.workflow`), cộng `.claude-plugin/plugin.json` do Crew sinh. Bản ghim không theo HEAD của
+marketplace `bmad` owner đã thêm: owner kéo marketplace mới không được đổi skill mà agent đang chạy, và mọi Mac phải ra
+đúng cùng một cây (258 file, checksum `7f62e5cb6033…`).
+
+Sổ workflow đã chứng nhận (`registry.ts`) có đúng hai mục, thứ tự cố định: `superpowers` (mặc định; design/plan/task,
+code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `claude_local`.
+
 ## Điểm vào
 
-- `crew-mac setup` gọi `installSuperpowersPin` (flow `mac-setup`) rồi in `adapterConfig.extraArgs` cho agent.
-- `crew-mac doctor` kiểm bản ghim (check `superpowers-pin`).
+- `crew-mac setup` gọi `installSuperpowersPin` rồi `installBmadPin` (flow `mac-setup`) và in `adapterConfig.extraArgs`
+  cho agent thường và agent vai bmad.
+- `crew-mac workflows list [--json]`: in sổ workflow. Mỗi workflow một dòng
+  `<id> <version> rev=<rev12> <đã cài|chưa cài|lệch checksum> <mặc định|->`; `--json` in mảng
+  `{id, version, revision, checksum, runtimes, isDefault, purpose, dir, installed}` (`installed` = thư mục ghim có và
+  đúng checksum).
+- `crew-mac workflows install`: chỉ cài hai bản ghim (Superpowers trước, BMAD sau) rồi in
+  `extraArgs (vai thường): […]` và `extraArgs (vai bmad): […]`. Không đụng sshd, launchd hay file nào khác, nên chạy
+  được khi app 2P Crew đang giữ sshd agent. Lỗi cài thì in `crew-mac: <câu lỗi>` và thoát 1; sai cách dùng thoát 2.
+  (`workflows gc` có trong cách dùng, chưa làm.)
+- `crew-mac doctor` kiểm bản ghim (check `superpowers-pin`, `bmad-pin`).
 - `crew-mac workflow-check --root <worktree> --plugin-dir <dir>`: wrapper `crew-claude-run` gọi trước mỗi run
   Paperclip. In `crew-workflow ok pin=superpowers@6.4.1 project=<n> pinned-dup=<n>` và thoát 0, hoặc mỗi nguồn bị
   chặn một dòng `crew-workflow blocked: <đường dẫn> (<lý do>)` và thoát 78. Đầu vào sai thì thoát 2.
@@ -25,6 +45,8 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
    `executables` (hook và script skill phải có bit thực thi; checksum chỉ băm nội dung nên quyền kiểm riêng).
    `superpowersPinDir(home)` = `~/.crew/workflows/superpowers/<version>-<12 ký tự đầu của revision>`
    (hiện là `6.4.1-5bf4e7801107`). `agentExtraArgs(dir)` = `["--setting-sources","project,local","--plugin-dir",dir]`.
+   `WorkflowId` = `superpowers | bmad`; `pinDir(home, pin)` = `~/.crew/workflows/<workflow>/<version>-<rev12>` cho
+   mọi workflow (`superpowersPinDir` gọi `pinDir`).
 2. `apps/crew-mac/src/workflows/install.ts` → `installSuperpowersPin`:
    - Trước hết xóa mọi bản tạm `<dir>.tmp-*` còn sót của lần setup bị ngắt (mọi pid).
    - Thư mục ghim có sẵn và đúng checksum thì chỉ đặt lại bit thực thi theo `executables` nếu mất (không đổi
@@ -34,6 +56,28 @@ Agent `claude_local` trên Mac chỉ được nạp đúng một bản Superpowe
    - Copy cây đó sang `<dir>.tmp-<pid>` (bỏ `.in_use` ở gốc, giữ mode từng file), kiểm lại checksum, đặt bit thực thi
      theo `executables` rồi `rename` sang thư mục ghim. Copy hỏng thì xóa bản tạm.
 3. `apps/crew-mac/src/workflows/tree-checksum.ts` → `treeChecksum`: checksum cây (thuật toán bên dưới).
+3a. `apps/crew-mac/src/workflows/bmad-pin.ts`: `BMAD_SOURCE` (repo https, thư mục marketplace tương đối HOME
+   `.claude/plugins/marketplaces/bmad`, revision, hai cây), `BMAD_PLUGIN_JSON` (đúng byte, kết thúc một `\n`) và
+   `BMAD_PIN` (version `6.13.0-next`, checksum `7f62e5cb6033d039505afdce2a1d411cbff064a83f13df1d467987f698cd82d2`,
+   `executables` = `skills/bmad/scripts/resolve_customization.py`, số đo ngày 10/10/2026). Thư mục ghim
+   `~/.crew/workflows/bmad/6.13.0-next-d009608292d8`.
+3b. `apps/crew-mac/src/workflows/bmad-install.ts` → `installBmadPin(ctx, source?)`:
+   - Xóa bản tạm `<dir>.tmp-*` còn sót (mọi pid). Thư mục ghim có sẵn đúng checksum thì chỉ bù bit thực thi và trả
+     `source: 'existing'` (không gọi git); lệch checksum thì báo `WORKFLOW_SOURCE_MISMATCH`, không ghi đè.
+   - Chưa có: tạo `<dir>.tmp-<pid>` (700). Nếu marketplace `bmad` của owner có commit ghim
+     (`git -C <marketplace> cat-file -e <rev>^{commit}`) thì `git archive --format=tar -o <tmp>/.src.tar <rev> <hai cây>`
+     từ đó (`source: 'marketplace'`, chỉ đọc repo của owner). Không thì
+     `git clone --filter=blob:none --no-checkout <repoUrl> <tmp>/.clone` (120 giây, `GIT_TERMINAL_PROMPT=0`), archive
+     từ clone rồi xóa clone (`source: 'github'`). Cả hai không được thì báo
+     `không lấy được BMAD <version> (<rev12>): cần mạng tới github.com hoặc marketplace bmad có commit này`.
+   - `tar -x` vào `<tmp>/.src`, chuyển từng `<cây>/<skill>` lên `<tmp>/skills/<skill>`; tên trùng giữa hai cây là lỗi
+     `tên skill trùng giữa bmad-method và bmad-toolbox: <tên>`. Ghi `plugin.json`, đặt bit thực thi theo pin, kiểm
+     checksum (lệch thì `WORKFLOW_SOURCE_MISMATCH`), rồi `rename` sang thư mục ghim. Lỗi ở bất kỳ bước nào thì xóa bản
+     tạm. Mọi lệnh ngoài (`/usr/bin/git`, `/usr/bin/tar`) đi qua `ctx.runner`; lệnh khác clone hạn 30 giây.
+3c. `apps/crew-mac/src/workflows/registry.ts`: `certifiedWorkflows(ctx)` trả sổ hai workflow (pin lấy từ
+   `ctx.superpowersPin`, `ctx.bmadPin`, test thay được). `pluginKeys`: superpowers → `^superpowers@`; bmad → `^bmad@`,
+   `^bmad-method@`, `^bmad-toolbox@`. `workflowForPluginDir(ctx, dir)` trả workflow có thư mục ghim trùng `dir` (so
+   bằng `comparablePath`, bỏ `/` cuối, không phân biệt hoa thường), hoặc null (marketplace, cache owner).
 4. `apps/crew-mac/src/workflows/policy.ts`: `samePin` và `assertSkillAllowed` (ném `WORKFLOW_SOURCE_MISMATCH` khi
    bản sắp nạp khác bản ghim).
 5. **Wrapper** `apps/crew-mac/assets/crew-claude-run.sh`, khi có `PAPERCLIP_RUN_ID`:
@@ -161,6 +205,14 @@ cd "$DIR" && find . -type f ! -path './.in_use/*' | LC_ALL=C sort | while IFS= r
 trong repo commit `enabledPlugins` superpowers. `doctor` (`superpowers-pin`) báo `warn` khi bản owner đang cài khác
 bản ghim (hoặc không còn cài).
 
+**Nâng bản BMAD:**
+
+1. Chọn revision mới của `bmad-plugins`; sửa `BMAD_SOURCE.revision`, version trong `BMAD_PLUGIN_JSON` và `BMAD_PIN`.
+2. Lắp thử (`git archive` hai cây, hợp vào `skills/`, thêm `plugin.json`), đo checksum bằng thuật toán trên và liệt kê
+   file có bit `x` cho `executables`; cập nhật test `workflows-registry`.
+3. Chạy `crew-mac workflows install` trên mọi Mac (bản mới nằm cạnh bản cũ).
+4. `apply-roles.sh agent <id> bmad <thư mục ghim mới>` cho từng agent BMAD.
+
 **Nâng bản Superpowers:**
 
 1. Owner cài bản mới qua `/plugin`.
@@ -174,7 +226,11 @@ bản ghim (hoặc không còn cài).
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/crew-mac/src/workflows/install.ts` | Copy bản owner đã cài vào thư mục ghim | `installSuperpowersPin`, `readInstalledPlugins` |
-| `apps/crew-mac/src/workflows/pin.ts` | Bản ghim, thư mục ghim, `extraArgs` | `SUPERPOWERS_PIN`, `SUPERPOWERS_PLUGIN_KEY`, `superpowersPinDir`, `agentExtraArgs` |
+| `apps/crew-mac/src/workflows/pin.ts` | Bản ghim, thư mục ghim, `extraArgs` | `WorkflowId`, `WorkflowPin`, `SUPERPOWERS_PIN`, `SUPERPOWERS_PLUGIN_KEY`, `pinDir`, `superpowersPinDir`, `agentExtraArgs` |
+| `apps/crew-mac/src/workflows/bmad-pin.ts` | Nguồn và bản ghim BMAD | `BMAD_SOURCE`, `BMAD_PLUGIN_JSON`, `BMAD_PIN` |
+| `apps/crew-mac/src/workflows/bmad-install.ts` | Lắp bản ghim BMAD từ marketplace hoặc clone https | `installBmadPin` |
+| `apps/crew-mac/src/workflows/registry.ts` | Sổ workflow đã chứng nhận | `certifiedWorkflows`, `workflowForPluginDir`, `CertifiedWorkflow` |
+| `apps/crew-mac/src/commands/workflows.ts` | Lệnh `workflows list|install` | `workflowsCommand`, `WORKFLOWS_USAGE` |
 | `apps/crew-mac/src/workflows/policy.ts` | So bản ghim | `samePin`, `assertSkillAllowed` |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
 | `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree | `classifyOrigin`, `discoverSources`, `describeSource`, `Origin`, `DiscoveredSource` |
@@ -186,14 +242,17 @@ bản ghim (hoặc không còn cài).
 
 - **Đọc:** `~/.claude/plugins/installed_plugins.json` và cây plugin owner đã cài (`installPath`). Không ghi gì dưới
   `~/.claude`.
-- **Ghi:** `~/.crew/workflows/superpowers/<version>-<rev12>/` (mode thư mục cha 700). Uninstall để nguyên thư mục này,
-  vô hại.
+- **Đọc (BMAD):** marketplace `~/.claude/plugins/marketplaces/bmad` bằng `git cat-file`/`git archive` (chỉ đọc), hoặc
+  mạng tới `github.com` khi clone.
+- **Ghi:** `~/.crew/workflows/superpowers/<version>-<rev12>/` và `~/.crew/workflows/bmad/<version>-<rev12>/` (mode thư
+  mục cha 700; bản tạm `<dir>.tmp-<pid>` chỉ tồn tại trong lúc cài). Uninstall để nguyên các thư mục này, vô hại.
 - **`workflow-check`:** gọi `/usr/bin/git -C <root> ls-files` cho từng nguồn và chỉ đọc file trong worktree.
 - **Mã thoát 78** (`EX_CONFIG`) là hợp đồng giữa wrapper và `workflow-check`/`run-init-check`.
 
 ## Flow liên quan
 
-- `mac-setup`: `setup` cài bản ghim và in `extraArgs`; `doctor` có check `superpowers-pin`; wrapper `crew-claude-run`.
+- `mac-setup`: `setup` cài hai bản ghim và in `extraArgs`; `doctor` có check `superpowers-pin`, `bmad-pin`, `agent-uv`;
+  wrapper `crew-claude-run`.
 - `mac-orphan-reaper`: đọc `pgid`/`started`. Run bị chặn ở bước kiểm workflow thì không có hai file này.
 
 ## Tests
@@ -204,6 +263,15 @@ bản ghim (hoặc không còn cài).
   - `readInstalledPlugins` với file thiếu hoặc hỏng.
   - `installSuperpowersPin`: copy đúng và lần hai không đổi; owner cài bản khác; cây owner bị sửa; thư mục ghim lệch
     checksum; bản tạm dở dang của lần trước và bản tạm cũ của pid khác; giữ và đặt lại bit thực thi.
+- `apps/crew-mac/test/workflows-registry.test.ts`: `pinDir` theo workflow; `BMAD_SOURCE` chỉ https đúng repo và
+  revision; `BMAD_PLUGIN_JSON` đúng byte; `BMAD_PIN` đúng số đo; sổ hai workflow, mặc định, runtime; `workflowForPluginDir`
+  (hoa thường, `/` cuối, marketplace, cache owner); `pluginKeys`.
+- `apps/crew-mac/test/workflows-bmad-install.test.ts` (repo git thật trong HOME giả, git/tar thật qua `FakeRunner`):
+  lắp từ marketplace (checksum, `plugin.json`, bit x, không rác, không ghi thêm gì dưới `~/.claude`); lần hai không gọi
+  git; marketplace đã sang commit mới; không có marketplace thì clone; trùng tên skill; thư mục ghim lệch checksum;
+  bản tạm cũ; cả hai nguồn lỗi; cây tải về lệch checksum.
+- `apps/crew-mac/test/workflows-command.test.ts`: `workflows list` (JSON và dòng, chưa cài, lệch checksum),
+  `workflows install` (hai dòng `extraArgs`, không gọi `launchctl`/`sshd`, lỗi thoát 1), qua CLI và lệnh con lạ thoát 2.
 - `apps/crew-mac/test/workflows-inventory.test.ts`: `classifyOrigin`; `discoverSources` trên repo git thật:
   - skill đã commit, skill hay agent chưa track;
   - rác hệ điều hành, `__pycache__`, file phụ trong skill đã commit không chặn; `SKILL.md` bị ignore hoặc chưa track

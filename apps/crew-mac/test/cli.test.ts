@@ -33,6 +33,10 @@ describe('crew-mac CLI', () => {
     expect(t.out).toContain(
       `Agent claude_local: đặt adapterConfig.extraArgs = ${JSON.stringify(['--setting-sources', 'project,local', '--plugin-dir', pinDir])}`,
     );
+    const bmadDir = `${mac.home}/.crew/workflows/bmad/9.9.9-next-bbbbbbbbbbbb`;
+    expect(t.out).toContain(
+      `Agent BMAD (vai bmad): đặt adapterConfig.extraArgs = ${JSON.stringify(['--setting-sources', 'project,local', '--plugin-dir', bmadDir])}`,
+    );
   });
 
   it('doctor trả 1 khi có check lỗi', async () => {

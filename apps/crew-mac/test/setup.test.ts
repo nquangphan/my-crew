@@ -16,17 +16,21 @@ import { configureStatus, readStatusConfig } from '../src/commands/status.js';
 import { SetupError } from '../src/context.js';
 import { readManifest } from '../src/manifest.js';
 import { macPaths, REAPER_LABEL, SSHD_LABEL, STATUS_LABEL } from '../src/paths.js';
-import { superpowersPinDir } from '../src/workflows/pin.js';
+import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
 import { treeChecksum } from '../src/workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../src/wrapper.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY } from '../src/zshenv.js';
 import {
   APP_EXECUTABLE,
+  FIXTURE_BMAD_PIN,
   FIXTURE_PIN,
   fakeMac,
   fakeProcs,
+  fixtureBmadPin,
   LIVE_PS,
   PAPERCLIP_PUB,
+  passThroughGitTar,
+  seedBmadMarketplace,
   seedOwnerPlugin,
 } from './helpers/fake-mac.js';
 
@@ -221,6 +225,39 @@ describe('crew-mac setup', () => {
     expect(report.changed).toContain(dir);
     expect(treeChecksum(dir).checksum).toBe(FIXTURE_PIN.checksum);
     expect((await setup(ctx)).changed).toEqual([]);
+  });
+
+  it('cài cả bản ghim BMAD (từ marketplace) và trả extraArgs cho vai bmad', async () => {
+    const { home, ctx, runner } = fakeMac({ bmadInstalled: false });
+    passThroughGitTar(runner);
+    ctx.bmadPin = fixtureBmadPin(seedBmadMarketplace(home).revision);
+    const dir = pinDir(home, ctx.bmadPin);
+    const report = await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    expect(report.bmad).toEqual({
+      dir,
+      extraArgs: ['--setting-sources', 'project,local', '--plugin-dir', dir],
+    });
+    expect(report.changed).toContain(dir);
+    expect(treeChecksum(dir).checksum).toBe(ctx.bmadPin.checksum);
+    expect((await setup(ctx)).changed).toEqual([]);
+  });
+
+  it('bản ghim BMAD có sẵn thì setup không gọi git', async () => {
+    const { home, ctx, runner } = fakeMac();
+    const report = await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    expect(report.bmad.dir).toBe(pinDir(home, FIXTURE_BMAD_PIN));
+    expect(report.changed).not.toContain(report.bmad.dir);
+    expect(runner.calls.some((c) => c.command === '/usr/bin/git')).toBe(false);
+  });
+
+  it('BMAD không lấy được thì SetupError sau khi Superpowers đã ghim, chưa ghi file khác', async () => {
+    const { home, ctx } = fakeMac({ bmadInstalled: false });
+    const err = await setup(ctx, { paperclipKey: PAPERCLIP_PUB }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SetupError);
+    expect((err as Error).message).toContain('không lấy được BMAD 9.9.9-next');
+    expect(treeChecksum(superpowersPinDir(home, FIXTURE_PIN)).checksum).toBe(FIXTURE_PIN.checksum);
+    expect(existsSync(macPaths(home).manifest)).toBe(false);
+    expect(existsSync(macPaths(home).sshdConfig)).toBe(false);
   });
 
   it('owner chưa cài Superpowers đúng bản thì setup báo SetupError, không ghi gì', async () => {
