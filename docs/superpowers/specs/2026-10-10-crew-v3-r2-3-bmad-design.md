@@ -196,8 +196,11 @@ chọn bước kế tiếp từ hiện trạng repo, mục tiêu cuối là file
   ghim BMAD và đúng version, không có `superpowers`; run Superpowers giữ luật cũ và có thêm luật không có `bmad`. Skill
   `bmad:<tên>` được phép khi plugin `bmad` được phép.
 - **Không đổi:** `--setting-sources project,local` (không nạp `~/.claude`), luật `.claude/**`, MCP, `BUILTIN_*`.
-- **`doctor` `worktree-workflows`** quét như cũ với pin Superpowers (doctor không biết worktree nào của agent BMAD); luật
-  `_bmad/` được kiểm lúc run bằng `workflow-check`.
+- **`doctor` `worktree-workflows`** kiểm mỗi worktree theo workflow của run gần nhất trong nó: `workflow-check` ghi
+  `~/.crew/state/worktree-workflow/<32 hex sha256 của đường dẫn worktree>` = id workflow của `--plugin-dir` (kể cả khi
+  run bị chặn). Chưa có dấu thì quét với pin Superpowers như cũ. Không đoán theo `_bmad/` hay `enabledPlugins` (agent
+  BMAD và executor làm cùng một repo nên thấy cùng các file đó), cũng không theo `.in_use` (GC xóa, không ghi worktree).
+  (Sửa sau RV-1, FX-A2.)
 
 ### 4.5. Pin theo run và dọn bản cũ
 
