@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type MacContext, SetupError } from '../context.js';
 import { checksumOrNull, pathExists } from '../workflows/install.js';
-import { compareBmadScripts } from '../workflows/inventory.js';
+import { compareBmadScripts, recordBmadSetup } from '../workflows/inventory.js';
 import { pinDir } from '../workflows/pin.js';
 import { type BmadAnswer, checkBmadAnswers } from './answers.js';
 
@@ -220,5 +220,7 @@ export async function setupProject(ctx: MacContext, root: string): Promise<Setup
   const scripts = readScriptsDir(join(root, '_bmad', 'scripts'));
   if (!scripts || !compareBmadScripts(scripts, dir))
     throw new SetupError('script _bmad sau setup khác bản ghim');
+  // Run bị ngắt trước khi commit thì run sau vẫn qua `workflow-check` với đúng `config.toml` vừa ghi.
+  recordBmadSetup(ctx.home, root);
   return { status: 'ok', files: await changedFiles(ctx, root) };
 }

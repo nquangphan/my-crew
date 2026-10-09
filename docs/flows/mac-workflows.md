@@ -157,6 +157,12 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
        track hay sửa dở (run trước bị ngắt ngay sau `setup-project`).
      - `_bmad/config.toml`, `_bmad/custom/**/*.toml` (trừ `*.user.toml`) xét như `settings.json`: chưa track, bị ignore
        hay sửa dở đều chặn (lý do `UNTRACKED_REASON`, `IGNORED_REASON`, `DIRTY_REASON`).
+     - Ngoại lệ cho run bị ngắt sau `setup-project` (`setup.py` luôn ghi `scripts/**` và `config.toml` cùng lúc):
+       `_bmad/config.toml` chưa track hoặc bị ignore, là file thường, và sha256 trùng dấu
+       `~/.crew/state/bmad-setup/<32 hex đầu sha256 của comparablePath(root)>` mà `setup-project` ghi cho đúng worktree
+       đó thì `pinned` kèm cảnh báo `BMAD_SETUP_UNCOMMITTED_WARNING` (dòng `crew-workflow warn`, không chặn) và lệnh
+       `git -C <root> add -- _bmad rồi commit`. Sửa một byte, chép `_bmad` sang worktree khác, hay đã track mà sửa dở
+       thì vẫn chặn như trên.
      - `_bmad/**/*.user.toml` (lớp cá nhân, trừ `scripts/`, `memory/`) chưa track, bị ignore hay sửa dở thì `blocked`
        `BMAD_PERSONAL_REASON`, kèm `xóa <file> (lớp cá nhân không dùng trong run agent), hoặc commit nếu cố ý dùng cho
        cả nhóm`.
@@ -203,6 +209,7 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
 | Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, còn file chưa commit | `pinned` |
 | Run BMAD: `_bmad/scripts/**` khác bản ghim (một byte, thừa/thiếu file, symlink) | `blocked` |
 | Run BMAD: `_bmad/config.toml`, `_bmad/custom/**/*.toml` chưa track, bị ignore hay sửa dở | `blocked` |
+| Run BMAD: `_bmad/config.toml` chưa track, đúng byte bản `setup-project` vừa ghi cho worktree này | `pinned` kèm `warning` |
 | Run BMAD: `_bmad/**/*.user.toml` chưa track, bị ignore hay sửa dở | `blocked` (lớp cá nhân) |
 
 **Đọc log khi run bị chặn:** run fail và stderr của nó có các dòng
@@ -249,7 +256,9 @@ H3 chỉ cần hợp đồng `pgid`/`started`.
    `setup.py` thoát 1. Setup thành công không in gì: kết quả dựa vào mã thoát (khác 0 thì lỗi
    `setup.py lỗi (mã <n>): <dòng stderr cuối>`).
 7. Xóa mọi `_bmad/**/*.user.toml` (lớp cá nhân). `_bmad/scripts` phải giống từng byte `<pin>/skills/bmad/scripts` (gồm
-   `tests/`; bỏ `.DS_Store`, `__pycache__`, `*.pyc`), khác thì lỗi `script _bmad sau setup khác bản ghim`.
+   `tests/`; bỏ `.DS_Store`, `__pycache__`, `*.pyc`), khác thì lỗi `script _bmad sau setup khác bản ghim`. Đạt thì ghi
+   dấu `~/.crew/state/bmad-setup/<hash root>` = sha256 của `_bmad/config.toml` (`recordBmadSetup`, thư mục 700, file
+   600), để run sau vẫn qua `workflow-check` khi run này bị ngắt trước khi commit.
 8. In `crew-bmad setup: ok files=<n>` rồi mỗi file một dòng: file chưa track hoặc đã đổi dưới `_bmad`
    (`git ls-files --others --modified --exclude-standard -- _bmad`, tính từ root). Bản ghim hiện tại tạo 12 file
    (`_bmad/config.toml`, 6 script, 5 test). Agent commit đúng các file này (`chore(bmad): dựng BMAD cho dự án`). Lỗi
@@ -350,7 +359,7 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/bmad/setup-project.ts` | Dựng `_bmad/` bằng `setup.py` của bản ghim | `setupProject`, `readScriptsDir`, `isBmadJunk`, `SetupProjectResult` |
 | `apps/crew-mac/src/workflows/policy.ts` | So bản ghim | `samePin`, `assertSkillAllowed` |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
-| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `Origin`, `DiscoveredSource` |
+| `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `bmadSetupStampPath`, `recordBmadSetup`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `BMAD_SETUP_UNCOMMITTED_WARNING`, `Origin`, `DiscoveredSource` |
 | `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `selectInitWorkflow`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
 | `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`) | — |
@@ -386,8 +395,8 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
 
 - **Wrapper ghi:** `<thư mục ghim>/.in_use/<runId>` = `<pid> <started epoch giây>\n` (ngoài checksum).
 - **`bmad setup-project`:** chạy `uv` với `setup.py` của bản ghim (không mạng: script không có dependency), ghi
-  `_bmad/` trong repo dự án, file câu trả lời tạm 0600 dưới thư mục tạm hệ thống (xóa ngay). **`bmad stories`:** chỉ
-  đọc (file, `git ls-tree`/`git show`/`git cat-file`).
+  `_bmad/` trong repo dự án và dấu `~/.crew/state/bmad-setup/<hash root>`, file câu trả lời tạm 0600 dưới thư mục tạm
+  hệ thống (xóa ngay). **`bmad stories`:** chỉ đọc (file, `git ls-tree`/`git show`/`git cat-file`).
 - **Mã thoát 78** (`EX_CONFIG`) là hợp đồng giữa wrapper và `workflow-check`/`run-init-check`.
 
 ## Flow liên quan
@@ -456,7 +465,9 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
 - `apps/crew-mac/test/bmad-setup-project.test.ts` (`uv` giả, git thật): đã có script thì skipped; thiếu uv; bản ghim
   chưa cài hoặc lệch checksum; không câu hỏi thì không `--module-answers`; có câu hỏi thì file TOML 0600 ngoài repo,
   ngôn ngữ `Vietnamese`, bị xóa sau; escape TOML; xóa `*.user.toml`; script khác bản ghim; default không đạt luật thì
-  không chạy setup; danh sách câu hỏi hỏng; `setup.py` thoát khác 0.
+  không chạy setup; danh sách câu hỏi hỏng; `setup.py` thoát khác 0; run bị ngắt ngay sau `setup-project`:
+  `config.toml` vừa ghi cho qua kèm cảnh báo (`discoverSources` không chặn), sửa một byte hay chép `_bmad` sang worktree
+  khác thì chặn, đã commit thì `project`.
 - `apps/crew-mac/test/bmad-command.test.ts` (repo git thật): `stories` đọc đĩa (JSON đúng hợp đồng, `digest`,
   `scriptsMatchPin` null/match/mismatch, rác bị bỏ, symlink); `--rev` đọc theo commit không theo đĩa, scripts theo
   commit; `--root` là thư mục con; file lệch khuôn thoát 3; đối số sai thoát 2 (tuyệt đối, `..`, không `.md`, không

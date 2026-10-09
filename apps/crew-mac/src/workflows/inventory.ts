@@ -1,11 +1,14 @@
+import { createHash } from 'node:crypto';
 import {
   type Dirent,
   existsSync,
   lstatSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   realpathSync,
   type Stats,
+  writeFileSync,
 } from 'node:fs';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import type { MacContext } from '../context.js';
@@ -44,6 +47,43 @@ export const PARALLEL_PLUGIN_REASON = 'ngoài bản ghim, nạp song song với 
 export const BMAD_SCRIPT_MISMATCH_REASON =
   'khác bản ghim BMAD; chạy crew-mac bmad setup-project hoặc checkout lại từ commit';
 export const BMAD_PERSONAL_REASON = 'lớp cá nhân của BMAD chưa commit';
+/** Cảnh báo (không chặn) khi `_bmad/config.toml` chưa commit nhưng đúng bản `setup-project` vừa ghi cho worktree này. */
+export const BMAD_SETUP_UNCOMMITTED_WARNING =
+  'do crew-mac bmad setup-project dựng, chưa commit (run trước bị ngắt trước khi commit)';
+
+const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
+
+/**
+ * Dấu `setup-project` của một worktree: `~/.crew/state/bmad-setup/<32 hex đầu của sha256 đường dẫn so sánh của root>`,
+ * nội dung là sha256 của `_bmad/config.toml` mà lần dựng đó ghi ra. Nằm ngoài worktree nên không lọt vào commit.
+ */
+export function bmadSetupStampPath(home: string, root: string): string {
+  return join(home, '.crew', 'state', 'bmad-setup', sha256(comparablePath(root)).slice(0, 32));
+}
+
+/** Ghi dấu sau khi `setup-project` dựng xong `_bmad/` (không có `config.toml` thì không ghi). */
+export function recordBmadSetup(home: string, root: string): void {
+  let data: Buffer;
+  try {
+    data = readFileSync(join(root, '_bmad', 'config.toml'));
+  } catch {
+    return;
+  }
+  const stamp = bmadSetupStampPath(home, root);
+  mkdirSync(join(stamp, '..'), { recursive: true, mode: 0o700 });
+  writeFileSync(stamp, `${sha256(data)}\n`, { mode: 0o600 });
+}
+
+/** `config` (file thường, không symlink) có đúng từng byte bản `setup-project` đã ghi cho `root` không. */
+function matchesBmadSetup(home: string, root: string, config: string): boolean {
+  try {
+    if (!lstatSync(config).isFile()) return false;
+    const recorded = readFileSync(bmadSetupStampPath(home, root), 'utf8').trim();
+    return recorded.length === 64 && recorded === sha256(readFileSync(config));
+  } catch {
+    return false;
+  }
+}
 
 function contained(parent: string, child: string): boolean {
   const rel = relative(comparablePath(parent), comparablePath(child));
@@ -400,7 +440,7 @@ export async function discoverSources(
   }
   const mcp = join(root, '.mcp.json');
   if (existsSync(mcp) || isSymlink(mcp)) judge(mcp, 'mcp', [mcp]);
-  if (bmad) judgeBmad(root, git, pinDir, found, judge);
+  if (bmad) judgeBmad(ctx.home, root, git, pinDir, found, judge);
   return found;
 }
 
@@ -457,11 +497,13 @@ function tomlFiles(dir: string, skip: readonly string[] = []): string[] {
 
 /**
  * Nguồn BMAD của worktree (chỉ run BMAD): `_bmad/scripts` phải giống từng byte bản ghim (chưa commit mà giống thì
- * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và `custom/**.toml` chặn như settings;
+ * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và `custom/**.toml` chặn như settings, trừ
+ * `config.toml` chưa track mà đúng bản `setup-project` vừa ghi cho worktree này (cho qua kèm cảnh báo, cùng lý do);
  * lớp cá nhân `*.user.toml` phải commit sạch. `_bmad/memory/**` và `_bmad-output/**` là dữ liệu skill ghi ra, không
  * phải nguồn nạp.
  */
 function judgeBmad(
+  home: string,
   root: string,
   git: GitView,
   pinDir: string,
@@ -492,7 +534,25 @@ function judgeBmad(
     }
   }
   const config = join(base, 'config.toml');
-  if (existsSync(config) || isSymlink(config)) judge(config, 'bmad', [config]);
+  if (existsSync(config) || isSymlink(config)) {
+    const issue = fileIssue(git, root, config);
+    const fresh =
+      issue !== null &&
+      (issue.reason === UNTRACKED_REASON || issue.reason === IGNORED_REASON) &&
+      matchesBmadSetup(home, root, config);
+    if (fresh) {
+      const add = issue.reason === IGNORED_REASON ? 'add -f' : 'add';
+      found.push({
+        path: config,
+        kind: 'bmad',
+        origin: 'pinned',
+        warning: BMAD_SETUP_UNCOMMITTED_WARNING,
+        fix: `Xử lý: git -C ${shQuote(root)} ${add} -- _bmad rồi commit (chore(bmad): dựng BMAD cho dự án).`,
+      });
+    } else {
+      judge(config, 'bmad', [config]);
+    }
+  }
   for (const file of tomlFiles(join(base, 'custom')).filter((f) => !f.endsWith('.user.toml')))
     judge(file, 'bmad', [file]);
   for (const file of tomlFiles(base, ['scripts', 'memory']).filter((f) => f.endsWith('.user.toml'))) {

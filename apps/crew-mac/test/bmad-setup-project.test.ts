@@ -13,6 +13,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { setupProject } from '../src/bmad/setup-project.js';
 import { SetupError } from '../src/context.js';
+import {
+  BMAD_SETUP_UNCOMMITTED_WARNING,
+  type DiscoveredSource,
+  discoverSources,
+  UNTRACKED_REASON,
+} from '../src/workflows/inventory.js';
 import { pinDir } from '../src/workflows/pin.js';
 import { FIXTURE_BMAD_PIN, fakeMac, gitIn, passThroughGitTar } from './helpers/fake-mac.js';
 import type { FakeHandler } from './helpers/fake-runner.js';
@@ -222,5 +228,52 @@ describe('setupProject', () => {
     await expect(setupProject(mac.ctx, repo())).rejects.toThrow(
       new SetupError('setup.py lỗi (mã 1): Exception: boom'),
     );
+  });
+});
+
+describe('run bị ngắt ngay sau setup-project (chưa commit _bmad)', () => {
+  const blocked = (sources: DiscoveredSource[]) => sources.filter((s) => s.origin === 'blocked');
+
+  it('config.toml đúng bản setup-project vừa ghi thì cho qua kèm cảnh báo; sửa đi thì chặn', async () => {
+    const { mac } = setupMac();
+    const root = repo();
+    expect((await setupProject(mac.ctx, root)).status).toBe('ok');
+    const sources = await discoverSources(mac.ctx, root, mac.ctx.bmadPin);
+    expect(blocked(sources)).toEqual([]);
+    expect(sources.find((s) => s.path === join(root, '_bmad', 'config.toml'))).toEqual({
+      path: join(root, '_bmad', 'config.toml'),
+      kind: 'bmad',
+      origin: 'pinned',
+      warning: BMAD_SETUP_UNCOMMITTED_WARNING,
+      fix: `Xử lý: git -C '${root}' add -- _bmad rồi commit (chore(bmad): dựng BMAD cho dự án).`,
+    });
+
+    writeFileSync(join(root, '_bmad', 'config.toml'), '[core]\nproject_name = "khác"\n');
+    expect(blocked(await discoverSources(mac.ctx, root, mac.ctx.bmadPin))).toEqual([
+      expect.objectContaining({ path: join(root, '_bmad', 'config.toml'), reason: UNTRACKED_REASON }),
+    ]);
+  });
+
+  it('dấu setup-project của worktree khác không cho qua config.toml của worktree này', async () => {
+    const { mac } = setupMac();
+    const first = repo();
+    await setupProject(mac.ctx, first);
+    const other = repo();
+    cpSync(join(first, '_bmad'), join(other, '_bmad'), { recursive: true });
+    expect(blocked(await discoverSources(mac.ctx, other, mac.ctx.bmadPin))).toEqual([
+      expect.objectContaining({ path: join(other, '_bmad', 'config.toml'), reason: UNTRACKED_REASON }),
+    ]);
+  });
+
+  it('đã commit _bmad thì config.toml là project, không còn cảnh báo', async () => {
+    const { mac } = setupMac();
+    const root = repo();
+    await setupProject(mac.ctx, root);
+    gitIn(root, 'add', '--', '_bmad');
+    gitIn(root, 'commit', '-q', '-m', 'bmad');
+    expect(await discoverSources(mac.ctx, root, mac.ctx.bmadPin)).toEqual([
+      { path: join(root, '_bmad', 'scripts'), kind: 'bmad', origin: 'project' },
+      { path: join(root, '_bmad', 'config.toml'), kind: 'bmad', origin: 'project' },
+    ]);
   });
 });
