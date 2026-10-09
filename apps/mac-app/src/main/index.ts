@@ -6,7 +6,7 @@ import { app, type BrowserWindow, ipcMain, utilityProcess } from 'electron';
 import { STATE_CHANGED_EVENT } from '../shared/ipc-contract.js';
 import type { AppContext } from './app-context.js';
 import { AppLog } from './app-log.js';
-import { AppStateStore } from './app-state.js';
+import { AppStateStore, chromiumUserDataDir } from './app-state.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
@@ -32,7 +32,7 @@ async function start(): Promise<void> {
   const home = process.env.HOME ?? homedir();
   const paths = macPaths(home);
   const dataDir = dirname(paths.appState);
-  app.setPath('userData', dataDir);
+  app.setPath('userData', chromiumUserDataDir(paths.appState));
 
   // 2. Trạng thái bền, 3. nhật ký.
   const store = new AppStateStore(paths.appState, app.getVersion());
@@ -110,9 +110,8 @@ async function start(): Promise<void> {
   const health = registerHealth(ctx, sshd);
   registerPaperclip(ctx);
   registerProjects(ctx);
-  registerSetup(ctx, sshd, health); // AP-5; AP-6 thêm bước v2, move trong register.ts
+  registerSetup(ctx, sshd, health);
   registerUpdate(ctx, sshd);
-  void ctx;
 
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);

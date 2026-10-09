@@ -28,7 +28,7 @@ function parsePort(value: unknown): number | string {
 
 /**
  * Bước `machine`. Máy có sẵn cài đặt crew-mac thì nhận nguyên (không sinh key, không hỏi lại secret): cài bản
- * `crew-mac` mang theo, cập nhật cấu hình status theo company đã chọn, `setup({})` giữ chủ sshd hiện có. Máy mới cần
+ * `crew-mac` mang theo, cập nhật company trong cấu hình status (giữ nguyên url bản tin đã có), `setup({})` giữ chủ sshd hiện có. Máy mới cần
  * key Paperclip và secret webhook; secret chỉ đi một lần từ renderer tới `setStatusSecret` rồi bị xóa khỏi input.
  */
 export function createMachineStep(deps: MachineStepDeps): (input: unknown) => Promise<StepOutcome> {
@@ -70,7 +70,9 @@ export function createMachineStep(deps: MachineStepDeps): (input: unknown) => Pr
       secret = '';
       if ('webhookSecret' in input) input.webhookSecret = '';
     }
-    await ops.call('configureStatus', paperclipOrigin, companyId);
+    // Máy có sẵn giữ url bản tin đang chạy (có thể là đường Tailscale); chỉ máy mới lấy origin Paperclip đã đăng nhập.
+    const statusUrl = machine.kind === 'existing' ? (machine.statusUrl ?? paperclipOrigin) : paperclipOrigin;
+    await ops.call('configureStatus', statusUrl, companyId);
     const report = await ops.call('setup', setupOptions ?? {});
 
     if (machine.kind === 'existing') {

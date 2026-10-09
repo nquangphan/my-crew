@@ -16,12 +16,13 @@ cắm vào các điểm đã chừa.
 - Lần mở thứ hai chỉ đưa cửa sổ lên (`second-instance`). Đóng cửa sổ không thoát app (`window-all-closed` rỗng);
   thoát bằng menu tray "Thoát" (qua quit guard của flow `mac-app-sshd`: còn run thì hỏi).
 - Mở từ login item (`wasOpenedAtLogin`) thì chỉ hiện tray, không mở cửa sổ. Login item không tự bật lúc khởi động:
-  wizard (AP-5) bật ở bước `done`.
+  wizard bật ở bước `done`.
 
 ## Các bước
 
-1. `src/main/index.ts` → `start`: `requestSingleInstanceLock`, đặt `userData` = `~/Library/Application Support/2P Crew`
-   (cùng thư mục với `app.json`; HOME lấy từ biến `HOME`), dựng `AppStateStore` và `AppLog`, chờ `app.whenReady()`.
+1. `src/main/index.ts` → `start`: `requestSingleInstanceLock`, đặt `userData` của Chromium = `~/Library/Application Support/2P Crew/chromium`
+   (`chromiumUserDataDir`: thư mục con cạnh `app.json`/`app.log`, để không đụng Local State, Preferences, Local Storage của app v2 nằm
+   ngay trong thư mục cha; HOME lấy từ biến `HOME`), dựng `AppStateStore` và `AppLog`, chờ `app.whenReady()`.
 2. `src/main/ipc.ts` → `registerIpc`: `ipcMain.handle` cho đúng các kênh trong `IPC_CHANNELS`; kiểm URL frame gửi
    (`isTrustedSender`), kênh chưa có handler trả `Chưa hỗ trợ: <kênh>`, lỗi handler thành `{ ok: false, error }`.
 3. `src/main/tray.ts` → `CrewTray`: chấm màu, số run, menu "Mở 2P Crew" và "Thoát". Nhiều nguồn cùng cập nhật bằng
@@ -111,12 +112,13 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
 - **`machine`** (`machine-step.ts`, `import-existing.ts`): `setup:detect` đọc manifest crew-mac, `~/.crew/status.json` và
   hỏi Keychain có mục `crew-mac-status` hay không (không đọc giá trị). Ba loại máy:
   - `existing` ("Nhận cài đặt có sẵn", chỉ có nút Tiếp): `installCrewMacFrom(<resources>/crew-mac)` → `configureStatus`
-    theo company đã chọn → `setup({})` không cờ, giữ chủ sshd hiện có; không sinh key, không hỏi lại secret. Cài crew-mac
+    giữ nguyên `url` đang có trong `~/.crew/status.json` (có thể là đường Tailscale đang chạy 200), chỉ đổi company; không có `url` thì
+    dùng origin Paperclip đã đăng nhập → `setup({})` không cờ, giữ chủ sshd hiện có; không sinh key, không hỏi lại secret. Cài crew-mac
     bị từ chối vì còn run thì bước lỗi, thử lại khi rảnh.
   - `fresh`: bắt buộc key `ssh-ed25519 …` và secret webhook (một dòng); cổng mặc định 2222, thư mục mặc định
     `~/crew-agents` (`forbiddenRootReason` khác null thì lỗi đúng lý do, chưa gọi gì). Secret đi một lần tới
     `setStatusSecret` rồi bị xóa khỏi input; renderer xóa ô nhập khi xong. Thứ tự `installCrewMacFrom` →
-    `setStatusSecret` → `configureStatus` → `setup`.
+    `setStatusSecret` → `configureStatus` (url theo origin Paperclip đã đăng nhập, vì máy mới chưa có url) → `setup`.
   - `broken` (manifest hỏng): hiện thông báo của `SetupError` và nút "Đã xử lý, kiểm tra lại". App không xóa file trong
     `~/.crew-mac` hay `~/.crew` (chỉ gọi hàm `@crew/mac`), nên owner tự xử lý theo thông báo.
   Sau `installCrewMacFrom`, `setup` luôn dùng `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (utility dựng context).
@@ -125,12 +127,13 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
   mới mở được (`~/Library/Safari`, `TCC.db`): đọc được `granted`, EPERM/EACCES `denied`, còn lại `unknown`; các nơi này
   không bao giờ nằm trong hộp thoại xin quyền nên dò không gây hộp thoại. Màn hình dò lúc mở bước và mỗi lần cửa sổ
   focus lại (`recheck`: chỉ báo trạng thái, không đi tiếp); nút "Mở Cài đặt hệ thống" dùng `health:action`
-  `open-privacy`. Bấm Tiếp khi `denied` vẫn đi tiếp kèm cảnh báo (bước `doctor` vẫn chạy và nhắc lại). Đã bật mà vẫn báo
+  `open-privacy`. Nút Tiếp khóa tới khi dò ra `granted`; `denied`/`unknown` bấm Tiếp cũng không đi tiếp (kèm giải thích). Đã bật mà vẫn báo
   chưa cấp thì thoát và mở lại 2P Crew.
-- **`sshd`** (`sshd-handoff.ts` → `handoffSshd`, Review Focus 2): còn run đang chạy (`supervisor.activeRuns()`) thì từ chối
+- **`sshd`** (`sshd-handoff.ts` → `handoffSshd`): Full Disk Access (`deps.diskAccess()`) khác `granted` thì từ chối, không gọi `setup`, không start supervisor
+  (màn hình dò lại như bước trước và khóa nút "Chuyển sshd" kèm giải thích). Còn run đang chạy (`supervisor.activeRuns()`) thì từ chối
   "Có N run đang chạy; chờ run xong rồi chuyển." Không thì `setup({ sshdOwner: 'app' })` → `supervisor.start()` → chờ tối
   đa 15 giây cho `status().state === 'running'` và `lsof -nP -iTCP:<cổng> -sTCP:LISTEN -t` chỉ có đúng pid của
-  supervisor (có chủ thứ hai thì coi như chưa lên). **Tự lui**: listener không lên (hoặc `setup` sang app lỗi) thì
+  supervisor (có chủ thứ hai thì coi như chưa lên). **Tự lui**: listener không lên (hoặc `setup` sang app lỗi) thì `supervisor.pause()` (không để supervisor đang backoff giành cổng) rồi
   `setup({ sshdOwner: 'launchd', force: true })`, ghi `sshdOwner: 'launchd'` vào `app.json`, bước lỗi với lý do
   (`lastError` của supervisor) và 20 dòng cuối `sshd.log`, nói rõ đã tự chuyển về LaunchAgent; nếu lui cũng lỗi thì chỉ
   owner chạy `crew-mac setup --sshd-owner launchd`. Đã ở chế độ app và listener đang chạy thì `ok`, không gọi `setup`.
@@ -211,9 +214,10 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
   Đọc fuse: `node node_modules/.pnpm/@electron+fuses@*/node_modules/@electron/fuses/dist/bin.js read --app "<.app>"`.
   Lật fuse làm hỏng chữ ký ad-hoc của binary: bản không ký (`CSC_IDENTITY_AUTO_DISCOVERY=false`) bị kernel giết (mã 137);
   muốn chạy thử phải ký ad-hoc lại (`codesign --force --deep --sign -`) trên bản chép đã bỏ xattr (`ditto --noextattr`).
-- Danh tính ký lấy từ biến `CSC_NAME` lúc chạy, không ghi vào file. Build thử không ký:
-  `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @crew/mac-app exec electron-builder --mac dir --arm64`.
-  Notarize do `scripts/release.mjs` (ticket UPD-2).
+- Danh tính ký lấy từ biến `CSC_NAME` lúc chạy, không ghi vào file. Đóng gói thử:
+  `pnpm --filter @crew/mac-app release -- --dev-sign --no-publish` (ký Apple Development) hoặc `--dry-run` (không ký);
+  không gọi `electron-builder` trực tiếp (bản không ký đã lật fuse bị kernel giết, và nó không build lại `@crew/mac`).
+  Notarize do `scripts/release.mjs` (`scripts/release.mjs`).
 - `safeStorage` chỉ dùng để mã hóa board API key Paperclip trước khi vào Keychain (flow `mac-app-paperclip`: khóa
   giải mã ở mục "2P Crew Safe Storage" chỉ app đọc được). Secret không đi qua renderer. Renderer: `sandbox`, `contextIsolation`, không
   `nodeIntegration`.
@@ -236,8 +240,8 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 - `apps/mac-app/test/logs.test.ts`: đuôi file, lọc run id, giới hạn 512 KB, file ngoài danh sách bị từ chối.
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, màn Run và Log, giờ Việt Nam.
-- `apps/mac-app/test/setup-wizard.test.ts`: `check`, bước `machine` (máy có sẵn, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
+- `apps/mac-app/test/setup-wizard.test.ts`: `check`, bước `machine` (máy có sẵn giữ url cũ, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
 - `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.
-- `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run, chuyển thành công, tự lui, đã ở chế độ app.
-- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, chạy lại bước.
+- `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run hoặc chưa có quyền ổ đĩa, chuyển thành công, tự lui (dừng supervisor trước), đã ở chế độ app.
+- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, nút Tiếp và nút sshd khóa khi chưa cấp quyền, chạy lại bước.

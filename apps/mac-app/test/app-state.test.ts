@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { AppStateStore, defaultAppState } from '../src/main/app-state.js';
+import { AppStateStore, chromiumUserDataDir, defaultAppState } from '../src/main/app-state.js';
 
 it('tạo file mode 600 với mặc định, update nối tiếp không mất ghi', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'app-state-'));
@@ -48,4 +48,10 @@ it('thiếu khóa thì bù mặc định, báo thay đổi cho người nghe', a
   store.onChange(() => calls++);
   await store.update((s) => ({ ...s, sshdPid: 5 }));
   expect(calls).toBe(1);
+});
+
+it('userData của Chromium nằm ở thư mục con chromium, cạnh app.json', () => {
+  expect(chromiumUserDataDir('/Users/o/Library/Application Support/2P Crew/app.json')).toBe(
+    '/Users/o/Library/Application Support/2P Crew/chromium',
+  );
 });

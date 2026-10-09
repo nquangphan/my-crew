@@ -1,10 +1,10 @@
 /**
- * Kiểu của Paperclip client (Interface I6). Hình dạng theo API thật của fork `v2026.1005.0`: project có `urlKey`
+ * Kiểu của Paperclip client. Hình dạng theo API thật của fork `v2026.1005.0`: project có `urlKey`
  * (không có `key`), environment chỉ archive (không bao giờ xóa, vì xóa kéo theo secret SSH dùng chung), agent tạo
  * ra không ở `paused` được nên tạo với heartbeat tắt rồi gọi `pauseAgent` nếu cần.
  */
 
-/** Vai trò agent theo project trong bảng plugin `crew_project_roles` (Interface I7). */
+/** Vai trò agent theo project trong bảng plugin `crew_project_roles`. */
 export interface ProjectRoles {
   assistantAgentId: string;
   executorAgentIds: string[];

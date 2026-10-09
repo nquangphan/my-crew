@@ -47,10 +47,11 @@ const MESSAGES: Record<FullDiskAccessState, string> = {
 };
 
 /**
- * Kết quả hiển thị cho một trạng thái. Bấm "Tiếp" thì `denied` và `unknown` vẫn cho đi tiếp (doctor ở bước cuối sẽ
- * nhắc lại). `recheck` (mở bước, cửa sổ focus lại) chỉ dò: `ok` = đã cấp, không đi tiếp.
+ * Kết quả hiển thị cho một trạng thái. Bấm "Tiếp" chỉ đi tiếp khi `granted` (hoặc không phải macOS): `denied` và
+ * `unknown` giữ ở bước này, vì bước `sshd` sau đó giao cổng cho app và run đầu tiên chạm thư mục được bảo vệ sẽ treo
+ * chờ hộp thoại. `recheck` (mở bước, cửa sổ focus lại) chỉ dò: `ok` = đã cấp, không đi tiếp.
  */
 export function diskAccessOutcome(state: FullDiskAccessState, recheck = false): StepOutcome {
   if (recheck) return { ok: state === 'granted', message: MESSAGES[state], state, stay: true };
-  return { ok: true, message: MESSAGES[state], state };
+  return { ok: state === 'granted' || state === 'unsupported', message: MESSAGES[state], state };
 }

@@ -35,11 +35,16 @@ describe('detectFullDiskAccess', () => {
 });
 
 describe('diskAccessOutcome', () => {
-  it('bấm Tiếp khi denied vẫn đi tiếp kèm cảnh báo', () => {
-    const outcome = diskAccessOutcome('denied');
-    expect(outcome.ok).toBe(true);
-    expect(outcome.message).toContain('Chưa cấp quyền ổ đĩa');
-    expect(outcome.stay).toBeUndefined();
+  it('bấm Tiếp khi denied hoặc unknown thì không đi tiếp', () => {
+    const denied = diskAccessOutcome('denied');
+    expect(denied.ok).toBe(false);
+    expect(denied.message).toContain('Chưa cấp quyền ổ đĩa');
+    expect(denied.stay).toBeUndefined();
+    expect(diskAccessOutcome('unknown').ok).toBe(false);
+  });
+  it('bấm Tiếp khi granted hoặc không phải macOS thì đi tiếp', () => {
+    expect(diskAccessOutcome('granted')).toMatchObject({ ok: true });
+    expect(diskAccessOutcome('unsupported')).toMatchObject({ ok: true });
   });
   it('dò lại chỉ báo trạng thái, không đi tiếp', () => {
     expect(diskAccessOutcome('denied', true)).toMatchObject({ ok: false, stay: true });

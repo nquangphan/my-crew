@@ -50,7 +50,7 @@ export function paperclipClient(ctx: AppContext): PaperclipClient {
   });
 }
 
-/** Kênh `paperclip:*` (Interface I5): đăng nhập `cli-auth`, trạng thái chờ duyệt, danh sách company. */
+/** Kênh `paperclip:*`: đăng nhập `cli-auth`, trạng thái chờ duyệt, danh sách company. */
 export function registerPaperclip(ctx: AppContext): void {
   const flow = createLoginFlow({
     fetch: globalThis.fetch,

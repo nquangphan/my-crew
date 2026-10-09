@@ -113,6 +113,7 @@ it('quyền ổ đĩa: dò lúc mở và mỗi lần cửa sổ focus lại, nú
       : { ok: true, message: 'Đi tiếp', next: 'sshd' };
   render(<SetupScreen />);
   expect(await screen.findByText('Chưa cấp quyền ổ đĩa')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Tiếp' }) as HTMLButtonElement).disabled).toBe(true);
   granted = true;
   fireEvent(window, new Event('focus'));
   expect(await screen.findByText('Đã cấp quyền ổ đĩa')).toBeTruthy();
@@ -123,15 +124,36 @@ it('quyền ổ đĩa: dò lúc mở và mỗi lần cửa sổ focus lại, nú
   expect(await screen.findByRole('heading', { name: 'Chuyển sshd sang 2P Crew' })).toBeTruthy();
 });
 
+it('bước sshd: nút khóa và giải thích khi chưa cấp quyền ổ đĩa, mở khi đã cấp', async () => {
+  step = 'sshd';
+  let granted = false;
+  handlers['setup:step'] = (s, input) =>
+    s === 'disk-access' && (input as { recheck?: boolean }).recheck
+      ? { ok: granted, message: granted ? 'Đã cấp quyền ổ đĩa' : 'Chưa cấp quyền ổ đĩa', next: 'disk-access' }
+      : { ok: true, message: 'đã chuyển', next: 'doctor' };
+  render(<SetupScreen />);
+  const button = (await screen.findByRole('button', { name: 'Chuyển sshd' })) as HTMLButtonElement;
+  expect(await screen.findByText(/Chưa cấp quyền ổ đĩa/)).toBeTruthy();
+  expect(button.disabled).toBe(true);
+  granted = true;
+  fireEvent(window, new Event('focus'));
+  await waitFor(() => expect(button.disabled).toBe(false));
+});
+
 it('chuyển sshd thất bại hiện lý do và thông báo đã tự lui', async () => {
   step = 'sshd';
-  handlers['setup:step'] = () => ({
-    ok: false,
-    message: 'Listener không lên.\nĐã tự chuyển sshd về LaunchAgent như cũ.',
-    next: 'sshd',
-  });
+  handlers['setup:step'] = (s) =>
+    s === 'disk-access'
+      ? { ok: true, message: 'Đã cấp quyền ổ đĩa', next: 'disk-access' }
+      : {
+          ok: false,
+          message: 'Listener không lên.\nĐã tự chuyển sshd về LaunchAgent như cũ.',
+          next: 'sshd',
+        };
   render(<SetupScreen />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Chuyển sshd' }));
+  const button = (await screen.findByRole('button', { name: 'Chuyển sshd' })) as HTMLButtonElement;
+  await waitFor(() => expect(button.disabled).toBe(false));
+  fireEvent.click(button);
   expect((await screen.findByRole('alert')).textContent).toContain('Đã tự chuyển sshd về LaunchAgent');
 });
 
