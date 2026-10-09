@@ -209,9 +209,15 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         io.out(`sshd agent nghe ${m.listenAddress}:${m.port}; thư mục worktree ${m.worktreeRoot}.`);
         io.out(
           m.sshdOwner === 'app'
-            ? 'Chủ sshd agent: app 2P Crew (mở app để app sinh listener; đổi cổng hay IP thì app khởi động lại listener).'
+            ? 'Chủ sshd agent: app 2P Crew. App đang mở tự nạp lại cấu hình khi manifest đổi cổng/IP (dừng listener cũ, ' +
+                'sinh lại; phiên SSH đang chạy giữ nguyên); app chưa mở thì listener lên khi mở app.'
             : `Chủ sshd agent: LaunchAgent ${SSHD_LABEL}.`,
         );
+        if (m.sshdOwner === 'app' && report.changed.includes(macPaths(ctx.home).sshdConfig))
+          io.out(
+            `Cấu hình sshd đã đổi sang ${m.listenAddress}:${m.port}: app 2P Crew đang mở sẽ dừng listener cũ và sinh lại ` +
+              'theo cấu hình mới. Kiểm bằng "crew-mac doctor".',
+          );
         if (report.sshdHandoff !== 'unchanged')
           io.out(
             report.sshdHandoff === 'app'

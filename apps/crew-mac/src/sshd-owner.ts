@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { type MacContext, SetupError } from './context.js';
 import { bootout, serviceState } from './launchctl.js';
@@ -78,18 +78,74 @@ export async function probeListener(ctx: MacContext, paths: MacPaths): Promise<L
   return { kind: 'live', pid, ppid: proc.ppid, parent: await executableOf(ctx, proc.ppid) };
 }
 
-/** Gỡ LaunchAgent sshd (chỉ bootout khi đang nạp) để app giữ cổng. Trả true khi có bootout hoặc xóa plist. */
+/** Chờ thêm sau một lần bootout báo thành công mà `launchctl print` vẫn thấy job (launchd gỡ chưa xong). */
+const UNLOAD_WAIT_MS = 2_000;
+const UNLOAD_POLL_MS = 200;
+
+/**
+ * Gỡ LaunchAgent sshd để app giữ cổng. Người gọi đã ghi manifest `app` TRƯỚC (chết giữa chừng thì lần chạy sau thấy
+ * chủ `app` và gỡ nốt). Thứ tự: xóa plist (khởi động lại máy không nạp lại job) rồi bootout và kiểm job đã gỡ hẳn.
+ * Job vẫn nạp (vẫn giữ cổng) thì trả plist về như cũ và ném `SetupError`: người gọi trả manifest về chủ cũ.
+ * Trả true khi có bootout hoặc xóa plist.
+ */
 export async function handOffToApp(ctx: MacContext, paths: MacPaths): Promise<boolean> {
   const { loaded } = await serviceState(ctx.runner, ctx.uid, SSHD_LABEL);
-  const booted = loaded && (await bootout(ctx.runner, ctx.uid, SSHD_LABEL));
-  const hadPlist = existsSync(paths.sshdPlist);
-  if (hadPlist) rmSync(paths.sshdPlist);
-  return booted || hadPlist;
+  const plist = existsSync(paths.sshdPlist) ? readFileSync(paths.sshdPlist) : null;
+  if (plist !== null) rmSync(paths.sshdPlist);
+  if (!loaded) return plist !== null;
+  const ok = await bootout(ctx.runner, ctx.uid, SSHD_LABEL);
+  for (let waited = 0; ; waited += UNLOAD_POLL_MS) {
+    if (!(await serviceState(ctx.runner, ctx.uid, SSHD_LABEL)).loaded) return true;
+    if (!ok || waited >= UNLOAD_WAIT_MS) break;
+    await sleep(UNLOAD_POLL_MS);
+  }
+  if (plist !== null) writeFileSync(paths.sshdPlist, plist, { mode: 0o644 });
+  throw new SetupError(
+    `launchctl bootout gui/${ctx.uid}/${SSHD_LABEL} không gỡ được LaunchAgent sshd (job vẫn nạp và giữ cổng). ` +
+      `Chủ sshd vẫn là LaunchAgent, chưa chuyển sang app. Kiểm "launchctl print gui/${ctx.uid}/${SSHD_LABEL}" rồi chạy lại.`,
+  );
+}
+
+/** pid đang LISTEN trên cổng TCP (`lsof -t`); null khi không đọc được. Chỉ thấy process của chính user này. */
+async function portListeners(ctx: MacContext, port: number): Promise<number[] | null> {
+  const result = await ctx.runner.run('/usr/sbin/lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-t'], {
+    timeoutMs: 10_000,
+  });
+  // lsof trả 1 cả khi không có kết quả lẫn khi lỗi; chỉ coi là "cổng trống" khi không in gì.
+  if (result.code === 1 && result.stdout.trim() === '' && result.stderr.trim() === '') return [];
+  if (result.code !== 0) return null;
+  return result.stdout
+    .split('\n')
+    .map((line) => Number(line.trim()))
+    .filter((pid) => Number.isInteger(pid) && pid > 0);
 }
 
 /**
- * Gọi sau khi manifest đã ghi `launchd` (app thấy và tự dừng listener của nó). Chờ tối đa `waitMs` cho pid trong
- * pidfile thoát; còn sống và đúng là listener của crew-mac (mồ côi do app crash) thì TERM rồi chờ nó nhả cổng.
+ * Kiểm TRƯỚC khi ghi manifest `launchd`: cổng đang thuộc ai. Trả true khi pidfile trỏ listener của crew-mac (người
+ * gọi ghi manifest rồi chờ nó thoát bằng `takeBackToLaunchd`), false khi không có gì để chờ. pidfile trỏ process lạ
+ * thì không phải listener của mình: cổng trống thì đi tiếp nạp LaunchAgent, cổng bị giữ (hoặc không đọc được) thì
+ * ném `SetupError` khi manifest còn nguyên chủ cũ — lần chạy lại không bao giờ ra cổng trống mà manifest nói có chủ.
+ */
+export async function prepareTakeBack(ctx: MacContext, paths: MacPaths, port: number): Promise<boolean> {
+  const probe = await probeListener(ctx, paths);
+  if (probe.kind === 'live') return true;
+  if (probe.kind === 'none') return false;
+  const holders = await portListeners(ctx, port);
+  if (holders !== null && holders.length === 0) return false;
+  const why =
+    holders === null
+      ? `không đọc được ai giữ cổng ${port} (lsof lỗi)`
+      : `cổng ${port} đang bị pid ${holders.join(', ')} giữ`;
+  throw new SetupError(
+    `pid ${probe.pid} không phải listener của crew-mac (${probe.command}) và ${why}; không dừng process nào, ` +
+      `chủ sshd vẫn là app. Kiểm "lsof -nP -iTCP:${port} -sTCP:LISTEN" rồi chạy lại.`,
+  );
+}
+
+/**
+ * Gọi sau khi manifest đã ghi `launchd` (app thấy và tự dừng listener của nó) và `prepareTakeBack` trả true. Chờ tối
+ * đa `waitMs` cho pid trong pidfile thoát; còn sống và đúng là listener của crew-mac (mồ côi do app crash) thì TERM
+ * rồi chờ nó nhả cổng. pid thành process lạ nghĩa là listener đã thoát và pid bị dùng lại: trả về, không gửi gì.
  * Không bao giờ gửi tín hiệu cho process khác (kể cả `sshd-session`: phiên của run đang chạy).
  */
 export async function takeBackToLaunchd(
@@ -102,14 +158,7 @@ export async function takeBackToLaunchd(
   const pollMs = opts.pollMs ?? 250;
   for (let waited = 0; ; waited += pollMs) {
     const proc = await procOf(ctx, pid);
-    if (proc === null) return;
-    if (!isCrewListener(proc.command, paths.sshdConfig)) {
-      // Lần đầu đã lạ: pidfile trỏ process khác, để owner kiểm. Về sau mới lạ: listener đã thoát, pid bị dùng lại.
-      if (waited > 0) return;
-      throw new SetupError(
-        `pid ${pid} không phải listener của crew-mac (${proc.command}); không dừng. Kiểm "lsof -nP -iTCP -sTCP:LISTEN" rồi chạy lại.`,
-      );
-    }
+    if (proc === null || !isCrewListener(proc.command, paths.sshdConfig)) return;
     if (waited >= opts.waitMs) break;
     await sleep(pollMs);
   }

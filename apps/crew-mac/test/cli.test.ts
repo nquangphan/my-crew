@@ -84,6 +84,22 @@ describe('crew-mac CLI', () => {
     expect(forced.out.join('\n')).toContain('2P Crew');
   });
 
+  it('setup ở chế độ app nói đúng việc app nạp lại cấu hình; đổi cổng thì báo app sẽ nạp lại listener', async () => {
+    const mac = fakeMac();
+    expect(await main(['setup', '--paperclip-key', PAPERCLIP_PUB], io(mac).io)).toBe(0);
+    const toApp = io(mac);
+    expect(await main(['setup', '--sshd-owner', 'app'], toApp.io)).toBe(0);
+    const said = toApp.out.join('\n');
+    expect(said).toContain('Chủ sshd agent: app 2P Crew.');
+    expect(said).toContain('App đang mở tự nạp lại cấu hình khi manifest đổi cổng/IP');
+    expect(said).not.toContain('Cấu hình sshd đã đổi');
+    const newPort = io(mac);
+    expect(await main(['setup', '--port', '2223'], newPort.io)).toBe(0);
+    expect(newPort.out.join('\n')).toContain(
+      'Cấu hình sshd đã đổi sang 100.102.189.67:2223: app 2P Crew đang mở sẽ dừng listener cũ và sinh lại theo cấu hình mới',
+    );
+  });
+
   it('setup --sshd-owner giá trị lạ thì báo cách dùng', async () => {
     const t = io(fakeMac());
     expect(await main(['setup', '--sshd-owner', 'systemd'], t.io)).toBe(2);

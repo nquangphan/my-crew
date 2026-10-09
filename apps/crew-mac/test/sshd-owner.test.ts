@@ -139,12 +139,10 @@ describe('takeBackToLaunchd', () => {
     expect(kills(t.runner)).toEqual(['/bin/kill -TERM 4242']);
   });
 
-  it('pid trong pidfile là sshd-session thì không gửi tín hiệu và báo lỗi', async () => {
+  it('pid trong pidfile thành sshd-session (listener đã thoát, pid bị dùng lại) thì trả về, không gửi tín hiệu', async () => {
     const t = seeded();
     fakeProcs(t.runner, () => ({ 4242: { ppid: 4100, command: 'sshd-session: u@notty' } }));
-    const err = await takeBackToLaunchd(t.ctx, t.paths, { waitMs: 50, pollMs: 10 }).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(SetupError);
-    expect((err as Error).message).toContain('pid 4242 không phải listener của crew-mac');
+    await takeBackToLaunchd(t.ctx, t.paths, { waitMs: 50, pollMs: 10 });
     expect(kills(t.runner)).toEqual([]);
   });
 

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { parsePublicKey, upsertKey } from '../authorized-keys.js';
 import { type MacContext, SetupError } from '../context.js';
@@ -23,6 +23,7 @@ import { renderSshdConfig } from '../sshd-config.js';
 import {
   currentSshdOwner,
   handOffToApp,
+  prepareTakeBack,
   resolveSshdOwner,
   type SshdOwner,
   takeBackToLaunchd,
@@ -232,17 +233,32 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   const restarted: string[] = [];
   let sshdHandoff: SetupReport['sshdHandoff'] = 'unchanged';
   if (sshdOwner === 'app') {
-    // App sinh và giữ listener; crew-mac chỉ gỡ LaunchAgent, không tự sinh sshd. Ghi manifest ngay sau bootout để
-    // bước sau có lỗi thì máy vẫn ghi đúng chủ (app thấy `app` và sinh listener).
+    // Thứ tự để chết giữa chừng vẫn tự hồi phục: manifest `app` trước (app thấy và sinh listener khi cổng trống; lần
+    // chạy sau thấy chủ `app` và gỡ nốt LaunchAgent), rồi xóa plist, rồi bootout. Không bao giờ để lại cổng trống mà
+    // manifest nói `launchd`. Bootout không gỡ được job thì trả manifest cũ (plist đã được trả lại): chủ cũ giữ nguyên.
     const plistExisted = existsSync(paths.sshdPlist);
-    if ((await handOffToApp(ctx, paths)) || switchingOwner) sshdHandoff = 'app';
+    const manifestBefore = existsSync(paths.manifest) ? readFileSync(paths.manifest) : null;
+    const manifestChanged = writeManifest(paths.manifest, manifest);
+    let handedOff: boolean;
+    try {
+      handedOff = await handOffToApp(ctx, paths);
+    } catch (err) {
+      if (manifestChanged) {
+        if (manifestBefore === null) rmSync(paths.manifest, { force: true });
+        else writeFileSync(paths.manifest, manifestBefore, { mode: 0o600 });
+      }
+      throw err;
+    }
+    if (handedOff || switchingOwner) sshdHandoff = 'app';
     track(paths.sshdPlist, plistExisted);
-    if (switchingOwner) track(paths.manifest, writeManifest(paths.manifest, manifest));
+    track(paths.manifest, manifestChanged);
   } else {
     if (switchingOwner) {
-      // Ghi manifest trước để app thấy `launchd` và tự dừng listener, rồi mới chờ và nạp LaunchAgent.
+      // Biết cổng thuộc ai TRƯỚC khi ghi manifest: pidfile trỏ process lạ mà cổng bị giữ thì dừng khi app còn là chủ.
+      const mustWait = await prepareTakeBack(ctx, paths, port);
+      // Ghi manifest để app thấy `launchd` và tự dừng listener, rồi mới chờ và nạp LaunchAgent.
       track(paths.manifest, writeManifest(paths.manifest, manifest));
-      await takeBackToLaunchd(ctx, paths, { waitMs: TAKE_BACK_WAIT_MS });
+      if (mustWait) await takeBackToLaunchd(ctx, paths, { waitMs: TAKE_BACK_WAIT_MS });
       sshdHandoff = 'launchd';
     }
     const sshdPlistChanged = writeIfChanged(paths.sshdPlist, renderPlist(sshdPlistSpec(paths)), 0o644);

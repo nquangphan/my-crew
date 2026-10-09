@@ -76,6 +76,8 @@ export function fakeMac(
     ps?: { tree: string; argv: string; env: string };
     /** Mặc định true: owner đã cài Superpowers đúng `FIXTURE_PIN`. */
     ownerSuperpowers?: boolean;
+    /** Các label mà `launchctl bootout` báo lỗi và job vẫn nạp. */
+    bootoutFails?: string[];
   } = {},
 ) {
   const home = mkdtempSync(join(tmpdir(), 'crew-mac-home-'));
@@ -101,8 +103,11 @@ export function fakeMac(
         loaded.add(basename(String(args[2]), '.plist'));
         return {};
       }
-      if (verb === 'bootout')
+      if (verb === 'bootout') {
+        if (options.bootoutFails?.includes(labelOf(target)))
+          return { code: 5, stderr: 'Boot-out failed: 5: Input/output error' };
         return loaded.delete(labelOf(target)) ? {} : { code: 3, stderr: 'No such process' };
+      }
       return { code: 1 };
     })
     .on('/bin/ps', (args) => {
