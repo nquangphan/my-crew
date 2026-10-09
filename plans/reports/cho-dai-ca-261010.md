@@ -56,3 +56,7 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 3. USD hiện, có nhãn "ước tính, không phải hóa đơn".
 4. Dung lượng cache file đính kèm trên Mac đưa vào bản tin máy.
 5. Bảng `docs_pages` cũ giữ nguyên, không xóa.
+- R2-5: Trợ Lý tự sửa migration 0008 (chưa áp ở đâu) để khóa ngoại docs_commits.first_snapshot_id dùng ON DELETE SET NULL — giúp rollback image không làm vỡ webhook docs cũ. Phủ quyết nếu không muốn.
+- R2-5 AC4: cạnh ticket→flow trong đồ thị docs chưa có dữ liệu thật (2 ticket của 2ps-landing chỉ sửa file không thuộc flow); đã có test, sẽ kiểm trên run thật kế tiếp. AC8: Trợ Lý cho sửa panel Usage hiện ở giao diện issue mặc định.
+- Tên tag cuối R2 (đang có tag cục bộ crew/v3.2-rc1, v3.3-rc1, v3.4-rc1 cho R2-2/R2-3/R2-5). Trợ Lý đề xuất: chốt một tag `crew/v3.1` khi xong cả R2 (gồm R2-4), xóa các rc cục bộ.
+- Tài liệu BMAD thử (PRD/kiến trúc/epic/story) nằm ở nhánh `crew/TPS-82` của repo thử `repo-a`, chưa push. Trợ Lý đề xuất để nguyên (repo thử), không gộp.
