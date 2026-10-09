@@ -42,3 +42,4 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 3. Owner duyệt epic/story ở bước duyệt của chính issue con BMAD.
 4. Ghim BMAD bản `d009608` (6.13.0-next, kênh -next chứ không phải tag stable).
 5. Agent BMAD tự chọn tiếp ở menu, chỉ hỏi owner một lượt, tối đa 30 story mỗi file.
+- R3 spec §5: 7 chỗ lệch so với BA (6 ý Trợ Lý/agent tự chốt) — đọc `docs/superpowers/specs/2026-10-10-crew-v3-r3-ui-design.md` §5 và phủ quyết nếu cần. R3 ước ~12 ngày công; UI Crew chỉ lên prod khi đăng nhập, cli-auth, tạo yêu cầu, duyệt, hủy đã qua test, có mốc rollback.
