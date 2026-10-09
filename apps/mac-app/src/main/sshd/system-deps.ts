@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { closeSync, openSync, readSync, statSync, unwatchFile, watchFile } from 'node:fs';
+import { closeSync, openSync, readFileSync, readSync, statSync, unwatchFile, watchFile } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   type CommandRunner,
@@ -83,6 +83,8 @@ export function createSystemDeps(input: {
   runner: CommandRunner;
   store: AppContext['store'];
   log: AppContext['log'];
+  /** Chu kỳ `watchFile` (mặc định 2 giây; test dùng ngắn hơn). */
+  watchIntervalMs?: number;
 }): SupervisorDeps {
   const { runner } = input;
   const paths = macPaths(input.home);
@@ -137,11 +139,31 @@ export function createSystemDeps(input: {
       }
     },
     readOwner: () => readManifest(paths.manifest)?.sshdOwner ?? 'launchd',
-    watchManifest: (cb) => {
+    readListenConfig: () => {
+      // sshd chỉ đọc sshd_config (Port, ListenAddress) và host key lúc khởi động: hai thứ này đổi thì phải nạp lại.
+      let config: string;
+      try {
+        config = readFileSync(paths.sshdConfig, 'utf8');
+      } catch {
+        return null;
+      }
+      let hostKey = 'none';
+      try {
+        const stat = statSync(paths.hostKey);
+        hostKey = `${stat.mtimeMs}:${stat.size}`;
+      } catch {
+        // chưa có host key: sshd sẽ báo lỗi, backoff lo
+      }
+      return `${config}\0hostkey ${hostKey}`;
+    },
+    watchConfig: (cb) => {
       // watchFile (stat định kỳ) chịu được ghi atomic bằng rename và file chưa tồn tại.
+      const files = [paths.manifest, paths.sshdConfig, paths.hostKey];
       const listener = () => cb();
-      watchFile(paths.manifest, { interval: 2_000 }, listener);
-      return () => unwatchFile(paths.manifest, listener);
+      for (const file of files) watchFile(file, { interval: input.watchIntervalMs ?? 2_000 }, listener);
+      return () => {
+        for (const file of files) unwatchFile(file, listener);
+      };
     },
     sleep: (ms) => sleep(ms),
     now: () => Date.now(),

@@ -105,6 +105,24 @@ describe('bước machine', () => {
     expect(calls.some(([op]) => op === 'setStatusSecret')).toBe(false);
   });
 
+  it('máy có sẵn giữ nguyên url bản tin cũ, chỉ cập nhật company', async () => {
+    const { step, calls } = await machineHarness({ ...existing, statusUrl: 'http://100.105.105.12:3100' });
+    expect((await step({})).ok).toBe(true);
+    expect(calls.find(([op]) => op === 'configureStatus')?.[1]).toEqual([
+      'http://100.105.105.12:3100',
+      COMPANY,
+    ]);
+  });
+
+  it('máy có sẵn nhưng chưa có url thì dùng origin Paperclip đang đăng nhập', async () => {
+    const { step, calls } = await machineHarness({ ...existing, statusUrl: null });
+    await step({});
+    expect(calls.find(([op]) => op === 'configureStatus')?.[1]).toEqual([
+      'https://crew.example.com',
+      COMPANY,
+    ]);
+  });
+
   it('máy mới: bắt buộc key ssh-ed25519 và secret, mặc định cổng 2222 và ~/crew-agents', async () => {
     const { step, calls } = await machineHarness({ kind: 'fresh' });
     expect((await step({})).ok).toBe(false);

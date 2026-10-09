@@ -21,8 +21,10 @@ ký Developer ID), `packages/docs-kit` (CLI `crew-docs`), cùng `docs/` và `pla
 - Build (tất cả package): `pnpm -r build`
 - Build bundle `crew-docs`: `pnpm --filter @crew/docs-kit build` (ra `packages/docs-kit/dist/crew-docs.cjs`)
 - Build `crew-mac`: `pnpm --filter @crew/mac build` (ra `apps/crew-mac/dist/cli.js`)
-- Build app macOS: `pnpm --filter @crew/mac-app build` (electron-vite, ra `apps/mac-app/out/`); đóng gói thử không
-  ký: `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @crew/mac-app exec electron-builder --mac dir --arm64`
+- Build app macOS: `pnpm --filter @crew/mac-app build` (electron-vite, ra `apps/mac-app/out/`). Đóng gói thử:
+  `pnpm --filter @crew/mac-app release -- --dev-sign --no-publish` (ký Apple Development, không đăng) hoặc `--dry-run`
+  (không ký, chỉ thử build). Không gọi `electron-builder` trực tiếp để đóng gói không ký: bản đã lật fuse mà không có
+  chữ ký hợp lệ bị kernel giết (mã 137), và `electron-builder` không tự build lại `@crew/mac`.
 
 ## Quy ước
 

@@ -2,21 +2,18 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { createRunner } from '@crew/mac';
 import { app, dialog } from 'electron';
 import type { AppContext } from '../app-context.js';
-import {
-  choiceFromButton,
-  installQuitGuard,
-  QUIT_BUTTONS,
-  QUIT_CANCEL_ID,
-  QUIT_DEFAULT_ID,
-  quitMessage,
-} from '../quit-guard.js';
+import { choiceFromButton, installQuitGuard, type QuitGuard, quitPrompt } from '../quit-guard.js';
 import { createSshdSupervisor, type SshdSupervisor } from './supervisor.js';
 import { createSystemDeps } from './system-deps.js';
 
+/** Supervisor kèm hai cửa của quit guard: updater dùng `allowQuitForUpdate`, wizard đổi chủ sshd dùng `holdQuit`. */
+export interface SshdRuntime extends SshdSupervisor, QuitGuard {}
+
 /**
- * Bật bộ giám sát sshd (theo manifest crew-mac) và quit guard. Trả supervisor cho màn hình Run/Sức khỏe và updater.
+ * Bật bộ giám sát sshd (theo manifest crew-mac) và quit guard. Trả supervisor (kèm cửa của quit guard) cho màn hình
+ * Run/Sức khỏe, wizard và updater.
  */
-export function registerSshd(ctx: AppContext): SshdSupervisor {
+export function registerSshd(ctx: AppContext): SshdRuntime {
   const supervisor = createSshdSupervisor(
     createSystemDeps({ home: ctx.home, runner: createRunner(), store: ctx.store, log: ctx.log }),
   );
@@ -30,22 +27,23 @@ export function registerSshd(ctx: AppContext): SshdSupervisor {
     ctx.log(status.state === 'backoff' ? 'warn' : 'info', 'sshd-state', { ...status });
   });
 
-  installQuitGuard({
+  const guard: QuitGuard = installQuitGuard({
     onBeforeQuit: (handler) => app.on('before-quit', handler),
     quit: () => app.quit(),
     ask: async (runs) => {
-      const { message, detail } = quitMessage(runs);
+      const prompt = quitPrompt(runs);
       const result = await dialog.showMessageBox({
         type: 'warning',
-        buttons: [...QUIT_BUTTONS],
-        defaultId: QUIT_DEFAULT_ID,
-        cancelId: QUIT_CANCEL_ID,
+        buttons: [...prompt.buttons],
+        defaultId: prompt.defaultId,
+        cancelId: prompt.cancelId,
         noLink: true,
-        message,
-        detail,
+        message: prompt.message,
+        detail: prompt.detail,
       });
-      return choiceFromButton(result.response);
+      return choiceFromButton(prompt, result.response);
     },
+    ownsListener: () => supervisor.status().state !== 'disabled',
     activeRuns: async () => (await supervisor.activeRuns()).length,
     stopForQuit: () => supervisor.stopForQuit(),
     pause: () => supervisor.pause(),
@@ -61,5 +59,8 @@ export function registerSshd(ctx: AppContext): SshdSupervisor {
       error: error instanceof Error ? error.message : String(error),
     }),
   );
-  return supervisor;
+  return Object.assign(supervisor, {
+    allowQuitForUpdate: guard.allowQuitForUpdate,
+    holdQuit: guard.holdQuit,
+  });
 }

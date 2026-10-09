@@ -3,7 +3,7 @@ import { createRunner, DEFAULT_PORT, macPaths, readManifest } from '@crew/mac';
 import { app, shell } from 'electron';
 import type { AppContext } from '../app-context.js';
 import { paperclipClient } from '../paperclip/register.js';
-import type { SshdSupervisor } from '../sshd/supervisor.js';
+import type { SshdRuntime } from '../sshd/register.js';
 import { readLogSince } from '../sshd/system-deps.js';
 import { defaultProbes, detectFullDiskAccess, diskAccessOutcome } from './disk-access.js';
 import { detectExisting } from './import-existing.js';
@@ -21,7 +21,7 @@ import { createDoctorStep, createPaperclipStep, createWizard } from './wizard.js
  */
 export function registerSetup(
   ctx: AppContext,
-  sshd: SshdSupervisor,
+  sshd: SshdRuntime,
   health: { run(probe: boolean): Promise<unknown> },
 ): void {
   const runner = createRunner();
@@ -76,18 +76,22 @@ export function registerSetup(
           isRecord(input) && input.recheck === true,
         ),
       sshd: async () => {
-        const result = await handoffSshd({
-          ops: ctx.ops,
-          supervisor: sshd,
-          store: ctx.store,
-          readOwner: () => manifest()?.sshdOwner ?? 'launchd',
-          port: () => manifest()?.port ?? DEFAULT_PORT,
-          listenerPids: (port) => listenerPids(runner, port),
-          readLogTail: (lines) =>
-            readLogSince(paths.sshdLog, 0).split('\n').filter(Boolean).slice(-lines).join('\n'),
-          sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-          now: () => Date.now(),
-        });
+        // Thoát app giữa lúc đang đổi chủ sshd thì chờ việc đổi chủ xong rồi mới hỏi thoát.
+        const result = await sshd.holdQuit(() =>
+          handoffSshd({
+            ops: ctx.ops,
+            supervisor: sshd,
+            store: ctx.store,
+            diskAccess: () => detectFullDiskAccess(defaultProbes(ctx.home)),
+            readOwner: () => manifest()?.sshdOwner ?? 'launchd',
+            port: () => manifest()?.port ?? DEFAULT_PORT,
+            listenerPids: (port) => listenerPids(runner, port),
+            readLogTail: (lines) =>
+              readLogSince(paths.sshdLog, 0).split('\n').filter(Boolean).slice(-lines).join('\n'),
+            sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+            now: () => Date.now(),
+          }),
+        );
         refreshHealth();
         return result;
       },

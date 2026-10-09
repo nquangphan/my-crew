@@ -517,7 +517,12 @@ function DiskAccessPanel({ onResult }: PanelProps) {
           <button type="button" className="btn" onClick={recheck}>
             Kiểm tra lại
           </button>
-          <button type="button" className="btn primary" disabled={busy} onClick={() => void run({})}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy || !status?.ok}
+            onClick={() => void run({})}
+          >
             {meta.action}
           </button>
         </>
@@ -525,6 +530,65 @@ function DiskAccessPanel({ onResult }: PanelProps) {
     >
       <ErrorBox message={error} />
       {status && <Notice tone={status.ok ? 'ok' : 'warn'}>{status.message}</Notice>}
+    </WizardStep>
+  );
+}
+
+/** Bước sshd: nút chỉ mở khi Full Disk Access đang `granted` (dò lúc mở và mỗi lần cửa sổ focus lại). */
+function SshdPanel({ onResult }: PanelProps) {
+  const meta = STEP_META.sshd;
+  const { busy, feedback, run } = useStepRunner('sshd', onResult);
+  const [disk, setDisk] = useState<StepFeedback | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const recheck = useCallback(() => {
+    invoke('setup:step', 'disk-access', { recheck: true })
+      .then((result) => setDisk({ ok: result.ok, message: result.message }))
+      .catch((e: unknown) => setError(errorText(e)));
+  }, []);
+  useEffect(() => {
+    recheck();
+    window.addEventListener('focus', recheck);
+    return () => window.removeEventListener('focus', recheck);
+  }, [recheck]);
+
+  const locked = !disk?.ok;
+  return (
+    <WizardStep
+      title={meta.title}
+      description={meta.description}
+      feedback={feedback}
+      actions={
+        <>
+          {locked && (
+            <>
+              <button
+                type="button"
+                className="btn"
+                onClick={() =>
+                  invoke('health:action', 'open-privacy').catch((e: unknown) => setError(errorText(e)))
+                }
+              >
+                Mở Cài đặt hệ thống
+              </button>
+              <button type="button" className="btn" onClick={recheck}>
+                Kiểm tra lại
+              </button>
+            </>
+          )}
+          <button type="button" className="btn primary" disabled={busy || locked} onClick={() => void run()}>
+            {busy ? 'Đang chạy...' : meta.action}
+          </button>
+        </>
+      }
+    >
+      <ErrorBox message={error} />
+      {locked && (
+        <Notice tone="warn">
+          {disk?.message ?? 'Đang kiểm tra quyền ổ đĩa...'} Chưa chuyển sshd được khi 2P Crew chưa có quyền
+          "Truy cập toàn bộ ổ đĩa".
+        </Notice>
+      )}
     </WizardStep>
   );
 }
@@ -627,6 +691,9 @@ export function SetupScreen() {
         break;
       case 'disk-access':
         panel = <DiskAccessPanel {...props} />;
+        break;
+      case 'sshd':
+        panel = <SshdPanel {...props} />;
         break;
       case 'done':
         panel = <DonePanel onResult={onResult} />;
