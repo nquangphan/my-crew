@@ -31,3 +31,7 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 
 ## Lỗ hổng quyền BA phát hiện (Trợ Lý sẽ đưa vào kế hoạch R3, báo để Đại Ca biết)
 - Agent `tro-ly` đang có quyền `canCreateAgents`, `canCreateSkills`; agent tạo được project qua API.
+
+## R2-2 — nghiệm thu còn cần ngồi máy (~10 phút)
+- Phần API đã ĐẠT (AC1 API, AC3–AC11; báo cáo `plans/261009-1945-crew-v3-r2-2/reports/ac-r2-2-report.md`).
+- Còn: AC2 (dán ảnh `ac2-second.png` vào comment trên UI), AC5 phần UI (kéo file 10 MB + 1 byte, UI phải từ chối), một ca đính file bằng hộp thoại "New issue". Trợ Lý sẽ giao lại TPS-80 cho `tro-ly` trước khi Đại Ca dán ảnh.
