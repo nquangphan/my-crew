@@ -378,3 +378,43 @@ describe('route', () => {
     expect(server.requests[3]).toMatchObject({ method: 'DELETE', path, query: { companyId: C } });
   });
 });
+
+describe('route cho thêm/gỡ project', () => {
+  it('agents: GET /api/companies/:id/agents, giữ id/tên/trạng thái/environment', async () => {
+    const { server, client } = await setup(() => ({
+      status: 200,
+      body: [
+        { id: A, name: 'a', status: 'paused', companyId: C, defaultEnvironmentId: E, adapterConfig: {} },
+      ],
+    }));
+    await expect(client.agents(C)).resolves.toEqual([
+      { id: A, name: 'a', status: 'paused', companyId: C, defaultEnvironmentId: E },
+    ]);
+    expect(server.requests[0]).toMatchObject({ method: 'GET', path: `/api/companies/${C}/agents` });
+  });
+
+  it('resumeAgent: POST /api/agents/:id/resume', async () => {
+    const { server, client } = await setup(() => ({ status: 200, body: { id: A, status: 'idle' } }));
+    await client.resumeAgent(A);
+    expect(server.requests[0]).toMatchObject({ method: 'POST', path: `/api/agents/${A}/resume` });
+  });
+
+  it('setRoles 400: message có lời từ chối của plugin (kèm tên project), không có key', async () => {
+    const { client } = await setup(() => ({
+      status: 400,
+      body: { error: `agent ${A} đang là reviewer ở project Repo A ${KEY}` },
+    }));
+    const error = await client.setRoles(C, P, ROLES).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(PaperclipHttpError);
+    expect(error).toMatchObject({ status: 400 });
+    expect((error as Error).message).toContain('400');
+    expect((error as Error).message).toContain('Repo A');
+    expect((error as Error).message).not.toContain(KEY);
+  });
+
+  it('lỗi 400 của route khác vẫn không kèm body', async () => {
+    const { client } = await setup(() => ({ status: 400, body: { error: 'chi tiết server' } }));
+    const error = await client.createProject(C, { name: 'x' }).catch((e: unknown) => e);
+    expect((error as Error).message).not.toContain('chi tiết server');
+  });
+});

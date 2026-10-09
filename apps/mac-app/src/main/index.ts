@@ -11,6 +11,7 @@ import { isTrustedSender, registerIpc } from './ipc.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
 import { registerPaperclip } from './paperclip/register.js';
+import { registerProjects } from './projects/register.js';
 import { registerHealth } from './register-health.js';
 import { registerSetup } from './setup/register.js';
 import { registerSshd } from './sshd/register.js';
@@ -108,6 +109,7 @@ async function start(): Promise<void> {
   const sshd = registerSshd(ctx);
   const health = registerHealth(ctx, sshd);
   registerPaperclip(ctx);
+  registerProjects(ctx);
   registerSetup(ctx, sshd, health); // AP-5; AP-6 thêm bước v2, move trong register.ts
   registerUpdate(ctx, sshd);
   void ctx;

@@ -1,6 +1,7 @@
 import type { CheckResult } from '@crew/mac';
 import type { AppState, ProjectProgress, SetupStep, UpdateState } from '../main/app-state.js';
 import type { ExistingMachine } from '../main/setup/import-existing.js';
+import type { V2Detection } from '../main/setup/v2-removal.js';
 
 /**
  * Hợp đồng IPC giữa renderer và Main (Interface I5). AP-1 khai đủ mọi kênh; mỗi ticket sau cài handler của
@@ -56,7 +57,7 @@ export interface UpdateView {
   lastCheckedAt: string | null;
 }
 
-export type HealthAction = 'open-privacy' | 'open-terminal';
+export type HealthAction = 'open-privacy' | 'open-terminal' | 'open-login-items';
 
 export type LogFile = 'app' | 'sshd' | 'reaper' | 'status';
 
@@ -83,6 +84,8 @@ export interface IpcApi {
   'setup:step': { args: [step: SetupStep, input: unknown]; result: StepResult };
   /** Máy này đã có cài đặt crew-mac chưa (wizard hiện "Nhận cài đặt có sẵn" hay ô nhập key). Chỉ đọc. */
   'setup:detect': { args: []; result: ExistingMachine };
+  /** Bước gỡ app v2: dò app 2P Crew cũ trong Applications (chỉ đọc). */
+  'setup:v2Detect': { args: []; result: V2Detection };
   'paperclip:login': { args: [origin: string]; result: { approvalUrl: string } };
   'paperclip:loginStatus': { args: []; result: 'pending' | 'approved' | 'expired' | 'cancelled' };
   'paperclip:companies': { args: []; result: { id: string; name: string }[] };
@@ -114,6 +117,7 @@ export const IPC_CHANNELS = [
   'setup:state',
   'setup:step',
   'setup:detect',
+  'setup:v2Detect',
   'paperclip:login',
   'paperclip:loginStatus',
   'paperclip:companies',

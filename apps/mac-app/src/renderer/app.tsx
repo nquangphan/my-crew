@@ -1,8 +1,8 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { PageHeader } from './components/ui';
 import { invoke } from './lib/ipc';
 import { HealthScreen } from './routes/health';
 import { LogsScreen } from './routes/logs';
+import { ProjectsScreen } from './routes/projects';
 import { RunsScreen } from './routes/runs';
 import { SetupScreen } from './routes/setup';
 import { UpdateScreen } from './routes/update';
@@ -13,10 +13,6 @@ export interface RouteDef {
   render: () => ReactNode;
 }
 
-function Soon({ title, ticket }: { title: string; ticket: string }) {
-  return <PageHeader title={title} subtitle={`Màn hình này được thêm ở ticket ${ticket}.`} />;
-}
-
 /**
  * Danh sách màn hình của thanh bên. Mỗi ticket sau thay đúng một dòng của mình bằng route thật
  * (AP-3: health/runs/logs, AP-5: setup, PJ-2: projects, UPD-1: update).
@@ -25,7 +21,7 @@ export const ROUTES: RouteDef[] = [
   { id: 'health', label: 'Sức khỏe', render: () => <HealthScreen /> },
   { id: 'runs', label: 'Run đang chạy', render: () => <RunsScreen /> },
   { id: 'logs', label: 'Log', render: () => <LogsScreen /> },
-  { id: 'projects', label: 'Project', render: () => <Soon title="Project" ticket="PJ-2" /> },
+  { id: 'projects', label: 'Project', render: () => <ProjectsScreen /> },
   { id: 'update', label: 'Cập nhật', render: () => <UpdateScreen /> },
   { id: 'setup', label: 'Cài đặt', render: () => <SetupScreen /> },
 ];
