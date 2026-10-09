@@ -623,6 +623,30 @@ describe('discoverSources theo workflow của run', () => {
     ]);
   });
 
+  it('run BMAD: file không phải toml dưới _bmad/custom (nội dung toml trỏ tới) xét như toml', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(dir, '_bmad/custom/bmad-prd.toml', 'pack = "{project-root}/_bmad/custom/packs/regulatory.md"\n');
+    put(dir, '_bmad/custom/packs/regulatory.md', '# Luật\n');
+    commit(dir, '_bmad/custom/bmad-prd.toml');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(dir, '_bmad', 'custom', 'packs', 'regulatory.md'),
+        kind: 'bmad',
+        reason: UNTRACKED_REASON,
+      }),
+    ]);
+    commit(dir, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([]);
+    put(dir, '_bmad/custom/packs/regulatory.md', '# Luật đã sửa\n');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(dir, '_bmad', 'custom', 'packs', 'regulatory.md'),
+        reason: DIRTY_REASON,
+      }),
+    ]);
+  });
+
   it('run BMAD: _bmad/custom/bmad-prd.user.toml chưa track → blocked BMAD_PERSONAL_REASON; đã commit sạch → project', async () => {
     const { ctx } = realGitCtx();
     const dir = repo();

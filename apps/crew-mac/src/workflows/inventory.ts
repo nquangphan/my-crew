@@ -499,7 +499,7 @@ function tomlFiles(dir: string, skip: readonly string[] = []): string[] {
 
 /**
  * Nguồn BMAD của worktree (chỉ run BMAD): `_bmad/scripts` phải giống từng byte bản ghim (chưa commit mà giống thì
- * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và `custom/**.toml` chặn như settings, trừ
+ * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và mọi file `custom/**` chặn như settings, trừ
  * `config.toml` chưa track mà đúng bản `setup-project` vừa ghi cho worktree này (cho qua kèm cảnh báo, cùng lý do);
  * lớp cá nhân `*.user.toml` phải commit sạch. `_bmad/memory/**` và `_bmad-output/**` là dữ liệu skill ghi ra, không
  * phải nguồn nạp.
@@ -578,7 +578,8 @@ function judgeBmad(
       judge(config, 'bmad', [config]);
     }
   }
-  for (const file of tomlFiles(join(base, 'custom')).filter((f) => !f.endsWith('.user.toml')))
+  // Mọi file dưới `custom/` (không chỉ `*.toml`): toml tùy biến trỏ tới nội dung như `custom/packs/<x>.md`.
+  for (const file of walkFiles(join(base, 'custom'), (f) => !f.endsWith('.user.toml')))
     judge(file, 'bmad', [file]);
   for (const file of tomlFiles(base, ['scripts', 'memory']).filter((f) => f.endsWith('.user.toml'))) {
     const issue = fileIssue(git, root, file);
