@@ -29,6 +29,11 @@ export interface SetupProjectResult {
 }
 
 const UV_TIMEOUT_MS = 120_000;
+/** Câu uv in khi không có Python thỏa `requires-python` của `setup.py` (đo uv 0.12.13). */
+const NO_PYTHON_RE = /No interpreter found for Python/;
+const NO_PYTHON_MESSAGE =
+  'máy không có Python ≥ 3.11 cho setup.py (setup-project chạy không mạng, không tự tải Python); ' +
+  'cài Python 3.11+ (ví dụ "uv python install 3.12" hoặc Homebrew) rồi chạy lại';
 const LANGUAGE_KEYS = new Set(['communication_language', 'document_output_language']);
 
 /** Rác của hệ điều hành và Python, không bao giờ là script BMAD. */
@@ -178,9 +183,12 @@ export async function setupProject(ctx: MacContext, root: string): Promise<Setup
     );
   const uv = await findUv(ctx);
   const skill = join(dir, 'skills', 'bmad');
+  // Không mạng: `--offline` cấm tải gói, `--no-python-downloads` cấm uv tự tải Python khi máy thiếu bản hợp yêu cầu.
   const base = [
     'run',
     '--no-cache',
+    '--offline',
+    '--no-python-downloads',
     join(skill, 'scripts', 'setup.py'),
     '--project-root',
     root,
@@ -192,7 +200,9 @@ export async function setupProject(ctx: MacContext, root: string): Promise<Setup
     new SetupError(
       r.timedOut
         ? `setup.py quá hạn ${UV_TIMEOUT_MS / 1000} giây`
-        : `setup.py lỗi (mã ${r.code})${lastLine(r.stderr) ? `: ${lastLine(r.stderr)}` : ''}`,
+        : NO_PYTHON_RE.test(r.stderr)
+          ? NO_PYTHON_MESSAGE
+          : `setup.py lỗi (mã ${r.code})${lastLine(r.stderr) ? `: ${lastLine(r.stderr)}` : ''}`,
     );
 
   const list = await ctx.runner.run(uv, [...base, '--list-config-questions'], opts);

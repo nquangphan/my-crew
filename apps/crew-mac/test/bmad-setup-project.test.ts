@@ -136,6 +136,8 @@ describe('setupProject', () => {
       [
         'run',
         '--no-cache',
+        '--offline',
+        '--no-python-downloads',
         join(skill, 'scripts', 'setup.py'),
         '--project-root',
         root,
@@ -143,7 +145,17 @@ describe('setupProject', () => {
         skill,
         '--list-config-questions',
       ],
-      ['run', '--no-cache', join(skill, 'scripts', 'setup.py'), '--project-root', root, '--skill', skill],
+      [
+        'run',
+        '--no-cache',
+        '--offline',
+        '--no-python-downloads',
+        join(skill, 'scripts', 'setup.py'),
+        '--project-root',
+        root,
+        '--skill',
+        skill,
+      ],
     ]);
     for (const call of uvCalls()) {
       expect(call.options.timeoutMs).toBe(120_000);
@@ -217,6 +229,22 @@ describe('setupProject', () => {
     mac.runner.on(UV, () => ({ stdout: '{"a":1}\n' }));
     await expect(setupProject(mac.ctx, repo())).rejects.toThrow(
       /danh sách câu hỏi của setup\.py không đọc được/,
+    );
+    expect(uvCalls()).toHaveLength(1);
+  });
+
+  it('máy không có Python hợp yêu cầu: không tải Python, báo rõ cần cài Python ≥ 3.11', async () => {
+    const { mac, uvCalls } = setupMac();
+    mac.runner.on(UV, () => ({
+      code: 2,
+      stderr:
+        'error: No interpreter found for Python >=3.11 in virtual environments, managed installations, or search path\n',
+    }));
+    await expect(setupProject(mac.ctx, repo())).rejects.toThrow(
+      new SetupError(
+        'máy không có Python ≥ 3.11 cho setup.py (setup-project chạy không mạng, không tự tải Python); ' +
+          'cài Python 3.11+ (ví dụ "uv python install 3.12" hoặc Homebrew) rồi chạy lại',
+      ),
     );
     expect(uvCalls()).toHaveLength(1);
   });

@@ -251,9 +251,13 @@ H3 chỉ cần hợp đồng `pgid`/`started`.
    (không update, không hạ cấp).
 2. Bản ghim BMAD phải có và đúng checksum (thiếu: chạy `crew-mac workflows install`; lệch: `WORKFLOW_SOURCE_MISMATCH`).
 3. Tìm `uv` bằng `/bin/sh -c 'command -v uv'` (PATH hiện tại cộng `~/.local/bin`); không có thì lỗi `thiếu uv trong PATH`.
-4. `uv run --no-cache <pin>/skills/bmad/scripts/setup.py --project-root <root> --skill <pin>/skills/bmad
-   --list-config-questions` (120 giây, `NO_COLOR=1`) in mảng JSON `{module, key, prompt, default}`. Bản ghim hiện tại
-   trả `[]` (SP-0).
+4. `uv run --no-cache --offline --no-python-downloads <pin>/skills/bmad/scripts/setup.py --project-root <root>
+   --skill <pin>/skills/bmad --list-config-questions` (120 giây, `NO_COLOR=1`) in mảng JSON
+   `{module, key, prompt, default}`. Bản ghim hiện tại trả `[]` (SP-0). Ép không mạng: `--offline` cấm tải gói,
+   `--no-python-downloads` cấm uv tự tải Python (đo uv 0.12.13 trên bản ghim thật: chạy được không mạng). Máy không có
+   Python ≥ 3.11 (`requires-python` của `setup.py`; uv in `No interpreter found for Python`) thì lỗi
+   `máy không có Python ≥ 3.11 cho setup.py (…); cài Python 3.11+ (ví dụ "uv python install 3.12" hoặc Homebrew) rồi
+   chạy lại`.
 5. Câu trả lời = `default` của từng câu, riêng `communication_language`/`document_output_language` là `Vietnamese`; mọi
    câu qua `checkBmadAnswers` (luật port từ v2 `packages/shared/src/bmad-schemas.ts`: không khóa cá nhân `user_name`,
    `user_skill_level`, `communication_language` trừ khi cho phép ngôn ngữ; không khóa giống credential; module/khóa
@@ -403,7 +407,8 @@ không làm hỏng lượt reap. Lỗi GC ở `setup`/`install` chỉ in `Không
 pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát; chấp nhận vì chỉ tốn đĩa.
 
 - **Wrapper ghi:** `<thư mục ghim>/.in_use/<runId>` = `<pid> <started epoch giây>\n` (ngoài checksum).
-- **`bmad setup-project`:** chạy `uv` với `setup.py` của bản ghim (không mạng: script không có dependency), ghi
+- **`bmad setup-project`:** chạy `uv` với `setup.py` của bản ghim, ép không mạng (`--offline`, `--no-python-downloads`;
+  script không có dependency, cần Python ≥ 3.11 có sẵn trên máy), ghi
   `_bmad/` trong repo dự án và dấu `~/.crew/state/bmad-setup/<hash root>`, file câu trả lời tạm 0600 dưới thư mục tạm
   hệ thống (xóa ngay). **`bmad stories`:** chỉ đọc (file, `git ls-tree`/`git show`/`git cat-file`).
 - **Mã thoát 78** (`EX_CONFIG`) là hợp đồng giữa wrapper và `workflow-check`/`run-init-check`.
@@ -475,7 +480,8 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
 - `apps/crew-mac/test/bmad-setup-project.test.ts` (`uv` giả, git thật): đã có script thì skipped; thiếu uv; bản ghim
   chưa cài hoặc lệch checksum; không câu hỏi thì không `--module-answers`; có câu hỏi thì file TOML 0600 ngoài repo,
   ngôn ngữ `Vietnamese`, bị xóa sau; escape TOML; xóa `*.user.toml`; script khác bản ghim; default không đạt luật thì
-  không chạy setup; danh sách câu hỏi hỏng; `setup.py` thoát khác 0; run bị ngắt ngay sau `setup-project`:
+  không chạy setup; danh sách câu hỏi hỏng; `setup.py` thoát khác 0; lệnh `uv` luôn có `--offline`,
+  `--no-python-downloads`; thiếu Python thì câu lỗi cần cài Python ≥ 3.11; run bị ngắt ngay sau `setup-project`:
   `config.toml` vừa ghi cho qua kèm cảnh báo (`discoverSources` không chặn), sửa một byte hay chép `_bmad` sang worktree
   khác thì chặn, đã commit thì `project`.
 - `apps/crew-mac/test/bmad-command.test.ts` (repo git thật): `stories` đọc đĩa (JSON đúng hợp đồng, `digest`,
