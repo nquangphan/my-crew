@@ -84,6 +84,7 @@ flows:
       - apps/crew-mac/src/tailscale.ts
       - apps/crew-mac/src/wrapper.ts
       - apps/crew-mac/src/launcher.ts
+      - apps/crew-mac/src/install-cli.ts
       - apps/crew-mac/src/commands/setup.ts
       - apps/crew-mac/src/commands/doctor.ts
       - apps/crew-mac/src/commands/uninstall.ts
@@ -101,6 +102,7 @@ flows:
       - apps/crew-mac/test/system-wrappers.test.ts
       - apps/crew-mac/test/crew-claude-run.test.ts
       - apps/crew-mac/test/launcher.test.ts
+      - apps/crew-mac/test/install-cli.test.ts
       - apps/crew-mac/test/sshd-owner.test.ts
       - apps/crew-mac/test/setup.test.ts
       - apps/crew-mac/test/doctor.test.ts

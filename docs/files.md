@@ -19,6 +19,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/context.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/fs-util.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/index.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/install-cli.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/launchctl.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/launcher.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/manifest.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -51,6 +52,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/crew-claude-run.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/doctor.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/install-cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/launcher.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/reaper-reap.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/reaper-select.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
