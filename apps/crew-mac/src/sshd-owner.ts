@@ -26,10 +26,17 @@ export function isAppExecutable(path: string): boolean {
   return APP_EXECUTABLE_RE.test(path);
 }
 
-/** argv là listener sshd của crew-mac: `/usr/sbin/sshd … -f <sshd_config của crew-mac> …`, không phải `sshd-session`. */
+/** OpenSSH tự đổi tiêu đề listener thành `sshd: /usr/sbin/sshd -D -f … [listener] 0 of 10-100 startups`. */
+const RETITLE_PREFIX = 'sshd: ';
+
+/**
+ * argv (`ps -o command=`) là listener sshd của crew-mac: `/usr/sbin/sshd … -f <sshd_config của crew-mac> …`, dạng gốc
+ * hay tiêu đề đã đổi (`sshd: ` đứng đầu). Không bao giờ nhận `sshd-session`.
+ */
 export function isCrewListener(command: string, sshdConfig: string): boolean {
   if (command.includes('sshd-session')) return false;
-  return command.startsWith('/usr/sbin/sshd ') && ` ${command} `.includes(` -f ${sshdConfig} `);
+  const argv = command.startsWith(RETITLE_PREFIX) ? command.slice(RETITLE_PREFIX.length) : command;
+  return argv.startsWith('/usr/sbin/sshd ') && ` ${argv} `.includes(` -f ${sshdConfig} `);
 }
 
 export function readSshdPid(path: string): number | null {
