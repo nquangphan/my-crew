@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import type { AppState, SetupStep } from '../../main/app-state';
 import type { ExistingMachine } from '../../main/setup/import-existing';
+import type { V2Action, V2Detection } from '../../main/setup/v2-removal';
 import type { StepResult } from '../../shared/ipc-contract';
 import { ErrorBox, Notice, PageHeader } from '../components/ui';
 import { type StepFeedback, WizardStep } from '../components/wizard-step';
@@ -24,13 +25,14 @@ export const STEP_META: Record<SetupStep, StepMeta> = {
   },
   v2: {
     title: 'Gỡ app 2P Crew cũ',
-    description: 'Gỡ app phiên bản 2 nếu có. Dữ liệu cũ trong thư mục ~/.crew được giữ nguyên.',
+    description:
+      'Gỡ app phiên bản 2 nếu có. Chỉ gỡ app: dữ liệu cũ trong thư mục ~/.crew (cấu hình, log, bộ nhớ trợ lý) được giữ nguyên, không xóa, không sửa.',
     action: 'Tiếp',
   },
   move: {
     title: 'Chuyển vào Applications',
     description: 'App nằm trong thư mục Applications để cập nhật và mở cùng máy hoạt động đúng.',
-    action: 'Tiếp',
+    action: 'Chuyển vào Applications',
   },
   paperclip: {
     title: 'Đăng nhập Paperclip',
@@ -238,6 +240,134 @@ function PaperclipPanel({ setup, machine, onResult }: PanelProps) {
           </select>
         </label>
       )}
+    </WizardStep>
+  );
+}
+
+const V2_ACTION_LABELS: Record<V2Action, string> = {
+  'login-item': 'Gỡ mục đăng nhập kiểu cũ của app 2P Crew cũ',
+  trash: 'Chuyển app 2P Crew cũ vào Thùng rác (khôi phục được)',
+  tcc: 'Xóa quyền macOS đã cấp cho app 2P Crew cũ',
+};
+
+/** Bước gỡ app v2: mỗi việc có ô tích; chỉ việc nào được tích mới gửi lên Main. */
+function V2Panel({ onResult }: PanelProps) {
+  const meta = STEP_META.v2;
+  const { busy, feedback, run } = useStepRunner('v2', onResult);
+  const [found, setFound] = useState<V2Detection | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Record<V2Action, boolean>>({
+    'login-item': true,
+    trash: true,
+    tcc: true,
+  });
+
+  const detect = useCallback(() => {
+    invoke('setup:v2Detect')
+      .then((result) => {
+        setFound(result ?? null);
+        setError(null);
+      })
+      .catch((e: unknown) => setError(errorText(e)));
+  }, []);
+  useEffect(detect, [detect]);
+
+  const actions: V2Action[] = found?.isV2 ? ['login-item', 'trash', 'tcc'] : found?.isSelf ? ['tcc'] : [];
+  const chosen = actions.filter((action) => picked[action]);
+  const remove = async () => {
+    await run({ confirm: chosen });
+    detect();
+  };
+  const openLoginItems = () =>
+    invoke('health:action', 'open-login-items').catch((e: unknown) => setError(errorText(e)));
+
+  let buttons: ReactNode;
+  if (found === null) {
+    buttons = null;
+  } else if (found.isV2 && found.running) {
+    buttons = (
+      <button type="button" className="btn primary" onClick={detect}>
+        Thử lại
+      </button>
+    );
+  } else {
+    buttons = (
+      <>
+        {(found.isV2 || feedback !== null) && (
+          <button type="button" className="btn" onClick={() => void openLoginItems()}>
+            Mở Mục đăng nhập
+          </button>
+        )}
+        {actions.length > 0 && (
+          <button
+            type="button"
+            className={found.isV2 ? 'btn primary' : 'btn'}
+            disabled={busy || chosen.length === 0}
+            onClick={() => void remove()}
+          >
+            {busy ? 'Đang gỡ...' : 'Gỡ các mục đã chọn'}
+          </button>
+        )}
+        {!found.isV2 && (
+          <button type="button" className="btn primary" disabled={busy} onClick={() => void run({})}>
+            {meta.action}
+          </button>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <WizardStep title={meta.title} description={meta.description} feedback={feedback} actions={buttons}>
+      <ErrorBox message={error} />
+      {found === null && <p>Đang dò app 2P Crew cũ...</p>}
+      {found?.isV2 && found.running && (
+        <Notice tone="warn">
+          Thoát app 2P Crew cũ (menu → Thoát) rồi bấm Thử lại. App mới không tự đóng app cũ.
+        </Notice>
+      )}
+      {found !== null && !found.isV2 && !found.isSelf && (
+        <Notice tone="ok">Không thấy app 2P Crew cũ trong Applications.</Notice>
+      )}
+      {found !== null && !(found.isV2 && found.running) && actions.length > 0 && (
+        <fieldset className="field">
+          <legend>Việc sẽ làm, chỉ khi bạn bấm Gỡ</legend>
+          {actions.map((action) => (
+            <label key={action} className="check">
+              <input
+                type="checkbox"
+                checked={picked[action]}
+                onChange={(event) => setPicked((now) => ({ ...now, [action]: event.target.checked }))}
+              />{' '}
+              {V2_ACTION_LABELS[action]}
+            </label>
+          ))}
+        </fieldset>
+      )}
+    </WizardStep>
+  );
+}
+
+function MovePanel({ onResult }: PanelProps) {
+  const meta = STEP_META.move;
+  const { busy, feedback, run } = useStepRunner('move', onResult);
+  return (
+    <WizardStep
+      title={meta.title}
+      description={meta.description}
+      feedback={feedback}
+      actions={
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy}
+          onClick={() => void run({ confirm: true })}
+        >
+          {busy ? 'Đang chuyển...' : meta.action}
+        </button>
+      }
+    >
+      <Notice>Bấm nút để chuyển. Sau khi chuyển xong app tự mở lại từ thư mục Applications.</Notice>
     </WizardStep>
   );
 }
@@ -483,6 +613,12 @@ export function SetupScreen() {
   if (setup) {
     const props: PanelProps = { setup, machine, reloadMachine: loadMachine, onResult };
     switch (setup.step) {
+      case 'v2':
+        panel = <V2Panel {...props} />;
+        break;
+      case 'move':
+        panel = <MovePanel {...props} />;
+        break;
       case 'paperclip':
         panel = <PaperclipPanel {...props} />;
         break;

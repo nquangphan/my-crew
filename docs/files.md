@@ -98,6 +98,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/setup/register.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/setup/sshd-handoff.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/setup/types.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/setup/v2-removal.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/setup/wizard.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/sshd/active-runs.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/backoff.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |

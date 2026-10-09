@@ -32,7 +32,7 @@ cắm vào các điểm đã chừa.
    điều hướng ra ngoài, từ chối mọi quyền.
 5. Dòng `registerX(ctx)` của từng module. Đã bật: `const sshd = registerSshd(ctx)` (bộ giám sát sshd và quit guard,
    flow `mac-app-sshd`), `registerHealth(ctx, sshd)` (sức khỏe, run, log; xem mục dưới) và `registerPaperclip(ctx)`
-   (đăng nhập Paperclip, flow `mac-app-paperclip`). Còn là chú thích: gỡ v2 (AP-6), project (PJ-1, PJ-2),
+   (đăng nhập Paperclip, flow `mac-app-paperclip`). Còn là chú thích: project (PJ-1, PJ-2),
    cập nhật (UPD-1). Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới).
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
@@ -66,14 +66,40 @@ cắm vào các điểm đã chừa.
 
 ## Cài đặt lần đầu (wizard)
 
-`src/main/setup/register.ts` → `registerSetup(ctx, sshd, health)` cài ba kênh `setup:state`, `setup:step`, `setup:detect`.
+`src/main/setup/register.ts` → `registerSetup(ctx, sshd, health)` cài các kênh `setup:state`, `setup:step`, `setup:detect`, `setup:v2Detect`.
 Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bước khi màn Sức khỏe báo lỗi ("Chạy lại cài đặt").
 
 - **Thứ tự bước** (`wizard.ts` → `STEP_ORDER`): `check → v2 → move → paperclip → machine → disk-access → sshd → doctor →
   done`. Bước xong `ok` thì `setup.step` trong `app.json` là bước kế tiếp, nên đóng app giữa chừng rồi mở lại sẽ tiếp từ
   bước dở. Chỉ chạy được bước đã tới lượt hoặc bước cũ (chạy lại không lùi tiến độ; đã `done` thì chạy lại không đổi
-  tiến độ). Bước ném lỗi thành kết quả `ok: false`. `v2` và `move` (gỡ app v2, chuyển vào Applications) do AP-6 cài; tới
-  khi đó hai bước này đi tiếp ngay.
+  tiến độ). Bước ném lỗi thành kết quả `ok: false`. `v2` phải xong trước `move` vì app v2 và app này cùng tên
+  `2P Crew.app` (bundle khác nhau: `com.2p-solutions.crew` và `com.2p-solutions.crew.mac`).
+- **`v2`** (`v2-removal.ts`, "Gỡ app 2P Crew cũ"): CHỈ GỠ APP v2, GIỮ NGUYÊN DỮ LIỆU v2 (quyết định owner Q5).
+  `setup:v2Detect` (chỉ đọc) tìm `/Applications/2P Crew.app`, đọc `CFBundleIdentifier` bằng `PlistBuddy` và hỏi
+  `pgrep -f '<app>/Contents/MacOS/'` xem app v2 có đang chạy không (bỏ pid của chính app mới). Mỗi việc dưới đây chỉ
+  chạy khi owner tích trong UI và bấm "Gỡ các mục đã chọn" (Main bỏ qua `setup:step` thiếu `confirm`):
+  1. gỡ mục đăng nhập kiểu cũ: `osascript` xóa login item có đường dẫn `/Applications/2P Crew.app` (thử trước khi
+     chuyển app đi);
+  2. chuyển app v2 vào Thùng rác bằng `shell.trashItem` (khôi phục được, không `rm`);
+  3. `tccutil reset All com.2p-solutions.crew` (chỉ bundle v2, không đụng quyền của app mới).
+  App v2 đang chạy thì không làm gì và nhắc "Thoát app 2P Crew cũ (menu → Thoát) rồi bấm Thử lại" (app mới không tự
+  kill). Bundle trong Applications mang id của chính app mới (kéo dmg đè lên) thì không vào Thùng rác và không đụng
+  login item, chỉ còn việc xóa quyền của bundle v2. Login item kiểu `SMAppService` của app v2 không gỡ được từ app
+  khác, nên sau khi gỡ luôn có hướng dẫn "Mở Cài đặt hệ thống → Cài đặt chung → Mục đăng nhập, tắt "2P Crew" cũ nếu
+  còn" kèm nút mở `x-apple.systempreferences:com.apple.LoginItems-Settings.extension` (`health:action`
+  `open-login-items`). Làm xong thì ở lại bước để hiện hướng dẫn; bấm Tiếp thì dò lại và đi. Không có app v2 thì chỉ
+  có nút Tiếp.
+  **Dữ liệu v2 được giữ nguyên:** toàn bộ thư mục `~/.crew` của v2 (`config.yaml`, `desktop.json`, `settings-cache.json`,
+  `state.db`, `runtime/`, `assistant/`, `logs/` gồm `daemon.log` và `app.log`, `bin/`, file pid của `crewd`...) không bị
+  xóa, sửa, di chuyển hay nén; `v2-removal.ts` không nhận đường dẫn HOME và không đưa đường dẫn dữ liệu vào đối số lệnh
+  nào (test băm cây thư mục trước và sau, và kiểm nguồn không nhắc thư mục đó). Plan cũ có bước "sao lưu tar rồi xóa
+  dữ liệu v2": đã bỏ.
+- **`move`** (`createMoveStep`, "Chuyển vào Applications"): `isPackaged` sai (chạy thử) hoặc
+  `app.isInApplicationsFolder()` đúng thì `ok`. Còn app v2 trong Applications thì từ chối "Gỡ app 2P Crew cũ ở bước
+  trước" (`productName` của cả hai đều `2P Crew`); có một `2P Crew.app` lạ khác cũng từ chối. Chưa có `confirm: true` thì
+  không chuyển. Có thì `app.moveToApplicationsFolder({ conflictHandler })` với `conflictHandler` trả sai riêng cho
+  `existsAndRunning` ("Thoát bản 2P Crew đang chạy trong Applications rồi thử lại"). Thành công thì app tự mở lại từ
+  Applications và wizard tiếp tục theo `app.json`.
 - **`check`** (`machine-check.ts`): macOS 15 trở lên (`sw_vers`), Tailscale có IP 100.x
   (`/Applications/Tailscale.app/Contents/MacOS/Tailscale ip -4`), Claude Code đã đăng nhập
   (`/bin/zsh -lc 'claude auth status'` có `"loggedIn": true`). Chỉ đọc. Ghim Superpowers do `setup` cài và check
@@ -148,6 +174,7 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 | `apps/mac-app/src/main/setup/machine-step.ts` | Bước `machine` (máy có sẵn, máy mới) | `createMachineStep` |
 | `apps/mac-app/src/main/setup/disk-access.ts` | Dò quyền ổ đĩa (FDA) không hộp thoại | `detectFullDiskAccess`, `diskAccessOutcome` |
 | `apps/mac-app/src/main/setup/sshd-handoff.ts` | Chuyển sshd sang app, tự lui | `handoffSshd`, `listenerPids` |
+| `apps/mac-app/src/main/setup/v2-removal.ts` | Bước `v2` (gỡ app v2, giữ dữ liệu) và `move` (vào Applications) | `detectV2`, `removeV2`, `createV2Step`, `createMoveStep` |
 | `apps/mac-app/src/main/window.ts` | Cửa sổ renderer sandbox | `createMainWindow` |
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
 | `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi` |
@@ -210,5 +237,6 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, màn Run và Log, giờ Việt Nam.
 - `apps/mac-app/test/setup-wizard.test.ts`: `check`, bước `machine` (máy có sẵn, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
+- `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.
 - `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run, chuyển thành công, tự lui, đã ở chế độ app.
 - `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, chạy lại bước.

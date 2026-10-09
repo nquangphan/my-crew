@@ -163,3 +163,70 @@ it('đã xong: Hoàn tất bật mở cùng máy và có nút chạy lại bư�
   fireEvent.click(screen.getByRole('button', { name: 'Chuyển sshd sang 2P Crew' }));
   expect(await screen.findByText('chạy sshd')).toBeTruthy();
 });
+
+const v2Found = {
+  appPath: '/Applications/2P Crew.app',
+  bundleId: 'com.2p-solutions.crew',
+  isV2: true,
+  running: false,
+  isSelf: false,
+};
+const v2None = { appPath: null, bundleId: null, isV2: false, running: false, isSelf: false };
+
+it('bước gỡ app cũ: có app v2 thì chỉ gửi các việc owner tích, ghi rõ dữ liệu cũ được giữ', async () => {
+  step = 'v2';
+  let detection: unknown = v2Found;
+  handlers['setup:v2Detect'] = () => detection;
+  handlers['setup:step'] = () => {
+    detection = v2None;
+    return { ok: true, message: 'Đã chuyển app 2P Crew cũ vào Thùng rác', next: 'v2' };
+  };
+  render(<SetupScreen />);
+  expect(await screen.findByText(/dữ liệu cũ.*giữ nguyên/)).toBeTruthy();
+  fireEvent.click(await screen.findByLabelText(/Xóa quyền macOS/));
+  fireEvent.click(screen.getByRole('button', { name: 'Gỡ các mục đã chọn' }));
+  await waitFor(() => expect(stepCalls()).toHaveLength(1));
+  expect(stepCalls()[0]).toEqual(['setup:step', 'v2', { confirm: ['login-item', 'trash'] }]);
+  // Xong thì dò lại, không còn app cũ: hiện Tiếp.
+  expect(await screen.findByRole('button', { name: 'Tiếp' })).toBeTruthy();
+  expect((await screen.findAllByText(/Thùng rác/)).length).toBeGreaterThan(0);
+});
+
+it('bước gỡ app cũ: không có app cũ thì chỉ có Tiếp', async () => {
+  step = 'v2';
+  handlers['setup:v2Detect'] = () => v2None;
+  handlers['setup:step'] = () => ({ ok: true, message: 'ok', next: 'move' });
+  render(<SetupScreen />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Tiếp' }));
+  await waitFor(() => expect(stepCalls()).toHaveLength(1));
+  expect(stepCalls()[0]).toEqual(['setup:step', 'v2', {}]);
+  expect(screen.queryByRole('button', { name: 'Gỡ các mục đã chọn' })).toBeNull();
+});
+
+it('bước gỡ app cũ: app cũ đang chạy thì nhờ thoát, không cho gỡ', async () => {
+  step = 'v2';
+  handlers['setup:v2Detect'] = () => ({ ...v2Found, running: true });
+  render(<SetupScreen />);
+  expect(await screen.findByText(/Thoát app 2P Crew cũ/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Gỡ các mục đã chọn' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Thử lại' })).toBeTruthy();
+});
+
+it('bước gỡ app cũ: nút mở đúng trang Mục đăng nhập', async () => {
+  step = 'v2';
+  handlers['setup:v2Detect'] = () => v2Found;
+  render(<SetupScreen />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Mở Mục đăng nhập' }));
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('health:action', 'open-login-items'));
+});
+
+it('bước chuyển vào Applications: chỉ chuyển sau khi bấm nút xác nhận', async () => {
+  step = 'move';
+  handlers['setup:step'] = () => ({ ok: true, message: 'Đã chuyển', next: 'paperclip' });
+  render(<SetupScreen />);
+  const button = await screen.findByRole('button', { name: 'Chuyển vào Applications' });
+  expect(stepCalls()).toHaveLength(0);
+  fireEvent.click(button);
+  await waitFor(() => expect(stepCalls()).toHaveLength(1));
+  expect(stepCalls()[0]).toEqual(['setup:step', 'move', { confirm: true }]);
+});
