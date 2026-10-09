@@ -8,7 +8,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | File | Flows |
 |------|-------|
 | `apps/crew-mac/src/authorized-keys.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/bmad/answers.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
+| `apps/crew-mac/src/bmad/epics.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
+| `apps/crew-mac/src/bmad/setup-project.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/cli.ts` | [mac-setup](flows/mac-setup.md) (điểm vào) |
+| `apps/crew-mac/src/commands/bmad.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
 | `apps/crew-mac/src/commands/doctor.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/setup.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/status.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -80,6 +84,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/wrapper.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/zshenv.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/test/authorized-keys.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/bmad-answers.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/bmad-command.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/bmad-epics.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/bmad-setup-project.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/crew-claude-run.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/doctor.test.ts` | [mac-setup](flows/mac-setup.md) (test) |

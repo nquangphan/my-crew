@@ -23,6 +23,9 @@ không cần token và không login lại.
 - `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`).
 - `crew-mac workflows list [--json] | install`: xem sổ workflow đã chứng nhận, hoặc chỉ cài hai bản ghim mà không chạy
   lại cả `setup` (không đụng sshd/launchd; dùng khi app 2P Crew đang giữ sshd agent). Chi tiết ở flow `mac-workflows`.
+- `crew-mac bmad stories --root <dir> --file <file.md> [--rev <sha>] [--json] | setup-project --root <dir>`: agent BMAD
+  và Trợ Lý gọi để đọc file epic/story và dựng `_bmad/` cho repo dự án; `cli.ts` chỉ chuyển `bmad` sang `bmadCommand`
+  (flow `mac-workflows`).
 - `crew-mac files --issue <uuid> --run <uuid> [--json]`: agent gọi trong run Paperclip để lấy danh sách file đính
   kèm của issue và issue cha; `crew-mac files --gc-only` chỉ dọn cache. Toàn bộ nằm ở flow `mac-attachments`;
   `cli.ts` chỉ chuyển `files` sang `filesCommand` (truyền `io.env`, không đọc `process.env` trực tiếp).
@@ -142,11 +145,11 @@ không cần token và không login lại.
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/crew-mac/src/cli.ts` | CLI (lệnh `files` chuyển sang flow `mac-attachments`) | `main`, `USAGE`, `sshServerPort` |
+| `apps/crew-mac/src/cli.ts` | CLI (lệnh `files` chuyển sang flow `mac-attachments`; `workflows`, `bmad` sang flow `mac-workflows`) | `main`, `USAGE`, `sshServerPort` |
 | `apps/crew-mac/src/system.ts` | Chạy lệnh có giới hạn thời gian (SIGKILL), thêm biến môi trường (`RunOptions.env`), quote đối số shell | `createRunner`, `CommandRunner`, `shQuote` |
 | `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`, `bmadPin`), `SetupError` |
 | `apps/crew-mac/src/context-factory.ts` | Dựng `MacContext` dùng chung cho CLI và app (`cliPath` do người gọi truyền) | `createMacContext` (pin CLI: `SUPERPOWERS_PIN`, `BMAD_PIN`), `stableNodePath` |
-| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), reaper, manifest, paths |
+| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), BMAD (`bmadCommand`, `parseEpics`, `checkBmadAnswers`, `setupProject`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), reaper, manifest, paths |
 | `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows` và `appState` = `~/Library/Application Support/2P Crew/app.json`, file của app, crew-mac chỉ đọc; `crewMacDir` = `~/.crew/app/crew-mac`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
 | `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt (kể cả `sshdOwner` tùy chọn) | `readManifest`, `writeManifest` |

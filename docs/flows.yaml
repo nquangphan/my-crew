@@ -191,6 +191,7 @@ flows:
       - apps/crew-mac/src/workflows/install.ts
       - apps/crew-mac/src/commands/workflow-check.ts
       - apps/crew-mac/src/commands/workflows.ts
+      - apps/crew-mac/src/commands/bmad.ts
     files:
       - apps/crew-mac/src/workflows/pin.ts
       - apps/crew-mac/src/workflows/policy.ts
@@ -200,6 +201,9 @@ flows:
       - apps/crew-mac/src/workflows/registry.ts
       - apps/crew-mac/src/workflows/bmad-pin.ts
       - apps/crew-mac/src/workflows/bmad-install.ts
+      - apps/crew-mac/src/bmad/epics.ts
+      - apps/crew-mac/src/bmad/answers.ts
+      - apps/crew-mac/src/bmad/setup-project.ts
     tests:
       - apps/crew-mac/test/workflows-pin.test.ts
       - apps/crew-mac/test/workflows-inventory.test.ts
@@ -207,6 +211,10 @@ flows:
       - apps/crew-mac/test/workflows-registry.test.ts
       - apps/crew-mac/test/workflows-bmad-install.test.ts
       - apps/crew-mac/test/workflows-command.test.ts
+      - apps/crew-mac/test/bmad-epics.test.ts
+      - apps/crew-mac/test/bmad-answers.test.ts
+      - apps/crew-mac/test/bmad-setup-project.test.ts
+      - apps/crew-mac/test/bmad-command.test.ts
   mac-app:
     title: App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)
     doc: docs/flows/mac-app.md

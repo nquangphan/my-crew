@@ -1,3 +1,13 @@
+export { BMAD_PERSONAL_KEYS, type BmadAnswer, checkBmadAnswers } from './bmad/answers.js';
+export {
+  BMAD_MAX_STORIES,
+  type BmadEpic,
+  type BmadStory,
+  type EpicsParse,
+  parseEpics,
+} from './bmad/epics.js';
+export { type SetupProjectResult, setupProject } from './bmad/setup-project.js';
+export { BMAD_USAGE, bmadCommand } from './commands/bmad.js';
 export { type CheckResult, type CheckStatus, type DoctorOptions, doctor } from './commands/doctor.js';
 export { type SetupOptions, type SetupReport, setup } from './commands/setup.js';
 export {

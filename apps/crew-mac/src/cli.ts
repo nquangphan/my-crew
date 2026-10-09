@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BMAD_USAGE, bmadCommand } from './commands/bmad.js';
 import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
 import {
@@ -47,6 +48,8 @@ Cách dùng:
   crew-mac files --issue <uuid> --run <uuid> [--json]   (agent gọi trong run Paperclip: liệt kê file đính kèm của issue và issue cha)
   crew-mac files --gc-only   (chỉ dọn cache file đính kèm)
   ${WORKFLOWS_USAGE}   (xem, cài riêng bản ghim workflow; không đụng sshd)
+  ${BMAD_USAGE}
+                 (agent BMAD và Trợ Lý gọi: đọc file epic/story, dựng _bmad cho repo dự án)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -365,6 +368,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
       }
       case 'workflows':
         return await workflowsCommand(ctx, args, io.err);
+      case 'bmad':
+        return await bmadCommand(ctx, args, io.err);
       case 'files':
         return await filesCommand(ctx, args, io.env, { out: io.out, err: io.err });
       default:
