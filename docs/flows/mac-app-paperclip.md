@@ -8,7 +8,7 @@
 App "2P Crew" lấy board API key của owner bằng luồng `cli-auth` có sẵn của Paperclip (owner duyệt trên web), giữ key
 trong Keychain sao cho chỉ app đọc được, và gọi REST Paperclip có kiểu (company, project, environment SSH, agent,
 instructions, hủy run, vai trò theo project). Thêm/gỡ project (`src/main/projects/`) dùng client này để dựng một bộ
-agent riêng cho mỗi project; màn hình Project (kênh `projects:*`) làm sau.
+agent riêng cho mỗi project; màn hình Project (`src/renderer/routes/projects.tsx`, kênh `projects:*`) gọi logic đó.
 
 ## Điểm vào
 
@@ -17,7 +17,10 @@ agent riêng cho mỗi project; màn hình Project (kênh `projects:*`) làm sau
 - `paperclipClient(ctx)` cho code Main khác (sức khỏe/run, wizard, project): client của origin đã đăng nhập trong
   `app.json` (`setup.paperclipOrigin`).
 - `addProject(deps, input)` và `removeProject(deps, projectId)` (`src/main/projects/{add-project,remove-project}.ts`):
-  logic Main, chưa có kênh IPC (màn hình Project nối vào sau). `deps` = `{ home, env, client, ops, store, log? }`.
+  logic Main. `deps` = `{ home, env, client, ops, store, log? }`.
+- Kênh IPC `projects:list()`, `projects:add(input)`, `projects:remove(projectId)` (`src/main/projects/register.ts` →
+  `registerProjects`, logic không phụ thuộc Electron ở `src/main/projects/ipc.ts` → `createProjectsIpc`). Màn hình
+  Project ở route `#/projects`.
 
 ## Các bước đăng nhập
 
@@ -146,6 +149,9 @@ dòng vai trò, không agent nào bị pause.
 | `apps/mac-app/src/main/paperclip/keychain.ts` | Board key trong Keychain (bản mã) | `createBoardKeyStore`, `BOARD_KEY_SERVICE` |
 | `apps/mac-app/src/main/paperclip/register.ts` | Kênh IPC, `security`, `safeStorage` | `registerPaperclip`, `paperclipClient`, `boardKeys` |
 | `apps/mac-app/src/main/projects/progress.ts` | Tiến độ trong `app.json`, đường dẫn, tên vai trò | `ProjectDeps`, `ProgressRecorder`, `roleNames`, `projectPaths`, `KEY_RE` |
+| `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; thêm/gỡ | `createProjectsIpc` |
+| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật | `registerProjects` |
+| `apps/mac-app/src/renderer/routes/projects.tsx` | Màn hình Project: danh sách, wizard thêm, Chạy tiếp, Gỡ khỏi Mac | `ProjectsScreen`, `stepLabel` |
 | `apps/mac-app/src/main/projects/add-project.ts` | Các bước thêm project | `addProject`, `runGit` |
 | `apps/mac-app/src/main/projects/remove-project.ts` | Gỡ project khỏi Mac | `removeProject` |
 | `apps/mac-app/src/main/projects/instructions.ts` | Template, render, `baseHash`, `extraArgs` ghim | `ROLE_TEMPLATES`, `renderInstructions`, `uploadInstructions`, `pinnedExtraArgs` |
@@ -169,3 +175,21 @@ dòng vai trò, không agent nào bị pause.
 - `apps/mac-app/test/projects-remove.test.ts`: thứ tự gỡ, không xóa project/thư mục, chạy lại, lỗi giữa chừng, project
   không do app thêm.
 - `apps/mac-app/test/projects-instructions.test.ts`: sha256 template, render Trợ Lý, `extraArgs` ghim, `baseHash`.
+- `apps/mac-app/test/projects-ipc.test.ts`: `projects:list` ghép project với tiến độ, checkout (thứ tự vai trò, `head`),
+  repo docs và commit gửi cuối; project R1 không có vai trò; thêm dở chưa có project; chưa chọn company; thêm → liệt kê
+  → gỡ với Paperclip giả và HOME giả.
+- `apps/mac-app/test/renderer/projects.test.tsx`: danh sách, khóa sai khóa nút, dữ liệu gửi đi, bước hiện tại + lỗi +
+  "Chạy tiếp", "Gỡ khỏi Mac" hỏi xác nhận rồi hiện lệnh xóa thư mục.
+
+## Màn hình Project
+
+- `projects:list` trả `ProjectRow[]`: project từ `GET /projects` của company đang chọn, ghép với `projects[key]` trong
+  `app.json` (theo `projectId`) và `listStatusRepos` (repo ảnh chụp docs, `lastCommit` là commit đã gửi cuối — lấy từ
+  `status-repos.json`, không phải `status-last.json` vì file đó chỉ ghi kết quả lần gửi). `checkouts` lấy từ tiến độ
+  (`head` = `git rev-parse --short HEAD`), nên project R1 không do app thêm có `checkouts` rỗng. Tiến độ chưa có
+  project trên Paperclip hiện thành dòng `projectId: ""`, tên = khóa.
+- Tiến độ thêm project đi tới renderer qua `state:changed` (mỗi bước ghi `app.json` làm `AppStateStore` báo thay
+  đổi); renderer đọc lại `projects:list`. `projects:add` chỉ trả khi xong hoặc lỗi nên renderer giữ khóa đang chạy.
+- "Chạy tiếp" gọi lại `projects:add` với `origin`/`key` từ tiến độ, tên từ dòng, số executor đếm từ `agents`.
+- "Gỡ khỏi Mac" hỏi xác nhận, gọi `projects:remove`, hiện `removed` và `manualCommand` (nút "Chép lệnh"); app không
+  xóa thư mục.

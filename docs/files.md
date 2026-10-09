@@ -94,7 +94,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/paperclip/types.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/add-project.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/main/projects/instructions.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/ipc.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/progress.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/remove-project.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/main/projects/templates/assistant.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/templates/executor.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
@@ -130,6 +132,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/renderer/main.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/health.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/logs.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/routes/projects.tsx` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/renderer/routes/runs.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/routes/setup.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/styles.css` | [mac-app](flows/mac-app.md) (file) |
@@ -149,10 +152,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/projects-add.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-fixture.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-instructions.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/projects-ipc.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-remove.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/quit-guard.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/renderer/health.test.tsx` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/renderer/projects.test.tsx` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/renderer/setup.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/runs.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-disk-access.test.ts` | [mac-app](flows/mac-app.md) (test) |

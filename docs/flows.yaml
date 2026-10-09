@@ -216,11 +216,14 @@ flows:
       - apps/mac-app/src/main/paperclip/register.ts
       - apps/mac-app/src/main/projects/add-project.ts
       - apps/mac-app/src/main/projects/remove-project.ts
+      - apps/mac-app/src/renderer/routes/projects.tsx
     files:
       - apps/mac-app/src/main/paperclip/types.ts
       - apps/mac-app/src/main/paperclip/cli-auth.ts
       - apps/mac-app/src/main/paperclip/keychain.ts
       - apps/mac-app/src/main/projects/progress.ts
+      - apps/mac-app/src/main/projects/ipc.ts
+      - apps/mac-app/src/main/projects/register.ts
       - apps/mac-app/src/main/projects/instructions.ts
       - apps/mac-app/src/main/projects/templates/assistant.md
       - apps/mac-app/src/main/projects/templates/executor.md
@@ -235,6 +238,8 @@ flows:
       - apps/mac-app/test/projects-remove.test.ts
       - apps/mac-app/test/projects-instructions.test.ts
       - apps/mac-app/test/projects-fixture.ts
+      - apps/mac-app/test/projects-ipc.test.ts
+      - apps/mac-app/test/renderer/projects.test.tsx
   mac-app-sshd:
     title: App 2P Crew giữ sshd agent và thoát an toàn
     doc: docs/flows/mac-app-sshd.md

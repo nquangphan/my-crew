@@ -30,7 +30,7 @@ docs trước khi đọc code.
 | [Kiểm tra chuẩn docs (crew-docs)](flows/docs-check.md) | `docs-check` | `packages/docs-kit/src/bin.ts`, `packages/docs-kit/src/cli.ts` |
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
 | [App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)](flows/mac-app.md) | `mac-app` | `apps/mac-app/src/main/index.ts` |
-| [App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project](flows/mac-app-paperclip.md) | `mac-app-paperclip` | `apps/mac-app/src/main/paperclip/client.ts`, `apps/mac-app/src/main/paperclip/register.ts`, `apps/mac-app/src/main/projects/add-project.ts`, `apps/mac-app/src/main/projects/remove-project.ts` |
+| [App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project](flows/mac-app-paperclip.md) | `mac-app-paperclip` | `apps/mac-app/src/main/paperclip/client.ts`, `apps/mac-app/src/main/paperclip/register.ts`, `apps/mac-app/src/main/projects/add-project.ts`, `apps/mac-app/src/main/projects/remove-project.ts`, `apps/mac-app/src/renderer/routes/projects.tsx` |
 | [App 2P Crew giữ sshd agent và thoát an toàn](flows/mac-app-sshd.md) | `mac-app-sshd` | `apps/mac-app/src/main/sshd/register.ts` |
 | [Phát hành và cập nhật app 2P Crew](flows/mac-app-update.md) | `mac-app-update` | `apps/mac-app/scripts/release.mjs` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |

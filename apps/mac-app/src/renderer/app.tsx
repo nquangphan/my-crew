@@ -3,6 +3,7 @@ import { PageHeader } from './components/ui';
 import { invoke } from './lib/ipc';
 import { HealthScreen } from './routes/health';
 import { LogsScreen } from './routes/logs';
+import { ProjectsScreen } from './routes/projects';
 import { RunsScreen } from './routes/runs';
 import { SetupScreen } from './routes/setup';
 
@@ -24,7 +25,7 @@ export const ROUTES: RouteDef[] = [
   { id: 'health', label: 'Sức khỏe', render: () => <HealthScreen /> },
   { id: 'runs', label: 'Run đang chạy', render: () => <RunsScreen /> },
   { id: 'logs', label: 'Log', render: () => <LogsScreen /> },
-  { id: 'projects', label: 'Project', render: () => <Soon title="Project" ticket="PJ-2" /> },
+  { id: 'projects', label: 'Project', render: () => <ProjectsScreen /> },
   { id: 'update', label: 'Cập nhật', render: () => <Soon title="Cập nhật" ticket="UPD-1" /> },
   { id: 'setup', label: 'Cài đặt', render: () => <SetupScreen /> },
 ];
