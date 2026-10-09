@@ -1,11 +1,14 @@
+import { createHash } from 'node:crypto';
 import {
   type Dirent,
   existsSync,
   lstatSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   realpathSync,
   type Stats,
+  writeFileSync,
 } from 'node:fs';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import type { MacContext } from '../context.js';
@@ -41,9 +44,81 @@ export const CROSS_WORKFLOW_REASON = 'khác với workflow của run (nạp ché
  * `bật plugin <tên> ngoài bản ghim, nạp song song với workflow của run`.
  */
 export const PARALLEL_PLUGIN_REASON = 'ngoài bản ghim, nạp song song với workflow của run';
+/** `setup-project` bỏ qua khi đã có `_bmad/scripts/resolve_config.py`, nên phải xóa `_bmad/scripts` trước khi chạy. */
 export const BMAD_SCRIPT_MISMATCH_REASON =
-  'khác bản ghim BMAD; chạy crew-mac bmad setup-project hoặc checkout lại từ commit';
+  'khác bản ghim BMAD; khôi phục từ commit, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project';
 export const BMAD_PERSONAL_REASON = 'lớp cá nhân của BMAD chưa commit';
+/** Cảnh báo (không chặn) khi `_bmad/config.toml` chưa commit nhưng đúng bản `setup-project` vừa ghi cho worktree này. */
+export const BMAD_SETUP_UNCOMMITTED_WARNING =
+  'do crew-mac bmad setup-project dựng, chưa commit (run trước bị ngắt trước khi commit)';
+
+const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
+
+/** Tên file dấu theo worktree: 32 hex đầu của sha256 đường dẫn so sánh của root (APFS không phân biệt hoa thường). */
+const rootKey = (root: string) => sha256(comparablePath(root)).slice(0, 32);
+
+/**
+ * Dấu `setup-project` của một worktree: `~/.crew/state/bmad-setup/<rootKey>`, nội dung là sha256 của
+ * `_bmad/config.toml` mà lần dựng đó ghi ra. Nằm ngoài worktree nên không lọt vào commit.
+ */
+export function bmadSetupStampPath(home: string, root: string): string {
+  return join(home, '.crew', 'state', 'bmad-setup', rootKey(root));
+}
+
+/**
+ * Dấu workflow của run gần nhất trong một worktree: `~/.crew/state/worktree-workflow/<rootKey>` = `<id workflow>\n`,
+ * do `workflow-check` ghi khi `--plugin-dir` là bản ghim của một workflow đã chứng nhận (kể cả khi run bị chặn sau
+ * đó). Doctor dùng để kiểm mỗi worktree theo đúng workflow của agent giữ nó.
+ */
+export function worktreeWorkflowStampPath(home: string, root: string): string {
+  return join(home, '.crew', 'state', 'worktree-workflow', rootKey(root));
+}
+
+/** Ghi dấu workflow của run (chỉ ghi khi đổi); lỗi ghi không làm hỏng run. */
+export function recordWorktreeWorkflow(home: string, root: string, workflow: string): void {
+  const stamp = worktreeWorkflowStampPath(home, root);
+  try {
+    if (readFileSync(stamp, 'utf8') === `${workflow}\n`) return;
+  } catch {}
+  try {
+    mkdirSync(join(stamp, '..'), { recursive: true, mode: 0o700 });
+    writeFileSync(stamp, `${workflow}\n`, { mode: 0o600 });
+  } catch {}
+}
+
+/** Id workflow của run gần nhất trong worktree, null khi chưa có dấu hay không đọc được. */
+export function lastRunWorkflow(home: string, root: string): string | null {
+  try {
+    const id = readFileSync(worktreeWorkflowStampPath(home, root), 'utf8').trim();
+    return id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ghi dấu sau khi `setup-project` dựng xong `_bmad/` (không có `config.toml` thì không ghi). */
+export function recordBmadSetup(home: string, root: string): void {
+  let data: Buffer;
+  try {
+    data = readFileSync(join(root, '_bmad', 'config.toml'));
+  } catch {
+    return;
+  }
+  const stamp = bmadSetupStampPath(home, root);
+  mkdirSync(join(stamp, '..'), { recursive: true, mode: 0o700 });
+  writeFileSync(stamp, `${sha256(data)}\n`, { mode: 0o600 });
+}
+
+/** `config` (file thường, không symlink) có đúng từng byte bản `setup-project` đã ghi cho `root` không. */
+function matchesBmadSetup(home: string, root: string, config: string): boolean {
+  try {
+    if (!lstatSync(config).isFile()) return false;
+    const recorded = readFileSync(bmadSetupStampPath(home, root), 'utf8').trim();
+    return recorded.length === 64 && recorded === sha256(readFileSync(config));
+  } catch {
+    return false;
+  }
+}
 
 function contained(parent: string, child: string): boolean {
   const rel = relative(comparablePath(parent), comparablePath(child));
@@ -69,15 +144,17 @@ export function describeSource(s: DiscoveredSource): string {
   return `${s.path} (${why})${s.fix ? `. ${s.fix}` : ''}`;
 }
 
+/**
+ * Bytecode Python. Do chính run tạo (chưa track) thì là rác; đã commit dưới `_bmad/scripts` thì là mã khác bản ghim,
+ * vì Python nạp `.pyc` dạng unchecked-hash (PEP 552) mà không đối chiếu file nguồn.
+ */
+export function isPythonBytecode(name: string): boolean {
+  return name === '__pycache__' || name.endsWith('.pyc');
+}
+
 /** Rác của hệ điều hành và công cụ, không bao giờ là nguồn claude nạp. */
 function isJunk(name: string): boolean {
-  return (
-    name === '.DS_Store' ||
-    name.startsWith('._') ||
-    name === 'Icon\r' ||
-    name === '__pycache__' ||
-    name.endsWith('.pyc')
-  );
+  return name === '.DS_Store' || name.startsWith('._') || name === 'Icon\r' || isPythonBytecode(name);
 }
 
 interface GitView {
@@ -309,7 +386,7 @@ export async function discoverSources(
     existsSync(claudeDir) ||
     existsSync(join(root, '.mcp.json')) ||
     isSymlink(join(root, '.mcp.json')) ||
-    (bmad && existsSync(join(root, '_bmad')));
+    (bmad && (existsSync(join(root, '_bmad')) || isSymlink(join(root, '_bmad'))));
   if (!hasSources) return [];
   const git = await readGit(ctx, root, bmad);
   const found: DiscoveredSource[] = [];
@@ -400,7 +477,7 @@ export async function discoverSources(
   }
   const mcp = join(root, '.mcp.json');
   if (existsSync(mcp) || isSymlink(mcp)) judge(mcp, 'mcp', [mcp]);
-  if (bmad) judgeBmad(root, git, pinDir, found, judge);
+  if (bmad) judgeBmad(ctx.home, root, git, pinDir, found, judge);
   return found;
 }
 
@@ -457,11 +534,13 @@ function tomlFiles(dir: string, skip: readonly string[] = []): string[] {
 
 /**
  * Nguồn BMAD của worktree (chỉ run BMAD): `_bmad/scripts` phải giống từng byte bản ghim (chưa commit mà giống thì
- * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và `custom/**.toml` chặn như settings;
+ * vẫn cho qua: run trước bị ngắt ngay sau `setup-project`); `config.toml` và mọi file `custom/**` chặn như settings, trừ
+ * `config.toml` chưa track mà đúng bản `setup-project` vừa ghi cho worktree này (cho qua kèm cảnh báo, cùng lý do);
  * lớp cá nhân `*.user.toml` phải commit sạch. `_bmad/memory/**` và `_bmad-output/**` là dữ liệu skill ghi ra, không
  * phải nguồn nạp.
  */
 function judgeBmad(
+  home: string,
   root: string,
   git: GitView,
   pinDir: string,
@@ -469,10 +548,33 @@ function judgeBmad(
   judge: (path: string, kind: DiscoveredSource['kind'], files: string[]) => void,
 ): void {
   const base = join(root, '_bmad');
+  if (isSymlink(base)) {
+    // `setup.py` của BMAD cũng từ chối `_bmad` là symlink; nội dung ngoài worktree còn có thể đổi sau lúc kiểm.
+    let target = '';
+    try {
+      target = realpathSync(base);
+    } catch {}
+    found.push({
+      path: base,
+      kind: 'bmad',
+      origin: 'blocked',
+      reason: !target
+        ? 'symlink hỏng trong worktree agent'
+        : contained(root, target)
+          ? '_bmad là symlink (BMAD chỉ chạy với thư mục thật)'
+          : `symlink trỏ ra ngoài worktree: ${target}`,
+      fix: 'Xử lý: thay symlink _bmad bằng thư mục thật trong repo (xóa link rồi chạy crew-mac bmad setup-project), rồi commit.',
+    });
+    return;
+  }
   const scripts = join(base, 'scripts');
   if (existsSync(scripts) || isSymlink(scripts)) {
     const files = isSymlink(scripts) ? null : readScriptTree(scripts);
-    if (!files || !compareBmadScripts(files, pinDir)) {
+    const scriptsKey = `${git.prefix ? `${git.prefix}/` : ''}_bmad/scripts/`;
+    const trackedBytecode = [...git.tracked.keys()].some(
+      (key) => key.startsWith(scriptsKey) && key.slice(scriptsKey.length).split('/').some(isPythonBytecode),
+    );
+    if (!files || !compareBmadScripts(files, pinDir) || trackedBytecode) {
       const r = shQuote(root);
       found.push({
         path: scripts,
@@ -492,8 +594,27 @@ function judgeBmad(
     }
   }
   const config = join(base, 'config.toml');
-  if (existsSync(config) || isSymlink(config)) judge(config, 'bmad', [config]);
-  for (const file of tomlFiles(join(base, 'custom')).filter((f) => !f.endsWith('.user.toml')))
+  if (existsSync(config) || isSymlink(config)) {
+    const issue = fileIssue(git, root, config);
+    const fresh =
+      issue !== null &&
+      (issue.reason === UNTRACKED_REASON || issue.reason === IGNORED_REASON) &&
+      matchesBmadSetup(home, root, config);
+    if (fresh) {
+      const add = issue.reason === IGNORED_REASON ? 'add -f' : 'add';
+      found.push({
+        path: config,
+        kind: 'bmad',
+        origin: 'pinned',
+        warning: BMAD_SETUP_UNCOMMITTED_WARNING,
+        fix: `Xử lý: git -C ${shQuote(root)} ${add} -- _bmad rồi commit (chore(bmad): dựng BMAD cho dự án).`,
+      });
+    } else {
+      judge(config, 'bmad', [config]);
+    }
+  }
+  // Mọi file dưới `custom/` (không chỉ `*.toml`): toml tùy biến trỏ tới nội dung như `custom/packs/<x>.md`.
+  for (const file of walkFiles(join(base, 'custom'), (f) => !f.endsWith('.user.toml')))
     judge(file, 'bmad', [file]);
   for (const file of tomlFiles(base, ['scripts', 'memory']).filter((f) => f.endsWith('.user.toml'))) {
     const issue = fileIssue(git, root, file);

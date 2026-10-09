@@ -80,7 +80,9 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 6. `apps/crew-mac/src/reaper/reap.ts` → `reapOnce`: lấy worktree = cwd của claude mồ côi. Worktree không qua
    `rootGuardReason` (hoặc chưa có manifest) thì chỉ dọn con cháu của claude. Không thì chọn process của run bằng
    `collectRunMembers`, rồi dừng bằng `stopMembers` (chờ 10 giây sau TERM). Ghi `~/.crew-mac/reaper/reaper.log` (giờ
-   Asia/Ho_Chi_Minh) và `state.json`.
+   Asia/Ho_Chi_Minh) và `state.json`. Cuối lượt (trừ `--dry-run`) gọi `gcWorkflowPins` (flow `mac-workflows`, mục "Pin
+   theo run và dọn bản cũ") khi `~/.crew/state/workflows-gc.stamp` chưa có hoặc cũ hơn 1 giờ, rồi chạm stamp; lỗi dọn
+   chỉ ghi `GC workflow lỗi: …` vào `reaper.log`, lượt reap vẫn xong.
 7. `apps/crew-mac/src/reaper/reap.ts` → `sweepBridges` (lượt quét bridge, chạy trong mỗi `reapOnce`):
    - Bridge là process PPID 1, không tty, có argv dạng `node <worktree>/.paperclip-runtime/<adapter>/paperclip-bridge/server/paperclip-bridge-server.mjs`
      (`bridgeRoot` trong `run-members.ts`). Worktree lấy từ đường dẫn đó, resolve symlink, và phải qua
@@ -96,7 +98,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/crew-mac/src/commands/stop-run.ts` | Lệnh `stop-run` | `stopRun`, `formatStopLine`, `RUN_ID_UUID` |
-| `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn của reaper | `reapOnce`, `sweepBridges`, `BRIDGE_GRACE_MS`, `readReaperState`, `vnTime` |
+| `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn của reaper | `reapOnce`, `sweepBridges`, `BRIDGE_GRACE_MS`, `readReaperState`, `vnTime`, `ReapDeps.gcWorkflowPins` |
 | `apps/crew-mac/src/reaper/run-members.ts` | Chọn process của một run | `selectRunMembers`, `orphanCandidates`, `collectRunMembers`, `bridgeRoot`, `readRunStarts`, `runWindow` |
 | `apps/crew-mac/src/reaper/stop.ts` | TERM, chờ, KILL | `stopMembers` |
 | `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process, env và cwd | `listProcesses`, `readCwds`, `extractRunId`, `isEnvReadable`, `parseEtime` |
@@ -110,6 +112,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
   dọn nó khi quá ngưỡng mồ côi. Run bị chặn ở bước kiểm (thoát 78) thì không có hai file.
 - `~/.crew-mac/reaper/state.json` (`orphanSince` theo `pid:runId`; `bridgeSince` theo pid bridge, gồm `since` và
   `startedAt`), `~/.crew-mac/reaper/reaper.log`.
+- `~/.crew/state/workflows-gc.stamp`: mtime là lần dọn bản workflow ghim cũ gần nhất.
 - Gọi ngoài: `ps`, `lsof`, `kill`.
 
 ## Giới hạn

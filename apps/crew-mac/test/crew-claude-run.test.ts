@@ -129,7 +129,7 @@ describe('crew-claude-run', () => {
     'started là thời điểm SINH của process, không phải lúc wrapper chạy (profile chậm không làm lệch)',
     async () => {
       const root = newRoot();
-      const bornAt = Math.floor(Date.now() / 1000);
+      const beforeSpawn = Math.floor(Date.now() / 1000);
       // Mô phỏng phiên SSH: shell sinh ra, mất 3 giây (profile chậm), rồi exec wrapper trong cùng process.
       const child = spawn(
         '/bin/sh',
@@ -147,14 +147,20 @@ describe('crew-claude-run', () => {
         },
       );
       child.unref();
+      const afterSpawn = Math.floor(Date.now() / 1000);
       groups.push(child.pid as number);
-      await sleep(3_800);
       const dir = join(root, '.paperclip-runtime', 'runs', RUN_A);
+      // Wrapper chỉ ghi sau 3 giây ngủ cộng thời gian ps/awk/workflow-check: chờ file thay vì ngủ cố định, vì máy bận
+      // (nhiều vitest chạy song song) làm wrapper chậm quá mốc cũ 3,8 giây.
+      for (let i = 0; i < 150 && !existsSync(join(dir, 'pgid')); i++) await sleep(100);
       const started = Number(readFileSync(join(dir, 'started'), 'utf8').trim());
-      expect(Math.abs(started - bornAt)).toBeLessThanOrEqual(1);
+      // Process sinh trong [beforeSpawn, afterSpawn]; ps etime và date +%s đều làm tròn xuống giây nên chừa 1 giây mỗi
+      // phía. Nếu started là lúc wrapper chạy (>= sinh + 3 giây) thì vượt afterSpawn + 1, nên vẫn bắt được lỗi.
+      expect(started).toBeGreaterThanOrEqual(beforeSpawn - 1);
+      expect(started).toBeLessThanOrEqual(afterSpawn + 1);
       expect(readFileSync(join(dir, 'pgid'), 'utf8').trim()).toBe(String(child.pid));
     },
-    10_000,
+    25_000,
   );
 
   describe('kiểm workflow trước run Paperclip', () => {

@@ -2,7 +2,7 @@ import { type Dirent, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { missingExecutables } from '../workflows/install.js';
-import { describeSource, discoverSources } from '../workflows/inventory.js';
+import { describeSource, discoverSources, recordWorktreeWorkflow } from '../workflows/inventory.js';
 import { pinDir } from '../workflows/pin.js';
 import { assertSkillAllowed } from '../workflows/policy.js';
 import { certifiedWorkflows, workflowForPluginDir } from '../workflows/registry.js';
@@ -38,6 +38,8 @@ export async function workflowCheck(
     };
   }
   const pin = workflow.pin;
+  // Trước khi xét nguồn: run bị chặn vẫn cho doctor biết worktree này thuộc workflow nào.
+  recordWorktreeWorkflow(ctx.home, input.root, workflow.id);
   const expected = pinDir(ctx.home, pin);
   const lines: string[] = [];
   try {

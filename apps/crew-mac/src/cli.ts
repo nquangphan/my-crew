@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BMAD_USAGE, bmadCommand } from './commands/bmad.js';
 import { type CheckStatus, doctor } from './commands/doctor.js';
 import { setup } from './commands/setup.js';
 import {
@@ -24,6 +25,7 @@ import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
 import { resolveSshdOwner, type SshdOwner } from './sshd-owner.js';
+import { gcWorkflowPins } from './workflows/workflow-gc.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
 
@@ -47,6 +49,8 @@ Cách dùng:
   crew-mac files --issue <uuid> --run <uuid> [--json]   (agent gọi trong run Paperclip: liệt kê file đính kèm của issue và issue cha)
   crew-mac files --gc-only   (chỉ dọn cache file đính kèm)
   ${WORKFLOWS_USAGE}   (xem, cài riêng bản ghim workflow; không đụng sshd)
+  ${BMAD_USAGE}
+                 (agent BMAD và Trợ Lý gọi: đọc file epic/story, dựng _bmad cho repo dự án)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -327,6 +331,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
             now: ctx.now,
             selfPid: process.pid,
+            gcWorkflowPins: () => gcWorkflowPins(ctx),
           },
           {
             graceMs: graceSeconds * 1000,
@@ -336,6 +341,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             logPath: paths.reaperLog,
             worktreeRoot: manifestOrNull(paths.manifest)?.worktreeRoot ?? null,
             home: ctx.home,
+            workflowsGcStampPath: paths.workflowsGcStamp,
           },
         );
         if (targets.length > 0)
@@ -365,6 +371,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
       }
       case 'workflows':
         return await workflowsCommand(ctx, args, io.err);
+      case 'bmad':
+        return await bmadCommand(ctx, args, io.err);
       case 'files':
         return await filesCommand(ctx, args, io.env, { out: io.out, err: io.err });
       default:

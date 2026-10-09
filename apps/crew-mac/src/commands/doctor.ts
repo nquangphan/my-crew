@@ -23,8 +23,9 @@ import {
 import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
-import { discoverSources, GIT_TIMEOUT } from '../workflows/inventory.js';
+import { discoverSources, GIT_TIMEOUT, lastRunWorkflow } from '../workflows/inventory.js';
 import { pinDir, SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
+import { certifiedWorkflows } from '../workflows/registry.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 import { WRAPPER_SOURCE } from '../wrapper.js';
 import { hasPathBlock } from '../zshenv.js';
@@ -409,7 +410,46 @@ async function checkAgentNode(ctx: MacContext, paths: MacPaths, manifest: Manife
   return { ...base, status: 'ok', detail: found };
 }
 
-/** sshd agent thấy `uv` (agent BMAD chạy `setup.py` của bản ghim bằng `uv run`). */
+/** Thư mục con cấp 1 có entry `name` (lstat, kể cả symlink). */
+function someChildHas(dir: string, name: string): boolean {
+  try {
+    return readdirSync(dir).some((child) => {
+      try {
+        lstatSync(join(dir, child, name));
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Máy đã có agent BMAD: một worktree agent đã dựng `_bmad/`, hoặc một thư mục ghim BMAD (bản nào cũng được) còn dấu
+ * `.in_use` của run BMAD. Mac chỉ thấy agent qua dấu vết run, không đọc cấu hình agent của Paperclip.
+ */
+function hasBmadAgent(ctx: MacContext, manifest: Manifest): boolean {
+  if (someChildHas(manifest.worktreeRoot, '_bmad')) return true;
+  const root = join(macPaths(ctx.home).workflowsRoot, 'bmad');
+  try {
+    return readdirSync(root).some((name) => {
+      try {
+        return readdirSync(join(root, name, '.in_use')).length > 0;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * sshd agent thấy `uv` (agent BMAD chạy `setup.py` của bản ghim bằng `uv run`). Thiếu `uv` chỉ `warn` khi máy chưa có
+ * agent BMAD (`setup` không cài `uv`), `fail` khi đã có.
+ */
 async function checkAgentUv(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
   const base = { id: 'agent-uv', title: 'uv trong PATH của sshd agent' };
   const result = await ctx.runner.run('ssh', sshArgs(paths, manifest, ctx.user, 'command -v uv'), {
@@ -417,10 +457,13 @@ async function checkAgentUv(ctx: MacContext, paths: MacPaths, manifest: Manifest
   });
   const found = result.stdout.trim();
   if (result.code !== 0 || found === '') {
+    const bmad = hasBmadAgent(ctx, manifest);
     return {
       ...base,
-      status: 'fail',
-      detail: `sshd agent không thấy uv (mã ${result.code}${result.timedOut ? ', quá hạn' : ''})`,
+      status: bmad ? 'fail' : 'warn',
+      detail:
+        `sshd agent không thấy uv (mã ${result.code}${result.timedOut ? ', quá hạn' : ''}); ` +
+        (bmad ? 'máy đã có agent BMAD' : 'máy chưa có agent BMAD, cần trước khi dựng agent BMAD'),
       hint:
         'cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh (vào ~/.local/bin, đã có trong khối PATH của ' +
         '~/.zshenv), rồi chạy lại doctor.',
@@ -618,7 +661,10 @@ async function checkWorktreeWorkflows(ctx: MacContext, manifest: Manifest): Prom
       );
       break;
     }
-    const sources = await discoverSources(ctx, join(root, name));
+    // Worktree chưa có run nào qua workflow-check (không có dấu) thì kiểm theo Superpowers như trước.
+    const last = lastRunWorkflow(ctx.home, join(root, name));
+    const pin = certifiedWorkflows(ctx).find((w) => w.id === last)?.pin ?? ctx.superpowersPin;
+    const sources = await discoverSources(ctx, join(root, name), pin);
     for (const s of sources) {
       if (s.origin === 'blocked') blocked.push(`${name}: ${s.path} (${s.reason})`);
       else if (s.warning) warned.push(`${name}: ${s.path} (${s.warning})`);

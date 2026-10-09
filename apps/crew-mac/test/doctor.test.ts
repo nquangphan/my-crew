@@ -24,6 +24,7 @@ import {
   tccHint,
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
+import { workflowCheck } from '../src/commands/workflow-check.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
 import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
 import {
@@ -477,6 +478,65 @@ describe('crew-mac doctor', () => {
     expect(failed?.hint).toContain(`git -C '${wt}' checkout HEAD -- '.claude/settings.json'`);
   });
 
+  it('worktree-workflows: mỗi worktree kiểm theo workflow của run gần nhất (dấu của workflow-check); chưa có dấu thì theo Superpowers', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/git', (args) => {
+      const r = spawnSync('/usr/bin/git', [...args], { encoding: 'utf8' });
+      return { code: r.status ?? 1, stdout: r.stdout, stderr: r.stderr };
+    });
+    const root = macPaths(mac.home).defaultWorktreeRoot;
+    // Cùng một repo dự án: worktree của agent BMAD và của executor Superpowers, repo bật `bmad@bmad`.
+    for (const name of ['bmad', 'executor']) {
+      const wt = join(root, name);
+      mkdirSync(join(wt, '.claude'), { recursive: true });
+      writeFileSync(join(wt, '.claude', 'settings.json'), '{"enabledPlugins":{"bmad@bmad":true}}');
+      for (const args of [
+        ['init', '-q'],
+        ['add', '.'],
+        ['commit', '-q', '-m', 'i'],
+      ]) {
+        spawnSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
+          cwd: wt,
+        });
+      }
+    }
+    const check = async () =>
+      (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'worktree-workflows',
+      );
+    // Chưa run nào: không biết workflow, giữ hành vi cũ (Superpowers) nên cả hai báo nạp chéo.
+    const before = await check();
+    expect(before?.status).toBe('fail');
+    expect(before?.detail).toContain('bmad: ');
+    expect(before?.detail).toContain('executor: ');
+
+    const bmadRun = await workflowCheck(mac.ctx, {
+      root: join(root, 'bmad'),
+      pluginDir: pinDir(mac.home, FIXTURE_BMAD_PIN),
+    });
+    expect(bmadRun.ok).toBe(true);
+    const execRun = await workflowCheck(mac.ctx, {
+      root: join(root, 'executor'),
+      pluginDir: superpowersPinDir(mac.home, FIXTURE_PIN),
+    });
+    expect(execRun.ok).toBe(false);
+    const after = await check();
+    expect(after?.status).toBe('fail');
+    expect(after?.detail).not.toContain('bmad: ');
+    expect(after?.detail).toContain('executor: ');
+    expect(after?.detail).toContain('nạp chéo');
+
+    writeFileSync(join(root, 'executor', '.claude', 'settings.json'), '{}');
+    spawnSync(
+      '/usr/bin/git',
+      ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qam', 'bo'],
+      {
+        cwd: join(root, 'executor'),
+      },
+    );
+    expect(await check()).toMatchObject({ status: 'ok', detail: expect.stringContaining('2 worktree') });
+  });
+
   it('worktree-workflows: git quá hạn ở worktree đầu thì dừng, không kiểm các worktree còn lại', async () => {
     const mac = await installed(okSsh);
     const root = macPaths(mac.home).defaultWorktreeRoot;
@@ -531,16 +591,33 @@ describe('crew-mac doctor', () => {
     });
   });
 
-  it('agent-uv: sshd agent không thấy uv thì fail kèm lệnh cài', async () => {
+  it('agent-uv: không thấy uv mà máy chưa có agent BMAD thì warn; đã có agent BMAD thì fail kèm lệnh cài', async () => {
     const mac = await installed((remote) =>
       remote.includes('command -v uv') ? { code: 1, stdout: '' } : okSsh(remote),
     );
-    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
-    expect(results.find((r) => r.id === 'agent-uv')).toMatchObject({
-      status: 'fail',
+    const uvCheck = async () =>
+      (await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 })).find(
+        (r) => r.id === 'agent-uv',
+      );
+    expect(await uvCheck()).toMatchObject({
+      status: 'warn',
       title: 'uv trong PATH của sshd agent',
+      detail: expect.stringContaining('chưa có agent BMAD'),
       hint: expect.stringContaining('cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh'),
     });
+    // Run BMAD đã chạy trên máy: dấu `.in_use` trong thư mục ghim BMAD.
+    const marks = join(pinDir(mac.home, FIXTURE_BMAD_PIN), '.in_use');
+    mkdirSync(marks, { recursive: true });
+    writeFileSync(join(marks, '0b7f3c2e-7d1a-4c55-9a51-5d0e7a6b9c10'), '4242 1760000000\n');
+    expect(await uvCheck()).toMatchObject({
+      status: 'fail',
+      hint: expect.stringContaining('cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh'),
+    });
+    rmSync(marks, { recursive: true });
+    expect((await uvCheck())?.status).toBe('warn');
+    // Worktree agent đã dựng BMAD (`_bmad/`).
+    mkdirSync(join(macPaths(mac.home).defaultWorktreeRoot, 'bmad', '_bmad'), { recursive: true });
+    expect(await uvCheck()).toMatchObject({ status: 'fail', detail: expect.stringContaining('agent BMAD') });
     const ok = await installed((remote) =>
       remote.includes('command -v uv') ? { stdout: '/Users/owner/.local/bin/uv\n' } : okSsh(remote),
     );

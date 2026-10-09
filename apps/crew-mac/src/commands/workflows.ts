@@ -3,6 +3,7 @@ import { installBmadPin } from '../workflows/bmad-install.js';
 import { checksumOrNull, installSuperpowersPin, pathExists } from '../workflows/install.js';
 import { agentExtraArgs, pinDir } from '../workflows/pin.js';
 import { type CertifiedWorkflow, certifiedWorkflows } from '../workflows/registry.js';
+import { gcAfterInstall, gcReportLines, gcWorkflowPins } from '../workflows/workflow-gc.js';
 
 export const WORKFLOWS_USAGE = 'crew-mac workflows list [--json] | install | gc';
 
@@ -58,6 +59,7 @@ async function install(ctx: MacContext): Promise<void> {
   const bmad = await installBmadPin(ctx);
   ctx.out(`extraArgs (vai thường): ${JSON.stringify(agentExtraArgs(sp.dir))}`);
   ctx.out(`extraArgs (vai bmad): ${JSON.stringify(agentExtraArgs(bmad.dir))}`);
+  gcAfterInstall(ctx);
 }
 
 /** `crew-mac workflows <lệnh con>`: 0 đạt, 1 lỗi cài, 2 sai cách dùng. */
@@ -80,6 +82,10 @@ export async function workflowsCommand(
       err(`crew-mac: ${error.message}`);
       return 1;
     }
+  }
+  if (sub === 'gc' && rest.length === 0) {
+    for (const line of gcReportLines(gcWorkflowPins(ctx))) ctx.out(line);
+    return 0;
   }
   err(`crew-mac: cách dùng: ${WORKFLOWS_USAGE}`);
   return 2;

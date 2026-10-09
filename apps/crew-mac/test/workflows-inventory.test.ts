@@ -5,6 +5,8 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -508,6 +510,13 @@ describe('discoverSources theo workflow của run', () => {
     ]);
   });
 
+  it('câu lý do khi script lệch nói đúng hành động: setup-project chỉ chạy sau khi xóa _bmad/scripts', () => {
+    // setup-project bỏ qua (skipped) khi đã có _bmad/scripts/resolve_config.py, nên chỉ "chạy setup-project" là sai.
+    expect(BMAD_SCRIPT_MISMATCH_REASON).toBe(
+      'khác bản ghim BMAD; khôi phục từ commit, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project',
+    );
+  });
+
   it('run BMAD: _bmad/scripts thừa một file hoặc có symlink thì khác bản ghim', async () => {
     const { ctx } = realGitCtx();
     const dir = repo();
@@ -526,6 +535,65 @@ describe('discoverSources theo workflow của run', () => {
     expect(blockedOf(await discoverSources(ctx, linked, ctx.bmadPin))[0]?.reason).toBe(
       BMAD_SCRIPT_MISMATCH_REASON,
     );
+  });
+
+  it('run BMAD: .pyc đã commit dưới _bmad/scripts là khác bản ghim; .pyc chưa track (do run tạo) bỏ qua', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    copyPinScripts(ctx, dir);
+    commit(dir, '_bmad');
+    put(dir, '_bmad/scripts/__pycache__/config_utils.cpython-312.pyc', 'bytecode do run tạo');
+    expect(await discoverSources(ctx, dir, ctx.bmadPin)).toEqual([
+      { path: join(dir, '_bmad', 'scripts'), kind: 'bmad', origin: 'project' },
+    ]);
+    commit(dir, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({ path: join(dir, '_bmad', 'scripts'), reason: BMAD_SCRIPT_MISMATCH_REASON }),
+    ]);
+    const flat = repo();
+    copyPinScripts(ctx, flat);
+    put(flat, '_bmad/scripts/setup.pyc', 'mã khác');
+    commit(flat, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, flat, ctx.bmadPin))[0]?.reason).toBe(
+      BMAD_SCRIPT_MISMATCH_REASON,
+    );
+  });
+
+  it('run BMAD: _bmad là symlink (ra ngoài worktree, trong worktree, hỏng; đã commit hay chưa) thì chặn', async () => {
+    const { ctx } = realGitCtx();
+    const outside = mkdtempSync(join(tmpdir(), 'crew-inv-bmad-out-'));
+    copyPinScripts(ctx, outside);
+    const tracked = repo();
+    symlinkSync(join(outside, '_bmad'), join(tracked, '_bmad'));
+    commit(tracked, '_bmad');
+    const real = realpathSync(join(outside, '_bmad'));
+    expect(await discoverSources(ctx, tracked, ctx.bmadPin)).toEqual([
+      {
+        path: join(tracked, '_bmad'),
+        kind: 'bmad',
+        origin: 'blocked',
+        reason: `symlink trỏ ra ngoài worktree: ${real}`,
+        fix: 'Xử lý: thay symlink _bmad bằng thư mục thật trong repo (xóa link rồi chạy crew-mac bmad setup-project), rồi commit.',
+      },
+    ]);
+    const untracked = repo();
+    symlinkSync(join(outside, '_bmad'), join(untracked, '_bmad'));
+    expect(blockedOf(await discoverSources(ctx, untracked, ctx.bmadPin))).toHaveLength(1);
+    const inside = repo();
+    copyPinScripts(ctx, inside);
+    renameSync(join(inside, '_bmad'), join(inside, 'bmad-that'));
+    symlinkSync('bmad-that', join(inside, '_bmad'));
+    expect(blockedOf(await discoverSources(ctx, inside, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(inside, '_bmad'),
+        reason: '_bmad là symlink (BMAD chỉ chạy với thư mục thật)',
+      }),
+    ]);
+    const broken = repo();
+    symlinkSync(join(outside, 'không-có'), join(broken, '_bmad'));
+    expect(blockedOf(await discoverSources(ctx, broken, ctx.bmadPin))).toEqual([
+      expect.objectContaining({ path: join(broken, '_bmad'), reason: 'symlink hỏng trong worktree agent' }),
+    ]);
   });
 
   it('run BMAD: _bmad/scripts chưa commit nhưng giống byte → pinned (run trước bị ngắt)', async () => {
@@ -559,6 +627,30 @@ describe('discoverSources theo workflow của run', () => {
     expect(dirty.map((s) => [s.path, s.reason])).toEqual([
       [join(dir, '_bmad', 'config.toml'), DIRTY_REASON],
       [join(dir, '_bmad', 'custom', 'bmad-prd.toml'), UNTRACKED_REASON],
+    ]);
+  });
+
+  it('run BMAD: file không phải toml dưới _bmad/custom (nội dung toml trỏ tới) xét như toml', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    put(dir, '_bmad/custom/bmad-prd.toml', 'pack = "{project-root}/_bmad/custom/packs/regulatory.md"\n');
+    put(dir, '_bmad/custom/packs/regulatory.md', '# Luật\n');
+    commit(dir, '_bmad/custom/bmad-prd.toml');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(dir, '_bmad', 'custom', 'packs', 'regulatory.md'),
+        kind: 'bmad',
+        reason: UNTRACKED_REASON,
+      }),
+    ]);
+    commit(dir, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([]);
+    put(dir, '_bmad/custom/packs/regulatory.md', '# Luật đã sửa\n');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({
+        path: join(dir, '_bmad', 'custom', 'packs', 'regulatory.md'),
+        reason: DIRTY_REASON,
+      }),
     ]);
   });
 
