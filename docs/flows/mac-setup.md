@@ -17,9 +17,13 @@ không cần token và không login lại.
 - `crew-mac doctor [--no-probe]`: chạy bất kỳ lúc nào, kể cả qua SSH.
 - `crew-mac status config --url <Paperclip origin> --company <UUID>`: lưu origin, `companyId` UUID và sinh `machineId` UUID nếu chưa có.
 - `crew-mac status set-secret`: đọc secret từ stdin và lưu vào Keychain.
-- `crew-mac status send`: gửi bản tin máy v1 tới webhook `machine-status`.
-- `crew-mac status add-repo <projectId> <path>`: đăng ký repo git cho ảnh chụp docs; `remove-repo <projectId>`
-  gỡ repo; `list-repos` xem danh sách và commit gửi cuối.
+- `crew-mac status add-target --company <UUID> [--url <origin>] --secret-stdin`: thêm một company nhận bản tin máy
+  (xem "Nhiều đích"); secret webhook của company đó đọc một dòng từ stdin. `status list-targets` in từng đích
+  (`companyId`, `url`, service Keychain), không in secret.
+- `crew-mac status send`: gửi bản tin máy v1 tới webhook `machine-status` của từng đích.
+- `crew-mac status add-repo <projectId> <path> [--company <UUID>]`: đăng ký repo git cho ảnh chụp docs; `--company`
+  chọn company nhận ảnh chụp (thiếu thì là company của đích đầu tiên); `remove-repo <projectId>` gỡ repo; `list-repos`
+  xem danh sách và commit gửi cuối.
 - `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`).
 - `crew-mac workflows list [--json] | install`: xem sổ workflow đã chứng nhận, hoặc chỉ cài hai bản ghim mà không chạy
   lại cả `setup` (không đụng sshd/launchd; dùng khi app 2P Crew đang giữ sshd agent). Chi tiết ở flow `mac-workflows`.
@@ -170,10 +174,12 @@ không cần token và không login lại.
 | `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `SetupOptions` (`sshdOwner`, `force`), `SetupReport` (`sshdHandoff`), `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
 | `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `checkAppSshd`, `checkTccOwner`, `checkZshenv`, `checkAgentNode`, `checkWrapper`, `checkLauncher`, `checkSuperpowersPin`, `checkWorktreeWorkflows`, `checkReaper`, `checkCrewDocs`, `parsePendingTccPrompts`, `printProbeScript` |
 | `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers`, `assertNoLiveRuns` (setup dùng khi đổi chủ sshd) |
-| `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook | `configureStatus`, `setStatusSecret`, `sendStatus` |
+| `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook cho từng đích | `configureStatus`, `setStatusSecret`, `sendStatus`, `sendDocsSnapshots`, `normalizeStatusUrl` |
+| `apps/crew-mac/src/status/targets.ts` | Đích nhận bản tin (`targets` trong `status.json`, đọc cấu hình cũ như một đích), Keychain theo service | `listTargets`, `addTarget`, `targetsOf`, `StatusTarget`, `writeKeychainSecret`, `readKeychainSecret` |
+| `apps/crew-mac/src/status/checkouts.ts` | Quét checkout git của agent `~/crew-agents/<project>/<role>` cho bản tin | `scanCheckouts`, `CheckoutInfo` |
 | `apps/crew-mac/src/status/sign.ts` | Ký raw body | `signCrewBody` |
-| `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 (kèm trường `app` tùy chọn) | `buildMachineReport`, `MachineReport` |
-| `apps/crew-mac/src/status/app-state.ts` | Đọc ba trường `appVersion`, `sshdOwner`, `updateState` từ `app.json` của app (chỉ đọc) | `readAppState`, `AppReport`, `UPDATE_STATES` |
+| `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 (kèm `app`, `attachmentCache`, `checkouts`, `jobsAgent`, `superpowers.pinDir`/`skills`) | `buildMachineReport`, `MachineReport`, `MACHINE_REPORT_MAX_BYTES` |
+| `apps/crew-mac/src/status/app-state.ts` | Đọc ba trường `appVersion`, `sshdOwner`, `updateState` và riêng `jobsAgent` từ `app.json` của app (chỉ đọc) | `readAppState`, `readJobsAgent`, `AppReport`, `JobsAgentReport`, `UPDATE_STATES` |
 | `apps/crew-mac/src/status/tcc.ts` | Probe TCC nối tiếp riêng cho status; checkpoint `~/.crew/status-tcc.json` (0600), lần đầu quét 2 giờ, các lần sau bắt đầu từ mốc đã quét trừ 5 giây theo giờ địa phương kèm offset mà `log show` yêu cầu; giữ `msgId` để ghép kết quả đến ở lượt sau; timeout 20 giây ở lần đầu vẫn ghi checkpoint rỗng và cảnh báo bắt đầu theo dõi, các lần sau giữ nguyên state và thêm cảnh báo | `probeStatusTcc`, `updateTccPending` |
 | `apps/crew-mac/src/status/docs.ts` | Đọc docs tại commit, kiểm chuẩn và secret-scan | `snapshotCommit`, `buildDocsSnapshot`, `SCAN_MANIFEST` |
 
@@ -192,10 +198,46 @@ stdin; trong nháy kép, `\` và `"` được thoát bằng gạch chéo ngượ
 ghi secret vào file hoặc log.
 
 `send` dùng các check của `doctor` để lấy tải máy, Claude và Superpowers, nhưng bỏ qua probe TCC dài của doctor. Probe TCC status riêng dùng `~/.crew/status-tcc.json` với quyền `0600`: lần đầu quét `--last 2h`, sau đó quét `--start` từ `scannedUntil` trừ 5 giây theo giờ địa phương, kèm offset múi giờ theo định dạng `/usr/bin/log` yêu cầu. State giữ `scannedUntil` và pending gồm `service`, `client`, `since` cùng `msgId` để ghép `AUTHREQ_RESULT` ở lượt sau; payload chỉ gửi ba trường nghiệp vụ, không gửi `msgId`. Timeout sau 20 giây ở lượt đầu vẫn ghi checkpoint với mốc bắt đầu lượt và pending rỗng, trả check `tcc-probe` trạng thái `warn`, tiêu đề `Bắt đầu theo dõi log TCC từ <giờ địa phương HH:MM>; hộp thoại cũ hơn xem bằng crew-mac doctor`. Timeout các lượt sau giữ nguyên state và thêm check `tcc-probe` trạng thái `warn`, tiêu đề `Không đọc kịp log TCC`; không cập nhật mốc. Doctor tương tác vẫn quét 24 giờ như trước. Các probe không đọc được khác trả `null` ở trường cho phép theo hợp đồng webhook, vẫn gửi bản tin. Bản tin máy và ảnh chụp docs được gửi độc lập; một bên lỗi không chặn bên kia nhưng job trả lỗi.
-chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 16 KB, ký HMAC-SHA256 trên
+chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 64 KB (`MACHINE_REPORT_MAX_BYTES`, bằng giới hạn body
+webhook của plugin bản nhận `checkouts`), ký HMAC-SHA256 trên
 `<timestamp>.<raw body>` trong header `X-Crew-Signature`, với `X-Crew-Timestamp` là giây Unix.
 Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây. Mọi mã HTTP ngoài
 2xx là thất bại; `status-last.json` ghi `{at, ok: false, httpStatus}` khi server từ chối.
+
+### Nhiều đích
+
+Một máy gửi bản tin cho nhiều company (ví dụ TPS và Crew E2E), cùng một `machineId`. `status.json` thêm
+`targets: [{url, companyId, keychainService}]` (`src/status/targets.ts`):
+
+- Cấu hình cũ chưa có `targets` (`{url, companyId, machineId}`) được đọc như một đích với service Keychain cũ
+  `crew-mac-status` (`listTargets`/`targetsOf`). Thiếu `companyId` thì không có đích nào.
+- `status add-target` (`addTarget`) ghi secret vào service `crew-mac-status-<8 ký tự đầu companyId>` qua stdin của
+  `security -i` như `set-secret`, rồi ghi `targets` gồm các đích hiện có cộng đích mới. Company đã có đích thì giữ
+  service cũ và chỉ ghi lại secret, `url`. `--url` mặc định là `url` đang cấu hình; chưa có cấu hình thì bắt buộc và
+  lệnh sinh `machineId`. Hai đích trùng service thì từ chối.
+- `status config` khi đã có `targets` chỉ thay đích dùng service cũ (đặt lên đầu), giữ các đích `add-target`.
+- Đích sai dạng trong file (company không phải UUID, URL không phải origin, service lạ) bị bỏ qua.
+
+`status send` dựng bản tin một lần rồi gửi cho từng đích, đổi `companyId` theo đích và ký bằng secret của đích. Một
+đích lỗi (Keychain, kết nối, HTTP) không chặn đích sau; mỗi đích lỗi in một dòng, có thêm `[company <UUID>]` khi có
+hơn một đích, không in URL hay secret. `status-last.json` ghi `ok` (mọi đích đạt), `httpStatus` (đích lỗi đầu tiên,
+không thì đích cuối) và `targets: [{companyId, ok, httpStatus}]`. Có đích lỗi thì lệnh thoát khác 0.
+
+### Trường `checkouts`, `superpowers.pinDir`/`skills`, `jobsAgent`
+
+- `checkouts` (`scanCheckouts`, `src/status/checkouts.ts`): thư mục git (có `.git`, kể cả worktree) ở
+  `~/crew-agents/<project>/<role>`, sắp theo path, tối đa 64. Mỗi phần tử `{path, head, clean}`: `head` 40 hex,
+  `clean` false khi `git status --porcelain` có dòng. Git đọc lỗi, hoặc gốc repo không phải chính thư mục (`.git`
+  hỏng làm git dò lên cha) thì `head: null, clean: null`. Không có `~/crew-agents` thì mảng rỗng. Không bao giờ ném.
+- `superpowers.pinDir`: đường tuyệt đối bản ghim Superpowers (giá trị `--plugin-dir` của agent), `null` khi chưa có bản
+  ghim. `superpowers.skills`: tên thư mục `skills/<tên>/SKILL.md` trong bản ghim, sắp xếp, tối đa 100; chỉ có khi có
+  bản ghim. Web dùng để chặn thêm skill trùng Superpowers.
+- `jobsAgent: {version, lastPollAt}` (`readJobsAgent`): app 2P Crew ghi vào `app.json` mỗi lần hỏi hàng đợi việc trên
+  máy; đọc độc lập với trường `app` (ba trường app hỏng vẫn có `jobsAgent`). `version` semver ≤ 32 ký tự, `lastPollAt`
+  ISO 8601. Thiếu hay sai dạng thì bản tin không có key này, nghĩa là app không nhận việc.
+
+Plugin bản cũ (trước bản nhận key mới của hàng đợi máy) từ chối cả bản tin có các key này, nên plugin mới phải lên
+prod trước khi cài crew-mac này. `version` bản tin vẫn là 1.
 
 ### Trường `app` (phiên bản app 2P Crew)
 
@@ -236,7 +278,7 @@ trường này. `version` bản tin vẫn là 1.
 
 ## Ảnh chụp docs
 
-`~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit, format?}` với quyền `0600`. `format` thiếu hoặc bằng `2`, giá trị khác thì `listStatusRepos` ném `Danh sách repo không hợp lệ`. `projectId` phải là UUID;
+`~/.crew/status-repos.json` lưu danh sách `{projectId, path, lastCommit, format?, companyId?}` với quyền `0600`. `format` thiếu hoặc bằng `2`, `companyId` thiếu hoặc là UUID, giá trị khác thì `listStatusRepos` ném `Danh sách repo không hợp lệ`. Ảnh chụp của repo đi tới đích có cùng `companyId` (thiếu thì đích đầu tiên), ký bằng secret của đích đó; repo thuộc company không còn đích, hoặc đích không đọc được secret, thì chỉ repo đó lỗi và in một dòng có `projectId`. `projectId` phải là UUID;
 `path` là đường dẫn tuyệt đối tới repo git. Trong cùng lượt gửi, `status send` xét từng repo. Nó fetch `origin`
 tối đa 20 giây rồi ưu tiên commit `origin/HEAD`; fetch lỗi thì dùng ref sẵn có và chỉ log cảnh báo kèm `projectId`.
 Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cuối cùng
@@ -318,7 +360,9 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/index.test.ts`: thư viện export đủ hàm app cần; `createMacContext` giữ `cliPath` được truyền.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs` (vai thường và vai bmad), mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip, chặn `setup --sshd-owner` qua chính sshd agent (`--force` thì chạy), `--sshd-owner` giá trị lạ, câu in ở chế độ app (app nạp lại cấu hình; đổi cổng thì in cấu hình mới), lệnh `files` (thiếu cờ, UUID sai, thiếu env bridge, `--gc-only`).
 - `apps/crew-mac/test/install-cli.test.ts`: thay bản cũ và giữ một bản lui, cài lần đầu, gọi lại cùng nội dung thì không đổi gì, cùng version khác nội dung thì cài, còn run thì từ chối, thiếu `dist/cli.js` hoặc `version` thì `SetupError`, chỉ một bản lui, lỗi rename thứ hai thì khôi phục. Mọi ca dùng HOME giả.
-- `apps/crew-mac/test/status-app.test.ts`: `readAppState` (đủ ba trường, mọi `updateState`, file thiếu/hỏng/giá trị lạ/quá 32 ký tự thì null) và bản tin có hoặc không có key `app`.
+- `apps/crew-mac/test/status-app.test.ts`: `readAppState` (đủ ba trường, mọi `updateState`, file thiếu/hỏng/giá trị lạ/quá 32 ký tự thì null) và bản tin có hoặc không có key `app`; `readJobsAgent` (độc lập với `app`, sai dạng thì null), bản tin có `jobsAgent`, `superpowers.skills` sắp xếp chỉ gồm thư mục có `SKILL.md`, `pinDir` null khi chưa ghim, `checkouts` từ repo git thật.
+- `apps/crew-mac/test/status-targets.test.ts`: cấu hình cũ là một đích service `crew-mac-status`; `add-target` ghi secret qua stdin vào service riêng (không argv nào chứa secret), không nhân đôi đích, giữ service cũ của company đã có, `config` lại không mất đích phụ; URL/company/secret sai thì từ chối; `send` hai đích cùng `machineId`, đích 1 HTTP 500 vẫn gửi đích 2, chỉ in company id; thiếu secret một đích; ảnh chụp docs đi đúng company của repo; CLI `add-target` bắt buộc `--secret-stdin`, `list-targets`.
+- `apps/crew-mac/test/status-checkouts.test.ts`: chỉ thư mục git ở đúng độ sâu, worktree (`.git` là file), `clean` false khi có file chưa track, tối đa 64 sắp theo path, `.git` hỏng thì null, không có `~/crew-agents` thì rỗng.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.
 - `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
 - `apps/crew-mac/test/status.test.ts`: `set-secret` đi qua stdin của `security -i` (không argv nào chứa secret), thoát nháy kép và gạch chéo ngược, mã khác 0 thì lỗi; báo rõ bước thất bại của `status send` (Keychain, kết nối) mà không lộ secret; `system-wrappers.test.ts` có ca Tailscale dưới PATH tối thiểu.

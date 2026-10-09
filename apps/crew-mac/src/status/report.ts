@@ -1,5 +1,6 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { hostname } from 'node:os';
+import { join } from 'node:path';
 import { doctor, parseLoad } from '../commands/doctor.js';
 import { readStatusConfig, resolveClaudePath } from '../commands/status.js';
 import type { MacContext } from '../context.js';
@@ -7,7 +8,8 @@ import { type AttachmentCacheStats, attachmentCacheStats } from '../files/stats.
 import { macPaths } from '../paths.js';
 import { readInstalledPlugins } from '../workflows/install.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
-import { type AppReport, readAppState } from './app-state.js';
+import { type AppReport, type JobsAgentReport, readAppState, readJobsAgent } from './app-state.js';
+import { type CheckoutInfo, scanCheckouts } from './checkouts.js';
 import { probeStatusTcc } from './tcc.js';
 
 export interface MachineReport {
@@ -21,10 +23,38 @@ export interface MachineReport {
   memFreePct: number | null;
   tccPending: { service: string; client: string; since: string }[];
   claude: { version: string | null; loggedIn: boolean | null; plan: string | null };
-  superpowers: { pinned: string | null; ownerInstalled: string | null };
+  superpowers: {
+    pinned: string | null;
+    ownerInstalled: string | null;
+    /** Thư mục bản ghim (giá trị `--plugin-dir` của agent); null khi chưa có bản ghim. */
+    pinDir?: string | null;
+    /** Tên thư mục skill (có `SKILL.md`) trong bản ghim, sắp xếp, tối đa 100. */
+    skills?: string[];
+  };
   checks: { id: string; status: 'ok' | 'warn' | 'error'; title: string }[];
   app?: AppReport;
   attachmentCache?: AttachmentCacheStats;
+  /** Thư mục git `~/crew-agents/<project>/<role>`, tối đa 64, sắp theo path. */
+  checkouts?: CheckoutInfo[];
+  /** App 2P Crew đang nhận việc trên máy (đọc từ `app.json`); thiếu nghĩa là app không nhận việc. */
+  jobsAgent?: JobsAgentReport;
+}
+
+/** Giới hạn body webhook `machine-status` của plugin (bản có `checkouts`, `jobsAgent`). */
+export const MACHINE_REPORT_MAX_BYTES = 64 * 1024;
+const MAX_SKILLS = 100;
+
+function pinnedSkills(pinDir: string): string[] {
+  try {
+    return readdirSync(join(pinDir, 'skills'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && existsSync(join(pinDir, 'skills', entry.name, 'SKILL.md')))
+      .map((entry) => entry.name)
+      .filter((name) => name.length <= 200)
+      .sort()
+      .slice(0, MAX_SKILLS);
+  } catch {
+    return [];
+  }
 }
 
 function bounded(value: number, min: number, max: number): number | null {
@@ -38,7 +68,7 @@ export async function buildMachineReport(
   _env: NodeJS.ProcessEnv = {},
 ): Promise<MachineReport> {
   const claudePath = readStatusConfig(ctx)?.claudePath ?? resolveClaudePath(ctx.home);
-  const [checks, loadavg, cpu, memory, tcc, version, auth] = await Promise.all([
+  const [checks, loadavg, cpu, memory, tcc, version, auth, checkouts] = await Promise.all([
     doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90, skipTcc: true }).catch(() => []),
     ctx.runner.run('/usr/sbin/sysctl', ['-n', 'vm.loadavg'], { timeoutMs: 10_000 }),
     ctx.runner.run('/usr/sbin/sysctl', ['-n', 'hw.ncpu'], { timeoutMs: 10_000 }),
@@ -50,6 +80,7 @@ export async function buildMachineReport(
     claudePath
       ? ctx.runner.run(claudePath, ['auth', 'status'], { timeoutMs: 10_000 })
       : Promise.resolve({ code: 127, stdout: '' }),
+    scanCheckouts(ctx.home),
   ]);
   const load = parseLoad(loadavg.stdout, cpu.stdout, memory.stdout);
   const pending = tcc.pending.slice(0, 20);
@@ -66,6 +97,9 @@ export async function buildMachineReport(
     /* không đọc được probe */
   }
   const app = readAppState(macPaths(ctx.home).appState);
+  const jobsAgent = readJobsAgent(macPaths(ctx.home).appState);
+  const pinDir = superpowersPinDir(ctx.home, ctx.superpowersPin);
+  const pinned = existsSync(pinDir);
   const report: MachineReport = {
     version: 1,
     companyId,
@@ -86,8 +120,10 @@ export async function buildMachineReport(
       plan: authState.loggedIn === true ? (authState.subscriptionType?.slice(0, 50) ?? null) : null,
     },
     superpowers: {
-      pinned: existsSync(superpowersPinDir(ctx.home, ctx.superpowersPin)) ? ctx.superpowersPin.version : null,
+      pinned: pinned ? ctx.superpowersPin.version : null,
       ownerInstalled,
+      pinDir: pinned ? pinDir : null,
+      ...(pinned ? { skills: pinnedSkills(pinDir) } : {}),
     },
     checks: [
       ...checks.map((c) => ({
@@ -98,9 +134,12 @@ export async function buildMachineReport(
       ...(tcc.check ? [tcc.check] : []),
     ],
     ...(app ? { app } : {}),
+    checkouts,
+    ...(jobsAgent ? { jobsAgent } : {}),
   };
   const cache = attachmentCacheStats(ctx.home, ctx.now());
   if (cache) report.attachmentCache = cache;
-  if (Buffer.byteLength(JSON.stringify(report)) > 16 * 1024) throw new Error('Bản tin máy vượt quá 16 KB');
+  if (Buffer.byteLength(JSON.stringify(report)) > MACHINE_REPORT_MAX_BYTES)
+    throw new Error('Bản tin máy vượt quá 64 KB');
   return report;
 }

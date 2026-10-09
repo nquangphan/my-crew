@@ -92,6 +92,8 @@ flows:
       - apps/crew-mac/src/status/sign.ts
       - apps/crew-mac/src/status/report.ts
       - apps/crew-mac/src/status/app-state.ts
+      - apps/crew-mac/src/status/targets.ts
+      - apps/crew-mac/src/status/checkouts.ts
       - apps/crew-mac/src/status/tcc.ts
       - apps/crew-mac/src/status/docs.ts
     tests:
@@ -113,6 +115,8 @@ flows:
       - apps/crew-mac/test/status-app.test.ts
       - apps/crew-mac/test/status-tcc.test.ts
       - apps/crew-mac/test/status-docs.test.ts
+      - apps/crew-mac/test/status-targets.test.ts
+      - apps/crew-mac/test/status-checkouts.test.ts
   mac-attachments:
     title: Đọc file đính kèm trên Mac (crew-mac files)
     doc: docs/flows/mac-attachments.md
@@ -215,6 +219,8 @@ flows:
       - apps/crew-mac/test/workflows-bmad-install.test.ts
       - apps/crew-mac/test/workflows-command.test.ts
       - apps/crew-mac/test/workflows-gc.test.ts
+      - apps/crew-mac/test/wrapper-stub.test.ts
+      - apps/crew-mac/test/fixtures/claude-local-parse.ts
       - apps/crew-mac/test/bmad-epics.test.ts
       - apps/crew-mac/test/bmad-answers.test.ts
       - apps/crew-mac/test/bmad-setup-project.test.ts

@@ -25,6 +25,7 @@ import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
 import { resolveSshdOwner, type SshdOwner } from './sshd-owner.js';
+import { addTarget, listTargets } from './status/targets.js';
 import { gcWorkflowPins } from './workflows/workflow-gc.js';
 
 export const USAGE = `crew-mac: cài và kiểm Mac chạy agent cho Crew v3
@@ -38,7 +39,10 @@ Cách dùng:
   crew-mac status config --url <Paperclip origin> --company <UUID>
   crew-mac status set-secret   (đọc một dòng từ stdin)
   crew-mac status send
-  crew-mac status add-repo <projectId> <đường dẫn repo tuyệt đối>
+  crew-mac status add-target --company <UUID> [--url <Paperclip origin>] --secret-stdin
+                 (thêm company nhận bản tin máy; secret webhook của company đọc một dòng từ stdin)
+  crew-mac status list-targets
+  crew-mac status add-repo <projectId> <đường dẫn repo tuyệt đối> [--company <UUID>]
   crew-mac status remove-repo <projectId>
   crew-mac status list-repos
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
@@ -60,6 +64,8 @@ export interface CliIo {
   env: NodeJS.ProcessEnv;
   /** Test hook: ghi đè từng phần của context. */
   context?: Partial<MacContext>;
+  /** Test hook: thay đọc stdin (mặc định đọc hết fd 0). */
+  readStdin?: () => string;
 }
 
 class UsageError extends Error {}
@@ -127,6 +133,7 @@ const STATUS_LABEL: Record<CheckStatus, string> = { ok: 'ĐẠT', warn: 'CẢNH 
 
 export async function main(argv: readonly string[], io: CliIo): Promise<number> {
   const [command, ...args] = argv;
+  const readStdin = io.readStdin ?? (() => readFileSync(0, 'utf8'));
   try {
     const ctx: MacContext = {
       ...createMacContext({
@@ -151,7 +158,7 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         }
         if (subcommand === 'set-secret') {
           if (rest.length > 0) throw new UsageError('set-secret không nhận đối số');
-          await setStatusSecret(ctx, readFileSync(0, 'utf8'));
+          await setStatusSecret(ctx, readStdin());
           io.out('Đã lưu secret vào Keychain.');
           return 0;
         }
@@ -160,9 +167,29 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
           await sendStatus(ctx);
           return 0;
         }
+        if (subcommand === 'add-target') {
+          const flags = parseFlags(rest, ['--company', '--url'], ['--secret-stdin']);
+          const companyId = flags.value('--company');
+          if (!companyId) throw new UsageError('--company là bắt buộc');
+          if (!flags.has('--secret-stdin'))
+            throw new UsageError(
+              '--secret-stdin là bắt buộc: secret chỉ đọc từ stdin, không truyền trên dòng lệnh',
+            );
+          const target = await addTarget(ctx, { companyId, url: flags.value('--url'), secret: readStdin() });
+          io.out(`Đã thêm đích ${target.companyId} (${target.url}).`);
+          return 0;
+        }
+        if (subcommand === 'list-targets') {
+          if (rest.length !== 0) throw new UsageError('list-targets không nhận đối số');
+          for (const target of listTargets(ctx))
+            io.out(`${target.companyId}\t${target.url}\t${target.keychainService}`);
+          return 0;
+        }
         if (subcommand === 'add-repo') {
-          if (rest.length !== 2) throw new UsageError('add-repo cần projectId và đường dẫn repo');
-          addStatusRepo(ctx, rest[0] as string, rest[1] as string);
+          const [projectId, path, ...extra] = rest;
+          if (!projectId || !path) throw new UsageError('add-repo cần projectId và đường dẫn repo');
+          const company = parseFlags(extra, ['--company']).value('--company');
+          addStatusRepo(ctx, projectId, path, company);
           io.out('Đã thêm repo.');
           return 0;
         }
@@ -178,7 +205,9 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             io.out(`${repo.projectId}\t${repo.path}\t${repo.lastCommit ?? 'chưa gửi'}`);
           return 0;
         }
-        throw new UsageError('status cần config, set-secret, send, add-repo, remove-repo hoặc list-repos');
+        throw new UsageError(
+          'status cần config, set-secret, add-target, list-targets, send, add-repo, remove-repo hoặc list-repos',
+        );
       }
       case 'setup': {
         const flags = parseFlags(

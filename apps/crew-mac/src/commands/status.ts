@@ -24,14 +24,24 @@ import {
   snapshotCommit,
   snapshotCommitFromRefs,
 } from '../status/docs.js';
-import { buildMachineReport } from '../status/report.js';
+import { buildMachineReport, type MachineReport } from '../status/report.js';
 import { signCrewBody } from '../status/sign.js';
+import {
+  type KeychainRead,
+  LEGACY_KEYCHAIN_SERVICE,
+  readKeychainSecret,
+  type StatusTarget,
+  targetsOf,
+  writeKeychainSecret,
+} from '../status/targets.js';
 
 export interface StatusConfig {
   url: string;
   companyId?: string;
   machineId: string;
   claudePath?: string;
+  /** Các đích nhận bản tin (`status add-target`); không có thì `{url, companyId}` là đích duy nhất. */
+  targets?: StatusTarget[];
 }
 export class StatusSendError extends Error {}
 
@@ -56,6 +66,8 @@ export interface StatusRepo {
    * `lastCommit` nghĩa là đã có bản cũ chạy xen giữa: phải gửi lại một lần, kèm commit từ mốc này.
    */
   formatCommit?: string;
+  /** Company nhận ảnh chụp docs của repo; thiếu thì là company của đích đầu tiên. */
+  companyId?: string;
 }
 export function listStatusRepos(ctx: MacContext): StatusRepo[] {
   try {
@@ -68,7 +80,8 @@ export function listStatusRepos(ctx: MacContext): StatusRepo[] {
         !isAbsolute(item.path) ||
         !(item.lastCommit === null || /^[0-9a-f]{40}$/.test(item.lastCommit)) ||
         !(item.format === undefined || item.format === 2) ||
-        !(item.formatCommit === undefined || /^[0-9a-f]{40}$/.test(item.formatCommit))
+        !(item.formatCommit === undefined || /^[0-9a-f]{40}$/.test(item.formatCommit)) ||
+        !(item.companyId === undefined || UUID_PATTERN.test(item.companyId))
       )
         throw new Error('Danh sách repo không hợp lệ');
       return item as StatusRepo;
@@ -115,8 +128,10 @@ function mutateRepos(ctx: MacContext, mutate: (repos: StatusRepo[]) => StatusRep
     rmdirSync(lock);
   }
 }
-export function addStatusRepo(ctx: MacContext, projectId: string, path: string): void {
+export function addStatusRepo(ctx: MacContext, projectId: string, path: string, companyId?: string): void {
   if (!UUID_PATTERN.test(projectId)) throw new Error('projectId phải là UUID hợp lệ');
+  if (companyId !== undefined && !UUID_PATTERN.test(companyId))
+    throw new Error('company phải là UUID hợp lệ');
   if (!isAbsolute(path)) throw new Error('Đường dẫn repo phải tuyệt đối');
   const canonical = realpathSync(path);
   if (!statSync(canonical).isDirectory()) throw new Error('Đường dẫn không phải repo git');
@@ -127,7 +142,7 @@ export function addStatusRepo(ctx: MacContext, projectId: string, path: string):
     throw new Error('Đường dẫn không phải repo git');
   mutateRepos(ctx, (repos) => [
     ...repos.filter((repo) => repo.projectId !== projectId),
-    { projectId, path: canonical, lastCommit: null },
+    { projectId, path: canonical, lastCommit: null, ...(companyId ? { companyId } : {}) },
   ]);
 }
 export function removeStatusRepo(ctx: MacContext, projectId: string): void {
@@ -139,6 +154,10 @@ function writePrivate(path: string, value: unknown): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   writeFileSync(path, `${JSON.stringify(value)}\n`, { mode: 0o600 });
   chmodSync(path, 0o600);
+}
+
+export function writeStatusConfig(ctx: MacContext, config: StatusConfig): void {
+  writePrivate(statusPath(ctx), config);
 }
 
 export function readStatusConfig(ctx: MacContext): StatusConfig | null {
@@ -177,10 +196,10 @@ export function saveConfiguredClaudePath(ctx: MacContext): void {
     writePrivate(statusPath(ctx), { ...config, claudePath });
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function configureStatus(ctx: MacContext, url: string, companyId: string): StatusConfig {
-  if (!UUID_PATTERN.test(companyId)) throw new Error('company phải là UUID hợp lệ');
+/** Origin HTTP(S) của Paperclip, không user/pass/query/hash/path; sai thì ném. */
+export function normalizeStatusUrl(url: string): string {
   const parsed = new URL(url);
   if (
     !['http:', 'https:'].includes(parsed.protocol) ||
@@ -192,28 +211,33 @@ export function configureStatus(ctx: MacContext, url: string, companyId: string)
   ) {
     throw new Error('URL phải là origin HTTP(S) của Paperclip');
   }
-  const config = {
-    url: parsed.origin,
+  return parsed.origin;
+}
+
+export function configureStatus(ctx: MacContext, url: string, companyId: string): StatusConfig {
+  if (!UUID_PATTERN.test(companyId)) throw new Error('company phải là UUID hợp lệ');
+  const origin = normalizeStatusUrl(url);
+  const previous = readStatusConfig(ctx);
+  const config: StatusConfig = {
+    url: origin,
     companyId,
-    machineId: readStatusConfig(ctx)?.machineId ?? randomUUID(),
-    claudePath: resolveClaudePath(ctx.home) ?? readStatusConfig(ctx)?.claudePath,
+    machineId: previous?.machineId ?? randomUUID(),
+    claudePath: resolveClaudePath(ctx.home) ?? previous?.claudePath,
   };
+  // Đã có nhiều đích: config chỉ thay đích dùng service cũ (đứng đầu), các đích `add-target` giữ nguyên.
+  if (Array.isArray(previous?.targets))
+    config.targets = [
+      { url: origin, companyId, keychainService: LEGACY_KEYCHAIN_SERVICE },
+      ...targetsOf(previous).filter(
+        (target) => target.keychainService !== LEGACY_KEYCHAIN_SERVICE && target.companyId !== companyId,
+      ),
+    ];
   writePrivate(statusPath(ctx), config);
   return config;
 }
 
 export async function setStatusSecret(ctx: MacContext, input: string): Promise<void> {
-  const secret = input.replace(/\r?\n$/, '');
-  if (!secret || secret.includes('\n') || secret.includes('\r'))
-    throw new Error('Secret phải có đúng một dòng');
-  // Secret không lên argv (process cùng user đọc được argv qua `ps`): `security -i` đọc lệnh từ stdin. Trong cú pháp
-  // của nó, chuỗi trong nháy kép thoát `\` và `"` bằng gạch chéo ngược (đã thử với `$`, `` ` ``, `'`, dấu cách).
-  const quoted = `"${secret.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
-  const result = await ctx.runner.run('security', ['-i'], {
-    timeoutMs: 10_000,
-    input: `add-generic-password -U -s crew-mac-status -a crew-mac -w ${quoted}\n`,
-  });
-  if (result.code !== 0) throw new Error('Không ghi được secret vào Keychain');
+  await writeKeychainSecret(ctx, LEGACY_KEYCHAIN_SERVICE, input);
 }
 
 /** Chỉ tên/mã lỗi, không lấy message vì có thể chứa secret hay URL. */
@@ -223,68 +247,131 @@ function errorKind(error: unknown): string {
   return error instanceof Error ? error.name : 'lỗi không rõ';
 }
 
-export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<void> {
+function keychainFailure(read: KeychainRead): string {
+  return read.ok ? '' : `Keychain${read.timedOut ? ' quá hạn' : ` mã ${read.code}`}`;
+}
+
+interface TargetOutcome {
+  companyId: string;
+  ok: boolean;
+  httpStatus: number | null;
+}
+
+/** Gửi bản tin máy tới một đích; lỗi chỉ in một dòng có company id, không có secret, URL hay message lỗi. */
+async function sendReportTo(
+  ctx: MacContext,
+  target: StatusTarget,
+  report: () => Promise<MachineReport>,
+  fetcher: typeof fetch,
+  label: string,
+): Promise<TargetOutcome> {
   let httpStatus: number | null = null;
-  let failureMessage = 'crew-mac status: gửi thất bại; kiểm tra cấu hình và secret';
-  let machineFailed = false;
+  let failureMessage = 'crew-mac status: gửi thất bại';
   try {
-    const config = readStatusConfig(ctx);
-    if (!config) throw new Error('config');
-    if (!config.companyId) {
-      failureMessage = 'crew-mac status: thiếu companyId; chạy status config --company <UUID>';
-      throw new Error('company');
-    }
-    const found = await ctx.runner.run('security', ['find-generic-password', '-s', 'crew-mac-status', '-w'], {
-      timeoutMs: 10_000,
-    });
-    const secret = found.stdout.replace(/\r?\n$/, '');
-    if (found.code !== 0 || !secret) {
-      failureMessage = `crew-mac status: gửi thất bại (Keychain${found.timedOut ? ' quá hạn' : ` mã ${found.code}`}); kiểm tra secret`;
+    const secret = await readKeychainSecret(ctx, target.keychainService);
+    if (!secret.ok) {
+      failureMessage = `crew-mac status: gửi thất bại (${keychainFailure(secret)}); kiểm tra secret`;
       throw new Error('keychain');
     }
     failureMessage = 'crew-mac status: gửi thất bại (dựng bản tin máy)';
-    const body = JSON.stringify(await buildMachineReport(ctx, config.companyId, config.machineId));
+    const body = JSON.stringify({ ...(await report()), companyId: target.companyId });
     failureMessage = 'crew-mac status: gửi thất bại (kết nối tới Paperclip)';
-    const response = await fetcher(`${config.url}/api/plugins/crew.core/webhooks/machine-status`, {
+    const response = await fetcher(`${target.url}/api/plugins/crew.core/webhooks/machine-status`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...signCrewBody(body, secret, Math.floor(ctx.now().getTime() / 1000)),
+        ...signCrewBody(body, secret.secret, Math.floor(ctx.now().getTime() / 1000)),
       },
       body,
       signal: AbortSignal.timeout(10_000),
     });
     httpStatus = response.status;
     if (response.status < 200 || response.status >= 300) throw new Error('http');
-    writePrivate(lastPath(ctx), { at: ctx.now().toISOString(), ok: true, httpStatus });
+    return { companyId: target.companyId, ok: true, httpStatus };
   } catch (error) {
-    machineFailed = true;
     if (httpStatus === null && failureMessage.endsWith('(kết nối tới Paperclip)'))
       failureMessage = `${failureMessage.slice(0, -1)}: ${errorKind(error)})`;
-    writePrivate(lastPath(ctx), { at: ctx.now().toISOString(), ok: false, httpStatus });
-    ctx.out(httpStatus === null ? failureMessage : `crew-mac status: gửi thất bại (HTTP ${httpStatus})`);
+    ctx.out(
+      `${httpStatus === null ? failureMessage : `crew-mac status: gửi thất bại (HTTP ${httpStatus})`}${label}`,
+    );
+    return { companyId: target.companyId, ok: false, httpStatus };
   }
+}
+
+/**
+ * Gửi bản tin máy cho từng đích (cùng `machineId`, `companyId` của đích), rồi ảnh chụp docs. Một đích lỗi không chặn
+ * đích khác; có lỗi thì ném `StatusSendError` sau khi đã thử hết.
+ */
+export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<void> {
+  const config = readStatusConfig(ctx);
+  const targets = targetsOf(config);
+  let outcomes: TargetOutcome[] = [];
+  if (!config) {
+    ctx.out('crew-mac status: gửi thất bại; kiểm tra cấu hình và secret');
+  } else if (targets.length === 0) {
+    ctx.out('crew-mac status: thiếu companyId; chạy status config --company <UUID>');
+  } else {
+    // Dựng bản tin một lần (doctor, sysctl, quét checkout) cho mọi đích.
+    let built: Promise<MachineReport> | null = null;
+    const report = () => {
+      built ??= buildMachineReport(ctx, (targets[0] as StatusTarget).companyId, config.machineId);
+      return built;
+    };
+    for (const target of targets)
+      outcomes.push(
+        await sendReportTo(
+          ctx,
+          target,
+          report,
+          fetcher,
+          targets.length > 1 ? ` [company ${target.companyId}]` : '',
+        ),
+      );
+  }
+  if (outcomes.length === 0) outcomes = [{ companyId: '', ok: false, httpStatus: null }];
+  const failed = outcomes.find((outcome) => !outcome.ok);
+  writePrivate(lastPath(ctx), {
+    at: ctx.now().toISOString(),
+    ok: !failed,
+    httpStatus: (failed ?? outcomes.at(-1))?.httpStatus ?? null,
+    ...(outcomes.length > 1 || outcomes[0]?.companyId
+      ? { targets: outcomes.filter((o) => o.companyId) }
+      : {}),
+  });
   let docsFailed = false;
   try {
     docsFailed = !(await sendDocsSnapshots(ctx, fetcher));
   } catch {
     docsFailed = true;
   }
-  if (machineFailed || docsFailed) throw new StatusSendError('Gửi trạng thái thất bại');
+  if (failed || docsFailed) throw new StatusSendError('Gửi trạng thái thất bại');
 }
 
 export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<boolean> {
   const repos = listStatusRepos(ctx);
   if (repos.length === 0) return true;
   const config = readStatusConfig(ctx);
-  if (!config?.companyId) throw new Error('Thiếu companyId');
-  const found = await ctx.runner.run('security', ['find-generic-password', '-s', 'crew-mac-status', '-w'], {
-    timeoutMs: 10_000,
-  });
-  const secret = found.stdout.replace(/\r?\n$/, '');
-  if (found.code !== 0 || !secret) throw new Error('Không đọc được secret Keychain');
+  const targets = targetsOf(config);
+  if (!config || targets.length === 0) throw new Error('Thiếu companyId');
+  const secrets = new Map<string, Promise<KeychainRead>>();
   let success = true;
   for (const repo of repos) {
+    const target = repo.companyId
+      ? targets.find((candidate) => candidate.companyId === repo.companyId)
+      : targets[0];
+    if (!target) {
+      success = false;
+      ctx.out(`crew-mac status: repo ${repo.projectId} thuộc company không có trong đích gửi; bỏ qua.`);
+      continue;
+    }
+    if (!secrets.has(target.keychainService))
+      secrets.set(target.keychainService, readKeychainSecret(ctx, target.keychainService));
+    const secret = await secrets.get(target.keychainService);
+    if (!secret?.ok) {
+      success = false;
+      ctx.out(`crew-mac status: không đọc được secret Keychain cho ảnh chụp docs của ${repo.projectId}.`);
+      continue;
+    }
     try {
       const selected = await snapshotCommit(repo.path);
       const { commit } = selected;
@@ -304,7 +391,7 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
       const payload = {
         version: 1,
         format: 2,
-        companyId: config.companyId,
+        companyId: target.companyId,
         machineId: config.machineId,
         projectId: repo.projectId,
         repo: basename(repo.path),
@@ -324,11 +411,11 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
         success = false;
         continue;
       }
-      const response = await fetcher(`${config.url}/api/plugins/crew.core/webhooks/docs-snapshot`, {
+      const response = await fetcher(`${target.url}/api/plugins/crew.core/webhooks/docs-snapshot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...signCrewBody(body, secret, Math.floor(ctx.now().getTime() / 1000)),
+          ...signCrewBody(body, secret.secret, Math.floor(ctx.now().getTime() / 1000)),
         },
         body,
         signal: AbortSignal.timeout(10_000),

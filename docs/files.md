@@ -67,9 +67,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/sshd-config.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/sshd-owner.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/app-state.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/status/checkouts.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/docs.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/report.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/sign.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/status/targets.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/tcc.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/tailscale.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -113,6 +115,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/files/stats.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/worker.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/fixtures/attachments/make-fixtures.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/fixtures/claude-local-parse.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/install-cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/launcher.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
@@ -123,7 +126,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/setup.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/sshd-owner.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-app.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/status-checkouts.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-docs.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/status-targets.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-tcc.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/stop-run.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
@@ -138,6 +143,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/workflows-inventory.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-pin.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-registry.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
+| `apps/crew-mac/test/wrapper-stub.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/mac-app/electron-builder.yml` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/scripts/release-lib.mjs` | [mac-app-update](flows/mac-app-update.md) (file) |

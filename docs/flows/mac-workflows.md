@@ -104,6 +104,24 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
      file), thường muộn 0,3–2 giây. Trong khe này H3 `crew-mac stop-run` chưa thấy `pgid` và cũng chưa có `claude` để
      bắt, nên run có thể vẫn `exec claude` sau lệnh dừng; reaper dọn nó khi quá ngưỡng mồ côi (60 giây). `started`
      vẫn là thời điểm sinh process nên hợp đồng với reaper không đổi.
+   - **Chế độ stub cho nghiệm thu** (cuối khối `PAPERCLIP_RUN_ID`, sau `workflow-check` và sau `pgid`/`started`/
+     `.in_use`, nên H3 và reaper vẫn thấy run): wrapper `exec` stub thay cho `claude` chỉ khi đủ **cả hai** điều kiện:
+     1. đường thật của thư mục run (`pwd -P`) nằm dưới `<HOME thật>/crew-agents/e2e-*` (HOME cũng quy về đường thật
+        bằng `cd "$HOME" && pwd -P`, vì trên macOS tmp hay HOME có thể đi qua symlink);
+     2. git dir của checkout (`git rev-parse --absolute-git-dir`, với worktree là `.git/worktrees/<n>`) có tệp
+        `crew-e2e-stub`.
+
+     Symlink `crew-agents/e2e-x` trỏ sang checkout thật thì `pwd -P` ra đường của checkout thật, không có tiền tố, nên
+     không stub: agent không thể tự bật stub để né việc trên project thật, và stub **không bao giờ dùng cho project
+     thật** (wizard web từ chối khóa `e2e-*` ở company khác Crew E2E). Không có `PAPERCLIP_RUN_ID` hoặc
+     `workflow-check` từ chối thì không tới bước này.
+   - Stub `apps/crew-mac/assets/crew-e2e-stub.sh <tệp đánh dấu>` (mặc định
+     `~/.crew/app/crew-mac/assets/crew-e2e-stub.sh`, bản crew-mac app cài; `CREW_E2E_STUB_BIN` chỉ cho test): đọc số
+     giây ở dòng đầu tệp (chỉ giữ chữ số; rỗng thì 5; trên 900 thì 900), ngủ, in đúng một dòng stream-json
+     `{"type":"result","subtype":"success","is_error":false,"result":"crew-e2e-stub","session_id":"crew-e2e-stub","total_cost_usd":0}`
+     rồi thoát 0. Adapter `claude_local` đọc dòng này là run thành công (`subtype` `success`, `is_error` false), chi
+     phí 0, không gọi model. Bị TERM khi đang ngủ thì giết `sleep` con và thoát 143. Bật/tắt bằng cách ghi hoặc xóa
+     tệp đánh dấu trong git dir của checkout (Playwright làm trên chính Mac mini). `CREW_E2E_STUB_SLEEP` chỉ cho test.
 6. `apps/crew-mac/src/commands/workflow-check.ts` → `workflowCheck(ctx, { root, pluginDir })`:
    - `workflowForPluginDir` tìm workflow có thư mục ghim trùng `--plugin-dir` (so bằng `comparablePath`); đó là workflow
      của run. Không có thì một dòng `--plugin-dir <dir> không phải bản ghim của workflow nào đã chứng nhận (<thư mục
@@ -386,7 +404,8 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `bmadSetupStampPath`, `recordBmadSetup`, `worktreeWorkflowStampPath`, `recordWorktreeWorkflow`, `lastRunWorkflow`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `BMAD_SETUP_UNCOMMITTED_WARNING`, `Origin`, `DiscoveredSource` |
 | `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `selectInitWorkflow`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
 | `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
-| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`) | — |
+| `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`), chuyển sang stub khi checkout `e2e-*` có tệp đánh dấu | — |
+| `apps/crew-mac/assets/crew-e2e-stub.sh` | Stub nghiệm thu: ngủ theo tệp đánh dấu rồi in một dòng kết quả stream-json, không gọi model | — |
 
 ## Dữ liệu
 
@@ -489,6 +508,12 @@ cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ 
   đụng; chạy hai lần; `isAlive` mặc định; `workflows gc` (đầu ra, thừa đối số thoát 2) và `install` dọn sau khi cài.
 - `apps/crew-mac/test/crew-claude-run.test.ts` (flow `mac-setup` liệt kê đủ): câu lỗi khi số `--plugin-dir` khác một;
   dấu `.in_use/<runId>` (pid của `claude`, `started` của run), không ghi khi run id lạ, ghi lỗi không chặn run.
+- `apps/crew-mac/test/wrapper-stub.test.ts` (chạy wrapper thật với HOME giả không realpath, `crew-mac`/`claude` giả,
+  stub thật): `e2e-*` có tệp đánh dấu thì stdout đúng `test/fixtures/stream-json-result.txt`, không chạy `claude`, thoát
+  0; dòng đó qua hàm parse chép từ adapter `claude_local` (`test/fixtures/claude-local-parse.ts`, ghi nguồn fork) là run
+  thành công; thiếu tệp, thiếu tiền tố, symlink `e2e-link` trỏ checkout thật, không có `PAPERCLIP_RUN_ID` thì chạy
+  `claude`; `workflow-check` từ chối thì thoát 78, không stub; tệp `abc`/rỗng → 5 giây, `9999` → 900, `7` → 7 (đo bằng
+  `CREW_E2E_STUB_SLEEP=echo`); TERM khi đang ngủ thì thoát 143.
 - `apps/crew-mac/test/bmad-epics.test.ts` (fixture `test/fixtures/bmad/epics-{ok,gap,wrong-epic,no-ac}.md`): file chuẩn
   (epic, goal, story, tiêu chí Given/When/Then/And, body); số story nhảy; story dưới epic khác (không tính hai lần);
   thiếu Acceptance Criteria; đúng 30 đạt, 31 vượt trần; không có epic; epic nhảy số, epic rỗng, story ngoài epic, tên

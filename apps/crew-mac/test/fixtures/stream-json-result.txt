@@ -1,0 +1,1 @@
+{"type":"result","subtype":"success","is_error":false,"result":"crew-e2e-stub","session_id":"crew-e2e-stub","total_cost_usd":0}

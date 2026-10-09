@@ -35,7 +35,9 @@ export { DEFAULT_PORT, forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL 
 export { listProcesses, type ProcInfo, readCwds } from './reaper/process-table.js';
 export { isClaudePrint } from './reaper/select.js';
 export { isCrewListener, readSshdPid, type SshdOwner } from './sshd-owner.js';
-export { type AppReport, readAppState } from './status/app-state.js';
+export { type AppReport, type JobsAgentReport, readAppState, readJobsAgent } from './status/app-state.js';
+export { type CheckoutInfo, scanCheckouts } from './status/checkouts.js';
+export { addTarget, listTargets, type StatusTarget } from './status/targets.js';
 export { type CommandRunner, createRunner } from './system.js';
 export { type BmadInstallResult, installBmadPin } from './workflows/bmad-install.js';
 export { BMAD_PIN, BMAD_PLUGIN_JSON, BMAD_SOURCE, type BmadSource } from './workflows/bmad-pin.js';

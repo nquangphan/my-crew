@@ -82,7 +82,7 @@ describe('crew-mac status', () => {
     );
     expect([report.load1, report.cpuCount, report.memFreePct]).toEqual([null, null, null]);
     expect(report.claude).toEqual({ version: null, loggedIn: null, plan: null });
-    expect(report.superpowers).toEqual({ pinned: null, ownerInstalled: null });
+    expect(report.superpowers).toEqual({ pinned: null, ownerInstalled: null, pinDir: null });
     expect(report.tccPending).toEqual([]);
     expect(Array.isArray(report.checks)).toBe(true);
   });

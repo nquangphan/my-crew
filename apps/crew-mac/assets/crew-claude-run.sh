@@ -8,7 +8,7 @@
 # Superpowers or BMAD) and nothing from outside the allow-list: `crew-mac workflow-check` decides, and any refusal
 # exits 78 without starting the agent. An accepted run leaves <plugin_dir>/.in_use/<run id> ("<pid> <started>") so
 # the pin GC keeps that copy while the run lives; failing to write it never blocks the run.
-# CREW_MAC_BIN and CREW_CLAUDE_BIN exist for tests only.
+# CREW_MAC_BIN, CREW_CLAUDE_BIN and CREW_E2E_STUB_BIN exist for tests only.
 if [ -n "${PAPERCLIP_RUN_ID:-}" ]; then
   plugin_dir=""
   plugin_dirs=0
@@ -51,6 +51,20 @@ if [ -n "${PAPERCLIP_RUN_ID:-}" ]; then
       if mkdir -p "$plugin_dir/.in_use" 2>/dev/null; then
         printf '%s %s\n' "$$" "$(cat "$dir/started" 2>/dev/null || echo 0)" 2>/dev/null > "$plugin_dir/.in_use/$PAPERCLIP_RUN_ID.tmp" \
           && mv "$plugin_dir/.in_use/$PAPERCLIP_RUN_ID.tmp" "$plugin_dir/.in_use/$PAPERCLIP_RUN_ID" 2>/dev/null
+      fi
+      ;;
+  esac
+  # Acceptance-test stub: never calls the model. Runs only when the REAL path of the checkout is under
+  # $HOME/crew-agents/e2e-* AND its git dir holds a crew-e2e-stub marker (an agent cannot reach this from a real
+  # project: a symlinked e2e-* path resolves to the real checkout). Placed after workflow-check and the process-group
+  # record so the server (H3) and the reaper still see this run.
+  real_pwd=$(pwd -P)
+  real_home=$(cd "$HOME" 2>/dev/null && pwd -P)
+  case "$real_pwd" in
+    "$real_home"/crew-agents/e2e-*)
+      gitdir=$(git -C "$real_pwd" rev-parse --absolute-git-dir 2>/dev/null || true)
+      if [ -n "$real_home" ] && [ -n "$gitdir" ] && [ -f "$gitdir/crew-e2e-stub" ]; then
+        exec "${CREW_E2E_STUB_BIN:-$HOME/.crew/app/crew-mac/assets/crew-e2e-stub.sh}" "$gitdir/crew-e2e-stub"
       fi
       ;;
   esac
