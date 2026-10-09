@@ -51,6 +51,8 @@ export function macPaths(home: string) {
     workflowsRoot: join(home, '.crew', 'workflows'),
     wrapper: join(home, '.crew', 'bin', 'crew-claude-run'),
     launcher: join(home, '.crew', 'bin', 'crew-mac'),
+    /** File trạng thái của app 2P Crew; crew-mac chỉ đọc. */
+    appState: join(home, 'Library', 'Application Support', '2P Crew', 'app.json'),
     defaultWorktreeRoot: join(home, 'crew-agents'),
   };
 }

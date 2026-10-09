@@ -1,0 +1,35 @@
+import { readFileSync } from 'node:fs';
+
+export const UPDATE_STATES = [
+  'idle',
+  'downloading',
+  'waiting-idle',
+  'installing',
+  'probation',
+  'rolled-back',
+] as const;
+
+/** Phần của `app.json` mà bản tin máy gửi lên; crew-mac không import kiểu từ app. */
+export interface AppReport {
+  version: string;
+  sshdOwner: 'app' | 'launchd';
+  updateState: (typeof UPDATE_STATES)[number];
+}
+
+const SEMVER = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
+
+/** Đọc ba trường từ `app.json`; file thiếu, hỏng hay sai dạng thì null (bản tin không có trường `app`). */
+export function readAppState(path: string): AppReport | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  const { appVersion, sshdOwner, updateState } = raw as Record<string, unknown>;
+  if (typeof appVersion !== 'string' || appVersion.length > 32 || !SEMVER.test(appVersion)) return null;
+  if (sshdOwner !== 'app' && sshdOwner !== 'launchd') return null;
+  if (!UPDATE_STATES.includes(updateState as AppReport['updateState'])) return null;
+  return { version: appVersion, sshdOwner, updateState: updateState as AppReport['updateState'] };
+}

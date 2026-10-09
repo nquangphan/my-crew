@@ -116,7 +116,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`), `SetupError` |
 | `apps/crew-mac/src/context-factory.ts` | Dựng `MacContext` dùng chung cho CLI và app (`cliPath` do người gọi truyền) | `createMacContext`, `stableNodePath` |
 | `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, reaper, manifest, paths |
-| `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
+| `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows` và `appState` = `~/Library/Application Support/2P Crew/app.json`, file của app, crew-mac chỉ đọc) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
 | `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt (kể cả `sshdOwner` tùy chọn) | `readManifest`, `writeManifest` |
 | `apps/crew-mac/src/sshd-owner.ts` | Chủ sshd agent: chuyển sang app, trả về LaunchAgent, đọc listener theo pidfile | `SshdOwner`, `resolveSshdOwner`, `handOffToApp`, `takeBackToLaunchd`, `probeListener`, `isCrewListener`, `APP_BUNDLE_ID` |
@@ -134,7 +134,8 @@ không cần token và không login lại.
 | `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers`, `assertNoLiveRuns` (setup dùng khi đổi chủ sshd) |
 | `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook | `configureStatus`, `setStatusSecret`, `sendStatus` |
 | `apps/crew-mac/src/status/sign.ts` | Ký raw body | `signCrewBody` |
-| `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 | `buildMachineReport` |
+| `apps/crew-mac/src/status/report.ts` | Thu bản tin máy v1 (kèm trường `app` tùy chọn) | `buildMachineReport`, `MachineReport` |
+| `apps/crew-mac/src/status/app-state.ts` | Đọc ba trường `appVersion`, `sshdOwner`, `updateState` từ `app.json` của app (chỉ đọc) | `readAppState`, `AppReport`, `UPDATE_STATES` |
 | `apps/crew-mac/src/status/tcc.ts` | Probe TCC nối tiếp riêng cho status; checkpoint `~/.crew/status-tcc.json` (0600), lần đầu quét 2 giờ, các lần sau bắt đầu từ mốc đã quét trừ 5 giây theo giờ địa phương kèm offset mà `log show` yêu cầu; giữ `msgId` để ghép kết quả đến ở lượt sau; timeout 20 giây ở lần đầu vẫn ghi checkpoint rỗng và cảnh báo bắt đầu theo dõi, các lần sau giữ nguyên state và thêm cảnh báo | `probeStatusTcc`, `updateTccPending` |
 | `apps/crew-mac/src/status/docs.ts` | Đọc docs tại commit, kiểm chuẩn và secret-scan | `snapshotCommit`, `buildDocsSnapshot` |
 
@@ -155,6 +156,16 @@ chỉ gửi `id`, `status` và `title` của từng check. JSON tối đa 16 KB,
 `<timestamp>.<raw body>` trong header `X-Crew-Signature`, với `X-Crew-Timestamp` là giây Unix.
 Gửi tới `{url}/api/plugins/crew.core/webhooks/machine-status` qua POST, hạn chờ 10 giây. Mọi mã HTTP ngoài
 2xx là thất bại; `status-last.json` ghi `{at, ok: false, httpStatus}` khi server từ chối.
+
+### Trường `app` (phiên bản app 2P Crew)
+
+Nếu `~/Library/Application Support/2P Crew/app.json` (`macPaths().appState`) đọc được và hợp lệ, bản tin máy có thêm
+`"app": { "version", "sshdOwner", "updateState" }`, lấy từ `appVersion`, `sshdOwner`, `updateState` của file. `version`
+là semver ≤ 32 ký tự, `sshdOwner` là `app` hoặc `launchd`, `updateState` thuộc `idle`, `downloading`, `waiting-idle`,
+`installing`, `probation`, `rolled-back`. File thiếu, JSON hỏng hay giá trị lạ thì bản tin không có key `app` (không
+lỗi), `version` bản tin vẫn là 1. crew-mac chỉ đọc file này, không bao giờ ghi vào thư mục của app. Plugin phía server
+từ chối (502) khi trường `app` có mà sai dạng, nên chỉ máy đã chạy app mới gửi trường này, sau khi plugin đã được
+triển khai bản nhận trường `app`.
 
 ## Ảnh chụp docs
 
@@ -211,6 +222,7 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/uninstall.test.ts`: gỡ phần spike rồi setup lại, gỡ đúng phần đã cài (giữ `~/.crew` của crewd), chạy lại không lỗi, từ chối khi còn run Paperclip hoặc không đọc được bảng process (`--force` bỏ qua), `claude -p` thủ công (có tty) không tính là run, env không đọc được, claude cài npm chạy dưới tên `node`, phiên sshd còn sống; chế độ app không bootout sshd, không kill listener, báo cách dừng, và phiên SSH dưới listener của app thì từ chối.
 - `apps/crew-mac/test/index.test.ts`: thư viện export đủ hàm app cần; `createMacContext` giữ `cliPath` được truyền.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs`, mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip, chặn `setup --sshd-owner` qua chính sshd agent (`--force` thì chạy), `--sshd-owner` giá trị lạ.
+- `apps/crew-mac/test/status-app.test.ts`: `readAppState` (đủ ba trường, mọi `updateState`, file thiếu/hỏng/giá trị lạ/quá 32 ký tự thì null) và bản tin có hoặc không có key `app`.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.
 - `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
 - `apps/crew-mac/test/status.test.ts` báo rõ bước thất bại của `status send` (Keychain, kết nối) mà không lộ secret; `system-wrappers.test.ts` có ca Tailscale dưới PATH tối thiểu.

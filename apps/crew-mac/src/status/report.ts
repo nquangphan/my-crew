@@ -3,8 +3,10 @@ import { hostname } from 'node:os';
 import { doctor, parseLoad } from '../commands/doctor.js';
 import { readStatusConfig, resolveClaudePath } from '../commands/status.js';
 import type { MacContext } from '../context.js';
+import { macPaths } from '../paths.js';
 import { readInstalledPlugins } from '../workflows/install.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
+import { type AppReport, readAppState } from './app-state.js';
 import { probeStatusTcc } from './tcc.js';
 
 export interface MachineReport {
@@ -20,6 +22,7 @@ export interface MachineReport {
   claude: { version: string | null; loggedIn: boolean | null; plan: string | null };
   superpowers: { pinned: string | null; ownerInstalled: string | null };
   checks: { id: string; status: 'ok' | 'warn' | 'error'; title: string }[];
+  app?: AppReport;
 }
 
 function bounded(value: number, min: number, max: number): number | null {
@@ -60,6 +63,7 @@ export async function buildMachineReport(
   } catch {
     /* không đọc được probe */
   }
+  const app = readAppState(macPaths(ctx.home).appState);
   const report: MachineReport = {
     version: 1,
     companyId,
@@ -91,6 +95,7 @@ export async function buildMachineReport(
       })),
       ...(tcc.check ? [tcc.check] : []),
     ],
+    ...(app ? { app } : {}),
   };
   if (Buffer.byteLength(JSON.stringify(report)) > 16 * 1024) throw new Error('Bản tin máy vượt quá 16 KB');
   return report;
