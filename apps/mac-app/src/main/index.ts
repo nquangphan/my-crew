@@ -10,6 +10,9 @@ import { AppStateStore } from './app-state.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
+import { registerPaperclip } from './paperclip/register.js';
+import { registerHealth } from './register-health.js';
+import { registerSetup } from './setup/register.js';
 import { registerSshd } from './sshd/register.js';
 import { CrewTray } from './tray.js';
 import { createMainWindow } from './window.js';
@@ -101,10 +104,10 @@ async function start(): Promise<void> {
     return undefined;
   });
   store.onChange(() => window?.webContents.send(STATE_CHANGED_EVENT));
-  registerSshd(ctx); // trả SshdSupervisor: ticket cần thì đổi thành `const sshd = registerSshd(ctx)`
-  // registerHealth(ctx);    // AP-3 (health, runs, logs, notifications)
-  // registerSetup(ctx);     // AP-5, AP-6
-  // registerPaperclip(ctx); // AP-4, PJ-1, PJ-2
+  const sshd = registerSshd(ctx);
+  const health = registerHealth(ctx, sshd);
+  registerPaperclip(ctx);
+  registerSetup(ctx, sshd, health); // AP-5; AP-6 thêm bước v2, move trong register.ts
   // registerUpdate(ctx);    // UPD-1
   void ctx;
 

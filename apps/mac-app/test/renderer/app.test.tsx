@@ -3,7 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { App, routeFromHash } from '../../src/renderer/app';
 
-const invoke = vi.fn(async () => ({ ok: true, result: { version: '0.1.0', platform: 'darwin' } }));
+const answers: Record<string, unknown> = {
+  'app:info': { version: '0.1.0', platform: 'darwin' },
+  'health:last': null,
+  'logs:tail': [],
+};
+const invoke = vi.fn(async (channel: string) => ({ ok: true, result: answers[channel] }));
 
 beforeEach(() => {
   window.location.hash = '';

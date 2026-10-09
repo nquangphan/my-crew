@@ -73,6 +73,9 @@ function guard(runsSeq: number[], answers: QuitChoice[], sleep: () => Promise<vo
     showWaiting: (n) => {
       calls.push(`waiting:${n}`);
     },
+    hideWaiting: () => {
+      calls.push('hideWaiting');
+    },
     sleep,
     log: () => undefined,
   };
@@ -139,7 +142,7 @@ describe('installQuitGuard', () => {
     expect(g.calls).toEqual(['ask:2', 'pause', 'waiting:2']);
     g.fire();
     await flush();
-    expect(g.calls.slice(3, 5)).toEqual(['ask:2', 'resume']);
+    expect(g.calls.slice(3, 6)).toEqual(['ask:2', 'resume', 'hideWaiting']);
     expect(g.calls).not.toContain('quit');
   });
 

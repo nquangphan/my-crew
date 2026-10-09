@@ -53,6 +53,8 @@ export interface QuitGuardDeps {
   resume(): Promise<void>;
   /** Tray "Đang chờ N run". */
   showWaiting(activeRuns: number | null): void;
+  /** Bỏ nhãn "Đang chờ N run" khi owner hủy việc chờ. */
+  hideWaiting?(): void;
   sleep(ms: number): Promise<void>;
   log(level: 'info' | 'warn' | 'error', event: string, fields?: Record<string, unknown>): void;
 }
@@ -117,6 +119,7 @@ export function installQuitGuard(deps: QuitGuardDeps): void {
       if (wasWaiting) {
         waitToken += 1;
         await deps.resume().catch(fail('quit-resume-sshd-failed'));
+        deps.hideWaiting?.();
       }
       phase = 'idle';
     }

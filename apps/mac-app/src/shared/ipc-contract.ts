@@ -1,5 +1,6 @@
 import type { CheckResult } from '@crew/mac';
 import type { AppState, ProjectProgress, SetupStep, UpdateState } from '../main/app-state.js';
+import type { ExistingMachine } from '../main/setup/import-existing.js';
 
 /**
  * Hợp đồng IPC giữa renderer và Main (Interface I5). AP-1 khai đủ mọi kênh; mỗi ticket sau cài handler của
@@ -55,6 +56,8 @@ export interface UpdateView {
   lastCheckedAt: string | null;
 }
 
+export type HealthAction = 'open-privacy' | 'open-terminal';
+
 export type LogFile = 'app' | 'sshd' | 'reaper' | 'status';
 
 export interface AppInfo {
@@ -67,13 +70,19 @@ export interface IpcApi {
   'app:info': { args: []; result: AppInfo };
   'app:reportError': { args: [report: { kind: string; message: string; stack?: string }]; result: undefined };
   'health:run': { args: [probe: boolean]; result: CheckResult[] };
+  /** Việc phụ của màn hình Sức khỏe: mở pane quyền của macOS hoặc Terminal. */
+  'health:action': { args: [action: HealthAction]; result: undefined };
   'health:last': { args: []; result: { at: string; results: CheckResult[] } | null };
   'runs:list': { args: []; result: ActiveRun[] };
   'runs:cancel': { args: [runId: string]; result: { ok: boolean; message: string } };
+  /** Mở trang run trên web Paperclip trong trình duyệt. */
+  'runs:openWeb': { args: [runId: string]; result: { ok: boolean; message: string } };
   'logs:tail': { args: [file: LogFile, lines: number, runId?: string]; result: string[] };
   'logs:reveal': { args: [file: LogFile]; result: undefined };
   'setup:state': { args: []; result: AppState['setup'] };
   'setup:step': { args: [step: SetupStep, input: unknown]; result: StepResult };
+  /** Máy này đã có cài đặt crew-mac chưa (wizard hiện "Nhận cài đặt có sẵn" hay ô nhập key). Chỉ đọc. */
+  'setup:detect': { args: []; result: ExistingMachine };
   'paperclip:login': { args: [origin: string]; result: { approvalUrl: string } };
   'paperclip:loginStatus': { args: []; result: 'pending' | 'approved' | 'expired' | 'cancelled' };
   'paperclip:companies': { args: []; result: { id: string; name: string }[] };
@@ -96,12 +105,15 @@ export const IPC_CHANNELS = [
   'app:reportError',
   'health:run',
   'health:last',
+  'health:action',
   'runs:list',
   'runs:cancel',
+  'runs:openWeb',
   'logs:tail',
   'logs:reveal',
   'setup:state',
   'setup:step',
+  'setup:detect',
   'paperclip:login',
   'paperclip:loginStatus',
   'paperclip:companies',

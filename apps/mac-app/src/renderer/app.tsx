@@ -1,6 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { PageHeader } from './components/ui';
 import { invoke } from './lib/ipc';
+import { HealthScreen } from './routes/health';
+import { LogsScreen } from './routes/logs';
+import { RunsScreen } from './routes/runs';
+import { SetupScreen } from './routes/setup';
 
 export interface RouteDef {
   id: string;
@@ -17,12 +21,12 @@ function Soon({ title, ticket }: { title: string; ticket: string }) {
  * (AP-3: health/runs/logs, AP-5: setup, PJ-2: projects, UPD-1: update).
  */
 export const ROUTES: RouteDef[] = [
-  { id: 'health', label: 'Sức khỏe', render: () => <Soon title="Sức khỏe" ticket="AP-3" /> },
-  { id: 'runs', label: 'Run đang chạy', render: () => <Soon title="Run đang chạy" ticket="AP-3" /> },
-  { id: 'logs', label: 'Log', render: () => <Soon title="Log" ticket="AP-3" /> },
+  { id: 'health', label: 'Sức khỏe', render: () => <HealthScreen /> },
+  { id: 'runs', label: 'Run đang chạy', render: () => <RunsScreen /> },
+  { id: 'logs', label: 'Log', render: () => <LogsScreen /> },
   { id: 'projects', label: 'Project', render: () => <Soon title="Project" ticket="PJ-2" /> },
   { id: 'update', label: 'Cập nhật', render: () => <Soon title="Cập nhật" ticket="UPD-1" /> },
-  { id: 'setup', label: 'Cài đặt', render: () => <Soon title="Cài đặt" ticket="AP-5" /> },
+  { id: 'setup', label: 'Cài đặt', render: () => <SetupScreen /> },
 ];
 
 /** `#/health` → `health`; hash lạ về màn hình đầu. */

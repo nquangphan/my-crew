@@ -160,7 +160,21 @@ flows:
       - apps/mac-app/src/main/ops-bridge.ts
       - apps/mac-app/src/main/login-item.ts
       - apps/mac-app/src/main/tray.ts
+      - apps/mac-app/src/main/tray-state.ts
       - apps/mac-app/src/main/window.ts
+      - apps/mac-app/src/main/register-health.ts
+      - apps/mac-app/src/main/health.ts
+      - apps/mac-app/src/main/runs.ts
+      - apps/mac-app/src/main/logs.ts
+      - apps/mac-app/src/main/notifications.ts
+      - apps/mac-app/src/main/setup/register.ts
+      - apps/mac-app/src/main/setup/wizard.ts
+      - apps/mac-app/src/main/setup/types.ts
+      - apps/mac-app/src/main/setup/machine-check.ts
+      - apps/mac-app/src/main/setup/import-existing.ts
+      - apps/mac-app/src/main/setup/machine-step.ts
+      - apps/mac-app/src/main/setup/disk-access.ts
+      - apps/mac-app/src/main/setup/sshd-handoff.ts
       - apps/mac-app/src/preload/index.ts
       - apps/mac-app/src/shared/ipc-contract.ts
       - apps/mac-app/src/utility/ops.ts
@@ -170,12 +184,45 @@ flows:
       - apps/mac-app/src/renderer/styles.css
       - apps/mac-app/src/renderer/lib/ipc.ts
       - apps/mac-app/src/renderer/components/ui.tsx
+      - apps/mac-app/src/renderer/components/check-row.tsx
+      - apps/mac-app/src/renderer/routes/health.tsx
+      - apps/mac-app/src/renderer/routes/runs.tsx
+      - apps/mac-app/src/renderer/routes/logs.tsx
+      - apps/mac-app/src/renderer/routes/setup.tsx
+      - apps/mac-app/src/renderer/components/wizard-step.tsx
     tests:
+      - apps/mac-app/test/health.test.ts
+      - apps/mac-app/test/runs.test.ts
+      - apps/mac-app/test/logs.test.ts
+      - apps/mac-app/test/notifications.test.ts
+      - apps/mac-app/test/tray-state.test.ts
+      - apps/mac-app/test/renderer/health.test.tsx
       - apps/mac-app/test/app-state.test.ts
       - apps/mac-app/test/app-log.test.ts
       - apps/mac-app/test/ipc-contract.test.ts
       - apps/mac-app/test/ops-bridge.test.ts
       - apps/mac-app/test/renderer/app.test.tsx
+      - apps/mac-app/test/setup-wizard.test.ts
+      - apps/mac-app/test/setup-import.test.ts
+      - apps/mac-app/test/setup-disk-access.test.ts
+      - apps/mac-app/test/setup-sshd-handoff.test.ts
+      - apps/mac-app/test/setup-fakes.ts
+      - apps/mac-app/test/renderer/setup.test.tsx
+  mac-app-paperclip:
+    title: App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain và client REST
+    doc: docs/flows/mac-app-paperclip.md
+    entrypoints:
+      - apps/mac-app/src/main/paperclip/client.ts
+      - apps/mac-app/src/main/paperclip/register.ts
+    files:
+      - apps/mac-app/src/main/paperclip/types.ts
+      - apps/mac-app/src/main/paperclip/cli-auth.ts
+      - apps/mac-app/src/main/paperclip/keychain.ts
+    tests:
+      - apps/mac-app/test/paperclip-client.test.ts
+      - apps/mac-app/test/paperclip-cli-auth.test.ts
+      - apps/mac-app/test/paperclip-keychain.test.ts
+      - apps/mac-app/test/paperclip-fake-server.ts
   mac-app-sshd:
     title: App 2P Crew giữ sshd agent và thoát an toàn
     doc: docs/flows/mac-app-sshd.md

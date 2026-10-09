@@ -18,6 +18,17 @@ extraResources:
 files:
   - out/**
   - package.json
+# Fuse Electron lật trong binary lúc đóng gói. Board key Paperclip nằm trong Keychain qua safeStorage, mà ACL của
+# nó tin chính app này: nếu binary còn chạy được như node (ELECTRON_RUN_AS_NODE, NODE_OPTIONS, --inspect) thì agent
+# cùng user chạy mã tùy ý dưới danh tính app và giải mã được key. App chỉ dùng utilityProcess (không child_process.fork
+# vào chính binary) nên tắt runAsNode an toàn. Không đụng grantFileProtocolExtraPrivileges (renderer nạp bằng file://),
+# enableCookieEncryption (app không dùng cookie) và loadBrowserProcessSpecificV8Snapshot (cần file snapshot riêng).
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
 mac:
   target:
     - { target: zip, arch: [arm64] }
