@@ -347,3 +347,12 @@ Không port storage/ACL/upload/SQL009/worker Docker của v2; không sửa UI ha
 5. **Giữ cache trên Mac 7 ngày (dùng lại giữa các run/agent) hay xóa ngay khi run kết thúc?** Khuyên: 7 ngày, trần
    2 GB. Lý do: một yêu cầu thường qua nhiều run (Trợ Lý, executor, reviewer) cùng cần file gốc; xóa mỗi run là chở lại
    nhiều lần. Đổi lại, file của issue đã xóa còn trên Mac tối đa 7 ngày.
+
+## 14. Owner đã chốt (09/10/2026 19:40)
+
+- Q1: duyệt đường B làm dự phòng (mở rộng thân H1, vẫn 5/5 hook), chỉ bật khi giai đoạn 0 đo thấy bridge không đạt.
+- Q2: kiểu cấm — Paperclip vẫn nhận, Crew từ chối lúc agent đọc, plugin comment cảnh báo; không thêm hook.
+- Q3: giữ trần 10 MB (Trợ Lý theo phương án khuyên, owner phủ quyết được).
+- Q4: làm DOCX/XLSX ngay trong R2-2.
+- Q5: cache trên Mac 7 ngày, trần 2 GB (Trợ Lý theo phương án khuyên, owner phủ quyết được).
+- P1 (gate R2-1: lõi hủy run của actor trước H2): để nguyên tới R3, không thêm hook, không patch lõi.
