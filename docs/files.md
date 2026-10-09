@@ -80,6 +80,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/login-item.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/ops-bridge.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/paperclip/cli-auth.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/paperclip/client.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
+| `apps/mac-app/src/main/paperclip/keychain.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/paperclip/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
+| `apps/mac-app/src/main/paperclip/types.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/tray.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/window.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -95,6 +100,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/app-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ops-bridge.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/paperclip-cli-auth.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/paperclip-client.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/paperclip-fake-server.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/paperclip-keychain.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/renderer/app.test.tsx` | [mac-app](flows/mac-app.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |

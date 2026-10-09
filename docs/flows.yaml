@@ -176,5 +176,20 @@ flows:
       - apps/mac-app/test/ipc-contract.test.ts
       - apps/mac-app/test/ops-bridge.test.ts
       - apps/mac-app/test/renderer/app.test.tsx
+  mac-app-paperclip:
+    title: App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain và client REST
+    doc: docs/flows/mac-app-paperclip.md
+    entrypoints:
+      - apps/mac-app/src/main/paperclip/client.ts
+      - apps/mac-app/src/main/paperclip/register.ts
+    files:
+      - apps/mac-app/src/main/paperclip/types.ts
+      - apps/mac-app/src/main/paperclip/cli-auth.ts
+      - apps/mac-app/src/main/paperclip/keychain.ts
+    tests:
+      - apps/mac-app/test/paperclip-client.test.ts
+      - apps/mac-app/test/paperclip-cli-auth.test.ts
+      - apps/mac-app/test/paperclip-keychain.test.ts
+      - apps/mac-app/test/paperclip-fake-server.ts
 shared: {}
 unassigned: []

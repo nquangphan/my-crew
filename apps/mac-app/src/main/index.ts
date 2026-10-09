@@ -10,6 +10,7 @@ import { AppStateStore } from './app-state.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
+import { registerPaperclip } from './paperclip/register.js';
 import { CrewTray } from './tray.js';
 import { createMainWindow } from './window.js';
 
@@ -103,7 +104,7 @@ async function start(): Promise<void> {
   // registerSshd(ctx);      // AP-2
   // registerHealth(ctx);    // AP-3 (health, runs, logs, notifications)
   // registerSetup(ctx);     // AP-5, AP-6
-  // registerPaperclip(ctx); // AP-4, PJ-1, PJ-2
+  registerPaperclip(ctx);
   // registerUpdate(ctx);    // UPD-1
   void ctx;
 

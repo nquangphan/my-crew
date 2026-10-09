@@ -27,9 +27,10 @@ cắm vào các điểm đã chừa.
 3. `src/main/tray.ts` → `CrewTray`: chấm màu, số run, menu "Mở 2P Crew" và "Thoát". AP-3 gọi `update({ color, runs })`.
 4. `src/main/window.ts` → `createMainWindow`: renderer sandbox, `contextIsolation`, không Node, cấm mở cửa sổ và
    điều hướng ra ngoài, từ chối mọi quyền.
-5. Dòng `registerX(ctx)` của các ticket sau (đang là chú thích trong `index.ts`): sshd (AP-2), sức khỏe/run/log
-   (AP-3), wizard và gỡ v2 (AP-5, AP-6), Paperclip và project (AP-4, PJ-1, PJ-2), cập nhật (UPD-1). Mỗi `registerX`
-   nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
+5. Dòng `registerX(ctx)` của từng module: `registerPaperclip` (đăng nhập Paperclip, flow `mac-app-paperclip`) đã
+   bật; sshd (AP-2), sức khỏe/run/log (AP-3), wizard và gỡ v2 (AP-5, AP-6), cập nhật (UPD-1) còn là chú thích trong
+   `index.ts`. Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng
+   `ctx.ipc.handle(kênh, fn)`.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
    bằng thông báo tiếng Việt của Main; `useStateChanged` nghe sự kiện `state:changed` (không payload, renderer gọi
@@ -84,7 +85,8 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 - Danh tính ký lấy từ biến `CSC_NAME` lúc chạy, không ghi vào file. Build thử không ký:
   `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @crew/mac-app exec electron-builder --mac dir --arm64`.
   Notarize do `scripts/release.mjs` (ticket UPD-2).
-- Không dùng `safeStorage`. Secret không đi qua renderer. Renderer: `sandbox`, `contextIsolation`, không
+- `safeStorage` chỉ dùng để mã hóa board API key Paperclip trước khi vào Keychain (flow `mac-app-paperclip`: khóa
+  giải mã ở mục "2P Crew Safe Storage" chỉ app đọc được). Secret không đi qua renderer. Renderer: `sandbox`, `contextIsolation`, không
   `nodeIntegration`.
 
 ## Flow liên quan
