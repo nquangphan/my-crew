@@ -6,9 +6,9 @@
 
 Agent `claude_local` chạy trên Mac mini cần đọc ảnh, PDF, DOCX, XLSX, CSV và text mà chủ dự án đính kèm vào issue
 hoặc comment Paperclip. Lệnh `crew-mac files` (sẽ có ở bước sau) tải file qua bridge của run, kiểm mã băm, lưu vào
-một cache cục bộ và in danh sách kèm đường dẫn để agent `Read`. Flow này hiện có phần nền: kiểu dữ liệu, hằng số,
-cache có kiểm mã băm, dọn cache và log. Các bước còn lại (nhận diện byte, bridge, trích xuất, che credential, lệnh)
-bổ sung vào flow khi có.
+một cache cục bộ và in danh sách kèm đường dẫn để agent `Read`. Flow này hiện có phần nền (kiểu dữ liệu, hằng số,
+cache có kiểm mã băm, dọn cache, log) và phần nhận diện byte, chính sách kiểu, chuẩn bị ảnh, kiểm PDF. Các bước còn
+lại (bridge, trích xuất, che credential, lệnh) bổ sung vào flow khi có.
 
 ## Cache trên Mac
 
@@ -57,6 +57,55 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
      (đang tải) không bao giờ bị xóa, nên hai agent chạy song song cùng issue không xóa blob của nhau.
    - Cuối cùng xóa `derived/<sha256>` không còn blob.
 6. `apps/crew-mac/src/files/log.ts` → `logLine`: ghi dòng log cố định; lỗi ghi log không làm hỏng lệnh.
+7. `apps/crew-mac/src/files/sniff.ts` → `detectKind(bytes, filename, declaredType)`: nhận diện theo byte, tên và
+   mime khai báo chỉ dùng để tách csv/text/svg. Cần toàn bộ nội dung file (zip đọc thư mục trung tâm ở cuối file).
+   Port `detectFormat` của v2 (giữ nguyên thuật toán OLE/ZIP), thứ tự xét xem bảng chữ ký bên dưới.
+   `blockLabel(kind, filename)` cho nhãn trong ngoặc của lý do.
+8. `apps/crew-mac/src/files/policy.ts` → `decide(kind, filename)`: bảng `ALLOWED_EXTENSIONS`, `SNIFF_CHECKED`,
+   `MACRO_EXTENSIONS` (giống hệt bản chép trong plugin `crew.core`), rồi quyết định: ảnh, PDF, trích xuất
+   (text/csv/docx/xlsx) hoặc từ chối kèm trạng thái, mã lý do, nhãn.
+9. `apps/crew-mac/src/files/image.ts` → `prepareImage`: đọc kích thước bằng `sips -g pixelWidth -g pixelHeight`
+   (sips thoát 0 cả khi file không phải ảnh, nên thiếu số là `doi_anh_loi`). Ảnh ≤ 5 MB và cạnh ≤ 8000 px đọc thẳng
+   blob. HEIC đổi sang JPEG (`sips -s format jpeg`). Ảnh quá giới hạn thu nhỏ bằng `sips -Z <min(4096, cạnh dài)>`
+   ra JPEG (không phóng to ảnh nhỏ). Bản đổi ghi tạm rồi `rename` thành `derived/<sha>/v1/<sha>.jpg` (0600).
+10. `apps/crew-mac/src/files/pdf.ts` → `inspectPdf`: chạy `osascript -l JavaScript -e <pdf-info.js> <blob>` (PDFKit,
+    timeout 30 giây), nhận `{pages, encrypted}`; mọi đầu ra khác là `hong_cau_truc`. `pdf-info.js` đọc bằng
+    `import.meta.url`, script `build` chép nó vào `dist/files/`. `pdfReadHint(pages)`: rỗng khi ≤ 10 trang, còn lại
+    `pages 1-20, 21-40, …` (Claude Code `Read` nhận tối đa 20 trang mỗi lần, đo trên prod).
+
+## Nhận diện byte và xử lý theo kiểu
+
+`detectKind` xét theo thứ tự (byte thắng đuôi và mime khai báo):
+
+| Thứ tự | Chữ ký | Kiểu |
+|---|---|---|
+| 1 | `MZ`; Mach-O `FE ED FA CE`/`FE ED FA CF`/`CE FA ED FE`/`CF FA ED FE`/`CA FE BA BE`; ELF `7F 45 4C 46` | `executable` |
+| 2 | PNG `89 50 4E 47 0D 0A 1A 0A`; JPEG `FF D8 FF`; `GIF87a`/`GIF89a`; `RIFF????WEBP` | `png`/`jpeg`/`gif`/`webp` |
+| 3 | byte 4–7 `ftyp`: brand `heic heix hevc hevx mif1 msf1` → `heic`, brand khác (MP4, MOV…) → `media` | `heic`/`media` |
+| 4 | `%PDF-` | `pdf` |
+| 5 | OLE `D0 CF 11 E0 A1 B1 1A E1`: có stream `EncryptionInfo` + `EncryptedPackage` qua chuỗi FAT hợp lệ → `encrypted-office`, còn lại → `legacy-office` (DOC/XLS/PPT cũ) | |
+| 6 | `PK 03 04`: tên mục có `vbaProject`, đuôi `.bin` hoặc `macroEnabled` → `macro-office`; OOXML Word → `docx`, Excel → `xlsx`, có `ppt/presentation.xml` → `pptx`; > 2000 mục, cấu trúc hỏng hoặc không phải OOXML → `zip` | |
+| 7 | gzip, 7z, rar, bzip2, xz, tar, zip rỗng | `zip` |
+| 8 | ID3, khung MP3/AAC, `OggS`, `fLaC`, WAV/AVI, AIFF, Matroska/WebM | `media` |
+| 9 | Text: giải mã nghiêm UTF-8/UTF-16 (BOM) như v2. Có NUL → `unknown`. Không giải mã được: có byte điều khiển → `unknown`, không có → `text` (trình đọc sẽ báo `khong_utf8`). Đuôi `.svg` và có `<svg` trong 1 KB đầu → `svg`; đuôi `.csv` hoặc mime `text/csv` → `csv`; còn lại `text` | |
+
+`decide` theo thứ tự:
+
+1. `encrypted-office` → `ma_hoa`/`office_ma_hoa`; `macro-office` → `bi_chan`/`office_macro` (nhãn `xlsm` với đuôi
+   Excel, `pptx` với đuôi PowerPoint, còn lại `docm`).
+2. Kiểu cấm theo byte → `bi_chan`/`kieu_cam`: `zip` (zip), `executable` (exe), `legacy-office` (office-cu), `pptx`
+   (pptx), `media` (media), `unknown` (khac).
+3. Đuôi trong `MACRO_EXTENSIONS` → `office_macro`; đuôi ngoài `ALLOWED_EXTENSIONS` (kể cả không có đuôi) → `kieu_cam`
+   với nhãn theo đuôi như plugin: zip/7z/rar/gz/tar… → zip, exe/msi/dmg/pkg/app… → exe, doc/xls/ppt → office-cu,
+   pptx → pptx, mp3/mp4/mov… → media, còn lại khac.
+4. Còn lại xử lý theo byte: ảnh → `image`, `pdf` → `pdf`, `docx`/`xlsx`/`csv` → trích xuất cùng tên, `text`/`svg` →
+   trích xuất `text`. Byte lệch đuôi mà cả hai đều được phép (ví dụ `.png` chứa JPEG) thì theo byte.
+
+```
+ALLOWED_EXTENSIONS = png jpg jpeg gif webp heic heif pdf docx xlsx csv txt md json yaml yml log html htm xml svg ts tsx js jsx mjs cjs py sh css sql
+SNIFF_CHECKED      = png jpg jpeg gif webp heic heif pdf docx xlsx
+MACRO_EXTENSIONS   = docm xlsm pptm dotm xltm
+```
 
 ## Trạng thái và lý do (cố định)
 
@@ -76,3 +125,6 @@ trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội 
 - Hợp đồng khi đổi: tên file trong cache, dạng `RunManifest` và bảng câu cố định là hợp đồng với các bước sau của
   flow và với hướng dẫn agent; đổi dạng thì tăng `EXTRACTOR_VERSION` để bản trích cũ không bị dùng lại.
 - Test dùng HOME giả trong thư mục tạm; GC kiểm bằng file thưa nên không tốn đĩa.
+- Test nhận diện dựng mọi file xấu (exe đổi đuôi, zip, Office macro, OLE mã hóa) bằng buffer trong bộ nhớ qua
+  `test/fixtures/attachments/make-fixtures.ts`; không có file độc nào được commit. PDF và JPEG mẫu chép từ fixture
+  v2. Test gọi `sips`/`osascript` thật chỉ chạy trên macOS (`runIf(darwin)`), phần còn lại dùng runner giả.

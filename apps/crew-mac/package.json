@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp src/files/pdf-info.js dist/files/",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },

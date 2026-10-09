@@ -20,8 +20,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/files/cache.ts` | [mac-attachments](flows/mac-attachments.md) (điểm vào), [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/config.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/gc.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/image.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/log.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/paths.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/pdf-info.js` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/pdf.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/policy.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/sniff.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/types.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/fs-util.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/index.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -60,7 +65,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/files/cache.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/gc.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/helpers.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/image.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/log.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/pdf.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/policy.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/sniff.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/fixtures/attachments/make-fixtures.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/install-cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/launcher.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
