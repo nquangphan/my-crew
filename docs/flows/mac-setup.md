@@ -201,6 +201,15 @@ lỗi), `version` bản tin vẫn là 1. crew-mac chỉ đọc file này, không
 từ chối (502) khi trường `app` có mà sai dạng, nên chỉ máy đã chạy app mới gửi trường này, sau khi plugin đã được
 triển khai bản nhận trường `app`.
 
+### Trường `attachmentCache` (dung lượng cache file đính kèm)
+
+Bản tin máy có thêm `"attachmentCache": { "bytes", "blobBytes", "blobs", "runs", "limitBytes", "measuredAt" }` do
+`attachmentCacheStats` (`src/files/stats.ts`) đo trên `~/.crew/cache/attachments`: `bytes` là tổng byte mọi file,
+`blobBytes` là byte trong `blobs/` (kể cả `.part`) để so với `limitBytes` (`CACHE_MAX_BYTES`), `blobs` là số blob tên
+sha256, `runs` là số thư mục run. Không có cache, đo quá 2 giây hoặc lỗi đọc thì bản tin không có key này (không lỗi).
+Plugin cũ chưa biết key này sẽ từ chối (502) cả bản tin, nên plugin R2-5 phải lên prod trước khi cài crew-mac có
+trường này. `version` bản tin vẫn là 1.
+
 ## Cài bản mang theo của app
 
 `installCrewMacFrom(ctx, srcDir)` (export từ `@crew/mac`) cài gói `crew-mac` đã build mà app mang trong bundle

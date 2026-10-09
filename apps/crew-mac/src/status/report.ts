@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { doctor, parseLoad } from '../commands/doctor.js';
 import { readStatusConfig, resolveClaudePath } from '../commands/status.js';
 import type { MacContext } from '../context.js';
+import { type AttachmentCacheStats, attachmentCacheStats } from '../files/stats.js';
 import { macPaths } from '../paths.js';
 import { readInstalledPlugins } from '../workflows/install.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
@@ -23,6 +24,7 @@ export interface MachineReport {
   superpowers: { pinned: string | null; ownerInstalled: string | null };
   checks: { id: string; status: 'ok' | 'warn' | 'error'; title: string }[];
   app?: AppReport;
+  attachmentCache?: AttachmentCacheStats;
 }
 
 function bounded(value: number, min: number, max: number): number | null {
@@ -97,6 +99,8 @@ export async function buildMachineReport(
     ],
     ...(app ? { app } : {}),
   };
+  const cache = attachmentCacheStats(ctx.home, ctx.now());
+  if (cache) report.attachmentCache = cache;
   if (Buffer.byteLength(JSON.stringify(report)) > 16 * 1024) throw new Error('Bản tin máy vượt quá 16 KB');
   return report;
 }

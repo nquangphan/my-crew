@@ -87,6 +87,34 @@ describe('crew-mac status', () => {
     expect(Array.isArray(report.checks)).toBe(true);
   });
 
+  it('bản tin có attachmentCache đủ 6 khóa khi HOME giả có cache', async () => {
+    const { ctx, home } = fakeMac();
+    const blobs = join(home, '.crew', 'cache', 'attachments', 'blobs');
+    mkdirSync(blobs, { recursive: true });
+    mkdirSync(join(home, '.crew', 'cache', 'attachments', 'runs', 'r1'), { recursive: true });
+    writeFileSync(join(blobs, 'a'.repeat(64)), Buffer.alloc(100));
+    const report = await buildMachineReport(
+      ctx,
+      '22222222-2222-4222-8222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+    );
+    expect(Object.keys(report.attachmentCache ?? {}).sort()).toEqual(
+      ['blobBytes', 'blobs', 'bytes', 'limitBytes', 'measuredAt', 'runs'].sort(),
+    );
+    expect(report.attachmentCache).toMatchObject({ bytes: 100, blobBytes: 100, blobs: 1, runs: 1 });
+  });
+
+  it('không có cache thì bản tin bỏ key attachmentCache và vẫn dưới 16 KB', async () => {
+    const { ctx } = fakeMac();
+    const report = await buildMachineReport(
+      ctx,
+      '22222222-2222-4222-8222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+    );
+    expect('attachmentCache' in report).toBe(false);
+    expect(Buffer.byteLength(JSON.stringify(report))).toBeLessThanOrEqual(16 * 1024);
+  });
+
   it('Claude logout được báo false và plan null', async () => {
     const { ctx, runner, home } = fakeMac();
     const claudePath = join(home, '.local', 'bin', 'claude');

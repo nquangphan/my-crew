@@ -124,6 +124,7 @@ flows:
       - apps/crew-mac/src/files/paths.ts
       - apps/crew-mac/src/files/cache.ts
       - apps/crew-mac/src/files/gc.ts
+      - apps/crew-mac/src/files/stats.ts
       - apps/crew-mac/src/files/log.ts
       - apps/crew-mac/src/files/sniff.ts
       - apps/crew-mac/src/files/policy.ts
@@ -150,6 +151,7 @@ flows:
     tests:
       - apps/crew-mac/test/files/cache.test.ts
       - apps/crew-mac/test/files/gc.test.ts
+      - apps/crew-mac/test/files/stats.test.ts
       - apps/crew-mac/test/files/log.test.ts
       - apps/crew-mac/test/files/helpers.ts
       - apps/crew-mac/test/files/sniff.test.ts

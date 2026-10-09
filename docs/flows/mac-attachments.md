@@ -48,6 +48,12 @@ thoát được khỏi thư mục cache. Log của lệnh nằm ở `~/.crew/log
 một bản `.1`); mỗi dòng chỉ có thời điểm, runId và attachmentId rút gọn 8 ký tự, sha256 rút gọn 12 ký tự, số byte,
 trạng thái, mã lý do và ghi chú cố định. Không bao giờ có nội dung file, tên sheet hay text lỗi bên ngoài.
 
+### Số liệu cache cho bản tin máy
+
+`attachmentCacheStats(home, now?, budgetMs = 2000)` (`src/files/stats.ts`) duyệt cache, cộng byte thật của mọi file
+(`lstat`, không theo symlink), đếm blob tên sha256 (không đếm `.part`) và thư mục `runs/`. Quá thời gian, cache không
+tồn tại hoặc lỗi đọc thì trả `null` và bản tin máy bỏ key `attachmentCache` (xem flow `mac-setup`).
+
 ## Các bước
 
 1. `apps/crew-mac/src/files/types.ts`: trạng thái (`FileStatus`), loại nhận diện (`DetectedKind`), mã lý do

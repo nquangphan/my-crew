@@ -43,6 +43,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/files/render.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/run.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/sniff.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
+| `apps/crew-mac/src/files/stats.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/types.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/worker-client.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
 | `apps/crew-mac/src/files/worker-entry.ts` | [mac-attachments](flows/mac-attachments.md) (file) |
@@ -100,6 +101,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/files/render.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/run.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/sniff.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
+| `apps/crew-mac/test/files/stats.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/worker.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/fixtures/attachments/make-fixtures.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
