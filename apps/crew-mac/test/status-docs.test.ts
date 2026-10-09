@@ -143,10 +143,13 @@ describe('status docs snapshots', () => {
 
   it('xóa thư mục tạm sau khi dựng ảnh chụp thành công', () => {
     const repo = fixture();
-    const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-')));
-    buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'));
-    const after = readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-'));
-    expect(after.filter((name) => !before.has(name))).toEqual([]);
+    const tmpRoot = mkdtempSync(join(tmpdir(), 'crew-status-own-tmp-'));
+    try {
+      buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'), undefined, tmpRoot);
+      expect(readdirSync(tmpRoot)).toEqual([]);
+    } finally {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    }
   });
 
   it('xóa thư mục tạm khi dựng ảnh chụp ném lỗi sau khi tạo worktree', () => {
@@ -154,12 +157,15 @@ describe('status docs snapshots', () => {
     const failingBundle = join(repo, 'fail-bundle.cjs');
     writeFileSync(failingBundle, "process.exit(process.argv.includes('--staged') ? 2 : 0);\n");
     git(repo, 'config', 'crew-docs.bundle', failingBundle);
-    const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-')));
-    expect(() => buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'))).toThrow(
-      'Không chạy được secret-scan',
-    );
-    const after = readdirSync(tmpdir()).filter((name) => name.startsWith('crew-mac-docs-'));
-    expect(after.filter((name) => !before.has(name))).toEqual([]);
+    const tmpRoot = mkdtempSync(join(tmpdir(), 'crew-status-own-tmp-'));
+    try {
+      expect(() => buildDocsSnapshot(repo, git(repo, 'rev-parse', 'HEAD'), undefined, tmpRoot)).toThrow(
+        'Không chạy được secret-scan',
+      );
+      expect(readdirSync(tmpRoot)).toEqual([]);
+    } finally {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    }
   });
 
   it('không xóa đường dẫn ngoài tmpdir', () => {

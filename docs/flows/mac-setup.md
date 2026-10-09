@@ -228,7 +228,7 @@ Nếu thiếu ref này, nó dùng nhánh cục bộ `main`, rồi `master`, cu�
 `HEAD`. Vì vậy repo chỉ có nhánh khác cần đặt `origin/HEAD` để chọn đúng nhánh mặc định.
 
 Khi commit khác `lastCommit` (hoặc repo chưa có `format: 2`, xem cuối mục), lệnh dựng ảnh chụp từ mọi file `.md` dưới `docs/` ở commit đó bằng git, không đọc
-working tree. Git worktree và repo secret-scan trong thư mục tạm `crew-mac-docs-*` được xóa sau mỗi lần dựng ảnh chụp.
+working tree. Git worktree và repo secret-scan trong thư mục tạm `crew-mac-docs-*` được xóa sau mỗi lần dựng ảnh chụp. `buildDocsSnapshot`, `scrubCommitPaths` và `removeOwnTempDir` nhận thêm `tmpRoot` (mặc định `tmpdir()`) để test dựng trong thư mục tạm riêng, không dính thư mục `crew-mac-docs-*` của test chạy song song.
 Một git worktree tạm detached được dùng để chạy `crew-docs check --all`; kết quả 0/1/2–3 lần lượt
 thành `auditState` `verified`/`invalid`/`unverified`. Lệnh lấy bundle từ git config `crew-docs.bundle` của repo.
 Repo secret-scan dùng `SCAN_MANIFEST` (`docs/flows.yaml` mẫu có `source` theo schema hiện hành của docs-kit, vì R1 từ chối manifest thiếu `source`). Bundle cũ chạy thêm R2/R4 ở `check --staged` nên exit 1 vẫn hợp lệ: chỉ dòng `R7` quyết định trang nào bị bỏ, và dòng `R1` nghĩa là bước quét không chạy được nên ném lỗi, không gửi ảnh chụp. Nhờ vậy ảnh chụp không phụ thuộc phiên bản bundle gán cho repo.

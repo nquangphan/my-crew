@@ -114,11 +114,15 @@ export function collectCommits(root: string, commit: string, base: string | null
  * File names can hold credentials too, so every commit path goes through the same R7 scan as page text
  * (one path per line of a throwaway file) and a flagged path is left out of the payload.
  */
-export function scrubCommitPaths(root: string, commits: CommitsPayload): CommitsPayload {
+export function scrubCommitPaths(
+  root: string,
+  commits: CommitsPayload,
+  tmpRoot: string = tmpdir(),
+): CommitsPayload {
   const unique = [...new Set(commits.items.flatMap((c) => c.paths))];
   if (unique.length === 0) return commits;
   const bundle = checkBundle(root);
-  const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-docs-'));
+  const tmp = mkdtempSync(join(tmpRoot, 'crew-mac-docs-'));
   try {
     git(tmp, ['init', '-q']);
     mkdirSync(join(tmp, 'docs'));
@@ -143,7 +147,7 @@ export function scrubCommitPaths(root: string, commits: CommitsPayload): Commits
       items: commits.items.map((c) => ({ ...c, paths: c.paths.filter((p) => !flagged.has(p)) })),
     };
   } finally {
-    removeOwnTempDir(tmp);
+    removeOwnTempDir(tmp, tmpRoot);
   }
 }
 
@@ -210,9 +214,9 @@ function checkBundle(root: string): string {
   return path;
 }
 
-export function removeOwnTempDir(path: string): void {
+export function removeOwnTempDir(path: string, tmpRoot: string = tmpdir()): void {
   try {
-    const realTmpRoot = realpathSync(tmpdir());
+    const realTmpRoot = realpathSync(tmpRoot);
     const realPath = realpathSync(path);
     if (dirname(realPath) === realTmpRoot && basename(realPath).startsWith('crew-mac-docs-')) {
       rmSync(realPath, { recursive: true, force: true });
@@ -222,9 +226,14 @@ export function removeOwnTempDir(path: string): void {
   }
 }
 
-export function buildDocsSnapshot(root: string, commit: string, repoName = basename(root)) {
+export function buildDocsSnapshot(
+  root: string,
+  commit: string,
+  repoName = basename(root),
+  tmpRoot: string = tmpdir(),
+) {
   const bundle = checkBundle(root);
-  const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-docs-'));
+  const tmp = mkdtempSync(join(tmpRoot, 'crew-mac-docs-'));
   const checkout = join(tmp, 'checkout');
   try {
     git(root, ['-c', 'core.hooksPath=/dev/null', 'worktree', 'add', '--detach', checkout, commit]);
@@ -346,7 +355,7 @@ export function buildDocsSnapshot(root: string, commit: string, repoName = basen
     try {
       if (existsSync(checkout)) git(root, ['worktree', 'remove', '--force', checkout]);
     } finally {
-      removeOwnTempDir(tmp);
+      removeOwnTempDir(tmp, tmpRoot);
     }
   }
 }
