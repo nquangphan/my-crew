@@ -8,6 +8,7 @@ import type { AppContext } from './app-context.js';
 import { AppLog } from './app-log.js';
 import { AppStateStore, chromiumUserDataDir } from './app-state.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
+import { registerJobs } from './jobs/register.js';
 import { electronLoginItem } from './login-item.js';
 import { type UtilityLike, UtilityOpsBridge } from './ops-bridge.js';
 import { registerPaperclip } from './paperclip/register.js';
@@ -110,6 +111,7 @@ async function start(): Promise<void> {
   });
   store.onChange(() => window?.webContents.send(STATE_CHANGED_EVENT));
   const sshd = registerSshd(ctx);
+  registerJobs(ctx);
   const health = registerHealth(ctx, sshd);
   registerPaperclip(ctx);
   registerProjects(ctx);

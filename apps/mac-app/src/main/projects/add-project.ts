@@ -1,15 +1,14 @@
-import { statSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { join } from 'node:path';
 import { forbiddenRootReason } from '@crew/mac';
 import type { AddProjectInput } from '../../shared/ipc-contract.js';
 import type { ProjectProgress } from '../app-state.js';
 import type { PaperclipEnvironment, ProjectRoles } from '../paperclip/types.js';
 import {
   agentBranch,
+  configureDocsBundle,
   ensureRuntimeExcluded,
   ensureWorktree,
   type FolderInfo,
-  type GitResult,
   type GitRunner,
   hasEntries,
   inspectFolder,
@@ -27,8 +26,6 @@ import {
   roleNames,
   templateOf,
 } from './progress.js';
-
-const LOCAL_GIT_TIMEOUT_MS = 30_000;
 
 /** Model theo vai trò như agent R1: Trợ Lý chạy opus, executor/reviewer/integrator chạy sonnet. */
 const AGENT_MODELS: Record<ReturnType<typeof templateOf>, string> = {
@@ -132,14 +129,6 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
   }
 }
 
-function isFile(path: string): boolean {
-  try {
-    return isAbsolute(path) && statSync(path).isFile();
-  } catch {
-    return false;
-  }
-}
-
 class AddRun {
   private readonly paths: ReturnType<typeof projectPaths>;
   private setupInfo: Promise<{ pinDir: string; extraArgs: string[]; port: number }> | null = null;
@@ -158,10 +147,17 @@ class AddRun {
   }
 
   async all(): Promise<void> {
-    await this.step('folder', () => this.configureDocs());
+    await this.step('folder', () =>
+      configureDocsBundle(this.info, {
+        home: this.deps.home,
+        env: this.deps.env,
+        git: this.git,
+        statusRepoPaths: async () => (await this.deps.ops.call('listStatusRepos')).map((repo) => repo.path),
+      }),
+    );
     await this.step('project', () => this.ensureProject());
     await this.step('status-repo', () =>
-      this.deps.ops.call('addStatusRepo', this.projectId(), this.info.root),
+      this.deps.ops.call('addStatusRepo', this.projectId(), this.info.root, this.companyId),
     );
     for (const role of this.roles) await this.step(`role:${role}`, () => this.ensureRole(role));
     await this.step('roles', () =>
@@ -196,46 +192,6 @@ class AddRun {
       reviewerAgentId: this.agentId('reviewer'),
       integratorAgentId: this.agentId('integrator'),
     };
-  }
-
-  private runGit(args: string[], timeoutMs = LOCAL_GIT_TIMEOUT_MS): Promise<GitResult> {
-    return this.git(args, { env: this.deps.env, timeoutMs });
-  }
-
-  /**
-   * Nhánh mặc định có `docs/flows.yaml` thì đặt `crew-docs.bundle` (và `crew-docs.runtime` nếu có) trong git config
-   * của repo (chung cho mọi worktree agent). Giá trị owner đã đặt mà còn hợp lệ thì giữ, không ghi đè.
-   */
-  private async configureDocs(): Promise<void> {
-    const dir = this.info.root;
-    const tracked = await this.runGit(['-C', dir, 'cat-file', '-e', `${this.info.baseRef}:docs/flows.yaml`]);
-    if (tracked.code !== 0) return;
-    const current = async (name: string) =>
-      (await this.runGit(['-C', dir, 'config', '--get', name])).stdout.trim();
-    const set = async (name: string, value: string) => {
-      const r = await this.runGit(['-C', dir, 'config', name, value]);
-      if (r.code !== 0) throw new Error(`Không đặt được git config ${name} trong ${dir}`);
-    };
-    if (isFile(await current('crew-docs.bundle'))) return;
-    const { bundle, runtime } = await this.resolveDocsBundle();
-    await set('crew-docs.bundle', bundle);
-    if (runtime && (await current('crew-docs.runtime')) === '') await set('crew-docs.runtime', runtime);
-  }
-
-  private async resolveDocsBundle(): Promise<{ bundle: string; runtime: string | null }> {
-    for (const repo of await this.deps.ops.call('listStatusRepos')) {
-      const bundle = (
-        await this.runGit(['-C', repo.path, 'config', '--get', 'crew-docs.bundle'])
-      ).stdout.trim();
-      if (!isFile(bundle)) continue;
-      const runtime = (
-        await this.runGit(['-C', repo.path, 'config', '--get', 'crew-docs.runtime'])
-      ).stdout.trim();
-      return { bundle, runtime: isFile(runtime) ? runtime : null };
-    }
-    const fallback = join(this.deps.home, '.crew', 'bin', 'crew-docs.cjs');
-    if (isFile(fallback)) return { bundle: fallback, runtime: null };
-    throw new Error('Không tìm thấy bundle crew-docs (~/.crew/bin/crew-docs.cjs): chạy lại cài đặt máy');
   }
 
   /** Project cùng tên đã có (kể cả do lần trước tạo mà response bị mất) thì dùng lại, không tạo thêm. */

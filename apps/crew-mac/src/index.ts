@@ -50,3 +50,4 @@ export {
   type WorkflowPin,
 } from './workflows/pin.js';
 export { type CertifiedWorkflow, certifiedWorkflows, workflowForPluginDir } from './workflows/registry.js';
+export { treeChecksum } from './workflows/tree-checksum.js';

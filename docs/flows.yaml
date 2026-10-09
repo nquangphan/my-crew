@@ -290,7 +290,7 @@ flows:
       - apps/mac-app/test/setup-fakes.ts
       - apps/mac-app/test/renderer/setup.test.tsx
   mac-app-paperclip:
-    title: App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project
+    title: App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project, nhận việc trên máy
     doc: docs/flows/mac-app-paperclip.md
     entrypoints:
       - apps/mac-app/src/main/paperclip/client.ts
@@ -298,6 +298,7 @@ flows:
       - apps/mac-app/src/main/projects/add-project.ts
       - apps/mac-app/src/main/projects/remove-project.ts
       - apps/mac-app/src/renderer/routes/projects.tsx
+      - apps/mac-app/src/main/jobs/register.ts
     files:
       - apps/mac-app/src/main/paperclip/types.ts
       - apps/mac-app/src/main/paperclip/cli-auth.ts
@@ -311,6 +312,12 @@ flows:
       - apps/mac-app/src/main/projects/templates/executor.md
       - apps/mac-app/src/main/projects/templates/reviewer.md
       - apps/mac-app/src/main/projects/templates/integrator.md
+      - apps/mac-app/src/main/jobs/types.ts
+      - apps/mac-app/src/main/jobs/poller.ts
+      - apps/mac-app/src/main/jobs/remote.ts
+      - apps/mac-app/src/main/jobs/validate.ts
+      - apps/mac-app/src/main/jobs/executors.ts
+      - apps/mac-app/src/main/jobs/sanitize.ts
     tests:
       - apps/mac-app/test/paperclip-client.test.ts
       - apps/mac-app/test/paperclip-cli-auth.test.ts
@@ -323,6 +330,11 @@ flows:
       - apps/mac-app/test/projects-fixture.ts
       - apps/mac-app/test/projects-ipc.test.ts
       - apps/mac-app/test/renderer/projects.test.tsx
+      - apps/mac-app/test/jobs/poller.test.ts
+      - apps/mac-app/test/jobs/remote.test.ts
+      - apps/mac-app/test/jobs/validate.test.ts
+      - apps/mac-app/test/jobs/executors.test.ts
+      - apps/mac-app/test/jobs/sanitize.test.ts
   mac-app-sshd:
     title: App 2P Crew giữ sshd agent và thoát an toàn
     doc: docs/flows/mac-app-sshd.md

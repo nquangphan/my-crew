@@ -34,7 +34,9 @@ cắm vào các điểm đã chừa.
    điều hướng ra ngoài, từ chối mọi quyền.
 5. Dòng `registerX(ctx)` của từng module. Đã bật: `const sshd = registerSshd(ctx)` (bộ giám sát sshd và quit guard,
    flow `mac-app-sshd`), `registerHealth(ctx, sshd)` (sức khỏe, run, log; xem mục dưới) và `registerPaperclip(ctx)`
-   (đăng nhập Paperclip, flow `mac-app-paperclip`), `registerProjects` (thêm/gỡ project, flow `mac-app-paperclip`).
+   (đăng nhập Paperclip, flow `mac-app-paperclip`), `registerProjects` (thêm/gỡ project, flow `mac-app-paperclip`),
+   `registerJobs(ctx)` ngay sau `registerSshd` (nhận việc từ hàng đợi máy, flow `mac-app-paperclip` mục "Nhận việc
+   trên máy"; chạy utilityProcess riêng "2P Crew jobs", dừng ở `will-quit`).
    Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới, gồm gỡ app v2) và
    `registerUpdate(ctx, sshd)` (updater và màn hình Cập nhật, flow `mac-app-update`).
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
@@ -152,7 +154,11 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
 `Tiến trình phụ dừng bất thường` và lần gọi sau tự `fork` lại. `createOpsHandlers` dựng `MacContext` mới mỗi lời gọi
 bằng `createMacContext` với `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (đường dẫn đã cài, không phải đường dẫn trong
 bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupError`). Tham số không bao giờ vào log vì
-`setStatusSecret` mang secret. Renderer không có đường tới `@crew/mac`.
+`setStatusSecret` mang secret. Renderer không có đường tới `@crew/mac`. `addStatusRepo(projectId, path, companyId?)`
+truyền company nhận ảnh chụp docs. Hai op của hàng đợi máy: `jobTargets()` (`machineId` và đích `{url, companyId}` của
+bản tin, từ `readStatusConfig`/`listTargets`) và `runMachineJob(job, extras)` (`runJob` của `src/main/jobs/executors.ts`
+với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `doctor` không probe, `workflowCheck` với
+`superpowersPinDir`); hàng đợi dùng một `UtilityOpsBridge` riêng để hủy việc quá giờ bằng `dispose()`.
 
 ## Files
 
@@ -163,7 +169,7 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 | `apps/mac-app/src/main/app-state.ts` | `app.json` (kiểu và kho ghi atomic, nối tiếp) | `AppStateStore`, `AppState` |
 | `apps/mac-app/src/main/app-log.ts` | `app.log`: ẩn secret, xoay 10 MB, giờ `Asia/Ho_Chi_Minh` | `AppLog`, `redactFields` |
 | `apps/mac-app/src/main/ipc.ts` | Đăng ký IPC theo danh sách kênh | `registerIpc`, `isTrustedSender` |
-| `apps/mac-app/src/main/ops-bridge.ts` | Cầu nối tới utilityProcess | `UtilityOpsBridge`, `OpsApi` |
+| `apps/mac-app/src/main/ops-bridge.ts` | Cầu nối tới utilityProcess (kể cả hai op của hàng đợi máy) | `UtilityOpsBridge`, `OpsApi` |
 | `apps/mac-app/src/main/login-item.ts` | Login item macOS | `electronLoginItem` |
 | `apps/mac-app/src/main/tray.ts` | Biểu tượng menu bar | `CrewTray` |
 | `apps/mac-app/src/main/tray-state.ts` | Trộn trạng thái tray từ nhiều nguồn, nhãn menu | `mergeTrayState`, `effectiveColor`, `trayStatusLabel` |
@@ -191,14 +197,17 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 
 - `~/Library/Application Support/2P Crew/app.json`: trạng thái bền (mode 600, ghi atomic bằng file tạm rồi `rename`,
   chỉ Main ghi, `update(fn)` nối tiếp). File hỏng thì đổi tên thành `app.json.broken-<giờ>` và dùng mặc định.
-  `appVersion` luôn là bản đang chạy. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` (flow `mac-setup`).
+  `appVersion` luôn là bản đang chạy. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` và `jobsAgent`
+  (flow `mac-setup`). `jobsAgent: {version, lastPollAt}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một lần; flow
+  `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc.
   `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
   chọn); tiến độ bản cũ có `origin` thay cho `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)
   khai trong `src/shared/ipc-contract.ts` cùng kiểu `FolderChoice`; `AddProjectInput` nhận `folder` thay cho `origin`.
 - `~/Library/Application Support/2P Crew/app.log`: JSON lines, mode 600, xoay một bản `app.log.1` khi vượt 10 MB. Field
   tên nhạy cảm (`token`, `secret`, `authorization`...) ghi `[đã ẩn]`, chuỗi `Bearer ...` và các dạng token quen thuộc
   trong cả dòng bị ẩn.
-- App không ghi, xóa hay đổi tên file nào trong `~/.crew` ngoài việc gọi hàm `@crew/mac`.
+- App không ghi, xóa hay đổi tên file nào trong `~/.crew` ngoài việc gọi hàm `@crew/mac`, trừ việc `skill-sync` của
+  hàng đợi máy ghi `~/.crew/skills/<company>/<slug>/` (flow `mac-app-paperclip`).
 - Gói đóng gói mang theo `Contents/Resources/crew-mac/` (bản `crew-mac` đã build) để cài ra `~/.crew/app/crew-mac`
   bằng `installCrewMacFrom`.
 
@@ -235,10 +244,12 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 
 ## Tests
 
-- `apps/mac-app/test/app-state.test.ts`: tạo file mode 600, ghi nối tiếp, file hỏng, `appVersion`, bản sao.
+- `apps/mac-app/test/app-state.test.ts`: tạo file mode 600, ghi nối tiếp, file hỏng, `appVersion`, bản sao; `jobsAgent`
+  ghi qua store thì `readJobsAgent` của crew-mac đọc được.
 - `apps/mac-app/test/app-log.test.ts`: ẩn secret, giờ Việt Nam, xoay file, ghi lỗi không ném.
 - `apps/mac-app/test/ipc-contract.test.ts`: danh sách kênh, preload chỉ nhận kênh hợp lệ, `registerIpc`.
-- `apps/mac-app/test/ops-bridge.test.ts`: cầu nối với utility giả, và `createOpsHandlers` với HOME giả.
+- `apps/mac-app/test/ops-bridge.test.ts`: cầu nối với utility giả, và `createOpsHandlers` với HOME giả (kể cả
+  `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai).
 - `apps/mac-app/test/renderer/app.test.tsx`: thanh bên và điều hướng hash.
 - `apps/mac-app/test/health.test.ts`: lịch 15 phút, probe khi bấm, không chạy chồng, thông báo khi đổi đỏ/ổn.
 - `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, mở link web.

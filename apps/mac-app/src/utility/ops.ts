@@ -7,12 +7,16 @@ import {
   doctor,
   installCrewMacFrom,
   listStatusRepos,
+  listTargets,
+  readStatusConfig,
   removeStatusRepo,
   sendStatus,
   setStatusSecret,
   setup,
+  superpowersPinDir,
   workflowCheck,
 } from '@crew/mac';
+import { runJob } from '../main/jobs/executors.js';
 import type { OpsApi, OpsRequest, OpsResponse } from '../main/ops-bridge.js';
 
 export type { OpsRequest, OpsResponse };
@@ -46,12 +50,30 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
     setup: async (opts) => setup(context(), opts),
     configureStatus: async (url, companyId) => configureStatus(context(), url, companyId),
     setStatusSecret: async (secret) => setStatusSecret(context(), secret),
-    addStatusRepo: async (projectId, path) => addStatusRepo(context(), projectId, path),
+    addStatusRepo: async (projectId, path, companyId) => addStatusRepo(context(), projectId, path, companyId),
     removeStatusRepo: async (projectId) => removeStatusRepo(context(), projectId),
     listStatusRepos: async () => listStatusRepos(context()),
     installCrewMacFrom: async (srcDir) => installCrewMacFrom(context(), srcDir),
     sendStatus: async () => sendStatus(context()),
     workflowCheck: async (input) => workflowCheck(context(), input),
+    jobTargets: async () => {
+      const ctx = context();
+      return {
+        machineId: readStatusConfig(ctx)?.machineId ?? null,
+        targets: listTargets(ctx).map(({ url, companyId }) => ({ url, companyId })),
+      };
+    },
+    runMachineJob: async (job, extras) => {
+      const ctx = context();
+      return runJob(job, extras, {
+        home,
+        env: deps.env,
+        addStatusRepo: async (projectId, path, companyId) => addStatusRepo(ctx, projectId, path, companyId),
+        statusRepoPaths: async () => listStatusRepos(ctx).map((repo) => repo.path),
+        doctor: () => doctor(ctx, { probe: false, tccWindow: '1h', probeTimeoutSec: 90, skipTcc: true }),
+        workflowCheck: (root) => workflowCheck(ctx, { root, pluginDir: superpowersPinDir(home) }),
+      });
+    },
   } as OpsHandlers;
 }
 

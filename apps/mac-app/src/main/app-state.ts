@@ -34,7 +34,10 @@ export interface ProjectProgress {
   error: string | null;
 }
 
-/** Nội dung `~/Library/Application Support/2P Crew/app.json`; crew-mac chỉ đọc `appVersion`, `sshdOwner`, `updateState`. */
+/**
+ * Nội dung `~/Library/Application Support/2P Crew/app.json`; crew-mac chỉ đọc `appVersion`, `sshdOwner`, `updateState`
+ * và `jobsAgent`.
+ */
 export interface AppState {
   version: 1;
   appVersion: string;
@@ -50,6 +53,8 @@ export interface AppState {
   };
   setup: { step: SetupStep; paperclipOrigin: string | null; companyId: string | null };
   projects: Record<string, ProjectProgress>;
+  /** App đang nhận việc từ hàng đợi máy: bản app và lần cuối hỏi được server (ISO 8601). Thiếu = không nhận việc. */
+  jobsAgent?: { version: string; lastPollAt: string };
 }
 
 /**

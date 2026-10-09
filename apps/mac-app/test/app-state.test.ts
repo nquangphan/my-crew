@@ -55,3 +55,20 @@ it('userData của Chromium nằm ở thư mục con chromium, cạnh app.json',
     '/Users/o/Library/Application Support/2P Crew/chromium',
   );
 });
+
+it('jobsAgent ghi qua store thì crew-mac đọc được (bản tin máy báo app đang nhận việc)', async () => {
+  const { readJobsAgent } = await import('@crew/mac');
+  const dir = mkdtempSync(join(tmpdir(), 'app-state-'));
+  const file = join(dir, 'app.json');
+  const store = new AppStateStore(file, '0.1.0');
+  expect(readJobsAgent(file)).toBeNull();
+  await store.update((s) => ({
+    ...s,
+    jobsAgent: { version: '0.1.0', lastPollAt: '2026-10-10T04:00:00.000Z' },
+  }));
+  expect(readJobsAgent(file)).toEqual({ version: '0.1.0', lastPollAt: '2026-10-10T04:00:00.000Z' });
+  expect(new AppStateStore(file, '0.1.0').get().jobsAgent).toEqual({
+    version: '0.1.0',
+    lastPollAt: '2026-10-10T04:00:00.000Z',
+  });
+});

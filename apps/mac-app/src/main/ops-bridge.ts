@@ -8,6 +8,7 @@ import type {
   StatusRepo,
   WorkflowReport,
 } from '@crew/mac';
+import type { JobExtras, JobOutcome, MachineJob } from './jobs/types.js';
 
 /** Các thao tác của `@crew/mac` chạy trong utilityProcess. Hàm thư viện không nhận `ctx` qua IPC. */
 export interface OpsApi {
@@ -15,12 +16,17 @@ export interface OpsApi {
   setup(opts: SetupOptions): Promise<SetupReport>;
   configureStatus(url: string, companyId: string): StatusConfig;
   setStatusSecret(secret: string): Promise<void>;
-  addStatusRepo(projectId: string, path: string): void;
+  /** `companyId`: company nhận ảnh chụp docs của repo (thiếu thì là company của đích đầu tiên). */
+  addStatusRepo(projectId: string, path: string, companyId?: string): void;
   removeStatusRepo(projectId: string): void;
   listStatusRepos(): StatusRepo[];
   installCrewMacFrom(srcDir: string): Promise<InstallCrewMacResult>;
   sendStatus(): Promise<void>;
   workflowCheck(input: { root: string; pluginDir: string }): Promise<WorkflowReport>;
+  /** Máy và các đích của bản tin (`~/.crew/status.json`): hàng đợi việc trên máy hỏi từng đích. */
+  jobTargets(): { machineId: string | null; targets: { url: string; companyId: string }[] };
+  /** Làm một việc của hàng đợi máy trên máy này (git, file, crew-mac). Không bao giờ ném: lỗi thành `failed`. */
+  runMachineJob(job: MachineJob, extras: JobExtras): Promise<JobOutcome>;
 }
 
 export type OpsName = keyof OpsApi;

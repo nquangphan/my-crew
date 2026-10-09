@@ -156,7 +156,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/system.ts` | Chạy lệnh có giới hạn thời gian (SIGKILL), thêm biến môi trường (`RunOptions.env`), quote đối số shell | `createRunner`, `CommandRunner`, `shQuote` |
 | `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`, `bmadPin`), `SetupError` |
 | `apps/crew-mac/src/context-factory.ts` | Dựng `MacContext` dùng chung cho CLI và app (`cliPath` do người gọi truyền) | `createMacContext` (pin CLI: `SUPERPOWERS_PIN`, `BMAD_PIN`), `stableNodePath` |
-| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), BMAD (`bmadCommand`, `parseEpics`, `checkBmadAnswers`, `setupProject`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), reaper, manifest, paths |
+| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), BMAD (`bmadCommand`, `parseEpics`, `checkBmadAnswers`, `setupProject`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), `treeChecksum` (việc `skill-sync` của app băm cây skill), reaper, manifest, paths |
 | `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows` và `appState` = `~/Library/Application Support/2P Crew/app.json`, file của app, crew-mac chỉ đọc; `crewMacDir` = `~/.crew/app/crew-mac`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
 | `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt (kể cả `sshdOwner` tùy chọn) | `readManifest`, `writeManifest` |
@@ -232,8 +232,8 @@ không thì đích cuối) và `targets: [{companyId, ok, httpStatus}]`. Có đ�
 - `superpowers.pinDir`: đường tuyệt đối bản ghim Superpowers (giá trị `--plugin-dir` của agent), `null` khi chưa có bản
   ghim. `superpowers.skills`: tên thư mục `skills/<tên>/SKILL.md` trong bản ghim, sắp xếp, tối đa 100; chỉ có khi có
   bản ghim. Web dùng để chặn thêm skill trùng Superpowers.
-- `jobsAgent: {version, lastPollAt}` (`readJobsAgent`): app 2P Crew ghi vào `app.json` mỗi lần hỏi hàng đợi việc trên
-  máy; đọc độc lập với trường `app` (ba trường app hỏng vẫn có `jobsAgent`). `version` semver ≤ 32 ký tự, `lastPollAt`
+- `jobsAgent: {version, lastPollAt}` (`readJobsAgent`): app 2P Crew ghi vào `app.json` khi hỏi được hàng đợi việc trên
+  máy (tối đa 30 giây một lần, flow `mac-app-paperclip`); đọc độc lập với trường `app` (ba trường app hỏng vẫn có `jobsAgent`). `version` semver ≤ 32 ký tự, `lastPollAt`
   ISO 8601. Thiếu hay sai dạng thì bản tin không có key này, nghĩa là app không nhận việc.
 
 Plugin bản cũ (trước bản nhận key mới của hàng đợi máy) từ chối cả bản tin có các key này, nên plugin mới phải lên

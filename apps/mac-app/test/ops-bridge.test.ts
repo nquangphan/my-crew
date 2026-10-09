@@ -88,6 +88,38 @@ describe('createOpsHandlers (utility)', () => {
     await expect(handlers.listStatusRepos()).resolves.toEqual([]);
   });
 
+  it('jobTargets đọc máy và đích từ status.json; runMachineJob kiểm payload trước khi làm', async () => {
+    const { mkdirSync, mkdtempSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const home = mkdtempSync(join(tmpdir(), 'ops-home-'));
+    const handlers = createOpsHandlers({ env: { HOME: home }, log: () => undefined });
+    await expect(handlers.jobTargets()).resolves.toEqual({ machineId: null, targets: [] });
+    const company = '11111111-1111-4111-8111-111111111111';
+    const machine = '55555555-5555-4555-8555-555555555555';
+    mkdirSync(join(home, '.crew'), { recursive: true });
+    writeFileSync(
+      join(home, '.crew', 'status.json'),
+      JSON.stringify({ url: 'https://crew.example.com', companyId: company, machineId: machine }),
+    );
+    await expect(handlers.jobTargets()).resolves.toEqual({
+      machineId: machine,
+      targets: [{ url: 'https://crew.example.com', companyId: company }],
+    });
+    const job = {
+      id: '66666666-6666-4666-8666-666666666666',
+      companyId: company,
+      machineId: machine,
+      kind: 'check',
+      payload: { kind: 'check', projectKey: 'Sai Khoa' },
+    } as unknown as Parameters<typeof handlers.runMachineJob>[0];
+    await expect(handlers.runMachineJob(job, { projectId: null })).resolves.toEqual({
+      status: 'failed',
+      errorCode: 'app_error',
+      errorText: 'Việc không hợp lệ: projectKey không hợp lệ',
+    });
+  });
+
   it('ctx dùng cliPath cài đặt dưới HOME', async () => {
     const seen: string[] = [];
     const handlers = createOpsHandlers({

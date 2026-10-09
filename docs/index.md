@@ -30,7 +30,7 @@ docs trước khi đọc code.
 | [Kiểm tra chuẩn docs (crew-docs)](flows/docs-check.md) | `docs-check` | `packages/docs-kit/src/bin.ts`, `packages/docs-kit/src/cli.ts` |
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
 | [App macOS 2P Crew (khung, tray, cửa sổ, trạng thái, cầu nối crew-mac)](flows/mac-app.md) | `mac-app` | `apps/mac-app/src/main/index.ts` |
-| [App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project](flows/mac-app-paperclip.md) | `mac-app-paperclip` | `apps/mac-app/src/main/paperclip/client.ts`, `apps/mac-app/src/main/paperclip/register.ts`, `apps/mac-app/src/main/projects/add-project.ts`, `apps/mac-app/src/main/projects/remove-project.ts`, `apps/mac-app/src/renderer/routes/projects.tsx` |
+| [App macOS đăng nhập Paperclip (cli-auth), board key trong Keychain, client REST, thêm/gỡ project, nhận việc trên máy](flows/mac-app-paperclip.md) | `mac-app-paperclip` | `apps/mac-app/src/main/paperclip/client.ts`, `apps/mac-app/src/main/paperclip/register.ts`, `apps/mac-app/src/main/projects/add-project.ts`, `apps/mac-app/src/main/projects/remove-project.ts`, `apps/mac-app/src/renderer/routes/projects.tsx`, `apps/mac-app/src/main/jobs/register.ts` |
 | [App 2P Crew giữ sshd agent và thoát an toàn](flows/mac-app-sshd.md) | `mac-app-sshd` | `apps/mac-app/src/main/sshd/register.ts` |
 | [Phát hành và cập nhật app 2P Crew](flows/mac-app-update.md) | `mac-app-update` | `apps/mac-app/scripts/release.mjs`, `apps/mac-app/src/main/update/register.ts` |
 | [Đọc file đính kèm trên Mac (crew-mac files)](flows/mac-attachments.md) | `mac-attachments` | `apps/crew-mac/src/files/command.ts` |

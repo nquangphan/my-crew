@@ -8,7 +8,7 @@ import {
   realpathSync,
   statSync,
 } from 'node:fs';
-import { dirname, isAbsolute } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 
 export interface GitResult {
   code: number;
@@ -165,7 +165,7 @@ export function suggestKey(name: string): string {
 export const agentBranch = (key: string, role: string) => `agent/${key}-${role}`;
 
 /** `true` nếu `checkout` là gốc của một worktree thuộc repo có `.git` chung `commonDir`. */
-async function isWorktreeOf(checkout: string, commonDir: string, deps: GitDeps): Promise<boolean> {
+export async function isWorktreeOf(checkout: string, commonDir: string, deps: GitDeps): Promise<boolean> {
   const git = deps.git ?? runGit;
   const opts = { env: deps.env, timeoutMs: LOCAL_GIT_TIMEOUT_MS };
   const common = await git(['-C', checkout, 'rev-parse', '--path-format=absolute', '--git-common-dir'], opts);
@@ -229,6 +229,53 @@ export async function ensureRuntimeExcluded(checkout: string, deps: GitDeps): Pr
   if (current.split('\n').some((line) => line.trim() === RUNTIME_EXCLUDE)) return;
   mkdirSync(dirname(file), { recursive: true });
   appendFileSync(file, `${current === '' || current.endsWith('\n') ? '' : '\n'}${RUNTIME_EXCLUDE}\n`);
+}
+
+function isFile(path: string): boolean {
+  try {
+    return isAbsolute(path) && statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Nhánh mặc định có `docs/flows.yaml` thì đặt `crew-docs.bundle` (và `crew-docs.runtime` nếu có) trong git config
+ * của repo (chung cho mọi worktree agent). Giá trị owner đã đặt mà còn hợp lệ thì giữ, không ghi đè. Bundle lấy từ
+ * repo đã có trong bản tin (`statusRepoPaths`), không có thì `~/.crew/bin/crew-docs.cjs`.
+ */
+export async function configureDocsBundle(
+  info: FolderInfo,
+  deps: GitDeps & { statusRepoPaths: () => Promise<string[]> },
+): Promise<void> {
+  const run = (args: string[]) =>
+    (deps.git ?? runGit)(args, { env: deps.env, timeoutMs: LOCAL_GIT_TIMEOUT_MS });
+  const dir = info.root;
+  const tracked = await run(['-C', dir, 'cat-file', '-e', `${info.baseRef}:docs/flows.yaml`]);
+  if (tracked.code !== 0) return;
+  const get = async (repo: string, name: string) =>
+    (await run(['-C', repo, 'config', '--get', name])).stdout.trim();
+  const set = async (name: string, value: string) => {
+    const r = await run(['-C', dir, 'config', name, value]);
+    if (r.code !== 0) throw new Error(`Không đặt được git config ${name} trong ${dir}`);
+  };
+  if (isFile(await get(dir, 'crew-docs.bundle'))) return;
+  let found: { bundle: string; runtime: string | null } | null = null;
+  for (const repo of await deps.statusRepoPaths()) {
+    const bundle = await get(repo, 'crew-docs.bundle');
+    if (!isFile(bundle)) continue;
+    const runtime = await get(repo, 'crew-docs.runtime');
+    found = { bundle, runtime: isFile(runtime) ? runtime : null };
+    break;
+  }
+  const fallback = join(deps.home, '.crew', 'bin', 'crew-docs.cjs');
+  if (!found && isFile(fallback)) found = { bundle: fallback, runtime: null };
+  if (!found) {
+    throw new Error('Không tìm thấy bundle crew-docs (~/.crew/bin/crew-docs.cjs): chạy lại cài đặt máy');
+  }
+  await set('crew-docs.bundle', found.bundle);
+  if (found.runtime && (await get(dir, 'crew-docs.runtime')) === '')
+    await set('crew-docs.runtime', found.runtime);
 }
 
 /** Thư mục có gì bên trong chưa (thư mục rỗng còn lại sau khi owner gỡ hết worktree thì coi như chưa có). */
