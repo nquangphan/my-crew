@@ -2,7 +2,8 @@
 
 Hướng dẫn cho agent (và người) làm việc trong repo này. Repo `crew` là pnpm TypeScript monorepo của **2P
 Crew**. Sản phẩm Crew v3 chạy trên bản fork Paperclip nằm ở repo khác; repo này chỉ giữ `apps/crew-mac` (CLI
-`crew-mac` cài và kiểm Mac chạy agent), `packages/docs-kit` (CLI `crew-docs`), cùng `docs/` và `plans/`.
+`crew-mac` cài và kiểm Mac chạy agent), `apps/mac-app` (app macOS "2P Crew" bằng Electron, bọc `@crew/mac`,
+ký Developer ID), `packages/docs-kit` (CLI `crew-docs`), cùng `docs/` và `plans/`.
 
 ## Đọc trước tiên
 
@@ -20,6 +21,8 @@ Crew**. Sản phẩm Crew v3 chạy trên bản fork Paperclip nằm ở repo kh
 - Build (tất cả package): `pnpm -r build`
 - Build bundle `crew-docs`: `pnpm --filter @crew/docs-kit build` (ra `packages/docs-kit/dist/crew-docs.cjs`)
 - Build `crew-mac`: `pnpm --filter @crew/mac build` (ra `apps/crew-mac/dist/cli.js`)
+- Build app macOS: `pnpm --filter @crew/mac-app build` (electron-vite, ra `apps/mac-app/out/`); đóng gói thử không
+  ký: `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @crew/mac-app exec electron-builder --mac dir --arm64`
 
 ## Quy ước
 
