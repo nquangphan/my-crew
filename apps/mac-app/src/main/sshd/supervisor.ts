@@ -1,9 +1,9 @@
-import type { ProcInfo, SshdOwner } from '@crew/mac';
+import { isCrewListener, type ProcInfo, type SshdOwner } from '@crew/mac';
 import type { ActiveRun } from '../../shared/ipc-contract.js';
 import type { AppStateStore } from '../app-state.js';
 import { activeRuns } from './active-runs.js';
 import { nextDelayMs, STABLE_RESET_MS } from './backoff.js';
-import { isCrewSshdListener, type ListenerProc, planListenerTakeover } from './takeover.js';
+import { type ListenerProc, planListenerTakeover } from './takeover.js';
 
 export type SupervisorState = 'starting' | 'running' | 'backoff' | 'paused' | 'stopped' | 'disabled';
 
@@ -134,10 +134,10 @@ export function createSshdSupervisor(deps: SupervisorDeps): SshdSupervisor {
     for (let waited = 0; waited < STOP_WAIT_MS; waited += POLL_MS) {
       await deps.sleep(POLL_MS);
       const proc = await deps.procInfo(pid);
-      if (proc === null || proc.pid !== pid || !isCrewSshdListener(proc, deps.sshdConfig)) return;
+      if (proc === null || proc.pid !== pid || !isCrewListener(proc.command, deps.sshdConfig)) return;
     }
     const proc = await deps.procInfo(pid);
-    if (proc !== null && proc.pid === pid && isCrewSshdListener(proc, deps.sshdConfig)) {
+    if (proc !== null && proc.pid === pid && isCrewListener(proc.command, deps.sshdConfig)) {
       deps.signal(pid, 'SIGKILL');
     }
   };

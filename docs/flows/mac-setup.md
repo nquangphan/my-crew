@@ -95,7 +95,8 @@ không cần token và không login lại.
 - Sang app (`handOffToApp`): bootout chỉ khi job đang nạp, ghi manifest `app` ngay sau đó.
 - Về launchd (`takeBackToLaunchd`): ghi manifest `launchd` TRƯỚC (app thấy và tự dừng listener), chờ tối đa 15 giây cho
   pid trong `~/.crew-mac/sshd/sshd.pid` thoát; còn sống và argv đúng listener của crew-mac (`isCrewListener`: đầu là
-  `/usr/sbin/sshd`, có `-f <sshd_config>`, không phải `sshd-session`) thì TERM rồi chờ nhả cổng; pid lạ ngay lần kiểm
+  `/usr/sbin/sshd` hoặc tiêu đề sshd đã đổi `sshd: /usr/sbin/sshd …`, có `-f <sshd_config>`, không phải `sshd-session`;
+  app 2P Crew dùng lại đúng hàm này) thì TERM rồi chờ nhả cổng; pid lạ ngay lần kiểm
   đầu thì `SetupError` và không bootstrap. Không bao giờ gửi tín hiệu cho `sshd-session`. Sau đó ghi plist và
   bootstrap như cũ.
 - `doctor` chế độ app (`probeListener`): job launchd sshd vẫn nạp thì `fail` (hai chủ); không có listener hay pid lạ
@@ -231,7 +232,7 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 
 ## Tests
 
-- `apps/crew-mac/test/sshd-owner.test.ts`: `resolveSshdOwner`, manifest có/không `sshdOwner` và giá trị lạ, `isCrewListener`, `probeListener` (không pidfile, pid chết, pid lạ, listener sống kèm cha), `takeBackToLaunchd` (listener tự thoát thì không kill, mồ côi thì đúng một TERM, `sshd-session` thì báo lỗi không kill, không pidfile thì không gọi `ps`).
+- `apps/crew-mac/test/sshd-owner.test.ts`: `resolveSshdOwner`, manifest có/không `sshdOwner` và giá trị lạ, `isCrewListener` (cả chuỗi thật `sshd: /usr/sbin/sshd … [listener] 0 of 10-100 startups`), `probeListener` (không pidfile, pid chết, pid lạ, listener sống kèm cha), `takeBackToLaunchd` (listener tự thoát thì không kill, mồ côi thì đúng một TERM, `sshd-session` thì báo lỗi không kill, không pidfile thì không gọi `ps`).
 - `apps/crew-mac/test/setup.test.ts`: chủ sshd (sang app: đúng một bootout, xóa plist, config và host key không đổi; chạy lại không đổi gì; còn run thì từ chối, `force` thì chạy; về launchd: manifest ghi trước lần kiểm pid đầu, không kill khi listener tự thoát, pid là `sshd-session` thì không kill không bootstrap, không pidfile thì bootstrap ngay), cài lần đầu (khối PATH có thư mục node), ghim Superpowers và trả `extraArgs`, owner chưa cài đúng bản thì dừng trước khi ghi gì, chạy lại không đổi gì, đổi cổng, từ chối thư mục bị cấm, thiếu phiên desktop, spike còn chạy, thiếu Tailscale.
 - `apps/crew-mac/test/doctor.test.ts`: máy khỏe, `agent-node` (sshd agent không thấy node) và `zshenv-path` thiếu thư mục node, `crew-docs` node mã 127 thì gợi ý sửa PATH, `superpowers-pin` (thiếu, lệch checksum, symlink, mất bit thực thi, bản owner khác pin), `worktree-workflows` (sạch, `SKILL.md` sửa dở thì warn, `settings.json` sửa dở thì fail kèm lệnh, git quá hạn thì dừng), claude treo, check `crew-docs` (thiếu bundle/runtime, nằm dưới vùng TCC, quá hạn, dùng chung kết quả theo bundle, thư mục worktree lỗi thì warn, symlink), hộp thoại TCC của agent (fail, kể cả của app 2P Crew) và của app khác (warn), `isAgentTccSubject`, chủ sshd và `tcc-owner` (con của app thì đạt, mồ côi thì cảnh báo, cha khác, không listener thì fail, job launchd còn nạp ở chế độ app thì fail, chế độ LaunchAgent thì `tcc-owner` cảnh báo), chưa đăng nhập, IP đổi, quá tải.
 - `apps/crew-mac/test/crew-claude-run.test.ts`: wrapper chỉ exec khi không có run id, bỏ qua run id sai dạng, ghi PGID và thời điểm bắt đầu; với run id: gọi `workflow-check` đúng tham số, nhận `--plugin-dir=<dir>`, thiếu hoặc thừa `--plugin-dir`, `workflow-check` từ chối hoặc không có `crew-mac` thì thoát 78 mà không chạy agent.

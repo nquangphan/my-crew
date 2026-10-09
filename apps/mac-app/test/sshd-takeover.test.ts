@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCrewSshdListener, planListenerTakeover } from '../src/main/sshd/takeover.js';
+import { planListenerTakeover } from '../src/main/sshd/takeover.js';
 
 const CFG = '/Users/u/.crew-mac/sshd/sshd_config';
 const LOG = '/Users/u/.crew-mac/sshd/sshd.log';
@@ -62,16 +62,5 @@ describe('planListenerTakeover', () => {
   });
   it('proc của pid khác pidfile thì không đụng', () => {
     expect(planListenerTakeover({ pidFromFile: 501, proc: own, sshdConfig: CFG })).toEqual({ kind: 'spawn' });
-  });
-});
-
-describe('isCrewSshdListener', () => {
-  it('nhận argv gốc và tiêu đề đổi tên, từ chối binary khác', () => {
-    expect(isCrewSshdListener(own, CFG)).toBe(true);
-    expect(isCrewSshdListener(ownRetitled, CFG)).toBe(true);
-    expect(isCrewSshdListener({ comm: 'x', command: `/tmp/sshd -D -f ${CFG}` }, CFG)).toBe(false);
-    expect(isCrewSshdListener({ comm: 'sshd', command: `sshd: /usr/sbin/sshd -D -f ${CFG}` }, CFG)).toBe(
-      true,
-    );
   });
 });

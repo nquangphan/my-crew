@@ -24,7 +24,7 @@ Quit guard hỏi owner khi còn run.
 1. `src/main/sshd/supervisor.ts` → `createSshdSupervisor(deps).start()`: đọc chủ sshd từ manifest. Không phải `app`
    (hay manifest hỏng) thì trạng thái `disabled`, không sinh gì (chế độ CLI, LaunchAgent giữ cổng).
 2. Tiếp quản (`src/main/sshd/takeover.ts` → `planListenerTakeover`): đọc pid trong `~/.crew-mac/sshd/sshd.pid` và
-   `ps` của pid đó. Chỉ khi process đó đúng là listener của crew-mac (`isCrewSshdListener`: binary `/usr/sbin/sshd`,
+   `ps` của pid đó. Chỉ khi process đó đúng là listener của crew-mac (`isCrewListener` của `@crew/mac`, một hàm dùng chung với CLI: binary `/usr/sbin/sshd`, kể cả tiêu đề `sshd: …`,
    argv có `-f <sshd_config của crew-mac>` khớp nguyên token, không phải `sshd-session`) mới `replace`: TERM, chờ tối
    đa 5 giây, còn đúng listener đó thì SIGKILL. Mọi trường hợp khác (không pidfile, pid chết, pid bị dùng lại) chỉ
    `spawn`, không gửi tín hiệu.
@@ -72,7 +72,7 @@ cũ ở pidfile đã kiểm argv, kiểm lại trước khi SIGKILL.
 | `apps/mac-app/src/main/sshd/register.ts` | Nối bộ giám sát và quit guard vào Electron (`app`, `dialog`, tray) | `registerSshd` |
 | `apps/mac-app/src/main/sshd/supervisor.ts` | Máy trạng thái của listener (I4) | `createSshdSupervisor`, `SshdSupervisor`, `SupervisorDeps`, `SupervisorState` |
 | `apps/mac-app/src/main/sshd/system-deps.ts` | Deps thật: spawn, `ps`, `lsof`, pidfile, manifest, log sshd | `createSystemDeps`, `exitReasonFromLog`, `readLogSince`, `summarizeLsof` |
-| `apps/mac-app/src/main/sshd/takeover.ts` | Quyết định tiếp quản listener cũ | `planListenerTakeover`, `isCrewSshdListener` |
+| `apps/mac-app/src/main/sshd/takeover.ts` | Quyết định tiếp quản listener cũ | `planListenerTakeover` |
 | `apps/mac-app/src/main/sshd/backoff.ts` | Khoảng chờ sinh lại | `nextDelayMs`, `STABLE_RESET_MS` |
 | `apps/mac-app/src/main/sshd/active-runs.ts` | Run đang chạy từ bảng process | `activeRuns` |
 | `apps/mac-app/src/main/quit-guard.ts` | Hỏi khi thoát lúc còn run | `decideQuit`, `installQuitGuard`, `QUIT_BUTTONS`, `QUIT_DEFAULT_ID`, `quitMessage` |
@@ -95,7 +95,7 @@ cũ ở pidfile đã kiểm argv, kiểm lại trước khi SIGKILL.
   lưu. Vì thế mặc định quit guard là "Thoát ngay, run vẫn chạy". Nếu đo lại cho thấy hộp thoại dưới listener mồ côi
   không mang tên app thì đổi `QUIT_DEFAULT_ID` về 0 ("Chờ run xong").
 - Listener OpenSSH đổi tiêu đề process thành `sshd: /usr/sbin/sshd -D -f … [listener] 0 of 10-100 startups`; cả
-  `ps -o comm=` và `ps -o command=` đều trả chuỗi này, nên `isCrewSshdListener` bỏ tiền tố `sshd: ` trước khi so argv.
+  `ps -o comm=` và `ps -o command=` đều trả chuỗi này, nên `isCrewListener` bỏ tiền tố `sshd: ` trước khi so argv.
 
 ## Flow liên quan
 

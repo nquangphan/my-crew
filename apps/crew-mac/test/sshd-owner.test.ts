@@ -40,6 +40,28 @@ describe('isCrewListener', () => {
     expect(isCrewListener('/usr/sbin/sshd -D -f /etc/ssh/sshd_config', config)).toBe(false);
     expect(isCrewListener(`/opt/sshd -D -f ${config}`, config)).toBe(false);
   });
+
+  it('nhận tiêu đề sshd đã tự đổi (`sshd: … [listener] …`), chuỗi thật của `ps -o command=` trên macOS 26', () => {
+    const real = `sshd: /usr/sbin/sshd -D -f ${config} -E /Users/owner/.crew-mac/sshd/sshd.log [listener] 0 of 10-100 startups`;
+    expect(isCrewListener(real, config)).toBe(true);
+    expect(isCrewListener(`${real}     `, config)).toBe(true);
+  });
+
+  it('tiêu đề đã đổi vẫn từ chối sshd-session, listener thiếu -f, cấu hình khác và binary lạ', () => {
+    expect(isCrewListener('sshd-session: owner [priv]', config)).toBe(false);
+    expect(isCrewListener(`sshd-session: /usr/sbin/sshd -D -f ${config}`, config)).toBe(false);
+    expect(
+      isCrewListener('sshd: /usr/sbin/sshd -D -E /x/sshd.log [listener] 0 of 10-100 startups', config),
+    ).toBe(false);
+    expect(
+      isCrewListener(
+        'sshd: /usr/sbin/sshd -D -f /etc/ssh/sshd_config [listener] 0 of 10-100 startups',
+        config,
+      ),
+    ).toBe(false);
+    expect(isCrewListener(`sshd: /usr/sbin/sshd -D -f ${config}.bak [listener]`, config)).toBe(false);
+    expect(isCrewListener(`sshd: /opt/sshd -D -f ${config} [listener]`, config)).toBe(false);
+  });
 });
 
 describe('probeListener', () => {
