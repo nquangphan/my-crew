@@ -150,10 +150,12 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
      (`bật plugin <tên> ngoài bản ghim, nạp song song với workflow của run`, `PARALLEL_PLUGIN_REASON`): `--plugin-dir`
      chỉ thay plugin trùng tên, nên plugin đó sẽ nạp song song với bản ghim nếu owner cài nó ở user scope.
    - **`_bmad/` (chỉ run BMAD, `judgeBmad`):**
-     - `_bmad/scripts/**` (bỏ rác, symlink là khác) phải có đúng tập file và từng byte của
+     - `_bmad/scripts/**` (bỏ rác chưa track, symlink là khác) phải có đúng tập file và từng byte của
        `<thư mục ghim bmad>/skills/bmad/scripts/**` (`compareBmadScripts`, export cho `crew-mac bmad`). Khác thì một
        nguồn `blocked` `BMAD_SCRIPT_MISMATCH_REASON` kèm lệnh `git status`/`checkout HEAD -- _bmad/scripts` hoặc xóa rồi
-       chạy `crew-mac bmad setup-project`. Giống thì `project` khi mọi file đã commit sạch, `pinned` khi còn file chưa
+       chạy `crew-mac bmad setup-project`. Bytecode Python (`__pycache__/`, `*.pyc`) đã track dưới `_bmad/scripts` cũng
+       là khác (Python nạp `.pyc` unchecked-hash mà không đối chiếu nguồn); bytecode chưa track do chính run tạo thì bỏ
+       qua như rác. Giống thì `project` khi mọi file đã commit sạch, `pinned` khi còn file chưa
        track hay sửa dở (run trước bị ngắt ngay sau `setup-project`).
      - `_bmad/config.toml`, `_bmad/custom/**/*.toml` (trừ `*.user.toml`) xét như `settings.json`: chưa track, bị ignore
        hay sửa dở đều chặn (lý do `UNTRACKED_REASON`, `IGNORED_REASON`, `DIRTY_REASON`).
@@ -207,7 +209,7 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
 | Plugin khác trong `enabledPlugins` của `settings.json` đã commit | `project` |
 | Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, đã commit sạch | `project` |
 | Run BMAD: `_bmad/scripts/**` giống từng byte bản ghim, còn file chưa commit | `pinned` |
-| Run BMAD: `_bmad/scripts/**` khác bản ghim (một byte, thừa/thiếu file, symlink) | `blocked` |
+| Run BMAD: `_bmad/scripts/**` khác bản ghim (một byte, thừa/thiếu file, symlink, bytecode Python đã track) | `blocked` |
 | Run BMAD: `_bmad/config.toml`, `_bmad/custom/**/*.toml` chưa track, bị ignore hay sửa dở | `blocked` |
 | Run BMAD: `_bmad/config.toml` chưa track, đúng byte bản `setup-project` vừa ghi cho worktree này | `pinned` kèm `warning` |
 | Run BMAD: `_bmad/**/*.user.toml` chưa track, bị ignore hay sửa dở | `blocked` (lớp cá nhân) |
@@ -283,7 +285,8 @@ H3 chỉ cần hợp đồng `pgid`/`started`.
   `git ls-tree -l` + `git show <rev>:./<file>` (so số byte, nên file không phải UTF-8 bị từ chối).
 - `digest` = sha256 hex của bytes file. `scriptsMatchPin`: `_bmad/scripts` (trên đĩa, hoặc ở `--rev` qua
   `git ls-tree -r`) giống từng byte bản ghim (`compareBmadScripts`, bỏ rác); `null` khi không có `_bmad/scripts`;
-  `false` khi khác, có symlink hay file không đọc được.
+  `false` khi khác, có symlink hay file không đọc được; ở `--rev`, commit có bytecode Python (`__pycache__/`, `*.pyc`)
+  dưới `_bmad/scripts` cũng là `false` (`.DS_Store` và rác khác vẫn bỏ qua).
 - `--json` in `{"digest","file","rev","scriptsMatchPin","epics","stories","problems"}`. Không `--json`: dòng
   `crew-bmad stories file=<file> epics=<n> stories=<m> digest=<64 hex> scripts=<match|mismatch|none>` rồi mỗi vấn đề
   một dòng `crew-bmad problem: <câu>`.
@@ -433,7 +436,7 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
   - theo workflow của run: run BMAD trên repo bật superpowers bị chặn nạp chéo; run Superpowers trên repo bật
     `bmad-method@bmad` bị chặn, superpowers vẫn `pinned`; run BMAD bật `bmad@*` là `pinned`, `bmad-toolbox@*` bị chặn;
   - `_bmad/` (run BMAD): `_bmad/scripts` giống byte đã commit (`project`), chưa commit (`pinned`), khác một byte, thừa
-    file, symlink (chặn kèm lệnh); `config.toml` chưa track/sửa dở và `custom/*.toml` chưa track; `*.user.toml` chưa
+    file, symlink (chặn kèm lệnh), `.pyc` đã commit (phẳng hay trong `__pycache__/`) chặn còn `.pyc` chưa track bỏ qua; `config.toml` chưa track/sửa dở và `custom/*.toml` chưa track; `*.user.toml` chưa
     track, đã commit, sửa dở; `_bmad/memory/**`, `_bmad-output/**` không xét; run Superpowers bỏ qua `_bmad/`; repo chỉ
     có `_bmad` vẫn gọi git (giới hạn `_bmad`); `compareBmadScripts`;
   - git lỗi hoặc quá hạn; số lệnh git cố định; lệnh xử lý quote đường dẫn có dấu cách và nháy đơn (chạy thật lệnh `checkout`); worktree là thư mục con của repo; đường dẫn khác hoa thường (APFS);
@@ -470,6 +473,6 @@ pid đã cấp lại cho process khác giữ bản cũ tới khi pid đó thoát
   khác thì chặn, đã commit thì `project`.
 - `apps/crew-mac/test/bmad-command.test.ts` (repo git thật): `stories` đọc đĩa (JSON đúng hợp đồng, `digest`,
   `scriptsMatchPin` null/match/mismatch, rác bị bỏ, symlink); `--rev` đọc theo commit không theo đĩa, scripts theo
-  commit; `--root` là thư mục con; file lệch khuôn thoát 3; đối số sai thoát 2 (tuyệt đối, `..`, không `.md`, không
+  commit, `.DS_Store` trong commit vẫn match còn `.pyc` trong commit là mismatch; `--root` là thư mục con; file lệch khuôn thoát 3; đối số sai thoát 2 (tuyệt đối, `..`, không `.md`, không
   có, `--rev` sai, không phải commit, file không có ở commit, symlink ra ngoài); `setup-project` in skipped/ok/lỗi;
   CLI chuyển lệnh `bmad`.

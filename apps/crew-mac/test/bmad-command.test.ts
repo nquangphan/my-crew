@@ -132,7 +132,7 @@ describe('crew-mac bmad stories', () => {
     expect(json.problems).toContain('story 1.3: số thứ tự phải là 1.2');
   });
 
-  it('--rev: commit không có _bmad/scripts → null; có file rác pycache trong commit vẫn match', async () => {
+  it('--rev: commit không có _bmad/scripts → null; .DS_Store trong commit vẫn match; .pyc trong commit → mismatch', async () => {
     const t = setup();
     const first = gitIn(t.root, 'rev-parse', 'HEAD');
     expect(
@@ -140,14 +140,22 @@ describe('crew-mac bmad stories', () => {
     ).toBe(0);
     expect(JSON.parse(t.out.join('\n')).scriptsMatchPin).toBeNull();
     t.copyPinScripts();
-    mkdirSync(join(t.root, '_bmad', 'scripts', '__pycache__'));
-    writeFileSync(join(t.root, '_bmad', 'scripts', '__pycache__', 'x.pyc'), 'rác');
+    writeFileSync(join(t.root, '_bmad', 'scripts', '.DS_Store'), 'rác');
     const second = t.commit();
     t.out.length = 0;
     expect(
       await t.run('stories', '--root', t.root, '--rev', second, '--file', 'docs/epics.md', '--json'),
     ).toBe(0);
     expect(JSON.parse(t.out.join('\n')).scriptsMatchPin).toBe(true);
+    // Python nạp .pyc (unchecked-hash) mà không đối chiếu nguồn: bytecode đã commit là mã khác bản ghim.
+    mkdirSync(join(t.root, '_bmad', 'scripts', '__pycache__'));
+    writeFileSync(join(t.root, '_bmad', 'scripts', '__pycache__', 'config_utils.cpython-312.pyc'), 'mã khác');
+    const third = t.commit();
+    t.out.length = 0;
+    expect(
+      await t.run('stories', '--root', t.root, '--rev', third, '--file', 'docs/epics.md', '--json'),
+    ).toBe(3);
+    expect(JSON.parse(t.out.join('\n')).scriptsMatchPin).toBe(false);
   });
 
   it('--root là thư mục con của repo: --file và _bmad tính từ --root', async () => {

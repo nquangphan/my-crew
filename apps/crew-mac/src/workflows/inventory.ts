@@ -109,15 +109,17 @@ export function describeSource(s: DiscoveredSource): string {
   return `${s.path} (${why})${s.fix ? `. ${s.fix}` : ''}`;
 }
 
+/**
+ * Bytecode Python. Do chính run tạo (chưa track) thì là rác; đã commit dưới `_bmad/scripts` thì là mã khác bản ghim,
+ * vì Python nạp `.pyc` dạng unchecked-hash (PEP 552) mà không đối chiếu file nguồn.
+ */
+export function isPythonBytecode(name: string): boolean {
+  return name === '__pycache__' || name.endsWith('.pyc');
+}
+
 /** Rác của hệ điều hành và công cụ, không bao giờ là nguồn claude nạp. */
 function isJunk(name: string): boolean {
-  return (
-    name === '.DS_Store' ||
-    name.startsWith('._') ||
-    name === 'Icon\r' ||
-    name === '__pycache__' ||
-    name.endsWith('.pyc')
-  );
+  return name === '.DS_Store' || name.startsWith('._') || name === 'Icon\r' || isPythonBytecode(name);
 }
 
 interface GitView {
@@ -514,7 +516,11 @@ function judgeBmad(
   const scripts = join(base, 'scripts');
   if (existsSync(scripts) || isSymlink(scripts)) {
     const files = isSymlink(scripts) ? null : readScriptTree(scripts);
-    if (!files || !compareBmadScripts(files, pinDir)) {
+    const scriptsKey = `${git.prefix ? `${git.prefix}/` : ''}_bmad/scripts/`;
+    const trackedBytecode = [...git.tracked.keys()].some(
+      (key) => key.startsWith(scriptsKey) && key.slice(scriptsKey.length).split('/').some(isPythonBytecode),
+    );
+    if (!files || !compareBmadScripts(files, pinDir) || trackedBytecode) {
       const r = shQuote(root);
       found.push({
         path: scripts,

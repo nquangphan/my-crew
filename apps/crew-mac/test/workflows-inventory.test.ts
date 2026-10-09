@@ -528,6 +528,28 @@ describe('discoverSources theo workflow của run', () => {
     );
   });
 
+  it('run BMAD: .pyc đã commit dưới _bmad/scripts là khác bản ghim; .pyc chưa track (do run tạo) bỏ qua', async () => {
+    const { ctx } = realGitCtx();
+    const dir = repo();
+    copyPinScripts(ctx, dir);
+    commit(dir, '_bmad');
+    put(dir, '_bmad/scripts/__pycache__/config_utils.cpython-312.pyc', 'bytecode do run tạo');
+    expect(await discoverSources(ctx, dir, ctx.bmadPin)).toEqual([
+      { path: join(dir, '_bmad', 'scripts'), kind: 'bmad', origin: 'project' },
+    ]);
+    commit(dir, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, dir, ctx.bmadPin))).toEqual([
+      expect.objectContaining({ path: join(dir, '_bmad', 'scripts'), reason: BMAD_SCRIPT_MISMATCH_REASON }),
+    ]);
+    const flat = repo();
+    copyPinScripts(ctx, flat);
+    put(flat, '_bmad/scripts/setup.pyc', 'mã khác');
+    commit(flat, '_bmad');
+    expect(blockedOf(await discoverSources(ctx, flat, ctx.bmadPin))[0]?.reason).toBe(
+      BMAD_SCRIPT_MISMATCH_REASON,
+    );
+  });
+
   it('run BMAD: _bmad/scripts chưa commit nhưng giống byte → pinned (run trước bị ngắt)', async () => {
     const { ctx } = realGitCtx();
     const dir = repo();

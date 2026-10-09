@@ -4,7 +4,7 @@ import { isAbsolute, join, sep } from 'node:path';
 import { parseEpics } from '../bmad/epics.js';
 import { isBmadJunk, readScriptsDir, setupProject } from '../bmad/setup-project.js';
 import { type MacContext, SetupError } from '../context.js';
-import { compareBmadScripts } from '../workflows/inventory.js';
+import { compareBmadScripts, isPythonBytecode } from '../workflows/inventory.js';
 import { pinDir } from '../workflows/pin.js';
 
 export const BMAD_USAGE =
@@ -63,7 +63,10 @@ async function readAtRev(git: Git, rev: string, file: string): Promise<Buffer> {
   return data;
 }
 
-/** `_bmad/scripts` ở commit, null khi commit không có; `false` khi không so được byte (symlink, không phải UTF-8). */
+/**
+ * `_bmad/scripts` ở commit, null khi commit không có; `false` khi không so được byte (symlink, không phải UTF-8) hoặc
+ * commit có bytecode Python (`__pycache__`, `*.pyc`).
+ */
 async function scriptsAtRev(git: Git, rev: string): Promise<Map<string, Buffer> | null | false> {
   const entries = await lsTree(git, rev, SCRIPTS, true);
   if (entries.length === 0) return null;
@@ -71,6 +74,8 @@ async function scriptsAtRev(git: Git, rev: string): Promise<Map<string, Buffer> 
   for (const e of entries) {
     if (!e.path.startsWith(`${SCRIPTS}/`)) return false;
     const rel = e.path.slice(SCRIPTS.length + 1);
+    // Bytecode đã commit là mã khác bản ghim (Python nạp nó mà không đối chiếu nguồn); rác khác thì bỏ qua.
+    if (rel.split('/').some(isPythonBytecode)) return false;
     if (rel.split('/').some(isBmadJunk)) continue;
     if (!isRegularBlob(e.mode)) return false;
     const data = await showBlob(git, rev, e.path, e.size);
