@@ -1,5 +1,17 @@
-import { closeSync, type Dirent, fstatSync, openSync, readdirSync, readSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  closeSync,
+  type Dirent,
+  fstatSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  readSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { agentShell, cliVersion, codexLoggedIn } from '../runtimes/command.js';
 import { keychainKeyState } from '../runtimes/keychain.js';
@@ -24,7 +36,14 @@ export interface RuntimesReport {
 }
 
 export const MAX_RUNTIME_MODELS = 60;
-const COMMAND_TIMEOUT_MS = 10_000;
+/** Mỗi lệnh phải chết trước hạn tổng của khối để không còn process mồ côi sau khi bản tin đã đi. */
+const COMMAND_TIMEOUT_MS = 7_000;
+/** Hạn tổng dựng khối `runtimes`: quá hạn thì trường chưa đo xong dùng giá trị cache, bản tin không bị trễ. */
+export const RUNTIMES_BUDGET_MS = 8_000;
+/** Số lệnh shell chạy cùng lúc; máy bận không bị 27 tiến trình opencode đè lên nhau. */
+const MAX_CONCURRENT_COMMANDS = 4;
+/** Giá trị đo gần nhất còn dùng được bao lâu khi lần đo mới không ra số. */
+export const RUNTIMES_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_VERSION = 50;
 const MAX_MODEL_ID = 120;
 const MAX_COST = 100_000;
@@ -239,38 +258,189 @@ export function readCodexQuota(
   }
 }
 
-/**
- * Không bao giờ ném: mỗi lệnh lỗi, hết giờ hoặc thiếu CLI cho null/[] ở đúng trường của nó. OpenCode chưa có key vẫn
- * trả `keyPresent: false`; `opencode stats` lỗi chỉ làm ba số chi phí null.
- */
-export async function buildRuntimesReport(ctx: MacContext): Promise<RuntimesReport> {
-  const [codexVersion, opencodeVersion, keyPresent] = await Promise.all([
-    safe(cliVersion(ctx, 'codex', COMMAND_TIMEOUT_MS), null),
-    safe(cliVersion(ctx, 'opencode', COMMAND_TIMEOUT_MS), null),
-    safe(keychainKeyState(ctx), null),
-  ]);
-  const dataDirs = opencodeVersion === null ? [] : opencodeAgentDataDirs(ctx.home);
-  const [loggedIn, costDay, costWeek, costMonth, modelsOut] = await Promise.all([
-    codexVersion === null ? null : safe(codexLoggedIn(ctx, COMMAND_TIMEOUT_MS), null),
-    opencodeVersion === null ? null : opencodeCost(ctx, 1, dataDirs),
-    opencodeVersion === null ? null : opencodeCost(ctx, 7, dataDirs),
-    opencodeVersion === null ? null : opencodeCost(ctx, 30, dataDirs),
-    opencodeVersion === null ? null : shell(ctx, 'opencode models opencode-go'),
-  ]);
-  const quota = readCodexQuota(ctx.home, ctx.now());
+type CacheKey =
+  | 'codexVersion'
+  | 'codexLoggedIn'
+  | 'opencodeVersion'
+  | 'keyPresent'
+  | 'costDay'
+  | 'costWeek'
+  | 'costMonth'
+  | 'models';
+type CacheEntry = { v: unknown; at: number };
+type StatusCache = Partial<Record<CacheKey, CacheEntry>>;
+
+const CACHE_KEYS: CacheKey[] = [
+  'codexVersion',
+  'codexLoggedIn',
+  'opencodeVersion',
+  'keyPresent',
+  'costDay',
+  'costWeek',
+  'costMonth',
+  'models',
+];
+
+/** `~/.crew/runtimes/status-cache.json`: chỉ số đã đo (phiên bản, cờ, chi phí, id model), không chứa secret. */
+export function runtimesCachePath(home: string): string {
+  return join(runtimePaths(home).runtimesRoot, 'status-cache.json');
+}
+
+function validCached(key: CacheKey, v: unknown): boolean {
+  switch (key) {
+    case 'codexVersion':
+    case 'opencodeVersion':
+      return typeof v === 'string' && v.length <= MAX_VERSION;
+    case 'codexLoggedIn':
+    case 'keyPresent':
+      return typeof v === 'boolean';
+    case 'models':
+      return (
+        Array.isArray(v) &&
+        v.length > 0 &&
+        v.length <= MAX_RUNTIME_MODELS &&
+        v.every((m) => typeof m === 'string' && MODEL_ID.test(m) && m.length <= MAX_MODEL_ID)
+      );
+    default:
+      return typeof v === 'number' && v >= 0 && v <= MAX_COST;
+  }
+}
+
+function readCache(home: string, nowMs: number): StatusCache {
+  const out: StatusCache = {};
+  try {
+    const raw = JSON.parse(readFileSync(runtimesCachePath(home), 'utf8')) as Record<string, unknown>;
+    for (const key of CACHE_KEYS) {
+      const entry = raw[key] as CacheEntry | undefined;
+      if (
+        entry &&
+        typeof entry.at === 'number' &&
+        nowMs - entry.at >= 0 &&
+        nowMs - entry.at <= RUNTIMES_CACHE_TTL_MS &&
+        validCached(key, entry.v)
+      )
+        out[key] = { v: entry.v, at: entry.at };
+    }
+  } catch {
+    /* chưa có cache hoặc hỏng: coi như rỗng */
+  }
+  return out;
+}
+
+function writeCache(home: string, cache: StatusCache): void {
+  try {
+    const path = runtimesCachePath(home);
+    mkdirSync(dirname(path), { recursive: true });
+    const tmp = `${path}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(cache), { mode: 0o600 });
+    renameSync(tmp, path);
+  } catch {
+    /* cache chỉ là tối ưu, ghi lỗi không được làm hỏng bản tin */
+  }
+}
+
+/** Giới hạn số lệnh chạy cùng lúc; lệnh chưa bắt đầu khi quá hạn bị bỏ qua (coi như hết giờ). */
+function gatedContext(ctx: MacContext, isExpired: () => boolean): MacContext {
+  let running = 0;
+  const waiting: (() => void)[] = [];
+  const release = () => {
+    running--;
+    waiting.shift()?.();
+  };
   return {
-    codex: {
-      version: codexVersion?.slice(0, MAX_VERSION) ?? null,
-      loggedIn,
-      ...quota,
+    ...ctx,
+    runner: {
+      async run(command, args, options) {
+        if (running >= MAX_CONCURRENT_COMMANDS) await new Promise<void>((resolve) => waiting.push(resolve));
+        running++;
+        try {
+          if (isExpired()) return { code: 124, stdout: '', stderr: '', timedOut: true };
+          return await ctx.runner.run(command, args, options);
+        } finally {
+          release();
+        }
+      },
     },
-    opencode: {
-      version: opencodeVersion?.slice(0, MAX_VERSION) ?? null,
+  };
+}
+
+/**
+ * Không bao giờ ném: mỗi lệnh lỗi, hết giờ hoặc thiếu CLI cho null/[] ở đúng trường của nó, và trường đó lấy giá trị
+ * đo gần nhất trong cache (còn hạn). Lệnh chạy song song có giới hạn, cả khối có hạn tổng `budgetMs` nên không làm trễ
+ * bản tin. OpenCode chưa có key vẫn trả `keyPresent: false`; `opencode stats` lỗi chỉ làm ba số chi phí null.
+ */
+export async function buildRuntimesReport(
+  mac: MacContext,
+  options: { budgetMs?: number } = {},
+): Promise<RuntimesReport> {
+  const budgetMs = options.budgetMs ?? RUNTIMES_BUDGET_MS;
+  let expired = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<void>((resolve) => {
+    timer = setTimeout(() => {
+      expired = true;
+      resolve();
+    }, budgetMs);
+  });
+  const within = <T>(value: Promise<T>, fallback: T): Promise<T> =>
+    Promise.race([safe(value, fallback), deadline.then(() => fallback)]);
+  const ctx = gatedContext(mac, () => expired);
+  try {
+    const nowMs = mac.now().getTime();
+    const cache = readCache(mac.home, nowMs);
+    const [codexVersion, opencodeVersion, keyPresent] = await Promise.all([
+      within(cliVersion(ctx, 'codex', COMMAND_TIMEOUT_MS), null),
+      within(cliVersion(ctx, 'opencode', COMMAND_TIMEOUT_MS), null),
+      within(keychainKeyState(ctx), null),
+    ]);
+    const codexKnown = codexVersion !== null || cache.codexVersion !== undefined;
+    const opencodeKnown = opencodeVersion !== null || cache.opencodeVersion !== undefined;
+    const dataDirs = opencodeKnown ? opencodeAgentDataDirs(mac.home) : [];
+    const [loggedIn, costDay, costWeek, costMonth, modelsOut] = await Promise.all([
+      codexKnown ? within(codexLoggedIn(ctx, COMMAND_TIMEOUT_MS), null) : null,
+      opencodeKnown ? within(opencodeCost(ctx, 1, dataDirs), null) : null,
+      opencodeKnown ? within(opencodeCost(ctx, 7, dataDirs), null) : null,
+      opencodeKnown ? within(opencodeCost(ctx, 30, dataDirs), null) : null,
+      opencodeKnown ? within(shell(ctx, 'opencode models opencode-go'), null) : null,
+    ]);
+    const measured: Record<CacheKey, unknown> = {
+      codexVersion: codexVersion?.slice(0, MAX_VERSION) ?? null,
+      codexLoggedIn: loggedIn,
+      opencodeVersion: opencodeVersion?.slice(0, MAX_VERSION) ?? null,
       keyPresent,
       costDay,
       costWeek,
       costMonth,
       models: modelsOut && modelsOut.code === 0 ? parseOpencodeModels(modelsOut.stdout) : [],
-    },
-  };
+    };
+    const next: StatusCache = { ...cache };
+    const pick = <T>(key: CacheKey, empty: T): T => {
+      const value = measured[key];
+      const isEmpty = value === null || (Array.isArray(value) && value.length === 0);
+      if (!isEmpty) {
+        next[key] = { v: value, at: nowMs };
+        return value as T;
+      }
+      return (cache[key]?.v as T | undefined) ?? empty;
+    };
+    const report: RuntimesReport = {
+      codex: {
+        version: pick<string | null>('codexVersion', null),
+        loggedIn: pick<boolean | null>('codexLoggedIn', null),
+        ...readCodexQuota(mac.home, mac.now()),
+      },
+      opencode: {
+        version: pick<string | null>('opencodeVersion', null),
+        keyPresent: pick<boolean | null>('keyPresent', null),
+        costDay: pick<number | null>('costDay', null),
+        costWeek: pick<number | null>('costWeek', null),
+        costMonth: pick<number | null>('costMonth', null),
+        models: pick<string[]>('models', []),
+      },
+    };
+    writeCache(mac.home, next);
+    return report;
+  } finally {
+    clearTimeout(timer);
+  }
 }

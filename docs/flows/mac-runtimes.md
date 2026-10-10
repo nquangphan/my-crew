@@ -118,8 +118,12 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
    - `RuntimesReport` = `codex { version, loggedIn, primaryUsedPct, resetsAt }` và
      `opencode { version, keyPresent, costDay, costWeek, costMonth, models }`; trường không đọc được là `null`
      (`models` là `[]`), hàm không bao giờ ném, `report.ts` bỏ khóa `runtimes` nếu vẫn lỗi;
-   - lệnh chạy qua `AGENT_SHELL`, mỗi lệnh quá hạn 10 giây, chạy song song với phần còn lại của bản tin;
-     CLI chưa cài thì không chạy các lệnh tiếp theo của CLI đó;
+   - lệnh chạy qua `AGENT_SHELL`, mỗi lệnh quá hạn 7 giây, chạy song song (tối đa 4 lệnh cùng lúc) với phần còn
+     lại của bản tin; cả khối có hạn tổng 8 giây (`RUNTIMES_BUDGET_MS`), quá hạn thì lệnh chưa xong coi như hết giờ
+     để bản tin không bị trễ; CLI chưa cài (và chưa từng đo được) thì không chạy các lệnh tiếp theo của CLI đó;
+   - cache `~/.crew/runtimes/status-cache.json` (0600, ghi nguyên tử, chỉ phiên bản, cờ, chi phí và id model, sống
+     6 giờ theo từng trường): trường lần đo này ra `null`/`[]` (hết giờ, máy bận) thì lấy giá trị đo gần nhất còn
+     hạn, nên một lệnh chậm không làm trang Máy mất Codex/OpenCode; quota đọc từ file session, không qua cache;
    - `version`: dòng đầu `<cli> --version`, cắt 50 ký tự. `loggedIn`: mã thoát của `codex login status` (không đọc
      câu in ra stderr); hết giờ thì `null`. `keyPresent`: `keychainKeyState` (không `-w`);
    - quota Codex (`readCodexQuota`): quét `~/.crew/runtimes/codex/<agentId>/sessions` và `~/.codex/sessions` (mỗi gốc

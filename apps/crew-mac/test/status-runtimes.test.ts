@@ -1,10 +1,15 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { AGENT_SHELL } from '../src/runtimes/command.js';
 import { KEYCHAIN_SERVICE, SECURITY_BIN } from '../src/runtimes/keychain.js';
 import { buildMachineReport, MACHINE_REPORT_MAX_BYTES } from '../src/status/report.js';
-import { buildRuntimesReport, MAX_RUNTIME_MODELS } from '../src/status/runtimes.js';
+import {
+  buildRuntimesReport,
+  MAX_RUNTIME_MODELS,
+  RUNTIMES_CACHE_TTL_MS,
+  runtimesCachePath,
+} from '../src/status/runtimes.js';
 import { fakeMac } from './helpers/fake-mac.js';
 
 const STATS = [
@@ -247,12 +252,12 @@ describe('buildRuntimesReport', () => {
     expect(slow.codex.loggedIn).toBeNull();
   });
 
-  it('mỗi lệnh có timeout 10 giây và key Keychain không bao giờ bị đọc', async () => {
+  it('mỗi lệnh có timeout 7 giây (chết trước hạn tổng của khối) và key Keychain không bao giờ bị đọc', async () => {
     const mac = machine(HEALTHY);
     await buildRuntimesReport(mac.ctx);
     const shell = mac.runner.calls.filter((c) => c.command === AGENT_SHELL);
     expect(shell.length).toBeGreaterThan(0);
-    expect(shell.every((c) => c.options.timeoutMs === 10_000)).toBe(true);
+    expect(shell.every((c) => c.options.timeoutMs === 7_000)).toBe(true);
     const security = mac.runner.calls.filter((c) => c.command === SECURITY_BIN);
     expect(security.every((c) => !c.args.includes('-w') && c.args.includes(KEYCHAIN_SERVICE))).toBe(true);
   });
@@ -287,5 +292,85 @@ describe('buildMachineReport với runtimes', () => {
     );
     expect(report.runtimes?.codex).toMatchObject({ version: null, loggedIn: null });
     expect(report.runtimes?.opencode.models).toEqual([]);
+  });
+
+  describe('máy bận', () => {
+    const TIMED_OUT: Answers = Object.fromEntries(
+      Object.keys(HEALTHY).map((k) => [k, { code: 124, timedOut: true }]),
+    );
+
+    it('lệnh hết giờ thì giữ giá trị đo gần nhất trong cache thay vì null', async () => {
+      const mac = machine(HEALTHY);
+      const first = await buildRuntimesReport(mac.ctx);
+      expect(existsSync(runtimesCachePath(mac.home))).toBe(true);
+      mac.runner.on(AGENT_SHELL, (args) => TIMED_OUT[args.at(-1) as string]);
+      const busy = await buildRuntimesReport(mac.ctx);
+      expect(busy.codex).toMatchObject({ version: 'codex-cli 0.161.0', loggedIn: true });
+      expect(busy.opencode).toEqual(first.opencode);
+    });
+
+    it('một trường lỗi không làm mất trường khác: chỉ trường đó dùng cache', async () => {
+      const mac = machine(HEALTHY);
+      await buildRuntimesReport(mac.ctx);
+      const answers = { ...HEALTHY, 'codex --version': { code: 124, timedOut: true } };
+      mac.runner.on(AGENT_SHELL, (args) => answers[args.at(-1) as string as keyof typeof answers]);
+      const r = await buildRuntimesReport(mac.ctx);
+      expect(r.codex.version).toBe('codex-cli 0.161.0');
+      expect(r.opencode.version).toBe('1.18.35');
+      expect(r.opencode.costWeek).toBeCloseTo(2.9309, 4);
+    });
+
+    it('cache quá hạn sống thì không dùng; cache không chứa secret', async () => {
+      const mac = machine(HEALTHY);
+      await buildRuntimesReport(mac.ctx);
+      const raw = readFileSync(runtimesCachePath(mac.home), 'utf8');
+      expect(raw).not.toMatch(/token|secret|password|auth/i);
+      mac.runner.on(AGENT_SHELL, (args) => TIMED_OUT[args.at(-1) as string]);
+      const later = {
+        ...mac.ctx,
+        now: () => new Date(mac.ctx.now().getTime() + RUNTIMES_CACHE_TTL_MS + 1000),
+      };
+      const r = await buildRuntimesReport(later);
+      expect(r.codex.version).toBeNull();
+      expect(r.opencode.models).toEqual([]);
+    });
+
+    it('lệnh treo thì khối vẫn xong trong hạn tổng và trả cache cho trường treo', async () => {
+      const mac = machine(HEALTHY);
+      await buildRuntimesReport(mac.ctx);
+      const base = mac.runner.run.bind(mac.runner);
+      mac.runner.run = (command, args, options) =>
+        command === AGENT_SHELL && args.at(-1) === 'codex login status'
+          ? new Promise(() => {})
+          : base(command, args, options);
+      const started = Date.now();
+      const r = await buildRuntimesReport(mac.ctx, { budgetMs: 100 });
+      expect(Date.now() - started).toBeLessThan(2000);
+      expect(r.codex).toMatchObject({ version: 'codex-cli 0.161.0', loggedIn: true });
+      expect(r.opencode.version).toBe('1.18.35');
+    });
+
+    it('chạy lệnh song song nhưng không quá 4 lệnh cùng lúc', async () => {
+      const mac = machine(HEALTHY);
+      const root = join(mac.home, '.crew', 'runtimes', 'opencode');
+      for (let i = 0; i < 8; i++)
+        mkdirSync(join(root, `agent-${i}`, 'data', 'opencode'), { recursive: true });
+      const base = mac.runner.run.bind(mac.runner);
+      let inFlight = 0;
+      let peak = 0;
+      mac.runner.run = async (command, args, options) => {
+        inFlight++;
+        peak = Math.max(peak, inFlight);
+        await new Promise((r) => setTimeout(r, 5));
+        try {
+          return await base(command, args, options);
+        } finally {
+          inFlight--;
+        }
+      };
+      await buildRuntimesReport(mac.ctx);
+      expect(peak).toBeGreaterThan(1);
+      expect(peak).toBeLessThanOrEqual(4);
+    });
   });
 });
