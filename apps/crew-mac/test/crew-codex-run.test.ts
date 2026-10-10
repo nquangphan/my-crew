@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -67,7 +68,7 @@ function run(t: T, env: Record<string, string>): { code: number; stderr: string 
 }
 
 describe('crew-codex-run', () => {
-  it('dựng CODEX_HOME riêng của agent, auth.json là symlink, asset không bị thêm file', () => {
+  it('dựng CODEX_HOME riêng của agent, auth.json là symlink; asset chỉ thêm auth.json rỗng', () => {
     const t = setup();
     expect(run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT }).code).toBe(0);
     const home = join(t.home, '.crew', 'runtimes', 'codex', AGENT);
@@ -78,12 +79,46 @@ describe('crew-codex-run', () => {
     expect(statSync(join(home, 'config.toml')).mode & 0o777).toBe(0o600);
     expect(statSync(home).mode & 0o777).toBe(0o700);
     expect(existsSync(join(home, 'sessions'))).toBe(true);
-    expect(readdirSync(t.asset).sort()).toEqual(['config.toml', 'skills']);
+    expect(readdirSync(t.asset).sort()).toEqual(['auth.json', 'config.toml', 'skills']);
     const seen = readFileSync(t.seen, 'utf8');
     expect(seen).toContain(`CODEX_HOME=${home}`);
     expect(seen.split('--argv--\n')[1]).toBe('exec\n--json\n-\n');
     expect(existsSync(join(t.root, '.paperclip-runtime', 'runs', RUN, 'pgid'))).toBe(true);
     expect(existsSync(join(t.root, '.paperclip-runtime', 'runs', RUN, 'started'))).toBe(true);
+  });
+
+  it('asset thiếu auth.json thì tạo {} 0600 (file thường) và giữ lại sau khi thoát, để copy-back của adapter không ném', () => {
+    const t = setup();
+    expect(run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT }).code).toBe(0);
+    const placeholder = join(t.asset, 'auth.json');
+    expect(lstatSync(placeholder).isFile()).toBe(true);
+    expect(readFileSync(placeholder, 'utf8')).toBe('{}');
+    expect(statSync(placeholder).mode & 0o777).toBe(0o600);
+    expect(readFileSync(join(t.home, '.codex', 'auth.json'), 'utf8')).toBe('{"x":1}');
+    // Ngoài run (adapter gọi --version) cũng vậy.
+    const u = setup();
+    expect(run(u, {}).code).toBe(0);
+    expect(readFileSync(join(u.asset, 'auth.json'), 'utf8')).toBe('{}');
+  });
+
+  it('asset đã có auth.json thì để nguyên', () => {
+    const t = setup();
+    writeFileSync(join(t.asset, 'auth.json'), '{"giu":1}', { mode: 0o600 });
+    expect(run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT }).code).toBe(0);
+    expect(readFileSync(join(t.asset, 'auth.json'), 'utf8')).toBe('{"giu":1}');
+  });
+
+  it('không tạo được auth.json rỗng trong asset thì 78, không chạy codex', () => {
+    const t = setup();
+    chmodSync(t.asset, 0o500);
+    try {
+      const r = run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });
+      expect(r.code).toBe(78);
+      expect(r.stderr).toMatch(/^crew-runtime blocked: không tạo được auth\.json rỗng/m);
+      expect(existsSync(t.seen)).toBe(false);
+    } finally {
+      chmodSync(t.asset, 0o700);
+    }
   });
 
   it('gọi workflow-check với runtime codex_local và worktree của run', () => {
