@@ -199,6 +199,7 @@ flows:
     files:
       - apps/crew-mac/src/runtimes/keychain.ts
       - apps/crew-mac/src/runtimes/paths.ts
+      - apps/crew-mac/src/status/runtimes.ts
       - apps/crew-mac/assets/crew-run-mark.sh
       - apps/crew-mac/assets/crew-codex-run.sh
       - apps/crew-mac/assets/crew-opencode-run.sh
@@ -208,6 +209,7 @@ flows:
       - apps/crew-mac/test/crew-opencode-run.test.ts
       - apps/crew-mac/test/runtimes-keychain.test.ts
       - apps/crew-mac/test/runtimes-command.test.ts
+      - apps/crew-mac/test/status-runtimes.test.ts
       - apps/crew-mac/test/workflow-check-runtime.test.ts
   mac-workflows:
     title: Ghim Superpowers và BMAD, chặn nạp chéo trên Mac

@@ -98,6 +98,27 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
 
    CLI chưa cài trong PATH của sshd agent thì `warn` "chưa cài" (máy không dùng runtime đó).
 
+9. Bản tin máy (`apps/crew-mac/src/status/runtimes.ts` → `buildRuntimesReport`, gắn vào `MachineReport.runtimes` ở
+   `status/report.ts`, flow `mac-setup`):
+   - `RuntimesReport` = `codex { version, loggedIn, primaryUsedPct, resetsAt }` và
+     `opencode { version, keyPresent, costDay, costWeek, costMonth, models }`; trường không đọc được là `null`
+     (`models` là `[]`), hàm không bao giờ ném, `report.ts` bỏ khóa `runtimes` nếu vẫn lỗi;
+   - lệnh chạy qua `AGENT_SHELL`, mỗi lệnh quá hạn 10 giây, chạy song song với phần còn lại của bản tin;
+     CLI chưa cài thì không chạy các lệnh tiếp theo của CLI đó;
+   - `version`: dòng đầu `<cli> --version`, cắt 50 ký tự. `loggedIn`: mã thoát của `codex login status` (không đọc
+     câu in ra stderr); hết giờ thì `null`. `keyPresent`: `keychainKeyState` (không `-w`);
+   - quota Codex (`readCodexQuota`): quét `~/.crew/runtimes/codex/<agentId>/sessions` và `~/.codex/sessions` (mỗi gốc
+     tối đa 30 file `.jsonl` mới nhất theo tên thư mục, đọc 10 file mới nhất theo mtime, mỗi file chỉ đọc 512 KB cuối);
+     lấy sự kiện `event_msg`/`token_count` có `payload.rate_limits.primary` mới nhất theo `timestamp`:
+     `primaryUsedPct` = `used_percent` (0..100), `resetsAt` = `resets_at` (epoch giây) đổi sang ISO. Cửa sổ đã qua hạn
+     (`resets_at` ≤ bây giờ) hoặc số ngoài khoảng thì cả hai là `null`, vì số cũ không còn đúng. Không bao giờ mở
+     `auth.json`;
+   - chi phí OpenCode: `opencode stats --days 1|7|30 --models`, `Cost $x` cộng cho mọi model `opencode-go/*` (dòng
+     `Cost` chỉ tính khi đứng sau dòng tên model; model provider khác và phần tổng quan bị bỏ). Lệnh lỗi (vd. chưa có
+     key) thì số đó `null`, không kèm đầu ra lỗi;
+   - `models`: `opencode models opencode-go`, giữ dòng `^opencode-go/[a-z0-9._-]+$` dài ≤ 120, bỏ trùng, tối đa 60.
+     Body bản tin vẫn ≤ `MACHINE_REPORT_MAX_BYTES` (64 KiB) khi đủ 60 id dài 120 ký tự (có test).
+
 ## Mã thoát 78 của wrapper
 
 | Dòng stderr | Khi nào |
@@ -130,6 +151,10 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 - Không có đường nạp key từ web hay qua hàng đợi việc máy.
 
 ## Giả định cần kiểm khi có key OpenCode và trên Mac thật
+
+- Định dạng bảng `opencode stats --days N --models` (dòng `│ opencode-go/<id> │` rồi `│  Cost  $x │`) và đầu ra
+  `opencode models opencode-go` (một `opencode-go/<id>` mỗi dòng) theo mẫu của plan, chưa chụp từ máy có key; chưa có
+  key thì `stats` có thể lỗi và ba số chi phí là `null`.
 
 - Biến key: `{env:CREW_OPENCODE_GO_KEY}` trong `OPENCODE_CONFIG_CONTENT` và `OPENCODE_API_KEY` (đọc mã OpenCode
   1.18.35); kiểm bằng một run thật.

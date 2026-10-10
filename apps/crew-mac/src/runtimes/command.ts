@@ -30,13 +30,13 @@ export interface RuntimesIo {
 
 class RuntimesUsageError extends Error {}
 
-async function agentShell(ctx: MacContext, command: string) {
-  return ctx.runner.run(AGENT_SHELL, ['-c', command], { timeoutMs: AGENT_TIMEOUT_MS });
+export async function agentShell(ctx: MacContext, command: string, timeoutMs: number = AGENT_TIMEOUT_MS) {
+  return ctx.runner.run(AGENT_SHELL, ['-c', command], { timeoutMs });
 }
 
 /** Dòng đầu không rỗng của `<cli> --version`; null khi chưa cài hoặc lỗi. */
-async function cliVersion(ctx: MacContext, cli: string): Promise<string | null> {
-  const result = await agentShell(ctx, `${cli} --version`);
+export async function cliVersion(ctx: MacContext, cli: string, timeoutMs?: number): Promise<string | null> {
+  const result = await agentShell(ctx, `${cli} --version`, timeoutMs);
   if (result.code !== 0 || result.timedOut) return null;
   const line = result.stdout
     .split('\n')
@@ -59,8 +59,8 @@ async function claudeLoggedIn(ctx: MacContext): Promise<boolean | null> {
  * `codex login status` thoát 0 khi đã đăng nhập (câu trạng thái ra stderr, không đọc nội dung). Giá trị giả định,
  * kiểm lại qua sshd agent trên Mac thật.
  */
-async function codexLoggedIn(ctx: MacContext): Promise<boolean | null> {
-  const result = await agentShell(ctx, 'codex login status');
+export async function codexLoggedIn(ctx: MacContext, timeoutMs?: number): Promise<boolean | null> {
+  const result = await agentShell(ctx, 'codex login status', timeoutMs);
   if (result.code === 127 || result.timedOut) return null;
   return result.code === 0;
 }

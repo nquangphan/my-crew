@@ -10,6 +10,7 @@ import { readInstalledPlugins } from '../workflows/install.js';
 import { SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
 import { type AppReport, type JobsAgentReport, readAppState, readJobsAgent } from './app-state.js';
 import { type CheckoutInfo, scanCheckouts } from './checkouts.js';
+import { buildRuntimesReport, type RuntimesReport } from './runtimes.js';
 import { probeStatusTcc } from './tcc.js';
 
 export interface MachineReport {
@@ -38,6 +39,8 @@ export interface MachineReport {
   checkouts?: CheckoutInfo[];
   /** App 2P Crew đang nhận việc trên máy (đọc từ `app.json`); thiếu nghĩa là app không nhận việc. */
   jobsAgent?: JobsAgentReport;
+  /** Trạng thái Codex và OpenCode Go (phiên bản, đăng nhập/key, quota, chi phí, model); plugin kiểm riêng khóa này. */
+  runtimes?: RuntimesReport;
 }
 
 /** Giới hạn body webhook `machine-status` của plugin (bản có `checkouts`, `jobsAgent`). */
@@ -68,7 +71,7 @@ export async function buildMachineReport(
   _env: NodeJS.ProcessEnv = {},
 ): Promise<MachineReport> {
   const claudePath = readStatusConfig(ctx)?.claudePath ?? resolveClaudePath(ctx.home);
-  const [checks, loadavg, cpu, memory, tcc, version, auth, checkouts] = await Promise.all([
+  const [checks, loadavg, cpu, memory, tcc, version, auth, checkouts, runtimes] = await Promise.all([
     doctor(ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90, skipTcc: true }).catch(() => []),
     ctx.runner.run('/usr/sbin/sysctl', ['-n', 'vm.loadavg'], { timeoutMs: 10_000 }),
     ctx.runner.run('/usr/sbin/sysctl', ['-n', 'hw.ncpu'], { timeoutMs: 10_000 }),
@@ -81,6 +84,7 @@ export async function buildMachineReport(
       ? ctx.runner.run(claudePath, ['auth', 'status'], { timeoutMs: 10_000 })
       : Promise.resolve({ code: 127, stdout: '' }),
     scanCheckouts(ctx.home),
+    buildRuntimesReport(ctx).catch(() => null),
   ]);
   const load = parseLoad(loadavg.stdout, cpu.stdout, memory.stdout);
   const pending = tcc.pending.slice(0, 20);
@@ -136,6 +140,7 @@ export async function buildMachineReport(
     ...(app ? { app } : {}),
     checkouts,
     ...(jobsAgent ? { jobsAgent } : {}),
+    ...(runtimes ? { runtimes } : {}),
   };
   const cache = attachmentCacheStats(ctx.home, ctx.now());
   if (cache) report.attachmentCache = cache;

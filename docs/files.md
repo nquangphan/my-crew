@@ -76,6 +76,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/status/checkouts.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/docs.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/report.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/status/runtimes.ts` | [mac-runtimes](flows/mac-runtimes.md) (file) |
 | `apps/crew-mac/src/status/sign.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/targets.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/tcc.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -140,6 +141,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/status-app.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-checkouts.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-docs.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/status-runtimes.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
 | `apps/crew-mac/test/status-targets.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-tcc.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
