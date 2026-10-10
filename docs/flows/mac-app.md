@@ -163,8 +163,8 @@ bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupE
 `setStatusSecret` mang secret. Renderer không có đường tới `@crew/mac`. `addStatusRepo(projectId, path, companyId?)`
 truyền company nhận ảnh chụp docs. Hai op của hàng đợi máy: `jobTargets()` (`machineId` và đích `{url, companyId}` của
 bản tin, từ `readStatusConfig`/`listTargets`) `cancelMachineJob()` (giết nhóm tiến trình `git` đang chạy khi việc quá giờ) và `runMachineJob(job, extras)` (`runJob` của `src/main/jobs/executors.ts`
-với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `doctor` không probe, `workflowCheck` với
-`superpowersPinDir`); hàng đợi dùng một `UtilityOpsBridge` riêng để hủy việc quá giờ bằng `dispose()`.
+với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `removeStatusRepo` (việc gỡ project), `doctor` không probe,
+`workflowCheck` với `superpowersPinDir`; `lsof` mặc định `/usr/sbin/lsof`); hàng đợi dùng một `UtilityOpsBridge` riêng để hủy việc quá giờ bằng `dispose()`.
 
 ## Files
 

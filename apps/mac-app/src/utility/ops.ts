@@ -72,6 +72,7 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
         env: deps.env,
         addStatusRepo: async (projectId, path, companyId) => addStatusRepo(ctx, projectId, path, companyId),
         statusRepoPaths: async () => listStatusRepos(ctx).map((repo) => repo.path),
+        removeStatusRepo: async (projectId) => removeStatusRepo(ctx, projectId),
         doctor: () => doctor(ctx, { probe: false, tccWindow: '1h', probeTimeoutSec: 90, skipTcc: true }),
         workflowCheck: (root) => workflowCheck(ctx, { root, pluginDir: superpowersPinDir(home) }),
       });

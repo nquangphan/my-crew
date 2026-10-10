@@ -195,7 +195,8 @@ dòng vai trò, không agent nào bị pause.
 
 Hàng đợi `crew_machine_jobs` của plugin `crew.core` (route board `/api/plugins/crew.core/api/machine-jobs/*`, hợp đồng
 ở plan R3 mục I1): web Crew xếp việc cho một máy (`machineId` của bản tin crew-mac), app trên máy đó nhận bằng board key
-và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ làm đúng 5 loại việc dưới đây.
+và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ làm đúng 7 loại việc dưới đây (hai việc gỡ
+`remove-checkouts`, `skill-remove` thêm ở R3X, hợp đồng ở plan R3X mục IX1).
 
 **Vòng hỏi** (`poller.ts` → `createJobsPoller`):
 
@@ -238,7 +239,7 @@ hủy việc quá giờ được bằng cách giết tiến trình đó mà khô
 - folder repo của owner theo luật thêm project (`folderGuardReason`: chặn gốc ổ đĩa, HOME, cha của HOME; **không** chặn
   `/Volumes` hay `~/Documents` vì app có Full Disk Access và folder chỉ được đọc);
 - checkout agent `~/crew-agents/<khóa>/<vai trò>` theo `forbiddenRootReason` của crew-mac (không dưới `/Volumes`,
-  `~/Desktop`, `~/Downloads`, không là HOME/cha HOME).
+  `~/Desktop`, `~/Downloads`, không là HOME/cha HOME); áp cho cả checkout sắp gỡ của `remove-checkouts`.
 
 Vi phạm thì `folder_forbidden`.
 
@@ -248,6 +249,8 @@ Vi phạm thì `folder_forbidden`.
 | `prepare-checkouts {projectKey, folder, roles}` | `configureDocsBundle`; mỗi vai trò: worktree `~/crew-agents/<khóa>/<vai>` trên nhánh `branch` của payload (`ensureWorktree`, có rồi thì dùng lại), `.paperclip-runtime/` vào `info/exclude`; có `projectId` thì `addStatusRepo(projectId, <folder>, companyId)` một lần | `{checkouts:[{role, path, head}]}` | `checkout_exists` (thư mục có sẵn không phải worktree của repo này, không đè), `git_failed` |
 | `agent-workspace {projectKey, folder, role, branch}` | như trên cho một vai trò (executor thứ 2 thêm sau), không đụng worktree khác | `{role, path, head}` | như trên |
 | `skill-sync {skillId, slug, version}` | ghi file đã tải vào thư mục tạm cạnh `~/.crew/skills/<company>/<slug>/` rồi đổi tên (thay trọn thư mục cũ); thư mục 0700, file 0600 (`executable` 0700). Đường dẫn file phải tương đối, không `..`, không ký tự điều khiển, ≤ 500 file, ≤ 20 MB | `{sha256, files}` (`treeChecksum` của crew-mac: `<path>\0<sha256 file>\n` đã sắp) | `skill_fetch_failed` |
+| `remove-checkouts {projectId, projectKey, roles, removeStatusRepo}` | `roles` 1–5 vai trò không trùng. Mỗi vai (`remove.ts` → `removeCheckouts`): không có → `absent`; đường thật (`realpath`) phải đúng `<realpath HOME>/crew-agents/<khóa>/<vai>` (không symlink ở vai hay ở thư mục khóa) và là gốc một worktree **phụ** (`--git-dir` ≠ `--git-common-dir`, `--show-toplevel` = chính nó); `lsof -t +D <đường thật>` không ra PID (lsof của macOS thoát mã 1 cả khi thấy PID nên chỉ tin stdout; mã khác 0/1 hay không chạy được → coi là bận); `git -c core.fsmonitor=false status --porcelain` rỗng; HEAD tách rời thì commit hiện tại phải thuộc một nhánh/remote. Đủ thì `git --git-dir=<common> worktree remove <path>` **không `--force`** (git nhận worktree chỉ có tệp bị ignore như `.paperclip-runtime/`, từ chối khi có tệp sửa/mới hay worktree bị khóa). Không `worktree prune` (prune chạm cả worktree khác của owner, vd. trên ổ ngoài đang tháo), không xóa nhánh `crew/<khóa>/<vai>`, không đụng folder gốc. Xong: `rmdir ~/crew-agents/<khóa>` nếu rỗng; `removeStatusRepo` → op `removeStatusRepo(projectId)` (bỏ repo docs khỏi bản tin); Main (`register.ts` → `forgetRemovedProject`) xóa tiến độ project đó trong `app.json` | `{removed:[{role, path}], kept:[{role, path, reason, detail}], absent:[role]}`; `reason`: `dirty` (tệp chưa commit, hoặc commit lẻ ở HEAD tách rời), `busy`, `not_worktree`, `git_failed`; `detail` đã làm sạch | không có: checkout giữ lại vẫn là `done` kèm `kept` (owner tự quyết); lỗi bất ngờ → `app_error` |
+| `skill-remove {skillId, slug}` | `remove.ts` → `removeSkill`: `~/.crew/skills/<company>/<slug>` không có → `removed:false`; có thì đường thật phải đúng `<realpath HOME>/.crew/skills/<company>/<slug>` (không symlink) rồi xóa đệ quy (`rmSync` không đi theo symlink bên trong), nên không bao giờ chạm `~/.crew/workflows` (Superpowers ghim) | `{removed}` | `folder_forbidden` (symlink ra ngoài, không xóa gì) |
 | `check {projectKey}` | `doctor` không probe (`skipTcc`) và `workflowCheck` (bản ghim Superpowers) cho từng thư mục trong `~/crew-agents/<khóa>/` | `{items:[{id, status, title}]}`; `fail` của doctor ở `wrapper`/`worktree-root` thành `error` (`worktree-workflows` quét cả `~/crew-agents` nên chỉ `warn`, workflow từng ô do `workflow:<vai>` kiểm), `fail` ở mục chung của máy (sshd, Tailscale, …) thành `warn` để không chặn project không liên quan; mục workflow `workflow:<vai>` | `check_failed` (có mục `error` của project, hoặc chưa có checkout nào): vẫn gửi `items` trong `result` |
 
 Mọi lỗi gửi lên là mã cố định cộng câu tiếng Việt đã làm sạch (`sanitize.ts` → `sanitizeJobError`: bỏ mã terminal và
@@ -280,16 +283,27 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/jobs/types.ts` | Kiểu hàng đợi máy (chép từ plugin), `JobOutcome`, `JobExtras`, `JobError` | `MachineJob`, `JobPayload`, `JobResult`, `JobErrorCode`, `JOB_TIMEOUT_MS` |
 | `apps/mac-app/src/main/jobs/validate.ts` | Kiểm payload như plugin, chặn đường dẫn trên máy | `validateJobPayload`, `machineGuardReason`, `checkoutPath` |
 | `apps/mac-app/src/main/jobs/sanitize.ts` | Làm sạch lỗi gửi lên, bỏ credential trong URL remote | `sanitizeJobError`, `stripUrlCredentials` |
-| `apps/mac-app/src/main/jobs/executors.ts` | 5 loại việc trên máy (chạy trong utilityProcess) | `runJob`, `ExecutorDeps` |
+| `apps/mac-app/src/main/jobs/executors.ts` | 7 loại việc trên máy (chạy trong utilityProcess) | `runJob`, `ExecutorDeps` |
+| `apps/mac-app/src/main/jobs/remove.ts` | Gỡ checkout (giữ checkout bẩn/bận/lạ), xóa bản chép skill, bỏ tiến độ project đã gỡ | `removeCheckouts`, `removeSkill`, `forgetRemovedProject`, `runLsof` |
 | `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent`, trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus` |
 | `apps/mac-app/src/main/jobs/targets.ts` | Hỏi việc ở origin board đã đăng nhập, chỉ company tài khoản thấy được | `createTargetResolver` |
 | `apps/mac-app/src/main/jobs/remote.ts` | REST của hàng đợi (claim, result), lấy trước `projectId` và file skill | `createJobsRemote` |
-| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json`, kênh `jobs:status` | `registerJobs` |
+| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status` | `registerJobs` |
 
 ## Tests
 
 - `apps/mac-app/test/jobs/validate.test.ts`: bảng ca của plugin (chép nguyên), khóa `e2e-x`, folder HOME/cha HOME bị
-  chặn, folder dưới `~/Documents`/`/Volumes` được, checkout dưới `/Volumes` bị chặn.
+  chặn, folder dưới `~/Documents`/`/Volumes` được, checkout dưới `/Volumes` bị chặn; `remove-checkouts` (`projectKey`
+  `../x`, `roles` rỗng/6 phần tử/trùng/lạ/object, `removeStatusRepo` không boolean, key lạ `force`) và `skill-remove`
+  (`slug` `..`, `../workflows`, có `/`, rỗng, 65 ký tự).
+- `apps/mac-app/test/jobs/remove.test.ts` (HOME giả, repo git thật trong `mkdtemp`): sạch (kèm `.paperclip-runtime`) →
+  `removed`, nhánh và folder gốc còn; sửa/tệp mới → `kept dirty`; lsof giả trả PID (mã 1) và lsof không chạy được →
+  `kept busy`; lsof thật với process đứng ở thư mục con; symlink vai trỏ tới worktree thật bên ngoài, thư mục khóa là
+  symlink → `not_worktree`, đích còn; repo clone riêng (worktree chính), thư mục thường → `not_worktree`; HEAD tách rời
+  có commit lẻ → `dirty`; worktree bị khóa → `git_failed`; không có → `absent`, chạy lại; gỡ hết → `rmdir`, gọi
+  `removeStatusRepo`; `forgetRemovedProject` chỉ bỏ tiến độ khi gỡ project `done`; `skill-remove` xóa đúng thư mục (symlink
+  bên trong không kéo theo đích), không có → `false`, slug/thư mục company là symlink sang `~/.crew/workflows` → từ
+  chối, `../workflows` → `app_error`.
 - `apps/mac-app/test/jobs/executors.test.ts` (HOME giả, repo git thật trong `mkdtemp`): `inspect-folder` (bundle, cây
   sạch/không sạch, remote bỏ credential, `folder_not_git`/`folder_missing`/`folder_forbidden`, key lạ), `prepare-checkouts`
   4 vai trò (nhánh, exclude, bundle, `addStatusRepo` một lần, chạy lại cho cùng kết quả, không `projectId` thì không

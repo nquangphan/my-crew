@@ -192,3 +192,73 @@ describe('machineGuardReason', () => {
     expect(machineGuardReason(home, { kind: 'check', projectKey: 'demo' })).toBeNull();
   });
 });
+
+describe('validateJobPayload: gỡ checkout và xóa skill', () => {
+  const PROJECT = '33333333-3333-4333-8333-333333333333';
+  const SKILL = '30000000-0000-4000-8000-000000000001';
+  const ok = { projectId: PROJECT, projectKey: 'demo', roles: ['executor'], removeStatusRepo: false };
+
+  it.each([
+    ['remove-checkouts', { ...ok, projectId: 'x' }, 'projectId phải là uuid'],
+    ['remove-checkouts', { ...ok, projectKey: '../x' }, 'projectKey không hợp lệ'],
+    ['remove-checkouts', { ...ok, projectKey: 'demo/..' }, 'projectKey không hợp lệ'],
+    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 5 vai trò'],
+    [
+      'remove-checkouts',
+      { ...ok, roles: ['assistant', 'executor', 'executor-2', 'reviewer', 'integrator', 'executor'] },
+      'roles phải có 1 đến 5 vai trò',
+    ],
+    ['remove-checkouts', { ...ok, roles: ['executor', 'executor'] }, 'role executor bị trùng'],
+    ['remove-checkouts', { ...ok, roles: ['boss'] }, 'role không hợp lệ'],
+    ['remove-checkouts', { ...ok, roles: ['../executor'] }, 'role không hợp lệ'],
+    ['remove-checkouts', { ...ok, roles: [{ role: 'executor' }] }, 'role không hợp lệ'],
+    ['remove-checkouts', { ...ok, roles: 'executor' }, 'roles phải là mảng'],
+    ['remove-checkouts', { ...ok, removeStatusRepo: 'yes' }, 'removeStatusRepo phải là boolean'],
+    ['remove-checkouts', { ...ok, force: true }, 'trường force không được hỗ trợ'],
+    ['remove-checkouts', { ...ok, folder: '/x' }, 'trường folder không được hỗ trợ'],
+    ['skill-remove', { skillId: 'x', slug: 'ok' }, 'skillId phải là uuid'],
+    ['skill-remove', { skillId: SKILL, slug: '..' }, 'slug không hợp lệ'],
+    ['skill-remove', { skillId: SKILL, slug: '../workflows' }, 'slug không hợp lệ'],
+    ['skill-remove', { skillId: SKILL, slug: 'a/b' }, 'slug không hợp lệ'],
+    ['skill-remove', { skillId: SKILL, slug: '' }, 'slug không hợp lệ'],
+    ['skill-remove', { skillId: SKILL, slug: 'a'.repeat(65) }, 'slug không hợp lệ'],
+    ['skill-remove', { skillId: SKILL, slug: 'ok', version: '1' }, 'trường version không được hỗ trợ'],
+  ])('%s từ chối %j', (kind, payload, error) => {
+    expect(validateJobPayload(kind as MachineJobKind, payload)).toBe(error);
+  });
+
+  it('nhận payload hợp lệ và gắn kind', () => {
+    expect(
+      validateJobPayload('remove-checkouts', {
+        ...ok,
+        projectId: PROJECT.toUpperCase(),
+        roles: ['assistant', 'executor', 'executor-2', 'reviewer', 'integrator'],
+        removeStatusRepo: true,
+      }),
+    ).toEqual({
+      kind: 'remove-checkouts',
+      projectId: PROJECT,
+      projectKey: 'demo',
+      roles: ['assistant', 'executor', 'executor-2', 'reviewer', 'integrator'],
+      removeStatusRepo: true,
+    });
+    expect(validateJobPayload('skill-remove', { kind: 'skill-remove', skillId: SKILL, slug: 'a-1' })).toEqual(
+      {
+        kind: 'skill-remove',
+        skillId: SKILL,
+        slug: 'a-1',
+      },
+    );
+  });
+
+  it('machineGuardReason: skill-remove không có đường dẫn; checkout gỡ dưới thư mục cấm thì bị cấm', () => {
+    expect(
+      machineGuardReason('/Users/owner', { kind: 'skill-remove', skillId: SKILL, slug: 'x' }),
+    ).toBeNull();
+    const payload = { kind: 'remove-checkouts' as const, ...ok, roles: ['executor' as const] };
+    expect(machineGuardReason('/Users/owner', payload)).toBeNull();
+    expect(machineGuardReason('/Volumes/X/home', payload)).toContain(
+      '/Volumes/X/home/crew-agents/demo/executor',
+    );
+  });
+});

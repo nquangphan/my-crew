@@ -26,6 +26,7 @@ function setup() {
       calls.addStatusRepo.push(args);
     },
     statusRepoPaths: async () => [],
+    removeStatusRepo: async () => undefined,
     doctor: async () => [
       { id: 'sshd', title: 'sshd agent', status: 'ok', detail: 'cổng 2222' },
       { id: 'reaper', title: 'Reaper', status: 'warn', detail: 'chạy lần cuối 2 giờ trước' },

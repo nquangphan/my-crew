@@ -8,6 +8,7 @@ import { createPaperclipClient } from '../paperclip/client.js';
 import { boardKeys } from '../paperclip/register.js';
 import { createJobsPoller, MissingKeyError } from './poller.js';
 import { createJobsRemote } from './remote.js';
+import { forgetRemovedProject } from './remove.js';
 import { createTargetResolver } from './targets.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -58,7 +59,12 @@ export function registerJobs(ctx: AppContext): void {
       if ('outcome' in prepared) return prepared.outcome;
       // Quá giờ giữa lúc tải skill: không bắt đầu ghi file sau khi đã báo lỗi.
       if (signal.aborted) throw new Error('Việc đã bị hủy vì quá thời gian');
-      return jobsOps.call('runMachineJob', job, prepared.extras);
+      const outcome = await jobsOps.call('runMachineJob', job, prepared.extras);
+      // Gỡ project xong trên máy: bỏ tiến độ của project trong `app.json` (chỉ Main ghi file này).
+      await forgetRemovedProject(ctx.store, job, outcome).catch((error) =>
+        ctx.log('warn', 'jobs-forget-progress-failed', { error: String(error) }),
+      );
+      return outcome;
     },
     cancelRunning: async () => {
       // Giết nhóm tiến trình git con trước (SIGKILL tiến trình phụ không dọn được con), rồi mới giết tiến trình phụ.

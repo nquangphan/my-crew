@@ -26,6 +26,8 @@ const KEYS: Record<MachineJobKind, readonly string[]> = {
   'agent-workspace': ['projectKey', 'folder', 'role', 'branch'],
   'skill-sync': ['skillId', 'slug', 'version'],
   check: ['projectKey'],
+  'remove-checkouts': ['projectId', 'projectKey', 'roles', 'removeStatusRepo'],
+  'skill-remove': ['skillId', 'slug'],
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -69,6 +71,27 @@ function rolesError(roles: unknown): string | null {
   return missing ? `roles thiếu ${missing}` : null;
 }
 
+/** Vai trò cần gỡ checkout: 1–5 tên vai trò, không trùng. */
+function removeRolesError(roles: unknown): string | null {
+  if (!Array.isArray(roles)) return 'roles phải là mảng';
+  for (const role of roles) {
+    const error = roleError(role);
+    if (error) return error;
+  }
+  if (roles.length < 1 || roles.length > 5) return 'roles phải có 1 đến 5 vai trò';
+  const seen = new Set<string>();
+  for (const role of roles as CrewRoleSlot[]) {
+    if (seen.has(role)) return `role ${role} bị trùng`;
+    seen.add(role);
+  }
+  return null;
+}
+
+const skillIdError = (id: unknown) =>
+  typeof id === 'string' && UUID_RE.test(id) ? null : 'skillId phải là uuid';
+const slugError = (slug: unknown) =>
+  typeof slug === 'string' && SLUG.test(slug) ? null : 'slug không hợp lệ';
+
 /** Payload đúng loại việc thì trả bản đã gắn `kind`; sai thì trả câu lỗi cố định (giống plugin). */
 export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobPayload | string {
   if (!MACHINE_JOB_KINDS.includes(kind)) return 'kind không hợp lệ';
@@ -107,13 +130,37 @@ export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobP
           branch: p.branch as string,
         }
       );
-    case 'skill-sync':
-      if (typeof p.skillId !== 'string' || !UUID_RE.test(p.skillId)) return 'skillId phải là uuid';
-      if (typeof p.slug !== 'string' || !SLUG.test(p.slug)) return 'slug không hợp lệ';
+    case 'skill-sync': {
+      const error = skillIdError(p.skillId) ?? slugError(p.slug);
+      if (error) return error;
       if (typeof p.version !== 'string' || !VERSION.test(p.version)) return 'version không hợp lệ';
-      return { kind, skillId: p.skillId.toLowerCase(), slug: p.slug, version: p.version };
+      return {
+        kind,
+        skillId: (p.skillId as string).toLowerCase(),
+        slug: p.slug as string,
+        version: p.version,
+      };
+    }
     case 'check':
       return projectKeyError(p.projectKey) ?? { kind, projectKey: p.projectKey as string };
+    case 'remove-checkouts':
+      if (typeof p.projectId !== 'string' || !UUID_RE.test(p.projectId)) return 'projectId phải là uuid';
+      if (typeof p.removeStatusRepo !== 'boolean') return 'removeStatusRepo phải là boolean';
+      return (
+        projectKeyError(p.projectKey) ??
+        removeRolesError(p.roles) ?? {
+          kind,
+          projectId: p.projectId.toLowerCase(),
+          projectKey: p.projectKey as string,
+          roles: [...(p.roles as CrewRoleSlot[])],
+          removeStatusRepo: p.removeStatusRepo,
+        }
+      );
+    case 'skill-remove':
+      return (
+        skillIdError(p.skillId) ??
+        slugError(p.slug) ?? { kind, skillId: (p.skillId as string).toLowerCase(), slug: p.slug as string }
+      );
   }
 }
 
@@ -127,13 +174,24 @@ export const checkoutPath = (home: string, projectKey: string, role: string) =>
  * checkout agent sẽ ghi và là nơi agent chạy nên theo `forbiddenRootReason` của crew-mac.
  */
 export function machineGuardReason(home: string, payload: JobPayload): string | null {
-  if (payload.kind === 'skill-sync' || payload.kind === 'check') return null;
+  if (payload.kind === 'skill-sync' || payload.kind === 'check' || payload.kind === 'skill-remove')
+    return null;
+  if (payload.kind === 'remove-checkouts')
+    return checkoutsGuardReason(home, payload.projectKey, payload.roles);
   const folderReason = folderGuardReason(home, payload.folder);
   if (folderReason) return folderReason;
   if (payload.kind === 'inspect-folder') return null;
   const roles = payload.kind === 'prepare-checkouts' ? payload.roles.map((r) => r.role) : [payload.role];
+  return checkoutsGuardReason(home, payload.projectKey, roles);
+}
+
+function checkoutsGuardReason(
+  home: string,
+  projectKey: string,
+  roles: readonly CrewRoleSlot[],
+): string | null {
   for (const role of roles) {
-    const dir = checkoutPath(home, payload.projectKey, role);
+    const dir = checkoutPath(home, projectKey, role);
     const reason = forbiddenRootReason(home, dir);
     if (reason) return `${dir}: ${reason}`;
   }

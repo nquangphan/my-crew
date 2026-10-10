@@ -7,7 +7,9 @@ export type MachineJobKind =
   | 'prepare-checkouts'
   | 'agent-workspace'
   | 'skill-sync'
-  | 'check';
+  | 'check'
+  | 'remove-checkouts'
+  | 'skill-remove';
 export type MachineJobStatus = 'queued' | 'claimed' | 'done' | 'failed' | 'cancelled';
 export type CrewRoleSlot = 'assistant' | 'executor' | 'executor-2' | 'reviewer' | 'integrator';
 
@@ -17,6 +19,8 @@ export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
   'agent-workspace',
   'skill-sync',
   'check',
+  'remove-checkouts',
+  'skill-remove',
 ];
 export const CREW_ROLE_SLOTS: readonly CrewRoleSlot[] = [
   'assistant',
@@ -53,7 +57,15 @@ export type JobPayload =
     }
   | { kind: 'agent-workspace'; projectKey: string; folder: string; role: CrewRoleSlot; branch: string }
   | { kind: 'skill-sync'; skillId: string; slug: string; version: string }
-  | { kind: 'check'; projectKey: string };
+  | { kind: 'check'; projectKey: string }
+  | {
+      kind: 'remove-checkouts';
+      projectId: string;
+      projectKey: string;
+      roles: CrewRoleSlot[];
+      removeStatusRepo: boolean;
+    }
+  | { kind: 'skill-remove'; skillId: string; slug: string };
 
 export type JobResult =
   | {
@@ -67,7 +79,25 @@ export type JobResult =
   | { kind: 'prepare-checkouts'; checkouts: { role: CrewRoleSlot; path: string; head: string }[] }
   | { kind: 'agent-workspace'; role: CrewRoleSlot; path: string; head: string }
   | { kind: 'skill-sync'; sha256: string; files: number }
-  | { kind: 'check'; items: CheckItem[] };
+  | { kind: 'check'; items: CheckItem[] }
+  | {
+      kind: 'remove-checkouts';
+      removed: { role: CrewRoleSlot; path: string }[];
+      kept: KeptCheckout[];
+      absent: CrewRoleSlot[];
+    }
+  | { kind: 'skill-remove'; removed: boolean };
+
+/**
+ * Checkout gỡ không được nên giữ nguyên: còn việc chưa commit (`dirty`), có process đang dùng (`busy`), không phải
+ * worktree phụ nằm đúng chỗ (`not_worktree`), hoặc git từ chối (`git_failed`). Không bao giờ xóa cưỡng bức.
+ */
+export interface KeptCheckout {
+  role: CrewRoleSlot;
+  path: string;
+  reason: 'dirty' | 'busy' | 'not_worktree' | 'git_failed';
+  detail?: string;
+}
 
 export interface CheckItem {
   id: string;

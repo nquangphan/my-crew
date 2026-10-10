@@ -320,6 +320,7 @@ flows:
       - apps/mac-app/src/main/jobs/validate.ts
       - apps/mac-app/src/main/jobs/executors.ts
       - apps/mac-app/src/main/jobs/sanitize.ts
+      - apps/mac-app/src/main/jobs/remove.ts
     tests:
       - apps/mac-app/test/paperclip-client.test.ts
       - apps/mac-app/test/paperclip-cli-auth.test.ts
@@ -338,6 +339,7 @@ flows:
       - apps/mac-app/test/jobs/validate.test.ts
       - apps/mac-app/test/jobs/executors.test.ts
       - apps/mac-app/test/jobs/sanitize.test.ts
+      - apps/mac-app/test/jobs/remove.test.ts
   mac-app-sshd:
     title: App 2P Crew giữ sshd agent và thoát an toàn
     doc: docs/flows/mac-app-sshd.md

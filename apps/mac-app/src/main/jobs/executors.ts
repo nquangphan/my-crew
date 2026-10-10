@@ -12,6 +12,7 @@ import {
   isWorktreeOf,
   runGit,
 } from '../projects/folder.js';
+import { type LsofRunner, removeCheckouts, removeSkill } from './remove.js';
 import { sanitizeJobError, stripUrlCredentials } from './sanitize.js';
 import {
   type CheckItem,
@@ -47,9 +48,13 @@ export interface ExecutorDeps {
   home: string;
   env: NodeJS.ProcessEnv;
   git?: GitRunner;
+  /** `lsof` kiểm process đang dùng checkout trước khi gỡ; mặc định `/usr/sbin/lsof`. */
+  lsof?: LsofRunner;
   addStatusRepo(projectId: string, path: string, companyId: string): Promise<void>;
   /** Đường dẫn các repo đã có trong bản tin docs (nguồn bundle crew-docs). */
   statusRepoPaths(): Promise<string[]>;
+  /** Bỏ repo docs của project khỏi bản tin máy (gỡ project). */
+  removeStatusRepo(projectId: string): Promise<void>;
   /** `crew-mac doctor` không probe. */
   doctor(): Promise<DoctorItem[]>;
   /** `crew-mac workflow-check` cho một checkout với bản Superpowers đã ghim. */
@@ -65,7 +70,7 @@ const failed = (errorCode: JobErrorCode, text: string, result?: JobResult): JobO
 
 /**
  * Làm một việc của hàng đợi máy. Kiểm lại payload (như plugin) và đường dẫn trước khi đụng tới máy. Không ném: mọi lỗi
- * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 5 loại việc; không chạy lệnh nào khác.
+ * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 7 loại việc; không chạy lệnh nào khác.
  */
 export async function runJob(
   job: Pick<MachineJob, 'companyId' | 'kind' | 'payload'>,
@@ -116,6 +121,10 @@ async function execute(
       return { status: 'done', result: writeSkill(deps.home, companyId, payload.slug, extras.skillFiles) };
     case 'check':
       return checkJob(payload.projectKey, deps);
+    case 'remove-checkouts':
+      return { status: 'done', result: await removeCheckouts(payload, deps) };
+    case 'skill-remove':
+      return { status: 'done', result: removeSkill(deps.home, companyId, payload.slug) };
   }
 }
 
