@@ -3,11 +3,11 @@ import type { AppState, SetupStep } from '../../main/app-state';
 import type { ExistingMachine } from '../../main/setup/import-existing';
 import type { V2Action, V2Detection } from '../../main/setup/v2-removal';
 import type { StepResult } from '../../shared/ipc-contract';
+import { LOGIN_POLL_MS, ReloginButton } from '../components/relogin';
 import { ErrorBox, Notice, PageHeader } from '../components/ui';
 import { type StepFeedback, WizardStep } from '../components/wizard-step';
 import { invoke, useStateChanged } from '../lib/ipc';
 
-export const LOGIN_POLL_MS = 2_000;
 export const DEFAULT_PAPERCLIP_ORIGIN = 'https://crew.2p-solutions.com';
 
 interface StepMeta {
@@ -593,7 +593,7 @@ function SshdPanel({ onResult }: PanelProps) {
   );
 }
 
-function DonePanel({ onResult }: { onResult: PanelProps['onResult'] }) {
+function DonePanel({ origin, onResult }: { origin: string | null; onResult: PanelProps['onResult'] }) {
   const meta = STEP_META.done;
   const { busy, feedback, run } = useStepRunner('done', onResult);
   const [rerun, setRerun] = useState<{ step: SetupStep; feedback: StepFeedback } | null>(null);
@@ -634,6 +634,12 @@ function DonePanel({ onResult }: { onResult: PanelProps['onResult'] }) {
             {rerunning === step ? 'Đang chạy...' : STEP_META[step].title}
           </button>
         ))}
+      />
+      <WizardStep
+        title="Tài khoản Paperclip"
+        description={`Đăng nhập lại khi board key hết hạn hoặc cần đổi tài khoản. Paperclip: ${origin ?? 'chưa có'}`}
+        feedback={null}
+        actions={<ReloginButton origin={origin} />}
       />
     </>
   );
@@ -696,7 +702,7 @@ export function SetupScreen() {
         panel = <SshdPanel {...props} />;
         break;
       case 'done':
-        panel = <DonePanel onResult={onResult} />;
+        panel = <DonePanel origin={setup.paperclipOrigin} onResult={onResult} />;
         break;
       default:
         panel = <SimplePanel key={setup.step} step={setup.step} onResult={onResult} />;

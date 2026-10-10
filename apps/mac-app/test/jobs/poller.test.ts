@@ -6,6 +6,7 @@ import {
   type PollTarget,
 } from '../../src/main/jobs/poller.js';
 import type { JobOutcome, MachineJob } from '../../src/main/jobs/types.js';
+import { PaperclipAuthError, PaperclipForbiddenError } from '../../src/main/paperclip/client.js';
 
 const MACHINE = '55555555-5555-4555-8555-555555555555';
 const A: PollTarget = { url: 'https://crew.example.com', companyId: '11111111-1111-4111-8111-111111111111' };
@@ -272,5 +273,98 @@ describe('JobsPoller', () => {
     poller.stop();
     await vi.advanceTimersByTimeAsync(60_000);
     expect(f.claims).toHaveLength(2);
+  });
+
+  describe('trạng thái nhận việc (hiện cho owner)', () => {
+    it('hỏi được mọi đích → không có vấn đề, từng company ok', async () => {
+      const onStatus = vi.fn();
+      const f = fakes({ onStatus });
+      const poller = start(f.deps);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(poller.status()).toEqual({
+        problem: null,
+        needsLogin: false,
+        companies: [
+          { companyId: A.companyId, name: null, ok: true, message: null },
+          { companyId: B.companyId, name: null, ok: true, message: null },
+        ],
+      });
+      expect(onStatus).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(15_000);
+      // Không đổi gì thì không báo lại (mỗi lần báo là cửa sổ nạp lại).
+      expect(onStatus).toHaveBeenCalledTimes(1);
+    });
+
+    it('chưa có board key → trạng thái rõ ràng "cần đăng nhập", không im lặng', async () => {
+      const f = fakes({
+        loadTargets: async () => {
+          throw new MissingKeyError();
+        },
+      });
+      const poller = start(f.deps);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(poller.status().needsLogin).toBe(true);
+      expect(poller.status().problem).toContain('Đăng nhập lại');
+      expect(f.claims).toEqual([]);
+    });
+
+    it('board key hết hạn (401) → cần đăng nhập lại', async () => {
+      const f = fakes({
+        claim: async () => {
+          throw new PaperclipAuthError();
+        },
+      });
+      const poller = start(f.deps);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(poller.status().needsLogin).toBe(true);
+      expect(poller.status().problem).toContain('Đăng nhập lại');
+    });
+
+    it('403 → company đó báo "không có quyền", KHÔNG bảo đăng nhập lại; đích khác vẫn chạy', async () => {
+      const onForbidden = vi.fn();
+      const f = fakes({
+        onForbidden,
+        claim: async (target) => {
+          f.claims.push({ target, at: Date.now() });
+          if (target.companyId === B.companyId) throw new PaperclipForbiddenError();
+          return null;
+        },
+      });
+      const poller = start(f.deps);
+      await vi.advanceTimersByTimeAsync(0);
+      const status = poller.status();
+      expect(status.needsLogin).toBe(false);
+      expect(status.problem).toBeNull();
+      expect(status.companies[0]).toMatchObject({ companyId: A.companyId, ok: true });
+      expect(status.companies[1]).toMatchObject({ companyId: B.companyId, ok: false });
+      expect(status.companies[1]?.message).toContain('không có quyền');
+      expect(status.companies[1]?.message).not.toContain('đăng nhập lại');
+      expect(onForbidden).toHaveBeenCalledTimes(1);
+      expect(f.polls).toHaveLength(1);
+    });
+
+    it('company bị bỏ qua (tài khoản không có quyền) hiện cùng lý do', async () => {
+      const f = fakes({
+        loadTargets: async () => ({
+          machineId: MACHINE,
+          targets: [{ ...A, name: 'TPS' }],
+          skipped: [{ companyId: B.companyId, reason: 'Tài khoản không có quyền' }],
+        }),
+      });
+      const poller = start(f.deps);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(poller.status().companies).toEqual([
+        { companyId: A.companyId, name: 'TPS', ok: true, message: null },
+        { companyId: B.companyId, name: null, ok: false, message: 'Tài khoản không có quyền' },
+      ]);
+    });
+
+    it('crew-mac chưa có đích bản tin → báo rõ', async () => {
+      const f = fakes({ loadTargets: async () => ({ machineId: MACHINE, targets: [] }) });
+      const poller = start(f.deps);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(poller.status().problem).toContain('đích bản tin');
+      expect(poller.status().needsLogin).toBe(false);
+    });
   });
 });

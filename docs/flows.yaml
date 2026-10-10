@@ -270,6 +270,7 @@ flows:
       - apps/mac-app/src/renderer/routes/logs.tsx
       - apps/mac-app/src/renderer/routes/setup.tsx
       - apps/mac-app/src/renderer/components/wizard-step.tsx
+      - apps/mac-app/src/renderer/components/relogin.tsx
     tests:
       - apps/mac-app/test/main-startup-order.test.ts
       - apps/mac-app/test/health.test.ts
@@ -314,6 +315,7 @@ flows:
       - apps/mac-app/src/main/projects/templates/integrator.md
       - apps/mac-app/src/main/jobs/types.ts
       - apps/mac-app/src/main/jobs/poller.ts
+      - apps/mac-app/src/main/jobs/targets.ts
       - apps/mac-app/src/main/jobs/remote.ts
       - apps/mac-app/src/main/jobs/validate.ts
       - apps/mac-app/src/main/jobs/executors.ts
@@ -331,6 +333,7 @@ flows:
       - apps/mac-app/test/projects-ipc.test.ts
       - apps/mac-app/test/renderer/projects.test.tsx
       - apps/mac-app/test/jobs/poller.test.ts
+      - apps/mac-app/test/jobs/targets.test.ts
       - apps/mac-app/test/jobs/remote.test.ts
       - apps/mac-app/test/jobs/validate.test.ts
       - apps/mac-app/test/jobs/executors.test.ts

@@ -160,6 +160,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/jobs/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/main/jobs/remote.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/jobs/sanitize.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/jobs/targets.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/jobs/types.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/jobs/validate.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/login-item.ts` | [mac-app](flows/mac-app.md) (file) |
@@ -213,6 +214,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/app.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/components/check-row.tsx` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/renderer/components/relogin.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/components/ui.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/components/wizard-step.tsx` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/index.html` | [mac-app](flows/mac-app.md) (file) |
@@ -235,6 +237,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/jobs/poller.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/jobs/remote.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/jobs/sanitize.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/jobs/targets.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/jobs/validate.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/logs.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/main-startup-order.test.ts` | [mac-app](flows/mac-app.md) (test) |

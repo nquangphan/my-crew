@@ -70,6 +70,36 @@ it('nút "Kiểm lại có thử claude" gọi health:run với probe', async ()
   await waitFor(() => expect(invoke).toHaveBeenCalledWith('health:run', true));
 });
 
+it('khung nhận việc: hiện vấn đề, company không có quyền, và nút Đăng nhập lại chạy cli-auth', async () => {
+  answers['health:last'] = null;
+  answers['jobs:status'] = {
+    origin: 'https://crew.2p-solutions.com',
+    problem: 'Board key hết hạn hoặc bị thu hồi: bấm Đăng nhập lại.',
+    needsLogin: true,
+    companies: [
+      { companyId: 'c1', name: 'TPS', ok: true, message: null },
+      {
+        companyId: 'c2',
+        name: null,
+        ok: false,
+        message: 'Tài khoản đã đăng nhập không có quyền với company này',
+      },
+    ],
+  };
+  answers['paperclip:login'] = { approvalUrl: 'https://crew.2p-solutions.com/cli-auth/abc' };
+  answers['paperclip:loginStatus'] = 'approved';
+  render(<HealthScreen />);
+  expect(await screen.findByText('Board key hết hạn hoặc bị thu hồi: bấm Đăng nhập lại.')).toBeTruthy();
+  expect(screen.getByText(/TPS/)).toBeTruthy();
+  expect(screen.getByText(/không có quyền với company này/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập lại' }));
+  await waitFor(() =>
+    expect(invoke).toHaveBeenCalledWith('paperclip:login', 'https://crew.2p-solutions.com'),
+  );
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('paperclip:loginStatus'));
+  expect(await screen.findByText(/Đã đăng nhập lại/)).toBeTruthy();
+});
+
 it('giờ hiển thị theo Asia/Ho_Chi_Minh', () => {
   expect(formatTime('2026-10-09T17:30:00.000Z')).toBe('00:30:00 10/10');
 });

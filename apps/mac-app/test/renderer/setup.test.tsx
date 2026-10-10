@@ -7,12 +7,13 @@ import { SetupScreen } from '../../src/renderer/routes/setup';
 type Handler = (...args: unknown[]) => unknown;
 
 let step = 'check';
+let origin: string | null = null;
 let machine: ExistingMachine = { kind: 'fresh' };
 let handlers: Record<string, Handler> = {};
 const invoke = vi.fn(async (channel: string, ...args: unknown[]) => {
   try {
     if (channel === 'setup:state')
-      return { ok: true, result: { step, paperclipOrigin: null, companyId: null } };
+      return { ok: true, result: { step, paperclipOrigin: origin, companyId: null } };
     if (channel === 'setup:detect') return { ok: true, result: machine };
     const handler = handlers[channel];
     return { ok: true, result: handler ? await handler(...args) : undefined };
@@ -23,6 +24,7 @@ const invoke = vi.fn(async (channel: string, ...args: unknown[]) => {
 
 beforeEach(() => {
   step = 'check';
+  origin = null;
   machine = { kind: 'fresh' };
   handlers = {};
   (window as unknown as { crew: unknown }).crew = { invoke, on: () => () => undefined };
@@ -186,6 +188,20 @@ it('đã xong: Hoàn tất bật mở cùng máy và có nút chạy lại bư�
   expect(await screen.findByText('chạy done')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Chuyển sshd sang 2P Crew' }));
   expect(await screen.findByText('chạy sshd')).toBeTruthy();
+});
+
+it('đã xong: có nút Đăng nhập lại Paperclip chạy luồng cli-auth với origin đã lưu', async () => {
+  step = 'done';
+  origin = 'https://crew.2p-solutions.com';
+  handlers['paperclip:login'] = () => ({ approvalUrl: 'https://crew.2p-solutions.com/cli-auth/abc' });
+  handlers['paperclip:loginStatus'] = () => 'approved';
+  render(<SetupScreen />);
+  expect(await screen.findByText(/https:\/\/crew\.2p-solutions\.com/)).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: 'Đăng nhập lại' }));
+  await waitFor(() =>
+    expect(invoke).toHaveBeenCalledWith('paperclip:login', 'https://crew.2p-solutions.com'),
+  );
+  expect(await screen.findByText(/Đã đăng nhập lại/)).toBeTruthy();
 });
 
 const v2Found = {

@@ -1,7 +1,9 @@
 import type { CheckResult } from '@crew/mac';
 import { useCallback, useEffect, useState } from 'react';
+import type { IpcResult } from '../../shared/ipc-contract';
 import { CheckRow } from '../components/check-row';
-import { ErrorBox, PageHeader } from '../components/ui';
+import { ReloginButton } from '../components/relogin';
+import { ErrorBox, Lozenge, Notice, PageHeader } from '../components/ui';
 import { invoke, useStateChanged } from '../lib/ipc';
 
 export const HEALTH_REFRESH_MS = 60_000;
@@ -54,6 +56,44 @@ function ActionButton({ result }: { result: CheckResult }) {
   );
 }
 
+/** Khung "Nhận việc từ board": app có đang hỏi hàng đợi việc không, company nào bị bỏ, và nút Đăng nhập lại. */
+function JobsPanel() {
+  const [status, setStatus] = useState<IpcResult<'jobs:status'> | null>(null);
+  const load = useCallback(() => {
+    invoke('jobs:status')
+      .then(setStatus)
+      .catch(() => setStatus(null));
+  }, []);
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, HEALTH_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [load]);
+  useStateChanged(load);
+  if (!status) return null;
+  return (
+    <section className="jobs-panel">
+      <h2>Nhận việc từ board</h2>
+      <p className="muted">
+        {status.origin ? `Paperclip đã đăng nhập: ${status.origin}` : 'App chưa đăng nhập Paperclip.'}
+      </p>
+      {status.problem && <Notice tone={status.needsLogin ? 'bad' : 'warn'}>{status.problem}</Notice>}
+      <ul className="check-list">
+        {status.companies.map((company) => (
+          <li key={company.companyId} className="check-row">
+            <Lozenge tone={company.ok ? 'ok' : 'warn'}>{company.ok ? 'ĐANG NHẬN' : 'KHÔNG NHẬN'}</Lozenge>
+            <div className="check-body">
+              <div className="check-title">{company.name ?? `Company ${company.companyId.slice(0, 8)}`}</div>
+              {company.message && <div className="muted">{company.message}</div>}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <ReloginButton origin={status.origin} />
+    </section>
+  );
+}
+
 export function HealthScreen() {
   const [snapshot, setSnapshot] = useState<{ at: string; results: CheckResult[] } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -99,6 +139,7 @@ export function HealthScreen() {
           <CheckRow key={result.id} result={result} action={<ActionButton result={result} />} />
         ))}
       </ul>
+      <JobsPanel />
     </>
   );
 }

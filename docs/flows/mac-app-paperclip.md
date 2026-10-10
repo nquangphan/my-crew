@@ -73,7 +73,9 @@ sổ R2-1.
 ## REST dùng
 
 Mọi request: `Authorization: Bearer <board key>` đọc lại từ Keychain mỗi lời gọi, timeout 15 giây
-(`AbortSignal.timeout`). 401/403 → `PaperclipAuthError` "Cần đăng nhập lại Paperclip"; lỗi khác →
+(`AbortSignal.timeout`). 401 → `PaperclipAuthError` "Cần đăng nhập lại Paperclip"; 403 → `PaperclipForbiddenError`
+(con của `PaperclipHttpError`, status 403): "tài khoản không có quyền" (vd. không thuộc company), không bảo đăng nhập
+lại và không xóa key (app không bao giờ tự xóa board key); lỗi khác →
 `PaperclipHttpError { status, code }`, message chỉ có mã HTTP và `code` (không kèm body). Log (`debug`) chỉ có method,
 path không query, status.
 
@@ -197,18 +199,28 @@ và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ 
 
 **Vòng hỏi** (`poller.ts` → `createJobsPoller`):
 
-- Đích lấy từ bản tin crew-mac (`~/.crew/status.json` qua op `jobTargets` → `listTargets`): mỗi đích là
+- Company lấy từ bản tin crew-mac (`~/.crew/status.json` qua op `jobTargets` → `listTargets`): mỗi đích là
   `{url, companyId}`, cùng một `machineId`. Chưa cấu hình bản tin (không có `machineId`) thì không hỏi.
+- **URL đích bản tin không dùng để hỏi việc** (`targets.ts` → `createTargetResolver`): đích có thể là địa chỉ khác của
+  cùng server (vd. Tailscale `http://100.x:3100`), còn board key lưu theo origin đã đăng nhập. Mọi lời gọi hàng đợi đi
+  tới `setup.paperclipOrigin` với key của origin đó. Chỉ hỏi company mà tài khoản thấy được (`GET /api/companies` bằng
+  board key, nhớ 60 giây, đọc lại khi `app.json` đổi, ví dụ sau khi đăng nhập lại, hoặc khi gặp 403); company có đích
+  mà tài khoản không thấy thì bỏ qua kèm lý do. Hai đích cùng company chỉ hỏi một lần. Chưa có origin hay key thì
+  `MissingKeyError`, key 401 thì `PaperclipAuthError`: cả hai thành trạng thái "cần đăng nhập lại".
 - Mỗi chu kỳ (5 giây khi có cửa sổ hiện, 15 giây khi ẩn) `POST …/machine-jobs/claim {companyId, machineId}` lần lượt
-  từng đích; 204 là không có việc. Board key đọc lại từ Keychain theo origin của đích cho mỗi request; origin chưa
-  đăng nhập thì bỏ qua đích đó (không tính là đã hỏi).
+  từng company; 204 là không có việc. Board key đọc lại từ Keychain cho mỗi request.
+- **Trạng thái nhận việc** (`poller.status()`, kênh `jobs:status` kèm `origin`): `problem` chung (chưa đăng nhập, key
+  hết hạn, chưa có `machineId`, chưa có đích, lỗi đọc company), `needsLogin` (chỉ khi thiếu key hoặc 401) và từng
+  company `ok`/lý do (403 → "không có quyền… cần thêm tài khoản vào company", lỗi mạng, bị bỏ qua). Đổi thì Main gửi
+  `state:changed`. Màn Sức khỏe hiện khung "Nhận việc từ board" với nút **Đăng nhập lại**.
 - Có việc thì làm xong và báo kết quả rồi mới hỏi tiếp, nên máy chỉ làm **một việc một lúc**.
 - Đích lỗi (mạng, HTTP) thì lùi dần riêng đích đó: 2, 4, 8… lần chu kỳ, tối đa 60 giây; không ném, đích khác vẫn chạy.
 - Việc trả về phải có `id` uuid, đúng `companyId` của đích và đúng `machineId`; sai thì báo `app_error`, không làm.
 - Việc vượt **8 phút** (lease của plugin là 10 phút) thì app báo `app_error` "quá thời gian", bật `AbortSignal` (phần ở Main đang tải skill không được bắt đầu ghi file nữa), giết nhóm tiến trình của mọi `git` đang chạy (op `cancelMachineJob` → `killActiveGit`) rồi giết tiến trình phụ.
 - Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>}` vào `app.json`, tối đa
   30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). Bản tin máy của crew-mac đọc key này
-  (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip thì không ghi.
+  (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
+  không ghi.
 - Báo kết quả hỏng (mạng) thì chỉ ghi log: việc vẫn `claimed`, hết lease plugin trả về hàng đợi và máy làm lại (mọi việc
   đều chạy lại được).
 
@@ -269,9 +281,10 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/jobs/validate.ts` | Kiểm payload như plugin, chặn đường dẫn trên máy | `validateJobPayload`, `machineGuardReason`, `checkoutPath` |
 | `apps/mac-app/src/main/jobs/sanitize.ts` | Làm sạch lỗi gửi lên, bỏ credential trong URL remote | `sanitizeJobError`, `stripUrlCredentials` |
 | `apps/mac-app/src/main/jobs/executors.ts` | 5 loại việc trên máy (chạy trong utilityProcess) | `runJob`, `ExecutorDeps` |
-| `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent` | `createJobsPoller`, `MissingKeyError` |
+| `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent`, trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus` |
+| `apps/mac-app/src/main/jobs/targets.ts` | Hỏi việc ở origin board đã đăng nhập, chỉ company tài khoản thấy được | `createTargetResolver` |
 | `apps/mac-app/src/main/jobs/remote.ts` | REST của hàng đợi (claim, result), lấy trước `projectId` và file skill | `createJobsRemote` |
-| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` | `registerJobs` |
+| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json`, kênh `jobs:status` | `registerJobs` |
 
 ## Tests
 
@@ -285,13 +298,16 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 - `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
   riêng đích lỗi, một việc một lúc, quá 8 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
-  `machineId`, `stop`.
+  `machineId`, `stop`; trạng thái nhận việc: ổn, chưa có key, 401, 403 (không bảo đăng nhập lại), company bị bỏ qua,
+  không có đích, chỉ báo khi đổi.
+- `apps/mac-app/test/jobs/targets.test.ts`: đích Tailscale vẫn hỏi ở origin board, company không có quyền bị bỏ qua,
+  gộp đích trùng company, chưa có origin, không đích, nhớ 60 giây/`invalidate`/lỗi không nhớ, đổi origin.
 - `apps/mac-app/test/jobs/remote.test.ts` (Paperclip giả): đường dẫn/body/Bearer của claim và result, 204, chưa có key
   không gửi gì, lỗi làm sạch, `check` thất bại bị 400 thì gửi lại không `result`, lấy `projectId` từ setup run, tải file
   skill, skill không có hoặc slug khác.
 
 - `apps/mac-app/test/paperclip-client.test.ts`: Paperclip giả trên `127.0.0.1` (`paperclip-fake-server.ts`); Bearer,
-  đọc key mỗi lời gọi, timeout, 401/422, log không có key, đường dẫn và body từng route, không có `DELETE`
+  đọc key mỗi lời gọi, timeout, 401/403/422, log không có key, đường dẫn và body từng route, không có `DELETE`
   environment; `createAgent` gửi đúng `adapterConfig` (`engine: "cli"`, `model`, `env: {}`) và từ chối khi thiếu
   `model`; `agents`/`getAgent` trả `engine`, không trả `env`.
 - `apps/mac-app/test/paperclip-cli-auth.test.ts`: body thử thách, `approvalUrl`, poll `pending/approved/expired/cancelled/404`,

@@ -17,7 +17,7 @@ const ROLES_PATH = '/api/plugins/crew.core/api/projects';
 /** Agent như server trả; chỉ đọc `adapterConfig.engine`, không giữ `env` hay key khác của adapterConfig. */
 type AgentResponse = Omit<PaperclipAgent, 'engine'> & { adapterConfig?: { engine?: unknown } | null };
 
-/** 401/403: key hết hạn, bị thu hồi hoặc không còn quyền. */
+/** 401 (hoặc chưa có key): key hết hạn, bị thu hồi; cần đăng nhập lại. */
 export class PaperclipAuthError extends Error {
   constructor() {
     super('Cần đăng nhập lại Paperclip');
@@ -34,6 +34,21 @@ export class PaperclipHttpError extends Error {
   ) {
     super(message ?? `Paperclip trả lỗi HTTP ${status}${code ? ` (${code})` : ''}`);
     this.name = 'PaperclipHttpError';
+  }
+}
+
+/**
+ * 403: key vẫn hợp lệ nhưng tài khoản đã đăng nhập không có quyền (vd. không là thành viên company). Đăng nhập lại
+ * bằng cùng tài khoản không sửa được, nên câu báo khác 401 và key được giữ nguyên.
+ */
+export class PaperclipForbiddenError extends PaperclipHttpError {
+  constructor() {
+    super(
+      403,
+      'forbidden',
+      'Tài khoản Paperclip đã đăng nhập không có quyền làm việc này (HTTP 403), ví dụ không thuộc company. Cần thêm tài khoản vào company hoặc đăng nhập bằng tài khoản khác.',
+    );
+    this.name = 'PaperclipForbiddenError';
   }
 }
 
@@ -113,7 +128,8 @@ export async function paperclipRequest<T>(
   } catch {
     data = undefined;
   }
-  if (response.status === 401 || response.status === 403) throw new PaperclipAuthError();
+  if (response.status === 401) throw new PaperclipAuthError();
+  if (response.status === 403) throw new PaperclipForbiddenError();
   if (response.status === 404 && options.notFoundNull) return null as T;
   if (!response.ok) {
     const code =

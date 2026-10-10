@@ -298,3 +298,16 @@ h1 {
 .kv dd {
   margin: 0;
 }
+.jobs-panel {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jobs-panel h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.relogin code {
+  word-break: break-all;
+}

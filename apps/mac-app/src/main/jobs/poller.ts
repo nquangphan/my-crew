@@ -1,10 +1,27 @@
+import { PaperclipAuthError, PaperclipForbiddenError } from '../paperclip/client.js';
 import { sanitizeJobError } from './sanitize.js';
 import { JOB_TIMEOUT_MS, type JobOutcome, type MachineJob, UUID_RE } from './types.js';
 
-/** Một Paperclip/company app hỏi việc (lấy từ đích bản tin của crew-mac). */
+/** Một Paperclip/company app hỏi việc: `url` là origin board đã đăng nhập, company lấy từ đích bản tin của crew-mac. */
 export interface PollTarget {
   url: string;
   companyId: string;
+  name?: string;
+}
+
+/** Company có đích bản tin nhưng app không hỏi việc (tài khoản không có quyền...). */
+export interface SkippedTarget {
+  companyId: string;
+  reason: string;
+}
+
+/** Trạng thái nhận việc cho owner xem (màn Sức khỏe). */
+export interface JobsStatus {
+  /** Vấn đề chung làm app không hỏi việc được (chưa đăng nhập, key hết hạn, chưa có đích...). */
+  problem: string | null;
+  /** Bấm "Đăng nhập lại" sửa được (chưa có key hoặc 401). 403 không tính: cùng tài khoản đăng nhập lại vẫn 403. */
+  needsLogin: boolean;
+  companies: Array<{ companyId: string; name: string | null; ok: boolean; message: string | null }>;
 }
 
 /** App chưa có board key cho origin của đích: không hỏi đích đó. */
@@ -16,7 +33,8 @@ export class MissingKeyError extends Error {
 }
 
 export interface PollerDeps {
-  loadTargets(): Promise<{ machineId: string | null; targets: PollTarget[] }>;
+  /** Ném `MissingKeyError`/`PaperclipAuthError` khi chưa đăng nhập hoặc key hết hạn. */
+  loadTargets(): Promise<{ machineId: string | null; targets: PollTarget[]; skipped?: SkippedTarget[] }>;
   /** `null` = không có việc (204). Ném `MissingKeyError` khi chưa có board key. */
   claim(target: PollTarget, machineId: string): Promise<MachineJob | null>;
   /** `claimedAt`: giá trị server trả lúc claim; plugin từ chối (409) kết quả của lần nhận đã bị thay. */
@@ -35,6 +53,10 @@ export interface PollerDeps {
   /** Ghi `jobsAgent.lastPollAt` vào `app.json` (bản tin máy đọc). */
   recordPoll(at: Date): Promise<void>;
   log(level: 'info' | 'warn' | 'error', event: string, fields?: Record<string, unknown>): void;
+  /** Trạng thái nhận việc vừa đổi. */
+  onStatus?(status: JobsStatus): void;
+  /** Một company trả 403: danh sách company tài khoản thấy được có thể đã cũ. */
+  onForbidden?(): void;
   timeoutMs?: number;
 }
 
@@ -46,6 +68,15 @@ export const RECORD_EVERY_MS = 30_000;
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
+export const NO_LOGIN_TEXT =
+  'App chưa đăng nhập Paperclip hoặc không còn board key, nên không nhận việc từ board: bấm Đăng nhập lại.';
+export const EXPIRED_TEXT =
+  'Board key hết hạn hoặc bị thu hồi (HTTP 401), nên không nhận việc từ board: bấm Đăng nhập lại.';
+export const FORBIDDEN_TEXT =
+  'Tài khoản đã đăng nhập không có quyền với company này (HTTP 403): không nhận việc của company này. Đăng nhập lại bằng cùng tài khoản không sửa được; cần thêm tài khoản vào company.';
+const needsLoginError = (error: unknown) =>
+  error instanceof MissingKeyError || error instanceof PaperclipAuthError;
+
 /**
  * Vòng hỏi hàng đợi việc trên máy: mỗi chu kỳ (5 giây khi cửa sổ hiện, 15 giây khi ẩn) `claim` lần lượt từng đích, có
  * việc thì làm xong rồi báo kết quả mới hỏi tiếp, nên máy chỉ làm một việc một lúc. Đích lỗi thì lùi dần riêng đích đó
@@ -56,6 +87,19 @@ export function createJobsPoller(deps: PollerDeps) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let running = false;
   let lastRecorded: number | null = null;
+  let status: JobsStatus = { problem: null, needsLogin: false, companies: [] };
+
+  function setStatus(next: JobsStatus) {
+    if (JSON.stringify(next) === JSON.stringify(status)) return;
+    status = next;
+    try {
+      deps.onStatus?.(structuredClone(next));
+    } catch {
+      // người nghe lỗi không làm dừng vòng hỏi
+    }
+  }
+  const loginProblem = (error: unknown) =>
+    error instanceof PaperclipAuthError ? EXPIRED_TEXT : NO_LOGIN_TEXT;
 
   const interval = () => (deps.isVisible() ? VISIBLE_INTERVAL_MS : HIDDEN_INTERVAL_MS);
   const keyOf = (t: PollTarget) => `${t.url} ${t.companyId}`;
@@ -130,22 +174,67 @@ export function createJobsPoller(deps: PollerDeps) {
     try {
       config = await deps.loadTargets();
     } catch (error) {
+      if (needsLoginError(error)) {
+        setStatus({ problem: loginProblem(error), needsLogin: true, companies: [] });
+        return;
+      }
       deps.log('warn', 'machine-jobs-targets-failed', { message: errorText(error) });
+      setStatus({
+        problem: `Không đọc được danh sách company để nhận việc: ${errorText(error)}`,
+        needsLogin: false,
+        companies: [],
+      });
       return;
     }
     const { machineId } = config;
-    if (!machineId) return;
+    const skipped = (config.skipped ?? []).map(({ companyId, reason }) => ({
+      companyId,
+      name: null,
+      ok: false,
+      message: reason,
+    }));
+    if (!machineId) {
+      setStatus({
+        problem: 'crew-mac chưa cấu hình bản tin máy (chưa có machineId), nên chưa nhận việc.',
+        needsLogin: false,
+        companies: [],
+      });
+      return;
+    }
+    if (config.targets.length === 0 && skipped.length === 0) {
+      setStatus({
+        problem: 'crew-mac chưa có đích bản tin nào, nên chưa nhận việc của company nào.',
+        needsLogin: false,
+        companies: [],
+      });
+      return;
+    }
+    const previous = new Map(status.companies.map((c) => [c.companyId, c]));
+    const companies: JobsStatus['companies'] = [];
+    let loginError: unknown = null;
     let polled = false;
     for (const target of config.targets) {
       if (!running) return;
+      const name = target.name ?? null;
       const key = keyOf(target);
       const state = backoff.get(key);
-      if (state && Date.now() < state.nextAt) continue;
+      if (state && Date.now() < state.nextAt) {
+        companies.push(
+          previous.get(target.companyId) ?? { companyId: target.companyId, name, ok: false, message: null },
+        );
+        continue;
+      }
       let job: MachineJob | null;
       try {
         job = await deps.claim(target, machineId);
       } catch (error) {
-        if (error instanceof MissingKeyError) continue;
+        if (needsLoginError(error)) {
+          loginError = error;
+          companies.push({ companyId: target.companyId, name, ok: false, message: loginProblem(error) });
+          continue;
+        }
+        const forbidden = error instanceof PaperclipForbiddenError;
+        if (forbidden) deps.onForbidden?.();
         const failures = (state?.failures ?? 0) + 1;
         const delay = Math.min(MAX_BACKOFF_MS, interval() * 2 ** failures);
         backoff.set(key, { failures, nextAt: Date.now() + delay });
@@ -153,12 +242,24 @@ export function createJobsPoller(deps: PollerDeps) {
           companyId: target.companyId,
           message: errorText(error),
         });
+        companies.push({
+          companyId: target.companyId,
+          name,
+          ok: false,
+          message: forbidden ? FORBIDDEN_TEXT : `Không hỏi được việc: ${errorText(error)}`,
+        });
         continue;
       }
       backoff.delete(key);
       polled = true;
+      companies.push({ companyId: target.companyId, name, ok: true, message: null });
       if (job) await handle(job, target, machineId);
     }
+    setStatus({
+      problem: loginError ? loginProblem(loginError) : null,
+      needsLogin: loginError !== null,
+      companies: [...companies, ...skipped],
+    });
     if (polled && (lastRecorded === null || Date.now() - lastRecorded >= RECORD_EVERY_MS)) {
       const at = new Date();
       lastRecorded = at.getTime();
@@ -180,5 +281,6 @@ export function createJobsPoller(deps: PollerDeps) {
       timer = null;
     },
     tick,
+    status: (): JobsStatus => structuredClone(status),
   };
 }

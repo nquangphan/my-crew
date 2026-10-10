@@ -57,11 +57,17 @@ cắm vào các điểm đã chừa.
   mở app vẫn báo một lần. Thông báo hệ thống tạo ở `notifications.ts` (`createNotifier`, lỗi hiện thông báo bị nuốt).
   Màn hình `routes/health.tsx` liệt kê `CheckRow` (ĐẠT/CẢNH BÁO/LỖI, chi tiết, gợi ý) và nút theo id check:
   `tcc-pending` mở pane Quyền riêng tư (`health:action` `open-privacy`), `sshd-agent` về wizard (`#/setup`), còn lại
-  "Mở Terminal" (`open-terminal`).
+  "Mở Terminal" (`open-terminal`). Dưới danh sách là khung "Nhận việc từ board" (kênh `jobs:status`, flow
+  `mac-app-paperclip`): origin Paperclip đã đăng nhập, vấn đề chung (đỏ khi cần đăng nhập lại), từng company ĐANG NHẬN
+  hay KHÔNG NHẬN kèm lý do, và nút **Đăng nhập lại** (`components/relogin.tsx` → `ReloginButton`).
+- **Đăng nhập lại** (`ReloginButton`, có ở màn Sức khỏe và ở màn Cài đặt khi wizard đã `done`, khung "Tài khoản
+  Paperclip"): chạy đúng luồng `cli-auth` của bước Đăng nhập với origin đã lưu (`paperclip:login` mở trang duyệt
+  `/cli-auth/<id>` trên trình duyệt, hiện link để mở tay nếu trình duyệt không lên, rồi hỏi `paperclip:loginStatus` mỗi
+  2 giây). Duyệt xong thì key mới thay key cũ của origin trong Keychain và `app.json` giữ company đã chọn.
 - **Run đang chạy** (`runs.ts` → `createRuns`): `runs:list` = `sshd.activeRuns()` (đọc bảng process, flow
   `mac-app-sshd`). "Hủy run" (có hỏi xác nhận) gọi `runs:cancel` → `paperclipClient(ctx).cancelRun(runId)` (REST,
   flow `mac-app-paperclip`); app không bao giờ `kill` process của run. 401 hoặc chưa đăng nhập thì báo "Cần đăng nhập
-  lại Paperclip (mục Cài đặt)." "Mở trên web" gọi `runs:openWeb` → `runWebUrl(runId)` rồi `shell.openExternal`. Thời
+  lại Paperclip (mục Cài đặt)."; 403 báo tài khoản không có quyền (không bảo đăng nhập lại). "Mở trên web" gọi `runs:openWeb` → `runWebUrl(runId)` rồi `shell.openExternal`. Thời
   điểm bắt đầu hiển thị theo `Asia/Ho_Chi_Minh`.
 - **Log** (`logs.ts` → `createLogs`): bốn file `app` (`~/Library/Application Support/2P Crew/app.log`), `sshd`,
   `reaper`, `status` (ba file sau lấy từ `macPaths`). Chỉ đọc tối đa 512 KB cuối, lọc dòng chứa run id rồi mới lấy N
@@ -191,7 +197,7 @@ với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `doctor` không pr
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
 | `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi` |
 | `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess | `createOpsHandlers` |
-| `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe, Run đang chạy, Log, Cài đặt (`routes/`), `CheckRow`, `WizardStep` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen`, `SetupScreen` |
+| `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe (kèm khung nhận việc), Run đang chạy, Log, Cài đặt (`routes/`), `CheckRow`, `WizardStep`, `ReloginButton` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen`, `SetupScreen` |
 
 ## Dữ liệu
 
@@ -252,12 +258,12 @@ với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `doctor` không pr
   `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai).
 - `apps/mac-app/test/renderer/app.test.tsx`: thanh bên và điều hướng hash.
 - `apps/mac-app/test/health.test.ts`: lịch 15 phút, probe khi bấm, không chạy chồng, thông báo khi đổi đỏ/ổn.
-- `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, mở link web.
+- `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, 403 không bảo đăng nhập lại, mở link web.
 - `apps/mac-app/test/logs.test.ts`: đuôi file, lọc run id, giới hạn 512 KB, file ngoài danh sách bị từ chối.
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
-- `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, màn Run và Log, giờ Việt Nam.
+- `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, khung nhận việc và nút Đăng nhập lại, màn Run và Log, giờ Việt Nam.
 - `apps/mac-app/test/setup-wizard.test.ts`: `check`, bước `machine` (máy có sẵn giữ url cũ, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
 - `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.
 - `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run hoặc chưa có quyền ổ đĩa, chuyển thành công, tự lui (dừng supervisor trước), đã ở chế độ app.
-- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, nút Tiếp và nút sshd khóa khi chưa cấp quyền, chạy lại bước.
+- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, nút Tiếp và nút sshd khóa khi chưa cấp quyền, chạy lại bước, Đăng nhập lại khi đã xong.

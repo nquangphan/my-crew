@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PaperclipAuthError } from '../src/main/paperclip/client.js';
+import { PaperclipAuthError, PaperclipForbiddenError } from '../src/main/paperclip/client.js';
 import { createRuns } from '../src/main/runs.js';
 import type { ActiveRun } from '../src/shared/ipc-contract.js';
 
@@ -54,6 +54,21 @@ describe('runs', () => {
       },
     });
     expect((await none.runs.cancel('r1')).message).toBe('Cần đăng nhập lại Paperclip (mục Cài đặt).');
+  });
+
+  it('403 (tài khoản không thuộc company) báo không có quyền, không bảo đăng nhập lại', async () => {
+    const { runs } = make({
+      client: () => ({
+        cancelRun: async () => {
+          throw new PaperclipForbiddenError();
+        },
+        runWebUrl: async () => '',
+      }),
+    });
+    const answer = await runs.cancel('r1');
+    expect(answer.ok).toBe(false);
+    expect(answer.message).toContain('không có quyền');
+    expect(answer.message).not.toContain('đăng nhập lại');
   });
 
   it('lỗi khác thì ok false kèm lý do', async () => {

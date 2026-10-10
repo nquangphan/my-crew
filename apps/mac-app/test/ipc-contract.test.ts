@@ -20,6 +20,7 @@ describe('IPC_CHANNELS', () => {
       'paperclip:login',
       'paperclip:loginStatus',
       'paperclip:companies',
+      'jobs:status',
       'projects:list',
       'projects:pickFolder',
       'projects:add',

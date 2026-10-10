@@ -3,6 +3,7 @@ import {
   createPaperclipClient,
   normalizeOrigin,
   PaperclipAuthError,
+  PaperclipForbiddenError,
   PaperclipHttpError,
 } from '../src/main/paperclip/client.js';
 import type { PaperclipClient } from '../src/main/paperclip/types.js';
@@ -99,6 +100,19 @@ describe('request chung', () => {
     const error = await client.me().catch((e: unknown) => e);
     expect(error).toBeInstanceOf(PaperclipAuthError);
     expect((error as Error).message).toBe('Cần đăng nhập lại Paperclip');
+  });
+
+  it('403 → PaperclipForbiddenError: báo tài khoản không có quyền, không phải "đăng nhập lại"', async () => {
+    const { client } = await setup(() => ({
+      status: 403,
+      body: { error: 'User does not have access to this company' },
+    }));
+    const error = await client.me().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(PaperclipForbiddenError);
+    expect(error).not.toBeInstanceOf(PaperclipAuthError);
+    expect(error).toMatchObject({ status: 403 });
+    expect((error as Error).message).toContain('không có quyền');
+    expect((error as Error).message).not.toContain('đăng nhập lại');
   });
 
   it('422 có code → PaperclipHttpError status/code, message có 422, không lộ key hay body', async () => {

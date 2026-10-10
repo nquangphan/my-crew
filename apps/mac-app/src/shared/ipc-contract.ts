@@ -1,5 +1,6 @@
 import type { CheckResult } from '@crew/mac';
 import type { AppState, ProjectProgress, SetupStep, UpdateState } from '../main/app-state.js';
+import type { JobsStatus } from '../main/jobs/poller.js';
 import type { ExistingMachine } from '../main/setup/import-existing.js';
 import type { V2Detection } from '../main/setup/v2-removal.js';
 
@@ -98,6 +99,8 @@ export interface IpcApi {
   'paperclip:login': { args: [origin: string]; result: { approvalUrl: string } };
   'paperclip:loginStatus': { args: []; result: 'pending' | 'approved' | 'expired' | 'cancelled' };
   'paperclip:companies': { args: []; result: { id: string; name: string }[] };
+  /** Trạng thái nhận việc từ board (hàng đợi máy) và origin board đã đăng nhập (cho nút Đăng nhập lại). */
+  'jobs:status': { args: []; result: JobsStatus & { origin: string | null } };
   'projects:list': { args: []; result: ProjectRow[] };
   /** Mở hộp thoại chọn thư mục của macOS ở Main rồi kiểm folder; `null` khi owner bấm Hủy. */
   'projects:pickFolder': { args: []; result: FolderChoice | null };
@@ -132,6 +135,7 @@ export const IPC_CHANNELS = [
   'paperclip:login',
   'paperclip:loginStatus',
   'paperclip:companies',
+  'jobs:status',
   'projects:list',
   'projects:pickFolder',
   'projects:add',
