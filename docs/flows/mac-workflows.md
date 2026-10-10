@@ -18,7 +18,9 @@ marketplace `bmad` owner đã thêm: owner kéo marketplace mới không đượ
 đúng cùng một cây (258 file, checksum `7f62e5cb6033…`).
 
 Sổ workflow đã chứng nhận (`registry.ts`) có đúng hai mục, thứ tự cố định: `superpowers` (mặc định; design/plan/task,
-code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `claude_local`.
+code, review, merge) và `bmad` (epic/story). `superpowers` chạy được `claude_local`, `codex_local` và `opencode_local`
+(kiểu `CrewRuntime`; Codex/OpenCode đọc skill ở bản ghim qua `CREW_SUPERPOWERS_DIR`, flow `mac-runtimes`); `bmad` chỉ
+`claude_local`.
 
 ## Điểm vào
 
@@ -48,6 +50,9 @@ code, review, merge) và `bmad` (epic/story); cả hai chỉ chạy runtime `cla
 - `crew-mac run-init-check --root <worktree> --log <file stream-json | ->`: kiểm sau run (nghiệm thu, điều tra), đọc
   dòng `system/init` của log run, tự nhận workflow của run theo tên plugin. Mã thoát giống `workflow-check`; log không
   đọc được thì thoát 1.
+- `crew-mac workflow-check --runtime codex_local|opencode_local --root <worktree>`: wrapper Codex/OpenCode gọi trước
+  mỗi run; kiểm `CREW_SUPERPOWERS_DIR` và cấu hình runtime trong worktree (flow `mac-runtimes`). `--runtime` không đi
+  cùng `--plugin-dir`; giá trị khác hai runtime trên thì thoát 2.
 
 ## Các bước
 
@@ -403,7 +408,7 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
 | `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `bmadSetupStampPath`, `recordBmadSetup`, `worktreeWorkflowStampPath`, `recordWorktreeWorkflow`, `lastRunWorkflow`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `BMAD_SETUP_UNCOMMITTED_WARNING`, `Origin`, `DiscoveredSource` |
 | `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `selectInitWorkflow`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
-| `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` | `workflowCheck`, `runInitCheck` |
+| `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` (nhánh `--runtime` ở flow `mac-runtimes`) | `workflowCheck`, `workflowCheckRuntime`, `runInitCheck` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`), chuyển sang stub khi checkout `e2e-*` có tệp đánh dấu | — |
 | `apps/crew-mac/assets/crew-e2e-stub.sh` | Stub nghiệm thu: ngủ theo tệp đánh dấu rồi in một dòng kết quả stream-json, không gọi model | — |
 
@@ -463,7 +468,7 @@ cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ 
   - `installSuperpowersPin`: copy đúng và lần hai không đổi; owner cài bản khác; cây owner bị sửa; thư mục ghim lệch
     checksum; bản tạm dở dang của lần trước và bản tạm cũ của pid khác; giữ và đặt lại bit thực thi.
 - `apps/crew-mac/test/workflows-registry.test.ts`: `pinDir` theo workflow; `BMAD_SOURCE` chỉ https đúng repo và
-  revision; `BMAD_PLUGIN_JSON` đúng byte; `BMAD_PIN` đúng số đo; sổ hai workflow, mặc định, runtime; `workflowForPluginDir`
+  revision; `BMAD_PLUGIN_JSON` đúng byte; `BMAD_PIN` đúng số đo; sổ hai workflow, mặc định, runtime (`superpowers` ba runtime, `bmad` chỉ `claude_local`); `workflowForPluginDir`
   (hoa thường, `/` cuối, marketplace, cache owner); `pluginKeys`.
 - `apps/crew-mac/test/workflows-bmad-install.test.ts` (repo git thật trong HOME giả, git/tar thật qua `FakeRunner`):
   lắp từ marketplace (checksum, `plugin.json`, bit x, không rác, không ghi thêm gì dưới `~/.claude`); lần hai không gọi

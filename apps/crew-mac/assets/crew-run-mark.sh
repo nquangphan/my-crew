@@ -22,7 +22,9 @@ crew_run_mark() {
 # crew_runtime_slot <runtime>: in a Paperclip run, PAPERCLIP_AGENT_ID must be a UUID (it names the per-agent state
 # directory) and `crew-mac workflow-check --runtime <runtime>` must accept the worktree; any refusal exits 78 before
 # the agent CLI starts. Sets $slot to the agent id, or to "shared" outside a run (the adapter probing --version).
+# CREW_SUPERPOWERS_DIR is exported first so workflow-check verifies the same pinned copy the agent will read.
 crew_runtime_slot() {
+  crew_superpowers_dir
   slot=shared
   [ -n "${PAPERCLIP_RUN_ID:-}" ] || return 0
   if ! printf '%s' "${PAPERCLIP_AGENT_ID:-}" | grep -q '^[0-9a-fA-F]\{8\}-[0-9a-fA-F]\{4\}-[0-9a-fA-F]\{4\}-[0-9a-fA-F]\{4\}-[0-9a-fA-F]\{12\}$'; then

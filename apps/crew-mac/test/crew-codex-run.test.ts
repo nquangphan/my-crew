@@ -137,6 +137,16 @@ describe('crew-codex-run', () => {
     expect(readFileSync(t.seen, 'utf8')).toMatch(/^CREW_SUPERPOWERS_DIR=\/x\/superpowers\/9\.9\.9$/m);
   });
 
+  it('workflow-check thấy CREW_SUPERPOWERS_DIR từ file setup ghi (để kiểm checksum bản ghim)', () => {
+    const t = setup();
+    mkdirSync(join(t.home, '.crew', 'runtimes'), { recursive: true });
+    writeFileSync(join(t.home, '.crew', 'runtimes', 'superpowers-dir'), '/x/superpowers/9.9.9\n');
+    const envSeen = join(t.home, 'crew-mac.env');
+    writeFileSync(t.crewMac, `#!/bin/sh\nenv > '${envSeen}'\nexit 0\n`, { mode: 0o755 });
+    expect(run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT }).code).toBe(0);
+    expect(readFileSync(envSeen, 'utf8')).toMatch(/^CREW_SUPERPOWERS_DIR=\/x\/superpowers\/9\.9\.9$/m);
+  });
+
   it('chạy lại thì cập nhật config.toml và giữ sessions', () => {
     const t = setup();
     run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });

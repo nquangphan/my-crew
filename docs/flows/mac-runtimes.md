@@ -26,10 +26,12 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
 ## Các bước
 
 1. `apps/crew-mac/assets/crew-run-mark.sh` (hai wrapper nạp bằng `.` theo đường dẫn tính từ `$0`):
-   - `crew_runtime_slot <runtime>`: trong run, `PAPERCLIP_AGENT_ID` phải là UUID, rồi gọi
+   - `crew_runtime_slot <runtime>`: gọi `crew_superpowers_dir` trước (để `workflow-check` kiểm đúng bản agent sẽ
+     đọc), rồi trong run `PAPERCLIP_AGENT_ID` phải là UUID và gọi
      `crew-mac workflow-check --runtime <runtime> --root "$PWD"`; ngoài run (adapter gọi `--version`) đặt ô `shared`;
    - `crew_run_mark`: chép nguyên khối ghi `pgid`/`started` của `crew-claude-run.sh`;
-   - `crew_superpowers_dir`: export `CREW_SUPERPOWERS_DIR` từ `~/.crew/runtimes/superpowers-dir`.
+   - `crew_superpowers_dir`: export `CREW_SUPERPOWERS_DIR` từ `~/.crew/runtimes/superpowers-dir` (file không có thì
+     giữ giá trị env sẵn có).
 2. `apps/crew-mac/assets/crew-codex-run.sh`:
    - thiếu `~/.codex/auth.json` thì chặn;
    - `CODEX_HOME` mới `~/.crew/runtimes/codex/<agentId>/` (0700): chép `config.toml` của asset (0600), `skills` là
@@ -71,7 +73,22 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
      nên thấy cùng PATH với sshd agent, kể cả khi app gọi crew-mac với PATH launchd tối thiểu. Mỗi lệnh quá hạn 15 giây.
 6. `apps/crew-mac/src/runtimes/paths.ts` → `runtimePaths(home)`: đường wrapper, `crew-run-mark.sh`, `~/.crew/runtimes`,
    `superpowers-dir`, `opencode-in-place`, `~/.claude/skills`.
-7. Doctor (flow `mac-setup`, `doctor.ts`): bốn mục chỉ `warn`, không bao giờ `fail` (check job của app chỉ thất bại
+7. `crew-mac workflow-check --runtime codex_local|opencode_local --root <worktree>` (nhánh trong `cli.ts`, hàm
+   `workflowCheckRuntime` ở `apps/crew-mac/src/commands/workflow-check.ts`, nguồn ở
+   `apps/crew-mac/src/workflows/runtime-sources.ts`):
+   - `CREW_SUPERPOWERS_DIR` (env của wrapper) phải là thư mục có `treeChecksum` = checksum của `SUPERPOWERS_PIN`.
+     Thiếu biến hay thư mục thì `crew-workflow blocked: CREW_SUPERPOWERS_DIR <dir|chưa đặt> (pin-missing: …)`, khác
+     checksum (hay cây có symlink) thì `(pin-mismatch: …)`;
+   - `findRuntimeSources`: ở **gốc** worktree, Codex chặn mọi file dưới `.codex/`, OpenCode chặn mọi file dưới
+     `.opencode/`, `opencode.json`, `opencode.jsonc` mà git không theo dõi
+     (`trackedRuntimeFiles` = `git -C <root> ls-files -z -- .codex .opencode opencode.json opencode.jsonc`); mỗi file
+     một dòng `crew-workflow blocked: <path> (runtime-config: cấu hình <runtime> trong worktree mà git không theo dõi)`.
+     File đã commit là của repo dự án, được phép. Symlink tính là file (không theo link). git lỗi/không phải repo thì
+     coi như không file nào được theo dõi (fail-closed). `.codex`/`opencode.json` ở thư mục con không xét (run chạy ở
+     gốc worktree);
+   - sạch thì in `crew-workflow ok runtime=<runtime> superpowers=<version>`, thoát 0; bị chặn thì các dòng trên ra
+     stderr, thoát 78; ghi dấu worktree thuộc `superpowers` (`recordWorktreeWorkflow`) như nhánh `--plugin-dir`.
+8. Doctor (flow `mac-setup`, `doctor.ts`): bốn mục chỉ `warn`, không bao giờ `fail` (check job của app chỉ thất bại
    theo mục bắt buộc của Claude):
    - `codex-auth`: `codex login status` qua sshd agent, chỉ dùng mã thoát (câu trạng thái ra stderr, không in);
    - `wrapper-codex`, `wrapper-opencode`: file có, có bit x, `crew-<cli>-run --version` qua sshd agent chạy được,
@@ -100,6 +117,8 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 - `~/.crew/bin/crew-codex-run`, `crew-opencode-run` (0755), `crew-run-mark.sh` (0644): `setup` chép từ `assets/`.
 - `~/.crew/runtimes/` (0700): `superpowers-dir` (0600, `setup` ghi), `opencode-in-place` (deploy ghi),
   `codex/<agentId|shared>/` (CODEX_HOME), `opencode/<agentId|shared>/{data,state,cache,config}`.
+- `crew-mac uninstall` gỡ hai wrapper, `crew-run-mark.sh` và cả `~/.crew/runtimes/`; không đụng `~/.codex` (symlink
+  `auth.json` bị xóa, file đích giữ nguyên) hay Keychain.
 - Biến chỉ cho test: `CREW_CODEX_BIN`, `CREW_OPENCODE_BIN`, `CREW_SECURITY_BIN`, `CREW_MAC_BIN`.
 
 ## Ranh giới credential
@@ -124,7 +143,8 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 ## Flow liên quan
 
 - `mac-setup`: `setup` cài wrapper, `doctor` gọi các mục runtime, `cli.ts` chuyển `runtimes`.
-- `mac-workflows`: `workflow-check --runtime` mà wrapper gọi trước mỗi run.
+- `mac-workflows`: sổ workflow (`superpowers` có `codex_local`, `opencode_local`), `treeChecksum`, bản ghim; nhánh
+  `--plugin-dir` của `workflow-check`.
 - `mac-orphan-reaper`: đọc `pgid`/`started` mà `crew_run_mark` ghi.
 
 ## Tests
@@ -132,17 +152,22 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 - `apps/crew-mac/test/crew-codex-run.test.ts`: CODEX_HOME riêng theo agent (symlink `auth.json`/`skills`, chép
   `config.toml` 0600, thư mục 0700, `sessions/` giữ qua lần chạy sau), asset chỉ thêm `auth.json` `{}` 0600 và giữ
   sau khi thoát (cả ngoài run), asset có sẵn `auth.json` thì để nguyên, không ghi được asset thì 78, argv giữ nguyên,
-  `workflow-check --runtime codex_local`, `CREW_SUPERPOWERS_DIR`, thiếu đăng nhập, agent id sai, workflow-check từ
+  `workflow-check --runtime codex_local` (thấy `CREW_SUPERPOWERS_DIR` từ file setup), `CREW_SUPERPOWERS_DIR`, thiếu đăng nhập, agent id sai, workflow-check từ
   chối (đều 78, không chạy codex), ngoài run dùng `shared` và không ghi marker.
 - `apps/crew-mac/test/crew-opencode-run.test.ts`: chuỗi mốc key chỉ có trong env của opencode (không argv, stdout,
   stderr, file dưới `~/.crew` hay worktree), security gọi đúng service/account, `OPENCODE_CONFIG_CONTENT`,
   `--print-logs` cho `run`, XDG riêng theo agent và giữ `XDG_CONFIG_HOME` của adapter, thiếu key thì 78 với câu cố
   định, agent id sai hay workflow-check từ chối thì không đọc Keychain.
+- `apps/crew-mac/test/workflow-check-runtime.test.ts`: `findRuntimeSources` theo runtime (Codex chỉ `.codex/`,
+  OpenCode `.opencode/`, `opencode.json[c]`), file đã commit không chặn, file lạ cạnh file đã commit và symlink bị
+  chặn, thư mục con không xét, không phải repo git; `workflowCheckRuntime` sạch (dòng ok, dấu worktree), lệch checksum
+  (`pin-mismatch`), thiếu biến/thư mục (`pin-missing`), gộp mọi lý do; CLI 0/78/2 (runtime lạ, `claude_local`,
+  `--root` tương đối, đi cùng `--plugin-dir`).
 - `apps/crew-mac/test/runtimes-keychain.test.ts`: kiểm có key không dùng `-w`, mã 44/lạ, fingerprint 12 hex, lỗi
   không kèm đầu ra security.
 - `apps/crew-mac/test/runtimes-command.test.ts`: `key opencode` (argv kết thúc bằng `-w`, `stdio: 'inherit'`, không
   TTY thì 2), `key-fingerprint`, `status` (ba dòng, `--json` đúng hợp đồng, CLI chưa cài/chưa đăng nhập/không key,
   qua `/bin/zsh -c`), `skills-checksum` (thiếu thư mục, symlink, đổi khi cây đổi), nhánh CLI.
-- `apps/crew-mac/test/setup.test.ts`, `apps/crew-mac/test/doctor.test.ts` (flow `mac-setup`): cài wrapper đúng mode;
+- `apps/crew-mac/test/setup.test.ts`, `apps/crew-mac/test/doctor.test.ts`, `apps/crew-mac/test/uninstall.test.ts` (flow `mac-setup`): cài wrapper đúng mode, uninstall gỡ wrapper và `~/.crew/runtimes` mà giữ `~/.codex`;
   bốn mục doctor runtime (chưa cài, thiếu file/bit x, chặn 78, chưa đăng nhập, thiếu `opencode-in-place`, khác bản,
   Keychain lỗi) đều chỉ `warn`.

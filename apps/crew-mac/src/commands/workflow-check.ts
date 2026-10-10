@@ -1,4 +1,4 @@
-import { type Dirent, existsSync, readdirSync, readFileSync } from 'node:fs';
+import { type Dirent, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { missingExecutables } from '../workflows/install.js';
@@ -7,6 +7,12 @@ import { pinDir } from '../workflows/pin.js';
 import { assertSkillAllowed } from '../workflows/policy.js';
 import { certifiedWorkflows, workflowForPluginDir } from '../workflows/registry.js';
 import { checkInitEvent, findInitEvent, selectInitWorkflow } from '../workflows/run-init.js';
+import {
+  type ExternalRuntime,
+  findRuntimeSources,
+  type RuntimeSourceFinding,
+  trackedRuntimeFiles,
+} from '../workflows/runtime-sources.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
 
 export interface WorkflowReport {
@@ -69,6 +75,51 @@ export async function workflowCheck(
       ...warnings,
     ],
   };
+}
+
+/** Bản Superpowers ở `dir` (CREW_SUPERPOWERS_DIR của wrapper) có đúng checksum ghim không; null là khớp. */
+function superpowersDirFinding(dir: string | undefined, checksum: string): RuntimeSourceFinding | null {
+  if (!dir) return { path: 'chưa đặt', reason: 'pin-missing' };
+  try {
+    if (!statSync(dir).isDirectory()) return { path: dir, reason: 'pin-missing' };
+  } catch {
+    return { path: dir, reason: 'pin-missing' };
+  }
+  try {
+    return treeChecksum(dir).checksum === checksum ? null : { path: dir, reason: 'pin-mismatch' };
+  } catch {
+    return { path: dir, reason: 'pin-mismatch' };
+  }
+}
+
+/**
+ * Kiểm trước mỗi run Codex/OpenCode (wrapper gọi): `CREW_SUPERPOWERS_DIR` là bản Superpowers ghim đúng checksum (agent
+ * đọc skill ở đó), và gốc worktree không có cấu hình riêng của runtime (`.codex/`, `.opencode/`, `opencode.json[c]`)
+ * mà git không theo dõi — file đã commit là của repo dự án, được phép như `.claude/` đã commit.
+ */
+export async function workflowCheckRuntime(
+  ctx: MacContext,
+  input: { root: string; runtime: ExternalRuntime; superpowersDir: string | undefined },
+): Promise<WorkflowReport> {
+  const pin = ctx.superpowersPin;
+  recordWorktreeWorkflow(ctx.home, input.root, pin.workflow);
+  const lines: string[] = [];
+  const pinFinding = superpowersDirFinding(input.superpowersDir, pin.checksum);
+  if (pinFinding) {
+    const why =
+      pinFinding.reason === 'pin-missing'
+        ? 'không có thư mục; chạy lại crew-mac setup'
+        : `checksum khác bản ghim ${pin.workflow}@${pin.version}; chạy lại crew-mac setup`;
+    lines.push(blocked(`CREW_SUPERPOWERS_DIR ${pinFinding.path} (${pinFinding.reason}: ${why})`));
+  }
+  const tracked = trackedRuntimeFiles(input.root);
+  for (const f of findRuntimeSources({ root: input.root, runtime: input.runtime, tracked })) {
+    lines.push(
+      blocked(`${f.path} (${f.reason}: cấu hình ${input.runtime} trong worktree mà git không theo dõi)`),
+    );
+  }
+  if (lines.length > 0) return { ok: false, lines };
+  return { ok: true, lines: [`crew-workflow ok runtime=${input.runtime} superpowers=${pin.version}`] };
 }
 
 function frontmatterName(file: string): string | null {

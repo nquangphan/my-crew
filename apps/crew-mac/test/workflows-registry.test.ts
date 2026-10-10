@@ -32,10 +32,10 @@ describe('sổ workflow đã chứng nhận', () => {
     });
   });
 
-  it('sổ có đúng hai workflow, superpowers mặc định, chỉ claude_local', () => {
+  it('sổ có đúng hai workflow, superpowers mặc định chạy cả Codex/OpenCode, BMAD chỉ claude_local', () => {
     const list = certifiedWorkflows({ superpowersPin: SUPERPOWERS_PIN, bmadPin: BMAD_PIN });
     expect(list.map((w) => [w.id, w.isDefault, w.runtimes])).toEqual([
-      ['superpowers', true, ['claude_local']],
+      ['superpowers', true, ['claude_local', 'codex_local', 'opencode_local']],
       ['bmad', false, ['claude_local']],
     ]);
     expect(list.map((w) => w.purpose)).toEqual(['design/plan/task, code, review, merge', 'epic/story']);

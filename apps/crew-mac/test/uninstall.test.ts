@@ -14,6 +14,7 @@ import { setup } from '../src/commands/setup.js';
 import { uninstall } from '../src/commands/uninstall.js';
 import { SetupError } from '../src/context.js';
 import { macPaths, SPIKE_LABEL, SSHD_LABEL } from '../src/paths.js';
+import { runtimePaths } from '../src/runtimes/paths.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY, SPIKE_PATH_COMMENT } from '../src/zshenv.js';
 import {
   APP_EXECUTABLE,
@@ -237,6 +238,31 @@ describe('crew-mac uninstall', () => {
     expect(existsSync(paths.wrapper)).toBe(false);
     expect(existsSync(paths.launcher)).toBe(false);
     expect(readFileSync(join(home, '.crew', 'config.yaml'), 'utf8')).toBe('apiUrl: x\n');
+  });
+
+  it('gỡ wrapper Codex/OpenCode, crew-run-mark.sh và ~/.crew/runtimes; không đụng ~/.codex', async () => {
+    const { home, ctx } = fakeMac();
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    const rt = runtimePaths(home);
+    for (const file of [rt.codexWrapper, rt.opencodeWrapper, rt.runMark, rt.superpowersDirFile])
+      expect(existsSync(file)).toBe(true);
+    const codexDir = join(home, '.codex');
+    mkdirSync(join(codexDir, 'sessions'), { recursive: true });
+    writeFileSync(join(codexDir, 'auth.json'), '{"x":1}', { mode: 0o600 });
+    const agentHome = rt.codexHome('11111111-2222-3333-4444-555555555555');
+    mkdirSync(join(agentHome, 'sessions'), { recursive: true });
+    symlinkSync(join(codexDir, 'auth.json'), join(agentHome, 'auth.json'));
+    symlinkSync(join(codexDir, 'sessions'), join(agentHome, 'linked'));
+    mkdirSync(rt.opencodeHome('shared'), { recursive: true });
+
+    const report = await uninstall(ctx);
+
+    for (const path of [rt.codexWrapper, rt.opencodeWrapper, rt.runMark, rt.runtimesRoot]) {
+      expect(existsSync(path)).toBe(false);
+      expect(report.removed).toContain(path);
+    }
+    expect(readFileSync(join(codexDir, 'auth.json'), 'utf8')).toBe('{"x":1}');
+    expect(existsSync(join(codexDir, 'sessions'))).toBe(true);
   });
 
   it('chạy lại khi đã gỡ hết thì không lỗi và không gỡ gì', async () => {

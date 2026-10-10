@@ -2,11 +2,14 @@ import type { MacContext } from '../context.js';
 import { comparablePath } from '../paths.js';
 import { pinDir, type WorkflowId, type WorkflowPin } from './pin.js';
 
+/** Runtime (adapterType Paperclip) chạy agent trên Mac. */
+export type CrewRuntime = 'claude_local' | 'codex_local' | 'opencode_local';
+
 /** Một workflow đã chứng nhận: bản ghim, runtime chạy được, có là mặc định không, dùng cho việc gì. */
 export interface CertifiedWorkflow {
   id: WorkflowId;
   pin: WorkflowPin;
-  runtimes: readonly ['claude_local'];
+  runtimes: readonly CrewRuntime[];
   isDefault: boolean;
   purpose: string;
   /** Key `enabledPlugins` thuộc workflow này (bật trong repo là nạp chéo với run của workflow khác). */
@@ -21,7 +24,8 @@ export function certifiedWorkflows(ctx: PinContext): readonly CertifiedWorkflow[
     {
       id: 'superpowers',
       pin: ctx.superpowersPin,
-      runtimes: ['claude_local'],
+      // Codex/OpenCode đọc skill ở bản ghim này qua CREW_SUPERPOWERS_DIR (workflow-check --runtime kiểm checksum).
+      runtimes: ['claude_local', 'codex_local', 'opencode_local'],
       isDefault: true,
       purpose: 'design/plan/task, code, review, merge',
       pluginKeys: [/^superpowers@/],

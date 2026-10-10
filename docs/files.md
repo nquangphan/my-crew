@@ -89,6 +89,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/workflows/policy.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/registry.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/run-init.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
+| `apps/crew-mac/src/workflows/runtime-sources.ts` | [mac-runtimes](flows/mac-runtimes.md) (file) |
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/workflow-gc.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/wrapper.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -146,6 +147,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/system-wrappers.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/system.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/uninstall.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/workflow-check-runtime.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
 | `apps/crew-mac/test/workflow-check.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-bmad-install.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-command.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |

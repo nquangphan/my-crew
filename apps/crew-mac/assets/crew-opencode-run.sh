@@ -30,7 +30,6 @@ if [ -z "${XDG_CONFIG_HOME:-}" ]; then
 fi
 OPENCODE_CONFIG_CONTENT='{"provider":{"opencode-go":{"options":{"apiKey":"{env:CREW_OPENCODE_GO_KEY}"}}},"permission":{"edit":"allow","bash":"allow","external_directory":"allow"}}'
 export OPENCODE_CONFIG_CONTENT
-crew_superpowers_dir
 [ -n "${PAPERCLIP_RUN_ID:-}" ] && crew_run_mark
 # OpenCode retries a 429 silently (up to 5 times, honouring retry-after); --print-logs puts the ERROR line
 # ("Go usage limit exceeded", "API key is missing") on stderr right away so the server sees why the run stalls.

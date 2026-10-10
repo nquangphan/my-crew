@@ -17,6 +17,7 @@ import {
 } from '../paths.js';
 import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
 import { descendants, isClaudeExe } from '../reaper/run-members.js';
+import { runtimePaths } from '../runtimes/paths.js';
 import { currentSshdOwner, isCrewListener, readSshdPid } from '../sshd-owner.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
@@ -169,7 +170,8 @@ export async function uninstall(
       removed.push(`${paths.zshenv} (dòng PATH crew-mac và spike)`);
     }
   }
-  for (const file of [paths.wrapper, paths.launcher]) {
+  const rt = runtimePaths(ctx.home);
+  for (const file of [paths.wrapper, rt.codexWrapper, rt.opencodeWrapper, rt.runMark, paths.launcher]) {
     if (existsSync(file)) {
       rmSync(file);
       removed.push(file);
@@ -177,7 +179,8 @@ export async function uninstall(
   }
   if (existsSync(paths.crewBin) && readdirSync(paths.crewBin).length === 0)
     rmSync(paths.crewBin, { recursive: true });
-  for (const dir of [paths.root, paths.spikeDir]) {
+  // ~/.crew/runtimes: CODEX_HOME/XDG riêng theo agent; auth.json trong đó là symlink nên ~/.codex không bị đụng.
+  for (const dir of [paths.root, paths.spikeDir, rt.runtimesRoot]) {
     if (existsSync(dir)) {
       rmSync(dir, { recursive: true, force: true });
       removed.push(dir);

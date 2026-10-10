@@ -36,6 +36,5 @@ fi
 ln -sfn "$HOME/.codex/auth.json" "$dest/auth.json" || exit 78
 CODEX_HOME=$dest
 export CODEX_HOME
-crew_superpowers_dir
 [ -n "${PAPERCLIP_RUN_ID:-}" ] && crew_run_mark
 exec "${CREW_CODEX_BIN:-codex}" "$@"

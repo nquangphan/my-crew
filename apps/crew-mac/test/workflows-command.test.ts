@@ -25,7 +25,7 @@ describe('crew-mac workflows', () => {
         version: FIXTURE_PIN.version,
         revision: FIXTURE_PIN.revision,
         checksum: FIXTURE_PIN.checksum,
-        runtimes: ['claude_local'],
+        runtimes: ['claude_local', 'codex_local', 'opencode_local'],
         isDefault: true,
         purpose: 'design/plan/task, code, review, merge',
         dir: pinDir(mac.home, FIXTURE_PIN),
