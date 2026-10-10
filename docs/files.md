@@ -7,6 +7,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 
 | File | Flows |
 |------|-------|
+| `apps/crew-mac/assets/crew-codex-run.sh` | [mac-runtimes](flows/mac-runtimes.md) (file) |
+| `apps/crew-mac/assets/crew-opencode-run.sh` | [mac-runtimes](flows/mac-runtimes.md) (file) |
+| `apps/crew-mac/assets/crew-run-mark.sh` | [mac-runtimes](flows/mac-runtimes.md) (file) |
 | `apps/crew-mac/src/authorized-keys.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/bmad/answers.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/bmad/epics.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
@@ -64,6 +67,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/reaper/run-members.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/reaper/select.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
 | `apps/crew-mac/src/reaper/stop.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
+| `apps/crew-mac/src/runtimes/command.ts` | [mac-runtimes](flows/mac-runtimes.md) (điểm vào) |
+| `apps/crew-mac/src/runtimes/keychain.ts` | [mac-runtimes](flows/mac-runtimes.md) (file) |
+| `apps/crew-mac/src/runtimes/paths.ts` | [mac-runtimes](flows/mac-runtimes.md) (file) |
 | `apps/crew-mac/src/sshd-config.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/sshd-owner.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/status/app-state.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -94,6 +100,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/bmad-setup-project.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/crew-claude-run.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/crew-codex-run.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
+| `apps/crew-mac/test/crew-opencode-run.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
 | `apps/crew-mac/test/doctor.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/files/bridge.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
 | `apps/crew-mac/test/files/cache.test.ts` | [mac-attachments](flows/mac-attachments.md) (test) |
@@ -123,6 +131,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/reaper-select.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/render.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/run-members.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
+| `apps/crew-mac/test/runtimes-command.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
+| `apps/crew-mac/test/runtimes-keychain.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
 | `apps/crew-mac/test/setup.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/sshd-owner.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-app.test.ts` | [mac-setup](flows/mac-setup.md) (test) |

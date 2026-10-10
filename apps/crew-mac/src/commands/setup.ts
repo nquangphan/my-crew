@@ -19,6 +19,7 @@ import {
   STATUS_LABEL,
 } from '../paths.js';
 import { type PlistSpec, renderPlist } from '../plist.js';
+import { runtimePaths } from '../runtimes/paths.js';
 import { renderSshdConfig } from '../sshd-config.js';
 import {
   currentSshdOwner,
@@ -33,7 +34,12 @@ import { installBmadPin } from '../workflows/bmad-install.js';
 import { installSuperpowersPin } from '../workflows/install.js';
 import { agentExtraArgs } from '../workflows/pin.js';
 import { gcAfterInstall } from '../workflows/workflow-gc.js';
-import { WRAPPER_SOURCE } from '../wrapper.js';
+import {
+  CODEX_WRAPPER_SOURCE,
+  OPENCODE_WRAPPER_SOURCE,
+  RUN_MARK_SOURCE,
+  WRAPPER_SOURCE,
+} from '../wrapper.js';
 import { upsertPathBlock } from '../zshenv.js';
 import { saveConfiguredClaudePath } from './status.js';
 import { assertNoLiveRuns } from './uninstall.js';
@@ -232,6 +238,17 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   track(paths.zshenv, writeIfChanged(paths.zshenv, zshenvNext, 0o644, { keepExistingMode: true }));
   track(paths.wrapper, writeIfChanged(paths.wrapper, readFileSync(WRAPPER_SOURCE, 'utf8'), 0o755));
   track(paths.launcher, writeIfChanged(paths.launcher, renderLauncher(ctx.nodePath, ctx.cliPath), 0o755));
+  // Runtime Codex/OpenCode: hai wrapper và file hàm chung chúng nạp bằng `.`, cùng thư mục ghim Superpowers mà
+  // wrapper export thành CREW_SUPERPOWERS_DIR. Không đụng Keychain: owner tự nạp key bằng "crew-mac runtimes key".
+  const rt = runtimePaths(ctx.home);
+  mkdirSync(rt.runtimesRoot, { recursive: true, mode: 0o700 });
+  track(rt.runMark, writeIfChanged(rt.runMark, readFileSync(RUN_MARK_SOURCE, 'utf8'), 0o644));
+  track(rt.codexWrapper, writeIfChanged(rt.codexWrapper, readFileSync(CODEX_WRAPPER_SOURCE, 'utf8'), 0o755));
+  track(
+    rt.opencodeWrapper,
+    writeIfChanged(rt.opencodeWrapper, readFileSync(OPENCODE_WRAPPER_SOURCE, 'utf8'), 0o755),
+  );
+  track(rt.superpowersDirFile, writeIfChanged(rt.superpowersDirFile, `${pin.dir}\n`, 0o600));
   if (!existsSync(worktreeRoot)) {
     mkdirSync(worktreeRoot, { recursive: true, mode: 0o700 });
     changed.push(worktreeRoot);

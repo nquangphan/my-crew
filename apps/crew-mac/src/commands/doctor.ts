@@ -13,6 +13,8 @@ import {
   SSHD_LABEL,
   STATUS_LABEL,
 } from '../paths.js';
+import { keychainKeyState } from '../runtimes/keychain.js';
+import { runtimePaths } from '../runtimes/paths.js';
 import {
   APP_BUNDLE_ID,
   currentSshdOwner,
@@ -27,7 +29,7 @@ import { discoverSources, GIT_TIMEOUT, lastRunWorkflow } from '../workflows/inve
 import { pinDir, SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
 import { certifiedWorkflows } from '../workflows/registry.js';
 import { treeChecksum } from '../workflows/tree-checksum.js';
-import { WRAPPER_SOURCE } from '../wrapper.js';
+import { CODEX_WRAPPER_SOURCE, OPENCODE_WRAPPER_SOURCE, WRAPPER_SOURCE } from '../wrapper.js';
 import { hasPathBlock } from '../zshenv.js';
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
@@ -745,6 +747,116 @@ async function checkClaudeAuth(ctx: MacContext, paths: MacPaths, manifest: Manif
   };
 }
 
+/**
+ * Runtime Codex/OpenCode là tùy chọn của máy: mọi mục dưới đây chỉ `warn`, không bao giờ `fail`, để check job của app
+ * chỉ thất bại theo mục bắt buộc của Claude.
+ */
+type RuntimeCli = 'codex' | 'opencode';
+
+const RUNTIME_NAME: Record<RuntimeCli, string> = { codex: 'Codex', opencode: 'OpenCode' };
+
+function firstLine(text: string): string {
+  return (text.split('\n').find((l) => l.trim() !== '') ?? '').trim().slice(0, 200);
+}
+
+async function checkRuntimeWrapper(
+  ctx: MacContext,
+  paths: MacPaths,
+  manifest: Manifest,
+  cli: RuntimeCli,
+): Promise<CheckResult> {
+  const rt = runtimePaths(ctx.home);
+  const wrapper = cli === 'codex' ? rt.codexWrapper : rt.opencodeWrapper;
+  const source = cli === 'codex' ? CODEX_WRAPPER_SOURCE : OPENCODE_WRAPPER_SOURCE;
+  const base = { id: `wrapper-${cli}`, title: `Wrapper crew-${cli}-run` };
+  const reinstall = 'Chạy lại "crew-mac setup".';
+  if (!existsSync(wrapper) || !existsSync(rt.runMark)) {
+    const missing = existsSync(wrapper) ? rt.runMark : wrapper;
+    return { ...base, status: 'warn', detail: `thiếu ${missing}`, hint: reinstall };
+  }
+  if ((statSync(wrapper).mode & 0o111) === 0)
+    return { ...base, status: 'warn', detail: `${wrapper} không có quyền chạy`, hint: reinstall };
+  const result = await ctx.runner.run(
+    'ssh',
+    sshArgs(
+      paths,
+      manifest,
+      ctx.user,
+      `command -v ${cli} >/dev/null 2>&1 || exit 127; "$HOME/.crew/bin/crew-${cli}-run" --version`,
+    ),
+    { timeoutMs: 30_000 },
+  );
+  if (result.code === 255 || result.timedOut)
+    return { ...base, status: 'warn', detail: `không SSH được vào sshd agent: ${firstLine(result.stderr)}` };
+  if (result.code === 127) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `${RUNTIME_NAME[cli]} chưa cài trong PATH của sshd agent (bỏ qua nếu máy không chạy agent ${cli}_local)`,
+      hint: `Cài ${cli} vào thư mục có trong khối PATH crew-mac của ~/.zshenv (vd. ~/.local/bin hoặc thư mục của node).`,
+    };
+  }
+  if (result.code !== 0) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `chạy qua sshd agent lỗi (mã ${result.code}): ${firstLine(result.stderr || result.stdout)}`,
+    };
+  }
+  if (readFileSync(wrapper, 'utf8') !== readFileSync(source, 'utf8'))
+    return { ...base, status: 'warn', detail: `${wrapper} khác bản trong repo Crew`, hint: reinstall };
+  if (cli === 'opencode' && !existsSync(rt.opencodeInPlaceFile)) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `thiếu ${rt.opencodeInPlaceFile} (opencode-in-place): server chưa báo có vá chạy OpenCode đúng worktree`,
+      hint: 'Bước deploy ghi file này khi server đã có vá; tới lúc đó giữ công tắc OpenCode của máy này tắt.',
+    };
+  }
+  return {
+    ...base,
+    status: 'ok',
+    detail: `${wrapper} → ${firstLine(result.stdout)}; agent ${cli}_local đặt adapterConfig.command bằng đường dẫn này`,
+  };
+}
+
+/** Chỉ dùng mã thoát của `codex login status`; không in câu trạng thái (có thể chứa phần key API đã che). */
+async function checkCodexAuth(ctx: MacContext, paths: MacPaths, manifest: Manifest): Promise<CheckResult> {
+  const base = { id: 'codex-auth', title: 'Codex đăng nhập (qua sshd agent)' };
+  const result = await ctx.runner.run(
+    'ssh',
+    sshArgs(paths, manifest, ctx.user, 'command -v codex >/dev/null 2>&1 || exit 127; codex login status'),
+    { timeoutMs: 30_000 },
+  );
+  if (result.code === 255 || result.timedOut)
+    return { ...base, status: 'warn', detail: `không SSH được vào sshd agent: ${firstLine(result.stderr)}` };
+  if (result.code === 127)
+    return {
+      ...base,
+      status: 'warn',
+      detail: 'Codex chưa cài trong PATH của sshd agent (bỏ qua nếu không dùng)',
+    };
+  if (result.code === 0)
+    return { ...base, status: 'ok', detail: 'đã đăng nhập (codex login status thoát 0)' };
+  return {
+    ...base,
+    status: 'warn',
+    detail: `codex login status thoát ${result.code}: chưa đăng nhập`,
+    hint: 'Trên màn hình Mac, mở Terminal, chạy "codex login" (bỏ qua nếu máy không chạy agent codex_local).',
+  };
+}
+
+async function checkOpencodeKey(ctx: MacContext): Promise<CheckResult> {
+  const base = { id: 'opencode-key', title: 'Key OpenCode Go trong Keychain' };
+  const state = await keychainKeyState(ctx);
+  if (state === true)
+    return { ...base, status: 'ok', detail: 'có key (service crew.opencode-go, account crew)' };
+  const hint =
+    'Trong Terminal trên màn hình Mac chạy "crew-mac runtimes key opencode" (bỏ qua nếu máy không chạy agent opencode_local).';
+  if (state === false) return { ...base, status: 'warn', detail: 'chưa có key', hint };
+  return { ...base, status: 'warn', detail: 'không đọc được Keychain (có thể đang khóa)', hint };
+}
+
 async function checkClaudePrint(
   ctx: MacContext,
   paths: MacPaths,
@@ -1063,6 +1175,10 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkWorktreeWorkflows(ctx, manifest));
   results.push(await checkCrewDocs(ctx, paths, manifest));
   results.push(await checkClaudeAuth(ctx, paths, manifest));
+  results.push(await checkCodexAuth(ctx, paths, manifest));
+  results.push(await checkRuntimeWrapper(ctx, paths, manifest, 'codex'));
+  results.push(await checkOpencodeKey(ctx));
+  results.push(await checkRuntimeWrapper(ctx, paths, manifest, 'opencode'));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));
   if (!options.skipTcc) results.push(await checkTccPending(ctx, options.tccWindow));
   results.push(await checkLoad(ctx));

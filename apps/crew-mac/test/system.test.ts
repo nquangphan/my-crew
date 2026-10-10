@@ -10,6 +10,13 @@ describe('createRunner', () => {
     expect(result).toEqual({ code: 3, stdout: 'ra', stderr: 'loi', timedOut: false });
   });
 
+  it('stdio inherit: process con dùng terminal của crew-mac, chỉ trả mã thoát', async () => {
+    const result = await createRunner().run(process.execPath, ['-e', 'process.exit(4)'], {
+      stdio: 'inherit',
+    });
+    expect(result).toEqual({ code: 4, stdout: '', stderr: '', timedOut: false });
+  });
+
   it('đưa input vào stdin', async () => {
     const result = await createRunner().run(
       process.execPath,

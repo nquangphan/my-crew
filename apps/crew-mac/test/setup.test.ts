@@ -16,9 +16,15 @@ import { configureStatus, readStatusConfig } from '../src/commands/status.js';
 import { SetupError } from '../src/context.js';
 import { readManifest } from '../src/manifest.js';
 import { macPaths, REAPER_LABEL, SSHD_LABEL, STATUS_LABEL } from '../src/paths.js';
+import { runtimePaths } from '../src/runtimes/paths.js';
 import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
 import { treeChecksum } from '../src/workflows/tree-checksum.js';
-import { WRAPPER_SOURCE } from '../src/wrapper.js';
+import {
+  CODEX_WRAPPER_SOURCE,
+  OPENCODE_WRAPPER_SOURCE,
+  RUN_MARK_SOURCE,
+  WRAPPER_SOURCE,
+} from '../src/wrapper.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY } from '../src/zshenv.js';
 import {
   APP_EXECUTABLE,
@@ -138,6 +144,26 @@ describe('crew-mac setup', () => {
       worktreeRoot: join(home, 'crew-agents'),
     });
     expect(runner.commands()).toContain(`launchctl bootstrap gui/501 ${paths.sshdPlist}`);
+  });
+
+  it('cài wrapper Codex/OpenCode, file hàm chung và superpowers-dir cho runtime', async () => {
+    const { home, ctx, runner } = fakeMac();
+    const report = await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    const rt = runtimePaths(home);
+    expect(readFileSync(rt.codexWrapper, 'utf8')).toBe(readFileSync(CODEX_WRAPPER_SOURCE, 'utf8'));
+    expect(readFileSync(rt.opencodeWrapper, 'utf8')).toBe(readFileSync(OPENCODE_WRAPPER_SOURCE, 'utf8'));
+    expect(readFileSync(rt.runMark, 'utf8')).toBe(readFileSync(RUN_MARK_SOURCE, 'utf8'));
+    expect(statSync(rt.codexWrapper).mode & 0o777).toBe(0o755);
+    expect(statSync(rt.opencodeWrapper).mode & 0o777).toBe(0o755);
+    expect(statSync(rt.runMark).mode & 0o777).toBe(0o644);
+    expect(readFileSync(rt.superpowersDirFile, 'utf8')).toBe(`${superpowersPinDir(home, FIXTURE_PIN)}\n`);
+    expect(statSync(rt.superpowersDirFile).mode & 0o777).toBe(0o600);
+    expect(statSync(rt.runtimesRoot).mode & 0o777).toBe(0o700);
+    expect(report.changed).toEqual(
+      expect.arrayContaining([rt.codexWrapper, rt.opencodeWrapper, rt.runMark, rt.superpowersDirFile]),
+    );
+    // Setup không bao giờ tạo file key hay chạm Keychain.
+    expect(runner.calls.some((c) => c.command === '/usr/bin/security')).toBe(false);
   });
 
   it('key Paperclip chỉ vào được từ dải Tailscale, không forwarding; thay dòng cũ không options', async () => {

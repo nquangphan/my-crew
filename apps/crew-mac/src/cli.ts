@@ -24,6 +24,8 @@ import { filesCommand } from './files/command.js';
 import { type Manifest, readManifest } from './manifest.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
+import { RUNTIMES_USAGE, runtimesCommand } from './runtimes/command.js';
+import { runtimePaths } from './runtimes/paths.js';
 import { resolveSshdOwner, type SshdOwner } from './sshd-owner.js';
 import { addTarget, listTargets } from './status/targets.js';
 import { gcWorkflowPins } from './workflows/workflow-gc.js';
@@ -55,6 +57,8 @@ Cách dùng:
   ${WORKFLOWS_USAGE}   (xem, cài riêng bản ghim workflow; không đụng sshd)
   ${BMAD_USAGE}
                  (agent BMAD và Trợ Lý gọi: đọc file epic/story, dựng _bmad cho repo dự án)
+  ${RUNTIMES_USAGE}
+                 (runtime Codex/OpenCode Go; "key opencode" chạy trong Terminal của owner, security hỏi key gõ ẩn)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -66,6 +70,8 @@ export interface CliIo {
   context?: Partial<MacContext>;
   /** Test hook: thay đọc stdin (mặc định đọc hết fd 0). */
   readStdin?: () => string;
+  /** Test hook: stdin có phải Terminal không (mặc định `process.stdin.isTTY`). */
+  stdinIsTTY?: boolean;
 }
 
 class UsageError extends Error {}
@@ -275,6 +281,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         io.out(
           `Agent BMAD (vai bmad): đặt adapterConfig.extraArgs = ${JSON.stringify(report.bmad.extraArgs)}`,
         );
+        io.out(`Agent codex_local: đặt adapterConfig.command = ${runtimePaths(ctx.home).codexWrapper}`);
+        io.out(`Agent opencode_local: đặt adapterConfig.command = ${runtimePaths(ctx.home).opencodeWrapper}`);
         io.out('Chạy "crew-mac doctor" để kiểm toàn bộ.');
         return 0;
       }
@@ -402,6 +410,11 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return await workflowsCommand(ctx, args, io.err);
       case 'bmad':
         return await bmadCommand(ctx, args, io.err);
+      case 'runtimes':
+        return await runtimesCommand(ctx, args, {
+          err: io.err,
+          stdinIsTTY: io.stdinIsTTY ?? process.stdin.isTTY === true,
+        });
       case 'files':
         return await filesCommand(ctx, args, io.env, { out: io.out, err: io.err });
       default:

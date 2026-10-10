@@ -13,6 +13,11 @@ export interface RunOptions {
   input?: string;
   /** Biến môi trường thêm vào môi trường hiện tại của process. */
   env?: Record<string, string>;
+  /**
+   * `inherit`: process con dùng thẳng stdin/stdout/stderr của crew-mac (lệnh tự hỏi trên Terminal của owner, vd.
+   * `security add-generic-password -w`); kết quả chỉ có mã thoát, `input` bị bỏ qua.
+   */
+  stdio?: 'inherit';
 }
 
 export interface CommandRunner {
@@ -23,8 +28,9 @@ export function createRunner(): CommandRunner {
   return {
     run(command, args, options = {}) {
       return new Promise((resolve) => {
+        const inherit = options.stdio === 'inherit';
         const child = spawn(command, [...args], {
-          stdio: ['pipe', 'pipe', 'pipe'],
+          stdio: inherit ? 'inherit' : ['pipe', 'pipe', 'pipe'],
           ...(options.env ? { env: { ...process.env, ...options.env } } : {}),
         });
         let stdout = '';
@@ -44,18 +50,18 @@ export function createRunner(): CommandRunner {
           if (timer) clearTimeout(timer);
           resolve(result);
         };
-        child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
+        child.stdout?.setEncoding('utf8').on('data', (chunk: string) => {
           stdout += chunk;
         });
-        child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
+        child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
           stderr += chunk;
         });
         child.on('error', (error) => finish({ code: 127, stdout, stderr: error.message, timedOut }));
         child.on('close', (code, signal) =>
           finish({ code: code ?? (signal === 'SIGKILL' ? 137 : 1), stdout, stderr, timedOut }),
         );
-        child.stdin.on('error', () => {});
-        child.stdin.end(options.input ?? '');
+        child.stdin?.on('error', () => {});
+        child.stdin?.end(options.input ?? '');
       });
     },
   };

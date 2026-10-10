@@ -35,6 +35,7 @@ docs trước khi đọc code.
 | [Phát hành và cập nhật app 2P Crew](flows/mac-app-update.md) | `mac-app-update` | `apps/mac-app/scripts/release.mjs`, `apps/mac-app/src/main/update/register.ts` |
 | [Đọc file đính kèm trên Mac (crew-mac files)](flows/mac-attachments.md) | `mac-attachments` | `apps/crew-mac/src/files/command.ts` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |
+| [Runtime Codex và OpenCode Go trên Mac (wrapper, key Keychain, crew-mac runtimes)](flows/mac-runtimes.md) | `mac-runtimes` | `apps/crew-mac/src/runtimes/command.ts` |
 | [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |
 | [Ghim Superpowers và BMAD, chặn nạp chéo trên Mac](flows/mac-workflows.md) | `mac-workflows` | `apps/crew-mac/src/workflows/install.ts`, `apps/crew-mac/src/commands/workflow-check.ts`, `apps/crew-mac/src/commands/workflows.ts`, `apps/crew-mac/src/commands/bmad.ts` |
 <!-- crew-docs:flows:end -->

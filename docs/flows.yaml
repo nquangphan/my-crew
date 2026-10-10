@@ -190,6 +190,22 @@ flows:
       - apps/crew-mac/test/stop-run.test.ts
       - apps/crew-mac/test/reaper-select.test.ts
       - apps/crew-mac/test/reaper-reap.test.ts
+  mac-runtimes:
+    title: Runtime Codex và OpenCode Go trên Mac (wrapper, key Keychain, crew-mac runtimes)
+    doc: docs/flows/mac-runtimes.md
+    entrypoints:
+      - apps/crew-mac/src/runtimes/command.ts
+    files:
+      - apps/crew-mac/src/runtimes/keychain.ts
+      - apps/crew-mac/src/runtimes/paths.ts
+      - apps/crew-mac/assets/crew-run-mark.sh
+      - apps/crew-mac/assets/crew-codex-run.sh
+      - apps/crew-mac/assets/crew-opencode-run.sh
+    tests:
+      - apps/crew-mac/test/crew-codex-run.test.ts
+      - apps/crew-mac/test/crew-opencode-run.test.ts
+      - apps/crew-mac/test/runtimes-keychain.test.ts
+      - apps/crew-mac/test/runtimes-command.test.ts
   mac-workflows:
     title: Ghim Superpowers và BMAD, chặn nạp chéo trên Mac
     doc: docs/flows/mac-workflows.md

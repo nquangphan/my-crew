@@ -26,6 +26,7 @@ import {
 import { setup } from '../src/commands/setup.js';
 import { workflowCheck } from '../src/commands/workflow-check.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
+import { runtimePaths } from '../src/runtimes/paths.js';
 import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
 import {
   APP_EXECUTABLE,
@@ -64,13 +65,21 @@ async function installed(
     .on('/usr/sbin/sysctl', (args) => ({
       stdout: args.includes('vm.loadavg') ? '{ 1.47 1.53 1.45 }\n' : '10\n',
     }))
-    .on('/usr/bin/memory_pressure', () => ({ stdout: 'System-wide memory free percentage: 55%\n' }));
+    .on('/usr/bin/memory_pressure', () => ({ stdout: 'System-wide memory free percentage: 55%\n' }))
+    // Keychain giả: có key OpenCode Go (không -w thì security chỉ in thuộc tính của mục).
+    .on('/usr/bin/security', (args) =>
+      args.includes('-w') ? { stdout: 'MOC-KEY-7Q4ZK-r24\n' } : { stdout: 'attrs\n' },
+    );
   return mac;
 }
 
-const okSsh = (remote: string) => {
+const okSsh = (remote: string): { code?: number; stdout?: string; stderr?: string; timedOut?: boolean } => {
   if (remote.includes('auth status')) return { stdout: AUTH_OK };
   if (remote.includes('crew-claude-run')) return { stdout: '2.1.289 (Claude Code)\n' };
+  if (remote.includes('crew-codex-run')) return { stdout: 'codex-cli 0.130.0\n' };
+  if (remote.includes('crew-opencode-run')) return { stdout: '1.18.35\n' };
+  // codex login status in câu trạng thái ra stderr.
+  if (remote.includes('codex login status')) return { stderr: 'Logged in using ChatGPT\n' };
   return { stdout: 'ok\n' };
 };
 
@@ -91,7 +100,7 @@ describe('doctor crew-docs', () => {
     const remotes: string[] = [];
     mac.runner.on('ssh', (args) => {
       const remote = args.at(-1) as string;
-      if (/crew-docs|BUNDLE=|--version/.test(remote) && !remote.includes('crew-claude-run')) {
+      if (/crew-docs|BUNDLE=|--version/.test(remote) && !/crew-(claude|codex|opencode)-run/.test(remote)) {
         remotes.push(remote);
         return crewDocsSsh(remote);
       }
@@ -353,7 +362,8 @@ describe('crew-mac doctor', () => {
   });
 
   it('máy đã cài và khỏe thì mọi check đạt', async () => {
-    const { ctx, runner } = await installed(okSsh);
+    const { ctx, runner, home } = await installed(okSsh);
+    writeFileSync(runtimePaths(home).opencodeInPlaceFile, '1\n');
     const results = await doctor(ctx, { probe: true, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.map((r) => [r.id, r.status])).toEqual([
       ['tailscale', 'ok'],
@@ -374,10 +384,18 @@ describe('crew-mac doctor', () => {
       ['worktree-workflows', 'ok'],
       ['crew-docs', 'ok'],
       ['claude-auth', 'ok'],
+      ['codex-auth', 'ok'],
+      ['wrapper-codex', 'ok'],
+      ['opencode-key', 'ok'],
+      ['wrapper-opencode', 'ok'],
       ['claude-print-git', 'ok'],
       ['tcc-pending', 'ok'],
       ['load', 'ok'],
     ]);
+    // Doctor chỉ hỏi Keychain có key hay không, không bao giờ đọc key.
+    const security = runner.calls.filter((c) => c.command === '/usr/bin/security');
+    expect(security.length).toBeGreaterThan(0);
+    expect(security.every((c) => !c.args.includes('-w'))).toBe(true);
     const log = runner.calls.find((c) => c.command === '/usr/bin/log');
     expect(log?.args).toEqual(['show', '--last', '24h', '--style', 'compact', '--predicate', TCC_PREDICATE]);
     const ssh = runner.calls.find((c) => c.command === 'ssh');
@@ -923,5 +941,80 @@ describe('doctor: chủ sshd agent và tcc-owner', () => {
     mac.runner.on('/usr/bin/log', () => ({ stdout: `Timestamp\n${line}\n` }));
     const tcc = (await doctor(mac.ctx, OPTIONS)).find((r) => r.id === 'tcc-pending');
     expect(tcc?.status).toBe('fail');
+  });
+});
+
+describe('doctor runtime Codex/OpenCode (chỉ warn, không làm doctor thất bại)', () => {
+  const OPTIONS = { probe: false, tccWindow: '24h', probeTimeoutSec: 90 };
+  const RUNTIME_IDS = ['codex-auth', 'wrapper-codex', 'opencode-key', 'wrapper-opencode'];
+  const pick = async (mac: Awaited<ReturnType<typeof installed>>) => {
+    const results = await doctor(mac.ctx, OPTIONS);
+    return Object.fromEntries(results.filter((r) => RUNTIME_IDS.includes(r.id)).map((r) => [r.id, r]));
+  };
+
+  it('máy chưa cài Codex/OpenCode và chưa có key: bốn mục warn kèm cách cài', async () => {
+    const mac = await installed((remote) =>
+      /codex|opencode/.test(remote) ? { code: 127, stderr: 'command not found' } : okSsh(remote),
+    );
+    mac.runner.on('/usr/bin/security', () => ({ code: 44 }));
+    const r = await pick(mac);
+    expect(Object.values(r).map((c) => c.status)).toEqual(['warn', 'warn', 'warn', 'warn']);
+    expect(r['codex-auth']?.detail).toContain('chưa cài');
+    expect(r['wrapper-codex']?.detail).toContain('chưa cài');
+    expect(r['wrapper-opencode']?.detail).toContain('chưa cài');
+    expect(r['opencode-key']?.hint).toContain('crew-mac runtimes key opencode');
+  });
+
+  it('wrapper thiếu file hoặc mất bit x thì warn, gợi ý chạy lại setup', async () => {
+    const mac = await installed(okSsh);
+    const rt = runtimePaths(mac.home);
+    rmSync(rt.codexWrapper);
+    chmodSync(rt.opencodeWrapper, 0o644);
+    const r = await pick(mac);
+    expect(r['wrapper-codex']?.status).toBe('warn');
+    expect(r['wrapper-codex']?.detail).toContain('thiếu');
+    expect(r['wrapper-codex']?.hint).toContain('crew-mac setup');
+    expect(r['wrapper-opencode']?.status).toBe('warn');
+    expect(r['wrapper-opencode']?.detail).toContain('quyền chạy');
+  });
+
+  it('wrapper chặn (78) thì warn kèm dòng blocked; Codex chưa đăng nhập thì warn kèm cách đăng nhập', async () => {
+    const mac = await installed((remote) => {
+      if (remote.includes('crew-codex-run'))
+        return { code: 78, stderr: 'crew-runtime blocked: Codex chưa đăng nhập trên máy\n' };
+      if (remote.includes('codex login status')) return { code: 1, stderr: 'Not logged in\n' };
+      return okSsh(remote);
+    });
+    writeFileSync(runtimePaths(mac.home).opencodeInPlaceFile, '1\n');
+    const r = await pick(mac);
+    expect(r['wrapper-codex']?.status).toBe('warn');
+    expect(r['wrapper-codex']?.detail).toContain('crew-runtime blocked: Codex chưa đăng nhập');
+    expect(r['codex-auth']?.status).toBe('warn');
+    expect(r['codex-auth']?.hint).toContain('codex login');
+    expect(r['wrapper-opencode']?.status).toBe('ok');
+  });
+
+  it('chưa có vá OpenCode chạy đúng worktree trên server thì wrapper-opencode warn', async () => {
+    const mac = await installed(okSsh);
+    const r = await pick(mac);
+    expect(r['wrapper-opencode']?.status).toBe('warn');
+    expect(r['wrapper-opencode']?.detail).toContain('opencode-in-place');
+  });
+
+  it('wrapper khác bản trong repo thì warn', async () => {
+    const mac = await installed(okSsh);
+    writeFileSync(runtimePaths(mac.home).opencodeInPlaceFile, '1\n');
+    writeFileSync(runtimePaths(mac.home).codexWrapper, '#!/bin/sh\nexec codex "$@"\n', { mode: 0o755 });
+    const r = await pick(mac);
+    expect(r['wrapper-codex']?.status).toBe('warn');
+    expect(r['wrapper-codex']?.detail).toContain('khác bản');
+  });
+
+  it('Keychain lỗi lạ (vd. đang khóa) thì opencode-key warn, không lộ đầu ra security', async () => {
+    const mac = await installed(okSsh);
+    mac.runner.on('/usr/bin/security', () => ({ code: 51, stdout: 'MOC-KEY-7Q4ZK-r24' }));
+    const r = await pick(mac);
+    expect(r['opencode-key']?.status).toBe('warn');
+    expect(JSON.stringify(r)).not.toContain('MOC-KEY');
   });
 });

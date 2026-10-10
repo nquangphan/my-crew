@@ -28,6 +28,10 @@ describe('@crew/mac thư viện', () => {
       'forbiddenRootReason',
       'createMacContext',
       'workflowCheck',
+      'runtimesCommand',
+      'runtimesStatus',
+      'keychainHasKey',
+      'runtimePaths',
       'SetupError',
     ]) {
       expect(typeof (lib as Record<string, unknown>)[name], name).toBe('function');

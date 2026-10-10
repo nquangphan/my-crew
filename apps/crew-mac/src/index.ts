@@ -34,6 +34,22 @@ export { type Manifest, readManifest } from './manifest.js';
 export { DEFAULT_PORT, forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL } from './paths.js';
 export { listProcesses, type ProcInfo, readCwds } from './reaper/process-table.js';
 export { isClaudePrint } from './reaper/select.js';
+export {
+  AGENT_SHELL,
+  RUNTIMES_USAGE,
+  type RuntimesStatus,
+  runtimesCommand,
+  runtimesStatus,
+  skillsChecksum,
+} from './runtimes/command.js';
+export {
+  KEYCHAIN_ACCOUNT,
+  KEYCHAIN_SERVICE,
+  keychainHasKey,
+  keychainKeyFingerprint,
+  keychainKeyState,
+} from './runtimes/keychain.js';
+export { type RuntimePaths, runtimePaths } from './runtimes/paths.js';
 export { isCrewListener, readSshdPid, type SshdOwner } from './sshd-owner.js';
 export { type AppReport, type JobsAgentReport, readAppState, readJobsAgent } from './status/app-state.js';
 export { type CheckoutInfo, scanCheckouts } from './status/checkouts.js';
