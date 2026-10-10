@@ -83,6 +83,48 @@ describe('buildRuntimesReport', () => {
     expect(r.codex).toMatchObject({ version: 'codex-cli 0.161.0', loggedIn: true });
   });
 
+  it('cộng thêm chi phí OpenCode của từng thư mục dữ liệu agent dưới ~/.crew/runtimes/opencode', async () => {
+    const ONE = [' opencode-go/kimi-k3', '  Cost   $1.5000'].join('\n');
+    const mac = fakeMac();
+    const root = join(mac.home, '.crew', 'runtimes', 'opencode');
+    for (const id of ['a1', 'b2']) mkdirSync(join(root, id, 'data', 'opencode'), { recursive: true });
+    mkdirSync(join(root, 'chua-chay', 'data'), { recursive: true });
+    mkdirSync(join(root, "x'y", 'data', 'opencode'), { recursive: true });
+    const agentCmd = (id: string, days: number) =>
+      `XDG_DATA_HOME='${join(root, id, 'data')}' opencode stats --days ${days} --models`;
+    const answers: Answers = { ...HEALTHY };
+    for (const days of [1, 7, 30]) {
+      answers[agentCmd('a1', days)] = { stdout: ONE };
+      answers[agentCmd('b2', days)] = { code: 1, stderr: 'loi' };
+    }
+    mac.runner
+      .on(AGENT_SHELL, (args) => answers[args.at(-1) as string] ?? { code: 127, stderr: 'command not found' })
+      .on(SECURITY_BIN, () => ({ code: 0 }));
+    const r = await buildRuntimesReport(mac.ctx);
+    expect(r.opencode.costDay).toBeCloseTo(2.9309 + 1.5, 6);
+    expect(r.opencode.costMonth).toBeCloseTo(2.9309 + 1.5, 6);
+    const stats = mac.runner.calls
+      .filter((c) => c.command === AGENT_SHELL)
+      .map((c) => c.args.at(-1) as string)
+      .filter((c) => c.includes('opencode stats'));
+    expect(stats.filter((c) => c.endsWith('--days 1 --models')).sort()).toEqual(
+      ['opencode stats --days 1 --models', agentCmd('a1', 1), agentCmd('b2', 1)].sort(),
+    );
+    expect(stats.some((c) => c.includes('chua-chay') || c.includes("x'y"))).toBe(false);
+  });
+
+  it('chỉ đọc tối đa 8 thư mục agent OpenCode mới dùng gần nhất', async () => {
+    const mac = machine(HEALTHY);
+    const root = join(mac.home, '.crew', 'runtimes', 'opencode');
+    for (let i = 0; i < 12; i++) mkdirSync(join(root, `agent-${i}`, 'data', 'opencode'), { recursive: true });
+    await buildRuntimesReport(mac.ctx);
+    const agentDay = mac.runner.calls
+      .filter((c) => c.command === AGENT_SHELL)
+      .map((c) => c.args.at(-1) as string)
+      .filter((c) => c.startsWith('XDG_DATA_HOME=') && c.endsWith('--days 1 --models'));
+    expect(agentDay).toHaveLength(8);
+  });
+
   it('model list chỉ id opencode-go hợp lệ, tối đa 60', async () => {
     const lines = [
       ...Array.from({ length: 70 }, (_, i) => `opencode-go/model-${i}`),

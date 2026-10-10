@@ -33,6 +33,8 @@ const FILES_PER_ROOT = 30;
 const FILES_READ = 10;
 const TAIL_BYTES = 512 * 1024;
 const MODEL_ID = /^opencode-go\/[a-z0-9._-]+$/;
+/** Số thư mục dữ liệu agent OpenCode tối đa mà bản tin đọc thống kê (mỗi thư mục 3 lệnh, mỗi lệnh 10 giây). */
+const MAX_OPENCODE_DATA_DIRS = 8;
 
 async function shell(ctx: MacContext, command: string) {
   try {
@@ -75,9 +77,52 @@ export function parseOpencodeCost(output: string): number | null {
   return seen && total >= 0 && total <= MAX_COST ? total : null;
 }
 
-async function opencodeCost(ctx: MacContext, days: number): Promise<number | null> {
-  const result = await shell(ctx, `opencode stats --days ${days} --models`);
-  return result.code === 0 ? parseOpencodeCost(result.stdout) : null;
+/** Nhãn thư mục agent mà wrapper tạo (`PAPERCLIP_AGENT_ID` dạng uuid hoặc `shared`); tên khác bị bỏ qua. */
+const OPENCODE_SLOT = /^[A-Za-z0-9._-]+$/;
+
+function shQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Thư mục `XDG_DATA_HOME` mà `crew-opencode-run` cấp cho từng agent (`~/.crew/runtimes/opencode/<agent>/data`). Chỉ lấy
+ * thư mục đã có dữ liệu OpenCode, mới dùng gần nhất trước, tối đa `MAX_OPENCODE_DATA_DIRS` để số lệnh có giới hạn.
+ */
+export function opencodeAgentDataDirs(home: string): string[] {
+  const root = join(runtimePaths(home).runtimesRoot, 'opencode');
+  const found: { dir: string; mtime: number }[] = [];
+  for (const entry of readDirs(root)) {
+    if (!entry.isDirectory() || !OPENCODE_SLOT.test(entry.name)) continue;
+    const dir = join(root, entry.name, 'data');
+    try {
+      found.push({ dir, mtime: statSync(join(dir, 'opencode')).mtimeMs });
+    } catch {
+      /* agent chưa chạy OpenCode lần nào */
+    }
+  }
+  return found
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, MAX_OPENCODE_DATA_DIRS)
+    .map((f) => f.dir);
+}
+
+/**
+ * Tổng chi phí OpenCode Go trong `days` ngày: thư mục dữ liệu mặc định của owner cộng thư mục riêng của từng agent
+ * (wrapper đặt `XDG_DATA_HOME` riêng nên `opencode stats` mặc định không thấy run của agent). Nơi nào lỗi hoặc chưa có
+ * số thì bỏ qua; null khi không nơi nào có số.
+ */
+async function opencodeCost(ctx: MacContext, days: number, dataDirs: string[]): Promise<number | null> {
+  const command = `opencode stats --days ${days} --models`;
+  const results = await Promise.all([
+    shell(ctx, command),
+    ...dataDirs.map((dir) => shell(ctx, `XDG_DATA_HOME=${shQuote(dir)} ${command}`)),
+  ]);
+  const costs = results
+    .map((r) => (r.code === 0 ? parseOpencodeCost(r.stdout) : null))
+    .filter((c): c is number => c !== null);
+  if (costs.length === 0) return null;
+  const total = costs.reduce((a, b) => a + b, 0);
+  return total <= MAX_COST ? total : null;
 }
 
 export function parseOpencodeModels(output: string): string[] {
@@ -204,11 +249,12 @@ export async function buildRuntimesReport(ctx: MacContext): Promise<RuntimesRepo
     safe(cliVersion(ctx, 'opencode', COMMAND_TIMEOUT_MS), null),
     safe(keychainKeyState(ctx), null),
   ]);
+  const dataDirs = opencodeVersion === null ? [] : opencodeAgentDataDirs(ctx.home);
   const [loggedIn, costDay, costWeek, costMonth, modelsOut] = await Promise.all([
     codexVersion === null ? null : safe(codexLoggedIn(ctx, COMMAND_TIMEOUT_MS), null),
-    opencodeVersion === null ? null : opencodeCost(ctx, 1),
-    opencodeVersion === null ? null : opencodeCost(ctx, 7),
-    opencodeVersion === null ? null : opencodeCost(ctx, 30),
+    opencodeVersion === null ? null : opencodeCost(ctx, 1, dataDirs),
+    opencodeVersion === null ? null : opencodeCost(ctx, 7, dataDirs),
+    opencodeVersion === null ? null : opencodeCost(ctx, 30, dataDirs),
     opencodeVersion === null ? null : shell(ctx, 'opencode models opencode-go'),
   ]);
   const quota = readCodexQuota(ctx.home, ctx.now());

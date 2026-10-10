@@ -41,6 +41,19 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
      (`copyBackCodexAuth`) đọc file đó qua SSH lúc trả lease, sau khi codex đã thoát; thiếu file thì lỗi SSH bị ném và
      run thành công bị đánh failed, còn `{}` thì server giữ nguyên `auth.json` của nó. Asset đã có `auth.json` thì để
      nguyên; không tạo được thì thoát 78;
+   - đối chiếu `auth.json` của agent trước khi tạo lại symlink. Codex refresh token bằng cách ghi file tạm rồi rename,
+     nên symlink có thể đã thành **file thường** chứa refresh token mới (đã xoay, bản ở `~/.codex/auth.json` bị thu
+     hồi). Wrapper không bao giờ in nội dung, và không đè file đó mù quáng:
+     - là symlink: tạo lại như thường;
+     - file thường, nội dung giống `~/.codex/auth.json` (`cmp -s`): tạo lại symlink;
+     - file của agent mới hơn (`-nt`, mtime): chỉ khi `~/.codex/auth.json` là file thường (không phải symlink) và file
+       của agent có `"tokens"` hoặc `"OPENAI_API_KEY"` (`grep -q`), chép về `~/.codex/.auth.json.crew-<pid>`, `chmod 600`,
+       `mv -f` đè `~/.codex/auth.json` (rename nguyên tử cùng thư mục), rồi tạo lại symlink;
+     - `~/.codex/auth.json` mới hơn (owner đăng nhập lại sau đó): bản của agent đã cũ, tạo lại symlink;
+     - còn lại (cùng mtime mà khác nội dung, nội dung không giống thông tin đăng nhập, `~/.codex/auth.json` không phải
+       file thường, ghi về thất bại, hay `auth.json` của agent là thư mục…): **chặn** run, không đụng file nào.
+     Chọn chặn thay vì đoán vì đè sai hướng làm mất refresh token còn hiệu lực duy nhất, khiến cả agent lẫn Codex
+     desktop của owner phải đăng nhập lại; câu chặn mở đầu `Codex chưa đăng nhập` nên plugin xếp vào nhóm `auth`;
    - session của run ghi vào `~/.crew/runtimes/codex/<agentId>/sessions`;
    - executor và reviewer Codex dùng cùng wrapper, khác thư mục vì khác `agentId`.
 3. `apps/crew-mac/assets/crew-opencode-run.sh`:
@@ -114,8 +127,12 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
      (`resets_at` ≤ bây giờ) hoặc số ngoài khoảng thì cả hai là `null`, vì số cũ không còn đúng. Không bao giờ mở
      `auth.json`;
    - chi phí OpenCode: `opencode stats --days 1|7|30 --models`, `Cost $x` cộng cho mọi model `opencode-go/*` (dòng
-     `Cost` chỉ tính khi đứng sau dòng tên model; model provider khác và phần tổng quan bị bỏ). Lệnh lỗi (vd. chưa có
-     key) thì số đó `null`, không kèm đầu ra lỗi;
+     `Cost` chỉ tính khi đứng sau dòng tên model; model provider khác và phần tổng quan bị bỏ). Wrapper cho mỗi agent
+     `XDG_DATA_HOME` riêng nên mỗi khoảng ngày chạy lệnh ở thư mục mặc định của owner **và** một lệnh
+     `XDG_DATA_HOME='<…>/opencode/<agent>/data' opencode stats …` cho từng thư mục agent (`opencodeAgentDataDirs`: tên
+     `[A-Za-z0-9._-]+`, đã có `data/opencode`, mới dùng gần nhất trước theo mtime, tối đa 8), rồi cộng lại. Nơi lỗi
+     hoặc chưa có số bị bỏ qua; không nơi nào có số (vd. chưa có key) thì `null`, không kèm đầu ra lỗi; tổng quá
+     100000 cũng `null`;
    - `models`: `opencode models opencode-go`, giữ dòng `^opencode-go/[a-z0-9._-]+$` dài ≤ 120, bỏ trùng, tối đa 60.
      Body bản tin vẫn ≤ `MACHINE_REPORT_MAX_BYTES` (64 KiB) khi đủ 60 id dài 120 ký tự (có test).
 
@@ -126,6 +143,7 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
 | `crew-runtime blocked: thiếu PAPERCLIP_AGENT_ID (cần UUID của agent)` | Trong run mà `PAPERCLIP_AGENT_ID` không phải UUID |
 | `crew-workflow blocked: crew-mac workflow-check từ chối run này (xem các dòng trên)` | `workflow-check --runtime` từ chối |
 | `crew-runtime blocked: Codex chưa đăng nhập trên máy (chạy "codex login" trong phiên desktop)` | Thiếu `~/.codex/auth.json` |
+| `crew-runtime blocked: Codex chưa đăng nhập đồng bộ: <…>/auth.json đã thành file riêng (<lý do>); owner so với ~/.codex/auth.json, giữ bản đúng rồi xoá <…>/auth.json, hoặc chạy "codex login"` | `auth.json` của agent là file thường/thư mục mà không đối chiếu an toàn được (bước 2) |
 | `crew-runtime blocked: không tạo được auth.json rỗng trong CODEX_HOME của adapter (<asset>)` | Asset của adapter không ghi được |
 | `crew-runtime blocked: thiếu key OpenCode Go trong Keychain (service crew.opencode-go); owner chạy "crew-mac runtimes key opencode" trong Terminal của Mac` | Keychain không trả key |
 
@@ -139,13 +157,15 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 - `~/.crew/runtimes/` (0700): `superpowers-dir` (0600, `setup` ghi), `opencode-in-place` (deploy ghi),
   `codex/<agentId|shared>/` (CODEX_HOME), `opencode/<agentId|shared>/{data,state,cache,config}`.
 - `crew-mac uninstall` gỡ hai wrapper, `crew-run-mark.sh` và cả `~/.crew/runtimes/`; không đụng `~/.codex` (symlink
-  `auth.json` bị xóa, file đích giữ nguyên) hay Keychain.
+  `auth.json` bị xóa, file đích giữ nguyên) hay Keychain. Uninstall không đối chiếu như wrapper: nếu `auth.json` của
+  agent đang là file thường (refresh sau run cuối) thì bản đó mất cùng thư mục.
 - Biến chỉ cho test: `CREW_CODEX_BIN`, `CREW_OPENCODE_BIN`, `CREW_SECURITY_BIN`, `CREW_MAC_BIN`.
 
 ## Ranh giới credential
 
-- `~/.codex/auth.json` chỉ được symlink, không chép, không đọc nội dung; asset của adapter chỉ có `auth.json` rỗng
-  `{}` (không bí mật) do wrapper tạo.
+- `~/.codex/auth.json` chỉ được symlink; ngoại lệ duy nhất là bước đối chiếu của `crew-codex-run` (bước 2): so
+  `cmp -s`, `grep -q` và chép ngược bản mới hơn của agent bằng file tạm 0600 + rename trong `~/.codex`. Không lệnh
+  nào in nội dung. Asset của adapter chỉ có `auth.json` rỗng `{}` (không bí mật) do wrapper tạo.
 - Key OpenCode Go chỉ có trong Keychain và trong env của process opencode. Không vào argv, file, stdout, stderr, bản
   tin máy hay kết quả việc máy. crew-mac chỉ đọc key để tính fingerprint.
 - Không có đường nạp key từ web hay qua hàng đợi việc máy.
@@ -162,8 +182,10 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 - `opencode run --print-logs` đưa dòng lỗi quota/auth ra stderr như đọc mã.
 - `codex login status` thoát 0 khi đã đăng nhập, kể cả khi chạy qua sshd agent.
 - Codex refresh token ghi qua symlink `auth.json`: đo một run thì `auth.json` vẫn là symlink sau run, nhưng chưa thấy
-  lần refresh nào; nếu Codex thay file bằng rename khi refresh thì bản mới nằm trong
-  `~/.crew/runtimes/codex/<agentId>/auth.json` và lần chạy sau bị symlink đè, cần kiểm sau một lần refresh.
+  lần refresh nào. Nếu Codex thay file bằng rename khi refresh, bước đối chiếu của wrapper (bước 2) đưa bản mới về
+  `~/.codex/auth.json` ở run sau; cần kiểm sau một lần refresh thật (`test -L` sau run) rằng mtime của file Codex ghi
+  phản ánh lúc refresh.
+- `opencode stats` với `XDG_DATA_HOME` của agent đọc đúng dữ liệu run của agent (đọc mã; chưa chạy trên máy có key).
 
 ## Flow liên quan
 
@@ -178,7 +200,10 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
   `config.toml` 0600, thư mục 0700, `sessions/` giữ qua lần chạy sau), asset chỉ thêm `auth.json` `{}` 0600 và giữ
   sau khi thoát (cả ngoài run), asset có sẵn `auth.json` thì để nguyên, không ghi được asset thì 78, argv giữ nguyên,
   `workflow-check --runtime codex_local` (thấy `CREW_SUPERPOWERS_DIR` từ file setup), `CREW_SUPERPOWERS_DIR`, thiếu đăng nhập, agent id sai, workflow-check từ
-  chối (đều 78, không chạy codex), ngoài run dùng `shared` và không ghi marker.
+  chối (đều 78, không chạy codex), ngoài run dùng `shared` và không ghi marker. `auth.json` của agent thành file
+  thường (HOME giả, token giả): bản agent mới hơn được chép về `~/.codex/auth.json` 0600 không để lại file tạm và
+  không in mốc token; owner mới hơn hoặc nội dung giống thì chỉ khôi phục symlink; cùng mtime, nội dung lạ,
+  `~/.codex/auth.json` là symlink, hay `auth.json` là thư mục thì 78 và không đụng file nào.
 - `apps/crew-mac/test/crew-opencode-run.test.ts`: chuỗi mốc key chỉ có trong env của opencode (không argv, stdout,
   stderr, file dưới `~/.crew` hay worktree), security gọi đúng service/account, `OPENCODE_CONFIG_CONTENT`,
   `--print-logs` cho `run`, XDG riêng theo agent và giữ `XDG_CONFIG_HOME` của adapter, thiếu key thì 78 với câu cố
@@ -188,6 +213,9 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
   chặn, thư mục con không xét, không phải repo git; `workflowCheckRuntime` sạch (dòng ok, dấu worktree), lệch checksum
   (`pin-mismatch`), thiếu biến/thư mục (`pin-missing`), gộp mọi lý do; CLI 0/78/2 (runtime lạ, `claude_local`,
   `--root` tương đối, đi cùng `--plugin-dir`).
+- `apps/crew-mac/test/status-runtimes.test.ts`: chi phí OpenCode cộng thư mục owner với từng thư mục dữ liệu agent
+  (bỏ thư mục chưa có `data/opencode`, tên lạ, lệnh lỗi), tối đa 8 thư mục agent; cùng các ca quota Codex, model,
+  timeout 10 giây, không đọc key.
 - `apps/crew-mac/test/runtimes-keychain.test.ts`: kiểm có key không dùng `-w`, mã 44/lạ, fingerprint 12 hex, lỗi
   không kèm đầu ra security.
 - `apps/crew-mac/test/runtimes-command.test.ts`: `key opencode` (argv kết thúc bằng `-w`, `stdio: 'inherit'`, không

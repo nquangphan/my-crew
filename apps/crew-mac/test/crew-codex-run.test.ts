@@ -10,6 +10,7 @@ import {
   readlinkSync,
   rmSync,
   statSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -192,5 +193,103 @@ describe('crew-codex-run', () => {
     );
     expect(existsSync(join(t.root, '.paperclip-runtime'))).toBe(false);
     expect(existsSync(t.crewMacArgs)).toBe(false);
+  });
+  describe('auth.json của agent đã bị Codex thay bằng file thường (refresh token ghi tạm rồi rename)', () => {
+    const TOKEN = '{"tokens":{"refresh_token":"MOC-BI-MAT-MOI"},"last_refresh":"2026-10-10T07:00:00Z"}';
+    function agentFile(t: T, content: string, agentAge: number, ownerAge: number) {
+      const home = join(t.home, '.crew', 'runtimes', 'codex', AGENT);
+      mkdirSync(home, { recursive: true });
+      const f = join(home, 'auth.json');
+      writeFileSync(f, content, { mode: 0o600 });
+      const now = Date.now() / 1000;
+      utimesSync(f, now - agentAge, now - agentAge);
+      const owner = join(t.home, '.codex', 'auth.json');
+      utimesSync(owner, now - ownerAge, now - ownerAge);
+      return { home, f, owner };
+    }
+    function noTempLeft(t: T) {
+      expect(readdirSync(join(t.home, '.codex'))).toEqual(['auth.json']);
+    }
+
+    it('file của agent mới hơn thì đồng bộ ngược về ~/.codex/auth.json (0600, nguyên tử) rồi khôi phục symlink', () => {
+      const t = setup();
+      const p = agentFile(t, TOKEN, 10, 3600);
+      const r = run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });
+      expect(r.code).toBe(0);
+      expect(readFileSync(p.owner, 'utf8')).toBe(TOKEN);
+      expect(lstatSync(p.owner).isFile()).toBe(true);
+      expect(statSync(p.owner).mode & 0o777).toBe(0o600);
+      expect(readlinkSync(p.f)).toBe(p.owner);
+      expect(r.stderr).not.toContain('MOC-BI-MAT');
+      expect(readFileSync(t.seen, 'utf8')).not.toContain('MOC-BI-MAT');
+      noTempLeft(t);
+    });
+
+    it('~/.codex/auth.json mới hơn (owner đăng nhập lại) thì bỏ bản cũ của agent, khôi phục symlink', () => {
+      const t = setup();
+      const p = agentFile(t, TOKEN, 3600, 10);
+      expect(run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT }).code).toBe(0);
+      expect(readFileSync(p.owner, 'utf8')).toBe('{"x":1}');
+      expect(readlinkSync(p.f)).toBe(p.owner);
+      noTempLeft(t);
+    });
+
+    it('nội dung giống nhau thì chỉ khôi phục symlink', () => {
+      const t = setup();
+      const p = agentFile(t, '{"x":1}', 10, 10);
+      expect(run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT }).code).toBe(0);
+      expect(readFileSync(p.owner, 'utf8')).toBe('{"x":1}');
+      expect(readlinkSync(p.f)).toBe(p.owner);
+    });
+
+    it('không xác định được bản nào mới hơn thì chặn run, không đụng hai file', () => {
+      const t = setup();
+      const p = agentFile(t, TOKEN, 10, 10);
+      const r = run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });
+      expect(r.code).toBe(78);
+      expect(r.stderr).toMatch(/^crew-runtime blocked: Codex chưa đăng nhập đồng bộ/m);
+      expect(r.stderr).not.toContain('MOC-BI-MAT');
+      expect(lstatSync(p.f).isFile()).toBe(true);
+      expect(readFileSync(p.f, 'utf8')).toBe(TOKEN);
+      expect(readFileSync(p.owner, 'utf8')).toBe('{"x":1}');
+      expect(existsSync(t.seen)).toBe(false);
+      noTempLeft(t);
+    });
+
+    it('file của agent mới hơn nhưng không giống thông tin đăng nhập thì chặn, không đè ~/.codex/auth.json', () => {
+      const t = setup();
+      const p = agentFile(t, '{}', 10, 3600);
+      const r = run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });
+      expect(r.code).toBe(78);
+      expect(r.stderr).toMatch(/^crew-runtime blocked: Codex chưa đăng nhập đồng bộ/m);
+      expect(readFileSync(p.owner, 'utf8')).toBe('{"x":1}');
+      expect(readFileSync(p.f, 'utf8')).toBe('{}');
+      expect(existsSync(t.seen)).toBe(false);
+    });
+
+    it('~/.codex/auth.json là symlink thì không đồng bộ ngược mà chặn', () => {
+      const t = setup();
+      const real = join(t.home, 'real-auth.json');
+      writeFileSync(real, '{"x":1}', { mode: 0o600 });
+      rmSync(join(t.home, '.codex', 'auth.json'));
+      execFileSync('/bin/ln', ['-s', real, join(t.home, '.codex', 'auth.json')]);
+      const home = join(t.home, '.crew', 'runtimes', 'codex', AGENT);
+      mkdirSync(home, { recursive: true });
+      writeFileSync(join(home, 'auth.json'), TOKEN, { mode: 0o600 });
+      const now = Date.now() / 1000;
+      utimesSync(real, now - 3600, now - 3600);
+      const r = run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });
+      expect(r.code).toBe(78);
+      expect(readFileSync(real, 'utf8')).toBe('{"x":1}');
+      expect(lstatSync(join(t.home, '.codex', 'auth.json')).isSymbolicLink()).toBe(true);
+    });
+
+    it('auth.json của agent là thư mục thì chặn', () => {
+      const t = setup();
+      mkdirSync(join(t.home, '.crew', 'runtimes', 'codex', AGENT, 'auth.json'), { recursive: true });
+      const r = run(t, { PAPERCLIP_RUN_ID: RUN, PAPERCLIP_AGENT_ID: AGENT });
+      expect(r.code).toBe(78);
+      expect(existsSync(t.seen)).toBe(false);
+    });
   });
 });
