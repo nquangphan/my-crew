@@ -573,3 +573,5 @@ Owner vắng tới sáng 10/10 và dặn chạy liên tục, không hỏi. Cả 
 | Q8 | Token Paperclip, đổi tên/logo 2P | DS-1 `tokens.css`, `src/ds/brand/**` |
 
 Trợ Lý còn tự chốt các ý ở spec §5 (gõ folder thay cho danh sách repo, readiness tính ở web, company lấy từ cấu hình plugin, bản tin nhiều đích, stub, grant `tasks:assign`). Owner bác ý nào thì sửa ticket tương ứng ở dòng Self-review "Phủ spec §5".
+
+> **Đính chính I9/I10 (Trợ Lý, 10/10, theo WZ-1 đối chiếu prod):** (1) `command` là đường tuyệt đối `<home>/.crew/bin/crew-claude-run` (không dùng `~`; web suy home từ `superpowers.pinDir`); (2) `maxConcurrentRuns` nằm trong `runtimeConfig.heartbeat`; (3) `permissions` là trường gốc, gửi rõ `canCreateAgents:false, canCreateSkills:false` (schema mặc định `canCreateSkills=true`); (4) không gửi `role` (enum Paperclip, không phải vai trò Crew); (5) `renderInstructions(role, {agentId, executorIds, bmadIds})` — Trợ Lý render sau khi đã tạo agent.

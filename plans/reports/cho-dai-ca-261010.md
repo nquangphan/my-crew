@@ -60,3 +60,22 @@ Trợ Lý gom mọi câu hỏi và việc cần owner trong lúc chạy liên t�
 - R2-5 AC4: cạnh ticket→flow trong đồ thị docs chưa có dữ liệu thật (2 ticket của 2ps-landing chỉ sửa file không thuộc flow); đã có test, sẽ kiểm trên run thật kế tiếp. AC8: Trợ Lý cho sửa panel Usage hiện ở giao diện issue mặc định.
 - Tên tag cuối R2 (đang có tag cục bộ crew/v3.2-rc1, v3.3-rc1, v3.4-rc1 cho R2-2/R2-3/R2-5). Trợ Lý đề xuất: chốt một tag `crew/v3.1` khi xong cả R2 (gồm R2-4), xóa các rc cục bộ.
 - Tài liệu BMAD thử (PRD/kiến trúc/epic/story) nằm ở nhánh `crew/TPS-82` của repo thử `repo-a`, chưa push. Trợ Lý đề xuất để nguyên (repo thử), không gộp.
+
+## R3 bảo mật — cần Đại Ca duyệt sửa LÕI Paperclip (SEC-1, `plans/261010-0020-crew-v3-r3/reports/sec-1-routes.md`)
+Agent (token của agent cùng company) hiện làm được những việc sau mà không hook nào chặn. Muốn chặn tận gốc phải sửa lõi (ngoài 5 hook đã duyệt). Trong lúc chờ, SEC-2 sẽ làm biện pháp tạm không đụng lõi (plugin tự pause agent lạ, cấu hình quyền/skill policy qua REST, mở rộng thân H2/H4/H5).
+- **D5 (nặng nhất):** `POST /companies/:id/onboarding-seed` chỉ kiểm cùng company → agent bất kỳ tạo được agent role `ceo` cùng goal/project/issue. Đề xuất: thêm một dòng `assertBoard` ở `onboarding-seed.ts:41`.
+- **D6:** agent tạo/sửa/archive/xóa được project và workspace (kể cả qua MCP `create_project`).
+- **D7:** `DELETE /issues/:id` và `POST /issues/:id/checkout` đi vòng H2 → agent xóa hoặc giành issue đang chờ Đại Ca duyệt.
+- **D12:** agent sửa được execution workspace của agent khác.
+- Hai chỗ spec R3 sai đã được SEC-1 sửa lại: tắt `canCreateAgents` KHÔNG làm Trợ Lý mất quyền giao việc; `canCreateSkills` không được kiểm ở đâu (phải dùng skill policy deny).
+Câu hỏi: Đại Ca có duyệt vá lõi cho D5/D6/D7/D12 (mỗi cái vài dòng `assertBoard`/kiểm actor, theo dõi như adapter-patch) không?
+- OP-2 (company Crew E2E trên prod) tự quyết 3 điểm, Đại Ca có thể bác: (1) thêm 2 agent giữ chỗ `crew-e2e-reviewer`/`crew-e2e-integrator` (không chạy run) vì policy bắt buộc có; (2) prefix là `CRE` (server tự sinh); (3) giá trị webhook secret bản tin của Crew E2E lưu ở file 600 trong thư mục 700 trên VPS để lúc deploy nạp vào Mac (Paperclip không cho đọc lại secret). Đề xuất: xóa file đó sau DP-2 của R3.
+- SEC-2 (đã code, chưa deploy): tắt quyền tạo agent/skill cho mọi agent; chặn agent sửa agent/AGENTS.md/skill; agent chỉ giao việc cho chính mình hoặc executor (Trợ Lý giao được cho mọi agent trừ reviewer/integrator); plugin tự pause agent lạ và agent tạo/sửa project. Áp lên prod ở lúc deploy R3. Đại Ca bác luật giao việc nào thì nói.
+- RV-1 R3: Đạt có điều kiện (0 Blocker, 9 Major, 39 Minor; full suite hai repo xanh). Đang sửa theo 8 gói FX. Trợ Lý vẫn deploy R3 dù D5/D6/D7/D12 chưa vá lõi, vì các lỗ này đã có sẵn trên prod hiện tại; R3 (SEC-2) chỉ thu hẹp chúng. Đại Ca duyệt vá lõi thì em làm ngay sau.
+- **Vá lõi đề xuất (DBG-P1, `plans/261010-0020-crew-v3-r3/reports/dbg-p1-scope-denied.md`):** host Paperclip gửi sự kiện cho plugin bằng `notify`, giữ "invocation" 15 phút; trong lúc đó plugin gọi host không kèm company bị từ chối. Prod hiện tại đã dính nhẹ (job kiểm đính kèm hỏng ~15' sau mỗi lần hủy run). R3 né bằng cách luôn gọi kèm company (đang sửa). Vá gốc: đổi `notify` → `call` cho `onEvent` (vài dòng ở `plugin-worker-manager.ts`) và báo upstream. Đại Ca có duyệt vá lõi này không?
+
+## Đại Ca đã chốt (10/10 07:06)
+- Vá lõi D5, D6, D7, D12: VÁ CẢ 4.
+- Vá lõi notify → call cho sự kiện plugin: VÁ và báo upstream.
+- R2-4: duyệt cả P5, P6, P7.
+- Push R3 ngay.
