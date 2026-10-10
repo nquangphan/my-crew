@@ -46,3 +46,46 @@ crew_superpowers_dir() {
     export CREW_SUPERPOWERS_DIR
   fi
 }
+
+# crew_codex_auth_reconcile <agent auth.json> <owner auth.json>: the one rule for an agent's auth.json that is no longer
+# a symlink (Codex rotates tokens by rename-over). Used by crew-codex-run and by `crew-mac uninstall`; never prints the
+# token. Returns 0 when it is safe to drop/replace the agent copy (symlink or missing, same content, owner strictly
+# newer, or the agent copy was copied back to the owner atomically: temp 0600 + rename). Returns 1 and sets $auth_reason
+# when unsure (same mtime, unrecognised content, owner not a regular file, copy-back failed): neither file is touched.
+crew_codex_auth_reconcile() {
+  mine=$1
+  owner=$2
+  auth_reason=
+  if [ -L "$mine" ]; then
+    return 0
+  elif [ -f "$mine" ]; then
+    if cmp -s "$mine" "$owner"; then
+      return 0
+    elif [ "$mine" -nt "$owner" ]; then
+      if ! { [ -f "$owner" ] && [ ! -L "$owner" ]; }; then
+        auth_reason="~/.codex/auth.json không phải file thường"
+        return 1
+      fi
+      if ! grep -q -e '"tokens"' -e '"OPENAI_API_KEY"' "$mine" 2>/dev/null; then
+        auth_reason="nội dung không giống thông tin đăng nhập"
+        return 1
+      fi
+      tmp="$(dirname "$owner")/.auth.json.crew-$$"
+      if ! { cp "$mine" "$tmp" && chmod 600 "$tmp" && mv -f "$tmp" "$owner"; } 2>/dev/null; then
+        rm -f "$tmp"
+        auth_reason="không ghi được bản mới về ~/.codex/auth.json"
+        return 1
+      fi
+      return 0
+    elif [ "$owner" -nt "$mine" ]; then
+      return 0
+    else
+      auth_reason="không xác định được bản nào mới hơn"
+      return 1
+    fi
+  elif [ -e "$mine" ]; then
+    auth_reason="không phải file thường"
+    return 1
+  fi
+  return 0
+}

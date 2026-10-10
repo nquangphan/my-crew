@@ -35,37 +35,14 @@ if [ -n "$asset" ] && [ "$asset" != "$dest" ]; then
   fi
 fi
 # Codex refreshes tokens by writing a temp file and renaming it over auth.json, which turns the agent's symlink into
-# a regular file holding the newest (rotated) refresh token. Relinking blindly would delete that token and leave the
-# owner's ~/.codex/auth.json with a revoked one, so a regular file is reconciled first, never printed:
-# same content -> relink; agent copy strictly newer and looks like a credential -> copy it back to ~/.codex/auth.json
-# atomically (0600 temp file + rename) and relink; owner copy strictly newer (owner logged in again) -> relink;
-# anything else (same mtime, unrecognised content, owner auth.json not a regular file) -> block without touching either.
+# a regular file holding the newest (rotated) refresh token. Relinking blindly would delete that token, so a regular
+# file is reconciled first by crew_codex_auth_reconcile (crew-run-mark.sh, shared with `crew-mac uninstall`), which
+# never prints the token and blocks without touching either file when it cannot tell which copy is right.
 owner="$HOME/.codex/auth.json"
 mine="$dest/auth.json"
-auth_unsynced() {
-  echo "crew-runtime blocked: Codex chưa đăng nhập đồng bộ: $mine đã thành file riêng ($1); owner so với ~/.codex/auth.json, giữ bản đúng rồi xoá $mine, hoặc chạy \"codex login\"" >&2
+if ! crew_codex_auth_reconcile "$mine" "$owner"; then
+  echo "crew-runtime blocked: Codex chưa đăng nhập đồng bộ: $mine đã thành file riêng ($auth_reason); owner so với ~/.codex/auth.json, giữ bản đúng rồi xoá $mine, hoặc chạy \"codex login\"" >&2
   exit 78
-}
-if [ -L "$mine" ]; then
-  :
-elif [ -f "$mine" ]; then
-  if cmp -s "$mine" "$owner"; then
-    :
-  elif [ "$mine" -nt "$owner" ]; then
-    { [ -f "$owner" ] && [ ! -L "$owner" ]; } || auth_unsynced "~/.codex/auth.json không phải file thường"
-    grep -q -e '"tokens"' -e '"OPENAI_API_KEY"' "$mine" 2>/dev/null || auth_unsynced "nội dung không giống thông tin đăng nhập"
-    tmp="$HOME/.codex/.auth.json.crew-$$"
-    { cp "$mine" "$tmp" && chmod 600 "$tmp" && mv -f "$tmp" "$owner"; } 2>/dev/null || {
-      rm -f "$tmp"
-      auth_unsynced "không ghi được bản mới về ~/.codex/auth.json"
-    }
-  elif [ "$owner" -nt "$mine" ]; then
-    :
-  else
-    auth_unsynced "không xác định được bản nào mới hơn"
-  fi
-elif [ -e "$mine" ]; then
-  auth_unsynced "không phải file thường"
 fi
 ln -sfn "$owner" "$mine" || exit 78
 CODEX_HOME=$dest

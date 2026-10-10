@@ -29,6 +29,8 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
    - `crew_runtime_slot <runtime>`: gọi `crew_superpowers_dir` trước (để `workflow-check` kiểm đúng bản agent sẽ
      đọc), rồi trong run `PAPERCLIP_AGENT_ID` phải là UUID và gọi
      `crew-mac workflow-check --runtime <runtime> --root "$PWD"`; ngoài run (adapter gọi `--version`) đặt ô `shared`;
+   - `crew_codex_auth_reconcile <auth.json agent> <~/.codex/auth.json>`: luật đối chiếu duy nhất (bên dưới), dùng chung
+     cho `crew-codex-run` và `crew-mac uninstall` (`reconcileCodexAuth`); trả 1 kèm `$auth_reason` khi không chắc;
    - `crew_run_mark`: chép nguyên khối ghi `pgid`/`started` của `crew-claude-run.sh`;
    - `crew_superpowers_dir`: export `CREW_SUPERPOWERS_DIR` từ `~/.crew/runtimes/superpowers-dir` (file không có thì
      giữ giá trị env sẵn có).
@@ -41,7 +43,7 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
      (`copyBackCodexAuth`) đọc file đó qua SSH lúc trả lease, sau khi codex đã thoát; thiếu file thì lỗi SSH bị ném và
      run thành công bị đánh failed, còn `{}` thì server giữ nguyên `auth.json` của nó. Asset đã có `auth.json` thì để
      nguyên; không tạo được thì thoát 78;
-   - đối chiếu `auth.json` của agent trước khi tạo lại symlink. Codex refresh token bằng cách ghi file tạm rồi rename,
+   - đối chiếu `auth.json` của agent (`crew_codex_auth_reconcile`) trước khi tạo lại symlink. Codex refresh token bằng cách ghi file tạm rồi rename,
      nên symlink có thể đã thành **file thường** chứa refresh token mới (đã xoay, bản ở `~/.codex/auth.json` bị thu
      hồi). Wrapper không bao giờ in nội dung, và không đè file đó mù quáng:
      - là symlink: tạo lại như thường;
@@ -157,8 +159,11 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
 - `~/.crew/runtimes/` (0700): `superpowers-dir` (0600, `setup` ghi), `opencode-in-place` (deploy ghi),
   `codex/<agentId|shared>/` (CODEX_HOME), `opencode/<agentId|shared>/{data,state,cache,config}`.
 - `crew-mac uninstall` gỡ hai wrapper, `crew-run-mark.sh` và cả `~/.crew/runtimes/`; không đụng `~/.codex` (symlink
-  `auth.json` bị xóa, file đích giữ nguyên) hay Keychain. Uninstall không đối chiếu như wrapper: nếu `auth.json` của
-  agent đang là file thường (refresh sau run cuối) thì bản đó mất cùng thư mục.
+  `auth.json` bị xóa, file đích giữ nguyên) hay Keychain. Trước khi xóa, uninstall đối chiếu từng
+  `codex/<agentId>/auth.json` là file thường bằng đúng `crew_codex_auth_reconcile` của wrapper (nạp
+  `crew-run-mark.sh` trong repo): giống thì bỏ, bản agent mới hơn và hợp lệ thì chép ngược nguyên tử 0600, owner mới
+  hơn thì bỏ. Nếu có agent không chắc thì **giữ nguyên** `~/.crew/runtimes`, ghi `notes` (đường dẫn file và lý do, không
+  có token) và vẫn gỡ phần còn lại.
 - Biến chỉ cho test: `CREW_CODEX_BIN`, `CREW_OPENCODE_BIN`, `CREW_SECURITY_BIN`, `CREW_MAC_BIN`.
 
 ## Ranh giới credential

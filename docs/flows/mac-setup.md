@@ -99,8 +99,8 @@ không cần token và không login lại.
    (`com.2p.crew-spike-sshd`), gỡ key theo comment, gỡ khối PATH và hai dòng PATH spike, xóa `~/.crew-mac` và
    `~/.crew-spike-sshd`, wrapper `crew-claude-run`, wrapper runtime `crew-codex-run`, `crew-opencode-run`,
    `crew-run-mark.sh`, launcher (và `~/.crew/bin` nếu rỗng), và `~/.crew/runtimes/` (CODEX_HOME/XDG riêng theo agent,
-   `superpowers-dir`, `opencode-in-place`; `auth.json` trong đó là symlink nên `~/.codex` không bị đụng; flow
-   `mac-runtimes`). Không đụng phần còn lại của `~/.crew` (của `crewd` v2) hay `~/.codex`.
+   `superpowers-dir`, `opencode-in-place`; `auth.json` file thường được đối chiếu với `~/.codex/auth.json` trước khi xóa, không chắc thì giữ lại thư mục và báo
+   trong `notes`; flow `mac-runtimes`). Không đụng phần còn lại của `~/.crew` (của `crewd` v2) hay `~/.codex`.
    Giữ nguyên thư mục worktree. Kiểm theo hướng fail-closed (`scanUninstallBlockers`), từ chối khi còn: `claude`/`node --print` có `PAPERCLIP_RUN_ID`
    (run Paperclip đang chạy), claude/node `--print` không tty mà `ps -E` thật sự không trả được env (`ProcInfo.envReadable`; không chắc; `node -p "<expr>"` và claude nền đọc được env mà không có run id thì không chặn), con cháu của sshd agent
    (phiên SSH đang mở, không phụ thuộc env; sshd agent là job launchd, hoặc listener của app tìm theo

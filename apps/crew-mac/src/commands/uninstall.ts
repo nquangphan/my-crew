@@ -1,5 +1,6 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, readdirSync, rmSync } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, join } from 'node:path';
 import { removeKeysByComment } from '../authorized-keys.js';
 import { type MacContext, SetupError } from '../context.js';
 import { readText, writeIfChanged } from '../fs-util.js';
@@ -19,6 +20,7 @@ import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
 import { descendants, isClaudeExe } from '../reaper/run-members.js';
 import { runtimePaths } from '../runtimes/paths.js';
 import { currentSshdOwner, isCrewListener, readSshdPid } from '../sshd-owner.js';
+import { RUN_MARK_SOURCE } from '../wrapper.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
 export interface UninstallReport {
@@ -126,6 +128,42 @@ export async function assertNoLiveRuns(ctx: MacContext): Promise<void> {
   }
 }
 
+/**
+ * Đối chiếu auth.json của từng agent Codex với ~/.codex/auth.json bằng đúng hàm của wrapper
+ * (`crew_codex_auth_reconcile` trong crew-run-mark.sh), trước khi xóa ~/.crew/runtimes. Trả danh sách agent không
+ * chắc (kèm lý do); không bao giờ chứa nội dung token.
+ */
+export function reconcileCodexAuth(home: string): string[] {
+  const codexRoot = join(runtimePaths(home).runtimesRoot, 'codex');
+  if (!existsSync(codexRoot)) return [];
+  const owner = join(home, '.codex', 'auth.json');
+  const unsure: string[] = [];
+  for (const agent of readdirSync(codexRoot)) {
+    const mine = join(codexRoot, agent, 'auth.json');
+    let st: ReturnType<typeof lstatSync>;
+    try {
+      st = lstatSync(mine);
+    } catch {
+      continue;
+    }
+    if (!st.isFile()) continue;
+    const r = spawnSync(
+      '/bin/sh',
+      [
+        '-c',
+        '. "$1" && crew_codex_auth_reconcile "$2" "$3" || { printf %s "$auth_reason" >&2; exit 1; }',
+        'sh',
+        RUN_MARK_SOURCE,
+        mine,
+        owner,
+      ],
+      { encoding: 'utf8' },
+    );
+    if (r.status !== 0) unsure.push(`${mine} (${r.stderr.trim() || 'không đối chiếu được'})`);
+  }
+  return unsure;
+}
+
 export async function uninstall(
   ctx: MacContext,
   options: { force?: boolean } = {},
@@ -171,6 +209,8 @@ export async function uninstall(
     }
   }
   const rt = runtimePaths(ctx.home);
+  // Đối chiếu token Codex trước khi xóa: bản mới hơn của agent được chép ngược, không chắc thì giữ ~/.crew/runtimes.
+  const unsureAuth = reconcileCodexAuth(ctx.home);
   for (const file of [paths.wrapper, rt.codexWrapper, rt.opencodeWrapper, rt.runMark, paths.launcher]) {
     if (existsSync(file)) {
       rmSync(file);
@@ -179,8 +219,14 @@ export async function uninstall(
   }
   if (existsSync(paths.crewBin) && readdirSync(paths.crewBin).length === 0)
     rmSync(paths.crewBin, { recursive: true });
-  // ~/.crew/runtimes: CODEX_HOME/XDG riêng theo agent; auth.json trong đó là symlink nên ~/.codex không bị đụng.
+  // ~/.crew/runtimes: CODEX_HOME/XDG riêng theo agent; auth.json symlink thì ~/.codex không bị đụng, file thường đã đối chiếu ở trên.
+  const keptRuntimes = unsureAuth.length > 0;
+  if (keptRuntimes)
+    notes.push(
+      `giữ ${rt.runtimesRoot}: không chắc auth.json Codex nào mới hơn (${unsureAuth.join('; ')}); so với ~/.codex/auth.json, giữ bản đúng rồi xóa file riêng của agent và chạy lại uninstall`,
+    );
   for (const dir of [paths.root, paths.spikeDir, rt.runtimesRoot]) {
+    if (keptRuntimes && dir === rt.runtimesRoot) continue;
     if (existsSync(dir)) {
       rmSync(dir, { recursive: true, force: true });
       removed.push(dir);

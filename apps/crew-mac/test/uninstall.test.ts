@@ -6,6 +6,7 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -263,6 +264,71 @@ describe('crew-mac uninstall', () => {
     }
     expect(readFileSync(join(codexDir, 'auth.json'), 'utf8')).toBe('{"x":1}');
     expect(existsSync(join(codexDir, 'sessions'))).toBe(true);
+  });
+
+  describe('auth.json Codex của agent là file thường', () => {
+    const AGENT = '11111111-2222-3333-4444-555555555555';
+    const OLD = new Date('2026-01-01T00:00:00Z');
+    const NEW = new Date('2026-02-01T00:00:00Z');
+    const agentTok = '{"tokens":{"refresh_token":"agent-fake"}}';
+    const ownerTok = '{"tokens":{"refresh_token":"owner-fake"}}';
+
+    async function seed(opts: { agent: string; owner: string | null; agentAt: Date; ownerAt: Date }) {
+      const e = fakeMac();
+      await setup(e.ctx, { paperclipKey: PAPERCLIP_PUB });
+      const rt = runtimePaths(e.home);
+      const mine = join(rt.codexHome(AGENT), 'auth.json');
+      mkdirSync(rt.codexHome(AGENT), { recursive: true });
+      writeFileSync(mine, opts.agent, { mode: 0o600 });
+      utimesSync(mine, opts.agentAt, opts.agentAt);
+      const owner = join(e.home, '.codex', 'auth.json');
+      if (opts.owner !== null) {
+        mkdirSync(join(e.home, '.codex'), { recursive: true });
+        writeFileSync(owner, opts.owner, { mode: 0o644 });
+        utimesSync(owner, opts.ownerAt, opts.ownerAt);
+      }
+      return { ...e, rt, mine, owner };
+    }
+
+    it('bản agent mới hơn và hợp lệ thì chép ngược về ~/.codex (0600) rồi xóa runtimes', async () => {
+      const t = await seed({ agent: agentTok, owner: ownerTok, agentAt: NEW, ownerAt: OLD });
+      await uninstall(t.ctx);
+      expect(readFileSync(t.owner, 'utf8')).toBe(agentTok);
+      expect(statSync(t.owner).mode & 0o777).toBe(0o600);
+      expect(existsSync(t.rt.runtimesRoot)).toBe(false);
+    });
+
+    it('giống nội dung hoặc owner mới hơn thì bỏ bản agent, ~/.codex giữ nguyên', async () => {
+      for (const [agent, agentAt, ownerAt] of [
+        [ownerTok, NEW, OLD],
+        [agentTok, OLD, NEW],
+      ] as const) {
+        const t = await seed({ agent, owner: ownerTok, agentAt, ownerAt });
+        await uninstall(t.ctx);
+        expect(readFileSync(t.owner, 'utf8')).toBe(ownerTok);
+        expect(existsSync(t.rt.runtimesRoot)).toBe(false);
+      }
+    });
+
+    it.each([
+      ['cùng mtime', agentTok, ownerTok, NEW, NEW],
+      ['nội dung không giống credential', 'junk', ownerTok, NEW, OLD],
+      ['~/.codex/auth.json không tồn tại', agentTok, null, NEW, OLD],
+    ])(
+      'không chắc (%s) thì giữ ~/.crew/runtimes, báo rõ, không in token',
+      async (_n, agent, owner, agentAt, ownerAt) => {
+        const t = await seed({ agent, owner, agentAt, ownerAt });
+        const report = await uninstall(t.ctx);
+        expect(existsSync(t.mine)).toBe(true);
+        expect(readFileSync(t.mine, 'utf8')).toBe(agent);
+        if (owner !== null) expect(readFileSync(t.owner, 'utf8')).toBe(owner);
+        expect(report.removed).not.toContain(t.rt.runtimesRoot);
+        const text = (report.notes ?? []).join('\n');
+        expect(text).toContain(t.rt.runtimesRoot);
+        expect(text).not.toMatch(/fake|junk/);
+        expect(existsSync(t.rt.codexWrapper)).toBe(false);
+      },
+    );
   });
 
   it('chạy lại khi đã gỡ hết thì không lỗi và không gỡ gì', async () => {
