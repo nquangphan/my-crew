@@ -1,0 +1,41 @@
+{
+  "id": "846b96f7-98f8-4170-ab04-fe2fc056f575",
+  "companyId": "a7132a14-478e-4226-ae58-3dc03ce923e1",
+  "kind": "remove-project",
+  "projectKey": "e2e-base",
+  "projectId": "031a121f-5c5d-4f90-991b-c3abddf165e4",
+  "machineId": "039b7fe6-2df6-405a-abc9-ca5e675d4227",
+  "input": {
+    "projectId": "031a121f-5c5d-4f90-991b-c3abddf165e4",
+    "projectName": "E2E base 2"
+  },
+  "steps": {
+    "roles": {
+      "at": "2026-10-10T05:22:29.742Z",
+      "status": "done"
+    },
+    "project": {
+      "at": "2026-10-10T05:22:34.157Z",
+      "status": "done"
+    },
+    "checkouts": {
+      "at": "2026-10-10T05:22:34.032Z",
+      "refs": {
+        "job": "a0f83951-c93b-484f-a9d2-2f1d76ac75ca"
+      },
+      "status": "done"
+    },
+    "environments": {
+      "at": "2026-10-10T05:22:29.805Z",
+      "status": "done"
+    },
+    "pause-agents": {
+      "at": "2026-10-10T05:22:29.562Z",
+      "status": "done"
+    }
+  },
+  "status": "done",
+  "runningStep": null,
+  "createdAt": "2026-10-10T05:22:29.296Z",
+  "updatedAt": "2026-10-10T05:22:34.157Z"
+}

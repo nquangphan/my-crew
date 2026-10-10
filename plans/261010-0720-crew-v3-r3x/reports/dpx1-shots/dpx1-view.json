@@ -1,0 +1,310 @@
+{
+  "result": [
+    {
+      "name": "marker",
+      "crewUi": "c55a16a0c8bdb145a8471886433ef057dec9cb39"
+    },
+    {
+      "name": "sign-in",
+      "status": 200,
+      "url": "/TPS/dashboard"
+    },
+    {
+      "name": "tps-72",
+      "status": "done",
+      "epDone": 0,
+      "lichSu": true,
+      "lichSuRows": [
+        "LỊCH SỬ",
+        "19"
+      ]
+    },
+    {
+      "name": "issue-dang-mo",
+      "note": "không có issue TPS chưa xong",
+      "total": 0
+    },
+    {
+      "name": "skills",
+      "superpowersBlock": true,
+      "blockButtons": 0,
+      "blockText": [
+        "Skill ghim (Superpowers)",
+        "",
+        "Skill của bản Superpowers 6.4.1 đã ghim trên máy, agent nạp qua --plugin-dir. Không sửa, không xóa từ web.",
+        "",
+        "brainstorming",
+        "diagnosing-superpowers",
+        "dispatching-parallel-agents",
+        "executing-plans",
+        "finishing-a-development-branch",
+        "receiving-code-review",
+        "requesting-code-review",
+        "subagent-driven-development",
+        "systematic-debugging",
+        "test-driven-development",
+        "using-git-worktrees",
+        "using-superpowers",
+        "verification-before-completion",
+        "writing-plans",
+        "writing-skills"
+      ]
+    },
+    {
+      "name": "project",
+      "href": "/TPS/projects/2ps-landing",
+      "goProject": 1,
+      "disabled": false,
+      "title": null
+    },
+    {
+      "name": "agent",
+      "href": "/TPS/agents/bmad",
+      "goAgent": 1,
+      "disabled": false,
+      "title": null
+    },
+    {
+      "name": "huong-dan",
+      "headings": {
+        "6.1 Ép Done": 1,
+        "10.1 Gỡ project và gỡ agent": 1
+      },
+      "skillEditMentions": 47
+    },
+    {
+      "name": "dang-xuat",
+      "signOut": 200
+    }
+  ],
+  "consoleErrors": [
+    {
+      "url": "/login",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    }
+  ],
+  "badResponses": [
+    {
+      "status": 401,
+      "url": "/api/auth/get-session"
+    }
+  ],
+  "writes": [
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.roots"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.map"
+    },
+    {
+      "method": "POST",
+      "url": "/api/issues/eff83344-44da-496e-b6bf-43f9156d6e67/read"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.docsCheck"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.skillSync"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.skillSync"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machineJobs"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.roots"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.roots"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.roots"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.roots"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.setupRuns"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.machines"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    },
+    {
+      "method": "POST",
+      "url": "/api/plugins/crew.core/data/crew.companies"
+    }
+  ]
+}

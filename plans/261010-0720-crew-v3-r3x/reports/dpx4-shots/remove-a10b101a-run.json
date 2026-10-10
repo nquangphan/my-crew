@@ -1,0 +1,60 @@
+{
+  "id": "1ca75ecb-e788-41e0-848a-27a39859a55b",
+  "companyId": "a7132a14-478e-4226-ae58-3dc03ce923e1",
+  "kind": "remove-project",
+  "projectKey": "e2e-base3",
+  "projectId": "a10b101a-ee28-4b01-8f6e-dfc50fe2ca6e",
+  "machineId": "039b7fe6-2df6-405a-abc9-ca5e675d4227",
+  "input": {
+    "projectId": "a10b101a-ee28-4b01-8f6e-dfc50fe2ca6e",
+    "projectName": "E2E base 4"
+  },
+  "steps": {
+    "roles": {
+      "at": "2026-10-10T05:27:44.840Z",
+      "status": "done"
+    },
+    "project": {
+      "at": "2026-10-10T05:27:51.769Z",
+      "status": "done"
+    },
+    "checkouts": {
+      "at": "2026-10-10T05:27:51.656Z",
+      "refs": {
+        "job": "1c1e9d27-5ab7-4433-a178-7e6d43a1cdf0"
+      },
+      "status": "done"
+    },
+    "environments": {
+      "at": "2026-10-10T05:27:45.120Z",
+      "refs": {
+        "environment_executor": "bc9be81e-aff5-404a-8e45-8bcfe4e9c575",
+        "environment_reviewer": "9478b474-b716-4447-bdf1-490a43213d8d",
+        "environment_assistant": "338b7f60-3b81-460a-a2e5-3c615bfe193e",
+        "environment_executor-2": "19c7f401-7a23-4701-a776-b801fc39d34b",
+        "environment_integrator": "cc341a13-5630-4513-a46c-142e3ea412cd"
+      },
+      "status": "done"
+    },
+    "pause-agents": {
+      "at": "2026-10-10T05:27:44.665Z",
+      "refs": {
+        "agent_executor": "906d332c-6111-4bd4-8ee5-1bc87cc0fc68",
+        "agent_reviewer": "b5f6b419-8eca-4b79-bf37-cceb20892395",
+        "agent_assistant": "33b563a5-b83f-4c65-98e3-5b410455be47",
+        "paused_executor": "906d332c-6111-4bd4-8ee5-1bc87cc0fc68",
+        "paused_reviewer": "b5f6b419-8eca-4b79-bf37-cceb20892395",
+        "agent_executor-2": "07e6bfa7-4087-46aa-ae70-d9bef263d783",
+        "agent_integrator": "21d939ee-b142-4767-a835-ddde514d1a53",
+        "paused_assistant": "33b563a5-b83f-4c65-98e3-5b410455be47",
+        "paused_executor-2": "07e6bfa7-4087-46aa-ae70-d9bef263d783",
+        "paused_integrator": "21d939ee-b142-4767-a835-ddde514d1a53"
+      },
+      "status": "done"
+    }
+  },
+  "status": "done",
+  "runningStep": null,
+  "createdAt": "2026-10-10T05:27:44.341Z",
+  "updatedAt": "2026-10-10T05:27:51.769Z"
+}
