@@ -11,3 +11,4 @@ Không để dòng `đang chạy` khi ticket đã xong.
 
 | Thời điểm | Ticket | Thứ đã tạo | Cách dừng/gỡ | Trạng thái |
 |---|---|---|---|---|
+| 2026-10-10 12:43 | SP-C | thư mục `~/crew-r24-probe/` (HOME/CODEX_HOME tạm, symlink `auth.json`, fixture ps) | `trash ~/crew-r24-probe` | đã gỡ (13:25, trash) |

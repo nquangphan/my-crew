@@ -85,3 +85,4 @@ Câu hỏi: Đại Ca có duyệt vá lõi cho D5/D6/D7/D12 (mỗi cái vài dò
 - R2-4: bảng model theo khuyên; fallback theo khuyên; công tắc Codex/OpenCode tắt sẵn; **reviewer được chạy Codex** (thêm vào khuyên "chỉ executor").
 - Upstream: Đại Ca cho đăng issue/PR vá notify→call lên Paperclip khi CORE-P xong (10/10 07:20).
 - R3X: Q1 bật sẵn hủy việc con khi Ép Done; Q2 gỡ agent chỉ pause; Q3 gỡ project giữ yêu cầu mở; Q5 checkout có việc chưa commit thì giữ và báo; Q4 (sửa nguồn skill) theo khuyên (10/10 07:35).
+- R2-4: reviewer Codex chỉ issue con code; Codex lỗi/tắt giữa chừng thì TỰ CHUYỂN về reviewer Claude (khác khuyên); tag R2-4 là crew/v3.3 (10/10 12:45).
