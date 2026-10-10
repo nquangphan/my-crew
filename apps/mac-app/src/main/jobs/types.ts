@@ -9,9 +9,19 @@ export type MachineJobKind =
   | 'skill-sync'
   | 'check'
   | 'remove-checkouts'
-  | 'skill-remove';
+  | 'skill-remove'
+  | 'runtimes-setup';
 export type MachineJobStatus = 'queued' | 'claimed' | 'done' | 'failed' | 'cancelled';
-export type CrewRoleSlot = 'assistant' | 'executor' | 'executor-2' | 'reviewer' | 'integrator';
+/** `executor-codex`, `executor-opencode`, `reviewer-codex`: agent chạy runtime ngoài Claude, mỗi ô một agent. */
+export type CrewRoleSlot =
+  | 'assistant'
+  | 'executor'
+  | 'executor-2'
+  | 'reviewer'
+  | 'integrator'
+  | 'executor-codex'
+  | 'executor-opencode'
+  | 'reviewer-codex';
 
 export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
   'inspect-folder',
@@ -21,6 +31,7 @@ export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
   'check',
   'remove-checkouts',
   'skill-remove',
+  'runtimes-setup',
 ];
 export const CREW_ROLE_SLOTS: readonly CrewRoleSlot[] = [
   'assistant',
@@ -28,6 +39,9 @@ export const CREW_ROLE_SLOTS: readonly CrewRoleSlot[] = [
   'executor-2',
   'reviewer',
   'integrator',
+  'executor-codex',
+  'executor-opencode',
+  'reviewer-codex',
 ];
 
 export interface MachineJob {
@@ -65,7 +79,9 @@ export type JobPayload =
       roles: CrewRoleSlot[];
       removeStatusRepo: boolean;
     }
-  | { kind: 'skill-remove'; skillId: string; slug: string };
+  | { kind: 'skill-remove'; skillId: string; slug: string }
+  /** Cài/cập nhật wrapper runtime rồi báo trạng thái. Key OpenCode không bao giờ đi qua hàng đợi. */
+  | { kind: 'runtimes-setup' };
 
 export type JobResult =
   | {
@@ -86,7 +102,13 @@ export type JobResult =
       kept: KeptCheckout[];
       absent: CrewRoleSlot[];
     }
-  | { kind: 'skill-remove'; removed: boolean };
+  | { kind: 'skill-remove'; removed: boolean }
+  | {
+      kind: 'runtimes-setup';
+      wrappers: { codex: boolean; opencode: boolean };
+      codex: { version: string | null; loggedIn: boolean | null };
+      opencode: { version: string | null; keyPresent: boolean | null };
+    };
 
 /**
  * Checkout gỡ không được nên giữ nguyên: còn việc chưa commit (`dirty`), có process đang dùng (`busy`), không phải

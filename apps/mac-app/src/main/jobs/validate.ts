@@ -28,6 +28,7 @@ const KEYS: Record<MachineJobKind, readonly string[]> = {
   check: ['projectKey'],
   'remove-checkouts': ['projectId', 'projectKey', 'roles', 'removeStatusRepo'],
   'skill-remove': ['skillId', 'slug'],
+  'runtimes-setup': [],
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -71,14 +72,15 @@ function rolesError(roles: unknown): string | null {
   return missing ? `roles thiếu ${missing}` : null;
 }
 
-/** Vai trò cần gỡ checkout: 1–5 tên vai trò, không trùng. */
+/** Vai trò cần gỡ checkout: 1–8 tên vai trò, không trùng. */
 function removeRolesError(roles: unknown): string | null {
   if (!Array.isArray(roles)) return 'roles phải là mảng';
   for (const role of roles) {
     const error = roleError(role);
     if (error) return error;
   }
-  if (roles.length < 1 || roles.length > 5) return 'roles phải có 1 đến 5 vai trò';
+  if (roles.length < 1 || roles.length > CREW_ROLE_SLOTS.length)
+    return `roles phải có 1 đến ${CREW_ROLE_SLOTS.length} vai trò`;
   const seen = new Set<string>();
   for (const role of roles as CrewRoleSlot[]) {
     if (seen.has(role)) return `role ${role} bị trùng`;
@@ -156,6 +158,8 @@ export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobP
           removeStatusRepo: p.removeStatusRepo,
         }
       );
+    case 'runtimes-setup':
+      return { kind };
     case 'skill-remove':
       return (
         skillIdError(p.skillId) ??
@@ -174,7 +178,12 @@ export const checkoutPath = (home: string, projectKey: string, role: string) =>
  * checkout agent sẽ ghi và là nơi agent chạy nên theo `forbiddenRootReason` của crew-mac.
  */
 export function machineGuardReason(home: string, payload: JobPayload): string | null {
-  if (payload.kind === 'skill-sync' || payload.kind === 'check' || payload.kind === 'skill-remove')
+  if (
+    payload.kind === 'skill-sync' ||
+    payload.kind === 'check' ||
+    payload.kind === 'skill-remove' ||
+    payload.kind === 'runtimes-setup'
+  )
     return null;
   if (payload.kind === 'remove-checkouts')
     return checkoutsGuardReason(home, payload.projectKey, payload.roles);

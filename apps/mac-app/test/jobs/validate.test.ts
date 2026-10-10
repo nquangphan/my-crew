@@ -202,11 +202,24 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
     ['remove-checkouts', { ...ok, projectId: 'x' }, 'projectId phải là uuid'],
     ['remove-checkouts', { ...ok, projectKey: '../x' }, 'projectKey không hợp lệ'],
     ['remove-checkouts', { ...ok, projectKey: 'demo/..' }, 'projectKey không hợp lệ'],
-    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 5 vai trò'],
+    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 8 vai trò'],
     [
       'remove-checkouts',
-      { ...ok, roles: ['assistant', 'executor', 'executor-2', 'reviewer', 'integrator', 'executor'] },
-      'roles phải có 1 đến 5 vai trò',
+      {
+        ...ok,
+        roles: [
+          'assistant',
+          'executor',
+          'executor-2',
+          'reviewer',
+          'integrator',
+          'executor-codex',
+          'executor-opencode',
+          'reviewer-codex',
+          'executor',
+        ],
+      },
+      'roles phải có 1 đến 8 vai trò',
     ],
     ['remove-checkouts', { ...ok, roles: ['executor', 'executor'] }, 'role executor bị trùng'],
     ['remove-checkouts', { ...ok, roles: ['boss'] }, 'role không hợp lệ'],
@@ -260,5 +273,49 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
     expect(machineGuardReason('/Volumes/X/home', payload)).toContain(
       '/Volumes/X/home/crew-agents/demo/executor',
     );
+  });
+});
+
+describe('ô vai trò runtime và việc runtimes-setup', () => {
+  it('nhận ba ô mới ở agent-workspace và remove-checkouts', () => {
+    for (const role of ['executor-codex', 'executor-opencode', 'reviewer-codex']) {
+      expect(
+        validateJobPayload('agent-workspace', {
+          projectKey: 'demo',
+          folder: '/x',
+          role,
+          branch: 'crew/demo/x',
+        }),
+      ).toMatchObject({ role });
+    }
+    expect(
+      validateJobPayload('remove-checkouts', {
+        projectId: '33333333-3333-4333-8333-333333333333',
+        projectKey: 'demo',
+        roles: ['executor-codex', 'executor-opencode', 'reviewer-codex'],
+        removeStatusRepo: false,
+      }),
+    ).toMatchObject({ roles: ['executor-codex', 'executor-opencode', 'reviewer-codex'] });
+  });
+
+  it('prepare-checkouts vẫn 4 hoặc 5 ô, thiếu ô bắt buộc thì lỗi', () => {
+    const six = [...fullRoles, { role: 'executor-2', branch: 'x' }, { role: 'executor-codex', branch: 'y' }];
+    expect(validateJobPayload('prepare-checkouts', { projectKey: 'demo', folder: '/x', roles: six })).toBe(
+      'roles phải có 4 hoặc 5 vai trò',
+    );
+  });
+
+  it('runtimes-setup: payload rỗng hợp lệ, có kind khớp cũng được, trường lạ bị từ chối', () => {
+    expect(validateJobPayload('runtimes-setup', {})).toEqual({ kind: 'runtimes-setup' });
+    expect(validateJobPayload('runtimes-setup', { kind: 'runtimes-setup' })).toEqual({
+      kind: 'runtimes-setup',
+    });
+    expect(validateJobPayload('runtimes-setup', { key: 'sk-x' })).toBe('trường key không được hỗ trợ');
+    expect(validateJobPayload('runtimes-setup', { kind: 'check' })).toBe('kind trong payload không khớp');
+    expect(validateJobPayload('runtimes-setup', null)).toBe('payload phải là object');
+  });
+
+  it('runtimes-setup không bị chặn theo đường dẫn', () => {
+    expect(machineGuardReason('/Users/a', { kind: 'runtimes-setup' })).toBeNull();
   });
 });

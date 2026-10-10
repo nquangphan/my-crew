@@ -10,6 +10,7 @@ import {
   listTargets,
   readStatusConfig,
   removeStatusRepo,
+  runtimesStatus,
   sendStatus,
   setStatusSecret,
   setup,
@@ -75,6 +76,10 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
         removeStatusRepo: async (projectId) => removeStatusRepo(ctx, projectId),
         doctor: () => doctor(ctx, { probe: false, tccWindow: '1h', probeTimeoutSec: 90, skipTcc: true }),
         workflowCheck: (root) => workflowCheck(ctx, { root, pluginDir: superpowersPinDir(home) }),
+        runtimesSetup: async () => {
+          await setup(ctx, {});
+          return runtimesStatus(ctx);
+        },
       });
     },
   } as OpsHandlers;

@@ -48,6 +48,11 @@ function setup(lsof?: Lsof) {
       }),
     doctor: async () => [],
     workflowCheck: async () => ({ ok: true, lines: [] }),
+    runtimesSetup: async () => ({
+      wrappers: { codex: false, opencode: false },
+      codex: { version: null, loggedIn: null },
+      opencode: { version: null, keyPresent: null },
+    }),
   };
   const agents = join(s.home, 'crew-agents', 'demo');
   const checkout = (role: string) => join(agents, role);

@@ -18,7 +18,7 @@ afterEach(() => {
 function setup() {
   const s = makeSandbox();
   cleanups.push(s.cleanup);
-  const calls = { addStatusRepo: [] as unknown[][], workflowCheck: [] as string[] };
+  const calls = { addStatusRepo: [] as unknown[][], workflowCheck: [] as string[], runtimesSetup: 0 };
   const deps: ExecutorDeps = {
     home: s.home,
     env: s.env,
@@ -34,6 +34,14 @@ function setup() {
     workflowCheck: async (root) => {
       calls.workflowCheck.push(root);
       return { ok: true, lines: [] };
+    },
+    runtimesSetup: async () => {
+      calls.runtimesSetup += 1;
+      return {
+        wrappers: { codex: true, opencode: true },
+        codex: { version: 'codex-cli 0.1.0', loggedIn: true },
+        opencode: { version: '1.18.35', keyPresent: false },
+      };
     },
   };
   return { s, deps, calls };
@@ -400,6 +408,78 @@ describe('check', () => {
         status: 'failed',
         errorCode: 'check_failed',
       },
+    );
+  });
+});
+
+describe('runtimes-setup', () => {
+  it('chạy setup + status, trả đúng hợp đồng và chỉ các trường của hợp đồng', async () => {
+    const { deps, calls } = setup();
+    deps.runtimesSetup = async () =>
+      ({
+        wrappers: { codex: true, opencode: false },
+        claude: { version: '2.0.0', loggedIn: true },
+        codex: { version: 'codex-cli 0.1.0', loggedIn: null, authPath: '/Users/a/.codex/auth.json' },
+        opencode: { version: null, keyPresent: false, key: 'sk-secret' },
+      }) as never;
+    const outcome = await runJob(job({ kind: 'runtimes-setup' }), { projectId: null }, deps);
+    expect(outcome).toEqual({
+      status: 'done',
+      result: {
+        kind: 'runtimes-setup',
+        wrappers: { codex: true, opencode: false },
+        codex: { version: 'codex-cli 0.1.0', loggedIn: null },
+        opencode: { version: null, keyPresent: false },
+      },
+    });
+    expect(JSON.stringify(outcome)).not.toMatch(/sk-secret|auth\.json/);
+    expect(calls.runtimesSetup).toBe(0);
+  });
+
+  it('gọi runtimesSetup đúng một lần', async () => {
+    const { deps, calls } = setup();
+    await runJob(job({ kind: 'runtimes-setup' }), { projectId: null }, deps);
+    expect(calls.runtimesSetup).toBe(1);
+  });
+
+  it('setup ném lỗi có key/token → failed app_error, câu đã làm sạch', async () => {
+    const { deps } = setup();
+    deps.runtimesSetup = async () => {
+      throw new Error(`setup hỏng: ghp_${'a'.repeat(36)}`);
+    };
+    const outcome = await runJob(job({ kind: 'runtimes-setup' }), { projectId: null }, deps);
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'app_error' });
+    if (outcome.status !== 'failed') throw new Error('sai kết quả');
+    expect(outcome.errorText).not.toContain('ghp_');
+  });
+
+  it('payload có trường lạ → app_error, không gọi setup', async () => {
+    const { deps, calls } = setup();
+    const bad = { companyId: COMPANY, kind: 'runtimes-setup' as const, payload: { key: 'x' } as never };
+    expect(await runJob(bad, { projectId: null }, deps)).toMatchObject({
+      status: 'failed',
+      errorCode: 'app_error',
+    });
+    expect(calls.runtimesSetup).toBe(0);
+  });
+});
+
+describe('check với mục doctor runtime', () => {
+  it('codex-auth, wrapper-*, opencode-key fail → không làm check thất bại, thành warn', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    const ids = ['codex-auth', 'wrapper-codex', 'opencode-key', 'wrapper-opencode'];
+    deps.doctor = async () =>
+      ids.map((id) => ({ id, title: id, status: 'fail' as const, detail: 'chưa có' }));
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome.status).toBe('done');
+    if (outcome.status !== 'done' || outcome.result.kind !== 'check') throw new Error('sai kết quả');
+    expect(outcome.result.items.slice(0, 4).map((i) => [i.id, i.status])).toEqual(
+      ids.map((id) => [id, 'warn']),
     );
   });
 });

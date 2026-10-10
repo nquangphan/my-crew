@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { treeChecksum } from '@crew/mac';
+import { type RuntimesStatus, treeChecksum } from '@crew/mac';
 import {
   configureDocsBundle,
   ensureRuntimeExcluded,
@@ -59,6 +59,8 @@ export interface ExecutorDeps {
   doctor(): Promise<DoctorItem[]>;
   /** `crew-mac workflow-check` cho một checkout với bản Superpowers đã ghim. */
   workflowCheck(root: string): Promise<{ ok: boolean; lines: string[] }>;
+  /** `setup` cài/cập nhật wrapper runtime rồi `runtimes status --json`. */
+  runtimesSetup(): Promise<RuntimesStatus>;
 }
 
 const failed = (errorCode: JobErrorCode, text: string, result?: JobResult): JobOutcome => ({
@@ -70,7 +72,7 @@ const failed = (errorCode: JobErrorCode, text: string, result?: JobResult): JobO
 
 /**
  * Làm một việc của hàng đợi máy. Kiểm lại payload (như plugin) và đường dẫn trước khi đụng tới máy. Không ném: mọi lỗi
- * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 7 loại việc; không chạy lệnh nào khác.
+ * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 8 loại việc; không chạy lệnh nào khác.
  */
 export async function runJob(
   job: Pick<MachineJob, 'companyId' | 'kind' | 'payload'>,
@@ -123,9 +125,21 @@ async function execute(
       return checkJob(payload.projectKey, deps);
     case 'remove-checkouts':
       return { status: 'done', result: await removeCheckouts(payload, deps) };
+    case 'runtimes-setup':
+      return { status: 'done', result: runtimesResult(await deps.runtimesSetup()) };
     case 'skill-remove':
       return { status: 'done', result: removeSkill(deps.home, companyId, payload.slug) };
   }
+}
+
+/** Chỉ chép trường của hợp đồng: kết quả hiện trên web, không được mang key, token hay đường dẫn auth. */
+function runtimesResult({ wrappers, codex, opencode }: RuntimesStatus): JobResult {
+  return {
+    kind: 'runtimes-setup',
+    wrappers: { codex: wrappers.codex, opencode: wrappers.opencode },
+    codex: { version: codex.version, loggedIn: codex.loggedIn },
+    opencode: { version: opencode.version, keyPresent: opencode.keyPresent },
+  };
 }
 
 function git(deps: ExecutorDeps, args: string[]) {
