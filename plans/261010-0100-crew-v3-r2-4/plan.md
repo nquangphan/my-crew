@@ -11,6 +11,12 @@ created: 2026-10-10
 
 # Crew v3 R2-4 — Runtime, công tắc theo máy, chọn model, fallback — Kế hoạch
 
+> **Đã lập lại trên nền R3X (10/10/2026 12:37).** Ticket, đợt chạy, nhánh/worktree, sở hữu file và Interface hiện hành
+> nằm ở [replan-r3.md](replan-r3.md): nền `crew/r3x` @ `67b1dde8a`, `r3x` @ `b827114`, migration `0012`, công tắc theo
+> máy, reviewer được chạy Codex, UI ở `packages/crew-web`. Owner đã trả lời 5 câu spec §11 (spec §12). Phần dưới chỉ
+> còn làm tham chiếu (Review Focus, luật credential/quota, chi tiết bước trong `probe.md`/`fork.md`/`mac-runtimes.md`).
+> Chỗ nào khác `replan-r3.md` thì theo `replan-r3.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

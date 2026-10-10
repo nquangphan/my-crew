@@ -1,9 +1,10 @@
 # Crew v3 R2-4 — Runtime `codex_local`, `opencode_local` (OpenCode Go), công tắc theo máy, chọn model, fallback cùng máy
 
 Ngày: 10/10/2026, Asia/Ho_Chi_Minh (bắt đầu 00:58 theo `date`).
-Trạng thái: bản thiết kế viết khi owner vắng. Mục 11 có 5 câu hỏi; plan
-[`plans/261010-0100-crew-v3-r2-4/plan.md`](../../../plans/261010-0100-crew-v3-r2-4/plan.md) tạm theo phương án khuyên của
-cả 5 câu.
+Trạng thái: bản thiết kế viết khi owner vắng. Mục 11 có 5 câu hỏi. Owner đã trả lời ngày 10/10 07:06, xem **§12 "Đổi
+theo owner 10/10"**: §12 thắng mọi chỗ khác trong spec này. Kế hoạch thi công hiện hành là
+[`plans/261010-0100-crew-v3-r2-4/replan-r3.md`](../../../plans/261010-0100-crew-v3-r2-4/replan-r3.md), lập lại trên nền
+R3X. [`plan.md`](../../../plans/261010-0100-crew-v3-r2-4/plan.md) chỉ còn làm tham chiếu.
 
 Đầu vào:
 - Spec v3 §4: Claude Code, Codex và API OpenAI-compatible chung pool theo máy; ba switch độc lập; OFF chặn dispatch và
@@ -117,7 +118,8 @@ Mỗi project có tối đa **một executor cho mỗi runtime** trên cùng má
 - `maxConcurrentRuns = 1`.
 
 Trợ Lý, reviewer, integrator, agent BMAD vẫn là `claude_local`. Bảng `crew_project_roles` nới `executor_agent_ids` lên
-1–3 (migration `0006`).
+1–3 (migration `0006`). **Đã đổi ở §12:** reviewer được chạy Codex; executor/reviewer runtime nằm ở cột và ô riêng,
+migration là `0012`.
 
 | Runtime | `adapterConfig` khi tạo agent (H5 khóa `command`, `extraArgs`, `env`, `model`) |
 |---|---|
@@ -415,12 +417,12 @@ Quota chung:
 
 - Chọn model bằng LLM riêng hay router. Trợ Lý chọn theo bảng.
 - Chuyển session giữa runtime.
-- Trợ Lý, reviewer, integrator, BMAD chạy ngoài Claude.
+- Trợ Lý, integrator, BMAD chạy ngoài Claude. Reviewer được chạy Codex (§12.2).
 - Chạy song song hai runtime cho một issue.
 - Đổi máy khi fallback (spec v2/v3: mỗi project một máy).
 - Dùng `managedAiConnection` hay đặt credential AI trên VPS.
 - Đo quota bằng gọi API nhà cung cấp. Chỉ đọc dữ liệu local.
-- UI mới (R3 làm).
+- UI mới (R3 làm). **Đã đổi ở §12.4:** công tắc và wizard agent runtime làm trong `packages/crew-web`.
 - Đổi `apps/mac-app`.
 
 ## 11. Câu hỏi cho owner
@@ -474,3 +476,105 @@ Plan R2-4 tạm theo phương án khuyên của từng câu. Ticket bị ảnh h
      - reviewer chạy Codex để review "khác mô hình";
      - tối đa 2 executor mỗi runtime.
    - Ảnh hưởng: PL-1, AG-1, AG-2, DP-1.
+
+## 12. Đổi theo owner 10/10
+
+Owner chốt 10/10/2026 07:06 (`plans/reports/cho-dai-ca-261010.md`, mục "Đại Ca đã chốt"). Thêm lệnh "code sẵn đi, test
+sau": chưa có key OpenCode Go, Codex dùng tài khoản đang đăng nhập trên Mac. Mục này thắng các mục trước khi khác nhau.
+Chi tiết thi công ở `replan-r3.md`.
+
+### 12.1. Trả lời §11
+
+| Câu | Owner chốt |
+|---|---|
+| Q1 vá P5, P6, P7 | Duyệt cả ba |
+| Q2 bảng runtime/model | Theo khuyên (§6.1 giữ nguyên) |
+| Q3 fallback | Theo khuyên: quota/auth/unavailable/switch_off, tối đa 2 lần mỗi issue, `large` không fallback |
+| Q4 công tắc | `codex_local`, `opencode_local` TẮT sẵn trên mọi máy, chỉ board bật |
+| Q5 vai trò | Theo khuyên cho executor (mỗi runtime tối đa một executor mỗi project), **thêm: reviewer được chạy Codex**. OpenCode chỉ làm executor. Trợ Lý, integrator, BMAD giữ Claude |
+
+### 12.2. Reviewer chạy Codex
+
+**Vai trò.**
+- Mỗi project có thể thêm **một** reviewer Codex (ô `reviewer-codex`, cột `codex_reviewer_agent_id`), cạnh reviewer
+  Claude bắt buộc (`reviewer_agent_id`).
+- Reviewer Codex là agent `codex_local`:
+  - model cố định `gpt-6-sol`, `modelReasoningEffort=high`;
+  - wrapper `crew-codex-run` như executor Codex;
+  - `CODEX_HOME` riêng theo agent;
+  - chỉ board tạo (wizard web).
+- Reviewer Codex thuộc tập reviewer/integrator: agent không được giao việc cho nó (luật SEC-2).
+
+**Luật chọn** (server, thân H4, khi tạo issue con, hàm thuần `chooseReviewer`):
+1. Chỉ **issue con code** được reviewer Codex. Issue gốc, research, bmad giữ reviewer Claude.
+2. Executor của issue không chạy `codex_local`, project có reviewer Codex không `paused`/`terminated`, và công tắc
+   `codex_local` trên máy của reviewer Codex đang bật → participant stage review là reviewer Codex.
+3. Còn lại → reviewer Claude.
+
+Trợ Lý không chọn reviewer. Lý do chọn được ghi vào `crew_runtime_decisions` (`kind=select`, `role=reviewer`).
+
+**Khi reviewer Codex không chạy được.**
+- Công tắc tắt sau khi đã giao: H1 giữ run.
+- Hết quota hay mất đăng nhập: run hỏng.
+- Plugin xử lý như fallback executor, nhưng đích duy nhất là reviewer Claude của project:
+  - đổi participant + assignee nếu đo được rằng plugin đổi participant stage review an toàn (SP-K P3);
+  - nếu không thì không đổi chính sách review. Plugin comment lý do, `switch_off` giữ `queued`, lý do khác `blocked`.
+    Owner bật lại Codex hoặc dùng "Ép Done" của R3X.
+- Số vòng review giữ nguyên.
+
+**Instructions.** `reviewer.md` thêm mục "Khi chạy bằng Codex":
+- cùng luật duyệt `crew-commit`, cùng mẫu gọi API;
+- `PATCH` là lệnh ghi cuối;
+- skill Superpowers đọc ở `$CREW_SUPERPOWERS_DIR/skills/<tên>/SKILL.md`.
+
+**H2/H4.**
+- H4 đặt participant stage review theo `chooseReviewer` cho issue con.
+- H2 coi reviewer Codex như reviewer: cấm agent giao việc cho nó, issue mở lại thì giao về executor.
+- `checkAgentAdapterOverrides` không áp cho reviewer (không có override theo issue).
+
+**Roles.**
+- Bảng `crew_project_roles` **thêm ba cột NULL được**:
+  - `codex_executor_agent_id`;
+  - `opencode_executor_agent_id`;
+  - `codex_reviewer_agent_id`.
+- Không nới CHECK `executor_agent_ids` 1–2 của R3: chỉ số mảng là ô `executor`/`executor-2`.
+- Ô mới: `executor-codex`, `executor-opencode`, `reviewer-codex`. Ô quyết định runtime, roles API từ chối agent sai
+  `adapterType`.
+- "Executor của project" = `executor_agent_ids` ∪ hai cột executor mới.
+
+### 12.3. Đổi do nền R3/R3X (không phải owner chốt, ghi để spec khớp code)
+
+- Migration plugin R2-4 là `0012_runtimes.sql` (0006–0011 đã dùng).
+- **Công tắc theo máy (`machine_id`)**, không theo environment, vì R3 cho mỗi agent một environment. Máy của agent là
+  máy có bản tin chứa checkout = `remoteWorkspacePath` của environment; company một máy thì lấy máy đó; không xác định
+  thì dùng mặc định.
+- H1 ghi run bị giữ vào bảng plugin `crew_runtime_waits` cho job fallback đọc, vì host không cho plugin đọc
+  `activity_log`.
+- Việc trên máy đi qua hàng đợi việc máy của R3: loại mới `runtimes-setup` (cài wrapper, báo trạng thái runtime). Key
+  OpenCode **không** đi qua hàng đợi; owner nạp tại Mac.
+- Marker: `runtime=` đặt sau `effort=`:
+
+  `crew-model complexity=<c> model=<m> effort=<e> runtime=<r> reason=<…>`
+
+  Parser cũ của crew-web vẫn đọc được.
+- Không thêm capability plugin (đều đã có). Mọi lời gọi host của plugin kèm `companyId` (FX-SCOPE).
+
+### 12.4. UI
+
+- Công tắc runtime ở **trang Máy** của `packages/crew-web`:
+  - ba nút gạt mỗi máy;
+  - trạng thái phiên bản, đăng nhập/key, quota ước tính;
+  - nút "Cài runtime trên máy";
+  - hỏi xác nhận khi bật.
+- Thêm agent runtime bằng wizard add-agent (ô mới).
+- Trang issue hiện runtime và các quyết định chọn/chuyển.
+- UI plugin cũ không sửa.
+
+### 12.5. Nghiệm thu
+
+§8 chia hai đợt:
+- **AC-C** (Codex, làm sau deploy): AC3–AC7, AC9, AC10, thêm **AC11** reviewer Codex (một run review thật, một ca tắt
+  Codex thì reviewer Claude). Codex tổng **2** run.
+- **AC-O** (OpenCode, khi có key): AC1, AC2, AC8.
+
+Giá trị §9 chưa đo được thì code theo giả định an toàn ở `replan-r3.md` mục 4, kiểm lại ở SP-C/SP-K/SP-O.
