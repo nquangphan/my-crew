@@ -14,6 +14,7 @@ export type RoleTemplate = 'assistant' | 'executor' | 'reviewer' | 'integrator';
 export const ROLE_TEMPLATES: Record<RoleTemplate, string> = { assistant, executor, reviewer, integrator };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const RUNTIMES = new Set(['claude_local', 'codex_local', 'opencode_local']);
 const PIN_RE = /^\/.+\/\.crew\/workflows\/superpowers\/(?!\.\.?$)[^/]+$/;
 
 function checkIds(ids: string[], label: string, agentId: string, taken: Set<string>): Set<string> {
@@ -29,9 +30,18 @@ function checkIds(ids: string[], label: string, agentId: string, taken: Set<stri
   return seen;
 }
 
+/** Mục executor là `<uuid>` (claude_local) hoặc `<uuid>:<runtime>`, như `parseExecutor` của fork. */
+function parseExecutor(entry: string): { id: string; runtime: string } {
+  const [id = '', ...rest] = entry.split(':');
+  if (rest.length === 0) return { id, runtime: 'claude_local' };
+  const runtime = rest.join(':');
+  if (!RUNTIMES.has(runtime)) throw new Error(`runtime của executor không hợp lệ: ${entry}`);
+  return { id, runtime };
+}
+
 /**
  * Như `renderInstructions` của fork: chỉ Trợ Lý nhận danh sách executor và agent BMAD (của project), thêm vào cuối
- * file. Project app tạo không có agent BMAD nên mục này ghi "Không có. Luôn dùng Superpowers.".
+ * file. Project app tạo không có agent BMAD hay reviewer Codex nên hai mục này ghi "Không có…".
  */
 export function renderInstructions(
   role: RoleTemplate,
@@ -39,21 +49,35 @@ export function renderInstructions(
   agentId: string,
   executorIds: string[],
   bmadIds: string[] = [],
+  reviewerCodexId = '',
 ): string {
   if (!(role in ROLE_TEMPLATES)) throw new Error(`unknown role: ${role}`);
   if (role !== 'assistant') {
     if (executorIds.length > 0) throw new Error('danh sách executor chỉ assistant nhận');
     if (bmadIds.length > 0) throw new Error('danh sách agent BMAD chỉ assistant nhận');
+    if (reviewerCodexId !== '') throw new Error('reviewer Codex chỉ assistant nhận');
     return text;
   }
   if (!UUID_RE.test(agentId)) throw new Error(`assistant phải là uuid: ${agentId}`);
   if (executorIds.length === 0) throw new Error('assistant cần ít nhất một executor');
-  const executors = checkIds(executorIds, 'executor', agentId, new Set());
-  checkIds(bmadIds, 'agent BMAD', agentId, executors);
-  const list = executorIds.map((id) => `- \`${id}\``).join('\n');
+  const parsed = executorIds.map(parseExecutor);
+  const executors = checkIds(
+    parsed.map((e) => e.id),
+    'executor',
+    agentId,
+    new Set(),
+  );
+  const bmads = checkIds(bmadIds, 'agent BMAD', agentId, executors);
+  if (reviewerCodexId !== '')
+    checkIds([reviewerCodexId], 'reviewer Codex', agentId, new Set([...executors, ...bmads]));
+  const list = parsed.map((e) => `- \`${e.id}\` — runtime \`${e.runtime}\``).join('\n');
   const bmad =
     bmadIds.length > 0 ? bmadIds.map((id) => `- \`${id}\``).join('\n') : 'Không có. Luôn dùng Superpowers.';
-  return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n\n## Agent BMAD của company\n\n${bmad}\n`;
+  const reviewer =
+    reviewerCodexId === ''
+      ? 'Không có. Server tự chọn reviewer, bạn không giao việc cho reviewer.'
+      : `- \`${reviewerCodexId}\` — runtime \`codex_local\``;
+  return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n\n## Agent BMAD của company\n\n${bmad}\n\n## Reviewer Codex của company\n\n${reviewer}\n`;
 }
 
 /** `extraArgs` ghim Superpowers như `merge-agent-config.mjs`; thư mục phải là bản ghim `~/.crew/workflows/superpowers/<bản>`. */

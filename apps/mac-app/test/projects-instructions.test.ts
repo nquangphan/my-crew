@@ -14,12 +14,12 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork `crew/r2-5` @ eef987b01 lúc chép (gồm BMAD R2-3, FX-B, FX-L2 "Chốt trạng thái gốc", FX-10 của integrator, khối File đính kèm). Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork `crew/r24` @ cba6d643a lúc chép (gồm BMAD R2-3, FX-B, FX-L2, FX-10, khối File đính kèm, AG-1 bảng runtime/model và mục Codex/OpenCode). Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: 'f67ea1df71920c9b4b03e59ed14d6e7d7df5906495a5dc8d9d22ab59e69fa321',
-  executor: '2c4def90ac162a4863a64792d95a9f29ec5c1da4c3acd09c2ac8a6654d979c32',
+  assistant: '7b9967ba52b7c36cd8fda0d440653f6799c7027e19cc46c4b46c2576573b6247',
+  executor: '4cfe20b94efb885148513f5a9c95437c390782bb7f9cac84dfa59ce768198523',
   integrator: 'd0e0e82338738bb767b3a35e835f134d3fbd319137296ac2bd194b50a6233120',
-  reviewer: 'aafad9e647b2cce3cf66d9c15672e42e2f9f9db6a418f88e7366e14ac1bd3d44',
+  reviewer: '19283cd02c29145331583cb5f5e0ebebb6d74bc79e15f207ec6884372f3761c2',
 };
 
 describe('template vai trò', () => {
@@ -58,6 +58,25 @@ describe('template assistant (BMAD, FX-B, FX-L2)', () => {
   });
 });
 
+describe('template runtime (AG-1)', () => {
+  it('Trợ Lý có bảng runtime/model và marker runtime=', () => {
+    const text = ROLE_TEMPLATES.assistant;
+    expect(text).toContain('\n## Chọn runtime và model\n');
+    expect(text).toContain('| `claude_local` | `claude-opus-5` | có | `effort` |');
+    expect(text).toContain('| `opencode_local` | `opencode-go/kimi-k3` | không | — |');
+    expect(text).toContain(
+      '`crew-model complexity=<mức> model=<model> effort=<effort> runtime=<runtime> reason=<một dòng lý do>`',
+    );
+    expect(text).toContain('Không chọn reviewer: server tự chọn reviewer Claude hay Codex khi tạo issue con');
+  });
+
+  it('executor có mục Codex/OpenCode, reviewer có mục Codex', () => {
+    expect(ROLE_TEMPLATES.executor).toContain('\n## Khi bạn chạy Codex hoặc OpenCode\n');
+    expect(ROLE_TEMPLATES.executor).toContain('"$HOME/.crew/bin/crew-mac" workflow-check --runtime');
+    expect(ROLE_TEMPLATES.reviewer).toContain('\n## Khi chạy bằng Codex\n');
+  });
+});
+
 describe('khối File đính kèm trong template', () => {
   for (const role of ['assistant', 'executor', 'reviewer', 'integrator'] as const) {
     it(`${role} có mục File đính kèm đúng lệnh crew-mac files và luật an toàn`, () => {
@@ -87,7 +106,7 @@ describe('renderInstructions', () => {
 
   it('assistant cần ≥ 1 executor uuid, không trùng, không chứa chính nó; thêm mục danh sách', () => {
     expect(renderInstructions('assistant', 'Đầu\n\n\n', A, [X1, X2])).toBe(
-      `Đầu\n\n## Executor của company\n\n- \`${X1}\`\n- \`${X2}\`\n\n## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n`,
+      `Đầu\n\n## Executor của company\n\n- \`${X1}\` — runtime \`claude_local\`\n- \`${X2}\` — runtime \`claude_local\`\n\n## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n\n## Reviewer Codex của company\n\nKhông có. Server tự chọn reviewer, bạn không giao việc cho reviewer.\n`,
     );
     expect(() => renderInstructions('assistant', 'x', A, [])).toThrow('ít nhất một executor');
     expect(() => renderInstructions('assistant', 'x', 'khong-uuid', [X1])).toThrow('uuid');
@@ -100,14 +119,50 @@ describe('renderInstructions', () => {
     const B1 = '66666666-6666-4666-8666-666666666666';
     const B2 = '77777777-7777-4777-8777-777777777777';
     expect(
-      renderInstructions('assistant', '# T\n', A, [X1], [B1, B2]).endsWith(
-        `- \`${X1}\`\n\n## Agent BMAD của company\n\n- \`${B1}\`\n- \`${B2}\`\n`,
+      renderInstructions('assistant', '# T\n', A, [X1], [B1, B2]).includes(
+        `- \`${X1}\` — runtime \`claude_local\`\n\n## Agent BMAD của company\n\n- \`${B1}\`\n- \`${B2}\`\n\n## Reviewer Codex`,
       ),
     ).toBe(true);
     expect(() => renderInstructions('executor', 'x', A, [], [B1])).toThrow('agent BMAD chỉ assistant nhận');
     expect(() => renderInstructions('assistant', 'x', A, [X1], [X1])).toThrow('trùng');
     expect(() => renderInstructions('assistant', 'x', A, [X1], [A])).toThrow('chính nó');
     expect(() => renderInstructions('assistant', 'x', A, [X1], ['khong-uuid'])).toThrow('uuid');
+  });
+});
+
+describe('renderInstructions runtime và reviewer Codex (AG-2)', () => {
+  const R = '88888888-8888-4888-8888-888888888888';
+  it('executor ghi runtime từng dòng, id trần là claude_local', () => {
+    const out = renderInstructions('assistant', '# T\n', A, [X1, `${X2}:codex_local`, `${R}:opencode_local`]);
+    expect(out).toContain(
+      `## Executor của company\n\n- \`${X1}\` — runtime \`claude_local\`\n- \`${X2}\` — runtime \`codex_local\`\n- \`${R}\` — runtime \`opencode_local\`\n\n`,
+    );
+    expect(() => renderInstructions('assistant', 'x', A, [`${X1}:gemini_local`])).toThrow('runtime');
+    expect(() => renderInstructions('assistant', 'x', A, [`${X1}:`])).toThrow('runtime');
+    expect(() => renderInstructions('assistant', 'x', A, [X1, `${X1}:codex_local`])).toThrow('trùng');
+  });
+
+  it('mục Reviewer Codex liệt kê reviewer, nằm cuối', () => {
+    expect(
+      renderInstructions('assistant', '# T\n', A, [X1], [], R).endsWith(
+        `## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n\n## Reviewer Codex của company\n\n- \`${R}\` — runtime \`codex_local\`\n`,
+      ),
+    ).toBe(true);
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], 'abc')).toThrow('uuid');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], X1)).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], A)).toThrow('chính nó');
+    expect(() => renderInstructions('reviewer', 'x', A, [], [], R)).toThrow(
+      'reviewer Codex chỉ assistant nhận',
+    );
+  });
+});
+
+describe('render khớp từng byte với render-instructions.mjs của fork', () => {
+  it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
+    const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
+    expect(createHash('sha256').update(out).digest('hex')).toBe(
+      '7e4ab68f43bd5f9db00d20b387375aef4dc55be0bd620958f519df9469eac977',
+    );
   });
 });
 

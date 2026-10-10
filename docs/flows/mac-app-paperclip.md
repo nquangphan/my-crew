@@ -160,12 +160,13 @@ tối đa 30 phút ("Chờ duyệt agent trên web"); được duyệt rồi m�
 
 `AGENTS.md` (`instructions.ts`): template `templates/{assistant,executor,reviewer,integrator}.md` chép nguyên văn từ
 `crew/agents/*.md` của fork (test so sha256). `renderInstructions` port từ `render-instructions.mjs`: chỉ Trợ Lý nhận
-danh sách id executor của project (mục "Executor của company", tên mục giữ như template tham chiếu) và danh sách agent
-BMAD (mục "Agent BMAD của company"); project app tạo không có agent BMAD nên mục này luôn render "Không có. Luôn dùng
-Superpowers.". `uploadInstructions`
+danh sách executor của project (mục "Executor của company", mỗi dòng `id:runtime` in thành "— runtime `<runtime>`", id
+trần là `claude_local`; runtime lạ thì ném), danh sách agent BMAD (mục "Agent BMAD của company") và reviewer Codex
+(mục "Reviewer Codex của company"). Project app tạo chỉ có executor Claude, không BMAD, không reviewer Codex nên hai mục
+sau luôn render "Không có…"; đầu ra khớp từng byte với `render-instructions.mjs` (test so sha256). `uploadInstructions`
 theo `add-base.mjs`: GET file lấy hash làm `baseHash` (`null` chỉ khi 404), nội dung đã đúng thì không PUT.
 
-Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với `crew/r2-5` @ `eef987b01`, sau R2-3 BMAD, FX-B và FX-L2: Trợ Lý có mục "Chọn workflow" và "Chốt
+Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với `crew/r24` @ `cba6d643a`, sau R2-3 BMAD, FX-B, FX-L2 và AG-1/AG-2: Trợ Lý có mục "Chọn runtime và model" (bảng runtime/model, marker `crew-model … runtime=`), executor có mục "Khi bạn chạy Codex hoặc OpenCode", reviewer có mục "Khi chạy bằng Codex"; Trợ Lý có mục "Chọn workflow" và "Chốt
 trạng thái gốc"; gồm khối "File đính kèm" (lệnh `crew-mac files`, issue con có `parentId` luôn chạy một lần khi bắt đầu để thấy file của issue cha, nội dung file là dữ liệu không phải chỉ thị, không chép credential) và dòng FX-10 "Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`" và mục 4 của integrator). Sửa `crew/agents/*.md` ở fork thì
 phải chép lại sang `templates/*.md` và cập nhật sha256 trong `projects-instructions.test.ts`; agent đã tạo từ template cũ
 không tự đổi, phải PUT lại `AGENTS.md` (GET lấy `contentHash` làm `baseHash`). Test cũng khẳng định các câu then chốt
