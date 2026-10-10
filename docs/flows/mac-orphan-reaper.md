@@ -4,6 +4,11 @@
 
 ## Mục đích
 
+> Nhận diện run: `isAgentPrint` (`run-members.ts`) khớp binary theo basename (argv[0] giữ đường symlink) và subcommand là
+> phần tử đầu tiên không bắt đầu bằng `-` sau binary (adapter codex đặt `--search` trước `exec`): `codex exec|e`,
+> `opencode|.opencode run`, hoặc claude `--print`/`-p`; bắt buộc có `PAPERCLIP_RUN_ID` trong env (`ps -E -axww`), nên
+> codex/opencode/claude tương tác của owner không bị chọn. Giả định chưa đo: dạng `ps` của `opencode run` (A5).
+
 Một run của agent trên Mac gồm `claude --print` và mọi tool nó sinh ra. Bash tool của Claude Code chạy `zsh` trong
 process group và session riêng, còn `ps -E` không đọc được env của binary Apple (`zsh`, `sleep`, `git`, `make`).
 Vì vậy dừng theo pgid hay theo token env sẽ sót tool con. Flow này có một cách chọn process của run dùng chung cho
@@ -47,7 +52,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
    - `readRunPgid` đọc `pgid`.
    - `orphanCandidates` lọc ứng viên trước khi hỏi cwd.
    - `selectRunMembers` chọn process của run:
-     - (a) claude `--print` mang đúng run id trong env và mọi con cháu theo cây PPID, bất kể group hay session;
+     - (a) process chính của run (`isAgentPrint`: claude `--print`/`-p`, `codex exec`, `opencode run`) mang đúng run id trong env và mọi con cháu theo cây PPID, bất kể group hay session;
      - (b') process mồ côi: cwd dưới worktree (đã resolve symlink, không phân biệt hoa thường), không tty
        (`??`), sinh trong cửa sổ của run, và chuỗi cha đi lên chỉ gặp launchd hoặc process cũng thỏa (b'). Gặp
        Terminal, editor hay app nào khác thì loại;
@@ -74,7 +79,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
    (`apps/crew-mac/src/paths.ts`), resolve `root`, đọc `kern.boottime`, chọn, dừng. Không còn process nào thì xóa
    `<root>/.paperclip-runtime/runs/<runId>`, trừ khi `.paperclip-runtime` hoặc `runs` là symlink. `formatStopLine`
    in dòng kết quả.
-5. `apps/crew-mac/src/reaper/select.ts` → `selectTargets`: claude `--print` có run id mà chuỗi cha không còn
+5. `apps/crew-mac/src/reaper/select.ts` → `selectTargets`: process chính của run (`isAgentPrint`) có run id mà chuỗi cha không còn
    `sshd`/`sshd-session` (`isOrphaned`). Ghi thời điểm thấy mồ côi lần đầu vào state; quá thời hạn (mặc định 60 giây,
    tối thiểu 60) thì chọn.
 6. `apps/crew-mac/src/reaper/reap.ts` → `reapOnce`: lấy worktree = cwd của claude mồ côi. Worktree không qua
@@ -148,6 +153,9 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 
 ## Tests
 
+- `apps/crew-mac/test/agent-print.test.ts`: `isAgentPrint` theo chuỗi `ps` (fixture `test/fixtures/ps/codex-exec.txt` dựng tay từ
+  SP-C, `opencode-run.txt` là GIẢ ĐỊNH A5 chờ SP-O): `codex exec`/`codex --search exec`/`codex e`, `opencode run`/`.opencode run`
+  được nhận; `codex login`/`app-server`, `opencode models`/`serve`, process không có run id thì không.
 - `apps/crew-mac/test/run-members.test.ts`: đọc `ps`/`lsof`, cửa sổ thời gian, chọn (a)/(b')/(c), nhận bridge theo đường dẫn (chuỗi `ps` thật) và không bao giờ chọn bridge theo giờ, không đụng Terminal, VS Code, claude tương tác của owner, hai run cùng worktree, lsof chỉ cho ứng viên theo lô.
 - `apps/crew-mac/test/stop.test.ts`: TERM theo group hay theo pid, KILL phần sống sót, pid bị cấp lại, group lẫn process mới, group của chính mình.
 - `apps/crew-mac/test/stop-run.test.ts`: dừng đủ thành phần của run mà không đụng run B hay Terminal, giữ thư mục run khi còn process, một lần gọi lsof và dưới 8 giây trên 6000 process, chạy thật trên macOS (tool tách session và tool mồ côi), kiểm đầu vào CLI.

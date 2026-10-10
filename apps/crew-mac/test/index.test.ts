@@ -22,6 +22,7 @@ describe('@crew/mac thư viện', () => {
       'stopRun',
       'listProcesses',
       'readCwds',
+      'isAgentPrint',
       'isClaudePrint',
       'readManifest',
       'macPaths',

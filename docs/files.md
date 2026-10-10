@@ -94,6 +94,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/workflows/workflow-gc.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/wrapper.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/zshenv.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/test/agent-print.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/authorized-keys.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/bmad-answers.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/bmad-command.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |

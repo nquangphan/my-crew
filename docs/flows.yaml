@@ -189,6 +189,7 @@ flows:
       - apps/crew-mac/test/stop.test.ts
       - apps/crew-mac/test/stop-run.test.ts
       - apps/crew-mac/test/reaper-select.test.ts
+      - apps/crew-mac/test/agent-print.test.ts
       - apps/crew-mac/test/reaper-reap.test.ts
   mac-runtimes:
     title: Runtime Codex và OpenCode Go trên Mac (wrapper, key Keychain, crew-mac runtimes)

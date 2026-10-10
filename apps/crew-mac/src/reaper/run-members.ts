@@ -43,6 +43,44 @@ export function isClaudePrint(p: ProcInfo): boolean {
   return tokens.includes('--print') || tokens.includes('-p');
 }
 
+/** Basename của token đầu argv (argv[0] giữ nguyên đường symlink khi gọi, nên khớp theo basename). */
+function exeBase(command: string): string {
+  const exe = command.split(/\s+/)[0] ?? '';
+  return exe.slice(exe.lastIndexOf('/') + 1);
+}
+
+/**
+ * Subcommand = phần tử đầu tiên không bắt đầu bằng `-` sau binary. Adapter codex đặt `--search` TRƯỚC `exec` khi agent
+ * bật search nên không thể đòi "ngay sau codex".
+ */
+function subcommand(command: string): string | undefined {
+  return command
+    .split(/\s+/)
+    .slice(1)
+    .find((t) => t !== '' && !t.startsWith('-'));
+}
+
+/** `codex exec` (alias `e`): run của adapter codex_local. */
+const CODEX_EXEC = new Set(['exec', 'e']);
+/**
+ * GIẢ ĐỊNH A5 (chưa đo thật, chờ SP-O/FX-O): run OpenCode là `opencode run`, binary tên `opencode` hoặc `.opencode`
+ * (shim Homebrew).
+ */
+const OPENCODE_BASENAMES = new Set(['opencode', '.opencode']);
+
+/**
+ * Process chính của một run agent (claude `--print`/`-p`, `codex exec`, `opencode run`) mang `PAPERCLIP_RUN_ID` trong
+ * env. Không có run id thì là phiên của owner, không bao giờ nhận.
+ */
+export function isAgentPrint(p: ProcInfo): boolean {
+  if (p.runId === null) return false;
+  if (isClaudePrint(p)) return true;
+  const base = exeBase(p.command);
+  if (base === 'codex') return CODEX_EXEC.has(subcommand(p.command) ?? '');
+  if (OPENCODE_BASENAMES.has(base)) return subcommand(p.command) === 'run';
+  return false;
+}
+
 /**
  * Callback bridge Paperclip: adapter `claude_local` chạy `nohup node <worktree>/.paperclip-runtime/<adapter>/
  * paperclip-bridge/server/paperclip-bridge-server.mjs &` qua một lệnh SSH riêng nên bridge luôn có PPID 1.
@@ -82,11 +120,11 @@ function inWindow(p: ProcInfo, spec: RunSpec): boolean {
   return spec.nextStarted === null || p.startedAt < spec.nextStarted - CLOCK_SLACK_SEC;
 }
 
-/** Nhánh (a): claude `--print` mang đúng run id trong env, cùng mọi con cháu theo cây PPID. */
+/** Nhánh (a): process chính của run (claude/codex/opencode) mang đúng run id trong env, cùng mọi con cháu theo cây PPID. */
 function claudeBranch(procs: readonly ProcInfo[], spec: RunSpec): Set<number> {
   const found = new Set<number>();
   for (const p of procs) {
-    if (isClaudePrint(p) && p.runId === spec.runId)
+    if (isAgentPrint(p) && p.runId === spec.runId)
       for (const pid of descendants(p.pid, procs)) found.add(pid);
   }
   return found;

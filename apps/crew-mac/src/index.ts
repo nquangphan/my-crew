@@ -33,7 +33,7 @@ export { type InstallCrewMacResult, installCrewMacFrom } from './install-cli.js'
 export { type Manifest, readManifest } from './manifest.js';
 export { DEFAULT_PORT, forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL } from './paths.js';
 export { listProcesses, type ProcInfo, readCwds } from './reaper/process-table.js';
-export { isClaudePrint } from './reaper/select.js';
+export { isAgentPrint, isClaudePrint } from './reaper/select.js';
 export {
   AGENT_SHELL,
   RUNTIMES_USAGE,

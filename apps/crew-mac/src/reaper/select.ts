@@ -1,7 +1,7 @@
 import type { ProcInfo } from './process-table.js';
-import { isClaudePrint, SSHD_RE } from './run-members.js';
+import { isAgentPrint, isClaudePrint, SSHD_RE } from './run-members.js';
 
-export { isClaudePrint };
+export { isAgentPrint, isClaudePrint };
 
 /** Callback bridge Paperclip đang được đếm giờ: thấy lần đầu lúc `since`, thời điểm sinh `startedAt` (epoch giây). */
 export interface BridgeSeen {
@@ -15,7 +15,7 @@ export interface ReaperState {
   bridgeSince: Record<string, BridgeSeen>;
 }
 
-/** claude `--print` của một run đã mồ côi quá thời hạn. */
+/** Process chính (claude/codex/opencode) của một run đã mồ côi quá thời hạn. */
 export interface OrphanRun {
   pid: number;
   runId: string;
@@ -47,7 +47,7 @@ export function selectTargets(
   const nextState: ReaperState = { orphanSince: {}, bridgeSince: {} };
   const targets: OrphanRun[] = [];
   for (const p of procs) {
-    if (p.pid === selfPid || !isClaudePrint(p) || !isOrphaned(p, byPid)) continue;
+    if (p.pid === selfPid || !isAgentPrint(p) || !isOrphaned(p, byPid)) continue;
     const runId = p.runId as string;
     const key = `${p.pid}:${runId}`;
     const since = state.orphanSince[key] ?? now.toISOString();
