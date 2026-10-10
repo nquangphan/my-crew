@@ -1,0 +1,110 @@
+{
+  "stock": [
+    {
+      "signIn": 200
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.machines"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.map"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.docsCheck"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/issues/eff83344-44da-496e-b6bf-43f9156d6e67/read"
+    },
+    {
+      "name": "stock-01-tps-72",
+      "url": "/paperclip/TPS/issues/TPS-72",
+      "title": "docs: thêm ghi chú kiểm tra ngày 09/10/2026 vào hướng dẫn deploy • Tasks • 2P Solutions • Paperclip"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.map"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.docsCheck"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.map"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.docsCheck"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/issues/fbab35b8-86f5-4768-8eb5-ca568684955e/read"
+    },
+    {
+      "name": "stock-03-tps-102",
+      "url": "/paperclip/TPS/issues/TPS-102",
+      "title": "greet(): trả đúng chuỗi \"Xin chào\", cập nhật test và docs flow repo-a • Tasks • 2P Solutions • Paperclip"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.map"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.docsCheck"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.map"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/plugins/e29d3a17-f50b-4863-9005-ebf98119558d/data/crew.docsCheck"
+    },
+    {
+      "blocked": "POST",
+      "url": "/api/issues/eff83344-44da-496e-b6bf-43f9156d6e67/read"
+    }
+  ],
+  "new": {
+    "log": [
+      {
+        "shot": "new-01-tps-72-trang",
+        "url": "/TPS/issues/TPS-72"
+      },
+      {
+        "shot": "new-02-tps-72-trang-cuoi",
+        "url": "/TPS/issues/TPS-72"
+      },
+      {
+        "shot": "new-03-tps-102-trang",
+        "url": "/TPS/issues/TPS-102"
+      },
+      {
+        "shot": "new-04-popup-tren-danh-sach",
+        "url": "/TPS/issues?issue=TPS-72"
+      },
+      {
+        "shot": "new-05-sau-khi-dong-popup",
+        "url": "/TPS/issues"
+      },
+      {
+        "shot": "new-06-popup-link-truc-tiep-hop-thu",
+        "url": "/TPS/inbox?issue=TPS-102"
+      },
+      {
+        "shot": "new-07-tps-72-toi",
+        "url": "/TPS/issues/TPS-72"
+      }
+    ],
+    "misses": [
+      "POST /api/issues/eff83344-44da-496e-b6bf-43f9156d6e67/read {}",
+      "POST /api/issues/fbab35b8-86f5-4768-8eb5-ca568684955e/read {}"
+    ]
+  },
+  "note": "stock: prod /paperclip CHỈ XEM (chặn mọi request ghi); new: vite dev 127.0.0.1:5192 phát lại fixture GET ghi từ prod Crew UI (chỉ xem), WS live không có"
+}

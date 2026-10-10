@@ -1,0 +1,86 @@
+[
+  {
+    "step": "open",
+    "url": "/paperclip/",
+    "title": "Paperclip"
+  },
+  {
+    "step": "login-form",
+    "heading": 1
+  },
+  {
+    "step": "sign-in",
+    "status": 200
+  },
+  {
+    "step": "after-login",
+    "url": "/paperclip/CREA/dashboard"
+  },
+  {
+    "step": "issues",
+    "url": "/paperclip/TPS/issues",
+    "issueKeys": [
+      "TPS-101",
+      "TPS-102",
+      "TPS-81",
+      "TPS-83",
+      "TPS-84",
+      "TPS-85",
+      "TPS-86",
+      "TPS-87",
+      "TPS-88",
+      "TPS-89",
+      "TPS-90",
+      "TPS-91",
+      "TPS-92",
+      "TPS-93",
+      "TPS-94"
+    ],
+    "count": 15
+  },
+  {
+    "step": "dashboard",
+    "url": "/paperclip/TPS/dashboard"
+  },
+  {
+    "step": "crew-root",
+    "title": "2P Crew",
+    "url": "/TPS/dashboard",
+    "crewUiMarker": true
+  },
+  {
+    "step": "service-workers",
+    "count": 0
+  },
+  {
+    "step": "summary",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()",
+      "Failed to load resource: the server responded with a status of 403 ()"
+    ],
+    "apiErrors": [
+      "401 /api/auth/get-session",
+      "403 /api/adapters",
+      "403 /api/instance/settings/experimental",
+      "403 /api/companies",
+      "403 /api/adapters",
+      "403 /api/instance/settings/experimental",
+      "403 /api/adapters",
+      "403 /api/instance/settings/experimental",
+      "403 /api/adapters",
+      "403 /api/instance/settings/experimental"
+    ],
+    "websockets": [
+      "/api/companies/0e73c3ec-caeb-4e90-8097-b4730c5fdcae/events/ws",
+      "/api/companies/5befeb1a-1578-4656-b913-267494592e53/events/ws"
+    ]
+  }
+]

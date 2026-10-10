@@ -79,3 +79,9 @@ Câu hỏi: Đại Ca có duyệt vá lõi cho D5/D6/D7/D12 (mỗi cái vài dò
 - Vá lõi notify → call cho sự kiện plugin: VÁ và báo upstream.
 - R2-4: duyệt cả P5, P6, P7.
 - Push R3 ngay.
+- R3 BA: câu 1 giữ (UI thay hẳn), câu 2 app nhận như hiện tại, câu 3 **THÊM nút "Ép Done" có xác nhận (ghi board_override)**, câu 4 giữ VI+EN, câu 5 giữ, câu 6 **CHO sửa/xóa skill trên web**, câu 7 **LÀM nút gỡ agent/project trên web**, câu 8 giữ, đổi màu sau.
+- Luật giao việc SEC-2: giữ. Crew E2E: giữ, xóa file secret trên VPS sau DP-2. Tag: crew/v3.1 sau R2, crew/v3.2 sau R3, xóa các rc cục bộ.
+- R2-2: giữ kiểm chữ ký đầu file, giữ companies.read và đồng bộ template. R2-3: giữ cả 5. R2-5: giữ tất cả.
+- R2-4: bảng model theo khuyên; fallback theo khuyên; công tắc Codex/OpenCode tắt sẵn; **reviewer được chạy Codex** (thêm vào khuyên "chỉ executor").
+- Upstream: Đại Ca cho đăng issue/PR vá notify→call lên Paperclip khi CORE-P xong (10/10 07:20).
+- R3X: Q1 bật sẵn hủy việc con khi Ép Done; Q2 gỡ agent chỉ pause; Q3 gỡ project giữ yêu cầu mở; Q5 checkout có việc chưa commit thì giữ và báo; Q4 (sửa nguồn skill) theo khuyên (10/10 07:35).

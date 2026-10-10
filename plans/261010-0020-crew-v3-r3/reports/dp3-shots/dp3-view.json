@@ -1,0 +1,138 @@
+{
+  "result": [
+    {
+      "name": "marker",
+      "crewUi": "06e04053b370df6d252d65205a15ceefc3fe7e0d"
+    },
+    {
+      "name": "sign-in",
+      "status": 200
+    },
+    {
+      "name": "02-sau-dang-nhap",
+      "url": "/TPS/dashboard"
+    },
+    {
+      "name": "tong-quan",
+      "url": "/TPS/dashboard",
+      "headings": [
+        "AGENT",
+        "Run theo ngày",
+        "Yêu cầu theo trạng thái",
+        "Tỉ lệ thành công",
+        "Phans-Mac-mini.local\nTrực tuyến",
+        "HOẠT ĐỘNG GẦN ĐÂY",
+        "YÊU CẦU GẦN ĐÂY"
+      ]
+    },
+    {
+      "name": "sidebar",
+      "items": [
+        "2P Crew",
+        "2P Solutions",
+        "Tìm nhanh",
+        "⌘K",
+        "Yêu cầu mới",
+        "Tìm kiếm",
+        "Tổng quan",
+        "Hộp thư",
+        "21",
+        "CÔNG VIỆC",
+        "Yêu cầu",
+        "Project",
+        "Docs",
+        "TỔ CHỨC",
+        "Agent",
+        "Skills",
+        "Máy",
+        "HỆ THỐNG",
+        "Cài đặt",
+        "Hướng dẫn",
+        "Mở giao diện Paperclip gốc",
+        "CR",
+        "Crew Spike Admin",
+        "VI",
+        "EN"
+      ]
+    },
+    {
+      "name": "05-popup",
+      "via": "href",
+      "linkHref": "/TPS/issues/TPS-72",
+      "url": "/TPS/issues?q=TPS-72&issue=TPS-72",
+      "dialogVisible": true,
+      "dialogTitle": [
+        "TPS-72",
+        "",
+        "Chi tiết yêu cầu TPS-72"
+      ]
+    },
+    {
+      "name": "popup-dong",
+      "url": "/TPS/issues?q=TPS-72",
+      "dialogCount": 0
+    },
+    {
+      "name": "06-trang-day-du",
+      "url": "/TPS/issues/TPS-72",
+      "h1": null
+    },
+    {
+      "name": "07-paperclip-goc",
+      "href": "/paperclip/TPS/issues/TPS-72",
+      "openedUrl": "/paperclip/TPS/issues/TPS-72",
+      "title": "docs: thêm ghi chú kiểm tra ngày 09/10/2026 vào hướng dẫn deploy • Tasks • 2P Solutions • Paperclip",
+      "status": "opened"
+    },
+    {
+      "name": "08-dang-xuat",
+      "signOut": 200,
+      "url": "/login",
+      "companiesAfter": 403
+    }
+  ],
+  "consoleErrors": [
+    {
+      "page": "crew",
+      "url": "https://crew.2p-solutions.com/login",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "page": "stock",
+      "url": "https://crew.2p-solutions.com/paperclip/TPS/issues/TPS-72",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "page": "stock",
+      "url": "https://crew.2p-solutions.com/paperclip/TPS/issues/TPS-72",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "page": "crew",
+      "url": "https://crew.2p-solutions.com/login",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    }
+  ],
+  "badResponses": [
+    {
+      "page": "crew",
+      "status": 401,
+      "url": "/api/auth/get-session"
+    },
+    {
+      "page": "stock",
+      "status": 404,
+      "url": "/api/heartbeat-runs/7912ec5c-94de-4774-9586-68c19ee9f83a/log?offset=0&limitBytes=256000"
+    },
+    {
+      "page": "stock",
+      "status": 404,
+      "url": "/api/issues/eff83344-44da-496e-b6bf-43f9156d6e67/documents/plan"
+    },
+    {
+      "page": "crew",
+      "status": 401,
+      "url": "/api/auth/get-session"
+    }
+  ]
+}
