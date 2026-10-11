@@ -155,6 +155,82 @@ describe('addProject', () => {
     }
     expect(paperclip.requests.some((r) => r.method === 'DELETE')).toBe(false);
     expect(paperclip.envs.get(TEMPLATE_ENV)?.status).toBe('active');
+
+    // Quyền agent Crew: không tạo agent, không tạo skill; chỉ Trợ Lý giữ `tasks:assign`. Đặt trước khi resume.
+    for (const role of Object.keys(byRole)) {
+      const agent = paperclip.agents.get(ids(role));
+      expect(agent?.permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
+      expect(agent?.access.grants).toEqual(role === 'assistant' ? [{ permissionKey: 'tasks:assign' }] : []);
+      const patchAt = seq.indexOf(`PATCH /api/agents/${ids(role)}/permissions`);
+      expect(patchAt).toBeGreaterThan(-1);
+      expect(patchAt).toBeLessThan(seq.indexOf(`POST /api/agents/${ids(role)}/resume`));
+      const body = paperclip.requests[patchAt]?.body;
+      expect(body).toEqual({
+        canCreateAgents: false,
+        canCreateSkills: false,
+        canAssignTasks: role === 'assistant',
+      });
+    }
+  });
+
+  it('tiến độ bản cũ đã qua mọi bước role:* mà chưa đặt quyền → Chạy tiếp đặt quyền rồi mới resume', async () => {
+    const { sandbox, paperclip, input, store } = await world();
+    let failDoctor = true;
+    const fake = fakeOps(sandbox.home, {
+      doctor: () =>
+        failDoctor ? [{ id: 'worktree-root', title: 'x', status: 'fail', detail: 'chưa sẵn sàng' }] : [],
+    });
+    const deps = baseDeps(sandbox, paperclip, fake.ops, store);
+    const first = await addProject(deps, input);
+    expect(first.done).toEqual(ALL_ONE.slice(0, -1));
+    // Như bản app cũ: agent vẫn giữ quyền mặc định của Paperclip.
+    for (const agent of paperclip.agents.values()) {
+      agent.permissions = { canCreateAgents: true, canCreateSkills: true };
+      agent.access = { grants: [{ permissionKey: 'tasks:assign' }] };
+    }
+    failDoctor = false;
+    const second = await addProject(deps, input);
+    expect(second.error).toBeNull();
+    expect(second.done).toEqual(ALL_ONE);
+    for (const [role, entry] of Object.entries(second.agents)) {
+      const agent = paperclip.agents.get(entry.agentId as string);
+      expect(agent?.status).toBe('idle');
+      expect(agent?.permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
+      expect(agent?.access.grants.length).toBe(role === 'assistant' ? 1 : 0);
+    }
+  });
+
+  it('Paperclip không áp quyền (đọc lại vẫn mặc định) → check lỗi tiếng Việt rõ, không resume', async () => {
+    const { paperclip, deps, input } = await world();
+    paperclip.rules.push({
+      match: (r) => r.method === 'PATCH' && r.path.endsWith('/permissions'),
+      status: 200,
+      body: {},
+      times: Number.POSITIVE_INFINITY,
+    });
+    const progress = await addProject(deps, input);
+    expect(progress.error).toContain('Quyền của agent landing-executor-1 chưa bị giới hạn');
+    expect(progress.error).toContain('còn được tạo agent');
+    expect(progress.error).toContain('còn được tạo skill');
+    expect(progress.error).toContain('còn được giao việc');
+    expect(progress.done).not.toContain('check');
+    for (const agent of paperclip.agents.values()) expect(agent.status).toBe('paused');
+  });
+
+  it('Trợ Lý mất grant tasks:assign → check báo thiếu quyền giao việc', async () => {
+    const { sandbox, paperclip, input, store } = await world();
+    const fake = fakeOps(sandbox.home, {
+      doctor: () => {
+        for (const agent of paperclip.agents.values()) {
+          if (agent.name === 'landing-assistant') agent.access = { grants: [] };
+        }
+        return [];
+      },
+    });
+    const progress = await addProject(baseDeps(sandbox, paperclip, fake.ops, store), input);
+    expect(progress.error).toContain('landing-assistant');
+    expect(progress.error).toContain('Trợ Lý thiếu quyền giao việc');
+    for (const agent of paperclip.agents.values()) expect(agent.status).toBe('paused');
   });
 
   it('lỗi ở role:reviewer → ghi error, dừng; chạy lại tiếp mà không tạo lại project/agent', async () => {

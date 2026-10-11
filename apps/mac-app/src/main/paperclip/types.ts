@@ -73,6 +73,17 @@ export interface PaperclipAgent {
   engine: string | null;
 }
 
+/**
+ * Quyền của agent như board đặt qua `PATCH /agents/:id/permissions`. Paperclip mặc định cho agent mới tạo được tạo
+ * agent, tạo skill và tự cấp grant `tasks:assign`; agent Crew chỉ Trợ Lý được giao việc.
+ */
+export interface AgentPermissions {
+  canCreateAgents: boolean;
+  canCreateSkills: boolean;
+  /** Có grant `tasks:assign` (đọc lại từ `access.grants`). */
+  canAssignTasks: boolean;
+}
+
 export interface InstructionsFile {
   content: string;
   /** `contentHash` của server (64 hex), dùng làm `baseHash` khi PUT. */
@@ -99,6 +110,14 @@ export interface PaperclipClient {
   /** `POST /agents/:id/resume` → `idle`; server từ chối agent `pending_approval`/`terminated` (409). */
   resumeAgent(agentId: string): Promise<void>;
   patchAgent(agentId: string, patch: Record<string, unknown>): Promise<void>;
+  /** `PATCH /agents/:id/permissions`; `canAssignTasks` thêm/bỏ grant `tasks:assign`. */
+  setAgentPermissions(agentId: string, permissions: AgentPermissions): Promise<void>;
+  /**
+   * Đọc lại quyền từ `GET /agents/:id` như `agent-permissions.sh` của fork: `canCreateAgents` chỉ khi đúng `true`,
+   * `canCreateSkills` trừ khi đúng `false` (mặc định server là được), `canAssignTasks` khi có grant `tasks:assign`.
+   * `null` khi agent không có (404).
+   */
+  getAgentPermissions(agentId: string): Promise<AgentPermissions | null>;
   /** `null` khi file chưa có (404). */
   getInstructionsFile(agentId: string, path: 'AGENTS.md'): Promise<InstructionsFile | null>;
   /** `baseHash` = `hash` của lần GET trước, `null` chỉ khi file chưa có (server trả 409 nếu đã có). */

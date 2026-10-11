@@ -318,6 +318,36 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       await call('PATCH', `/api/agents/${id(agentId)}`, patch);
     },
 
+    async setAgentPermissions(agentId, permissions) {
+      const { canCreateAgents, canCreateSkills, canAssignTasks } = permissions;
+      if (![canCreateAgents, canCreateSkills, canAssignTasks].every((v) => typeof v === 'boolean')) {
+        throw new Error('Quyền agent phải là boolean');
+      }
+      await call('PATCH', `/api/agents/${id(agentId)}/permissions`, {
+        canCreateAgents,
+        canCreateSkills,
+        canAssignTasks,
+      });
+    },
+
+    async getAgentPermissions(agentId) {
+      const agent = await call<{ permissions?: unknown; access?: unknown } | null>(
+        'GET',
+        `/api/agents/${id(agentId)}`,
+        undefined,
+        true,
+      );
+      if (!agent) return null;
+      const grants = isRecord(agent.access) ? agent.access.grants : undefined;
+      if (!Array.isArray(grants)) throw new Error('Paperclip không trả access.grants của agent');
+      const permissions = isRecord(agent.permissions) ? agent.permissions : {};
+      return {
+        canCreateAgents: permissions.canCreateAgents === true,
+        canCreateSkills: permissions.canCreateSkills !== false,
+        canAssignTasks: grants.some((g) => isRecord(g) && g.permissionKey === 'tasks:assign'),
+      };
+    },
+
     async getInstructionsFile(agentId, path) {
       const file = await call<{ content?: unknown; contentHash?: unknown } | null>(
         'GET',

@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { forbiddenRootReason } from '@crew/mac';
 import type { AddProjectInput } from '../../shared/ipc-contract.js';
 import type { ProjectProgress } from '../app-state.js';
-import type { PaperclipEnvironment, ProjectRoles } from '../paperclip/types.js';
+import type { AgentPermissions, PaperclipEnvironment, ProjectRoles } from '../paperclip/types.js';
 import {
   agentBranch,
   configureDocsBundle,
@@ -34,6 +34,14 @@ const AGENT_MODELS: Record<ReturnType<typeof templateOf>, string> = {
   reviewer: 'claude-sonnet-5',
   integrator: 'claude-sonnet-5',
 };
+
+/**
+ * Quyền agent Crew như wizard web và `crew/ops/agent-permissions.sh` của fork: không tạo agent, không tạo skill; chỉ
+ * Trợ Lý giữ `tasks:assign` để giao việc cho executor. Paperclip mặc định cho agent mới cả ba quyền.
+ */
+function crewPermissions(role: string): AgentPermissions {
+  return { canCreateAgents: false, canCreateSkills: false, canAssignTasks: templateOf(role) === 'assistant' };
+}
 
 /** Một project chỉ chạy một lần thêm tại một thời điểm (hai lần bấm "Chạy tiếp" liền nhau). */
 const running = new Set<string>();
@@ -163,7 +171,18 @@ class AddRun {
     await this.step('roles', () =>
       this.deps.client.setRoles(this.companyId, this.projectId(), this.expectedRoles()),
     );
+    // Không ghi vào `done`: chạy lại mỗi lần trước `check` (PATCH idempotent), nên tiến độ của bản app cũ đã qua mọi
+    // bước `role:*` mà chưa đặt quyền, hay quyền bị đổi lại sau lần chạy trước, vẫn được đặt đúng trước khi resume.
+    if (!this.rec.get().done.includes('check')) await this.restrictPermissions();
     await this.step('check', () => this.check());
+  }
+
+  /** Đặt lại quyền của mọi agent của project (tạo mới hay dùng lại) trong lúc agent còn `paused`. */
+  private async restrictPermissions(): Promise<void> {
+    this.deps.log?.('project-step', { key: this.input.key, step: 'permissions' });
+    for (const role of this.roles) {
+      await this.deps.client.setAgentPermissions(this.agentId(role), crewPermissions(role));
+    }
   }
 
   private async step(name: ProgressStep, fn: () => Promise<unknown>): Promise<void> {
@@ -351,7 +370,10 @@ class AddRun {
     if (agent.status !== 'paused') await client.pauseAgent(agentId);
   }
 
-  /** Kiểm cuối rồi mới resume agent: worktree sạch nguồn skill, vai trò đọc lại khớp, mọi agent có engine cli. */
+  /**
+   * Kiểm cuối rồi mới resume agent: worktree sạch nguồn skill, vai trò đọc lại khớp, mọi agent có engine cli và quyền
+   * đọc lại đúng quyền agent Crew.
+   */
   private async check(): Promise<void> {
     const results = await this.deps.ops.call('doctor', {
       probe: false,
@@ -386,6 +408,15 @@ class AddRun {
           `Agent ${recordName(this.input.key, role)} không có adapterConfig.engine=cli (đang là ${agent?.engine ?? 'trống'}): Paperclip sẽ chạy ACP và hỏng trên environment SSH`,
         );
       }
+      const name = recordName(this.input.key, role);
+      const actual = await this.deps.client.getAgentPermissions(agent.id);
+      if (!actual) throw new Error(`Agent ${name} không còn trên Paperclip`);
+      const wrong = permissionMismatch(actual, crewPermissions(role));
+      if (wrong.length > 0) {
+        throw new Error(
+          `Quyền của agent ${name} chưa bị giới hạn (${wrong.join(', ')}): bấm Chạy tiếp để đặt lại`,
+        );
+      }
       agents.push(agent);
     }
     for (const agent of agents) {
@@ -417,4 +448,19 @@ class AddRun {
       this.deps.log?.('project-pause-failed', { key: this.input.key, message: String(error) });
     }
   }
+}
+
+/** Lời tiếng Việt cho từng quyền đọc lại khác quyền mong muốn. */
+function permissionMismatch(actual: AgentPermissions, expected: AgentPermissions): string[] {
+  const wrong: string[] = [];
+  if (actual.canCreateAgents !== expected.canCreateAgents) {
+    wrong.push(actual.canCreateAgents ? 'còn được tạo agent' : 'không được tạo agent');
+  }
+  if (actual.canCreateSkills !== expected.canCreateSkills) {
+    wrong.push(actual.canCreateSkills ? 'còn được tạo skill' : 'không được tạo skill');
+  }
+  if (actual.canAssignTasks !== expected.canAssignTasks) {
+    wrong.push(actual.canAssignTasks ? 'còn được giao việc' : 'Trợ Lý thiếu quyền giao việc');
+  }
+  return wrong;
 }

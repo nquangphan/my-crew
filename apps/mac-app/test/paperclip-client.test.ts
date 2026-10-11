@@ -404,7 +404,11 @@ describe('route', () => {
       step += 1;
       if (step === 1) return { status: 200, body: { roles: null } };
       if (step === 2) {
-        const runtimeSlots = { codexExecutorAgentId: null, opencodeExecutorAgentId: null, codexReviewerAgentId: null };
+        const runtimeSlots = {
+          codexExecutorAgentId: null,
+          opencodeExecutorAgentId: null,
+          codexReviewerAgentId: null,
+        };
         return { status: 200, body: { roles: { ...ROLES, ...runtimeSlots } } };
       }
       if (step === 3) return { status: 200, body: { roles: ROLES } };
@@ -442,6 +446,60 @@ describe('route cho thêm/gỡ project', () => {
       { id: B, name: 'b', status: 'idle', companyId: C, defaultEnvironmentId: null, engine: 'cli' },
     ]);
     expect(server.requests[0]).toMatchObject({ method: 'GET', path: `/api/companies/${C}/agents` });
+  });
+
+  it('setAgentPermissions: PATCH /api/agents/:id/permissions đủ ba quyền; giá trị không boolean thì không gọi mạng', async () => {
+    const { server, client } = await setup(() => ({ status: 200, body: { id: A } }));
+    await client.setAgentPermissions(A, {
+      canCreateAgents: false,
+      canCreateSkills: false,
+      canAssignTasks: true,
+    });
+    expect(server.requests[0]).toMatchObject({
+      method: 'PATCH',
+      path: `/api/agents/${A}/permissions`,
+      body: { canCreateAgents: false, canCreateSkills: false, canAssignTasks: true },
+    });
+    await expect(
+      client.setAgentPermissions(A, {
+        canCreateAgents: false,
+        canCreateSkills: 'no' as unknown as boolean,
+        canAssignTasks: false,
+      }),
+    ).rejects.toThrow('boolean');
+    expect(server.requests).toHaveLength(1);
+  });
+
+  it('getAgentPermissions: đọc như agent-permissions.sh (skill mặc định được, grant tasks:assign); 404 → null', async () => {
+    const bodies: unknown[] = [
+      {
+        id: A,
+        permissions: { canCreateAgents: false, canCreateSkills: false },
+        access: { canAssignTasks: true, grants: [{ permissionKey: 'tasks:assign' }] },
+      },
+      // Thiếu canCreateSkills: server mặc định cho tạo skill. `access.canAssignTasks` true do mặc định thành viên,
+      // không có grant thì không tính là được giao việc.
+      { id: A, permissions: { canCreateAgents: true }, access: { canAssignTasks: true, grants: [] } },
+      { id: A, permissions: {} },
+    ];
+    let n = 0;
+    const { server, client } = await setup(() => {
+      const body = bodies[n++];
+      return body ? { status: 200, body } : { status: 404, body: { error: 'Agent not found' } };
+    });
+    await expect(client.getAgentPermissions(A)).resolves.toEqual({
+      canCreateAgents: false,
+      canCreateSkills: false,
+      canAssignTasks: true,
+    });
+    await expect(client.getAgentPermissions(A)).resolves.toEqual({
+      canCreateAgents: true,
+      canCreateSkills: true,
+      canAssignTasks: false,
+    });
+    await expect(client.getAgentPermissions(A)).rejects.toThrow('access.grants');
+    await expect(client.getAgentPermissions(A)).resolves.toBeNull();
+    expect(server.requests.every((r) => r.method === 'GET' && r.path === `/api/agents/${A}`)).toBe(true);
   });
 
   it('resumeAgent: POST /api/agents/:id/resume', async () => {

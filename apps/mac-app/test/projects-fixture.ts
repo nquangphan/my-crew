@@ -25,6 +25,9 @@ interface FakeAgent {
   adapterType: string;
   adapterConfig: Record<string, unknown>;
   runtimeConfig: unknown;
+  /** Như Paperclip: agent mới được tạo agent, tạo skill và có sẵn grant `tasks:assign`. */
+  permissions: { canCreateAgents?: boolean; canCreateSkills?: boolean };
+  access: { grants: Array<{ permissionKey: string }> };
 }
 
 interface FakeEnv {
@@ -127,6 +130,8 @@ export async function startStatefulPaperclip(
         id: randomUUID(),
         companyId: COMPANY,
         status: opts.requireApproval ? 'pending_approval' : 'idle',
+        permissions: { canCreateAgents: true, canCreateSkills: true },
+        access: { grants: [{ permissionKey: 'tasks:assign' }] },
       };
       agents.set(agent.id, agent);
       files.set(agent.id, `# ${agent.name}\nmặc định\n`);
@@ -153,6 +158,25 @@ export async function startStatefulPaperclip(
         if (agent.status === 'pending_approval' || agent.status === 'terminated')
           return { status: 409, body: { error: 'cannot resume' } };
         agent.status = 'idle';
+        return { status: 200, body: agent };
+      }
+      if (req.method === 'PATCH' && tail === '/permissions') {
+        const body = req.body as {
+          canCreateAgents: boolean;
+          canCreateSkills?: boolean;
+          canAssignTasks: boolean;
+        };
+        if (typeof body.canCreateAgents !== 'boolean' || typeof body.canAssignTasks !== 'boolean')
+          return { status: 400, body: { error: 'Validation error' } };
+        agent.permissions = {
+          ...agent.permissions,
+          canCreateAgents: body.canCreateAgents,
+          ...(body.canCreateSkills === undefined ? {} : { canCreateSkills: body.canCreateSkills }),
+        };
+        const grants = agent.access.grants.filter((g) => g.permissionKey !== 'tasks:assign');
+        // Như server: agent được tạo agent thì luôn giữ `tasks:assign`.
+        if (body.canAssignTasks || body.canCreateAgents) grants.push({ permissionKey: 'tasks:assign' });
+        agent.access = { grants };
         return { status: 200, body: agent };
       }
       if (tail === '/instructions-bundle/file') {

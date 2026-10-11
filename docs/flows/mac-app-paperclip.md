@@ -94,6 +94,8 @@ path không query, status.
 | `pauseAgent` | `POST /api/agents/:id/pause` | agent không tạo thẳng ở `paused` được |
 | `resumeAgent` | `POST /api/agents/:id/resume` | server từ chối agent `pending_approval`/`terminated` (409) |
 | `patchAgent` | `PATCH /api/agents/:id` | |
+| `setAgentPermissions` | `PATCH /api/agents/:id/permissions` | `{ canCreateAgents, canCreateSkills, canAssignTasks }`, cả ba phải là boolean (sai thì ném, không gọi mạng); `canAssignTasks` thêm/bỏ grant `tasks:assign` |
+| `getAgentPermissions` | `GET /api/agents/:id` | Đọc như `crew/ops/agent-permissions.sh` của fork: `canCreateAgents` chỉ khi `permissions.canCreateAgents` đúng `true`; `canCreateSkills` trừ khi đúng `false` (server mặc định cho tạo skill); `canAssignTasks` khi `access.grants` có `tasks:assign` (không dùng `access.canAssignTasks`, vì thành viên `active` nào cũng `true` theo mặc định). 404 → `null`; thiếu `access.grants` thì ném |
 | `getInstructionsFile` | `GET /api/agents/:id/instructions-bundle/file?path=AGENTS.md` | `{ content, hash = contentHash }`; 404 → `null`; hash sai dạng thì ném |
 | `putInstructionsFile` | `PUT /api/agents/:id/instructions-bundle/file` | `{ path, content, baseHash }`: `baseHash` = hash của GET; `null` chỉ khi chưa có file (có rồi → 409); thiếu → 422 |
 | `cancelRun` | `POST /api/heartbeat-runs/:runId/cancel` | |
@@ -144,7 +146,8 @@ song.
 | `status-repo` | `ops.addStatusRepo(projectId, <folder>, companyId)` (company đang chọn: ảnh chụp docs đi đúng company khi bản tin có nhiều đích) — ảnh chụp docs đọc thẳng folder của owner. `crew-mac status send` chỉ đọc qua git (`git show`/`ls-tree` ở commit `origin/HEAD`, worktree tạm detached trong thư mục tạm), không đọc working tree; mỗi lượt nó `git fetch origin` trong folder (chỉ đổi ref remote) — xem `docs/flows/mac-setup.md` mục "Ảnh chụp docs" |
 | `role:<vai>` | Theo thứ tự `executor-1`, (`executor-2`), `assistant`, `reviewer`, `integrator` (executor trước để Trợ Lý có danh sách id). Worktree riêng `~/crew-agents/<key>/<vai>` bằng `git -C <folder> -c core.hooksPath=/dev/null worktree add --no-track -b agent/<key>-<vai> <checkout> <baseRef>` (như R1: worktree của repo gốc, nhánh `agent/…` riêng; hook của repo không chạy). Nhánh `agent/<key>-<vai>` đã có (thêm lại sau khi gỡ) thì `worktree add <checkout> <nhánh>` dùng lại nhánh đó. Worktree đã có đúng chỗ (`--git-common-dir` trùng `.git` của folder, `--show-toplevel` là checkout) thì dùng lại; thư mục khác ở đó thì báo lỗi, không đè. Thêm `.paperclip-runtime/` vào `info/exclude` (file chung trong `.git` của folder, chỉ nối một dòng). Environment `<key>-<vai>`: SSH `in_place`, `remoteWorkspacePath` = checkout, host/user/`knownHosts`/`crewLoadGate` và secret SSH (`privateKeySecretRef.secretId`) lấy từ environment SSH `in_place` đang `active` của máy (cùng cổng `manifest.port` của `crew-mac setup`). Agent `<key>-<vai>`: `claude_local`, `engine: "cli"`, `env: {}`, `model` theo vai như agent R1 (Trợ Lý `claude-opus-5`, executor/reviewer/integrator `claude-sonnet-5`), `command` = `<home>/.crew/bin/crew-claude-run`, `extraArgs` = bản ghim Superpowers (`setup().superpowers`, kiểm khuôn như `merge-agent-config.mjs`), heartbeat tắt, `maxConcurrentRuns: 1`, `defaultEnvironmentId` = environment trên. Agent (và environment) đã có trên server cùng tên mà chưa có trong tiến độ (response bị mất) thì dùng lại. Rồi giữ agent ở `paused`; tải `AGENTS.md` |
 | `roles` | `setRoles(companyId, projectId, { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId })`. Plugin kiểm luật (reviewer ≠ integrator, 1–2 executor, không vai trò chéo giữa project, không agent `terminated`) |
-| `check` | `doctor({ probe: false, skipTcc: true })` không có `fail` ở `worktree-workflows`, `worktree-root`; `workflowCheck` sạch cho từng checkout; `getRoles` đọc lại khớp; `getAgent` từng agent đọc lại có `engine` = `cli` (agent dùng lại do bản app cũ tạo thiếu `engine` bị chặn ở đây, phải PATCH `adapterConfig.engine` rồi Chạy tiếp). Đạt hết thì mới `resumeAgent` các agent đang `paused` |
+| (đặt quyền) | Không phải bước trong `done`: mỗi lần chạy mà `check` chưa xong thì `setAgentPermissions` cho mọi agent của project (tạo mới hay dùng lại) ngay trước `check`, lúc agent còn `paused`. Quyền agent Crew như wizard web và `agent-permissions.sh`: `canCreateAgents: false`, `canCreateSkills: false`, `canAssignTasks` chỉ `true` cho Trợ Lý. Paperclip mặc định cho agent mới cả ba (tạo agent, tạo skill, grant `tasks:assign`); bản app trước không đặt lại (8 agent `visinote-*`, `business-app-*` trên prod 11/10 phải sửa tay). Vì không ghi vào `done`, tiến độ của bản cũ đã qua mọi `role:*` vẫn được đặt quyền khi Chạy tiếp; PATCH lặp lại không đổi gì |
+| `check` | `doctor({ probe: false, skipTcc: true })` không có `fail` ở `worktree-workflows`, `worktree-root`; `workflowCheck` sạch cho từng checkout; `getRoles` đọc lại khớp; `getAgent` từng agent đọc lại có `engine` = `cli` (agent dùng lại do bản app cũ tạo thiếu `engine` bị chặn ở đây, phải PATCH `adapterConfig.engine` rồi Chạy tiếp); `getAgentPermissions` từng agent đọc lại đúng quyền agent Crew, lệch thì lỗi "Quyền của agent `<key>-<vai>` chưa bị giới hạn (còn được tạo agent, còn được tạo skill, còn được giao việc / Trợ Lý thiếu quyền giao việc): bấm Chạy tiếp để đặt lại". Đạt hết thì mới `resumeAgent` các agent đang `paused` |
 
 Những gì app ghi vào folder của owner, tất cả nằm trong `.git`: metadata worktree (`.git/worktrees/<tên>`), nhánh
 `agent/<key>-<vai>`, git config `crew-docs.*` (khi chưa có), một dòng `.paperclip-runtime/` trong `info/exclude`.
@@ -327,7 +330,9 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 - `apps/mac-app/test/paperclip-client.test.ts`: Paperclip giả trên `127.0.0.1` (`paperclip-fake-server.ts`); Bearer,
   đọc key mỗi lời gọi, timeout, 401/403/422, log không có key, đường dẫn và body từng route, không có `DELETE`
   environment; `createAgent` gửi đúng `adapterConfig` (`engine: "cli"`, `model`, `env: {}`) và từ chối khi thiếu
-  `model`; `agents`/`getAgent` trả `engine`, không trả `env`.
+  `model`; `agents`/`getAgent` trả `engine`, không trả `env`; `setAgentPermissions` gửi đủ ba quyền, từ chối giá trị
+  không boolean; `getAgentPermissions` đọc grant `tasks:assign` (không tin `access.canAssignTasks`), thiếu
+  `canCreateSkills` là được tạo skill, thiếu `access.grants` thì ném, 404 → `null`.
 - `apps/mac-app/test/paperclip-cli-auth.test.ts`: body thử thách, `approvalUrl`, poll `pending/approved/expired/cancelled/404`,
   lưu key đúng một lần (kể cả hai poll song song), log không có token.
 - `apps/mac-app/test/paperclip-keychain.test.ts`: lệnh `security`, giá trị lưu là bản mã, mã 44, mục cũ không mã hóa,
@@ -343,6 +348,10 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   khác/đã thêm với khóa khác, thư mục lạ ở chỗ checkout không bị đè, gỡ → chạy lệnh in ra → thêm lại dùng lại nhánh,
   tiến độ kiểu cũ, hai executor, chờ duyệt agent, plugin từ chối vai trò, kiểm cuối hỏng không resume, agent đọc lại
   thiếu `engine` cli thì lỗi ở `check` và không resume. Agent tạo ra có `engine: "cli"`, `env: {}`, model theo vai.
+  Quyền: mọi agent bị PATCH quyền agent Crew trước khi resume (chỉ Trợ Lý giữ `tasks:assign`); tiến độ bản cũ đã qua
+  mọi `role:*` với agent còn quyền mặc định thì Chạy tiếp đặt quyền rồi resume; Paperclip không áp quyền hay Trợ Lý
+  mất `tasks:assign` thì `check` lỗi tiếng Việt và không resume. Paperclip giả cho agent mới quyền mặc định như server
+  và có route `PATCH /agents/:id/permissions`.
 - `apps/mac-app/test/projects-folder.test.ts`: `inspectFolder` (gốc, `.git` chung, origin, nhánh mặc định và thứ tự
   dự phòng; từng ca từ chối), `folderGuardReason` không chặn `/Volumes`, `suggestKey`.
 - `apps/mac-app/test/projects-remove.test.ts`: thứ tự gỡ, lệnh `git -C … worktree remove …`, không xóa project/worktree,
