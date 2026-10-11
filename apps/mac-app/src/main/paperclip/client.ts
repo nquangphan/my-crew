@@ -359,7 +359,11 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
         'GET',
         `${ROLES_PATH}/${id(projectId)}/roles?companyId=${id(companyId)}`,
       );
-      return answer?.roles ?? null;
+      const roles = answer?.roles;
+      if (!roles) return null;
+      // Server còn trả thêm các ô runtime (Codex, OpenCode) mà app không ghi: chỉ giữ bốn vai trò app quản lý.
+      const { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId } = roles;
+      return { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId };
     },
 
     async setRoles(companyId, projectId, roles) {

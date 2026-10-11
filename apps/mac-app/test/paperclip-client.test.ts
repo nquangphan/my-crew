@@ -398,12 +398,15 @@ describe('route', () => {
     ]);
   });
 
-  it('roles: GET/POST/DELETE route plugin crew.core', async () => {
+  it('roles: GET/POST/DELETE route plugin crew.core, GET bỏ các ô runtime app không quản lý', async () => {
     let step = 0;
     const { server, client } = await setup(() => {
       step += 1;
       if (step === 1) return { status: 200, body: { roles: null } };
-      if (step === 2) return { status: 200, body: { roles: ROLES } };
+      if (step === 2) {
+        const runtimeSlots = { codexExecutorAgentId: null, opencodeExecutorAgentId: null, codexReviewerAgentId: null };
+        return { status: 200, body: { roles: { ...ROLES, ...runtimeSlots } } };
+      }
       if (step === 3) return { status: 200, body: { roles: ROLES } };
       return { status: 200, body: { deleted: true } };
     });
