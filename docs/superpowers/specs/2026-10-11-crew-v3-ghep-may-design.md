@@ -58,7 +58,7 @@ company 2P Solutions, giá trị lấy từ `paperclipKey` trong `~/.crew-mac/ma
 | routeKey | Method, path | Vào | Ra |
 |---|---|---|---|
 | `machines.pairInfo` | `GET /machines/pair-info?companyId=` | — | `200 {paperclipSshPublicKey}`; `409 {error:"Server chưa có key Paperclip"}` |
-| `machines.pair` | `POST /machines/pair` | đúng các key `{companyId, machineId, hostname, environmentId, tailscaleIp, port, hostKeyFingerprint}` | `200 {machineKey, pairedAt}` |
+| `machines.pair` | `POST /machines/pair` | đúng các key `{companyId, machineId, hostname, environmentId, tailscaleIp, port, hostKeyFingerprint}`, thêm tùy chọn `allowRepair: boolean` | `200 {machineKey, pairedAt}`; `409 {error, code:"machine_revoked"}`; `409 {error, code:"machine_uses_company_secret"}` |
 | `machines.unpair` | `POST /machines/:machineId/unpair` | `{companyId}` | `200 {environmentId, revokedAt}` (idempotent) |
 
 Luật chung giống `runtimes/switches.ts:127`: `actor.actorType` phải là `user`, nếu không thì 403. Lỗi DB chỉ ghi log
@@ -70,9 +70,23 @@ Kiểm body của `pair`:
 - `tailscaleIp` nằm trong `100.64.0.0/10`, `port` từ 1024 đến 65535.
 - `hostKeyFingerprint` khớp `^SHA256:[A-Za-z0-9+/]{43}$`.
 - `hostname` dài 1 đến 200 ký tự, không có `\0`.
+- `allowRepair` không bắt buộc. Có thì phải là boolean. Đây là key duy nhất được thêm ngoài danh sách trên.
 
-`pair` resolve secret company. Không có thì `409 "Company chưa có secret webhook"`. Sau đó `UPSERT` với nonce mới,
-xóa `revoked_*`, rồi trả key. Ghi log `crew machine paired` kèm companyId, machineId, userId, **không kèm key**.
+`pair` resolve secret company. Không có thì `409 "Company chưa có secret webhook"`. Sau đó chạy **một** câu `UPSERT`
+có điều kiện với nonce mới, xóa `revoked_*`, rồi trả key. Ghi log `crew machine paired` kèm companyId, machineId,
+userId, **không kèm key**. Câu ghi từ chối hai ca, và khi đó không ghi gì:
+- **Máy đã gỡ** (dòng ghép có `revoked_at`) mà body không có `allowRepair: true`: trả
+  `409 {error:"Máy đã bị gỡ, owner phải cho phép ghép lại", code:"machine_revoked"}`. Như vậy app không tự ghép lại
+  một máy owner vừa gỡ. Chỉ một thao tác chủ động của owner mới gửi `allowRepair: true`.
+- **Máy đang dùng secret company**: `machine_latest` đã có `machineId` này mà chưa có dòng ghép (đường của Mac mini).
+  Trả `409 {error:"Máy đang gửi bản tin bằng secret company, không ghép đè được", code:"machine_uses_company_secret"}`,
+  kể cả khi có `allowRepair`. Nếu không chặn, một dòng ghép mới sẽ làm mọi bản tin ký bằng secret company của máy đó
+  trượt `bad_signature` (vi phạm AC6).
+
+Ghép lại một máy đã ghép và chưa gỡ vẫn được phép: lần ghép đó xoay key, nonce mới làm key cũ chết. Key được dẫn xuất
+từ nonce mà chính lần gọi đó ghi, không đọc lại bảng. Host `ctx.db.execute` chỉ trả số dòng, không có `RETURNING`.
+Hai lần ghép đồng thời vì vậy nhận hai key khác nhau, và chỉ key của lần ghi sau còn sống. Không bao giờ có chuyện một
+key được trả cho hai người gọi.
 
 Data `crew.machines` (`machines/data.ts:14`) thêm cho mỗi máy trường
 `pairing: {pairedAt, revokedAt, environmentId, tailscaleIp} | null`, lấy bằng LEFT JOIN `machine_pairings`. Không trả
@@ -123,7 +137,10 @@ resolve không tăng: mỗi bản tin vẫn chỉ một lần, dưới trần 30
      `getTemplate`, thứ tự theo tên).
 
    Chỉ gọi `createEnvironment`, không bao giờ xóa.
-7. `client.pairMachine(...)` nhận `machineKey`, rồi `setStatusSecret(machineKey)`. `configureStatus` đã đặt đích đầu
+7. `client.pairMachine(...)` nhận `machineKey`, rồi `setStatusSecret(machineKey)`. App **không** tự gửi
+   `allowRepair`. Gặp `409 machine_revoked` thì báo "Máy này đã bị owner gỡ. Muốn dùng lại, owner phải xác nhận ghép
+   lại", và chỉ gọi lại kèm `allowRepair: true` khi owner bấm xác nhận đó. Gặp `409 machine_uses_company_secret` thì
+   dừng và báo lỗi, không ghép. `configureStatus` đã đặt đích đầu
    dùng service `crew-mac-status`. Biến chứa key bị xóa trong `finally`, giống `webhookSecret` ở dòng 70-72.
 8. `testStatus(companyId)` phải trả 2xx. Nếu không, báo: "Server từ chối bản tin máy (HTTP <mã>). Kiểm company đã
    chọn." Bước Máy không đạt.
@@ -184,19 +201,36 @@ Chỗ áp dụng:
   máy".
 - Hộp xác nhận: "Máy <hostname> sẽ không nhận run mới và bản tin của nó bị từ chối. Mac khác không ảnh hưởng."
 - Bấm Gỡ:
-  1. `PATCH /api/environments/:environmentId {status:"archived"}`, route stock;
-  2. `POST …/machines/:machineId/unpair`.
+  1. `GET /api/environments/:environmentId`, rồi so `config.host` với `pairing.tailscaleIp`. Lệch, hoặc không đọc được
+     `host` (server che `config` với người không phải instance admin), thì hiện lỗi "Environment <tên> trỏ tới <host>,
+     không phải <IP> của máy này…" và **không** archive, không unpair. Bước này chặn ca app gửi nhầm `environmentId`
+     (ví dụ của Mac mini, xem §6.4);
+  2. `PATCH /api/environments/:environmentId {status:"archived"}`, route stock;
+  3. `POST …/machines/:machineId/unpair`.
 
   Lỗi ở bước nào thì hiện nguyên câu lỗi. Nút còn đó cho tới khi có `revokedAt`, và cả hai bước đều idempotent nên bấm
   lại là đi tiếp. Archive trước để một lần thu hồi hỏng không để lại environment còn nhận run.
 - Thẻ có `revokedAt` hiện "Đã gỡ <giờ VN>" và không có nút.
 - Máy không có `pairing` (Mac mini) không có nút.
+- **Ai ghép, ai gỡ được.** Nút chỉ hiện cho owner, nhưng đó chỉ là giao diện. Route `pair` và `unpair` có auth `board`,
+  và plugin không đọc được `company_memberships` (§2). Vì vậy **mọi board member** của company (không phải viewer, không
+  phải agent) đều gọi được cả hai route. Rủi ro còn lại:
+  - Một member gọi `pair` cho `machineId` của một máy đã ghép thì nhận key hợp lệ của máy đó, và key thật của máy chết.
+    Từ đó họ gửi được `machine-status` và `docs-snapshot` giả dưới tên máy đó, kể cả `auditState`/`checkExit` của docs.
+  - Một member gọi `unpair` gỡ được máy bất kỳ đã ghép, và cũng gửi được `allowRepair: true` để ghép lại máy đã gỡ.
+  - Mac mini (máy dùng secret company) **không** bị ảnh hưởng: `pair` trả `409 machine_uses_company_secret` (§4).
+
+  Rủi ro này bằng 0 khi company chỉ có owner, như 2P Solutions hôm nay. Muốn chặn hẳn một máy đã gỡ thì phải thu hồi
+  thêm board key của máy đó, vì app trên máy vẫn giữ board key trong Keychain. Khi host có cách kiểm owner trong route
+  plugin thì chuyển `pair`/`unpair` sang kiểm owner.
 
 ## 9. Bảo mật
 
 | Mối nguy | Xử lý |
 |---|---|
-| Ai ghép được | Route `board` có scope company. Host chặn viewer và agent; route kiểm thêm `actorType === "user"`. App dùng board key của owner trong Keychain |
+| Ai ghép được | Route `board` có scope company. Host chặn viewer và agent; route kiểm thêm `actorType === "user"`. App dùng board key của owner trong Keychain. Mọi board member đều ghép/gỡ được, rủi ro còn lại ghi ở §8 |
+| Máy đã gỡ tự ghép lại | `pair` trả `409 machine_revoked` khi thiếu `allowRepair: true`. Chặn hẳn thì thu hồi thêm board key của máy |
+| Ghép đè máy dùng secret company | `pair` trả `409 machine_uses_company_secret`, Mac mini không bị khóa |
 | Lộ key một máy | Kẻ có key giả được bản tin máy và ảnh chụp docs của **đúng máy đó**. Owner bấm Gỡ là chặn ngay. Không suy ngược ra secret company được (HMAC một chiều) |
 | Lộ secret company | Như hôm nay: suy ra được mọi key máy. Xoay secret company làm mọi key máy chết theo. Máy ghép lại tự sửa vì ở bước 3, `testStatus` trượt nên app ghép lại. Ghi vào runbook |
 | Gửi lại bản tin (replay) | Khung ±300 giây giữ nguyên. Gửi lại chỉ ghi đè chính bản tin đó. Máy đã gỡ bị từ chối cả khi chữ ký còn hạn |
@@ -210,12 +244,12 @@ Chỗ áp dụng:
 
 | Tầng | Ca |
 |---|---|
-| Plugin unit/DB (`machine-pairing.db.test.ts`, `migration-0014.db.test.ts`) | Migration chạy. `pair`: key lạ, IP ngoài dải, actor agent bị 403, upsert đổi nonce và xóa revoked. Thiếu `paperclipSshPublicKey` thì 409. `unpair` idempotent |
+| Plugin unit/DB (`machine-pairing.db.test.ts`, `migration-0014.db.test.ts`) | Migration chạy. `pair`: key lạ, IP ngoài dải, actor agent bị 403, upsert đổi nonce và xóa revoked (chỉ khi có `allowRepair`). Máy đã gỡ thiếu `allowRepair` thì 409 `machine_revoked`. Máy đang dùng secret company thì 409 `machine_uses_company_secret`. Ghép đồng thời ra key khác nhau. Thiếu `paperclipSshPublicKey` thì 409. `unpair` idempotent |
 | Webhook (`webhook` test có sẵn và test mới) | Máy chưa ghép + secret company → ok. Máy đã ghép + key máy → ok. Máy đã ghép + secret company → `bad_signature`. Máy đã gỡ → `machine_revoked`. Key máy A dùng cho `machineId` B → trượt. `docs-snapshot` với key máy → ok |
 | crew-mac unit | `resolveNode`: Homebrew, `~/.crew/node`, đăng nhập shell, loại đường `.app`, loại major < 22. `ensureNode`: checksum đúng/sai (fetch giả), đổi chỗ nguyên khối. `stableNodePath` dưới Electron không trả `execPath`. Câu gợi ý doctor. `testStatus` trả mã HTTP |
 | mac-app unit | Bước Máy: máy mới ghép không dán gì. Máy có sẵn đạt test thì không ghép. Máy có sẵn bị 401/502 thì ghép. Lỗi mạng thì không ghép. 409 pair-info thì mở phần dán tay. Test cuối không 2xx thì không đạt. Biến key được xóa. Không có company mặc định. `getTemplate` theo `pairedEnvironmentId` |
-| crew-web unit | Nút chỉ hiện với owner. Thứ tự archive rồi unpair. Bấm lại sau lỗi |
-| E2E (một spec, T1) | `PW-S15-PAIR`: API ghép một máy giả (environment tạo bằng REST), trang Máy hiện "Đã ghép", bấm Gỡ, environment `archived`, thẻ "Đã gỡ" |
+| crew-web unit | Nút chỉ hiện với owner. Thứ tự đọc environment, archive, rồi unpair. Host environment lệch IP Tailscale thì không archive. Bấm lại sau lỗi |
+| E2E (một spec, T1) | `PW-S15-PAIR`: API ghép một máy giả (environment tạo bằng REST), trang Máy hiện "Đã ghép", bấm Gỡ, environment `archived`, thẻ "Đã gỡ", ghép lại không có `allowRepair` thì 409 `machine_revoked` |
 | Nghiệm thu thật | §11 |
 
 ## 11. Nghiệm thu (Cổng thật của brief)

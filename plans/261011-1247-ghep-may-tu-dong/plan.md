@@ -135,6 +135,10 @@ Ghi kết quả vào `reports/review.md`. Sửa xong mới deploy.
 1. `crew/release/verify.sh` xanh trên `crew/machine-pairing`.
 2. Build image (tag `crew/v3.4-ghep-may`), rồi `crew/ops/deploy.sh crew/v3.4-ghep-may`. `plugin-state.sh` báo
    `crew.core` `ready`, migration `0014` đã áp. Manifest không thêm capability.
+   - **Thứ tự: migration trước, worker / reload plugin sau.** Worker mới đọc `machine_pairings` cho **mọi** bản tin có
+     `machineId` dạng uuid, kể cả Mac mini. Bảng chưa có thì webhook trả `pairing_unavailable` (cố ý không fail-open), và
+     Mac mini mất bản tin. Vì vậy không reload riêng worker plugin (hot reload `dist`, restart worker) khi `0014` chưa
+     áp. Nếu `plugin-state.sh` chưa báo `0014` thì dừng, không chạy tiếp bước 3.
 3. Ghi lại fingerprint host key của Mac mini **trước** deploy:
    `ssh-keygen -lf ~/.crew-mac/sshd/host_ed25519.pub` (đường thật lấy theo `paths.hostKey`).
 4. Đặt `paperclipSshPublicKey` cho company TPS:
