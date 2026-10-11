@@ -265,6 +265,7 @@ flows:
       - apps/mac-app/src/main/tray.ts
       - apps/mac-app/src/main/tray-state.ts
       - apps/mac-app/src/main/window.ts
+      - apps/mac-app/src/main/window-controller.ts
       - apps/mac-app/src/main/register-health.ts
       - apps/mac-app/src/main/health.ts
       - apps/mac-app/src/main/runs.ts
@@ -302,6 +303,7 @@ flows:
       - apps/mac-app/test/logs.test.ts
       - apps/mac-app/test/notifications.test.ts
       - apps/mac-app/test/tray-state.test.ts
+      - apps/mac-app/test/window-controller.test.ts
       - apps/mac-app/test/renderer/health.test.tsx
       - apps/mac-app/test/app-state.test.ts
       - apps/mac-app/test/app-log.test.ts

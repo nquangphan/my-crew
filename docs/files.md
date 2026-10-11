@@ -229,6 +229,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/update/rollback.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/src/main/update/updater.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/src/main/update/versions.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
+| `apps/mac-app/src/main/window-controller.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/window.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/preload/index.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/renderer/app.tsx` | [mac-app](flows/mac-app.md) (file) |
@@ -296,6 +297,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/update-rollback.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
 | `apps/mac-app/test/update-updater.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
 | `apps/mac-app/test/update-versions.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
+| `apps/mac-app/test/window-controller.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |

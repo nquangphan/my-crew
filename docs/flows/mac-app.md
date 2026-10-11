@@ -13,6 +13,11 @@ cắm vào các điểm đã chừa.
 ## Điểm vào
 
 - Mở `2P Crew.app` (Finder, Dock hoặc login item). `apps/mac-app/src/main/index.ts` → `start`.
+- Mọi lần mở cửa sổ đi qua `src/main/window-controller.ts` và ghi một dòng info `window-show` (`trigger`: `tray`,
+  `second-instance`, `activate`, `startup`; `recreate`: có tạo lại cửa sổ không). `activate` còn ghi `window-activate`
+  kèm `hasVisibleWindows`, nên cửa sổ tự hiện lại là tra được trong `app.log` do nguồn nào. Đóng cửa sổ thì controller
+  bỏ tham chiếu (`closed`) và ẩn biểu tượng Dock (app là app tray; mở từ login item cũng ẩn Dock); mở lại cửa sổ thì
+  hiện Dock. Mọi lần gửi `state:changed` tới cửa sổ qua `sendIfAlive`, bỏ qua cửa sổ/webContents đã hủy.
 - Lần mở thứ hai chỉ đưa cửa sổ lên (`second-instance`). Đóng cửa sổ không thoát app (`window-all-closed` rỗng);
   thoát bằng menu tray "Thoát" (qua quit guard của flow `mac-app-sshd`: còn run thì hỏi).
 - Mở từ login item (`wasOpenedAtLogin`) thì chỉ hiện tray, không mở cửa sổ. Login item không tự bật lúc khởi động:
@@ -263,6 +268,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/setup/sshd-handoff.ts` | Chuyển sshd sang app, tự lui | `handoffSshd`, `listenerPids` |
 | `apps/mac-app/src/main/setup/v2-removal.ts` | Bước `v2` (gỡ app v2, giữ dữ liệu) và `move` (vào Applications) | `detectV2`, `removeV2`, `createV2Step`, `createMoveStep` |
 | `apps/mac-app/src/main/window.ts` | Cửa sổ renderer sandbox | `createMainWindow` |
+| `apps/mac-app/src/main/window-controller.ts` | Giữ một cửa sổ, ghi nguồn mở, ẩn/hiện Dock, gửi sự kiện an toàn | `createWindowController`, `sendIfAlive`, `ShowTrigger` |
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
 | `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi`, `StepResult` |
 | `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess; nhớ `nodePath` thật cho mọi `MacContext`; op ghép máy `testStatus`, `setTargetSecret`, `machineFacts` | `createOpsHandlers`, `OpsDeps`, `NodeFinder` |
@@ -335,6 +341,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, 403 không bảo đăng nhập lại, mở link web.
 - `apps/mac-app/test/logs.test.ts`: đuôi file, lọc run id, giới hạn 512 KB, file ngoài danh sách bị từ chối.
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
+- `apps/mac-app/test/window-controller.test.ts`: mở/đóng cửa sổ, nguồn mở trong nhật ký, gửi sự kiện không ném lỗi.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, khung nhận việc và nút Đăng nhập lại, màn Run và Log, giờ Việt Nam.
 - `apps/mac-app/test/setup-wizard.test.ts`: `check` (bốn dòng, dòng `node` hiện nhãn nguồn, tải lỗi thì không đạt kèm
   lỗi và `brew install node`), máy trạng thái (kể cả `state` của bước không đi tiếp), `paperclip`, `doctor`, `done` (HOME và runner giả).

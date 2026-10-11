@@ -2,7 +2,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { macPaths } from '@crew/mac';
-import { app, type BrowserWindow, ipcMain, utilityProcess } from 'electron';
+import { app, ipcMain, utilityProcess } from 'electron';
 import { STATE_CHANGED_EVENT } from '../shared/ipc-contract.js';
 import type { AppContext } from './app-context.js';
 import { AppLog } from './app-log.js';
@@ -19,6 +19,7 @@ import { registerSshd } from './sshd/register.js';
 import { CrewTray } from './tray.js';
 import { registerUpdate } from './update/register.js';
 import { createMainWindow } from './window.js';
+import { createWindowController, type ShowTrigger } from './window-controller.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -59,21 +60,19 @@ async function start(): Promise<void> {
   const rendererUrl = devUrl ?? pathToFileURL(join(here, '..', 'renderer', 'index.html')).toString();
   const loginItem = electronLoginItem(app);
 
-  let window: BrowserWindow | null = null;
-  const showWindow = () => {
-    if (!window || window.isDestroyed()) {
-      window = createMainWindow({
+  const windows = createWindowController({
+    create: () =>
+      createMainWindow({
         preload: join(here, '..', 'preload', 'index.cjs'),
         rendererUrl,
         route: 'health',
         show: true,
-      });
-      return;
-    }
-    if (window.isMinimized()) window.restore();
-    window.show();
-    window.focus();
-  };
+      }),
+    log,
+    // App tray: không có cửa sổ thì không để biểu tượng Dock; chỉ tray, mở lại app hoặc chạy lại app mới mở cửa sổ.
+    dock: app.dock ? { show: () => void app.dock?.show(), hide: () => app.dock?.hide() } : undefined,
+  });
+  const showWindow = (trigger: ShowTrigger) => windows.show(trigger);
 
   const ops = new UtilityOpsBridge(
     () =>
@@ -89,7 +88,7 @@ async function start(): Promise<void> {
     isTrusted: (url) => isTrustedSender(url, rendererUrl),
     log: (event, fields) => log('warn', event, fields),
   });
-  const tray = new CrewTray({ open: showWindow, quit: () => app.quit() });
+  const tray = new CrewTray({ open: () => showWindow('tray'), quit: () => app.quit() });
   const ctx: AppContext = {
     home,
     appVersion: app.getVersion(),
@@ -100,7 +99,7 @@ async function start(): Promise<void> {
     ipc,
     loginItem,
     tray,
-    showWindow,
+    showWindow: () => showWindow('tray'),
     quit: () => app.quit(),
   };
 
@@ -109,7 +108,7 @@ async function start(): Promise<void> {
     log('error', 'renderer-error', { ...report });
     return undefined;
   });
-  store.onChange(() => window?.webContents.send(STATE_CHANGED_EVENT));
+  store.onChange(() => windows.send(STATE_CHANGED_EVENT));
   const sshd = registerSshd(ctx);
   registerJobs(ctx);
   const health = registerHealth(ctx, sshd);
@@ -118,12 +117,13 @@ async function start(): Promise<void> {
   registerSetup(ctx, sshd, health);
   registerUpdate(ctx, sshd);
 
-  app.on('second-instance', showWindow);
-  app.on('activate', showWindow);
+  app.on('second-instance', () => showWindow('second-instance'));
+  app.on('activate', (_event, hasVisibleWindows) => windows.activate(hasVisibleWindows));
   // Đóng cửa sổ không thoát app.
   app.on('window-all-closed', () => undefined);
   app.on('will-quit', () => ops.dispose());
 
   log('info', 'app-started', { version: app.getVersion(), openedAtLogin: loginItem.openedAtLogin() });
-  if (!loginItem.openedAtLogin()) showWindow();
+  if (!loginItem.openedAtLogin()) showWindow('startup');
+  else app.dock?.hide();
 }

@@ -6,6 +6,7 @@ import type { AppContext } from '../app-context.js';
 import { type UtilityLike, UtilityOpsBridge } from '../ops-bridge.js';
 import { createPaperclipClient } from '../paperclip/client.js';
 import { boardKeys } from '../paperclip/register.js';
+import { sendIfAlive } from '../window-controller.js';
 import { createJobsPoller, MissingKeyError } from './poller.js';
 import { createJobsRemote } from './remote.js';
 import { forgetRemovedProject } from './remove.js';
@@ -82,7 +83,7 @@ export function registerJobs(ctx: AppContext): void {
     },
     log: (level, event, fields) => ctx.log(level, event, fields),
     onStatus: () => {
-      for (const win of BrowserWindow.getAllWindows()) win.webContents.send(STATE_CHANGED_EVENT);
+      for (const win of BrowserWindow.getAllWindows()) sendIfAlive(win, STATE_CHANGED_EVENT);
     },
     onForbidden: () => resolver.invalidate(),
   });
