@@ -267,6 +267,21 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       return { id: created.id };
     },
 
+    async updateEnvironment(environmentId, input: SshEnvironmentInput) {
+      await call('PATCH', `/api/environments/${id(environmentId)}`, {
+        status: 'active',
+        config: {
+          host: input.host,
+          port: input.port,
+          username: input.username,
+          remoteWorkspacePath: input.remoteWorkspacePath,
+          privateKeySecretRef: { type: 'secret_ref', secretId: input.privateKeySecretId, version: 'latest' },
+          knownHosts: input.knownHosts,
+          strictHostKeyChecking: true,
+        },
+      });
+    },
+
     async archiveEnvironment(environmentId) {
       await call('PATCH', `/api/environments/${id(environmentId)}`, { status: 'archived' });
     },

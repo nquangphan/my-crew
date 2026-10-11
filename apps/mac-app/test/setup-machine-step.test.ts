@@ -8,6 +8,7 @@ import type { PaperclipEnvironment } from '../src/main/paperclip/types.js';
 import type { ExistingMachine } from '../src/main/setup/import-existing.js';
 import {
   createMachineStep,
+  ENV_NAME_TAKEN_MESSAGE,
   MACHINE_STEP_STATE,
   machineEnvironmentName,
   REVOKED_MESSAGE,
@@ -91,6 +92,7 @@ async function harness(detected: ExistingMachine, options: HarnessOptions = {}) 
     ),
     environments: vi.fn(async () => options.envs ?? [TEMPLATE]),
     createEnvironment: vi.fn(async () => ({ id: 'env-new' })),
+    updateEnvironment: vi.fn(async () => undefined),
     archiveEnvironment: vi.fn(async () => undefined),
   };
   const dir = mkdtempSync(join(tmpdir(), 'machine-step-'));
@@ -255,7 +257,7 @@ describe('bước machine: ghép tự động', () => {
     expect(store.get().setup.pairedEnvironmentId).toBeNull();
   });
 
-  it('máy đã bị gỡ trên web: tự ghép không gửi allowRepair, báo rõ, archive environment vừa tạo', async () => {
+  it('máy đã bị gỡ trên web: tự ghép không gửi allowRepair, báo rõ, giữ environment vừa tạo (không archive)', async () => {
     const { step, client, opNames, store } = await harness(existing, {
       tests: [HTTP_401],
       pair: conflict('machine_revoked'),
@@ -264,9 +266,106 @@ describe('bước machine: ghép tự động', () => {
     expect(result).toMatchObject({ ok: false, state: MACHINE_STEP_STATE.revoked, message: REVOKED_MESSAGE });
     expect(client.pairMachine).toHaveBeenCalledTimes(1);
     expect(client.pairMachine.mock.calls[0]?.[1]).toEqual({});
-    expect(client.archiveEnvironment).toHaveBeenCalledWith('env-new');
+    expect(client.archiveEnvironment).not.toHaveBeenCalled();
     expect(opNames()).not.toContain('setTargetSecret');
     expect(store.get().setup.pairedEnvironmentId).toBeNull();
+  });
+
+  it('bị gỡ rồi ghép lại: bật lại environment đã archive cùng tên bằng PATCH, không tạo mới, giữ secret ref', async () => {
+    const archived: PaperclipEnvironment = {
+      ...TEMPLATE,
+      id: 'env-old',
+      name: 'may-phans-macbook-pro',
+      status: 'archived',
+      config: {
+        ...TEMPLATE.config,
+        host: FACTS.listenAddress,
+        port: 2222,
+        knownHosts: FACTS.knownHostsLine,
+        remoteWorkspacePath: FACTS.worktreeRoot,
+        privateKeySecretRef: { type: 'secret_ref', secretId: 'secret-own' },
+      },
+    };
+    const { step, client, store } = await harness(existing, { tests: [OK], envs: [TEMPLATE, archived] });
+    const result = await step({ repair: true });
+    expect(result.ok).toBe(true);
+    expect(client.createEnvironment).not.toHaveBeenCalled();
+    expect(client.updateEnvironment).toHaveBeenCalledWith('env-old', {
+      name: 'may-phans-macbook-pro',
+      host: FACTS.listenAddress,
+      port: FACTS.port,
+      username: FACTS.username,
+      remoteWorkspacePath: FACTS.worktreeRoot,
+      privateKeySecretId: 'secret-own',
+      knownHosts: FACTS.knownHostsLine,
+    });
+    expect(client.pairMachine.mock.calls[0]?.[0]).toMatchObject({ environmentId: 'env-old' });
+    expect(client.archiveEnvironment).not.toHaveBeenCalled();
+    expect(store.get().setup.pairedEnvironmentId).toBe('env-old');
+  });
+
+  it('environment active cùng tên nhưng cấu hình cũ (host/cổng/known_hosts/thư mục) thì PATCH cho đúng', async () => {
+    const stale: PaperclipEnvironment = {
+      ...TEMPLATE,
+      id: 'env-stale',
+      name: 'may-phans-macbook-pro',
+      config: {
+        ...TEMPLATE.config,
+        host: '100.1.1.1',
+        port: 22,
+        knownHosts: 'cu',
+        remoteWorkspacePath: '/cu',
+      },
+    };
+    const { step, client } = await harness({ kind: 'fresh' }, { envs: [TEMPLATE, stale] });
+    expect((await step({})).ok).toBe(true);
+    expect(client.createEnvironment).not.toHaveBeenCalled();
+    expect(client.updateEnvironment).toHaveBeenCalledWith(
+      'env-stale',
+      expect.objectContaining({
+        host: FACTS.listenAddress,
+        port: FACTS.port,
+        knownHosts: FACTS.knownHostsLine,
+        remoteWorkspacePath: FACTS.worktreeRoot,
+        privateKeySecretId: 'secret-ssh',
+      }),
+    );
+    expect(client.pairMachine.mock.calls[0]?.[0]).toMatchObject({ environmentId: 'env-stale' });
+  });
+
+  it('environment đúng cấu hình thì không PATCH', async () => {
+    const { step, client } = await harness({ kind: 'fresh' });
+    await step({});
+    expect(client.updateEnvironment).not.toHaveBeenCalled();
+  });
+
+  it('tạo environment vẫn 409 (tên bị giữ) thì báo tiếng Việt rõ, không ghép', async () => {
+    const { step, client } = await harness({ kind: 'fresh' });
+    client.createEnvironment.mockRejectedValueOnce(new PaperclipHttpError(409, null));
+    const result = await step({});
+    expect(result).toEqual({ ok: false, message: ENV_NAME_TAKEN_MESSAGE });
+    expect(client.pairMachine).not.toHaveBeenCalled();
+  });
+
+  it('bị gỡ trên web với environment dùng lại: không archive', async () => {
+    const mine: PaperclipEnvironment = {
+      ...TEMPLATE,
+      id: 'env-mine',
+      name: 'may-phans-macbook-pro',
+      config: {
+        ...TEMPLATE.config,
+        host: FACTS.listenAddress,
+        port: 2222,
+        knownHosts: FACTS.knownHostsLine,
+        remoteWorkspacePath: FACTS.worktreeRoot,
+      },
+    };
+    const { step, client } = await harness(
+      { kind: 'fresh' },
+      { envs: [TEMPLATE, mine], pair: conflict('machine_revoked') },
+    );
+    expect(await step({})).toMatchObject({ ok: false, state: MACHINE_STEP_STATE.revoked });
+    expect(client.archiveEnvironment).not.toHaveBeenCalled();
   });
 
   it('owner bấm "Ghép lại máy này": gửi allowRepair, không gửi thử trước', async () => {

@@ -156,10 +156,15 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
     `host` = IP Tailscale (`listenAddress`, cũng là `tailscaleIp` gửi lúc ghép; web so hai giá trị này trước khi gỡ),
     `port`, `username`, `remoteWorkspacePath` = thư mục worktree, `knownHosts` = dòng `known_hosts` của sshd agent.
     `privateKeySecretId` và `crewLoadGate` lấy từ environment SSH `in_place` active đầu tiên theo tên của company (cùng
-    bộ lọc với `getTemplate`). Đã có environment active cùng tên, host, cổng, `knownHosts`, thư mục thì dùng lại. Company
-    chưa có environment khuôn thì báo, không ghép. Chỉ tạo hoặc archive, không bao giờ xóa.
-  - Ghép (`pairMachine`) bị từ chối: environment vừa tạo trong lần này được archive. `409 machine_revoked` (máy đã bị
-    gỡ trên web): báo "Máy này đã bị gỡ trên web. Bấm Ghép lại nếu muốn dùng lại." (`state: 'revoked'`) và hiện nút
+    bộ lọc với `getTemplate`). Đã có environment active cùng tên, host, cổng, `knownHosts`, thư mục thì dùng lại. Paperclip
+    giữ tên environment duy nhất theo company, cả bản đã archive, nên environment SSH cùng tên mà đã archive hoặc cấu
+    hình cũ thì được bật lại và ghi cấu hình mới bằng `updateEnvironment` (PATCH `status: active` + `config`, giữ nguyên
+    `privateKeySecretRef` của chính nó), không tạo tên khác. Tạo mới mà vẫn 409 thì báo `ENV_NAME_TAKEN_MESSAGE`. Company
+    chưa có environment khuôn (và không có environment cùng tên để lấy secret) thì báo, không ghép. Chỉ tạo, PATCH hoặc
+    archive, không bao giờ xóa.
+  - Ghép (`pairMachine`) bị từ chối: chỉ environment do chính lần chạy này tạo mới bị archive (environment dùng lại hoặc
+    bật lại thì giữ nguyên). `409 machine_revoked` (máy đã bị gỡ trên web) không archive gì, vì owner sẽ bấm Ghép lại và
+    dùng lại đúng environment đó: báo "Máy này đã bị gỡ trên web. Bấm Ghép lại nếu muốn dùng lại." (`state: 'revoked'`) và hiện nút
     **Ghép lại máy này**; chỉ nút này gửi `repair: true`, khi đó app bỏ lần gửi thử đầu và gửi `allowRepair: true`. Lần
     ghép tự động (kể cả sau 401/502) không bao giờ gửi `allowRepair`. `409 machine_uses_company_secret` (máy đã gửi
     bản tin bằng secret company và chưa từng ghép): app chỉ ghép sau khi bản tin thử đã hỏng, nên secret trên máy không
@@ -333,8 +338,8 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   dán gì (environment `host` = IP Tailscale, `knownHosts`, secret SSH và `crewLoadGate` từ khuôn; key máy chỉ tới
   `setTargetSecret`, không vào app state hay kết quả), dùng lại environment đã tạo; máy có sẵn gửi thử 2xx thì không
   hỏi key, không ghép; 401/502/Keychain thì ghép, giữ cổng và thư mục; lỗi mạng thì dừng; `pair-info` 409 mở nhập tay;
-  bản tin thử cuối không 2xx thì không đạt; `machine_revoked` không gửi `allowRepair`, báo đúng câu, archive environment
-  vừa tạo; nút Ghép lại gửi `allowRepair`; `machine_uses_company_secret` không đạt, báo gỡ trên web, không ghi key; nhập tay; thư mục bị
+  bản tin thử cuối không 2xx thì không đạt; `machine_revoked` không gửi `allowRepair`, báo đúng câu, không archive; bật lại environment
+  đã archive cùng tên và PATCH environment cấu hình cũ, không tạo mới; tạo 409 báo tiếng Việt; nút Ghép lại gửi `allowRepair`; `machine_uses_company_secret` không đạt, báo gỡ trên web, không ghi key; nhập tay; thư mục bị
   cấm; manifest hỏng; cài crew-mac bị từ chối.
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
 - `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.

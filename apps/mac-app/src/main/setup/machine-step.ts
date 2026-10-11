@@ -11,7 +11,12 @@ import { isRecord, type StepOutcome } from './types.js';
 
 export type MachineStepClient = Pick<
   PaperclipClient,
-  'pairInfo' | 'pairMachine' | 'environments' | 'createEnvironment' | 'archiveEnvironment'
+  | 'pairInfo'
+  | 'pairMachine'
+  | 'environments'
+  | 'createEnvironment'
+  | 'updateEnvironment'
+  | 'archiveEnvironment'
 >;
 
 export interface MachineStepDeps {
@@ -35,6 +40,8 @@ export const REVOKED_MESSAGE = 'Máy này đã bị gỡ trên web. Bấm Ghép 
  */
 export const USES_COMPANY_SECRET_MESSAGE =
   'Máy này đang gửi bản tin bằng secret chung của company nhưng secret trên máy không còn đúng. Gỡ máy này trên trang Máy (web) rồi chạy lại bước Máy.';
+export const ENV_NAME_TAKEN_MESSAGE =
+  'Paperclip báo tên environment của máy này đã có người dùng (kể cả environment đã archive) mà app không dùng lại được. Mở trang Environments trên web, đổi tên hoặc khôi phục environment "may-…" của máy này rồi chạy lại bước Máy.';
 const NO_PAPERCLIP_KEY_MESSAGE =
   'Server chưa có key Paperclip, báo người quản trị. Tạm thời có thể dán key và secret ở phần "Nhập tay (dự phòng)".';
 
@@ -103,9 +110,10 @@ function isConflict(error: unknown, code?: string): error is PaperclipHttpError 
 }
 
 /**
- * Environment SSH `in_place` của máy: dùng lại environment active đã tạo trước (cùng tên, host, cổng, known_hosts,
- * thư mục), không có thì tạo mới theo khuôn environment `in_place` active của company (secret SSH dùng chung, cổng
- * tải). Chỉ tạo, không bao giờ xóa.
+ * Environment SSH `in_place` của máy. Paperclip giữ tên environment duy nhất theo company (cả bản đã archive), nên:
+ * environment cùng tên đã active và đúng cấu hình thì dùng lại; cùng tên mà đã archive hoặc cấu hình cũ thì bật lại và
+ * ghi cấu hình mới qua PATCH (giữ nguyên tham chiếu secret SSH của nó); không có thì tạo mới theo khuôn environment
+ * `in_place` active của company (secret SSH dùng chung, cổng tải). Không bao giờ xóa, không tạo tên khác.
  */
 async function ensureMachineEnvironment(
   client: MachineStepClient,
@@ -114,39 +122,62 @@ async function ensureMachineEnvironment(
 ): Promise<{ id: string; name: string; created: boolean } | string> {
   const name = machineEnvironmentName(facts.hostname);
   const envs = await client.environments(companyId);
-  const same = envs.find(
-    (env) =>
-      env.name === name &&
-      env.status === 'active' &&
-      env.driver === 'ssh' &&
-      env.config.host === facts.listenAddress &&
-      env.config.port === facts.port &&
-      env.config.knownHosts === facts.knownHostsLine &&
-      env.config.remoteWorkspacePath === facts.worktreeRoot,
-  );
-  if (same) return { id: same.id, name, created: false };
+  const sameName = envs.filter((env) => env.name === name && env.driver === 'ssh');
+  const same = sameName.find((env) => env.status === 'active') ?? sameName[0];
+  if (
+    same &&
+    same.status === 'active' &&
+    same.config.host === facts.listenAddress &&
+    same.config.port === facts.port &&
+    same.config.knownHosts === facts.knownHostsLine &&
+    same.config.remoteWorkspacePath === facts.worktreeRoot
+  ) {
+    return { id: same.id, name, created: false };
+  }
   const template = inPlaceSshTemplates(envs)[0];
-  if (!template) {
+  const ownRef = same?.config.privateKeySecretRef as { secretId?: unknown } | undefined;
+  const ref =
+    typeof ownRef?.secretId === 'string'
+      ? ownRef
+      : (template?.config.privateKeySecretRef as { secretId: string } | undefined);
+  if (!ref || typeof ref.secretId !== 'string') {
     return 'Company chưa có environment SSH in_place nào để dùng chung secret SSH của Paperclip; báo người quản trị.';
   }
-  const ref = template.config.privateKeySecretRef as { secretId: string };
-  const gate = template.metadata?.crewLoadGate as
+  const secretId = ref.secretId;
+  if (same) {
+    await client.updateEnvironment(same.id, {
+      name,
+      host: facts.listenAddress,
+      port: facts.port,
+      username: facts.username,
+      remoteWorkspacePath: facts.worktreeRoot,
+      privateKeySecretId: secretId,
+      knownHosts: facts.knownHostsLine,
+    });
+    return { id: same.id, name, created: false };
+  }
+  const gate = template?.metadata?.crewLoadGate as
     | { maxLoad1?: unknown; maxWaitMinutes?: unknown }
     | undefined;
-  const created = await client.createEnvironment(companyId, {
-    name,
-    description: `Máy ${facts.hostname} (ghép từ app 2P Crew)`,
-    host: facts.listenAddress,
-    port: facts.port,
-    username: facts.username,
-    remoteWorkspacePath: facts.worktreeRoot,
-    privateKeySecretId: ref.secretId,
-    knownHosts: facts.knownHostsLine,
-    ...(typeof gate?.maxLoad1 === 'number' && typeof gate.maxWaitMinutes === 'number'
-      ? { crewLoadGate: { maxLoad1: gate.maxLoad1, maxWaitMinutes: gate.maxWaitMinutes } }
-      : {}),
-  });
-  return { id: created.id, name, created: true };
+  try {
+    const created = await client.createEnvironment(companyId, {
+      name,
+      description: `Máy ${facts.hostname} (ghép từ app 2P Crew)`,
+      host: facts.listenAddress,
+      port: facts.port,
+      username: facts.username,
+      remoteWorkspacePath: facts.worktreeRoot,
+      privateKeySecretId: secretId,
+      knownHosts: facts.knownHostsLine,
+      ...(typeof gate?.maxLoad1 === 'number' && typeof gate.maxWaitMinutes === 'number'
+        ? { crewLoadGate: { maxLoad1: gate.maxLoad1, maxWaitMinutes: gate.maxWaitMinutes } }
+        : {}),
+    });
+    return { id: created.id, name, created: true };
+  } catch (error) {
+    if (isConflict(error)) return ENV_NAME_TAKEN_MESSAGE;
+    throw error;
+  }
 }
 
 /**
@@ -251,16 +282,15 @@ export function createMachineStep(deps: MachineStepDeps): (input: unknown) => Pr
           )
         ).machineKey;
       } catch (error) {
-        // Environment vừa tạo cho lần ghép hỏng thì archive (không bao giờ xóa), để không còn environment nhận run.
+        // Máy bị gỡ trên web: giữ environment, owner sẽ bấm "Ghép lại máy này" và dùng lại đúng environment đó.
+        if (isConflict(error, 'machine_revoked')) return fail(REVOKED_MESSAGE, MACHINE_STEP_STATE.revoked);
+        // Lỗi khác: archive (không bao giờ xóa) environment do lần chạy này tạo, để không còn environment nhận run.
         const archiveNote = env.created
           ? await client.archiveEnvironment(env.id).then(
               () => '',
               () => ` Chưa archive được environment ${env.name} vừa tạo; archive nó trên web.`,
             )
           : '';
-        if (isConflict(error, 'machine_revoked')) {
-          return fail(`${REVOKED_MESSAGE}${archiveNote}`, MACHINE_STEP_STATE.revoked);
-        }
         if (isConflict(error, 'machine_uses_company_secret')) {
           return fail(`${USES_COMPANY_SECRET_MESSAGE}${archiveNote}`);
         }

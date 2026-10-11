@@ -222,6 +222,36 @@ describe('route', () => {
     );
   });
 
+  it('updateEnvironment: PATCH {status: active, config SSH} giữ secret ref, không gửi name', async () => {
+    const { server, client } = await setup(() => ({ status: 200, body: { id: E, status: 'active' } }));
+    await client.updateEnvironment(E, {
+      name: 'may-x',
+      host: '100.1.1.1',
+      port: 2222,
+      username: 'owner',
+      remoteWorkspacePath: '/Users/owner/crew-agents',
+      privateKeySecretId: 'secret-ssh',
+      knownHosts: '[100.1.1.1]:2222 ssh-ed25519 AAAA',
+    });
+    expect(server.requests[0]).toMatchObject({
+      method: 'PATCH',
+      path: `/api/environments/${E}`,
+      body: {
+        status: 'active',
+        config: {
+          host: '100.1.1.1',
+          port: 2222,
+          username: 'owner',
+          remoteWorkspacePath: '/Users/owner/crew-agents',
+          privateKeySecretRef: { type: 'secret_ref', secretId: 'secret-ssh', version: 'latest' },
+          knownHosts: '[100.1.1.1]:2222 ssh-ed25519 AAAA',
+          strictHostKeyChecking: true,
+        },
+      },
+    });
+    expect(server.requests[0]?.body).not.toHaveProperty('name');
+  });
+
   it('archiveEnvironment: PATCH {status: archived}; client không có hàm xóa environment', async () => {
     const { server, client } = await setup(() => ({ status: 200, body: { id: E, status: 'archived' } }));
     await client.archiveEnvironment(E);

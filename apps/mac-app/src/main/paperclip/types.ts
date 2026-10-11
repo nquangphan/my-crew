@@ -119,6 +119,8 @@ export interface PaperclipClient {
   environments(companyId: string): Promise<PaperclipEnvironment[]>;
   createEnvironment(companyId: string, input: SshEnvironmentInput): Promise<{ id: string }>;
   /** `PATCH {status: 'archived'}`. Client cố ý không có hàm xóa environment. */
+  /** Bật lại (`status: active`) và ghi đè cấu hình SSH của environment có sẵn; không đổi tên, không xóa. */
+  updateEnvironment(environmentId: string, input: SshEnvironmentInput): Promise<void>;
   archiveEnvironment(environmentId: string): Promise<void>;
   /** Tạo agent `claude_local`, heartbeat tắt, `maxConcurrentRuns = 1`. */
   createAgent(companyId: string, input: ClaudeLocalAgentInput): Promise<{ id: string; status: string }>;
