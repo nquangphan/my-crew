@@ -40,6 +40,16 @@ Ngoài ra wizard cho chọn company dễ nhầm: MacBook bị gắn vào Crew E2
 máy trả HTTP 502 vì secret của company khác. Bước Máy nên kiểm secret với server ngay (gửi thử một bản tin) và báo
 lỗi rõ thay vì để doctor cảnh báo "chưa gửi lần nào".
 
+## Lỗi thứ ba: thêm project trên máy thứ hai tạo environment trỏ về Mac mini
+
+`getTemplate(port)` trong `apps/mac-app/src/main/projects/add-project.ts` (`r24`) chọn environment mẫu là environment
+SSH `in_place` active đầu tiên **cùng cổng** (sắp theo tên), không so `config.host` với máy đang chạy app
+(`manifest.listenAddress`). Mọi máy dùng cổng 2222 nên trên MacBook nó chọn `business-app-…` của Mac mini → environment
+mới của project mang host `100.102.189.67` và `knownHosts` của mini, agent chạy nhầm máy. Environment là theo ô agent
+của project (`crew-agents/<project>/<role>`), không có environment "theo máy"; vì vậy việc ghép máy phải tạo một
+environment gốc của máy (host, cổng, host key, secret SSH) và `getTemplate` phải chọn đúng nó theo host. Chưa sửa thì
+**không thêm project trong app MacBook**.
+
 ## Mục tiêu
 
 Owner mới: cài app → đăng nhập Paperclip, chọn company → bước Máy **không phải dán gì** → cấp Quyền ổ đĩa → doctor
