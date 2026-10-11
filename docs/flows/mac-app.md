@@ -159,8 +159,11 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
     bộ lọc với `getTemplate`). Đã có environment active cùng tên, host, cổng, `knownHosts`, thư mục thì dùng lại. Paperclip
     giữ tên environment duy nhất theo company, cả bản đã archive, nên environment SSH cùng tên mà đã archive hoặc cấu
     hình cũ thì được bật lại và ghi cấu hình mới bằng `updateEnvironment` (PATCH `status: active` + `config`, giữ nguyên
-    `privateKeySecretRef` của chính nó), không tạo tên khác. Tạo mới mà vẫn 409 thì báo `ENV_NAME_TAKEN_MESSAGE`. Company
-    chưa có environment khuôn (và không có environment cùng tên để lấy secret) thì báo, không ghép. Chỉ tạo, PATCH hoặc
+    `privateKeySecretRef` của chính nó), không tạo tên khác. Tạo mới mà vẫn 409 thì báo `ENV_NAME_TAKEN_MESSAGE`. Khuôn chỉ nhận
+    environment có `privateKeySecretRef.secretId` thuộc company (`client.secrets(companyId)`, `GET …/secrets`), vì
+    environment là của cả instance và danh sách có thể lẫn environment của company khác (secret của họ làm run hỏng
+    "Secret must belong to same company"). Company chưa có environment khuôn hợp lệ (và không có environment cùng tên để
+    lấy secret) thì báo, không ghép. Chỉ tạo, PATCH hoặc
     archive, không bao giờ xóa.
   - Ghép (`pairMachine`) bị từ chối: chỉ environment do chính lần chạy này tạo mới bị archive (environment dùng lại hoặc
     bật lại thì giữ nguyên). `409 machine_revoked` (máy đã bị gỡ trên web) không archive gì, vì owner sẽ bấm Ghép lại và
@@ -337,7 +340,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/setup-machine-step.test.ts`: bước `machine` với ops và client Paperclip giả: máy mới ghép không
   dán gì (environment `host` = IP Tailscale, `knownHosts`, secret SSH và `crewLoadGate` từ khuôn; key máy chỉ tới
   `setTargetSecret`, không vào app state hay kết quả), dùng lại environment đã tạo; máy có sẵn gửi thử 2xx thì không
-  hỏi key, không ghép; 401/502/Keychain thì ghép, giữ cổng và thư mục; lỗi mạng thì dừng; `pair-info` 409 mở nhập tay;
+  hỏi key, không ghép; environment của company khác đứng đầu danh sách thì bỏ qua, chỉ có của company khác thì báo, không tạo; 401/502/Keychain thì ghép, giữ cổng và thư mục; lỗi mạng thì dừng; `pair-info` 409 mở nhập tay;
   bản tin thử cuối không 2xx thì không đạt; `machine_revoked` không gửi `allowRepair`, báo đúng câu, không archive; bật lại environment
   đã archive cùng tên và PATCH environment cấu hình cũ, không tạo mới; tạo 409 báo tiếng Việt; nút Ghép lại gửi `allowRepair`; `machine_uses_company_secret` không đạt, báo gỡ trên web, không ghi key; nhập tay; thư mục bị
   cấm; manifest hỏng; cài crew-mac bị từ chối.

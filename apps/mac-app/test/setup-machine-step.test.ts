@@ -59,6 +59,8 @@ interface HarnessOptions {
   /** Kết quả `testStatus` theo thứ tự gọi. */
   tests?: Array<Record<string, unknown>>;
   envs?: PaperclipEnvironment[];
+  /** Id secret của company (mặc định chỉ `secret-ssh`). */
+  secretIds?: string[];
   pairInfo?: () => Promise<{ paperclipSshPublicKey: string }>;
   pair?: () => Promise<{ machineKey: string; pairedAt: string }>;
 }
@@ -91,6 +93,7 @@ async function harness(detected: ExistingMachine, options: HarnessOptions = {}) 
       (options.pair ?? (async () => ({ machineKey: MACHINE_KEY, pairedAt: '2026-10-11T07:00:00Z' })))(),
     ),
     environments: vi.fn(async () => options.envs ?? [TEMPLATE]),
+    secrets: vi.fn(async () => (options.secretIds ?? ['secret-ssh']).map((id) => ({ id, name: id }))),
     createEnvironment: vi.fn(async () => ({ id: 'env-new' })),
     updateEnvironment: vi.fn(async () => undefined),
     archiveEnvironment: vi.fn(async () => undefined),
@@ -388,6 +391,35 @@ describe('bước machine: ghép tự động', () => {
     expect(opNames().filter((op) => op === 'testStatus')).toHaveLength(1);
     expect(client.archiveEnvironment).toHaveBeenCalledWith('env-new');
     expect(store.get().setup.pairedEnvironmentId).toBeNull();
+  });
+
+  it('environment của company khác đứng đầu danh sách: khuôn lấy environment có secret của company', async () => {
+    const other: PaperclipEnvironment = {
+      ...TEMPLATE,
+      id: 'env-e2e',
+      name: 'a-crew-e2e',
+      config: { ...TEMPLATE.config, privateKeySecretRef: { type: 'secret_ref', secretId: 'crew-e2e-ssh' } },
+    };
+    const { step, client } = await harness({ kind: 'fresh' }, { envs: [other, TEMPLATE] });
+    expect((await step({})).ok).toBe(true);
+    expect(client.secrets).toHaveBeenCalledWith(COMPANY);
+    expect(client.createEnvironment).toHaveBeenCalledWith(
+      COMPANY,
+      expect.objectContaining({ privateKeySecretId: 'secret-ssh' }),
+    );
+  });
+
+  it('chỉ có environment của company khác thì báo, không tạo, không ghép', async () => {
+    const other: PaperclipEnvironment = {
+      ...TEMPLATE,
+      config: { ...TEMPLATE.config, privateKeySecretRef: { type: 'secret_ref', secretId: 'crew-e2e-ssh' } },
+    };
+    const { step, client } = await harness({ kind: 'fresh' }, { envs: [other] });
+    const result = await step({});
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('secret SSH thuộc company');
+    expect(client.createEnvironment).not.toHaveBeenCalled();
+    expect(client.pairMachine).not.toHaveBeenCalled();
   });
 
   it('company chưa có environment SSH in_place nào làm khuôn thì báo, không ghép', async () => {

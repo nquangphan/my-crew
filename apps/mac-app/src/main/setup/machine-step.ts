@@ -5,7 +5,7 @@ import type { AppStateStore } from '../app-state.js';
 import type { OpsBridge } from '../ops-bridge.js';
 import { PaperclipHttpError } from '../paperclip/client.js';
 import type { PaperclipClient } from '../paperclip/types.js';
-import { inPlaceSshTemplates } from '../projects/add-project.js';
+import { companySecretIds, inPlaceSshTemplates } from '../projects/add-project.js';
 import type { ExistingMachine } from './import-existing.js';
 import { isRecord, type StepOutcome } from './types.js';
 
@@ -14,6 +14,7 @@ export type MachineStepClient = Pick<
   | 'pairInfo'
   | 'pairMachine'
   | 'environments'
+  | 'secrets'
   | 'createEnvironment'
   | 'updateEnvironment'
   | 'archiveEnvironment'
@@ -134,14 +135,14 @@ async function ensureMachineEnvironment(
   ) {
     return { id: same.id, name, created: false };
   }
-  const template = inPlaceSshTemplates(envs)[0];
+  const template = inPlaceSshTemplates(envs, await companySecretIds(client, companyId))[0];
   const ownRef = same?.config.privateKeySecretRef as { secretId?: unknown } | undefined;
   const ref =
     typeof ownRef?.secretId === 'string'
       ? ownRef
       : (template?.config.privateKeySecretRef as { secretId: string } | undefined);
   if (!ref || typeof ref.secretId !== 'string') {
-    return 'Company chưa có environment SSH in_place nào để dùng chung secret SSH của Paperclip; báo người quản trị.';
+    return 'Company này chưa có environment SSH in_place nào với secret SSH thuộc company để dùng chung. Environment của company khác không dùng được; báo người quản trị tạo secret và environment cho company.';
   }
   const secretId = ref.secretId;
   if (same) {

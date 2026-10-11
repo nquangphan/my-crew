@@ -116,7 +116,13 @@ export interface PaperclipClient {
   companies(): Promise<PaperclipCompany[]>;
   projects(companyId: string): Promise<PaperclipProject[]>;
   createProject(companyId: string, input: { name: string; description?: string }): Promise<{ id: string }>;
+  /**
+   * Environment mà server trả cho company. Environment là của cả instance (không có cột company) nên danh sách có thể
+   * chứa environment của company khác: muốn lấy secret SSH để chép thì phải lọc theo `secrets(companyId)`.
+   */
   environments(companyId: string): Promise<PaperclipEnvironment[]>;
+  /** `GET /api/companies/:id/secrets` (cần board key): chỉ `id` và `name`, không có giá trị secret. */
+  secrets(companyId: string): Promise<Array<{ id: string; name: string }>>;
   createEnvironment(companyId: string, input: SshEnvironmentInput): Promise<{ id: string }>;
   /** `PATCH {status: 'archived'}`. Client cố ý không có hàm xóa environment. */
   /** Bật lại (`status: active`) và ghi đè cấu hình SSH của environment có sẵn; không đổi tên, không xóa. */

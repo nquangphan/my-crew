@@ -287,6 +287,15 @@ describe('route', () => {
     expect(server.requests[0]?.path).toBe(`/api/companies/${C}/environments`);
   });
 
+  it('secrets: GET danh sách secret của company, chỉ giữ id và name', async () => {
+    const { server, client } = await setup(() => ({
+      status: 200,
+      body: [{ id: 's1', name: 'crew-ssh', key: 'k', status: 'active', value: 'không được lộ' }],
+    }));
+    await expect(client.secrets(C)).resolves.toEqual([{ id: 's1', name: 'crew-ssh' }]);
+    expect(server.requests[0]?.path).toBe(`/api/companies/${C}/secrets`);
+  });
+
   it('createAgent: claude_local, heartbeat tắt, maxConcurrentRuns 1, environment riêng', async () => {
     const { server, client } = await setup(() => ({ status: 201, body: { id: A, status: 'idle' } }));
     await expect(

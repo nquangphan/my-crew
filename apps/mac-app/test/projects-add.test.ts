@@ -574,6 +574,54 @@ describe('addProject: khuôn environment theo máy đã ghép', () => {
     }
   });
 
+  it('environment của company khác đứng đầu danh sách (cùng cổng): bỏ qua, dùng khuôn có secret của company', async () => {
+    const w = await pairedWorld();
+    w.paperclip.envs.set('e2e-env', {
+      id: 'e2e-env',
+      name: 'a-crew-e2e',
+      driver: 'ssh',
+      status: 'active',
+      config: {
+        host: '100.64.9.9',
+        port: 2222,
+        username: 'e2e',
+        privateKeySecretRef: { type: 'secret_ref', secretId: 'other-company-secret', version: 'latest' },
+        knownHosts: '[100.64.9.9]:2222 ssh-ed25519 CCCC',
+      },
+      metadata: { workspaceRealizationMode: 'in_place' },
+    });
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toBeNull();
+    const created = createdEnvs(w).filter((env) => env.id !== 'e2e-env');
+    expect(created).toHaveLength(4);
+    for (const env of created) {
+      expect(env.config).toMatchObject({ host: '100.64.1.2' });
+      expect(env.config.privateKeySecretRef).toMatchObject({ secretId: SECRET });
+    }
+    expect(w.paperclip.requests.every((r) => r.method !== 'DELETE')).toBe(true);
+  });
+
+  it('chỉ có environment của company khác thì báo lỗi rõ, không tạo environment', async () => {
+    const w = await pairedWorld();
+    for (const id of [TEMPLATE_ENV, MACBOOK_ENV]) {
+      const env = w.paperclip.envs.get(id);
+      if (env) env.config.privateKeySecretRef = { type: 'secret_ref', secretId: 'other-company-secret' };
+    }
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toContain('secret SSH thuộc company');
+    expect(createdEnvs(w)).toHaveLength(0);
+  });
+
+  it('environment đã ghép dùng secret của company khác thì báo ghép lại', async () => {
+    const w = await pairedWorld();
+    const env = w.paperclip.envs.get(MACBOOK_ENV);
+    if (env) env.config.privateKeySecretRef = { type: 'secret_ref', secretId: 'other-company-secret' };
+    await w.store.update((s) => ({ ...s, setup: { ...s.setup, pairedEnvironmentId: MACBOOK_ENV } }));
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toContain('Environment đã ghép của máy này');
+    expect(createdEnvs(w)).toHaveLength(0);
+  });
+
   it('máy chưa ghép (Mac mini) giữ cách cũ: environment cùng cổng đầu tiên theo tên', async () => {
     const w = await pairedWorld();
     const progress = await addProject(w.deps, w.input);

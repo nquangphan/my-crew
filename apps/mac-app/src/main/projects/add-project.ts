@@ -2,7 +2,12 @@ import { join } from 'node:path';
 import { forbiddenRootReason } from '@crew/mac';
 import type { AddProjectInput } from '../../shared/ipc-contract.js';
 import type { ProjectProgress } from '../app-state.js';
-import type { AgentPermissions, PaperclipEnvironment, ProjectRoles } from '../paperclip/types.js';
+import type {
+  AgentPermissions,
+  PaperclipClient,
+  PaperclipEnvironment,
+  ProjectRoles,
+} from '../paperclip/types.js';
 import {
   agentBranch,
   configureDocsBundle,
@@ -60,9 +65,38 @@ export function isInPlaceSshTemplate(env: PaperclipEnvironment): boolean {
   );
 }
 
-/** Các environment khuôn được của company, thứ tự theo tên. */
-export function inPlaceSshTemplates(envs: PaperclipEnvironment[]): PaperclipEnvironment[] {
-  return envs.filter(isInPlaceSshTemplate).sort((a, b) => a.name.localeCompare(b.name));
+/** `privateKeySecretRef.secretId` của environment, hoặc `null` khi không có. */
+function templateSecretId(env: PaperclipEnvironment): string | null {
+  const ref = env.config.privateKeySecretRef as { secretId?: unknown } | undefined;
+  return typeof ref?.secretId === 'string' ? ref.secretId : null;
+}
+
+/**
+ * Khuôn hợp lệ của company: environment khuôn được mà secret SSH là secret của chính company. Environment là của cả
+ * instance nên danh sách có thể lẫn environment của company khác; chép secret của họ thì run hỏng với "Secret must
+ * belong to same company".
+ */
+export function isCompanyTemplate(env: PaperclipEnvironment, companySecretIds: ReadonlySet<string>): boolean {
+  const secretId = templateSecretId(env);
+  return isInPlaceSshTemplate(env) && secretId !== null && companySecretIds.has(secretId);
+}
+
+/** Các environment khuôn hợp lệ của company, thứ tự theo tên. */
+export function inPlaceSshTemplates(
+  envs: PaperclipEnvironment[],
+  companySecretIds: ReadonlySet<string>,
+): PaperclipEnvironment[] {
+  return envs
+    .filter((env) => isCompanyTemplate(env, companySecretIds))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Tập id secret của company, để lọc khuôn. */
+export async function companySecretIds(
+  client: Pick<PaperclipClient, 'secrets'>,
+  companyId: string,
+): Promise<Set<string>> {
+  return new Set((await client.secrets(companyId)).map((secret) => secret.id));
 }
 
 /** Một project chỉ chạy một lần thêm tại một thời điểm (hai lần bấm "Chạy tiếp" liền nhau). */
@@ -260,26 +294,29 @@ class AddRun {
   /**
    * Environment SSH `in_place` của máy này: nguồn host, user, known_hosts, secret SSH. Máy đã ghép (app state có
    * `pairedEnvironmentId`) dùng đúng environment đã ghép, vì nhiều máy cùng cổng sshd mặc định; environment đó phải còn
-   * active và đúng cổng. Máy chưa ghép (Mac mini) giữ cách cũ: environment đầu tiên theo tên có cùng cổng sshd.
+   * active và đúng cổng. Máy chưa ghép (Mac mini) giữ cách cũ: environment đầu tiên theo tên có cùng cổng sshd. Cả hai chỉ nhận environment có secret SSH thuộc company (`GET …/secrets`).
    */
   private getTemplate(port: number) {
     this.template ??= (async () => {
-      const envs = await this.deps.client.environments(this.companyId);
+      const [envs, secretIds] = await Promise.all([
+        this.deps.client.environments(this.companyId),
+        companySecretIds(this.deps.client, this.companyId),
+      ]);
       const pairedId = this.deps.store.get().setup.pairedEnvironmentId ?? null;
       if (pairedId) {
         const paired = envs.find((env) => env.id === pairedId);
-        if (!paired || !isInPlaceSshTemplate(paired) || paired.config.port !== port) {
+        if (!paired || !isCompanyTemplate(paired, secretIds) || paired.config.port !== port) {
           throw new Error(
-            `Environment đã ghép của máy này (${pairedId}) không còn active hoặc không khớp cổng ${port} trên Paperclip: mở Cài đặt, chạy lại bước Máy để ghép lại`,
+            `Environment đã ghép của máy này (${pairedId}) không còn active, không khớp cổng ${port} hoặc dùng secret SSH không thuộc company này: mở Cài đặt, chạy lại bước Máy để ghép lại`,
           );
         }
         return paired;
       }
-      const candidates = inPlaceSshTemplates(envs).filter((env) => env.config.port === port);
+      const candidates = inPlaceSshTemplates(envs, secretIds).filter((env) => env.config.port === port);
       const found = candidates[0];
       if (!found) {
         throw new Error(
-          `Paperclip chưa có environment SSH in_place nào của máy này (cổng ${port}) để dùng chung secret SSH`,
+          `Company này chưa có environment SSH in_place nào của máy này (cổng ${port}) với secret SSH thuộc company để dùng chung. Environment của company khác không dùng được: báo người quản trị tạo secret và environment cho company`,
         );
       }
       return found;

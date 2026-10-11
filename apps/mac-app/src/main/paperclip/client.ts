@@ -240,6 +240,14 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       }));
     },
 
+    async secrets(companyId) {
+      const list = await call<Array<{ id: string; name: string }>>(
+        'GET',
+        `/api/companies/${id(companyId)}/secrets`,
+      );
+      return list.map(({ id, name }) => ({ id, name }));
+    },
+
     async createEnvironment(companyId, input: SshEnvironmentInput) {
       const body = {
         name: input.name,

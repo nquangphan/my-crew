@@ -107,6 +107,8 @@ export async function startStatefulPaperclip(
       projects.set(project.id, project);
       return { status: 201, body: project };
     }
+    if (req.method === 'GET' && p === `/api/companies/${COMPANY}/secrets`)
+      return { status: 200, body: [{ id: SECRET, name: 'crew-ssh', key: 'crew-ssh', status: 'active' }] };
     if (req.method === 'GET' && p === `/api/companies/${COMPANY}/environments`)
       return { status: 200, body: [...envs.values()] };
     if (req.method === 'POST' && p === `/api/companies/${COMPANY}/environments`) {
