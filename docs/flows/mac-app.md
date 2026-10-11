@@ -159,7 +159,8 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
     bộ lọc với `getTemplate`). Đã có environment active cùng tên, host, cổng, `knownHosts`, thư mục thì dùng lại. Paperclip
     giữ tên environment duy nhất theo company, cả bản đã archive, nên environment SSH cùng tên mà đã archive hoặc cấu
     hình cũ thì được bật lại và ghi cấu hình mới bằng `updateEnvironment` (PATCH `status: active` + `config`, giữ nguyên
-    `privateKeySecretRef` của chính nó), không tạo tên khác. Tạo mới mà vẫn 409 thì báo `ENV_NAME_TAKEN_MESSAGE`. Khuôn chỉ nhận
+    `privateKeySecretRef` của chính nó), không tạo tên khác. Tạo mới mà vẫn 409 thì báo `ENV_NAME_TAKEN_MESSAGE`. Environment `may-…` có sẵn mà
+    secret của nó không thuộc company thì PATCH sang secret khuôn trong cùng lần PATCH bật lại/cập nhật. Khuôn chỉ nhận
     environment có `privateKeySecretRef.secretId` thuộc company (`client.secrets(companyId)`, `GET …/secrets`), vì
     environment là của cả instance và danh sách có thể lẫn environment của company khác (secret của họ làm run hỏng
     "Secret must belong to same company"). Company chưa có environment khuôn hợp lệ (và không có environment cùng tên để

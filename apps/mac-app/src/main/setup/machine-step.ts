@@ -125,8 +125,13 @@ async function ensureMachineEnvironment(
   const envs = await client.environments(companyId);
   const sameName = envs.filter((env) => env.name === name && env.driver === 'ssh');
   const same = sameName.find((env) => env.status === 'active') ?? sameName[0];
+  const secretIds = await companySecretIds(client, companyId);
+  const ownRef = same?.config.privateKeySecretRef as { secretId?: unknown } | undefined;
+  // Environment là của cả instance: secret của chính nó có thể thuộc company khác, khi đó phải PATCH sang secret khuôn.
+  const ownSecretOk = typeof ownRef?.secretId === 'string' && secretIds.has(ownRef.secretId);
   if (
     same &&
+    ownSecretOk &&
     same.status === 'active' &&
     same.config.host === facts.listenAddress &&
     same.config.port === facts.port &&
@@ -135,12 +140,10 @@ async function ensureMachineEnvironment(
   ) {
     return { id: same.id, name, created: false };
   }
-  const template = inPlaceSshTemplates(envs, await companySecretIds(client, companyId))[0];
-  const ownRef = same?.config.privateKeySecretRef as { secretId?: unknown } | undefined;
-  const ref =
-    typeof ownRef?.secretId === 'string'
-      ? ownRef
-      : (template?.config.privateKeySecretRef as { secretId: string } | undefined);
+  const template = inPlaceSshTemplates(envs, secretIds)[0];
+  const ref = ownSecretOk
+    ? ownRef
+    : (template?.config.privateKeySecretRef as { secretId: string } | undefined);
   if (!ref || typeof ref.secretId !== 'string') {
     return 'Company này chưa có environment SSH in_place nào với secret SSH thuộc company để dùng chung. Environment của company khác không dùng được; báo người quản trị tạo secret và environment cho company.';
   }

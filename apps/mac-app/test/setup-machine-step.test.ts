@@ -289,7 +289,11 @@ describe('bước machine: ghép tự động', () => {
         privateKeySecretRef: { type: 'secret_ref', secretId: 'secret-own' },
       },
     };
-    const { step, client, store } = await harness(existing, { tests: [OK], envs: [TEMPLATE, archived] });
+    const { step, client, store } = await harness(existing, {
+      tests: [OK],
+      envs: [TEMPLATE, archived],
+      secretIds: ['secret-ssh', 'secret-own'],
+    });
     const result = await step({ repair: true });
     expect(result.ok).toBe(true);
     expect(client.createEnvironment).not.toHaveBeenCalled();
@@ -407,6 +411,30 @@ describe('bước machine: ghép tự động', () => {
       COMPANY,
       expect.objectContaining({ privateKeySecretId: 'secret-ssh' }),
     );
+  });
+
+  it('environment may-… có sẵn dùng secret của company khác: một PATCH đổi sang secret khuôn', async () => {
+    const mine: PaperclipEnvironment = {
+      ...TEMPLATE,
+      id: 'env-mine',
+      name: 'may-phans-macbook-pro',
+      config: {
+        ...TEMPLATE.config,
+        host: FACTS.listenAddress,
+        port: 2222,
+        knownHosts: FACTS.knownHostsLine,
+        remoteWorkspacePath: FACTS.worktreeRoot,
+        privateKeySecretRef: { type: 'secret_ref', secretId: 'crew-e2e-ssh' },
+      },
+    };
+    const { step, client } = await harness({ kind: 'fresh' }, { envs: [TEMPLATE, mine] });
+    expect((await step({})).ok).toBe(true);
+    expect(client.updateEnvironment).toHaveBeenCalledTimes(1);
+    expect(client.updateEnvironment).toHaveBeenCalledWith(
+      'env-mine',
+      expect.objectContaining({ privateKeySecretId: 'secret-ssh', host: FACTS.listenAddress }),
+    );
+    expect(client.createEnvironment).not.toHaveBeenCalled();
   });
 
   it('chỉ có environment của company khác thì báo, không tạo, không ghép', async () => {
