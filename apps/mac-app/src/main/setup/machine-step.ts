@@ -29,6 +29,12 @@ export interface MachineStepDeps {
 export const MACHINE_STEP_STATE = { manual: 'manual', revoked: 'revoked' } as const;
 
 export const REVOKED_MESSAGE = 'Máy này đã bị gỡ trên web. Bấm Ghép lại nếu muốn dùng lại.';
+/**
+ * Server từ chối ghép vì máy đã gửi bản tin bằng secret company và chưa từng ghép. App chỉ ghép sau khi bản tin thử đã
+ * hỏng, nên secret trên máy không còn đúng: bước không đạt, không ghi key nào.
+ */
+export const USES_COMPANY_SECRET_MESSAGE =
+  'Máy này đang gửi bản tin bằng secret chung của company nhưng secret trên máy không còn đúng. Gỡ máy này trên trang Máy (web) rồi chạy lại bước Máy.';
 const NO_PAPERCLIP_KEY_MESSAGE =
   'Server chưa có key Paperclip, báo người quản trị. Tạm thời có thể dán key và secret ở phần "Nhập tay (dự phòng)".';
 
@@ -151,7 +157,7 @@ async function ensureMachineEnvironment(
  * - Máy có sẵn (Mac mini): gửi thử bằng secret đang có; 2xx thì giữ nguyên như trước, không ghép, không đổi key. Chỉ
  *   ghép khi server trả lỗi HTTP hoặc Keychain không đọc được; lỗi mạng thì dừng.
  * - Server báo máy đã bị gỡ trên web: chỉ ghép lại khi owner bấm "Ghép lại máy này" (`input.repair`). Server báo máy
- *   đang dùng secret company: giữ nguyên cài đặt, không ghép.
+ *   đang dùng secret company: bước không đạt, không ghi key.
  * - `input.manual`: đường dán tay cũ (key và secret), vẫn phải qua bản tin thử 2xx.
  *
  * Key máy và secret dán tay không vào log, app state hay argv; biến giữ chúng bị xóa trong `finally`.
@@ -256,11 +262,7 @@ export function createMachineStep(deps: MachineStepDeps): (input: unknown) => Pr
           return fail(`${REVOKED_MESSAGE}${archiveNote}`, MACHINE_STEP_STATE.revoked);
         }
         if (isConflict(error, 'machine_uses_company_secret')) {
-          const tested = firstTest ? ` (bản tin thử vừa rồi: ${testFailureMessage(firstTest)})` : '';
-          return {
-            ok: true,
-            message: `Máy này đang gửi bản tin bằng secret company nên giữ nguyên cài đặt, không ghép${tested}.${archiveNote} Thay đổi: ${report.changed.length}.`,
-          };
+          return fail(`${USES_COMPANY_SECRET_MESSAGE}${archiveNote}`);
         }
         if (archiveNote)
           throw new Error(`${error instanceof Error ? error.message : String(error)}.${archiveNote}`);

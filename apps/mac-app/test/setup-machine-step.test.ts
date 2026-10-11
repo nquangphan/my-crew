@@ -11,6 +11,7 @@ import {
   MACHINE_STEP_STATE,
   machineEnvironmentName,
   REVOKED_MESSAGE,
+  USES_COMPANY_SECRET_MESSAGE,
 } from '../src/main/setup/machine-step.js';
 
 const COMPANY = '22222222-2222-4222-8222-222222222222';
@@ -277,15 +278,13 @@ describe('bước machine: ghép tự động', () => {
     expect(opNames().indexOf('testStatus')).toBeGreaterThan(opNames().indexOf('setTargetSecret'));
   });
 
-  it('máy đang gửi bản tin bằng secret company: giữ nguyên cài đặt, không ghép, không đổi key, không lặp lỗi', async () => {
+  it('máy đang gửi bản tin bằng secret company mà bản tin thử hỏng: bước không đạt, báo gỡ trên web, không ghi key', async () => {
     const { step, client, opNames, store } = await harness(existing, {
-      tests: [{ ok: false, httpStatus: 502, failure: 'http' }],
+      tests: [{ ok: false, httpStatus: 401, failure: 'http' }],
       pair: conflict('machine_uses_company_secret'),
     });
     const result = await step({});
-    expect(result.ok).toBe(true);
-    expect(result.message).toContain('giữ nguyên cài đặt');
-    expect(result.message).toContain('HTTP 502');
+    expect(result).toEqual({ ok: false, message: USES_COMPANY_SECRET_MESSAGE });
     expect(opNames()).not.toContain('setTargetSecret');
     expect(opNames().filter((op) => op === 'testStatus')).toHaveLength(1);
     expect(client.archiveEnvironment).toHaveBeenCalledWith('env-new');

@@ -153,9 +153,11 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
   - Ghép (`pairMachine`) bị từ chối: environment vừa tạo trong lần này được archive. `409 machine_revoked` (máy đã bị
     gỡ trên web): báo "Máy này đã bị gỡ trên web. Bấm Ghép lại nếu muốn dùng lại." (`state: 'revoked'`) và hiện nút
     **Ghép lại máy này**; chỉ nút này gửi `repair: true`, khi đó app bỏ lần gửi thử đầu và gửi `allowRepair: true`. Lần
-    ghép tự động (kể cả sau 401/502) không bao giờ gửi `allowRepair`. `409 machine_uses_company_secret` (máy đang gửi
-    bản tin bằng secret company và chưa từng ghép, đường của Mac mini): giữ nguyên cài đặt, không ghép, không ghi key,
-    bước vẫn đạt kèm kết quả lần gửi thử (không lặp lỗi).
+    ghép tự động (kể cả sau 401/502) không bao giờ gửi `allowRepair`. `409 machine_uses_company_secret` (máy đã gửi
+    bản tin bằng secret company và chưa từng ghép): app chỉ ghép sau khi bản tin thử đã hỏng, nên secret trên máy không
+    còn đúng. Bước không đạt, không ghi key: "Máy này đang gửi bản tin bằng secret chung của company nhưng secret trên
+    máy không còn đúng. Gỡ máy này trên trang Máy (web) rồi chạy lại bước Máy." Mac mini còn gửi được bản tin thì không
+    tới bước ghép.
   - Bản tin thử cuối không 2xx thì bước không đạt: "Server từ chối bản tin máy (HTTP <mã>). Kiểm company đã chọn." (lỗi
     mạng, Keychain có câu riêng); `pairedEnvironmentId` chỉ ghi khi bản tin thử đạt.
   - Server chưa có key Paperclip (`409` của `pair-info`): báo "Server chưa có key Paperclip, báo người quản trị…"
@@ -324,7 +326,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   `setTargetSecret`, không vào app state hay kết quả), dùng lại environment đã tạo; máy có sẵn gửi thử 2xx thì không
   hỏi key, không ghép; 401/502/Keychain thì ghép, giữ cổng và thư mục; lỗi mạng thì dừng; `pair-info` 409 mở nhập tay;
   bản tin thử cuối không 2xx thì không đạt; `machine_revoked` không gửi `allowRepair`, báo đúng câu, archive environment
-  vừa tạo; nút Ghép lại gửi `allowRepair`; `machine_uses_company_secret` giữ nguyên, không ghi key; nhập tay; thư mục bị
+  vừa tạo; nút Ghép lại gửi `allowRepair`; `machine_uses_company_secret` không đạt, báo gỡ trên web, không ghi key; nhập tay; thư mục bị
   cấm; manifest hỏng; cài crew-mac bị từ chối.
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
 - `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.
