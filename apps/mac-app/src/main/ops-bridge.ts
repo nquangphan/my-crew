@@ -2,11 +2,13 @@ import type {
   CheckResult,
   DoctorOptions,
   InstallCrewMacResult,
+  MachineFacts,
   NodeInfo,
   SetupOptions,
   SetupReport,
   StatusConfig,
   StatusRepo,
+  StatusTestResult,
   WorkflowReport,
 } from '@crew/mac';
 import type { JobExtras, JobOutcome, MachineJob } from './jobs/types.js';
@@ -22,6 +24,12 @@ export interface OpsApi {
   setup(opts: SetupOptions): Promise<SetupReport>;
   configureStatus(url: string, companyId: string): StatusConfig;
   setStatusSecret(secret: string): Promise<void>;
+  /** Ghi secret (key máy hay secret dán tay) vào service Keychain của đích thuộc `companyId`, không đụng đích khác. */
+  setTargetSecret(companyId: string, secret: string): Promise<void>;
+  /** Gửi đúng một bản tin máy tới đích của `companyId` để kiểm secret với server; không ghi `status-last.json`. */
+  testStatus(companyId: string): Promise<StatusTestResult>;
+  /** IP Tailscale, cổng, thư mục, dòng known_hosts, fingerprint host key, user và tên máy để ghép máy. */
+  machineFacts(): Promise<MachineFacts>;
   /** `companyId`: company nhận ảnh chụp docs của repo (thiếu thì là company của đích đầu tiên). */
   addStatusRepo(projectId: string, path: string, companyId?: string): void;
   removeStatusRepo(projectId: string): void;
@@ -72,7 +80,7 @@ interface Pending {
 
 /**
  * Gọi `@crew/mac` trong utilityProcess, một lời gọi một `id`. Utility chết giữa chừng thì mọi lời gọi đang chờ
- * bị reject và lần gọi sau tự `fork` lại. Không ghi tham số vào log: `setStatusSecret` mang secret.
+ * bị reject và lần gọi sau tự `fork` lại. Không ghi tham số vào log: `setStatusSecret` và `setTargetSecret` mang secret.
  */
 export class UtilityOpsBridge implements OpsBridge {
   private child: UtilityLike | null = null;

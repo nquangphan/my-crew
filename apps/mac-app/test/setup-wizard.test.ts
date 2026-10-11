@@ -3,9 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { AppStateStore } from '../src/main/app-state.js';
-import type { ExistingMachine } from '../src/main/setup/import-existing.js';
 import { checkMachine } from '../src/main/setup/machine-check.js';
-import { createMachineStep } from '../src/main/setup/machine-step.js';
 import {
   createDoctorStep,
   createPaperclipStep,
@@ -84,123 +82,7 @@ describe('checkMachine', () => {
   });
 });
 
-const existing: ExistingMachine = {
-  kind: 'existing',
-  port: 2222,
-  worktreeRoot: '/Users/owner/crew-agents',
-  statusUrl: 'https://crew.example.com',
-  companyId: '11111111-1111-4111-8111-111111111111',
-  hasWebhookSecret: true,
-};
 const COMPANY = '22222222-2222-4222-8222-222222222222';
-
-async function machineHarness(detected: ExistingMachine) {
-  const calls: Array<[string, unknown[]]> = [];
-  const ops = {
-    call: vi.fn(async (op: string, ...args: unknown[]) => {
-      calls.push([op, args]);
-      if (op === 'installCrewMacFrom') return { installed: true, version: '0.2.0', backup: null };
-      if (op === 'setup') return { changed: ['manifest'], restarted: [], sshdHandoff: 'unchanged' };
-      return undefined;
-    }),
-  };
-  const dir = mkdtempSync(join(tmpdir(), 'wizard-'));
-  const store = new AppStateStore(join(dir, 'app.json'), '0.1.0');
-  await store.update((s) => ({
-    ...s,
-    setup: { ...s.setup, paperclipOrigin: 'https://crew.example.com', companyId: COMPANY },
-  }));
-  const step = createMachineStep({
-    ops: ops as never,
-    home: '/Users/owner',
-    resourcesPath: '/Applications/2P Crew.app/Contents/Resources',
-    detect: async () => detected,
-    store,
-  });
-  return { step, calls, ops };
-}
-
-describe('bước machine', () => {
-  it('máy có sẵn: cài crew-mac mang theo rồi setup({}) không cờ, không sinh key', async () => {
-    const { step, calls } = await machineHarness(existing);
-    const result = await step({});
-    expect(result.ok).toBe(true);
-    expect(result.message).toContain('Nhận cài đặt có sẵn');
-    expect(calls.map(([op]) => op)).toEqual(['installCrewMacFrom', 'configureStatus', 'setup']);
-    expect(calls[0]?.[1]).toEqual(['/Applications/2P Crew.app/Contents/Resources/crew-mac']);
-    expect(calls[1]?.[1]).toEqual(['https://crew.example.com', COMPANY]);
-    expect(calls[2]?.[1]).toEqual([{}]);
-    expect(calls.some(([op]) => op === 'setStatusSecret')).toBe(false);
-  });
-
-  it('máy có sẵn giữ nguyên url bản tin cũ, chỉ cập nhật company', async () => {
-    const { step, calls } = await machineHarness({ ...existing, statusUrl: 'http://100.105.105.12:3100' });
-    expect((await step({})).ok).toBe(true);
-    expect(calls.find(([op]) => op === 'configureStatus')?.[1]).toEqual([
-      'http://100.105.105.12:3100',
-      COMPANY,
-    ]);
-  });
-
-  it('máy có sẵn nhưng chưa có url thì dùng origin Paperclip đang đăng nhập', async () => {
-    const { step, calls } = await machineHarness({ ...existing, statusUrl: null });
-    await step({});
-    expect(calls.find(([op]) => op === 'configureStatus')?.[1]).toEqual([
-      'https://crew.example.com',
-      COMPANY,
-    ]);
-  });
-
-  it('máy mới: bắt buộc key ssh-ed25519 và secret, mặc định cổng 2222 và ~/crew-agents', async () => {
-    const { step, calls } = await machineHarness({ kind: 'fresh' });
-    expect((await step({})).ok).toBe(false);
-    expect((await step({ paperclipKey: 'ssh-rsa AAAA', webhookSecret: 's' })).message).toContain(
-      'ssh-ed25519',
-    );
-    expect((await step({ paperclipKey: 'ssh-ed25519 AAAA key', webhookSecret: '' })).ok).toBe(false);
-    expect(calls).toHaveLength(0);
-
-    const input = { paperclipKey: 'ssh-ed25519 AAAA key', webhookSecret: 'bi-mat' };
-    const result = await step(input);
-    expect(result.ok).toBe(true);
-    const ops = calls.map(([op]) => op);
-    expect(ops).toEqual(['installCrewMacFrom', 'setStatusSecret', 'configureStatus', 'setup']);
-    expect(calls[1]?.[1]).toEqual(['bi-mat']);
-    expect(calls[3]?.[1]).toEqual([
-      { paperclipKey: 'ssh-ed25519 AAAA key', port: 2222, worktreeRoot: '/Users/owner/crew-agents' },
-    ]);
-    expect(input.webhookSecret).toBe('');
-  });
-
-  it('thư mục gốc bị cấm thì lỗi đúng lý do và không gọi gì', async () => {
-    const { step, calls } = await machineHarness({ kind: 'fresh' });
-    const result = await step({
-      paperclipKey: 'ssh-ed25519 AAAA key',
-      webhookSecret: 'x',
-      worktreeRoot: '/Volumes/CORSAIR/agents',
-    });
-    expect(result.ok).toBe(false);
-    expect(result.message).toContain('/Volumes');
-    expect(calls).toHaveLength(0);
-  });
-
-  it('manifest hỏng, chưa chọn company, cài crew-mac bị từ chối', async () => {
-    expect(
-      (await (await machineHarness({ kind: 'broken', message: 'manifest hỏng' })).step({})).message,
-    ).toContain('manifest hỏng');
-    const refused = await machineHarness(existing);
-    refused.ops.call.mockImplementationOnce(async () => ({
-      installed: false,
-      version: '0.2.0',
-      backup: null,
-      reason: 'Từ chối cài vì còn run đang chạy',
-    }));
-    const result = await refused.step({});
-    expect(result).toMatchObject({ ok: false });
-    expect(result.message).toContain('còn run đang chạy');
-    expect(refused.calls.map(([op]) => op)).not.toContain('setup');
-  });
-});
 
 function wizardHarness(overrides: Partial<WizardDeps['steps']> = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'wizard-'));
@@ -252,6 +134,18 @@ describe('wizard', () => {
     expect(store.get().setup.step).toBe('check');
     await store.update((s) => ({ ...s, setup: { ...s.setup, step: 'machine' } }));
     expect(wizard.state().step).toBe('machine');
+  });
+
+  it('bước không đi tiếp trả kèm state của bước cho renderer', async () => {
+    const { wizard } = wizardHarness({
+      check: async () => ({ ok: false, message: 'cần nhập tay', state: 'manual' }),
+    });
+    expect(await wizard.step('check', {})).toEqual({
+      ok: false,
+      message: 'cần nhập tay',
+      next: 'check',
+      state: 'manual',
+    });
   });
 
   it('không nhảy cóc tới bước chưa tới lượt', async () => {

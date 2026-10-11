@@ -208,7 +208,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/context.ts` | Context và lỗi | `MacContext` (kể cả `superpowersPin`, `bmadPin`), `SetupError` |
 | `apps/crew-mac/src/context-factory.ts` | Dựng `MacContext` dùng chung cho CLI và app (`cliPath` do người gọi truyền, `nodePath` thiếu thì `stableNodePath`) | `createMacContext` (pin CLI: `SUPERPOWERS_PIN`, `BMAD_PIN`) |
 | `apps/crew-mac/src/node-runtime.ts` | Dò hoặc tải node thật cho launcher, plist và agent (xem "Node cho launcher và agent") | `resolveNode`, `ensureNode`, `downloadNode`, `stableNodePath`, `probeNode`, `isInsideAppBundle`, `pickLtsVersion`, `shasumFor`, `NODE_SOURCE_LABEL`, `NO_NODE_MESSAGE` |
-| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), BMAD (`bmadCommand`, `parseEpics`, `checkBmadAnswers`, `setupProject`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), dò/tải node (`ensureNode`, `resolveNode`, `stableNodePath`, `isInsideAppBundle`, `NODE_SOURCE_LABEL`, `NO_NODE_MESSAGE`, kiểu `NodeInfo`/`NodeSource`), `treeChecksum` (việc `skill-sync` của app băm cây skill), reaper, manifest, paths |
+| `apps/crew-mac/src/index.ts` | Entry thư viện: app 2P Crew import `@crew/mac` (`exports` trỏ `dist/index.js`, kèm `.d.ts`) | các hàm và kiểu của `setup`, `doctor`, `uninstall`, `status`, `stopRun`, `workflowCheck`, `workflowsCommand`, sổ và bản ghim workflow (`certifiedWorkflows`, `workflowForPluginDir`, `pinDir`, `SUPERPOWERS_PIN`, `BMAD_PIN`, `installBmadPin`), BMAD (`bmadCommand`, `parseEpics`, `checkBmadAnswers`, `setupProject`), `filesCommand` và kiểu `RunManifest`/`ManifestFile` (flow `mac-attachments`), dò/tải node (`ensureNode`, `resolveNode`, `stableNodePath`, `isInsideAppBundle`, `NODE_SOURCE_LABEL`, `NO_NODE_MESSAGE`, kiểu `NodeInfo`/`NodeSource`), ghép máy (`testStatus`, `setTargetSecret`, `machineFacts`, kiểu `StatusTestResult`/`StatusSendFailure`/`MachineFacts`), `treeChecksum` (việc `skill-sync` của app băm cây skill), reaper, manifest, paths |
 | `apps/crew-mac/src/paths.ts` | Label, comment key, đường dẫn (kể cả `workflowsRoot` = `~/.crew/workflows` và `appState` = `~/Library/Application Support/2P Crew/app.json`, file của app, crew-mac chỉ đọc; `crewMacDir` = `~/.crew/app/crew-mac`) | `macPaths`, `forbiddenRootReason`, `rootGuardReason` (giới hạn `--root` của `stop-run` và worktree của reaper) |
 | `apps/crew-mac/src/fs-util.ts` | Ghi file atomic, chỉ khi đổi | `writeIfChanged`, `readText` |
 | `apps/crew-mac/src/manifest.ts` | Trạng thái cài đặt (kể cả `sshdOwner` tùy chọn) | `readManifest`, `writeManifest` |
@@ -226,7 +226,7 @@ không cần token và không login lại.
 | `apps/crew-mac/src/commands/setup.ts` | Lệnh setup | `setup`, `SetupOptions` (`sshdOwner`, `force`), `SetupReport` (`sshdHandoff`), `ensureService`, `sshdPlistSpec`, `reaperPlistSpec`, `KEY_OPTIONS` |
 | `apps/crew-mac/src/commands/doctor.ts` | Lệnh doctor | `doctor`, `NODE_HINT`, `checkAppSshd`, `checkTccOwner`, `checkZshenv`, `checkAgentNode`, `checkWrapper`, `checkLauncher`, `checkSuperpowersPin`, `checkWorktreeWorkflows`, `checkReaper`, `checkCrewDocs`, `parsePendingTccPrompts`, `printProbeScript` |
 | `apps/crew-mac/src/commands/uninstall.ts` | Lệnh uninstall | `uninstall`, `scanUninstallBlockers`, `assertNoLiveRuns` (setup dùng khi đổi chủ sshd) |
-| `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook cho từng đích | `configureStatus`, `setStatusSecret`, `sendStatus`, `sendDocsSnapshots`, `normalizeStatusUrl` |
+| `apps/crew-mac/src/commands/status.ts` | Cấu hình, Keychain và gửi webhook cho từng đích; gửi thử một bản tin và thông tin máy cho bước ghép máy của app | `configureStatus`, `setStatusSecret`, `setTargetSecret`, `sendStatus`, `testStatus`, `machineFacts`, `sendDocsSnapshots`, `normalizeStatusUrl`, `StatusSendFailure`, `StatusTestResult`, `MachineFacts` |
 | `apps/crew-mac/src/status/targets.ts` | Đích nhận bản tin (`targets` trong `status.json`, đọc cấu hình cũ như một đích), Keychain theo service | `listTargets`, `addTarget`, `targetsOf`, `StatusTarget`, `writeKeychainSecret`, `readKeychainSecret` |
 | `apps/crew-mac/src/status/checkouts.ts` | Quét checkout git của agent `~/crew-agents/<project>/<role>` cho bản tin | `scanCheckouts`, `CheckoutInfo` |
 | `apps/crew-mac/src/status/sign.ts` | Ký raw body | `signCrewBody` |
@@ -276,6 +276,22 @@ Một máy gửi bản tin cho nhiều company (ví dụ TPS và Crew E2E), cùn
 đích lỗi (Keychain, kết nối, HTTP) không chặn đích sau; mỗi đích lỗi in một dòng, có thêm `[company <UUID>]` khi có
 hơn một đích, không in URL hay secret. `status-last.json` ghi `ok` (mọi đích đạt), `httpStatus` (đích lỗi đầu tiên,
 không thì đích cuối) và `targets: [{companyId, ok, httpStatus}]`. Có đích lỗi thì lệnh thoát khác 0.
+
+### Gửi thử và thông tin máy cho bước ghép máy
+
+Ba hàm thư viện (không có lệnh CLI) cho bước Máy của app 2P Crew (flow `mac-app`):
+
+- `testStatus(ctx, companyId)` gửi **một** bản tin máy tới đích của company đó (dùng lại đường gửi của `send`), không
+  gửi ảnh chụp docs, không ghi `status-last.json`. Trả `{ok, httpStatus, failure}`; `failure` là `keychain` (không đọc
+  được secret), `report` (không dựng được bản tin), `network` (không tới được server), `http` (mã không 2xx) hoặc
+  `no-target` (company không có trong đích). Lỗi gửi không ném; `companyId` sai dạng thì ném.
+- `setTargetSecret(ctx, companyId, secret)` ghi secret (key máy do server cấp khi ghép, hoặc secret dán tay) vào đúng
+  service Keychain của đích thuộc company đó, qua stdin của `security -i`; không đụng service của đích khác. Company
+  chưa có đích thì ném.
+- `machineFacts(ctx)` đọc manifest (`listenAddress` là IP Tailscale, `port`, `worktreeRoot`), dòng `known_hosts` mà
+  `setup` đã ghi (`[ip]:port ssh-ed25519 …`), fingerprint host key sshd agent tính như `ssh-keygen -lf`
+  (`SHA256:<43 ký tự>`), user và tên máy (`scutil --get LocalHostName`, không có thì `hostname()` bỏ phần sau dấu
+  chấm). Chưa có manifest, hoặc dòng `known_hosts` lệch manifest hay host key, thì ném và bảo chạy lại `setup`.
 
 ### Trường `checkouts`, `superpowers.pinDir`/`skills`, `jobsAgent`
 

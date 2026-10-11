@@ -118,6 +118,7 @@ flows:
       - apps/crew-mac/test/status-tcc.test.ts
       - apps/crew-mac/test/status-docs.test.ts
       - apps/crew-mac/test/status-targets.test.ts
+      - apps/crew-mac/test/status-pairing.test.ts
       - apps/crew-mac/test/status-checkouts.test.ts
   mac-attachments:
     title: Đọc file đính kèm trên Mac (crew-mac files)
@@ -308,6 +309,7 @@ flows:
       - apps/mac-app/test/ops-bridge.test.ts
       - apps/mac-app/test/renderer/app.test.tsx
       - apps/mac-app/test/setup-wizard.test.ts
+      - apps/mac-app/test/setup-machine-step.test.ts
       - apps/mac-app/test/setup-import.test.ts
       - apps/mac-app/test/setup-disk-access.test.ts
       - apps/mac-app/test/setup-sshd-handoff.test.ts

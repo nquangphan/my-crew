@@ -143,6 +143,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/status-app.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-checkouts.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-docs.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/status-pairing.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-runtimes.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
 | `apps/crew-mac/test/status-targets.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/status-tcc.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
@@ -282,6 +283,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/setup-disk-access.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-fakes.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-import.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/setup-machine-step.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-sshd-handoff.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/setup-wizard.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/sshd-backoff.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |

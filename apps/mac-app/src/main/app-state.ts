@@ -51,7 +51,16 @@ export interface AppState {
     badVersions: string[];
     baseline: string[];
   };
-  setup: { step: SetupStep; paperclipOrigin: string | null; companyId: string | null };
+  setup: {
+    step: SetupStep;
+    paperclipOrigin: string | null;
+    companyId: string | null;
+    /**
+     * Environment SSH của chính máy này, tạo khi ghép máy ở bước Máy (company `companyId`). Thêm project lấy nó làm
+     * khuôn. `null` (máy cài trước khi có ghép máy, như Mac mini): khuôn là environment cùng cổng sshd như cũ.
+     */
+    pairedEnvironmentId: string | null;
+  };
   projects: Record<string, ProjectProgress>;
   /** App đang nhận việc từ hàng đợi máy: bản app và lần cuối hỏi được server (ISO 8601). Thiếu = không nhận việc. */
   jobsAgent?: { version: string; lastPollAt: string };
@@ -73,7 +82,7 @@ export function defaultAppState(appVersion: string): AppState {
     sshdPid: null,
     updateState: 'idle',
     update: { from: null, to: null, installedAt: null, badVersions: [], baseline: [] },
-    setup: { step: 'check', paperclipOrigin: null, companyId: null },
+    setup: { step: 'check', paperclipOrigin: null, companyId: null, pairedEnvironmentId: null },
     projects: {},
   };
 }

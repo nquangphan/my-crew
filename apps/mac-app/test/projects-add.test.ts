@@ -529,3 +529,64 @@ describe('addProject', () => {
     expect(paperclip.requests.slice(before).filter((r) => r.method !== 'GET')).toEqual([]);
   });
 });
+
+describe('addProject: khuôn environment theo máy đã ghép', () => {
+  const MACBOOK_ENV = 'abababab-abab-4bab-8bab-abababababab';
+
+  /** Thêm environment của MacBook đã ghép, cùng cổng 2222 với Mac mini (tên xếp sau `mac-mini`). */
+  async function pairedWorld(status: 'active' | 'archived' = 'active') {
+    const w = await world();
+    w.paperclip.envs.set(MACBOOK_ENV, {
+      id: MACBOOK_ENV,
+      name: 'may-phans-macbook-pro',
+      driver: 'ssh',
+      status,
+      config: {
+        host: '100.100.157.19',
+        port: 2222,
+        username: 'phannhatquang',
+        remoteWorkspacePath: '/Users/phannhatquang/crew-agents',
+        privateKeySecretRef: { type: 'secret_ref', secretId: SECRET, version: 'latest' },
+        knownHosts: '[100.100.157.19]:2222 ssh-ed25519 BBBB',
+        strictHostKeyChecking: true,
+      },
+      metadata: { workspaceRealizationMode: 'in_place' },
+    });
+    return w;
+  }
+
+  const createdEnvs = (w: Awaited<ReturnType<typeof world>>) =>
+    [...w.paperclip.envs.values()].filter((env) => env.id !== TEMPLATE_ENV && env.id !== MACBOOK_ENV);
+
+  it('máy đã ghép lấy đúng environment đã ghép làm khuôn, không lấy environment cùng cổng của Mac mini', async () => {
+    const w = await pairedWorld();
+    await w.store.update((s) => ({ ...s, setup: { ...s.setup, pairedEnvironmentId: MACBOOK_ENV } }));
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toBeNull();
+    const created = createdEnvs(w);
+    expect(created).toHaveLength(4);
+    for (const env of created) {
+      expect(env.config).toMatchObject({
+        host: '100.100.157.19',
+        username: 'phannhatquang',
+        knownHosts: '[100.100.157.19]:2222 ssh-ed25519 BBBB',
+      });
+    }
+  });
+
+  it('máy chưa ghép (Mac mini) giữ cách cũ: environment cùng cổng đầu tiên theo tên', async () => {
+    const w = await pairedWorld();
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toBeNull();
+    for (const env of createdEnvs(w)) expect(env.config).toMatchObject({ host: '100.64.1.2' });
+  });
+
+  it('environment đã ghép không còn active thì báo ghép lại, không rơi về environment của máy khác', async () => {
+    const w = await pairedWorld('archived');
+    await w.store.update((s) => ({ ...s, setup: { ...s.setup, pairedEnvironmentId: MACBOOK_ENV } }));
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toContain('Environment đã ghép của máy này');
+    expect(progress.error).toContain('bước Máy');
+    expect(createdEnvs(w)).toHaveLength(0);
+  });
+});

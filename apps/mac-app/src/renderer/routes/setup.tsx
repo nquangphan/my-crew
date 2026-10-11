@@ -14,14 +14,18 @@ interface StepMeta {
   title: string;
   description: string;
   action: string;
+  /** Chữ trên nút khi bước đang chạy (mặc định "Đang chạy..."). */
+  busy?: string;
 }
 
 /** Tên bước và nút bấm; thứ tự khớp `STEP_ORDER` ở Main. */
 export const STEP_META: Record<SetupStep, StepMeta> = {
   check: {
     title: 'Kiểm tra máy',
-    description: 'Cần macOS 15 trở lên, Tailscale đang chạy và Claude Code đã đăng nhập.',
+    description:
+      'Cần macOS 15 trở lên, Tailscale đang chạy, Claude Code đã đăng nhập và Node 22+ (app tự tải Node LTS nếu thiếu).',
     action: 'Kiểm tra',
+    busy: 'Đang kiểm tra (thiếu Node thì đang tải Node LTS…)',
   },
   v2: {
     title: 'Gỡ app 2P Crew cũ',
@@ -41,8 +45,10 @@ export const STEP_META: Record<SetupStep, StepMeta> = {
   },
   machine: {
     title: 'Máy này',
-    description: 'Cài đặt crew-mac, key và thư mục làm việc của agent.',
-    action: 'Cài đặt',
+    description:
+      'Ghép máy với Paperclip: cài crew-mac, tạo environment SSH của máy, nhận key máy vào Keychain rồi gửi thử một bản tin. Không phải dán gì.',
+    action: 'Ghép máy',
+    busy: 'Đang ghép...',
   },
   'disk-access': {
     title: 'Quyền ổ đĩa',
@@ -115,7 +121,7 @@ function SimplePanel({ step, onResult }: { step: SetupStep; onResult: PanelProps
       feedback={feedback}
       actions={
         <button type="button" className="btn primary" disabled={busy} onClick={() => void run()}>
-          {busy ? 'Đang chạy...' : meta.action}
+          {busy ? (meta.busy ?? 'Đang chạy...') : meta.action}
         </button>
       }
     />
@@ -133,11 +139,11 @@ function PaperclipPanel({ setup, machine, onResult }: PanelProps) {
   );
   const [login, setLogin] = useState<LoginState>(setup.paperclipOrigin ? 'approved' : 'idle');
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
-  const [companyId, setCompanyId] = useState(setup.companyId ?? '');
+  // Owner luôn tự chọn company: không chọn sẵn theo status.json hay company đầu danh sách (dễ gắn nhầm company).
+  const [companyId, setCompanyId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { busy, feedback, run } = useStepRunner('paperclip', onResult);
 
-  const preferred = machine?.kind === 'existing' ? machine.companyId : null;
   useEffect(() => {
     if (login !== 'approved') return;
     let live = true;
@@ -146,10 +152,7 @@ function PaperclipPanel({ setup, machine, onResult }: PanelProps) {
         if (!live) return;
         setCompanies(list);
         setError(null);
-        setCompanyId((current) => {
-          const wanted = [current, preferred].find((id) => id && list.some((c) => c.id === id));
-          return wanted ?? list[0]?.id ?? '';
-        });
+        setCompanyId((current) => (list.some((c) => c.id === current) ? current : ''));
       })
       .catch((e: unknown) => {
         if (!live) return;
@@ -159,7 +162,7 @@ function PaperclipPanel({ setup, machine, onResult }: PanelProps) {
     return () => {
       live = false;
     };
-  }, [login, preferred]);
+  }, [login]);
 
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -232,6 +235,9 @@ function PaperclipPanel({ setup, machine, onResult }: PanelProps) {
         <label className="field">
           Company
           <select value={companyId} onChange={(event) => setCompanyId(event.target.value)}>
+            <option value="" disabled>
+              Chọn company của máy này
+            </option>
             {companies.map((company) => (
               <option key={company.id} value={company.id}>
                 {company.name}
@@ -372,13 +378,34 @@ function MovePanel({ onResult }: PanelProps) {
   );
 }
 
-function MachinePanel({ machine, reloadMachine, onResult }: PanelProps) {
+/** Tên company đã chọn (để owner nhìn lại trước khi ghép); chưa đọc được thì hiện id. */
+function useCompanyName(companyId: string | null): string | null {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!companyId) return;
+    let live = true;
+    invoke('paperclip:companies')
+      .then((list) => {
+        if (live) setName(list.find((company) => company.id === companyId)?.name ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [companyId]);
+  return companyId ? (name ?? companyId) : null;
+}
+
+function MachinePanel({ setup, machine, reloadMachine, onResult }: PanelProps) {
   const meta = STEP_META.machine;
   const { busy, feedback, run, setFeedback } = useStepRunner('machine', onResult);
+  const companyName = useCompanyName(setup.companyId);
   const [paperclipKey, setPaperclipKey] = useState('');
   const [webhookSecret, setWebhookSecret] = useState('');
   const [port, setPort] = useState('2222');
   const [worktreeRoot, setWorktreeRoot] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
+  const [revoked, setRevoked] = useState(false);
 
   if (machine === null) return <WizardStep title={meta.title} description="Đang đọc cài đặt có sẵn..." />;
 
@@ -397,18 +424,57 @@ function MachinePanel({ machine, reloadMachine, onResult }: PanelProps) {
     );
   }
 
-  if (machine.kind === 'existing') {
-    return (
-      <WizardStep
-        title={meta.title}
-        description="Nhận cài đặt có sẵn. Không tạo key mới, không hỏi lại secret."
-        feedback={feedback}
-        actions={
-          <button type="button" className="btn primary" disabled={busy} onClick={() => void run({})}>
-            {busy ? 'Đang cài...' : 'Tiếp'}
+  const fresh = machine.kind === 'fresh';
+  const location = fresh ? { port, worktreeRoot } : {};
+  const pair = async (input: Record<string, unknown>) => {
+    const result = await run(input);
+    setRevoked(result?.state === 'revoked');
+    if (result?.state === 'manual') setManualOpen(true);
+  };
+  const submitManual = async () => {
+    const result = await run({ manual: true, paperclipKey, webhookSecret, ...location });
+    // Main đã xóa secret khỏi input; ô nhập cũng xóa dù kết quả thế nào.
+    setWebhookSecret('');
+    if (result?.ok) setFeedback({ ok: true, message: result.message });
+    if (result?.state === 'manual') setManualOpen(true);
+  };
+
+  return (
+    <WizardStep
+      title={meta.title}
+      description={
+        fresh
+          ? meta.description
+          : 'Máy đã cài crew-mac: gửi thử một bản tin. Server nhận thì giữ nguyên cài đặt, không ghép; server từ chối thì ghép lại máy.'
+      }
+      feedback={feedback}
+      actions={
+        <>
+          {revoked && (
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={() => void pair({ repair: true, ...location })}
+            >
+              Ghép lại máy này
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy}
+            onClick={() => void pair({ ...location })}
+          >
+            {busy ? meta.busy : meta.action}
           </button>
-        }
-      >
+        </>
+      }
+    >
+      <Notice>
+        Ghép vào company: <strong>{companyName ?? 'chưa chọn'}</strong>
+      </Notice>
+      {!fresh && (
         <dl className="kv">
           <dt>Cổng sshd</dt>
           <dd>{machine.port}</dd>
@@ -419,63 +485,56 @@ function MachinePanel({ machine, reloadMachine, onResult }: PanelProps) {
           <dt>Secret webhook</dt>
           <dd>{machine.hasWebhookSecret ? 'đã có trong Keychain' : 'chưa thấy trong Keychain'}</dd>
         </dl>
-        {!machine.hasWebhookSecret && (
-          <Notice tone="warn">
-            Chưa thấy secret webhook; bản tin trạng thái sẽ không gửi được cho tới khi có.
-          </Notice>
-        )}
-      </WizardStep>
-    );
-  }
-
-  const submit = async () => {
-    const result = await run({ paperclipKey, webhookSecret, port, worktreeRoot });
-    if (result?.ok) {
-      setWebhookSecret('');
-      setFeedback({ ok: true, message: result.message });
-    }
-  };
-  return (
-    <WizardStep
-      title={meta.title}
-      description="Máy mới: dán key và secret do Paperclip cấp. Secret chỉ đi một lần tới Keychain, không lưu trong app."
-      feedback={feedback}
-      actions={
+      )}
+      {fresh && (
+        <details className="field">
+          <summary>Cổng sshd và thư mục worktree (tùy chọn)</summary>
+          <label className="field">
+            Cổng sshd
+            <input value={port} onChange={(event) => setPort(event.target.value)} />
+          </label>
+          <label className="field">
+            Thư mục worktree (để trống: ~/crew-agents)
+            <input value={worktreeRoot} onChange={(event) => setWorktreeRoot(event.target.value)} />
+          </label>
+        </details>
+      )}
+      <details
+        className="field"
+        open={manualOpen}
+        onToggle={(event) => setManualOpen((event.currentTarget as HTMLDetailsElement).open)}
+      >
+        <summary>Nhập tay (dự phòng)</summary>
+        <p>
+          Chỉ dùng khi không ghép tự động được. Secret chỉ đi một lần tới Keychain, không lưu trong app.
+          {fresh ? '' : ' Máy có sẵn: key Paperclip để trống thì giữ key đang có.'}
+        </p>
+        <label className="field">
+          Key Paperclip (ssh-ed25519)
+          <textarea
+            rows={3}
+            className="mono"
+            value={paperclipKey}
+            onChange={(event) => setPaperclipKey(event.target.value)}
+          />
+        </label>
+        <label className="field">
+          Secret webhook
+          <input
+            type="password"
+            value={webhookSecret}
+            onChange={(event) => setWebhookSecret(event.target.value)}
+          />
+        </label>
         <button
           type="button"
-          className="btn primary"
-          disabled={busy || paperclipKey.trim() === '' || webhookSecret === ''}
-          onClick={() => void submit()}
+          className="btn"
+          disabled={busy || webhookSecret === '' || (fresh && paperclipKey.trim() === '')}
+          onClick={() => void submitManual()}
         >
-          {busy ? 'Đang cài...' : meta.action}
+          Cài bằng key và secret đã dán
         </button>
-      }
-    >
-      <label className="field">
-        Key Paperclip (ssh-ed25519)
-        <textarea
-          rows={3}
-          className="mono"
-          value={paperclipKey}
-          onChange={(event) => setPaperclipKey(event.target.value)}
-        />
-      </label>
-      <label className="field">
-        Secret webhook
-        <input
-          type="password"
-          value={webhookSecret}
-          onChange={(event) => setWebhookSecret(event.target.value)}
-        />
-      </label>
-      <label className="field">
-        Cổng sshd
-        <input value={port} onChange={(event) => setPort(event.target.value)} />
-      </label>
-      <label className="field">
-        Thư mục worktree (để trống: ~/crew-agents)
-        <input value={worktreeRoot} onChange={(event) => setWorktreeRoot(event.target.value)} />
-      </label>
+      </details>
     </WizardStep>
   );
 }

@@ -10,6 +10,7 @@ import {
   installCrewMacFrom,
   listStatusRepos,
   listTargets,
+  machineFacts,
   NO_NODE_MESSAGE,
   type NodeInfo,
   readStatusConfig,
@@ -18,9 +19,11 @@ import {
   runtimesStatus,
   sendStatus,
   setStatusSecret,
+  setTargetSecret,
   setup,
   stableNodePath,
   superpowersPinDir,
+  testStatus,
   workflowCheck,
 } from '@crew/mac';
 import { runJob } from '../main/jobs/executors.js';
@@ -102,6 +105,9 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
     setup: async (opts) => setup(await context(), opts),
     configureStatus: async (url, companyId) => configureStatus(await context(), url, companyId),
     setStatusSecret: async (secret) => setStatusSecret(await context(), secret),
+    setTargetSecret: async (companyId, secret) => setTargetSecret(await context(), companyId, secret),
+    testStatus: async (companyId) => testStatus(await context(), companyId),
+    machineFacts: async () => machineFacts(await context()),
     addStatusRepo: async (projectId, path, companyId) =>
       addStatusRepo(await context(), projectId, path, companyId),
     removeStatusRepo: async (projectId) => removeStatusRepo(await context(), projectId),

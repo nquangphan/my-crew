@@ -85,7 +85,14 @@ export function createWizard(deps: WizardDeps): Wizard {
       } catch (error) {
         outcome = { ok: false, message: errorText(error) };
       }
-      if (!outcome.ok || outcome.stay) return { ok: outcome.ok, message: outcome.message, next: step };
+      if (!outcome.ok || outcome.stay) {
+        return {
+          ok: outcome.ok,
+          message: outcome.message,
+          next: step,
+          ...(outcome.state === undefined ? {} : { state: outcome.state }),
+        };
+      }
       const next = step === 'done' ? 'done' : (STEP_ORDER[indexOf(step) + 1] as SetupStep);
       if (indexOf(next) > indexOf(progress)) {
         await deps.store.update((state) => ({ ...state, setup: { ...state.setup, step: next } }));

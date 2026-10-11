@@ -527,3 +527,79 @@ describe('route cho thêm/gỡ project', () => {
     expect((error as Error).message).not.toContain('chi tiết server');
   });
 });
+
+describe('ghép máy (route plugin crew.core)', () => {
+  const PAIR = {
+    companyId: C,
+    machineId: A,
+    hostname: 'Phans-MacBook-Pro',
+    environmentId: E,
+    tailscaleIp: '100.100.157.19',
+    port: 2222,
+    hostKeyFingerprint: `SHA256:${'A'.repeat(43)}`,
+  };
+  const MACHINE_KEY = 'm'.repeat(43);
+
+  it('pairInfo: GET /machines/pair-info?companyId=, nhận đúng key ssh-ed25519', async () => {
+    let reply = { paperclipSshPublicKey: 'ssh-ed25519 AAAAkey crew-mac-paperclip' } as Record<
+      string,
+      unknown
+    >;
+    const { server, client } = await setup(() => ({ status: 200, body: reply }));
+    await expect(client.pairInfo(C)).resolves.toEqual({
+      paperclipSshPublicKey: 'ssh-ed25519 AAAAkey crew-mac-paperclip',
+    });
+    expect(server.requests[0]).toMatchObject({
+      method: 'GET',
+      path: '/api/plugins/crew.core/api/machines/pair-info',
+      query: { companyId: C },
+    });
+    reply = { paperclipSshPublicKey: 'ssh-rsa AAAA' };
+    await expect(client.pairInfo(C)).rejects.toThrow('ssh-ed25519');
+  });
+
+  it('pairInfo 409 (server chưa có key) thành PaperclipHttpError 409', async () => {
+    const { client } = await setup(() => ({ status: 409, body: { error: 'Server chưa có key Paperclip' } }));
+    const error = await client.pairInfo(C).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(PaperclipHttpError);
+    expect((error as PaperclipHttpError).status).toBe(409);
+  });
+
+  it('pairMachine: POST đúng các key, chỉ thêm allowRepair khi được yêu cầu, không log key máy', async () => {
+    const { server, client, log } = await setup(() => ({
+      status: 200,
+      body: { machineKey: MACHINE_KEY, pairedAt: '2026-10-11T07:00:00.000Z' },
+    }));
+    await expect(client.pairMachine(PAIR)).resolves.toEqual({
+      machineKey: MACHINE_KEY,
+      pairedAt: '2026-10-11T07:00:00.000Z',
+    });
+    await client.pairMachine(PAIR, { allowRepair: true });
+    expect(server.requests[0]).toMatchObject({
+      method: 'POST',
+      path: '/api/plugins/crew.core/api/machines/pair',
+    });
+    expect(server.requests[0]?.body).toEqual(PAIR);
+    expect(server.requests[1]?.body).toEqual({ ...PAIR, allowRepair: true });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(MACHINE_KEY);
+  });
+
+  it('pairMachine 409 giữ code của plugin (máy đã gỡ, máy dùng secret company); key máy sai dạng thì ném', async () => {
+    let reply: { status: number; body: unknown } = {
+      status: 409,
+      body: { error: 'Máy đã bị gỡ, owner phải cho phép ghép lại', code: 'machine_revoked' },
+    };
+    const { client } = await setup(() => reply);
+    await expect(client.pairMachine(PAIR)).rejects.toMatchObject({ status: 409, code: 'machine_revoked' });
+    reply = {
+      status: 409,
+      body: { error: 'Máy đang gửi bản tin bằng secret company', code: 'machine_uses_company_secret' },
+    };
+    await expect(client.pairMachine(PAIR)).rejects.toMatchObject({
+      status: 409,
+      code: 'machine_uses_company_secret',
+    });
+    reply = { status: 200, body: { machineKey: 'ngắn', pairedAt: 'x' } };
+    await expect(client.pairMachine(PAIR)).rejects.toThrow('key máy không hợp lệ');
+  });
+});

@@ -90,6 +90,25 @@ export interface InstructionsFile {
   hash: string;
 }
 
+/** Thông tin máy gửi lên route ghép máy của plugin `crew.core` (đúng các key server nhận). */
+export interface MachinePairInput {
+  companyId: string;
+  machineId: string;
+  hostname: string;
+  environmentId: string;
+  /** IP Tailscale (100.64.0.0/10), trùng `host` của environment SSH của máy. */
+  tailscaleIp: string;
+  port: number;
+  /** `SHA256:<43 ký tự base64>` của host key sshd agent. */
+  hostKeyFingerprint: string;
+}
+
+export interface MachinePairing {
+  /** Key máy dẫn xuất (base64url, 43 ký tự): chỉ đi thẳng vào Keychain, không log, không lưu trong app. */
+  machineKey: string;
+  pairedAt: string;
+}
+
 export interface PaperclipClient {
   origin: string;
   me(): Promise<{ userId: string }>;
@@ -134,4 +153,12 @@ export interface PaperclipClient {
   /** 400 của plugin (luật vai trò) thành `PaperclipHttpError` có lời từ chối của server trong message. */
   setRoles(companyId: string, projectId: string, roles: ProjectRoles): Promise<void>;
   deleteRoles(companyId: string, projectId: string): Promise<void>;
+  /** Public key SSH Paperclip dùng vào máy (`GET …/machines/pair-info`). 409 khi server chưa có key. */
+  pairInfo(companyId: string): Promise<{ paperclipSshPublicKey: string }>;
+  /**
+   * Ghép máy (`POST …/machines/pair`), nhận key máy một lần. 409 `machine_revoked` khi máy đã bị gỡ trên web (chỉ
+   * ghép lại khi `allowRepair`, do owner bấm "Ghép lại máy này"); 409 `machine_uses_company_secret` khi máy đang gửi
+   * bản tin bằng secret company và chưa từng ghép.
+   */
+  pairMachine(input: MachinePairInput, options?: { allowRepair?: boolean }): Promise<MachinePairing>;
 }

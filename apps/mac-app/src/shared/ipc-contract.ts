@@ -23,6 +23,8 @@ export interface StepResult {
   ok: boolean;
   message: string;
   next: SetupStep;
+  /** Chi tiết riêng của bước khi không đi tiếp, ví dụ bước Máy: `manual` (mở phần nhập tay), `revoked` (máy đã bị gỡ). */
+  state?: string;
 }
 
 export interface SshEnvironmentCheckout {

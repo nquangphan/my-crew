@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   accessSync,
   chmodSync,
@@ -14,8 +14,12 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { hostname } from 'node:os';
 import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
+import { parsePublicKey } from '../authorized-keys.js';
 import type { MacContext } from '../context.js';
+import { readManifest } from '../manifest.js';
+import { macPaths } from '../paths.js';
 import {
   buildDocsSnapshot,
   collectCommits,
@@ -29,6 +33,7 @@ import { signCrewBody } from '../status/sign.js';
 import {
   type KeychainRead,
   LEGACY_KEYCHAIN_SERVICE,
+  listTargets,
   readKeychainSecret,
   type StatusTarget,
   targetsOf,
@@ -251,10 +256,17 @@ function keychainFailure(read: KeychainRead): string {
   return read.ok ? '' : `Keychain${read.timedOut ? ' quá hạn' : ` mã ${read.code}`}`;
 }
 
+/**
+ * Vì sao một lần gửi bản tin thất bại: `keychain` (không đọc được secret), `report` (không dựng được bản tin),
+ * `network` (không tới được Paperclip), `http` (server trả mã không 2xx), `no-target` (company không có trong đích).
+ */
+export type StatusSendFailure = 'no-target' | 'keychain' | 'report' | 'network' | 'http';
+
 interface TargetOutcome {
   companyId: string;
   ok: boolean;
   httpStatus: number | null;
+  failure: StatusSendFailure | null;
 }
 
 /** Gửi bản tin máy tới một đích; lỗi chỉ in một dòng có company id, không có secret, URL hay message lỗi. */
@@ -267,6 +279,7 @@ async function sendReportTo(
 ): Promise<TargetOutcome> {
   let httpStatus: number | null = null;
   let failureMessage = 'crew-mac status: gửi thất bại';
+  let failure: StatusSendFailure = 'keychain';
   try {
     const secret = await readKeychainSecret(ctx, target.keychainService);
     if (!secret.ok) {
@@ -274,8 +287,10 @@ async function sendReportTo(
       throw new Error('keychain');
     }
     failureMessage = 'crew-mac status: gửi thất bại (dựng bản tin máy)';
+    failure = 'report';
     const body = JSON.stringify({ ...(await report()), companyId: target.companyId });
     failureMessage = 'crew-mac status: gửi thất bại (kết nối tới Paperclip)';
+    failure = 'network';
     const response = await fetcher(`${target.url}/api/plugins/crew.core/webhooks/machine-status`, {
       method: 'POST',
       headers: {
@@ -286,15 +301,16 @@ async function sendReportTo(
       signal: AbortSignal.timeout(10_000),
     });
     httpStatus = response.status;
+    failure = 'http';
     if (response.status < 200 || response.status >= 300) throw new Error('http');
-    return { companyId: target.companyId, ok: true, httpStatus };
+    return { companyId: target.companyId, ok: true, httpStatus, failure: null };
   } catch (error) {
     if (httpStatus === null && failureMessage.endsWith('(kết nối tới Paperclip)'))
       failureMessage = `${failureMessage.slice(0, -1)}: ${errorKind(error)})`;
     ctx.out(
       `${httpStatus === null ? failureMessage : `crew-mac status: gửi thất bại (HTTP ${httpStatus})`}${label}`,
     );
-    return { companyId: target.companyId, ok: false, httpStatus };
+    return { companyId: target.companyId, ok: false, httpStatus, failure };
   }
 }
 
@@ -328,14 +344,19 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
         ),
       );
   }
-  if (outcomes.length === 0) outcomes = [{ companyId: '', ok: false, httpStatus: null }];
+  if (outcomes.length === 0)
+    outcomes = [{ companyId: '', ok: false, httpStatus: null, failure: 'no-target' }];
   const failed = outcomes.find((outcome) => !outcome.ok);
   writePrivate(lastPath(ctx), {
     at: ctx.now().toISOString(),
     ok: !failed,
     httpStatus: (failed ?? outcomes.at(-1))?.httpStatus ?? null,
     ...(outcomes.length > 1 || outcomes[0]?.companyId
-      ? { targets: outcomes.filter((o) => o.companyId) }
+      ? {
+          targets: outcomes
+            .filter((o) => o.companyId)
+            .map(({ companyId, ok, httpStatus }) => ({ companyId, ok, httpStatus })),
+        }
       : {}),
   });
   let docsFailed = false;
@@ -345,6 +366,100 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
     docsFailed = true;
   }
   if (failed || docsFailed) throw new StatusSendError('Gửi trạng thái thất bại');
+}
+
+export interface StatusTestResult {
+  ok: boolean;
+  /** Mã HTTP server trả; `null` khi chưa tới được server. */
+  httpStatus: number | null;
+  failure: StatusSendFailure | null;
+}
+
+/**
+ * Gửi đúng một bản tin máy tới đích của `companyId` (không gửi ảnh chụp docs, không ghi `status-last.json`) để kiểm
+ * secret trong Keychain với server ngay lúc cài. Không bao giờ ném vì lỗi gửi: lý do nằm ở `failure`.
+ */
+export async function testStatus(
+  ctx: MacContext,
+  companyId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<StatusTestResult> {
+  if (!UUID_PATTERN.test(companyId)) throw new Error('company phải là UUID hợp lệ');
+  const config = readStatusConfig(ctx);
+  const wanted = companyId.toLowerCase();
+  const target = targetsOf(config).find((candidate) => candidate.companyId.toLowerCase() === wanted);
+  if (!config || !target) return { ok: false, httpStatus: null, failure: 'no-target' };
+  const { ok, httpStatus, failure } = await sendReportTo(
+    ctx,
+    target,
+    () => buildMachineReport(ctx, target.companyId, config.machineId),
+    fetcher,
+    '',
+  );
+  return { ok, httpStatus, failure };
+}
+
+/**
+ * Ghi secret (key máy do server cấp khi ghép, hoặc secret dán tay) vào đúng service Keychain của đích thuộc
+ * `companyId`, không đụng service của company khác. Đi qua stdin của `security -i`, không lên argv.
+ */
+export async function setTargetSecret(ctx: MacContext, companyId: string, secret: string): Promise<void> {
+  if (!UUID_PATTERN.test(companyId)) throw new Error('company phải là UUID hợp lệ');
+  const wanted = companyId.toLowerCase();
+  const target = listTargets(ctx).find((candidate) => candidate.companyId.toLowerCase() === wanted);
+  if (!target) throw new Error('Chưa có đích bản tin cho company này; cấu hình bản tin trước');
+  await writeKeychainSecret(ctx, target.keychainService, secret);
+}
+
+/** Thông tin máy để tạo environment SSH và ghép máy với Paperclip. Không có secret. */
+export interface MachineFacts {
+  /** IP Tailscale sshd agent nghe (manifest). */
+  listenAddress: string;
+  port: number;
+  worktreeRoot: string;
+  /** Dòng `[ip]:port ssh-ed25519 AAAA…` crew-mac setup đã ghi, dùng làm `knownHosts` của environment. */
+  knownHostsLine: string;
+  /** Như `ssh-keygen -lf host_ed25519.pub`: `SHA256:<43 ký tự base64>`. */
+  hostKeyFingerprint: string;
+  username: string;
+  hostname: string;
+}
+
+const HOSTNAME_MAX = 200;
+
+async function localHostname(ctx: MacContext): Promise<string> {
+  const result = await ctx.runner.run('scutil', ['--get', 'LocalHostName'], { timeoutMs: 10_000 });
+  const fromScutil = result.code === 0 ? result.stdout.trim() : '';
+  const name = fromScutil || (hostname().split('.')[0] ?? '');
+  if (name === '' || name.length > HOSTNAME_MAX || name.includes('\0'))
+    throw new Error('Không đọc được tên máy (scutil --get LocalHostName)');
+  return name;
+}
+
+/** Đọc manifest, known_hosts và host key mà `crew-mac setup` đã ghi; thiếu hay lệch nhau thì ném. */
+export async function machineFacts(ctx: MacContext): Promise<MachineFacts> {
+  const paths = macPaths(ctx.home);
+  const manifest = readManifest(paths.manifest);
+  if (!manifest) throw new Error('Máy chưa cài crew-mac (thiếu manifest); chạy crew-mac setup trước');
+  const { type, body } = parsePublicKey(readFileSync(`${paths.hostKey}.pub`, 'utf8'));
+  const prefix = `[${manifest.listenAddress}]:${manifest.port} `;
+  const knownHostsLine =
+    readFileSync(paths.knownHosts, 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line !== '') ?? '';
+  if (knownHostsLine !== `${prefix}${type} ${body}`)
+    throw new Error('known_hosts của crew-mac không khớp manifest hoặc host key; chạy lại crew-mac setup');
+  const digest = createHash('sha256').update(Buffer.from(body, 'base64')).digest('base64').replace(/=+$/, '');
+  return {
+    listenAddress: manifest.listenAddress,
+    port: manifest.port,
+    worktreeRoot: manifest.worktreeRoot,
+    knownHostsLine,
+    hostKeyFingerprint: `SHA256:${digest}`,
+    username: ctx.user,
+    hostname: await localHostname(ctx),
+  };
 }
 
 export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch = fetch): Promise<boolean> {

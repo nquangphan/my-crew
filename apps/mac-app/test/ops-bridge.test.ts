@@ -120,6 +120,22 @@ describe('createOpsHandlers (utility)', () => {
     });
   });
 
+  it('testStatus, setTargetSecret, machineFacts gọi @crew/mac thật; máy chưa cấu hình thì báo, không gửi gì', async () => {
+    const { mkdtempSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const home = mkdtempSync(join(tmpdir(), 'ops-home-'));
+    const handlers = createOpsHandlers({ env: { HOME: home }, log: () => undefined });
+    const company = '11111111-1111-4111-8111-111111111111';
+    await expect(handlers.testStatus(company)).resolves.toEqual({
+      ok: false,
+      httpStatus: null,
+      failure: 'no-target',
+    });
+    await expect(handlers.setTargetSecret(company, 'khong-ghi')).rejects.toThrow('Chưa có đích');
+    await expect(handlers.machineFacts()).rejects.toThrow('chưa cài crew-mac');
+  });
+
   it('ctx dùng cliPath cài đặt dưới HOME', async () => {
     const seen: string[] = [];
     const handlers = createOpsHandlers({

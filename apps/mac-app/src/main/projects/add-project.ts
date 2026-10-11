@@ -43,6 +43,28 @@ function crewPermissions(role: string): AgentPermissions {
   return { canCreateAgents: false, canCreateSkills: false, canAssignTasks: templateOf(role) === 'assistant' };
 }
 
+/**
+ * Environment SSH `in_place` active dùng làm khuôn được: có secret SSH dùng chung (`privateKeySecretRef.secretId`),
+ * host và user.
+ */
+export function isInPlaceSshTemplate(env: PaperclipEnvironment): boolean {
+  const config = env.config;
+  const ref = config.privateKeySecretRef as { secretId?: unknown } | undefined;
+  return (
+    env.status === 'active' &&
+    env.driver === 'ssh' &&
+    env.metadata?.workspaceRealizationMode === 'in_place' &&
+    typeof ref?.secretId === 'string' &&
+    typeof config.host === 'string' &&
+    typeof config.username === 'string'
+  );
+}
+
+/** Các environment khuôn được của company, thứ tự theo tên. */
+export function inPlaceSshTemplates(envs: PaperclipEnvironment[]): PaperclipEnvironment[] {
+  return envs.filter(isInPlaceSshTemplate).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Một project chỉ chạy một lần thêm tại một thời điểm (hai lần bấm "Chạy tiếp" liền nhau). */
 const running = new Set<string>();
 
@@ -235,25 +257,25 @@ class AddRun {
     return this.setupInfo;
   }
 
-  /** Environment SSH `in_place` có sẵn của máy này (cùng cổng sshd): nguồn host, user, known_hosts, secret SSH. */
+  /**
+   * Environment SSH `in_place` của máy này: nguồn host, user, known_hosts, secret SSH. Máy đã ghép (app state có
+   * `pairedEnvironmentId`) dùng đúng environment đã ghép, vì nhiều máy cùng cổng sshd mặc định; environment đó phải còn
+   * active và đúng cổng. Máy chưa ghép (Mac mini) giữ cách cũ: environment đầu tiên theo tên có cùng cổng sshd.
+   */
   private getTemplate(port: number) {
     this.template ??= (async () => {
       const envs = await this.deps.client.environments(this.companyId);
-      const candidates = envs
-        .filter((env) => {
-          const config = env.config;
-          const ref = config.privateKeySecretRef as { secretId?: unknown } | undefined;
-          return (
-            env.status === 'active' &&
-            env.driver === 'ssh' &&
-            env.metadata?.workspaceRealizationMode === 'in_place' &&
-            typeof ref?.secretId === 'string' &&
-            typeof config.host === 'string' &&
-            typeof config.username === 'string' &&
-            config.port === port
+      const pairedId = this.deps.store.get().setup.pairedEnvironmentId ?? null;
+      if (pairedId) {
+        const paired = envs.find((env) => env.id === pairedId);
+        if (!paired || !isInPlaceSshTemplate(paired) || paired.config.port !== port) {
+          throw new Error(
+            `Environment đã ghép của máy này (${pairedId}) không còn active hoặc không khớp cổng ${port} trên Paperclip: mở Cài đặt, chạy lại bước Máy để ghép lại`,
           );
-        })
-        .sort((a, b) => a.name.localeCompare(b.name));
+        }
+        return paired;
+      }
+      const candidates = inPlaceSshTemplates(envs).filter((env) => env.config.port === port);
       const found = candidates[0];
       if (!found) {
         throw new Error(

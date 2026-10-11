@@ -8,12 +8,16 @@ type Handler = (...args: unknown[]) => unknown;
 
 let step = 'check';
 let origin: string | null = null;
+let companyId: string | null = null;
 let machine: ExistingMachine = { kind: 'fresh' };
 let handlers: Record<string, Handler> = {};
 const invoke = vi.fn(async (channel: string, ...args: unknown[]) => {
   try {
     if (channel === 'setup:state')
-      return { ok: true, result: { step, paperclipOrigin: origin, companyId: null } };
+      return {
+        ok: true,
+        result: { step, paperclipOrigin: origin, companyId, pairedEnvironmentId: null },
+      };
     if (channel === 'setup:detect') return { ok: true, result: machine };
     const handler = handlers[channel];
     return { ok: true, result: handler ? await handler(...args) : undefined };
@@ -25,6 +29,7 @@ const invoke = vi.fn(async (channel: string, ...args: unknown[]) => {
 beforeEach(() => {
   step = 'check';
   origin = null;
+  companyId = null;
   machine = { kind: 'fresh' };
   handlers = {};
   (window as unknown as { crew: unknown }).crew = { invoke, on: () => () => undefined };
@@ -58,8 +63,15 @@ it('bước lỗi hiện thông báo và giữ nguyên bước', async () => {
   expect(screen.getByRole('heading', { name: 'Kiểm tra máy' })).toBeTruthy();
 });
 
-it('máy có sẵn: ghi "Nhận cài đặt có sẵn" và chỉ có nút Tiếp', async () => {
+const COMPANIES = [
+  { id: 'c1', name: 'Crew E2E' },
+  { id: 'c2', name: '2P Solutions' },
+];
+
+it('máy có sẵn: bấm Ghép máy gửi {} (Main gửi thử trước, chỉ ghép khi server từ chối)', async () => {
   step = 'machine';
+  companyId = 'c2';
+  handlers['paperclip:companies'] = () => COMPANIES;
   machine = {
     kind: 'existing',
     port: 2222,
@@ -70,30 +82,81 @@ it('máy có sẵn: ghi "Nhận cài đặt có sẵn" và chỉ có nút Tiếp
   };
   handlers['setup:step'] = () => ({ ok: true, message: 'ok', next: 'disk-access' });
   render(<SetupScreen />);
-  expect(await screen.findByText(/Nhận cài đặt có sẵn/)).toBeTruthy();
-  expect(screen.queryByLabelText(/Key Paperclip/)).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Tiếp' }));
+  expect(await screen.findByText(/gửi thử một bản tin/)).toBeTruthy();
+  expect(await screen.findByText('2P Solutions')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Ghép máy' }));
   await waitFor(() => expect(stepCalls()).toHaveLength(1));
   expect(stepCalls()[0]).toEqual(['setup:step', 'machine', {}]);
 });
 
-it('máy mới: cần key và secret mới bấm được, gửi đủ ô nhập', async () => {
+it('máy mới: hiện company sẽ ghép, bấm Ghép máy không cần dán gì; dán tay nằm trong khối thu gọn', async () => {
   step = 'machine';
-  handlers['setup:step'] = () => ({ ok: true, message: 'Đã cài', next: 'disk-access' });
+  companyId = 'c2';
+  handlers['paperclip:companies'] = () => COMPANIES;
+  handlers['setup:step'] = () => ({ ok: true, message: 'Đã ghép máy', next: 'disk-access' });
   render(<SetupScreen />);
-  const install = (await screen.findByRole('button', { name: 'Cài đặt' })) as HTMLButtonElement;
+  expect(await screen.findByText('2P Solutions')).toBeTruthy();
+  expect(screen.getByText(/Ghép vào company/)).toBeTruthy();
+  const manual = screen.getByText('Nhập tay (dự phòng)').closest('details') as HTMLDetailsElement;
+  expect(manual.open).toBe(false);
+  const pair = screen.getByRole('button', { name: 'Ghép máy' }) as HTMLButtonElement;
+  expect(pair.disabled).toBe(false);
+  fireEvent.click(pair);
+  await waitFor(() => expect(stepCalls()).toHaveLength(1));
+  expect(stepCalls()[0]).toEqual(['setup:step', 'machine', { port: '2222', worktreeRoot: '' }]);
+});
+
+it('server chưa có key Paperclip: mở khối nhập tay; dán key và secret rồi cài, secret bị xóa khỏi ô', async () => {
+  step = 'machine';
+  handlers['setup:step'] = (_s, input) =>
+    (input as { manual?: boolean }).manual
+      ? { ok: true, message: 'Đã cài bằng key và secret dán tay', next: 'disk-access' }
+      : { ok: false, message: 'Server chưa có key Paperclip', next: 'machine', state: 'manual' };
+  render(<SetupScreen />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Ghép máy' }));
+  expect((await screen.findByRole('alert')).textContent).toContain('Server chưa có key Paperclip');
+  const manual = screen.getByText('Nhập tay (dự phòng)').closest('details') as HTMLDetailsElement;
+  await waitFor(() => expect(manual.open).toBe(true));
+  const install = screen.getByRole('button', { name: 'Cài bằng key và secret đã dán' }) as HTMLButtonElement;
   expect(install.disabled).toBe(true);
   fireEvent.change(screen.getByLabelText(/Key Paperclip/), { target: { value: 'ssh-ed25519 AAAA k' } });
   fireEvent.change(screen.getByLabelText('Secret webhook'), { target: { value: 'bi-mat' } });
   expect(install.disabled).toBe(false);
   fireEvent.click(install);
-  await waitFor(() => expect(stepCalls()).toHaveLength(1));
-  expect(stepCalls()[0]).toEqual([
+  await waitFor(() => expect(stepCalls()).toHaveLength(2));
+  expect(stepCalls()[1]).toEqual([
     'setup:step',
     'machine',
-    { paperclipKey: 'ssh-ed25519 AAAA k', webhookSecret: 'bi-mat', port: '2222', worktreeRoot: '' },
+    {
+      manual: true,
+      paperclipKey: 'ssh-ed25519 AAAA k',
+      webhookSecret: 'bi-mat',
+      port: '2222',
+      worktreeRoot: '',
+    },
   ]);
   await waitFor(() => expect((screen.getByLabelText('Secret webhook') as HTMLInputElement).value).toBe(''));
+});
+
+it('máy đã bị gỡ trên web: chỉ khi owner bấm "Ghép lại máy này" mới gửi repair', async () => {
+  step = 'machine';
+  handlers['setup:step'] = (_s, input) =>
+    (input as { repair?: boolean }).repair
+      ? { ok: true, message: 'Đã ghép máy', next: 'disk-access' }
+      : {
+          ok: false,
+          message: 'Máy này đã bị gỡ trên web. Bấm Ghép lại nếu muốn dùng lại.',
+          next: 'machine',
+          state: 'revoked',
+        };
+  render(<SetupScreen />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Ghép máy' }));
+  expect(screen.queryByRole('button', { name: 'Ghép lại máy này' })).toBeNull();
+  expect((await screen.findByRole('alert')).textContent).toContain('đã bị gỡ trên web');
+  expect(stepCalls()[0]?.[2]).not.toHaveProperty('repair');
+  fireEvent.click(await screen.findByRole('button', { name: 'Ghép lại máy này' }));
+  await waitFor(() => expect(stepCalls()).toHaveLength(2));
+  expect(stepCalls()[1]).toEqual(['setup:step', 'machine', { repair: true, port: '2222', worktreeRoot: '' }]);
 });
 
 it('manifest hỏng: hiện thông báo và nút kiểm tra lại', async () => {
@@ -174,10 +237,32 @@ it('đăng nhập Paperclip: mở trình duyệt, chờ duyệt, chọn company 
   const select = (await screen.findByLabelText('Company')) as HTMLSelectElement;
   // Ô Company hiện ngay khi duyệt xong, danh sách company về sau: chờ có lựa chọn mới đổi.
   await screen.findByRole('option', { name: 'Khác' });
+  // Không chọn sẵn company nào: nút Tiếp khóa tới khi owner tự chọn.
+  expect(select.value).toBe('');
+  expect((screen.getByRole('button', { name: 'Tiếp' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(select, { target: { value: 'c2' } });
   fireEvent.click(screen.getByRole('button', { name: 'Tiếp' }));
   await waitFor(() => expect(stepCalls()).toHaveLength(1));
   expect(stepCalls()[0]).toEqual(['setup:step', 'paperclip', { companyId: 'c2' }]);
+});
+
+it('đăng nhập Paperclip: máy có sẵn ghi company trong status.json vẫn không được chọn sẵn', async () => {
+  step = 'paperclip';
+  origin = 'https://crew.example.com';
+  machine = {
+    kind: 'existing',
+    port: 2222,
+    worktreeRoot: '/Users/owner/crew-agents',
+    statusUrl: 'https://crew.example.com',
+    companyId: 'c1',
+    hasWebhookSecret: true,
+  };
+  handlers['paperclip:companies'] = () => COMPANIES;
+  render(<SetupScreen />);
+  const select = (await screen.findByLabelText('Company')) as HTMLSelectElement;
+  await screen.findByRole('option', { name: 'Crew E2E' });
+  expect(select.value).toBe('');
+  expect((screen.getByRole('button', { name: 'Tiếp' }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 it('đã xong: Hoàn tất bật mở cùng máy và có nút chạy lại bước', async () => {

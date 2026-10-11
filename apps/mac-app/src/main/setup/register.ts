@@ -68,6 +68,7 @@ export function registerSetup(
         resourcesPath: ctx.resourcesPath,
         detect,
         store: ctx.store,
+        client: () => paperclipClient(ctx),
       }),
       // Dò bằng đọc file, không bao giờ gây hộp thoại; `recheck` chỉ hỏi trạng thái, không đi tiếp.
       diskAccess: async (input) =>

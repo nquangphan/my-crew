@@ -1,5 +1,6 @@
 import type {
   ClaudeLocalAgentInput,
+  MachinePairing,
   PaperclipAgent,
   PaperclipClient,
   PaperclipCompany,
@@ -13,6 +14,9 @@ const HASH_RE = /^[a-f0-9]{64}$/;
 const CODE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const WRAPPER_RE = /^\/.+\/\.crew\/bin\/crew-claude-run$/;
 const ROLES_PATH = '/api/plugins/crew.core/api/projects';
+const MACHINES_PATH = '/api/plugins/crew.core/api/machines';
+const SSH_KEY_RE = /^ssh-ed25519 [A-Za-z0-9+/=]+( .*)?$/;
+const MACHINE_KEY_RE = /^[A-Za-z0-9_-]{43}$/;
 
 /** Agent như server trả; chỉ đọc `adapterConfig.engine`, không giữ `env` hay key khác của adapterConfig. */
 type AgentResponse = Omit<PaperclipAgent, 'engine'> & { adapterConfig?: { engine?: unknown } | null };
@@ -409,6 +413,47 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
 
     async deleteRoles(companyId, projectId) {
       await call('DELETE', `${ROLES_PATH}/${id(projectId)}/roles?companyId=${id(companyId)}`);
+    },
+
+    async pairInfo(companyId) {
+      const info = await call<{ paperclipSshPublicKey?: unknown }>(
+        'GET',
+        `${MACHINES_PATH}/pair-info?companyId=${id(companyId)}`,
+      );
+      const key = info?.paperclipSshPublicKey;
+      if (typeof key !== 'string' || !SSH_KEY_RE.test(key)) {
+        throw new Error('Paperclip trả key SSH không hợp lệ (cần ssh-ed25519)');
+      }
+      return { paperclipSshPublicKey: key };
+    },
+
+    async pairMachine(input, options = {}) {
+      const { companyId, machineId, hostname, environmentId, tailscaleIp, port, hostKeyFingerprint } = input;
+      const body = {
+        companyId,
+        machineId,
+        hostname,
+        environmentId,
+        tailscaleIp,
+        port,
+        hostKeyFingerprint,
+        ...(options.allowRepair === true ? { allowRepair: true } : {}),
+      };
+      const paired = await call<{ machineKey?: unknown; pairedAt?: unknown }>(
+        'POST',
+        `${MACHINES_PATH}/pair`,
+        body,
+        false,
+        true,
+      );
+      if (typeof paired?.machineKey !== 'string' || !MACHINE_KEY_RE.test(paired.machineKey)) {
+        throw new Error('Paperclip trả key máy không hợp lệ');
+      }
+      const result: MachinePairing = {
+        machineKey: paired.machineKey,
+        pairedAt: typeof paired.pairedAt === 'string' ? paired.pairedAt : '',
+      };
+      return result;
     },
   };
 }

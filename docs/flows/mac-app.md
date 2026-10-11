@@ -120,24 +120,57 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
   - Tailscale có IP 100.x (`/Applications/Tailscale.app/Contents/MacOS/Tailscale ip -4`);
   - Claude Code đã đăng nhập (`/bin/zsh -lc 'claude auth status'` có `"loggedIn": true`).
 
-  Ngoài việc tải Node khi máy chưa có, bước này chỉ đọc. Ghim Superpowers do `setup` cài và check `superpowers-pin`
+  Trong lúc chạy, nút hiện "Đang kiểm tra (thiếu Node thì đang tải Node LTS…)". Ngoài việc tải Node khi máy chưa có,
+  bước này chỉ đọc. Ghim Superpowers do `setup` cài và check `superpowers-pin`
   của doctor kiểm ở bước `doctor`.
 - **`paperclip`** (`createPaperclipStep`): đăng nhập `cli-auth` chạy ở kênh `paperclip:*` (flow `mac-app-paperclip`: app
   tự mở trình duyệt, renderer hỏi `paperclip:loginStatus` mỗi 2 giây); bước này xác nhận company chọn có trong tài khoản
-  rồi ghi `setup.companyId`.
-- **`machine`** (`machine-step.ts`, `import-existing.ts`): `setup:detect` đọc manifest crew-mac, `~/.crew/status.json` và
-  hỏi Keychain có mục `crew-mac-status` hay không (không đọc giá trị). Ba loại máy:
-  - `existing` ("Nhận cài đặt có sẵn", chỉ có nút Tiếp): `installCrewMacFrom(<resources>/crew-mac)` → `configureStatus`
-    giữ nguyên `url` đang có trong `~/.crew/status.json` (có thể là đường Tailscale đang chạy 200), chỉ đổi company; không có `url` thì
-    dùng origin Paperclip đã đăng nhập → `setup({})` không cờ, giữ chủ sshd hiện có; không sinh key, không hỏi lại secret. Cài crew-mac
-    bị từ chối vì còn run thì bước lỗi, thử lại khi rảnh.
-  - `fresh`: bắt buộc key `ssh-ed25519 …` và secret webhook (một dòng); cổng mặc định 2222, thư mục mặc định
-    `~/crew-agents` (`forbiddenRootReason` khác null thì lỗi đúng lý do, chưa gọi gì). Secret đi một lần tới
-    `setStatusSecret` rồi bị xóa khỏi input; renderer xóa ô nhập khi xong. Thứ tự `installCrewMacFrom` →
-    `setStatusSecret` → `configureStatus` (url theo origin Paperclip đã đăng nhập, vì máy mới chưa có url) → `setup`.
+  rồi ghi `setup.companyId`. Owner phải tự chọn company: ô chọn mặc định rỗng ("Chọn company của máy này"), không chọn
+  sẵn theo `companyId` trong `~/.crew/status.json` hay company đầu danh sách, và nút Tiếp khóa tới khi đã chọn (bản trước
+  chọn sẵn nên gắn nhầm MacBook vào Crew E2E).
+- **`machine`** (`machine-step.ts`, `import-existing.ts`, "Máy này"): ghép máy với Paperclip, owner không dán gì.
+  `setup:detect` đọc manifest crew-mac, `~/.crew/status.json` và hỏi Keychain có mục `crew-mac-status` hay không (không
+  đọc giá trị). Màn hình hiện "Ghép vào company: <tên>" (tên lấy từ `paperclip:companies`) để owner nhìn lại, rồi nút
+  **Ghép máy**. Route ghép máy của plugin `crew.core` (`/api/plugins/crew.core/api/machines/...`) và client ở flow
+  `mac-app-paperclip`.
+  - `fresh` (máy mới): `pairInfo(companyId)` lấy public key SSH của Paperclip trước khi đụng vào máy → cài crew-mac
+    (`installCrewMacFrom(<resources>/crew-mac)`) → `configureStatus(origin Paperclip, companyId)` (lấy `machineId`) →
+    `setup({paperclipKey, port, worktreeRoot})` (cổng mặc định 2222, thư mục mặc định `~/crew-agents`, hai ô này nằm
+    trong khối thu gọn "Cổng sshd và thư mục worktree"; `forbiddenRootReason` khác null thì lỗi, chưa gọi gì) → op
+    `machineFacts()` → tìm hay tạo environment SSH của máy → `pairMachine` → op `setTargetSecret(companyId, machineKey)`
+    → op `testStatus(companyId)` phải 2xx → ghi `setup.pairedEnvironmentId`.
+  - `existing` (máy đã cài crew-mac, như Mac mini): cài crew-mac → `configureStatus` giữ nguyên `url` đang có (có thể là
+    đường Tailscale), chỉ đổi company → `testStatus(companyId)` bằng secret Keychain đang có. 2xx thì giữ nguyên như
+    trước: `setup({})`, không hỏi key, không ghép, không đổi key ("Nhận cài đặt có sẵn …, không cần ghép"). Server trả
+    lỗi HTTP (401, 502…) hoặc Keychain không đọc được thì ghép như máy mới, giữ cổng và thư mục đang có. Lỗi mạng hay
+    không dựng được bản tin thì dừng, báo lỗi, không ghép.
+  - Environment của máy: tên `may-<tên máy>` (chữ thường, chỉ chữ số và gạch ngang, ví dụ `may-phans-macbook-pro`),
+    `host` = IP Tailscale (`listenAddress`, cũng là `tailscaleIp` gửi lúc ghép; web so hai giá trị này trước khi gỡ),
+    `port`, `username`, `remoteWorkspacePath` = thư mục worktree, `knownHosts` = dòng `known_hosts` của sshd agent.
+    `privateKeySecretId` và `crewLoadGate` lấy từ environment SSH `in_place` active đầu tiên theo tên của company (cùng
+    bộ lọc với `getTemplate`). Đã có environment active cùng tên, host, cổng, `knownHosts`, thư mục thì dùng lại. Company
+    chưa có environment khuôn thì báo, không ghép. Chỉ tạo hoặc archive, không bao giờ xóa.
+  - Ghép (`pairMachine`) bị từ chối: environment vừa tạo trong lần này được archive. `409 machine_revoked` (máy đã bị
+    gỡ trên web): báo "Máy này đã bị gỡ trên web. Bấm Ghép lại nếu muốn dùng lại." (`state: 'revoked'`) và hiện nút
+    **Ghép lại máy này**; chỉ nút này gửi `repair: true`, khi đó app bỏ lần gửi thử đầu và gửi `allowRepair: true`. Lần
+    ghép tự động (kể cả sau 401/502) không bao giờ gửi `allowRepair`. `409 machine_uses_company_secret` (máy đang gửi
+    bản tin bằng secret company và chưa từng ghép, đường của Mac mini): giữ nguyên cài đặt, không ghép, không ghi key,
+    bước vẫn đạt kèm kết quả lần gửi thử (không lặp lỗi).
+  - Bản tin thử cuối không 2xx thì bước không đạt: "Server từ chối bản tin máy (HTTP <mã>). Kiểm company đã chọn." (lỗi
+    mạng, Keychain có câu riêng); `pairedEnvironmentId` chỉ ghi khi bản tin thử đạt.
+  - Server chưa có key Paperclip (`409` của `pair-info`): báo "Server chưa có key Paperclip, báo người quản trị…"
+    (`state: 'manual'`), chưa đụng vào máy, và mở khối **Nhập tay (dự phòng)**.
+  - Nhập tay (`input.manual`, khối thu gọn mặc định đóng): máy mới cần key `ssh-ed25519 …` và secret webhook một dòng;
+    máy có sẵn cần secret, key để trống thì giữ key đang có. Thứ tự `installCrewMacFrom` → `configureStatus` →
+    `setTargetSecret(companyId, secret)` → `setup` → `testStatus` phải 2xx. Không tạo environment, không ghép. Secret bị
+    xóa khỏi input trong `finally`; renderer xóa ô nhập sau khi gửi.
+  - Key máy chỉ đi từ response HTTPS của `pair` tới op `setTargetSecret` (stdin của `security -i`); không vào log, app
+    state, kết quả bước hay argv, và biến giữ nó bị xóa trong `finally`.
   - `broken` (manifest hỏng): hiện thông báo của `SetupError` và nút "Đã xử lý, kiểm tra lại". App không xóa file trong
     `~/.crew-mac` hay `~/.crew` (chỉ gọi hàm `@crew/mac`), nên owner tự xử lý theo thông báo.
-  Sau `installCrewMacFrom`, `setup` luôn dùng `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (utility dựng context).
+  Cài crew-mac bị từ chối vì còn run thì bước lỗi, thử lại khi rảnh. Sau `installCrewMacFrom`, `setup` luôn dùng
+  `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (utility dựng context). Kết quả bước không đi tiếp mang `state`
+  (`StepResult.state`) để renderer mở khối nhập tay hay hiện nút Ghép lại.
 - **`disk-access`** (`disk-access.ts`, "Quyền ổ đĩa"): owner chốt cấp Truy cập toàn bộ ổ đĩa (FDA) một lần cho 2P Crew
   và phải xong trước khi nhận run, vì hộp thoại quyền chưa bấm làm `claude` treo (spike SP-1). Dò bằng hai lần đọc chỉ FDA
   mới mở được (`~/Library/Safari`, `TCC.db`): đọc được `granted`, EPERM/EACCES `denied`, còn lại `unknown`; các nơi này
@@ -174,7 +207,9 @@ bundle) và `nodePath` là node thật, không bao giờ là binary của app. U
 - không thấy thì op báo `Chưa có node dùng được. Mở 2P Crew → bước Kiểm tra máy để dò hoặc tải Node vào ~/.crew/node.`
 
 `OpsDeps.node` thay ba cách dò này trong test. Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupError`). Tham số không bao giờ vào log vì
-`setStatusSecret` mang secret. Renderer không có đường tới `@crew/mac`. `addStatusRepo(projectId, path, companyId?)`
+`setStatusSecret` và `setTargetSecret` mang secret. Ba op của bước ghép máy: `testStatus(companyId)` (một bản tin thử,
+`{ok, httpStatus, failure}`), `setTargetSecret(companyId, secret)` (Keychain của đích thuộc company) và `machineFacts()`
+(IP Tailscale, cổng, thư mục, dòng `known_hosts`, fingerprint host key, user, tên máy); cả ba ở flow `mac-setup`. Renderer không có đường tới `@crew/mac`. `addStatusRepo(projectId, path, companyId?)`
 truyền company nhận ảnh chụp docs. Hai op của hàng đợi máy: `jobTargets()` (`machineId` và đích `{url, companyId}` của
 bản tin, từ `readStatusConfig`/`listTargets`) `cancelMachineJob()` (giết nhóm tiến trình `git` đang chạy khi việc quá giờ) và `runMachineJob(job, extras)` (`runJob` của `src/main/jobs/executors.ts`
 với `@crew/mac` thật: `addStatusRepo`, `listStatusRepos`, `removeStatusRepo` (việc gỡ project), `doctor` không probe,
@@ -199,26 +234,28 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/runs.ts` | Danh sách run, hủy run qua REST, mở link web | `createRuns` |
 | `apps/mac-app/src/main/logs.ts` | Đuôi bốn file log, lọc run id | `createLogs`, `tailFile`, `logPaths` |
 | `apps/mac-app/src/main/notifications.ts` | Thông báo hệ thống | `createNotifier` |
-| `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`; bước `check` gọi op `ensureNode`) | `registerSetup` |
-| `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước, bước `paperclip`, `doctor`, `done` | `createWizard`, `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep` |
+| `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`; bước `check` gọi op `ensureNode`; bước `machine` nhận client Paperclip) | `registerSetup` |
+| `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước (bước không đi tiếp trả kèm `state`), bước `paperclip`, `doctor`, `done` | `createWizard`, `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep` |
 | `apps/mac-app/src/main/setup/types.ts` | Kiểu kết quả một bước | `StepOutcome`, `StepRun` |
 | `apps/mac-app/src/main/setup/machine-check.ts` | Bước `check`: macOS, Node (dò hoặc tải), Tailscale, Claude Code | `checkMachine` |
 | `apps/mac-app/src/main/setup/import-existing.ts` | Nhận cài đặt có sẵn của máy | `detectExisting` |
-| `apps/mac-app/src/main/setup/machine-step.ts` | Bước `machine` (máy có sẵn, máy mới) | `createMachineStep` |
+| `apps/mac-app/src/main/setup/machine-step.ts` | Bước `machine`: ghép máy tự động (gửi thử, environment SSH của máy, key máy vào Keychain), ghép lại máy đã gỡ, nhập tay dự phòng | `createMachineStep`, `MACHINE_STEP_STATE`, `REVOKED_MESSAGE`, `testFailureMessage`, `machineEnvironmentName` |
 | `apps/mac-app/src/main/setup/disk-access.ts` | Dò quyền ổ đĩa (FDA) không hộp thoại | `detectFullDiskAccess`, `diskAccessOutcome` |
 | `apps/mac-app/src/main/setup/sshd-handoff.ts` | Chuyển sshd sang app, tự lui | `handoffSshd`, `listenerPids` |
 | `apps/mac-app/src/main/setup/v2-removal.ts` | Bước `v2` (gỡ app v2, giữ dữ liệu) và `move` (vào Applications) | `detectV2`, `removeV2`, `createV2Step`, `createMoveStep` |
 | `apps/mac-app/src/main/window.ts` | Cửa sổ renderer sandbox | `createMainWindow` |
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
-| `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi` |
-| `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess; nhớ `nodePath` thật cho mọi `MacContext` | `createOpsHandlers`, `OpsDeps`, `NodeFinder` |
+| `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi`, `StepResult` |
+| `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess; nhớ `nodePath` thật cho mọi `MacContext`; op ghép máy `testStatus`, `setTargetSecret`, `machineFacts` | `createOpsHandlers`, `OpsDeps`, `NodeFinder` |
 | `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe (kèm khung nhận việc), Run đang chạy, Log, Cài đặt (`routes/`), `CheckRow`, `WizardStep`, `ReloginButton` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen`, `SetupScreen` |
 
 ## Dữ liệu
 
 - `~/Library/Application Support/2P Crew/app.json`: trạng thái bền (mode 600, ghi atomic bằng file tạm rồi `rename`,
   chỉ Main ghi, `update(fn)` nối tiếp). File hỏng thì đổi tên thành `app.json.broken-<giờ>` và dùng mặc định.
-  `appVersion` luôn là bản đang chạy. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` và `jobsAgent`
+  `appVersion` luôn là bản đang chạy. `setup.pairedEnvironmentId` là environment SSH của chính máy này, ghi khi bước
+  Máy ghép xong (bản tin thử 2xx); thêm project lấy nó làm khuôn (flow `mac-app-paperclip`). `null` ở máy chưa ghép
+  (Mac mini). Không có key hay secret nào trong `app.json`. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` và `jobsAgent`
   (flow `mac-setup`). `jobsAgent: {version, lastPollAt}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một lần; flow
   `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc.
   `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
@@ -272,7 +309,8 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/ops-bridge.test.ts`: cầu nối với utility giả, và `createOpsHandlers` với HOME giả (kể cả
   `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai). `nodePath`: `ensureNode` ghi đè giá trị nhớ
   và mọi context sau dùng nó; không có node đồng bộ thì dò shell đăng nhập đúng một lần, không thấy thì báo mở bước
-  Kiểm tra máy; shell đăng nhập (nvm) cấp `nodePath` khi dò đồng bộ hỏng.
+  Kiểm tra máy; shell đăng nhập (nvm) cấp `nodePath` khi dò đồng bộ hỏng. Op `testStatus`, `setTargetSecret`,
+  `machineFacts` với HOME chưa cấu hình: `no-target`, từ chối ghi secret, báo chưa cài crew-mac.
 - `apps/mac-app/test/renderer/app.test.tsx`: thanh bên và điều hướng hash.
 - `apps/mac-app/test/health.test.ts`: lịch 15 phút, probe khi bấm, không chạy chồng, thông báo khi đổi đỏ/ổn.
 - `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, 403 không bảo đăng nhập lại, mở link web.
@@ -280,8 +318,15 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, khung nhận việc và nút Đăng nhập lại, màn Run và Log, giờ Việt Nam.
 - `apps/mac-app/test/setup-wizard.test.ts`: `check` (bốn dòng, dòng `node` hiện nhãn nguồn, tải lỗi thì không đạt kèm
-  lỗi và `brew install node`), bước `machine` (máy có sẵn giữ url cũ, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
+  lỗi và `brew install node`), máy trạng thái (kể cả `state` của bước không đi tiếp), `paperclip`, `doctor`, `done` (HOME và runner giả).
+- `apps/mac-app/test/setup-machine-step.test.ts`: bước `machine` với ops và client Paperclip giả: máy mới ghép không
+  dán gì (environment `host` = IP Tailscale, `knownHosts`, secret SSH và `crewLoadGate` từ khuôn; key máy chỉ tới
+  `setTargetSecret`, không vào app state hay kết quả), dùng lại environment đã tạo; máy có sẵn gửi thử 2xx thì không
+  hỏi key, không ghép; 401/502/Keychain thì ghép, giữ cổng và thư mục; lỗi mạng thì dừng; `pair-info` 409 mở nhập tay;
+  bản tin thử cuối không 2xx thì không đạt; `machine_revoked` không gửi `allowRepair`, báo đúng câu, archive environment
+  vừa tạo; nút Ghép lại gửi `allowRepair`; `machine_uses_company_secret` giữ nguyên, không ghi key; nhập tay; thư mục bị
+  cấm; manifest hỏng; cài crew-mac bị từ chối.
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
 - `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.
 - `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run hoặc chưa có quyền ổ đĩa, chuyển thành công, tự lui (dừng supervisor trước), đã ở chế độ app.
-- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, nút Tiếp và nút sshd khóa khi chưa cấp quyền, chạy lại bước, Đăng nhập lại khi đã xong.
+- `apps/mac-app/test/renderer/setup.test.tsx`: danh sách bước, từng bước, dò lại quyền khi focus, nút Tiếp và nút sshd khóa khi chưa cấp quyền, chạy lại bước, Đăng nhập lại khi đã xong. Company không chọn sẵn (kể cả khi `status.json` có company), Tiếp khóa tới khi chọn; bước Máy hiện "Ghép vào company", nút Ghép máy không cần dán, khối nhập tay đóng sẵn và mở khi `state: 'manual'`, nút "Ghép lại máy này" chỉ hiện khi `state: 'revoked'` và chỉ nó gửi `repair`.

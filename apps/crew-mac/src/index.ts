@@ -14,12 +14,18 @@ export {
   addStatusRepo,
   configureStatus,
   listStatusRepos,
+  type MachineFacts,
+  machineFacts,
   readStatusConfig,
   removeStatusRepo,
   type StatusConfig,
   type StatusRepo,
+  type StatusSendFailure,
+  type StatusTestResult,
   sendStatus,
   setStatusSecret,
+  setTargetSecret,
+  testStatus,
 } from './commands/status.js';
 export { stopRun } from './commands/stop-run.js';
 export { scanUninstallBlockers, uninstall } from './commands/uninstall.js';
