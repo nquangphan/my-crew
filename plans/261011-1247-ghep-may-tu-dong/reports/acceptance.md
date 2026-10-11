@@ -125,3 +125,90 @@ Summary: AC1, AC2, AC3, AC7 và phần AC6 trước khi gỡ đều đạt (ản
   Không đổi gì khác, không DELETE. Lui: chép lại `config` từ file backup.
 - Sửa gốc trong app: lọc khuôn theo secret thuộc company đích (ticket fx-app-template).
 - Owner: nút "Mở giao diện Paperclip gốc" chỉ owner thấy (fork `17cb320c8`, chờ deploy cùng đợt sau).
+
+## AC4 lần 2 (11/10 15:47 → 15:53, Asia/Ho_Chi_Minh)
+
+**Kết quả: AC4 vẫn KHÔNG đạt.** Nguyên nhân mới, khác lần 1: sửa dữ liệu 15:44 chỉ đổi `environments.config`, chưa đổi
+bảng liên kết secret.
+
+### Việc đã làm
+
+| Bước | Giờ | Giá trị |
+|---|---|---|
+| Trước khi làm | 15:47 | `active-runs.sh` rỗng. Env `f8aab013` `active`, `config.privateKeySecretRef.secretId = fa7b4847…` (đã sửa đúng). `~/crew-agents` trên MacBook rỗng |
+| Tạo agent thử | 15:47 | `7485c6c9-0fae-417c-b081-d5d5328f9066` `kiem-ghep-may-macbook-2`. `claude_local`, `engine=cli`, command `~/.crew/bin/crew-claude-run`, extraArgs Superpowers 6.4.1 đã ghim, `claude-sonnet-5`, heartbeat tắt, `defaultEnvironmentId=f8aab013…` |
+| Giới hạn quyền | 15:47 | `PATCH /agents/:id/permissions` với 3 quyền `false`. `agent-permissions.sh --check`: `off->off off->off off->off (đúng)` |
+| Tạo issue | 15:47:34 | **TPS-117** `51c74a69-5ff7-4da9-bcde-40e523a4c97e` "[Kiểm ghép máy] tạo file pair-check.txt…", project theo dõi "Phát triển Crew" (`c597c718…`), `executionPolicy = null` nên không kéo reviewer/integrator |
+| Run | 15:47:34 | `3ae3c135-a7f6-473f-82be-6c00a05ed613` ở `queued` suốt 4 phút. Cổng tải tự comment: "không kết nối được (**Secret is not bound to environment:f8aab013-… at privateKeySecretRef**)", hạn 16:47 |
+| Dọn | 15:52 | Pause agent, hủy run (`cancelled`), comment, đóng issue `cancelled`, terminate agent. `active-runs.sh` rỗng. Chỉ agent thử có run này, không run nào khác bị ảnh hưởng |
+| MacBook | 15:53 | `~/crew-agents` vẫn rỗng, không có `pair-check.txt`. Log `sshd.log` không có kết nối mới từ VPS cho run này (run không bao giờ tới bước SSH) |
+
+### Nguyên nhân gốc (đã đối chiếu DB, chỉ đọc)
+
+- Server không chỉ đọc `environments.config`. Mỗi `privateKeySecretRef` còn có một dòng ở bảng
+  `company_secret_bindings` (`target_type='environment'`, `target_id=<env id>`, `config_path='privateKeySecretRef'`,
+  `secret_id`), và khi giải secret server kiểm secret trong config có được bind cho đúng env đó không.
+- Sửa dữ liệu 15:44 đổi `config` sang `fa7b4847…` nhưng binding vẫn là `f8c68dce…` (secret `crew-e2e-ssh` của Crew E2E,
+  bind lúc 08:31:48 khi app tạo env). Hai giá trị lệch nên lỗi đổi từ "Secret must belong to same company" thành "Secret is
+  not bound to environment".
+- Đối chiếu config với binding cho 16 env (`mac-mini*`, `business-app-*`, `visinote-*`, MacBook):
+  - **Lệch (9 env):** `may-phans-macbook-pro`, `business-app-{assistant,executor-1,integrator,reviewer}`,
+    `visinote-{assistant,executor-1,integrator,reviewer}`. Đúng 9 env mà bước sửa 15:44 đã đụng.
+  - **Khớp:** 7 env `mac-mini*` (kể cả `mac-mini-policy`, dùng secret `712bf1a7…`).
+- Vậy 8 agent `visinote-*` và `business-app-*` vẫn sẽ hỏng y hệt khi có run đầu tiên.
+
+### Hướng sửa (chưa làm, em không được đổi dữ liệu)
+
+- Với 9 env trên, đổi `company_secret_bindings.secret_id` từ `f8c68dce-5ba7-498a-85d0-a6601719e016` sang
+  `fa7b4847-3a92-4651-86e2-bb0d11e69f65`, chỉ ở dòng `target_type='environment'`, `config_path='privateKeySecretRef'` và
+  `target_id` thuộc 9 env. Backup 9 dòng trước khi sửa.
+- Hoặc PATCH từng env qua API để server tự cập nhật binding (không DELETE).
+- Sửa gốc trong app: lọc khuôn theo secret thuộc đúng company (ticket fx-app-template) và nhớ rằng đổi secret phải đi
+  qua đường tạo/cập nhật env của server, không sửa JSON `config` trực tiếp.
+- Sau đó chạy lại bước 8 bằng agent và issue mới. Lúc này chưa thấy lỗi nào khác ở phía MacBook: `crew-mac doctor` đạt
+  từ lần 1, sshd đang chạy.
+
+### An toàn
+
+- Không in secret. Board REST qua `api.sh` (cookie jar có sẵn). Truy vấn DB chỉ `SELECT`.
+- Chỉ tạo rồi terminate 1 agent, tạo rồi đóng 1 issue (kèm 1 comment của cổng tải và 1 comment của em). Không đổi
+  environment, không DELETE, không unpair, không đổi code, không commit, không push. File tạm trên VPS (`/tmp/ag.json`,
+  `/tmp/is.json`) đã xóa.
+
+Status: DONE_WITH_CONCERNS
+Summary: AC4 lần 2 vẫn hỏng, nhưng đã tìm ra nguyên nhân gốc.
+
+## AC4 lần 3 (11/10 15:53 → 15:55, Asia/Ho_Chi_Minh)
+
+**Kết quả: AC4 ĐẠT.** Sau khi controller sửa `company_secret_bindings` (backup
+`/opt/crew-v3-spike/backups/bindings-secretfix-20261011-155256.tsv`), một issue thật chạy trên env MacBook và tới `done`.
+
+| Bước | Giờ | Giá trị |
+|---|---|---|
+| Trước khi làm | 15:53 | `active-runs.sh` rỗng. Env `f8aab013` `active`, cả `config.privateKeySecretRef` lẫn binding đều là `fa7b4847…` (2P Solutions) |
+| Agent thử | 15:53 | `8f2c3b1f-af6f-4289-9f57-6648d9b181cb` `kiem-ghep-may-macbook-3`, cấu hình như lần 2, quyền `off->off` x3 (đúng) |
+| Issue | 15:53:16 | **TPS-118** `736bef59-fdb3-4ab7-abb8-c47c51774104`, project "Phát triển Crew", không `executionPolicy` |
+| Run | 15:53:17 → 15:54:10 | `020e5bdb-7e1f-42f0-b783-227afcea3ccc` `succeeded`, exit 0, 53 giây. Issue sang `in_progress` rồi `done` lúc 15:54:10 |
+| Dùng env MacBook | | `context_snapshot` của run chứa `f8aab013…`; có 1 dòng `environment_leases` cho run; log server `remote stop on lease release` (`leaseStatus released`) |
+| SSH tới MacBook | | `sshd.log` MacBook: `Accepted publickey … from 100.100.157.19` (VPS qua Tailscale, khóa ED25519) ngay lúc chạy |
+| File trên MacBook | 15:54 | `ssh macbook`: `/Users/phannhatquang/crew-agents/pair-check.txt`, 14 byte, nội dung `ghép máy ok`. Thư mục `.paperclip-runtime` do run tạo |
+| Dọn | 15:55 | Issue đã `done`, terminate agent thử. `active-runs.sh` rỗng. Không run nào khác bị ảnh hưởng |
+
+Không có comment cổng tải, không bị giữ `queued`. Không đổi dữ liệu nào ngoài việc tạo và terminate 1 agent, tạo 1 issue.
+Em để lại `pair-check.txt` trên MacBook làm bằng chứng (không dùng `rm`). Không in secret, không commit, không push.
+
+Status: DONE
+Summary: AC4 đạt ở lần 3: TPS-118 chạy trên env MacBook, tới done, file có thật trên máy.
+
+## AC5, AC6 sau khi owner bấm Gỡ máy (Trợ Lý, 11/10 17:02)
+
+- App MacBook bản 15:52 (đủ sửa: nút Đổi company / Ghép lại máy, 409, khuôn theo company) cài lúc 17:00 bằng job
+  chờ owner thoát app; MacBook vẫn gửi bản tin 2xx lúc 17:00:54.
+- Owner bấm Gỡ máy thẻ MacBook: `machine_pairings` của `357c4a31…` có `revoked_at` 10:01:29Z; environment
+  `may-phans-macbook-pro` `archived`.
+- MacBook gửi lại bản tin 17:01:48: HTTP 502, `crew-mac status send` rc 1; `machine_latest` của MacBook dừng ở 10:00:57Z
+  (trước lúc gỡ). AC5 đạt.
+- Mac mini: bản tin 10:01:51Z được nhận (sau lúc gỡ), claim việc máy 204 lúc 17:02:00, fingerprint host key vẫn
+  `SHA256:UeSt0e…4FKQ`, không có dòng ghép. `status send` rc 1 chỉ do lỗi ảnh chụp docs có từ trước. AC6 đạt.
+
+Kết luận: AC1–AC7 đạt trên prod (AC4 đạt ở lần 3 sau khi sửa secret và binding của 9 environment).
