@@ -22,6 +22,7 @@ import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
 import { filesCommand } from './files/command.js';
 import { type Manifest, readManifest } from './manifest.js';
+import { downloadNode, NODE_SOURCE_LABEL, resolveNode } from './node-runtime.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
 import { reapOnce } from './reaper/reap.js';
 import { RUNTIMES_USAGE, runtimesCommand } from './runtimes/command.js';
@@ -57,6 +58,9 @@ Cách dùng:
   crew-mac run-init-check --root <worktree tuyệt đối> --log <file stream-json | ->   (kiểm system/init của một run)
   crew-mac files --issue <uuid> --run <uuid> [--json]   (agent gọi trong run Paperclip: liệt kê file đính kèm của issue và issue cha)
   crew-mac files --gc-only   (chỉ dọn cache file đính kèm)
+  crew-mac node [--prefix <thư mục>] [--skip-system] [--json]
+                 (dò node ≥ 22: Homebrew, ~/.crew/node, shell đăng nhập (nvm); không có thì tải Node LTS từ nodejs.org
+                 vào <prefix>/node, so SHASUMS256. --prefix mặc định ~/.crew; --skip-system bỏ Homebrew và shell đăng nhập)
   ${WORKFLOWS_USAGE}   (xem, cài riêng bản ghim workflow; không đụng sshd)
   ${BMAD_USAGE}
                  (agent BMAD và Trợ Lý gọi: đọc file epic/story, dựng _bmad cho repo dự án)
@@ -424,6 +428,24 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         const report = await runInitCheck(ctx, { root, log: readFileSync(log === '-' ? 0 : log, 'utf8') });
         for (const line of report.lines) (report.ok ? io.out : io.err)(line);
         return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
+      }
+      case 'node': {
+        const flags = parseFlags(args, ['--prefix'], ['--skip-system', '--json']);
+        const prefix = flags.value('--prefix');
+        if (prefix !== undefined && !isAbsolute(prefix))
+          throw new UsageError('--prefix phải là đường dẫn tuyệt đối');
+        const input = { home: ctx.home, runner: ctx.runner, prefix, skipSystem: flags.has('--skip-system') };
+        let info = await resolveNode(input);
+        if (info === null) {
+          io.err('Không thấy node ≥ 22 trên máy. Đang tải Node LTS từ nodejs.org…');
+          info = await downloadNode(input);
+        }
+        io.out(
+          flags.has('--json')
+            ? JSON.stringify({ path: info.path, source: info.source, version: info.version })
+            : `Node ${info.version} (${NODE_SOURCE_LABEL[info.source]}): ${info.path}`,
+        );
+        return 0;
       }
       case 'workflows':
         return await workflowsCommand(ctx, args, io.err);

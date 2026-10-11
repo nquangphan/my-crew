@@ -51,7 +51,7 @@ export function registerSetup(
     loginItem: ctx.loginItem,
     steps: {
       check: async () => {
-        const result = await checkMachine(runner);
+        const result = await checkMachine(runner, () => ctx.ops.call('ensureNode'));
         return { ok: result.ok, message: summarizeMachineCheck(result) };
       },
       v2: createV2Step(v2Deps),

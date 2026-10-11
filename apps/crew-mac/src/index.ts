@@ -31,6 +31,16 @@ export { filesCommand } from './files/command.js';
 export type { ManifestFile, RunManifest } from './files/types.js';
 export { type InstallCrewMacResult, installCrewMacFrom } from './install-cli.js';
 export { type Manifest, readManifest } from './manifest.js';
+export {
+  ensureNode,
+  isInsideAppBundle,
+  NO_NODE_MESSAGE,
+  NODE_SOURCE_LABEL,
+  type NodeInfo,
+  type NodeSource,
+  resolveNode,
+  stableNodePath,
+} from './node-runtime.js';
 export { DEFAULT_PORT, forbiddenRootReason, type MacPaths, macPaths, SSHD_LABEL } from './paths.js';
 export { listProcesses, type ProcInfo, readCwds } from './reaper/process-table.js';
 export { isAgentPrint, isClaudePrint } from './reaper/select.js';

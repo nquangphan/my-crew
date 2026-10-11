@@ -2,6 +2,7 @@ import type {
   CheckResult,
   DoctorOptions,
   InstallCrewMacResult,
+  NodeInfo,
   SetupOptions,
   SetupReport,
   StatusConfig,
@@ -12,6 +13,11 @@ import type { JobExtras, JobOutcome, MachineJob } from './jobs/types.js';
 
 /** Các thao tác của `@crew/mac` chạy trong utilityProcess. Hàm thư viện không nhận `ctx` qua IPC. */
 export interface OpsApi {
+  /**
+   * Dò node ≥ 22 (Homebrew, `~/.crew/node`, shell đăng nhập), không có thì tải Node LTS vào `~/.crew/node`. Kết quả được
+   * nhớ trong utility và dùng làm `nodePath` của mọi thao tác sau (launcher, plist, khối PATH).
+   */
+  ensureNode(): Promise<NodeInfo>;
   doctor(opts: DoctorOptions): Promise<CheckResult[]>;
   setup(opts: SetupOptions): Promise<SetupReport>;
   configureStatus(url: string, companyId: string): StatusConfig;

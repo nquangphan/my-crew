@@ -133,4 +133,95 @@ describe('createOpsHandlers (utility)', () => {
     await expect(handlers.listStatusRepos()).rejects.toThrow('dừng');
     expect(seen).toEqual(['/tmp/fake-home/.crew/app/crew-mac/dist/cli.js']);
   });
+
+  it('ensureNode nhớ node trong process và truyền nodePath vào mọi context', async () => {
+    const seen: (string | undefined)[] = [];
+    const handlers = createOpsHandlers({
+      env: { HOME: '/tmp/fake-home' },
+      log: () => undefined,
+      makeContext: (input) => {
+        seen.push(input.nodePath);
+        throw new Error('dừng');
+      },
+      node: {
+        stable: () => '/opt/homebrew/bin/node',
+        resolve: async () => null,
+        ensure: async () => ({
+          path: '/tmp/fake-home/.crew/node/bin/node',
+          source: 'downloaded',
+          version: '24.11.0',
+        }),
+      },
+    });
+    await expect(handlers.doctor({ probe: false, tccWindow: '1h', probeTimeoutSec: 90 })).rejects.toThrow(
+      'dừng',
+    );
+    await expect(handlers.ensureNode()).resolves.toMatchObject({ source: 'downloaded' });
+    await expect(handlers.setup({})).rejects.toThrow('dừng');
+    await expect(handlers.listStatusRepos()).rejects.toThrow('dừng');
+    expect(seen).toEqual([
+      '/opt/homebrew/bin/node',
+      '/tmp/fake-home/.crew/node/bin/node',
+      '/tmp/fake-home/.crew/node/bin/node',
+    ]);
+  });
+
+  it('dưới Electron không có node đồng bộ: dò shell đăng nhập một lần, không thấy thì báo mở bước Kiểm tra máy', async () => {
+    const seen: (string | undefined)[] = [];
+    let shellCalls = 0;
+    let nvm: string | null = null;
+    const handlers = createOpsHandlers({
+      env: { HOME: '/tmp/fake-home' },
+      log: () => undefined,
+      makeContext: (input) => {
+        seen.push(input.nodePath);
+        throw new Error('dừng');
+      },
+      node: {
+        stable: () => {
+          throw new Error('Chưa có node dùng được');
+        },
+        resolve: async () => {
+          shellCalls++;
+          return nvm === null ? null : { path: nvm, source: 'login-shell', version: '24.1.0' };
+        },
+        ensure: async () => ({ path: '/opt/homebrew/bin/node', source: 'homebrew', version: '24.11.0' }),
+      },
+    });
+    await expect(handlers.setup({})).rejects.toThrow('bước Kiểm tra máy');
+    nvm = '/Users/owner/.nvm/versions/node/v24.1.0/bin/node';
+    // Đã dò shell một lần: không dò lại cho tới khi ensureNode chạy.
+    await expect(handlers.setup({})).rejects.toThrow('bước Kiểm tra máy');
+    expect(shellCalls).toBe(1);
+    expect(seen).toEqual([]);
+    await handlers.ensureNode();
+    await expect(handlers.setup({})).rejects.toThrow('dừng');
+    expect(seen).toEqual(['/opt/homebrew/bin/node']);
+  });
+
+  it('không nhớ được node từ đồng bộ thì shell đăng nhập (nvm) cấp nodePath', async () => {
+    const seen: (string | undefined)[] = [];
+    const nvm = '/Users/owner/.nvm/versions/node/v24.1.0/bin/node';
+    const handlers = createOpsHandlers({
+      env: { HOME: '/tmp/fake-home' },
+      log: () => undefined,
+      makeContext: (input) => {
+        seen.push(input.nodePath);
+        throw new Error('dừng');
+      },
+      node: {
+        stable: () => {
+          throw new Error('Chưa có node dùng được');
+        },
+        resolve: async () => ({ path: nvm, source: 'login-shell', version: '24.1.0' }),
+        ensure: async () => {
+          throw new Error('không gọi');
+        },
+      },
+    });
+    await expect(handlers.doctor({ probe: false, tccWindow: '1h', probeTimeoutSec: 90 })).rejects.toThrow(
+      'dừng',
+    );
+    expect(seen).toEqual([nvm]);
+  });
 });

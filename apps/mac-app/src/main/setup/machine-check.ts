@@ -1,7 +1,7 @@
-import type { CommandRunner } from '@crew/mac';
+import { type CommandRunner, NODE_SOURCE_LABEL, type NodeInfo } from '@crew/mac';
 
 export interface MachineCheckLine {
-  id: 'macos' | 'tailscale' | 'claude';
+  id: 'macos' | 'node' | 'tailscale' | 'claude';
   ok: boolean;
   message: string;
 }
@@ -31,6 +31,25 @@ async function checkMacos(runner: CommandRunner): Promise<MachineCheckLine> {
   return { id: 'macos', ok: true, message: `macOS ${version}` };
 }
 
+/**
+ * Node thật cho launcher, plist và agent: dò (Homebrew, `~/.crew/node`, shell đăng nhập), không có thì tải Node LTS
+ * vào `~/.crew/node` (`ensureNode` của utility, nhớ kết quả cho bước `setup` sau đó).
+ */
+async function checkNode(ensureNode: () => Promise<NodeInfo>): Promise<MachineCheckLine> {
+  try {
+    const info = await ensureNode();
+    return { id: 'node', ok: true, message: `Node ${info.version} (${NODE_SOURCE_LABEL[info.source]})` };
+  } catch (error) {
+    return {
+      id: 'node',
+      ok: false,
+      message:
+        `Chưa có Node 22 trở lên và tải Node LTS không được: ${(error as Error).message}. ` +
+        'Kiểm tra mạng rồi bấm Kiểm tra lại, hoặc cài Node (brew install node).',
+    };
+  }
+}
+
 async function checkTailscale(runner: CommandRunner): Promise<MachineCheckLine> {
   const result = await runner.run(TAILSCALE_CLI, ['ip', '-4'], { timeoutMs: 15_000 });
   const ip = /^100\.\d+\.\d+\.\d+$/m.exec(result.stdout)?.[0];
@@ -48,11 +67,20 @@ async function checkClaude(runner: CommandRunner): Promise<MachineCheckLine> {
 }
 
 /**
- * Bước `check`: macOS 15+, Tailscale có IP 100.x, Claude Code đã đăng nhập. Chỉ đọc, không đổi gì trên máy.
- * Ghim Superpowers do `setup` cài và check `superpowers-pin` của doctor kiểm ở bước `doctor`.
+ * Bước `check`: macOS 15+, Node 22+ (dò hoặc tải vào `~/.crew/node`), Tailscale có IP 100.x, Claude Code đã đăng
+ * nhập. Ngoài việc tải Node khi máy chưa có, bước này chỉ đọc. Ghim Superpowers do `setup` cài và check
+ * `superpowers-pin` của doctor kiểm ở bước `doctor`.
  */
-export async function checkMachine(runner: CommandRunner): Promise<MachineCheckResult> {
-  const lines = [await checkMacos(runner), await checkTailscale(runner), await checkClaude(runner)];
+export async function checkMachine(
+  runner: CommandRunner,
+  ensureNode: () => Promise<NodeInfo>,
+): Promise<MachineCheckResult> {
+  const lines = [
+    await checkMacos(runner),
+    await checkNode(ensureNode),
+    await checkTailscale(runner),
+    await checkClaude(runner),
+  ];
   return { ok: lines.every((line) => line.ok), lines };
 }
 

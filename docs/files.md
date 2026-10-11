@@ -60,6 +60,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/launchctl.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/launcher.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/manifest.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/node-runtime.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/paths.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/plist.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/reaper/process-table.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (file) |
@@ -130,6 +131,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/install-cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/launcher.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/node-runtime.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/reaper-reap.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/reaper-select.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/render.test.ts` | [mac-setup](flows/mac-setup.md) (test) |

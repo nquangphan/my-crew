@@ -15,6 +15,27 @@ function io(mac: ReturnType<typeof fakeMac>, env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('crew-mac CLI', () => {
+  it('node --prefix --skip-system --json: thấy bản đã có trong <prefix>/node thì in {path, source, version}', async () => {
+    const mac = fakeMac();
+    const prefix = join(mac.home, 'thu-node');
+    const node = join(prefix, 'node', 'bin', 'node');
+    mac.runner.on(node, (args) =>
+      args.join(' ') === '-p process.versions.node' ? { stdout: '24.11.0\n' } : undefined,
+    );
+    const t = io(mac);
+    expect(await main(['node', '--prefix', prefix, '--skip-system', '--json'], t.io)).toBe(0);
+    expect(JSON.parse(t.out.join(''))).toEqual({ path: node, source: 'crew', version: '24.11.0' });
+    const plain = io(mac);
+    expect(await main(['node', '--prefix', prefix, '--skip-system'], plain.io)).toBe(0);
+    expect(plain.out).toEqual([`Node 24.11.0 (bản đã tải trong ~/.crew/node): ${node}`]);
+  });
+
+  it('node --prefix phải là đường tuyệt đối', async () => {
+    const t = io(fakeMac());
+    expect(await main(['node', '--prefix', 'tuong-doi'], t.io)).toBe(2);
+    expect(t.err.join('\n')).toContain('--prefix phải là đường dẫn tuyệt đối');
+  });
+
   it('lệnh lạ in cách dùng, mã 2', async () => {
     const t = io(fakeMac());
     expect(await main(['lung-tung'], t.io)).toBe(2);

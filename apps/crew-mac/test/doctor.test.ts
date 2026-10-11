@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import {
   doctor,
   isAgentTccSubject,
+  NODE_HINT,
   parseLoad,
   parsePendingTccPrompts,
   printProbeScript,
@@ -25,6 +26,7 @@ import {
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
 import { workflowCheck } from '../src/commands/workflow-check.js';
+import { renderLauncher } from '../src/launcher.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
 import { runtimePaths } from '../src/runtimes/paths.js';
 import { pinDir, superpowersPinDir } from '../src/workflows/pin.js';
@@ -837,6 +839,39 @@ describe('crew-mac doctor', () => {
         : original(command, args, options);
     const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
     expect(results.find((r) => r.id === 'reaper')?.status).toBe('fail');
+  });
+
+  it('launcher trỏ vào binary trong .app (Helper của 2P Crew): launcher và agent-node báo đúng, gợi ý dò/tải node', async () => {
+    const mac = await installed((remote) =>
+      remote.includes('command -v node') ? { code: 1, stdout: '' } : okSsh(remote),
+    );
+    const paths = macPaths(mac.home);
+    const helper = join(
+      mac.home,
+      'Applications',
+      '2P Crew.app',
+      'Contents',
+      'Frameworks',
+      '2P Crew Helper.app',
+      'Contents',
+      'MacOS',
+      '2P Crew Helper',
+    );
+    mkdirSync(dirname(helper), { recursive: true });
+    writeFileSync(helper, '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+    writeFileSync(paths.launcher, renderLauncher(helper, fileURLToPath(import.meta.url)), { mode: 0o755 });
+    const results = await doctor(mac.ctx, { probe: false, tccWindow: '24h', probeTimeoutSec: 90 });
+    expect(results.find((r) => r.id === 'launcher')).toMatchObject({
+      status: 'fail',
+      detail: `Launcher trỏ vào app 2P Crew, không phải node (${helper})`,
+      hint: NODE_HINT,
+    });
+    const agentNode = results.find((r) => r.id === 'agent-node');
+    expect(agentNode).toMatchObject({ status: 'fail', hint: NODE_HINT });
+    expect(agentNode?.detail).toContain('Launcher trỏ vào app 2P Crew, không phải node');
+    expect(NODE_HINT).toContain('crew-mac node');
+    expect(NODE_HINT).toContain('~/.crew/node');
+    expect(NODE_HINT).not.toContain('Helper');
   });
 
   it('launcher thiếu, hoặc trỏ tới node hay cli.js không còn, thì fail', async () => {

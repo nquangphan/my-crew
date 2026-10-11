@@ -5,6 +5,7 @@ import { readText } from '../fs-util.js';
 import { serviceState } from '../launchctl.js';
 import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
+import { isInsideAppBundle } from '../node-runtime.js';
 import {
   forbiddenRootReason,
   type MacPaths,
@@ -400,16 +401,29 @@ async function checkAgentNode(ctx: MacContext, paths: MacPaths, manifest: Manife
   });
   const found = result.stdout.trim();
   if (result.code !== 0 || found === '') {
+    const appNode = launcherAppNode(paths);
     return {
       ...base,
       status: 'fail',
-      detail: `sshd agent không thấy node (mã ${result.code}${result.timedOut ? ', quá hạn' : ''})`,
-      hint:
-        `Chạy lại "crew-mac setup" để thêm ${dirname(ctx.nodePath)} vào khối PATH trong ~/.zshenv ` +
-        '(check zshenv-path), rồi chạy lại doctor.',
+      detail:
+        `sshd agent không thấy node (mã ${result.code}${result.timedOut ? ', quá hạn' : ''})` +
+        (appNode ? `; ${APP_NODE_DETAIL} (${appNode})` : ''),
+      hint: NODE_HINT,
     };
   }
   return { ...base, status: 'ok', detail: found };
+}
+
+const APP_NODE_DETAIL = 'Launcher trỏ vào app 2P Crew, không phải node';
+/** Gợi ý chung khi agent thiếu node: dò hoặc tải node thật, rồi `setup` ghi lại launcher, plist và khối PATH. */
+export const NODE_HINT =
+  'Mở 2P Crew → bước Kiểm tra máy (dò hoặc tải Node vào ~/.crew/node), hoặc chạy "crew-mac node", rồi chạy lại ' +
+  '"crew-mac setup" và doctor.';
+
+/** Đường node trong launcher khi nó nằm trong một bundle `.app` (binary Electron/Helper của app), ngược lại null. */
+function launcherAppNode(paths: MacPaths): string | null {
+  const target = parseLauncher(readText(paths.launcher));
+  return target && isInsideAppBundle(target.nodePath) ? target.nodePath : null;
 }
 
 /** Thư mục con cấp 1 có entry `name` (lstat, kể cả symlink). */
@@ -515,6 +529,9 @@ function checkLauncher(ctx: MacContext, paths: MacPaths): CheckResult {
   }
   const text = readFileSync(paths.launcher, 'utf8');
   const target = parseLauncher(text);
+  if (target !== null && isInsideAppBundle(target.nodePath)) {
+    return { ...base, status: 'fail', detail: `${APP_NODE_DETAIL} (${target.nodePath})`, hint: NODE_HINT };
+  }
   if (target === null || !existsSync(target.nodePath) || !existsSync(target.cliPath)) {
     return {
       ...base,
@@ -1050,10 +1067,7 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
       status: 'fail',
       detail: [...problems].join('; ') + (hung ? '; dừng kiểm các worktree còn lại' : ''),
       hint: [
-        nodeMissing
-          ? `sshd agent không thấy node: chạy lại "crew-mac setup" để thêm ${dirname(ctx.nodePath)} vào khối PATH ` +
-            'trong ~/.zshenv (xem check agent-node).'
-          : '',
+        nodeMissing ? `sshd agent không thấy node (xem check agent-node): ${NODE_HINT}` : '',
         placementProblem || hung
           ? 'Dời bundle/runtime và checkout gốc ra ngoài ~/Documents, ~/Desktop, ~/Downloads, /Volumes (ví dụ ~/crew-tools).'
           : '',

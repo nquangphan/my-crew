@@ -111,10 +111,17 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
   không chuyển. Có thì `app.moveToApplicationsFolder({ conflictHandler })` với `conflictHandler` trả sai riêng cho
   `existsAndRunning` ("Thoát bản 2P Crew đang chạy trong Applications rồi thử lại"). Thành công thì app tự mở lại từ
   Applications và wizard tiếp tục theo `app.json`.
-- **`check`** (`machine-check.ts`): macOS 15 trở lên (`sw_vers`), Tailscale có IP 100.x
-  (`/Applications/Tailscale.app/Contents/MacOS/Tailscale ip -4`), Claude Code đã đăng nhập
-  (`/bin/zsh -lc 'claude auth status'` có `"loggedIn": true`). Chỉ đọc. Ghim Superpowers do `setup` cài và check
-  `superpowers-pin` của doctor kiểm ở bước `doctor`.
+- **`check`** (`machine-check.ts`): bốn dòng theo thứ tự:
+  - macOS 15 trở lên (`sw_vers`);
+  - dòng `node`: gọi op `ensureNode` (dò Homebrew, `~/.crew/node`, shell đăng nhập; không có thì tải Node LTS vào
+    `~/.crew/node`, flow `mac-setup` mục "Node cho launcher và agent"). Đạt thì hiện `Node <v> (<nhãn nguồn>)`, ví dụ
+    `Node 24.11.0 (Homebrew)` hoặc `(vừa tải Node LTS, checksum khớp)`. Lỗi thì không đạt, kèm câu lỗi và cách sửa
+    (kiểm tra mạng rồi Kiểm tra lại, hoặc `brew install node`). Utility nhớ node này cho bước `setup` sau đó;
+  - Tailscale có IP 100.x (`/Applications/Tailscale.app/Contents/MacOS/Tailscale ip -4`);
+  - Claude Code đã đăng nhập (`/bin/zsh -lc 'claude auth status'` có `"loggedIn": true`).
+
+  Ngoài việc tải Node khi máy chưa có, bước này chỉ đọc. Ghim Superpowers do `setup` cài và check `superpowers-pin`
+  của doctor kiểm ở bước `doctor`.
 - **`paperclip`** (`createPaperclipStep`): đăng nhập `cli-auth` chạy ở kênh `paperclip:*` (flow `mac-app-paperclip`: app
   tự mở trình duyệt, renderer hỏi `paperclip:loginStatus` mỗi 2 giây); bước này xác nhận company chọn có trong tài khoản
   rồi ghi `setup.companyId`.
@@ -159,7 +166,14 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
 `{ id, ok, result | error }`. Utility chết giữa chừng thì mọi lời gọi đang chờ bị reject
 `Tiến trình phụ dừng bất thường` và lần gọi sau tự `fork` lại. `createOpsHandlers` dựng `MacContext` mới mỗi lời gọi
 bằng `createMacContext` với `cliPath = ~/.crew/app/crew-mac/dist/cli.js` (đường dẫn đã cài, không phải đường dẫn trong
-bundle). Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupError`). Tham số không bao giờ vào log vì
+bundle) và `nodePath` là node thật, không bao giờ là binary của app. Utility nhớ `nodePath` trong process:
+- op `ensureNode()` (`NodeInfo`) dò hoặc tải node và ghi đè giá trị nhớ;
+- chưa có giá trị thì dò đồng bộ `stableNodePath` (Homebrew, `~/.crew/node`, node trong launcher, nơi lưu bền giữa các
+  lần mở app);
+- vẫn không có thì dò shell đăng nhập (nvm), mỗi process một lần cho tới khi `ensureNode` chạy lại;
+- không thấy thì op báo `Chưa có node dùng được. Mở 2P Crew → bước Kiểm tra máy để dò hoặc tải Node vào ~/.crew/node.`
+
+`OpsDeps.node` thay ba cách dò này trong test. Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupError`). Tham số không bao giờ vào log vì
 `setStatusSecret` mang secret. Renderer không có đường tới `@crew/mac`. `addStatusRepo(projectId, path, companyId?)`
 truyền company nhận ảnh chụp docs. Hai op của hàng đợi máy: `jobTargets()` (`machineId` và đích `{url, companyId}` của
 bản tin, từ `readStatusConfig`/`listTargets`) `cancelMachineJob()` (giết nhóm tiến trình `git` đang chạy khi việc quá giờ) và `runMachineJob(job, extras)` (`runJob` của `src/main/jobs/executors.ts`
@@ -176,7 +190,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/app-state.ts` | `app.json` (kiểu và kho ghi atomic, nối tiếp) | `AppStateStore`, `AppState` |
 | `apps/mac-app/src/main/app-log.ts` | `app.log`: ẩn secret, xoay 10 MB, giờ `Asia/Ho_Chi_Minh` | `AppLog`, `redactFields` |
 | `apps/mac-app/src/main/ipc.ts` | Đăng ký IPC theo danh sách kênh | `registerIpc`, `isTrustedSender` |
-| `apps/mac-app/src/main/ops-bridge.ts` | Cầu nối tới utilityProcess (kể cả hai op của hàng đợi máy) | `UtilityOpsBridge`, `OpsApi` |
+| `apps/mac-app/src/main/ops-bridge.ts` | Cầu nối tới utilityProcess (kể cả hai op của hàng đợi máy và op `ensureNode`) | `UtilityOpsBridge`, `OpsApi` |
 | `apps/mac-app/src/main/login-item.ts` | Login item macOS | `electronLoginItem` |
 | `apps/mac-app/src/main/tray.ts` | Biểu tượng menu bar | `CrewTray` |
 | `apps/mac-app/src/main/tray-state.ts` | Trộn trạng thái tray từ nhiều nguồn, nhãn menu | `mergeTrayState`, `effectiveColor`, `trayStatusLabel` |
@@ -185,10 +199,10 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/runs.ts` | Danh sách run, hủy run qua REST, mở link web | `createRuns` |
 | `apps/mac-app/src/main/logs.ts` | Đuôi bốn file log, lọc run id | `createLogs`, `tailFile`, `logPaths` |
 | `apps/mac-app/src/main/notifications.ts` | Thông báo hệ thống | `createNotifier` |
-| `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`) | `registerSetup` |
+| `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`; bước `check` gọi op `ensureNode`) | `registerSetup` |
 | `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước, bước `paperclip`, `doctor`, `done` | `createWizard`, `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep` |
 | `apps/mac-app/src/main/setup/types.ts` | Kiểu kết quả một bước | `StepOutcome`, `StepRun` |
-| `apps/mac-app/src/main/setup/machine-check.ts` | Bước `check`: macOS, Tailscale, Claude Code | `checkMachine` |
+| `apps/mac-app/src/main/setup/machine-check.ts` | Bước `check`: macOS, Node (dò hoặc tải), Tailscale, Claude Code | `checkMachine` |
 | `apps/mac-app/src/main/setup/import-existing.ts` | Nhận cài đặt có sẵn của máy | `detectExisting` |
 | `apps/mac-app/src/main/setup/machine-step.ts` | Bước `machine` (máy có sẵn, máy mới) | `createMachineStep` |
 | `apps/mac-app/src/main/setup/disk-access.ts` | Dò quyền ổ đĩa (FDA) không hộp thoại | `detectFullDiskAccess`, `diskAccessOutcome` |
@@ -197,7 +211,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/window.ts` | Cửa sổ renderer sandbox | `createMainWindow` |
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
 | `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi` |
-| `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess | `createOpsHandlers` |
+| `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess; nhớ `nodePath` thật cho mọi `MacContext` | `createOpsHandlers`, `OpsDeps`, `NodeFinder` |
 | `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe (kèm khung nhận việc), Run đang chạy, Log, Cài đặt (`routes/`), `CheckRow`, `WizardStep`, `ReloginButton` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen`, `SetupScreen` |
 
 ## Dữ liệu
@@ -256,14 +270,17 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/app-log.test.ts`: ẩn secret, giờ Việt Nam, xoay file, ghi lỗi không ném.
 - `apps/mac-app/test/ipc-contract.test.ts`: danh sách kênh, preload chỉ nhận kênh hợp lệ, `registerIpc`.
 - `apps/mac-app/test/ops-bridge.test.ts`: cầu nối với utility giả, và `createOpsHandlers` với HOME giả (kể cả
-  `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai).
+  `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai). `nodePath`: `ensureNode` ghi đè giá trị nhớ
+  và mọi context sau dùng nó; không có node đồng bộ thì dò shell đăng nhập đúng một lần, không thấy thì báo mở bước
+  Kiểm tra máy; shell đăng nhập (nvm) cấp `nodePath` khi dò đồng bộ hỏng.
 - `apps/mac-app/test/renderer/app.test.tsx`: thanh bên và điều hướng hash.
 - `apps/mac-app/test/health.test.ts`: lịch 15 phút, probe khi bấm, không chạy chồng, thông báo khi đổi đỏ/ổn.
 - `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, 403 không bảo đăng nhập lại, mở link web.
 - `apps/mac-app/test/logs.test.ts`: đuôi file, lọc run id, giới hạn 512 KB, file ngoài danh sách bị từ chối.
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, khung nhận việc và nút Đăng nhập lại, màn Run và Log, giờ Việt Nam.
-- `apps/mac-app/test/setup-wizard.test.ts`: `check`, bước `machine` (máy có sẵn giữ url cũ, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
+- `apps/mac-app/test/setup-wizard.test.ts`: `check` (bốn dòng, dòng `node` hiện nhãn nguồn, tải lỗi thì không đạt kèm
+  lỗi và `brew install node`), bước `machine` (máy có sẵn giữ url cũ, máy mới, thư mục bị cấm, manifest hỏng), máy trạng thái, `paperclip`, `doctor`, `done` (HOME và runner giả).
 - `apps/mac-app/test/setup-import.test.ts`, `apps/mac-app/test/setup-disk-access.test.ts`: nhận cài đặt có sẵn, dò quyền ổ đĩa.
 - `apps/mac-app/test/setup-v2-removal.test.ts`: dò app v2, gỡ chỉ việc được xác nhận, dữ liệu v2 nguyên vẹn (băm cây), app đang chạy, bundle của chính app mới, bước `move`.
 - `apps/mac-app/test/setup-sshd-handoff.test.ts`: từ chối khi còn run hoặc chưa có quyền ổ đĩa, chuyển thành công, tự lui (dừng supervisor trước), đã ở chế độ app.

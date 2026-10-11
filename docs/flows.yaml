@@ -71,6 +71,7 @@ flows:
       - apps/crew-mac/src/system.ts
       - apps/crew-mac/src/context.ts
       - apps/crew-mac/src/context-factory.ts
+      - apps/crew-mac/src/node-runtime.ts
       - apps/crew-mac/src/index.ts
       - apps/crew-mac/src/paths.ts
       - apps/crew-mac/src/fs-util.ts
@@ -104,6 +105,7 @@ flows:
       - apps/crew-mac/test/system-wrappers.test.ts
       - apps/crew-mac/test/crew-claude-run.test.ts
       - apps/crew-mac/test/launcher.test.ts
+      - apps/crew-mac/test/node-runtime.test.ts
       - apps/crew-mac/test/install-cli.test.ts
       - apps/crew-mac/test/sshd-owner.test.ts
       - apps/crew-mac/test/setup.test.ts

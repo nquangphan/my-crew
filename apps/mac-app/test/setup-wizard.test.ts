@@ -24,16 +24,43 @@ describe('checkMachine', () => {
     [TAILSCALE]: { stdout: '100.101.102.103\n' },
     [CLAUDE]: { stdout: '{\n  "loggedIn": true\n}\n' },
   };
+  const brewNode = async () => ({
+    path: '/opt/homebrew/bin/node',
+    source: 'homebrew' as const,
+    version: '24.11.0',
+  });
 
-  it('máy đủ điều kiện thì ok cả ba', async () => {
-    const result = await checkMachine(fakeRunner(healthy));
+  it('máy đủ điều kiện thì ok cả bốn', async () => {
+    const result = await checkMachine(fakeRunner(healthy), brewNode);
     expect(result.ok).toBe(true);
-    expect(result.lines.map((l) => l.id)).toEqual(['macos', 'tailscale', 'claude']);
+    expect(result.lines.map((l) => l.id)).toEqual(['macos', 'node', 'tailscale', 'claude']);
+    expect(result.lines[1]?.message).toBe('Node 24.11.0 (Homebrew)');
+  });
+
+  it('dòng node: tải Node LTS thì báo nguồn; tải lỗi thì không đạt, kèm lỗi và cách sửa', async () => {
+    const downloaded = await checkMachine(fakeRunner(healthy), async () => ({
+      path: '/Users/owner/.crew/node/bin/node',
+      source: 'downloaded',
+      version: '24.11.0',
+    }));
+    expect(downloaded.lines[1]).toEqual({
+      id: 'node',
+      ok: true,
+      message: 'Node 24.11.0 (vừa tải Node LTS, checksum khớp)',
+    });
+    const failed = await checkMachine(fakeRunner(healthy), async () => {
+      throw new Error('Checksum node-v24.11.0-darwin-arm64.tar.gz không khớp SHASUMS256.txt');
+    });
+    expect(failed.ok).toBe(false);
+    expect(failed.lines[1]?.ok).toBe(false);
+    expect(failed.lines[1]?.message).toContain('không khớp SHASUMS256.txt');
+    expect(failed.lines[1]?.message).toContain('brew install node');
   });
 
   it('macOS cũ hơn 15 báo đúng câu', async () => {
     const result = await checkMachine(
       fakeRunner({ ...healthy, '/usr/bin/sw_vers -productVersion': { stdout: '14.7\n' } }),
+      brewNode,
     );
     expect(result.ok).toBe(false);
     expect(result.lines[0]).toMatchObject({
@@ -49,10 +76,11 @@ describe('checkMachine', () => {
         [TAILSCALE]: { code: 1, stderr: 'not logged in' },
         [CLAUDE]: { stdout: '{"loggedIn": false}' },
       }),
+      brewNode,
     );
     expect(result.ok).toBe(false);
-    expect(result.lines[1]?.message).toBe('Mở Tailscale và đăng nhập');
-    expect(result.lines[2]?.message).toBe('Chạy claude và đăng nhập một lần trong Terminal');
+    expect(result.lines[2]?.message).toBe('Mở Tailscale và đăng nhập');
+    expect(result.lines[3]?.message).toBe('Chạy claude và đăng nhập một lần trong Terminal');
   });
 });
 
