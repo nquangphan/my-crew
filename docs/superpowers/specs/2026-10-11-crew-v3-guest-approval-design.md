@@ -123,7 +123,11 @@ C khi thỏa **cả hai** điều kiện:
 
 Cách này đóng khi lỗi:
 - owner nâng người đó lên role khác thì dấu hết tác dụng (role khác `viewer`);
-- owner gỡ dấu thì người đó còn là viewer thuần, chỉ xem.
+- owner gỡ dấu thì người đó còn là viewer thuần, chỉ xem;
+- dấu chỉ có hiệu lực khi bật **sau** lần đổi membership gần nhất (`crew_contributors.granted_at >=
+  company_memberships.updated_at`). Lõi ghi `updated_at` ở mọi lần đổi role hay status, nên người bị gỡ rồi mời lại,
+  hay bị nâng rồi hạ về viewer, không tự thành khách góp ý: owner phải bật lại. `GET /contributors` chỉ liệt kê dấu
+  còn hiệu lực. Bật lại (`PUT`) làm mới `granted_at` (không nhỏ hơn `updated_at` của membership).
 
 ### 3.3. Ma trận quyền
 
@@ -146,9 +150,13 @@ phải owner và `local_implicit` (không có `userId`) đều nhận 403.
 POST, nên viewer nhận 403. Hôm nay **UI Crew không dùng được với bất kỳ viewer nào**.
 
 C8 chỉ thay dòng `server/src/routes/plugins.ts:1624` của route data, và chỉ khi đủ mọi điều kiện sau:
-- plugin là `crew.core`;
+- plugin là `crew.core`, và data key nằm trong allowlist `CREW_VIEWER_DATA_KEYS` (`server/src/crew/plugin-data-scope.ts`):
+  các key UI Crew đọc ở trang viewer vào được (`crew.companies`, `crew.roots`, `crew.map`, `crew.docsCheck`,
+  `crew.runtimeDecisions`, `crew.machines`, `crew.setupRuns`, `crew.docs.projects|tree|page|search`). Key mới của
+  plugin không tự mở cho viewer; `crew.machineJobs`, `crew.skillSync`, `crew.storage`, `crew.usage.*`,
+  `crew.docs.graph|history|status` giữ kiểm tra stock;
 - actor là board, có `userId`;
-- company là company Crew (`loadCrewCompanyConfig` khác `absent`);
+- company là company Crew và cấu hình Crew đọc được (`loadCrewCompanyConfig` trả `ok`; file hỏng thì đóng);
 - actor có membership `active` với role `viewer` trong company đó.
 
 Khi đó route trả `companyId` mà không qua kiểm tra ghi. Mọi trường hợp khác giữ stock. Không đụng route
@@ -243,7 +251,9 @@ CREATE INDEX crew_contributions_target_idx ON plugin_crew_core_0433ea20b6.crew_c
 | `approving` | `approved` | owner hoặc tự lành | tìm thấy bản ghi đã tạo ở bảng lõi (§5.3) |
 | `pending` | `rejected` | owner | `reject` |
 | `approving` | `rejected` | owner | `reject`, khi **không** tìm thấy bản ghi đã tạo. Tìm thấy thì chuyển `approved` và trả 409 |
-| `approved`, `rejected` | — | — | trạng thái cuối, không đổi nữa |
+| `rejected` (đã qua `approving`) | `approved` | tự lành, hoặc `approve`/`complete`/`reject` sau đó | tìm thấy bản ghi đã tạo: owner từ chối trong lúc request đăng của bước 2 chưa commit. Agent đã thấy nội dung, nên `approved` mới đúng. Log chỉ ghi id |
+| `approved` | — | — | trạng thái cuối, không đổi nữa |
+| `rejected` từ `pending` | — | — | trạng thái cuối (chưa từng có payload đăng, không thể lên lõi) |
 
 Khách không sửa, không xóa, không rút mục của mình (quyết định 3).
 
@@ -265,18 +275,23 @@ import { crewContributionRoutes } from "./crew/contribution-routes.js";
 Router nằm sau `boardMutationGuard()` (`app.ts:644`), nên POST từ trình duyệt vẫn phải đúng origin như route stock.
 
 Luật chung của mọi endpoint:
-- `req.actor.type !== "board"` hoặc thiếu `req.actor.userId` → `403 crew_contribution_forbidden`. Agent luôn bị chặn ở
-  đây.
-- `hasCompanyAccess(req, companyId)` sai, hoặc company không phải company Crew → `404`.
+- `req.actor.type !== "board"`, `req.actor.source !== "session"` hoặc thiếu `req.actor.userId` →
+  `403 crew_contribution_forbidden`. Agent luôn bị chặn ở đây. Board API key (`board_key`) và `local_implicit` cũng
+  bị chặn: board key của owner nằm trên chính máy chạy agent, và UI Crew là trình duyệt nên chỉ cần phiên đăng nhập.
+- `hasCompanyAccess(req, companyId)` sai, company không phải company Crew, hoặc cấu hình Crew hỏng (đóng khi lỗi) → `404`.
 - **Không gọi `assertCompanyAccess`**, vì hàm đó chặn viewer ghi. Router tự kiểm role từ DB theo §3.3.
 - **Không ghi `activity_log`, không phát live event, không phát event plugin.** Agent đọc được activity
   (`server/src/routes/activity.ts:222`). Dấu vết nằm ngay trong dòng `crew_contributions`. Log pino chỉ ghi id.
+- Body của request góp ý không bao giờ vào log hay báo lỗi: router dời `req.body` sang `res.locals` trước mọi bước kiểm,
+  vì logger HTTP chép `req.body` vào log của mọi phản hồi ≥ 400 và error handler chép nó vào ngữ cảnh lỗi 5xx. Lỗi DB
+  khi lưu góp ý (message của drizzle có tham số câu lệnh) đổi thành `500 crew_contribution_store_failed` cố định,
+  không kèm `cause`; log chỉ ghi id company và mã SQLSTATE.
 - Lỗi trả `{ error: "<câu tiếng Việt>", code }` như `crewAssertBoardOnly`.
 
 | Method, path (`/api/crew/companies/:companyId/…`) | Ai | Body / query | Trả |
 |---|---|---|---|
 | `GET /access` | mọi thành viên board của company | — | `{ userId, membershipRole, contributor: boolean, canApprove: boolean }` |
-| `GET /contributions` | owner (mọi mục), khách (mục của mình) | `status?` (`pending` gồm cả `approving`), `kind?`, `issueId?` (bình luận của một issue) | `{ items: Contribution[] }`, mới nhất trước, tối đa 200 |
+| `GET /contributions` | owner (mọi mục), khách (mục của mình) | `status?` (`pending` gồm cả `approving`), `kind?`, `issueId?` (bình luận của một issue), `before?` (id, con trỏ trang) | `{ items: Contribution[], nextBefore: string \| null }`, mới nhất trước, 200 mục mỗi trang |
 | `GET /contributions/summary` | owner, khách | — | `{ pending: number }`. Owner: mọi mục; khách: mục của mình |
 | `GET /contributions/:id` | owner, tác giả | — | `Contribution` |
 | `POST /contributions` | khách | `{ kind:"issue", projectId, title, description? }` hoặc `{ kind:"comment", issueId, body }` | `201 Contribution` |
@@ -334,7 +349,7 @@ Server tự tìm bản ghi trong bảng lõi, không tin id do client gửi:
 Tìm thấy → `approved`, ghi `result_*_id`, `decided_at`. Không thấy → `409`, mục giữ `approving`.
 
 **Tự lành:** `GET /contributions` và `GET /contributions/summary` chạy bước tìm này cho các dòng `approving` của
-company trước khi trả. Nhờ vậy, nếu tab owner đóng giữa bước 2 và bước 3, lần đọc sau mục vẫn thành `approved`. Bước
+company, và cho các dòng `rejected` đã qua `approving` (`approving_at IS NOT NULL`), trước khi trả. Nhờ vậy, nếu tab owner đóng giữa bước 2 và bước 3, lần đọc sau mục vẫn thành `approved`. Bước
 `approve` và `reject` cũng chạy bước tìm này trước.
 
 ### 5.4. Chi tiết chốt khi thi công (bổ sung, không đổi hình dạng ở trên)
@@ -359,6 +374,20 @@ company trước khi trả. Nhờ vậy, nếu tab owner đóng giữa bước 2
 - Mục không tồn tại, id sai định dạng, hoặc khách đọc mục của người khác → `404`.
 - `materialize.description` là `string | null`. Mô tả rỗng hoặc chỉ có khoảng trắng lưu thành `null`.
 - `GET /contributions?status=` nhận `pending` (gồm `approving`), `approving`, `approved`, `rejected`.
+- Phân trang `GET /contributions`: trả `nextBefore` (id mục cuối) khi còn mục cũ hơn, `null` khi hết. Gọi lại với
+  `?before=<nextBefore>` cùng bộ lọc để đọc trang kế. Con trỏ không thuộc phạm vi đọc của người gọi (company khác, hay
+  mục của khách khác) cho trang rỗng; `before` sai định dạng → `400`.
+- `title`, `description`, `body` chứa ký tự điều khiển (C0 trừ tab/LF/CR, DEL, C1; gồm `\u0000` mà Postgres từ chối)
+  → `400 crew_contribution_invalid`, không chạm DB.
+- Lỗi DB khi tạo góp ý → `500 crew_contribution_store_failed`, câu lỗi cố định.
+- Board API key và `local_implicit` → `403 crew_contribution_forbidden` ở mọi endpoint, kể cả `/access`.
+- Từ chối đua với bước đăng: `reject` một mục `approving` chạy đúng bước tìm của `complete`. Thấy bản ghi thì mục thành
+  `approved` và trả `409 crew_contribution_already_approved`; không thấy thì từ chối. Nếu request đăng commit muộn hơn,
+  mục `rejected` đó thành `approved` ở lần tự lành kế tiếp (hoặc khi gọi `approve` → `409 crew_contribution_decided`,
+  `complete` → `200`, `reject` → `409 crew_contribution_already_approved`).
+- Bước tìm không lọc bình luận đã xóa hay issue đã ẩn, và đó là chủ ý: bản ghi đã từng lên lõi thì agent đã thấy, nên
+  `approved` là trạng thái thật. Route bình luận stock cũng trả lại đúng bình luận đã xóa khi đăng lại cùng
+  `clientRequestId`, nên lọc sẽ làm mục kẹt `approving`.
 
 ## 6. Đường ghi và đường đọc
 
@@ -473,7 +502,7 @@ Mọi chuỗi mới có ở cả `vi.json` và `en.json` của feature. Chỉ d�
 | Id | File | Anchor (một lần) | importLine (cuối file) | Test |
 |---|---|---|---|---|
 | **C7** | `server/src/app.ts`, symbol `createApp api router (Crew contribution routes)` | `  api.use(crewContributionRoutes(db));` | `import { crewContributionRoutes } from "./crew/contribution-routes.js";` | `server/src/__tests__/crew-contributions.db.test.ts`, `server/src/__tests__/crew-contributions-agent-blind.test.ts` |
-| **C8** | `server/src/routes/plugins.ts`, symbol `pluginRoutes POST /plugins/:pluginId/data/:key` | `    const companyId = (await crewViewerPluginDataScope(db, req, plugin.pluginKey, body?.companyId)) ?? assertPluginBridgeScope(req, body?.companyId);` | `import { crewViewerPluginDataScope } from "../crew/plugin-data-scope.js";` | `server/src/__tests__/crew-plugin-data-viewer.test.ts`, `server/src/__tests__/crew-viewer-write-matrix.test.ts` |
+| **C8** | `server/src/routes/plugins.ts`, symbol `pluginRoutes POST /plugins/:pluginId/data/:key` | `    const companyId = (await crewViewerPluginDataScope(db, req, plugin.pluginKey, key, body?.companyId)) ?? assertPluginBridgeScope(req, body?.companyId);` | `import { crewViewerPluginDataScope } from "../crew/plugin-data-scope.js";` | `server/src/__tests__/crew-plugin-data-viewer.test.ts`, `server/src/__tests__/crew-viewer-write-matrix.test.ts` |
 
 - Mô tả theo mẫu C1–C6: câu tiếng Anh, nói hành vi, không nói số ticket.
 - Hook vẫn là 5/5. `node crew/release/check-core-hooks.mjs` phải báo `lỗi: 0`, vá lõi tăng từ 6 lên 8.
@@ -590,10 +619,11 @@ Thêm một test tĩnh trong plugin: không file `src/**` nào nhắc `crew_cont
 | Rủi ro | Khả năng × Tác động | Giảm thiểu |
 |---|---|---|
 | Thêm role lõi mới làm lọt quyền ghi ở hơn 50 chỗ so `!== "viewer"` | — (đã tránh) | Khách là `viewer` ở lõi (§3.1) |
-| C8 cho viewer đọc data `crew.core` | Thấp × Trung bình | Chỉ `crew.core`, chỉ company Crew, chỉ route data. Mọi data key đều là đọc (§3.3). Viewer vốn đọc được dữ liệu tương đương qua GET lõi |
+| C8 cho viewer đọc data `crew.core` | Thấp × Trung bình | Chỉ `crew.core`, chỉ key trong allowlist, chỉ company Crew có cấu hình đọc được, chỉ route data. Mọi data key đều là đọc (§3.3). Viewer vốn đọc được dữ liệu tương đương qua GET lõi |
 | Trình duyệt owner điều phối duyệt, có thể đứt giữa chừng | Trung bình × Thấp | Trạng thái `approving`, khóa idempotent stock, server tự tìm bản ghi, tự lành khi đọc (§5.3) |
 | Khóa idempotent issue chỉ giữ 7 ngày | Rất thấp × Trung bình | Tự lành chạy ở mọi lần đọc danh sách và đếm sidebar, nên `approving` khó sống quá vài phút |
-| Hai owner giành duyệt một bình luận | Rất thấp × Thấp | Khóa 10 phút; trước khi giành lại luôn tìm bình luận theo `client_request_id` mọi tác giả |
+| Hai owner giành duyệt một bình luận | Rất thấp × Thấp | Khóa 10 phút; trước khi giành lại luôn tìm bình luận theo `client_request_id` mọi tác giả. Còn sót: request đăng của owner A treo quá 10 phút rồi mới commit sau khi owner B đã đăng, thì có hai bình luận giống nhau (UNIQUE của stock tính theo tác giả) và agent bị đánh thức hai lần. Chấp nhận; owner xóa bản thừa |
+| Owner từ chối trong lúc request đăng của bước 2 chưa commit | Thấp × Trung bình | Nội dung vẫn lên lõi và agent thấy. Không chặn được từ router (route stock không biết trạng thái góp ý); tự lành chuyển mục `rejected` đó thành `approved` để nhãn đúng sự thật (§4, §5.4) |
 | Link mời của server là `/invite/<token>`, tới UI Crew (không có trang) | Cao × Trung bình | UI dựng `/paperclip/invite/<token>`. T0 kiểm trên prod |
 | Prod tắt đăng ký (`PAPERCLIP_AUTH_DISABLE_SIGN_UP`, `server/src/config.ts:219-223`) thì khách mới không tạo được tài khoản | Trung bình × Cao | T0 đọc giá trị (không in secret). Nếu đang tắt, xem câu hỏi Q2 |
 | Khách đọc được mọi thứ viewer đọc được qua API: agent, run, transcript, chi phí, activity | Chắc chắn × tùy owner | UI Crew ẩn mục, nhưng API vẫn trả. Xem Q1 |
