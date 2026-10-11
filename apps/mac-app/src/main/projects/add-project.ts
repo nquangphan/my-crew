@@ -217,6 +217,7 @@ class AddRun {
         env: this.deps.env,
         git: this.git,
         statusRepoPaths: async () => (await this.deps.ops.call('listStatusRepos')).map((repo) => repo.path),
+        nodePath: () => this.deps.ops.call('docsNodePath'),
       }),
     );
     await this.step('project', () => this.ensureProject());

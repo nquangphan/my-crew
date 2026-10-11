@@ -243,6 +243,7 @@ export function fakeOps(
     addStatusRepo: () => undefined,
     removeStatusRepo: () => undefined,
     listStatusRepos: () => [],
+    docsNodePath: () => process.execPath,
     doctor: () => [
       { id: 'worktree-root', title: 'Thư mục worktree', status: 'ok', detail: '' },
       { id: 'worktree-workflows', title: 'Nguồn skill', status: 'ok', detail: '' },

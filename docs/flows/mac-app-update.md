@@ -48,7 +48,10 @@ gõ `--publish`.
 
 1. Kiểm cây, tag (bản phát hành), danh tính (`security find-identity -v -p codesigning`, chỉ giữ tên) và notary
    profile (`xcrun notarytool history --keychain-profile crew-notary`, không in đầu ra).
-2. `pnpm --filter @crew/mac build` (bản `crew-mac` mang theo), `pnpm --filter @crew/mac-app build`.
+2. `pnpm --filter @crew/docs-kit build` (bundle `crew-docs.cjs` mang theo trong `Contents/Resources/crew-docs.cjs`,
+   app cài ra `~/.crew/bin/crew-docs.cjs` mỗi lần mở, xem flow `mac-app-paperclip`), `pnpm --filter @crew/mac build`
+   (bản `crew-mac` mang theo), `pnpm --filter @crew/mac-app build`. Script `package` của `apps/mac-app` cũng build
+   `@crew/docs-kit` trước `electron-builder`.
 3. `electron-builder --mac zip --arm64 --publish never` trong `apps/mac-app` với env `CSC_NAME=<tên bỏ tiền tố loại>`
    và `CSC_IDENTITY_AUTO_DISCOVERY=false`; `--dev-sign` thêm `--config.mac.type=development`. Ra
    `~/Library/Caches/2p-crew-release/mac-arm64/2P Crew.app` có `Contents/Resources/app-update.yml` (từ mục
@@ -67,6 +70,7 @@ gõ `--publish`.
    - `codesign -dv`: `Identifier` = bundle id, `Authority` đúng loại, `TeamIdentifier` = `J7Y2DL6HZV`, hardened runtime.
    - `Info.plist`: bundle id, `CFBundleName` 2P Crew, `CFBundleShortVersionString` = version, đủ 4 lời xin quyền.
    - `app-update.yml` trỏ `nquangphan/crew-mac-releases`; `latest-mac.yml` đúng version và tên zip; đủ file.
+   - Có `Contents/Resources/crew-docs.cjs` (bundle crew-docs mang theo).
    - Bản phát hành thêm: `spctl -a -vv` (accepted, `Notarized Developer ID`), `stapler validate` app và dmg,
      designated requirement có `subject.OU = J7Y2DL6HZV`.
 8. Có `--publish`: `gh release create v<version> --repo nquangphan/crew-mac-releases` kèm zip, dmg, hai blockmap,
@@ -284,7 +288,7 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 |-----------|---------|--------------|
 | `apps/mac-app/scripts/release.mjs` | Trình tự phát hành: kiểm, chạy lệnh, tự kiểm, đăng | `main`, `resolveIdentity`, `verify` |
 | `apps/mac-app/scripts/release-lib.mjs` | Hàm thuần: đối số, tag, cây sạch, chọn danh tính, dựng lệnh, đọc kết quả kiểm | `parseArgs`, `checkTag`, `pickIdentity`, `findDeveloperId`, `buildCommands`, `checkSignature`, `EXIT` |
-| `apps/mac-app/electron-builder.yml` | Mục `publish` (kênh phát hành), tên file phát hành, `extraResources` mang helper quay lui | `publish`, `artifactName`, `extraResources` |
+| `apps/mac-app/electron-builder.yml` | Mục `publish` (kênh phát hành), tên file phát hành, `extraResources` mang helper quay lui và bundle `crew-docs.cjs` | `publish`, `artifactName`, `extraResources` |
 | `apps/mac-app/src/main/update/register.ts` | Nối updater vào Electron: điều kiện bật, hộp thoại, kênh `update:*`, chạy probation rồi kiểm | `registerUpdate` |
 | `apps/mac-app/src/main/update/updater.ts` | Máy trạng thái kiểm/tải/chờ rảnh/cài, cài hỏng thì mở lại cổng, quay lui tay | `createUpdater`, `CHECK_INTERVAL_MS`, `INSTALL_QUIT_TIMEOUT_MS`, `DISABLED_UNSIGNED` |
 | `apps/mac-app/src/main/update/versions.ts` | Lọc bản trên feed: tăng, `x.y.z`, không `badVersions`, có zip arm64 | `compareSemver`, `judgeCandidate`, `shouldOffer` |
@@ -319,7 +323,7 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
   `pnpm -r test` sau `vitest run`): đối số và cờ mâu thuẫn; tag tại HEAD và semver; cây
   sạch; đọc danh tính không giữ hash; chọn Developer ID/Apple Development theo loại, team, `--identity`; `CSC_NAME`
   bỏ tiền tố; notary profile có/thiếu/lỗi và câu báo thiếu; JSON notarytool; spctl, designated requirement,
-  `codesign -dv`; Info.plist, `app-update.yml`, `latest-mac.yml`; che hash; thư mục ra ngoài `~/Documents`; danh sách lệnh của ba chế độ (không
+  `codesign -dv`; Info.plist, `app-update.yml`, `latest-mac.yml`; che hash; thư mục ra ngoài `~/Documents`; danh sách lệnh của ba chế độ (bắt đầu bằng `build-docs`, không
   notarytool/`gh` ở bản thử, `gh` chỉ khi `--publish`).
 - `apps/mac-app/test/update-versions.test.ts`: so semver theo số; chỉ bản tăng; `badVersions`; zip arm64; prerelease.
 - `apps/mac-app/test/update-drain.test.ts` (đồng hồ giả): 0 run cài ngay; chờ tới 20 phút, kiểm mỗi 10 giây, không

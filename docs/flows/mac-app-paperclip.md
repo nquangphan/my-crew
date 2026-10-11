@@ -145,7 +145,7 @@ song.
 
 | Bước | Việc |
 |------|------|
-| `folder` | `configureDocsBundle` (`folder.ts`, dùng chung với việc `prepare-checkouts`): nhánh mặc định có `docs/flows.yaml` (`git cat-file -e <baseRef>:docs/flows.yaml`) thì đặt `crew-docs.bundle` (và `crew-docs.runtime` nếu chưa có) trong git config của repo — chung cho mọi worktree. Giá trị owner đã đặt mà còn là file thì giữ, không ghi đè. Nguồn: repo đầu tiên trong `listStatusRepos` có bundle hợp lệ, không có thì `~/.crew/bin/crew-docs.cjs` |
+| `folder` | `configureDocsBundle` (`folder.ts`, dùng chung với việc `prepare-checkouts`): nhánh mặc định có `docs/flows.yaml` (`git cat-file -e <baseRef>:docs/flows.yaml`) thì đặt `crew-docs.bundle` và `crew-docs.runtime` trong git config của repo — chung cho mọi worktree. Bundle owner đã đặt mà còn là file thì giữ; nguồn: repo đầu tiên trong `listStatusRepos` có bundle là file, không có thì `~/.crew/bin/crew-docs.cjs` (app tự cài, xem "Bundle và runtime crew-docs"). Runtime chỉ đặt khi chưa có, không phải file, không chạy được hay trỏ vào bundle `.app`/binary Electron (`runtimeProblem`); nguồn: runtime dùng được của repo khác (không bao giờ chép runtime hỏng), không có thì node thật từ `ops.docsNodePath` (dò như `ensureNode`, không có thì tải). Không có node thì để runtime như cũ, không chặn bước này (doctor báo) |
 | `project` | Project cùng tên đã có thì dùng lại, không thì `createProject` |
 | `status-repo` | `ops.addStatusRepo(projectId, <folder>, companyId)` (company đang chọn: ảnh chụp docs đi đúng company khi bản tin có nhiều đích) — ảnh chụp docs đọc thẳng folder của owner. `crew-mac status send` chỉ đọc qua git (`git show`/`ls-tree` ở commit `origin/HEAD`, worktree tạm detached trong thư mục tạm), không đọc working tree; mỗi lượt nó `git fetch origin` trong folder (chỉ đổi ref remote) — xem `docs/flows/mac-setup.md` mục "Ảnh chụp docs" |
 | `role:<vai>` | Theo thứ tự `executor-1`, (`executor-2`), `assistant`, `reviewer`, `integrator` (executor trước để Trợ Lý có danh sách id). Worktree riêng `~/crew-agents/<key>/<vai>` bằng `git -C <folder> -c core.hooksPath=/dev/null worktree add --no-track -b agent/<key>-<vai> <checkout> <baseRef>` (như R1: worktree của repo gốc, nhánh `agent/…` riêng; hook của repo không chạy). Nhánh `agent/<key>-<vai>` đã có (thêm lại sau khi gỡ) thì `worktree add <checkout> <nhánh>` dùng lại nhánh đó. Worktree đã có đúng chỗ (`--git-common-dir` trùng `.git` của folder, `--show-toplevel` là checkout) thì dùng lại; thư mục khác ở đó thì báo lỗi, không đè. Thêm `.paperclip-runtime/` vào `info/exclude` (file chung trong `.git` của folder, chỉ nối một dòng). Environment `<key>-<vai>`: SSH `in_place`, `remoteWorkspacePath` = checkout, host/user/`knownHosts`/`crewLoadGate` và secret SSH (`privateKeySecretRef.secretId`) lấy từ environment SSH `in_place` đang `active` của máy (`getTemplate`) và có secret SSH thuộc company (`GET /api/companies/:id/secrets`; environment là của cả instance nên có thể là của company khác, secret của họ bị bỏ qua): máy đã ghép (app state có `setup.pairedEnvironmentId`, ghi ở bước Máy, flow `mac-app`) dùng đúng environment đó, phải còn `active` và cùng cổng `manifest.port`, không thì lỗi "Environment đã ghép của máy này … chạy lại bước Máy để ghép lại" (không rơi về environment cùng cổng của máy khác, vì MacBook và Mac mini cùng cổng 2222); máy chưa ghép (Mac mini) giữ cách cũ: environment đầu tiên theo tên cùng cổng `manifest.port` của `crew-mac setup`. Agent `<key>-<vai>`: `claude_local`, `engine: "cli"`, `env: {}`, `model` theo vai như agent R1 (Trợ Lý `claude-opus-5`, executor/reviewer/integrator `claude-sonnet-5`), `command` = `<home>/.crew/bin/crew-claude-run`, `extraArgs` = bản ghim Superpowers (`setup().superpowers`, kiểm khuôn như `merge-agent-config.mjs`), heartbeat tắt, `maxConcurrentRuns: 1`, `defaultEnvironmentId` = environment trên. Agent (và environment) đã có trên server cùng tên mà chưa có trong tiến độ (response bị mất) thì dùng lại. Rồi giữ agent ở `paused`; tải `AGENTS.md` |
@@ -154,7 +154,30 @@ song.
 | `check` | `doctor({ probe: false, skipTcc: true })` không có `fail` ở `worktree-workflows`, `worktree-root`; `workflowCheck` sạch cho từng checkout; `getRoles` đọc lại khớp; `getAgent` từng agent đọc lại có `engine` = `cli` (agent dùng lại do bản app cũ tạo thiếu `engine` bị chặn ở đây, phải PATCH `adapterConfig.engine` rồi Chạy tiếp); `getAgentPermissions` từng agent đọc lại đúng quyền agent Crew, lệch thì lỗi "Quyền của agent `<key>-<vai>` chưa bị giới hạn (còn được tạo agent, còn được tạo skill, còn được giao việc / Trợ Lý thiếu quyền giao việc): bấm Chạy tiếp để đặt lại". Đạt hết thì mới `resumeAgent` các agent đang `paused` |
 
 Những gì app ghi vào folder của owner, tất cả nằm trong `.git`: metadata worktree (`.git/worktrees/<tên>`), nhánh
-`agent/<key>-<vai>`, git config `crew-docs.*` (khi chưa có), một dòng `.paperclip-runtime/` trong `info/exclude`.
+`agent/<key>-<vai>`, git config `crew-docs.*` (khi chưa có hoặc hỏng), một dòng `.paperclip-runtime/` trong `info/exclude`.
+
+### Bundle và runtime crew-docs
+
+Hook git của crew-docs (`hook-installer.ts`, flow `docs-hooks`) và agent đều chạy
+`ELECTRON_RUN_AS_NODE=1 "<crew-docs.runtime>" "<crew-docs.bundle>" …`. App đóng gói với fuse `runAsNode: false` (giữ
+để bảo vệ Keychain), nên runtime là binary của app (`/Applications/2P Crew.app/Contents/MacOS/2P Crew`) không chạy
+như node: mỗi lệnh mở thêm một instance, `second-instance` đưa cửa sổ lên và lệnh thoát 0 mà không kiểm gì (hook docs
+im lặng đạt). Vì vậy `crew-docs.runtime` luôn phải là node thật (`docs-runtime.ts`):
+
+- `runtimeProblem(runtime)`: lý do runtime không dùng được — chưa đặt, không phải file, nằm trong `.app`
+  (`isInsideAppBundle`, giải symlink), trùng `process.execPath` khi chạy dưới Electron, không có quyền chạy.
+- Bundle mang theo: `Contents/Resources/crew-docs.cjs` (build từ `packages/docs-kit`, xem flow `mac-app-update`).
+  `installDocsBundle` chép vào `~/.crew/bin/crew-docs.cjs` chỉ khi chưa có hoặc nội dung khác (ghi file tạm rồi
+  `rename`, quyền 0644).
+- Tự sửa lúc app mở: `registerProjects` gọi `repairDocsOnStart` (chạy nền, không bao giờ ném) → op
+  `repairDocsHooks(<Resources>/crew-docs.cjs)` trong utility: cài bundle; chưa có `~/.crew/status-repos.json` (máy
+  mới) thì dừng, không dò hay tải node; có thì lấy node (`docsNode`: node đang nhớ, dò đồng bộ, shell đăng nhập, không
+  có thì tải như `ensureNode`). Không có node thì để nguyên mọi config, chỉ ghi `nodeError`. Có node thì
+  `repairDocsConfig` cho từng repo trong `listStatusRepos`: repo chưa đặt cả hai key (không dùng crew-docs) bỏ qua;
+  `crew-docs.bundle` không còn là file thì trỏ về bundle đã cài; `crew-docs.runtime` có `runtimeProblem` thì đặt sang
+  node đó; giá trị còn dùng được (kể cả owner tự đặt) giữ nguyên. Kết quả ghi `app.log`: `docs-bundle-installed`,
+  `docs-hooks-repaired` (repo, key đã sửa, runtime), `warn` `docs-bundle-install-failed`, `docs-node-missing`,
+  `docs-hooks-repair-skipped`, `docs-repair-failed`. Không có bước tay, hộp thoại hay công cụ mới cho owner.
 
 **Tiến độ kiểu cũ.** Bản trước thêm project bằng URL git (bước `ls-remote`, `mirror`, clone vào `~/crew-projects`):
 tiến độ đó có `origin` mà không có `folder`. Đọc vẫn được (danh sách, gỡ). Chưa tạo project/agent nào thì lần thêm mới
@@ -284,8 +307,9 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/paperclip/register.ts` | Kênh IPC, `security`, `safeStorage` | `registerPaperclip`, `paperclipClient`, `boardKeys` |
 | `apps/mac-app/src/main/projects/progress.ts` | Tiến độ trong `app.json`, đường dẫn, tên vai trò, lệnh gỡ owner tự chạy | `ProjectDeps`, `ProgressRecorder`, `roleNames`, `projectPaths`, `KEY_RE`, `isLegacyProgress`, `manualRemoveCommand` |
 | `apps/mac-app/src/main/projects/folder.ts` | Kiểm folder owner chọn, worktree agent, `info/exclude`, bundle crew-docs, `git` của owner | `inspectFolder`, `folderGuardReason`, `suggestKey`, `ensureWorktree`, `isWorktreeOf`, `agentBranch`, `ensureRuntimeExcluded`, `configureDocsBundle`, `runGit`, `killActiveGit`, `shellQuote` |
+| `apps/mac-app/src/main/projects/docs-runtime.ts` | Runtime/bundle crew-docs: kiểm runtime, cài bundle mang theo, tự sửa git config lúc app mở | `runtimeProblem`, `installDocsBundle`, `installedDocsBundle`, `repairDocsConfig`, `repairDocsOnStart`, `DocsRepairReport` |
 | `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; chọn folder; thêm/gỡ | `createProjectsIpc` |
-| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục | `registerProjects` |
+| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở | `registerProjects` |
 | `apps/mac-app/src/renderer/routes/projects.tsx` | Màn hình Project: danh sách, wizard thêm (Chọn folder), Chạy tiếp, Gỡ khỏi Mac | `ProjectsScreen`, `stepLabel` |
 | `apps/mac-app/src/main/projects/add-project.ts` | Các bước thêm project; bộ lọc environment khuôn (kèm điều kiện secret thuộc company) dùng chung với bước Máy | `addProject`, `isInPlaceSshTemplate`, `isCompanyTemplate`, `inPlaceSshTemplates`, `companySecretIds` |
 | `apps/mac-app/src/main/projects/remove-project.ts` | Gỡ project khỏi Mac | `removeProject` |
@@ -317,7 +341,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   chối, `../workflows` → `app_error`.
 - `apps/mac-app/test/jobs/executors.test.ts` (HOME giả, repo git thật trong `mkdtemp`): `inspect-folder` (bundle, cây
   sạch/không sạch, remote bỏ credential, `folder_not_git`/`folder_missing`/`folder_forbidden`, key lạ), `prepare-checkouts`
-  4 vai trò (nhánh, exclude, bundle, `addStatusRepo` một lần, chạy lại cho cùng kết quả, không `projectId` thì không
+  4 vai trò (nhánh, exclude, bundle, runtime node thật, `addStatusRepo` một lần, chạy lại cho cùng kết quả, không `projectId` thì không
   add-repo, `checkout_exists`), `agent-workspace` thêm `executor-2` không đụng worktree khác, `skill-sync` (0700, băm
   cây, thay trọn, đường dẫn xấu không ghi gì), `runtimes-setup` (đúng hợp đồng, bỏ trường thừa như key/đường `auth.json`, lỗi → `app_error` đã làm sạch, payload lạ không gọi setup), `check` (mục doctor runtime `fail` chỉ thành `warn`; items, lỗi chung của máy → done kèm `warn`, lỗi worktree/workflow → `check_failed` kèm items, chưa có checkout).
 - `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự.
@@ -349,7 +373,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   giả và folder owner (clone của remote đó, nằm ngoài HOME) dưới `mkdtemp`. Không chạm `~/crew-agents`, `~/.crew`,
   `/Volumes` thật hay Paperclip thật.
 - `apps/mac-app/test/projects-add.test.ts`: khuôn bỏ qua environment có secret của company khác dù đứng đầu danh sách, chỉ có của company khác thì báo, không tạo; chạy đủ (worktree của folder, nhánh `agent/<key>-<vai>` từ nhánh mặc
-  định, `crew-docs.bundle`, `info/exclude`, không có `~/crew-projects`; 4 agent, 4 environment, thứ tự pause → vai trò →
+  định, `crew-docs.bundle`, `crew-docs.runtime` là node thật, `info/exclude`, không có `~/crew-projects`; 4 agent, 4 environment, thứ tự pause → vai trò →
   resume), folder owner đang dở việc (nhánh khác, sửa chưa commit, file đã add) không đổi gì, bundle có sẵn được giữ,
   lỗi ở `role:reviewer` rồi chạy tiếp không tạo trùng, response tạo agent bị mất, từ chối trước mọi lời gọi, folder
   khác/đã thêm với khóa khác, thư mục lạ ở chỗ checkout không bị đè, gỡ → chạy lệnh in ra → thêm lại dùng lại nhánh,
@@ -363,6 +387,12 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   và có route `PATCH /agents/:id/permissions`.
 - `apps/mac-app/test/projects-folder.test.ts`: `inspectFolder` (gốc, `.git` chung, origin, nhánh mặc định và thứ tự
   dự phòng; từng ca từ chối), `folderGuardReason` không chặn `/Volumes`, `suggestKey`.
+- `apps/mac-app/test/projects-docs-runtime.test.ts` (HOME giả, repo git thật, binary `.app` giả): `runtimeProblem` từng
+  ca; `installDocsBundle` chép khi thiếu/khác, giống hệt không ghi lại, thiếu bản mang theo thì ném; `configureDocsBundle`
+  thay runtime trong `.app` bằng node, giữ bundle/runtime owner còn dùng được (không dò node), không chép runtime hỏng
+  của repo khác, không có node thì để nguyên và không ném; `repairDocsConfig` sửa runtime `.app` và bundle mất, giữ repo
+  lành, bỏ qua repo không dùng crew-docs, dò node một lần, không có node hay git lỗi thì ghi lý do; `repairDocsOnStart`
+  ghi log từng sửa chữa, lỗi chỉ thành `warn`.
 - `apps/mac-app/test/projects-remove.test.ts`: thứ tự gỡ, lệnh `git -C … worktree remove …`, không xóa project/worktree,
   folder owner sạch, chạy lại, lỗi giữa chừng, project không do app thêm, quote đường dẫn, tiến độ kiểu cũ.
 - `apps/mac-app/test/projects-instructions.test.ts`: sha256 template, render Trợ Lý, `extraArgs` ghim, `baseHash`.

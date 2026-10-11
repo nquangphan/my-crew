@@ -15,6 +15,9 @@ extraResources:
       - package.json
       - dist/**
       - assets/**
+  # Bundle crew-docs (packages/docs-kit/dist) mang theo để app cài ra ~/.crew/bin/crew-docs.cjs cho hook docs.
+  - from: ../../packages/docs-kit/dist/crew-docs.cjs
+    to: crew-docs.cjs
   # Helper quay lui của updater (chạy bằng /bin/sh, tách rời khỏi app).
   - from: src/main/update/rollback-helper.sh
     to: rollback-helper.sh

@@ -136,6 +136,68 @@ describe('createOpsHandlers (utility)', () => {
     await expect(handlers.machineFacts()).rejects.toThrow('chưa cài crew-mac');
   });
 
+  it('repairDocsHooks: cài bundle, sửa runtime trong .app của repo đã biết; máy mới thì không dò node', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'ops-docs-')));
+    const home = join(root, 'home');
+    mkdirSync(home);
+    const env = { HOME: home, PATH: process.env.PATH, GIT_CONFIG_NOSYSTEM: '1' };
+    const src = join(root, 'crew-docs.cjs');
+    writeFileSync(src, '// bundle mang theo\n');
+    const ensure = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    let stable = () => process.execPath;
+    const handlers = createOpsHandlers({
+      env,
+      log: () => undefined,
+      node: { stable: () => stable(), resolve: async () => null, ensure },
+    });
+
+    const fresh = await handlers.repairDocsHooks(src);
+    const installed = join(home, '.crew', 'bin', 'crew-docs.cjs');
+    expect(fresh).toEqual({ bundle: { path: installed, installed: true }, node: null, repos: [] });
+    expect(readFileSync(installed, 'utf8')).toBe('// bundle mang theo\n');
+
+    const repo = join(root, 'repo');
+    const git = (...args: string[]) => execFileSync('/usr/bin/git', args, { env, encoding: 'utf8' }).trim();
+    git('init', '-q', repo);
+    const appDir = join(root, '2P Crew.app', 'Contents', 'MacOS');
+    mkdirSync(appDir, { recursive: true });
+    writeFileSync(join(appDir, '2P Crew'), '#!/bin/sh\n', { mode: 0o755 });
+    git('-C', repo, 'config', 'crew-docs.runtime', join(appDir, '2P Crew'));
+    git('-C', repo, 'config', 'crew-docs.bundle', installed);
+    writeFileSync(
+      join(home, '.crew', 'status-repos.json'),
+      JSON.stringify([{ projectId: '33333333-3333-4333-8333-333333333333', path: repo, lastCommit: null }]),
+    );
+    const repaired = await handlers.repairDocsHooks(src);
+    expect(repaired).toEqual({
+      bundle: { path: installed, installed: false },
+      node: process.execPath,
+      repos: [{ repo, fixed: ['crew-docs.runtime'] }],
+    });
+    expect(git('-C', repo, 'config', '--get', 'crew-docs.runtime')).toBe(process.execPath);
+
+    // Không có node, tải cũng lỗi: để nguyên config, báo trong nodeError.
+    git('-C', repo, 'config', 'crew-docs.runtime', join(appDir, '2P Crew'));
+    stable = () => {
+      throw new Error('Chưa có node dùng được');
+    };
+    const offline = createOpsHandlers({
+      env,
+      log: () => undefined,
+      node: { stable: () => stable(), resolve: async () => null, ensure },
+    });
+    const noNode = await offline.repairDocsHooks(src);
+    expect(noNode).toMatchObject({ node: null, repos: [], nodeError: expect.stringContaining('offline') });
+    expect(git('-C', repo, 'config', '--get', 'crew-docs.runtime')).toBe(join(appDir, '2P Crew'));
+    expect(ensure).toHaveBeenCalledTimes(1);
+  });
+
   it('ctx dùng cliPath cài đặt dưới HOME', async () => {
     const seen: string[] = [];
     const handlers = createOpsHandlers({

@@ -12,6 +12,7 @@ import type {
   WorkflowReport,
 } from '@crew/mac';
 import type { JobExtras, JobOutcome, MachineJob } from './jobs/types.js';
+import type { DocsRepairReport } from './projects/docs-runtime.js';
 
 /** Các thao tác của `@crew/mac` chạy trong utilityProcess. Hàm thư viện không nhận `ctx` qua IPC. */
 export interface OpsApi {
@@ -20,6 +21,16 @@ export interface OpsApi {
    * nhớ trong utility và dùng làm `nodePath` của mọi thao tác sau (launcher, plist, khối PATH).
    */
   ensureNode(): Promise<NodeInfo>;
+  /**
+   * Node thật cho `crew-docs.runtime`: node đang nhớ hoặc dò được, không có thì tải như `ensureNode`. Không có (kể cả
+   * tải lỗi) thì null, không ném.
+   */
+  docsNodePath(): Promise<string | null>;
+  /**
+   * Cài bundle `crew-docs` mang theo (`bundleSrc`) vào `~/.crew/bin/crew-docs.cjs` rồi sửa git config crew-docs của
+   * các repo trong bản tin (`repairDocsConfig`). Lỗi nằm trong báo cáo, không ném.
+   */
+  repairDocsHooks(bundleSrc: string): Promise<DocsRepairReport>;
   doctor(opts: DoctorOptions): Promise<CheckResult[]>;
   setup(opts: SetupOptions): Promise<SetupReport>;
   configureStatus(url: string, companyId: string): StatusConfig;

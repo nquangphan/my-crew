@@ -8,7 +8,8 @@ import {
   realpathSync,
   statSync,
 } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
+import { dirname, isAbsolute } from 'node:path';
+import { BUNDLE_KEY, installedDocsBundle, isFile, RUNTIME_KEY, runtimeProblem } from './docs-runtime.js';
 
 export interface GitResult {
   code: number;
@@ -262,22 +263,20 @@ export async function ensureRuntimeExcluded(checkout: string, deps: GitDeps): Pr
   appendFileSync(file, `${current === '' || current.endsWith('\n') ? '' : '\n'}${RUNTIME_EXCLUDE}\n`);
 }
 
-function isFile(path: string): boolean {
-  try {
-    return isAbsolute(path) && statSync(path).isFile();
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Nhánh mặc định có `docs/flows.yaml` thì đặt `crew-docs.bundle` (và `crew-docs.runtime` nếu có) trong git config
- * của repo (chung cho mọi worktree agent). Giá trị owner đã đặt mà còn hợp lệ thì giữ, không ghi đè. Bundle lấy từ
- * repo đã có trong bản tin (`statusRepoPaths`), không có thì `~/.crew/bin/crew-docs.cjs`.
+ * Nhánh mặc định có `docs/flows.yaml` thì đặt `crew-docs.bundle` và `crew-docs.runtime` trong git config của repo
+ * (chung cho mọi worktree agent). Giá trị owner đã đặt mà còn dùng được thì giữ, không ghi đè. Bundle lấy từ repo
+ * đã có trong bản tin (`statusRepoPaths`), không có thì `~/.crew/bin/crew-docs.cjs`. Runtime phải là node thật
+ * (`runtimeProblem`): lấy runtime dùng được của repo khác, không có thì `nodePath()`; không có node thì để nguyên
+ * (doctor báo), không chặn việc thêm project.
  */
 export async function configureDocsBundle(
   info: FolderInfo,
-  deps: GitDeps & { statusRepoPaths: () => Promise<string[]> },
+  deps: GitDeps & {
+    statusRepoPaths: () => Promise<string[]>;
+    nodePath: () => Promise<string | null>;
+    execPath?: string;
+  },
 ): Promise<void> {
   const run = (args: string[]) =>
     (deps.git ?? runGit)(args, { env: deps.env, timeoutMs: LOCAL_GIT_TIMEOUT_MS });
@@ -290,23 +289,35 @@ export async function configureDocsBundle(
     const r = await run(['-C', dir, 'config', name, value]);
     if (r.code !== 0) throw new Error(`Không đặt được git config ${name} trong ${dir}`);
   };
-  if (isFile(await get(dir, 'crew-docs.bundle'))) return;
-  let found: { bundle: string; runtime: string | null } | null = null;
-  for (const repo of await deps.statusRepoPaths()) {
-    const bundle = await get(repo, 'crew-docs.bundle');
-    if (!isFile(bundle)) continue;
-    const runtime = await get(repo, 'crew-docs.runtime');
-    found = { bundle, runtime: isFile(runtime) ? runtime : null };
-    break;
+  const usable = (runtime: string) => runtimeProblem(runtime, deps.execPath) === null;
+  const needBundle = !isFile(await get(dir, BUNDLE_KEY));
+  const needRuntime = !usable(await get(dir, RUNTIME_KEY));
+  if (!needBundle && !needRuntime) return;
+
+  let bundle: string | null = null;
+  let runtime: string | null = null;
+  for (const repo of needBundle || needRuntime ? await deps.statusRepoPaths() : []) {
+    if (repo === dir) continue;
+    const other = await get(repo, BUNDLE_KEY);
+    if (bundle === null && isFile(other)) bundle = other;
+    const otherRuntime = await get(repo, RUNTIME_KEY);
+    if (runtime === null && usable(otherRuntime)) runtime = otherRuntime;
+    if (bundle !== null && runtime !== null) break;
   }
-  const fallback = join(deps.home, '.crew', 'bin', 'crew-docs.cjs');
-  if (!found && isFile(fallback)) found = { bundle: fallback, runtime: null };
-  if (!found) {
-    throw new Error('Không tìm thấy bundle crew-docs (~/.crew/bin/crew-docs.cjs): chạy lại cài đặt máy');
+  if (needBundle) {
+    const fallback = installedDocsBundle(deps.home);
+    if (bundle === null && isFile(fallback)) bundle = fallback;
+    if (bundle === null) {
+      throw new Error(
+        'Không tìm thấy bundle crew-docs (~/.crew/bin/crew-docs.cjs): mở lại app 2P Crew để app tự cài',
+      );
+    }
+    await set(BUNDLE_KEY, bundle);
   }
-  await set('crew-docs.bundle', found.bundle);
-  if (found.runtime && (await get(dir, 'crew-docs.runtime')) === '')
-    await set('crew-docs.runtime', found.runtime);
+  if (needRuntime) {
+    runtime ??= await deps.nodePath();
+    if (runtime !== null && usable(runtime)) await set(RUNTIME_KEY, runtime);
+  }
 }
 
 /** Thư mục có gì bên trong chưa (thư mục rỗng còn lại sau khi owner gỡ hết worktree thì coi như chưa có). */

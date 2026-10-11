@@ -204,6 +204,11 @@ async function verify({ mode, version, identity, paths }) {
   problems.push(...ymlProblems);
   if (ymlProblems.length === 0) say('  ✓ app-update.yml trỏ nquangphan/crew-mac-releases');
 
+  // App cài bundle này ra ~/.crew/bin/crew-docs.cjs lúc mở; thiếu thì hook docs của mọi repo không có bundle.
+  if (!existsSync(join(appPath, 'Contents/Resources/crew-docs.cjs')))
+    problems.push('Thiếu Contents/Resources/crew-docs.cjs (bundle crew-docs mang theo).');
+  else say('  ✓ có bundle crew-docs mang theo');
+
   for (const f of [names.zip, names.dmg, names.zipBlockmap, names.dmgBlockmap])
     if (!existsSync(join(dist, f))) problems.push(`Thiếu ${f} trong ${dist}.`);
   const latest = join(dist, names.latest);

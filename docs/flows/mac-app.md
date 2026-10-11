@@ -230,6 +230,12 @@ bundle) và `nodePath` là node thật, không bao giờ là binary của app. U
 - vẫn không có thì dò shell đăng nhập (nvm), mỗi process một lần cho tới khi `ensureNode` chạy lại;
 - không thấy thì op báo `Chưa có node dùng được. Mở 2P Crew → bước Kiểm tra máy để dò hoặc tải Node vào ~/.crew/node.`
 
+Hai op cho hook crew-docs (chi tiết ở flow `mac-app-paperclip`, mục "Bundle và runtime crew-docs"): `docsNodePath()` trả
+node thật cho `crew-docs.runtime` (giá trị nhớ hay dò như trên, không có thì tải như `ensureNode`; không có thì `null`,
+không ném), và `repairDocsHooks(bundleSrc)` cài bundle crew-docs mang theo vào `~/.crew/bin/crew-docs.cjs` rồi sửa git
+config crew-docs của các repo trong bản tin, trả `DocsRepairReport` (lỗi nằm trong báo cáo). `OpsDeps.git` thay `git`
+trong test.
+
 `OpsDeps.node` thay ba cách dò này trong test. Lỗi được ném lại ở Main với cùng `name` (ví dụ `SetupError`). Tham số không bao giờ vào log vì
 `setStatusSecret` và `setTargetSecret` mang secret. Ba op của bước ghép máy: `testStatus(companyId)` (một bản tin thử,
 `{ok, httpStatus, failure}`), `setTargetSecret(companyId, secret)` (Keychain của đích thuộc company) và `machineFacts()`
@@ -249,7 +255,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/app-state.ts` | `app.json` (kiểu và kho ghi atomic, nối tiếp) | `AppStateStore`, `AppState` |
 | `apps/mac-app/src/main/app-log.ts` | `app.log`: ẩn secret, xoay 10 MB, giờ `Asia/Ho_Chi_Minh` | `AppLog`, `redactFields` |
 | `apps/mac-app/src/main/ipc.ts` | Đăng ký IPC theo danh sách kênh | `registerIpc`, `isTrustedSender` |
-| `apps/mac-app/src/main/ops-bridge.ts` | Cầu nối tới utilityProcess (kể cả hai op của hàng đợi máy và op `ensureNode`) | `UtilityOpsBridge`, `OpsApi` |
+| `apps/mac-app/src/main/ops-bridge.ts` | Cầu nối tới utilityProcess (kể cả hai op của hàng đợi máy, op `ensureNode` và hai op crew-docs `docsNodePath`, `repairDocsHooks`) | `UtilityOpsBridge`, `OpsApi` |
 | `apps/mac-app/src/main/login-item.ts` | Login item macOS | `electronLoginItem` |
 | `apps/mac-app/src/main/tray.ts` | Biểu tượng menu bar | `CrewTray` |
 | `apps/mac-app/src/main/tray-state.ts` | Trộn trạng thái tray từ nhiều nguồn, nhãn menu | `mergeTrayState`, `effectiveColor`, `trayStatusLabel` |
@@ -271,7 +277,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/window-controller.ts` | Giữ một cửa sổ, ghi nguồn mở, ẩn/hiện Dock, gửi sự kiện an toàn | `createWindowController`, `sendIfAlive`, `ShowTrigger` |
 | `apps/mac-app/src/preload/index.ts` | `window.crew.invoke/on`, chỉ nhận kênh hợp lệ | |
 | `apps/mac-app/src/shared/ipc-contract.ts` | Hợp đồng IPC I5 | `IPC_CHANNELS`, `IpcApi`, `StepResult` |
-| `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess; nhớ `nodePath` thật cho mọi `MacContext`; op ghép máy `testStatus`, `setTargetSecret`, `machineFacts` | `createOpsHandlers`, `OpsDeps`, `NodeFinder` |
+| `apps/mac-app/src/utility/ops.ts` | Việc chạy trong utilityProcess; nhớ `nodePath` thật cho mọi `MacContext`; op ghép máy `testStatus`, `setTargetSecret`, `machineFacts`; op crew-docs `docsNodePath`, `repairDocsHooks` | `createOpsHandlers`, `OpsDeps`, `NodeFinder` |
 | `apps/mac-app/src/renderer/**` | Màn hình: thanh bên, Sức khỏe (kèm khung nhận việc), Run đang chạy, Log, Cài đặt (`routes/`), `CheckRow`, `WizardStep`, `ReloginButton` | `App`, `ROUTES`, `HealthScreen`, `RunsScreen`, `LogsScreen`, `SetupScreen` |
 
 ## Dữ liệu
@@ -335,7 +341,9 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai). `nodePath`: `ensureNode` ghi đè giá trị nhớ
   và mọi context sau dùng nó; không có node đồng bộ thì dò shell đăng nhập đúng một lần, không thấy thì báo mở bước
   Kiểm tra máy; shell đăng nhập (nvm) cấp `nodePath` khi dò đồng bộ hỏng. Op `testStatus`, `setTargetSecret`,
-  `machineFacts` với HOME chưa cấu hình: `no-target`, từ chối ghi secret, báo chưa cài crew-mac.
+  `machineFacts` với HOME chưa cấu hình: `no-target`, từ chối ghi secret, báo chưa cài crew-mac. `repairDocsHooks`
+  (repo git thật, binary `.app` giả): máy mới chỉ cài bundle, không dò node; repo có runtime trong `.app` được đặt sang
+  node, bundle giống hệt không ghi lại; không có node và tải lỗi thì để nguyên config, báo `nodeError`.
 - `apps/mac-app/test/renderer/app.test.tsx`: thanh bên và điều hướng hash.
 - `apps/mac-app/test/health.test.ts`: lịch 15 phút, probe khi bấm, không chạy chồng, thông báo khi đổi đỏ/ổn.
 - `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, 403 không bảo đăng nhập lại, mở link web.

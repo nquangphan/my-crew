@@ -333,6 +333,15 @@ export function buildCommands({ mode, publish, version, identityName, paths }) {
   });
   const steps = [
     {
+      // Bundle crew-docs mà electron-builder chép vào Contents/Resources/crew-docs.cjs.
+      id: 'build-docs',
+      cmd: 'pnpm',
+      args: ['--filter', '@crew/docs-kit', 'build'],
+      cwd: root,
+      env: {},
+      exit: EXIT.build,
+    },
+    {
       id: 'build-mac',
       cmd: 'pnpm',
       args: ['--filter', '@crew/mac', 'build'],

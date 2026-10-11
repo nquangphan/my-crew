@@ -72,6 +72,7 @@ describe('addProject', () => {
     expect(sandbox.git(['-C', folder, 'config', '--get', 'crew-docs.bundle'])).toBe(
       join(sandbox.home, '.crew', 'bin', 'crew-docs.cjs'),
     );
+    expect(sandbox.git(['-C', folder, 'config', '--get', 'crew-docs.runtime'])).toBe(process.execPath);
     expect(fake.calls.find((c) => c.op === 'addStatusRepo')?.args).toEqual([projectId, folder, COMPANY]);
     expect(existsSync(join(sandbox.home, 'crew-projects'))).toBe(false);
 

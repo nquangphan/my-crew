@@ -1,6 +1,7 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import type { AppContext } from '../app-context.js';
 import { paperclipClient } from '../paperclip/register.js';
+import { repairDocsOnStart } from './docs-runtime.js';
 import { createProjectsIpc } from './ipc.js';
 
 /**
@@ -32,4 +33,6 @@ export function registerProjects(ctx: AppContext): void {
   ctx.ipc.handle('projects:pickFolder', () => projects.pickFolder());
   ctx.ipc.handle('projects:add', (input) => projects.add(input));
   ctx.ipc.handle('projects:remove', (projectId) => projects.remove(projectId));
+  // Mỗi lần app mở: cài bundle crew-docs mang theo và tự sửa hook crew-docs của các repo đã biết (chạy nền).
+  void repairDocsOnStart({ ops: ctx.ops, resourcesPath: ctx.resourcesPath, log: ctx.log });
 }

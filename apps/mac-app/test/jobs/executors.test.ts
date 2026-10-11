@@ -26,6 +26,7 @@ function setup() {
       calls.addStatusRepo.push(args);
     },
     statusRepoPaths: async () => [],
+    docsNodePath: async () => process.execPath,
     removeStatusRepo: async () => undefined,
     doctor: async () => [
       { id: 'sshd', title: 'sshd agent', status: 'ok', detail: 'cổng 2222' },
@@ -163,6 +164,7 @@ describe('prepare-checkouts', () => {
       expect(gitOut(s, ['-C', checkout.path, 'config', '--get', 'crew-docs.bundle'])).toBe(
         join(s.home, '.crew', 'bin', 'crew-docs.cjs'),
       );
+      expect(gitOut(s, ['-C', checkout.path, 'config', '--get', 'crew-docs.runtime'])).toBe(process.execPath);
     }
     expect(calls.addStatusRepo).toEqual([[PROJECT, realpathSync.native(s.folder), COMPANY]]);
 

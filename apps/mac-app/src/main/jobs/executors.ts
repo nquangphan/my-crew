@@ -53,6 +53,8 @@ export interface ExecutorDeps {
   addStatusRepo(projectId: string, path: string, companyId: string): Promise<void>;
   /** Đường dẫn các repo đã có trong bản tin docs (nguồn bundle crew-docs). */
   statusRepoPaths(): Promise<string[]>;
+  /** Node thật cho `crew-docs.runtime` (dò, không có thì tải); null khi không có. */
+  docsNodePath(): Promise<string | null>;
   /** Bỏ repo docs của project khỏi bản tin máy (gỡ project). */
   removeStatusRepo(projectId: string): Promise<void>;
   /** `crew-mac doctor` không probe. */
@@ -184,6 +186,7 @@ async function configureDocs(info: FolderInfo, deps: ExecutorDeps): Promise<void
     env: deps.env,
     git: deps.git,
     statusRepoPaths: () => deps.statusRepoPaths(),
+    nodePath: () => deps.docsNodePath(),
   });
 }
 

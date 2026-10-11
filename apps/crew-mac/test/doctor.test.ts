@@ -199,9 +199,46 @@ describe('doctor crew-docs', () => {
     );
     expect((await slow.run())?.detail).toContain('quá 20 giây');
     const missing = await withRepos(['a'], (remote) =>
-      remote.includes('BUNDLE=') ? { stdout: GOOD } : { code: 92, stdout: 'CREW_MISSING\n' },
+      remote.includes('BUNDLE=') ? { stdout: GOOD } : { code: 92, stdout: 'CREW_MISSING_BUNDLE\n' },
     );
-    expect((await missing.run())?.detail).toContain('không tồn tại');
+    const r = await missing.run();
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('bundle /Users/owner/crew-tools/crew-docs.cjs không tồn tại');
+    expect(r?.hint).toContain('install-hooks');
+  });
+
+  it('script --version kiểm bundle trước, rồi runtime, chỉ chạy khi cả hai có', async () => {
+    const t = await withRepos(['a'], healthy);
+    await t.run();
+    const runtimeRun = t.remotes.find((c) => c.includes('ELECTRON_RUN_AS_NODE=1')) ?? '';
+    expect(runtimeRun.indexOf('CREW_MISSING_BUNDLE')).toBeGreaterThanOrEqual(0);
+    expect(runtimeRun.indexOf('CREW_MISSING_BUNDLE')).toBeLessThan(
+      runtimeRun.indexOf('CREW_MISSING_RUNTIME'),
+    );
+    const missingRuntime = await withRepos(['a'], (remote) =>
+      remote.includes('BUNDLE=')
+        ? { stdout: GOOD }
+        : remote.includes('ELECTRON_RUN_AS_NODE')
+          ? { code: 92, stdout: 'CREW_MISSING_RUNTIME\n' }
+          : { stdout: 'crew-docs 0.1.0\n' },
+    );
+    expect((await missingRuntime.run())?.detail).toContain(
+      'runtime /Users/owner/crew-tools/node không tồn tại hoặc không chạy được',
+    );
+  });
+
+  it('crew-docs.runtime là binary của app (.app) thì fail và không chạy nó', async () => {
+    const appBinary = '/Applications/2P Crew.app/Contents/MacOS/2P Crew';
+    const t = await withRepos(['a'], (remote) =>
+      remote.includes('BUNDLE=')
+        ? { stdout: cfg('/Users/owner/crew-tools/crew-docs.cjs', appBinary) }
+        : { stdout: 'crew-docs 0.1.0\n' },
+    );
+    const r = await t.run();
+    expect(r?.status).toBe('fail');
+    expect(r?.detail).toContain('là binary của app');
+    expect(r?.hint).toContain('Mở lại app 2P Crew');
+    expect(t.remotes.some((c) => c.includes('ELECTRON_RUN_AS_NODE'))).toBe(false);
   });
 
   it('--version quá hạn thì dừng ngay, kể cả khi mỗi worktree một bundle khác nhau', async () => {

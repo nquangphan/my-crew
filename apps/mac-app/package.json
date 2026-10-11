@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "package": "electron-vite build && pnpm --filter @crew/mac build && electron-builder --mac dir zip dmg --arm64",
+    "package": "electron-vite build && pnpm --filter @crew/mac build && pnpm --filter @crew/docs-kit build && electron-builder --mac dir zip dmg --arm64",
     "release": "node scripts/release.mjs",
     "test": "vitest run && node --test scripts/*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"

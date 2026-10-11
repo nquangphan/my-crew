@@ -932,17 +932,18 @@ function crewDocsConfigScript(dir: string): string {
   ].join('; ');
 }
 
-/** Chạy bundle bằng đúng thứ hook dùng: `node` theo PATH của agent, hoặc runtime Electron với ELECTRON_RUN_AS_NODE. */
+/**
+ * Chạy bundle bằng đúng thứ hook dùng: `node` theo PATH của agent, hoặc runtime trong git config với
+ * ELECTRON_RUN_AS_NODE=1 như dòng hook. Thiếu file thì in `CREW_MISSING_BUNDLE` / `CREW_MISSING_RUNTIME`, không chạy.
+ */
 function crewDocsVersionScript(bundle: string, runtime: string | null): string {
   const run =
     runtime === null
       ? `node ${shQuote(bundle)} --version`
       : `ELECTRON_RUN_AS_NODE=1 ${shQuote(runtime)} ${shQuote(bundle)} --version`;
-  const check =
-    runtime === null
-      ? `[ -f ${shQuote(bundle)} ]`
-      : `[ -f ${shQuote(bundle)} ] && [ -x ${shQuote(runtime)} ]`;
-  return `${check} || { echo CREW_MISSING; exit 92; }; ${run}`;
+  const runtimeCheck =
+    runtime === null ? '' : `[ -x ${shQuote(runtime)} ] || { echo CREW_MISSING_RUNTIME; exit 92; }; `;
+  return `[ -f ${shQuote(bundle)} ] || { echo CREW_MISSING_BUNDLE; exit 92; }; ${runtimeCheck}${run}`;
 }
 
 /**
@@ -985,6 +986,8 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
   let hung = false;
   let nodeMissing = false;
   let placementProblem = false;
+  /** crew-docs.runtime là binary của một `.app` (app 2P Crew): chạy nó chỉ mở thêm app, hook không kiểm gì. */
+  let appRuntime = false;
   /** Thiếu hoặc hỏng crew-docs.bundle/runtime: gợi ý install-hooks. */
   let configProblem = false;
   const cache = new Map<string, Promise<string | null>>();
@@ -998,9 +1001,13 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
           hung = true;
           return timeoutNote(label, CREW_DOCS_RUN_TIMEOUT_MS / 1000);
         }
-        if (r.stdout.includes('CREW_MISSING')) {
+        if (r.stdout.includes('CREW_MISSING_BUNDLE')) {
           configProblem = true;
-          return `${label}: file không tồn tại hoặc không chạy được`;
+          return `bundle ${bundle} không tồn tại`;
+        }
+        if (r.stdout.includes('CREW_MISSING_RUNTIME')) {
+          configProblem = true;
+          return `runtime ${runtime} không tồn tại hoặc không chạy được`;
         }
         if (runtime === null && r.code === 127) {
           nodeMissing = true;
@@ -1055,7 +1062,15 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
     }
     const nodeProblem = await versionProblem(bundle, null);
     if (nodeProblem) problems.add(`${dir}: ${nodeProblem}`);
-    if (!hung && runtime !== '') {
+    // Không chạy runtime nằm trong `.app`: app đã tắt fuse runAsNode nên lệnh chỉ mở thêm một instance của app.
+    const runtimeInApp = runtime !== '' && isInsideAppBundle(runtime);
+    if (runtimeInApp) {
+      appRuntime = true;
+      problems.add(
+        `${dir}: crew-docs.runtime ${runtime} là binary của app (.app), không chạy được như node: hook mở cửa sổ app và bỏ qua kiểm tra docs`,
+      );
+    }
+    if (!hung && runtime !== '' && !runtimeInApp) {
       const runtimeProblem = await versionProblem(bundle, runtime);
       if (runtimeProblem) problems.add(`${dir}: ${runtimeProblem}`);
     }
@@ -1070,6 +1085,10 @@ async function checkCrewDocs(ctx: MacContext, paths: MacPaths, manifest: Manifes
         nodeMissing ? `sshd agent không thấy node (xem check agent-node): ${NODE_HINT}` : '',
         placementProblem || hung
           ? 'Dời bundle/runtime và checkout gốc ra ngoài ~/Documents, ~/Desktop, ~/Downloads, /Volumes (ví dụ ~/crew-tools).'
+          : '',
+        appRuntime
+          ? 'Mở lại app 2P Crew để app tự đặt crew-docs.runtime sang node thật, hoặc tự đặt: ' +
+            'git config crew-docs.runtime <đường dẫn node> trong checkout gốc.'
           : '',
         configProblem
           ? 'Trong checkout gốc chạy "node <đường dẫn crew-docs.cjs> install-hooks" để đặt crew-docs.bundle và ' +

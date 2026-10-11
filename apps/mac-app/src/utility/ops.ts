@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -28,7 +29,13 @@ import {
 } from '@crew/mac';
 import { runJob } from '../main/jobs/executors.js';
 import type { OpsApi, OpsRequest, OpsResponse } from '../main/ops-bridge.js';
-import { killActiveGit } from '../main/projects/folder.js';
+import {
+  type DocsRepairReport,
+  type InstallBundleResult,
+  installDocsBundle,
+  repairDocsConfig,
+} from '../main/projects/docs-runtime.js';
+import { type GitRunner, killActiveGit, runGit } from '../main/projects/folder.js';
 
 export type { OpsRequest, OpsResponse };
 
@@ -44,6 +51,8 @@ export interface OpsDeps {
   makeContext?: (input: ContextInput) => ReturnType<typeof createMacContext>;
   /** Test thay cách dò/tải node; mặc định các hàm của `@crew/mac` với HOME của `env`. */
   node?: NodeFinder;
+  /** Test thay `git`; mặc định `runGit`. */
+  git?: GitRunner;
 }
 
 const NO_NODE_FOR_APP = `${NO_NODE_MESSAGE}. Mở 2P Crew → bước Kiểm tra máy để dò hoặc tải Node vào ~/.crew/node.`;
@@ -87,6 +96,21 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
     nodePath = found.path;
     return nodePath;
   };
+  /** Node cho `crew-docs.runtime`: node nhớ hay dò được, không có thì tải như `ensureNode`. Không có thì null. */
+  const docsNode = async (): Promise<{ path: string | null; error?: string }> => {
+    try {
+      return { path: await currentNodePath() };
+    } catch {
+      // Không dò được: tải Node LTS bên dưới.
+    }
+    try {
+      const info = await node.ensure();
+      nodePath = info.path;
+      return { path: info.path };
+    } catch (error) {
+      return { path: null, error: `${NO_NODE_MESSAGE}: ${(error as Error).message}` };
+    }
+  };
   const context = async () =>
     (deps.makeContext ?? createMacContext)({
       env: deps.env,
@@ -100,6 +124,36 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
       const info = await node.ensure();
       nodePath = info.path;
       return info;
+    },
+    docsNodePath: async () => (await docsNode()).path,
+    repairDocsHooks: async (bundleSrc): Promise<DocsRepairReport> => {
+      let bundle: InstallBundleResult | { error: string };
+      try {
+        bundle = installDocsBundle(bundleSrc, home);
+      } catch (error) {
+        bundle = { error: (error as Error).message };
+      }
+      const report: DocsRepairReport = { bundle, node: null, repos: [] };
+      // Chưa có repo nào trong bản tin (máy mới): không có gì để sửa, không dò hay tải node.
+      if (!existsSync(join(home, '.crew', 'status-repos.json'))) return report;
+      const found = await docsNode();
+      if (found.path === null) {
+        report.nodeError = found.error;
+        return report;
+      }
+      report.node = found.path;
+      try {
+        const repos = listStatusRepos(await context()).map((repo) => repo.path);
+        report.repos = await repairDocsConfig(repos, {
+          env: deps.env,
+          git: deps.git ?? runGit,
+          bundle: 'error' in bundle ? null : bundle.path,
+          nodePath: async () => found.path,
+        });
+      } catch (error) {
+        report.error = (error as Error).message;
+      }
+      return report;
     },
     doctor: async (opts) => doctor(await context(), opts),
     setup: async (opts) => setup(await context(), opts),
@@ -130,6 +184,7 @@ export function createOpsHandlers(deps: OpsDeps): OpsHandlers {
         env: deps.env,
         addStatusRepo: async (projectId, path, companyId) => addStatusRepo(ctx, projectId, path, companyId),
         statusRepoPaths: async () => listStatusRepos(ctx).map((repo) => repo.path),
+        docsNodePath: async () => (await docsNode()).path,
         removeStatusRepo: async (projectId) => removeStatusRepo(ctx, projectId),
         doctor: () => doctor(ctx, { probe: false, tccWindow: '1h', probeTimeoutSec: 90, skipTcc: true }),
         workflowCheck: (root) => workflowCheck(ctx, { root, pluginDir: superpowersPinDir(home) }),

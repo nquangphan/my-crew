@@ -334,6 +334,7 @@ test('dựng lệnh bản phát hành: ký bằng CSC_NAME, notarize app và dmg
   });
   const ids = steps.map((s) => s.id);
   assert.deepEqual(ids, [
+    'build-docs',
     'build-mac',
     'build-app',
     'pack-app',
@@ -414,7 +415,7 @@ test('dựng lệnh --dev-sign: ký Apple Development, không notarize, không �
   });
   assert.deepEqual(
     steps.map((s) => s.id),
-    ['build-mac', 'build-app', 'pack-app', 'package'],
+    ['build-docs', 'build-mac', 'build-app', 'pack-app', 'package'],
   );
   const pack = steps.find((s) => s.id === 'pack-app');
   assert.equal(pack.env.CSC_NAME, 'Nhật Quang Phan (29CVPDJ2XX)');
