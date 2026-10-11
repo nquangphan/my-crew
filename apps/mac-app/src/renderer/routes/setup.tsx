@@ -2,6 +2,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import type { AppState, SetupStep } from '../../main/app-state';
 import type { ExistingMachine } from '../../main/setup/import-existing';
 import type { V2Action, V2Detection } from '../../main/setup/v2-removal';
+import type { MachineReport } from '../../main/setup/wizard';
 import type { StepResult } from '../../shared/ipc-contract';
 import { LOGIN_POLL_MS, ReloginButton } from '../components/relogin';
 import { ErrorBox, Notice, PageHeader } from '../components/ui';
@@ -652,9 +653,56 @@ function SshdPanel({ onResult }: PanelProps) {
   );
 }
 
-function DonePanel({ origin, onResult }: { origin: string | null; onResult: PanelProps['onResult'] }) {
+const REOPEN_LABEL = 'Đổi company / Ghép lại máy';
+
+/** Câu cảnh báo cho lần gửi bản tin máy gần nhất bị từ chối hay không tới được server. */
+function reportProblem(report: MachineReport): string {
+  const how =
+    report.httpStatus === null
+      ? 'không gửi được tới server'
+      : `server từ chối (HTTP ${report.httpStatus}${report.httpStatus === 401 || report.httpStatus === 403 ? ', máy có thể đã bị gỡ trên web hoặc key không còn đúng' : ''})`;
+  return `Máy này không báo trạng thái lên Paperclip: lần gửi gần nhất ${how}.`;
+}
+
+function DonePanel({
+  origin,
+  onResult,
+  onReopen,
+}: {
+  origin: string | null;
+  onResult: PanelProps['onResult'];
+  onReopen: () => void;
+}) {
   const meta = STEP_META.done;
   const { busy, feedback, run } = useStepRunner('done', onResult);
+  const [report, setReport] = useState<MachineReport | null>(null);
+  const [reopenError, setReopenError] = useState<string | null>(null);
+  const [reopening, setReopening] = useState(false);
+
+  const loadReport = useCallback(() => {
+    invoke('setup:machineReport')
+      .then((value) => setReport(value ?? null))
+      .catch(() => setReport(null));
+  }, []);
+  useEffect(() => {
+    loadReport();
+    window.addEventListener('focus', loadReport);
+    return () => window.removeEventListener('focus', loadReport);
+  }, [loadReport]);
+
+  const reopen = () => {
+    setReopening(true);
+    setReopenError(null);
+    invoke('setup:reopenMachine')
+      .then(onReopen)
+      .catch((e: unknown) => setReopenError(errorText(e)))
+      .finally(() => setReopening(false));
+  };
+  const reopenButton = (
+    <button type="button" className="btn" disabled={reopening} onClick={reopen}>
+      {reopening ? 'Đang quay lại...' : REOPEN_LABEL}
+    </button>
+  );
   const [rerun, setRerun] = useState<{ step: SetupStep; feedback: StepFeedback } | null>(null);
   const [rerunning, setRerunning] = useState<SetupStep | null>(null);
 
@@ -668,6 +716,12 @@ function DonePanel({ origin, onResult }: { origin: string | null; onResult: Pane
 
   return (
     <>
+      {report?.ok === false && (
+        <Notice tone="warn">
+          {reportProblem(report)} Bấm "{REOPEN_LABEL}" để chọn lại company và ghép lại máy.
+          <div>{reopenButton}</div>
+        </Notice>
+      )}
       <WizardStep
         title="Cài đặt đã xong"
         description="Mọi bước đã chạy xong. Bấm Hoàn tất để 2P Crew tự mở cùng máy."
@@ -693,6 +747,12 @@ function DonePanel({ origin, onResult }: { origin: string | null; onResult: Pane
             {rerunning === step ? 'Đang chạy...' : STEP_META[step].title}
           </button>
         ))}
+      />
+      <WizardStep
+        title="Company và máy"
+        description="Dùng khi đã gỡ máy trên web (Gỡ máy) và muốn Ghép lại, hoặc máy đã ghép nhầm company. Wizard quay về bước chọn company rồi chạy lại bước Máy."
+        feedback={reopenError ? { ok: false, message: reopenError } : null}
+        actions={reopenButton}
       />
       <WizardStep
         title="Tài khoản Paperclip"
@@ -761,7 +821,7 @@ export function SetupScreen() {
         panel = <SshdPanel {...props} />;
         break;
       case 'done':
-        panel = <DonePanel origin={setup.paperclipOrigin} onResult={onResult} />;
+        panel = <DonePanel origin={setup.paperclipOrigin} onResult={onResult} onReopen={load} />;
         break;
       default:
         panel = <SimplePanel key={setup.step} step={setup.step} onResult={onResult} />;

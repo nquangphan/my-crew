@@ -16,6 +16,8 @@ describe('IPC_CHANNELS', () => {
       'logs:reveal',
       'setup:state',
       'setup:step',
+      'setup:reopenMachine',
+      'setup:machineReport',
       'setup:v2Detect',
       'paperclip:login',
       'paperclip:loginStatus',

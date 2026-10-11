@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { CheckResult } from '@crew/mac';
 import type { StepResult } from '../../shared/ipc-contract.js';
 import type { AppState, AppStateStore, SetupStep } from '../app-state.js';
@@ -36,6 +37,11 @@ export interface WizardDeps {
 export interface Wizard {
   state(): AppState['setup'];
   step(step: SetupStep, input: unknown): Promise<StepResult>;
+  /**
+   * Đưa wizard về bước `paperclip` (chọn lại company, ghép lại máy) khi tiến độ đã qua bước đó; chưa tới thì giữ
+   * nguyên. Chỉ Main đổi `setup.step`: renderer chỉ gọi kênh này rồi nạp lại trạng thái.
+   */
+  reopenMachine(): Promise<AppState['setup']>;
 }
 
 const passThrough: StepRun = async () => ({ ok: true, message: 'Không có việc cần làm.' });
@@ -99,6 +105,12 @@ export function createWizard(deps: WizardDeps): Wizard {
       }
       return { ok: true, message: outcome.message, next };
     },
+    async reopenMachine() {
+      if (indexOf(deps.store.get().setup.step) > indexOf('paperclip')) {
+        await deps.store.update((state) => ({ ...state, setup: { ...state.setup, step: 'paperclip' } }));
+      }
+      return deps.store.get().setup;
+    },
   };
 }
 
@@ -116,7 +128,15 @@ export function createPaperclipStep(deps: PaperclipStepDeps): StepRun {
     if (!companyId) return { ok: false, message: 'Chọn company.' };
     const company = (await deps.companies()).find((item) => item.id === companyId);
     if (!company) return { ok: false, message: 'Company này không có trong tài khoản đã đăng nhập.' };
-    await deps.store.update((state) => ({ ...state, setup: { ...state.setup, companyId } }));
+    await deps.store.update((state) => ({
+      ...state,
+      setup: {
+        ...state.setup,
+        companyId,
+        // Đổi company thì environment đã ghép thuộc company cũ, không dùng tiếp.
+        pairedEnvironmentId: state.setup.companyId === companyId ? state.setup.pairedEnvironmentId : null,
+      },
+    }));
     return { ok: true, message: `Đã chọn company ${company.name}.` };
   };
 }
@@ -146,4 +166,26 @@ export function createDoctorStep(deps: DoctorStepDeps): StepRun {
     );
     return { ok: false, message: `Còn ${failed.length} lỗi:\n${lines.join('\n')}` };
   };
+}
+
+/** Lần gửi bản tin máy gần nhất (`~/.crew/status-last.json` do crew-mac ghi). */
+export interface MachineReport {
+  at: string | null;
+  ok: boolean;
+  httpStatus: number | null;
+}
+
+/** Đọc lần gửi gần nhất; chưa có file hay file hỏng thì `null` (chưa có gì để cảnh báo). Không đọc secret nào. */
+export function readMachineReport(file: string): MachineReport | null {
+  try {
+    const value: unknown = JSON.parse(readFileSync(file, 'utf8'));
+    if (!isRecord(value) || typeof value.ok !== 'boolean') return null;
+    return {
+      at: typeof value.at === 'string' ? value.at : null,
+      ok: value.ok,
+      httpStatus: typeof value.httpStatus === 'number' ? value.httpStatus : null,
+    };
+  } catch {
+    return null;
+  }
 }

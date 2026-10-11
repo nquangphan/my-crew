@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import {
   createDoctorStep,
   createPaperclipStep,
   createWizard,
+  readMachineReport,
   STEP_ORDER,
   type WizardDeps,
 } from '../src/main/setup/wizard.js';
@@ -217,6 +218,84 @@ describe('bước paperclip', () => {
     expect(store.get().setup.companyId).toBeNull();
     expect(await step({ companyId: COMPANY })).toEqual({ ok: true, message: 'Đã chọn company TPS.' });
     expect(store.get().setup.companyId).toBe(COMPANY);
+  });
+
+  it('đổi company thì bỏ environment đã ghép của company cũ; chọn lại cùng company thì giữ', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'wizard-'));
+    const store = new AppStateStore(join(dir, 'app.json'), '0.1.0');
+    const other = '33333333-3333-4333-8333-333333333333';
+    await store.update((s) => ({
+      ...s,
+      setup: {
+        ...s.setup,
+        paperclipOrigin: 'https://crew.example.com',
+        companyId: COMPANY,
+        pairedEnvironmentId: 'env-1',
+      },
+    }));
+    const step = createPaperclipStep({
+      store,
+      companies: async () => [
+        { id: COMPANY, name: 'TPS' },
+        { id: other, name: 'Khác' },
+      ],
+    });
+    await step({ companyId: COMPANY });
+    expect(store.get().setup.pairedEnvironmentId).toBe('env-1');
+    await step({ companyId: other });
+    expect(store.get().setup).toMatchObject({ companyId: other, pairedEnvironmentId: null });
+  });
+});
+
+describe('reopenMachine', () => {
+  it('đã done thì quay về paperclip, giữ origin và company; đi lại được tới done', async () => {
+    const { wizard, store } = wizardHarness();
+    await store.update((s) => ({
+      ...s,
+      setup: { ...s.setup, step: 'done', paperclipOrigin: 'https://crew.example.com', companyId: COMPANY },
+    }));
+    const state = await wizard.reopenMachine();
+    expect(state).toMatchObject({
+      step: 'paperclip',
+      paperclipOrigin: 'https://crew.example.com',
+      companyId: COMPANY,
+    });
+    expect(store.get().setup.step).toBe('paperclip');
+    expect(await wizard.step('machine', {})).toMatchObject({ ok: false, next: 'paperclip' });
+    expect(await wizard.step('paperclip', {})).toMatchObject({ ok: true, next: 'machine' });
+    expect(await wizard.step('machine', {})).toMatchObject({ ok: true, next: 'disk-access' });
+  });
+
+  it('tiến độ chưa tới paperclip hoặc đang ở đó thì không đổi', async () => {
+    const { wizard, store } = wizardHarness();
+    expect((await wizard.reopenMachine()).step).toBe('check');
+    await store.update((s) => ({ ...s, setup: { ...s.setup, step: 'paperclip' } }));
+    expect((await wizard.reopenMachine()).step).toBe('paperclip');
+  });
+});
+
+describe('readMachineReport', () => {
+  const write = (content: string) => {
+    const file = join(mkdtempSync(join(tmpdir(), 'report-')), 'status-last.json');
+    writeFileSync(file, content);
+    return file;
+  };
+  it('đọc lần gửi thất bại kèm mã HTTP', () => {
+    expect(readMachineReport(write('{"at":"2026-10-11T08:00:00Z","ok":false,"httpStatus":403}'))).toEqual({
+      at: '2026-10-11T08:00:00Z',
+      ok: false,
+      httpStatus: 403,
+    });
+    expect(readMachineReport(write('{"ok":false,"httpStatus":null}'))).toEqual({
+      at: null,
+      ok: false,
+      httpStatus: null,
+    });
+  });
+  it('thiếu file, file hỏng hoặc sai dạng thì null', () => {
+    expect(readMachineReport(join(tmpdir(), 'khong-ton-tai', 'status-last.json'))).toBeNull();
+    expect(readMachineReport(write('không phải json'))).toBeNull();
+    expect(readMachineReport(write('{"httpStatus":200}'))).toBeNull();
   });
 });
 

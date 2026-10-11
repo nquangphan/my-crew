@@ -3,6 +3,7 @@ import type { AppState, ProjectProgress, SetupStep, UpdateState } from '../main/
 import type { JobsStatus } from '../main/jobs/poller.js';
 import type { ExistingMachine } from '../main/setup/import-existing.js';
 import type { V2Detection } from '../main/setup/v2-removal.js';
+import type { MachineReport } from '../main/setup/wizard.js';
 
 /**
  * Hợp đồng IPC giữa renderer và Main. Mọi kênh khai ở đây; mỗi module Main cài handler của kênh mình bằng
@@ -94,6 +95,10 @@ export interface IpcApi {
   'logs:reveal': { args: [file: LogFile]; result: undefined };
   'setup:state': { args: []; result: AppState['setup'] };
   'setup:step': { args: [step: SetupStep, input: unknown]; result: StepResult };
+  /** Đưa wizard đã xong về bước chọn company để ghép lại máy; Main đổi `setup.step`, trả trạng thái mới. */
+  'setup:reopenMachine': { args: []; result: AppState['setup'] };
+  /** Lần gửi bản tin máy gần nhất (chỉ đọc); `null` khi chưa có lần nào. */
+  'setup:machineReport': { args: []; result: MachineReport | null };
   /** Máy này đã có cài đặt crew-mac chưa (wizard hiện "Nhận cài đặt có sẵn" hay ô nhập key). Chỉ đọc. */
   'setup:detect': { args: []; result: ExistingMachine };
   /** Bước gỡ app v2: dò app 2P Crew cũ trong Applications (chỉ đọc). */
@@ -132,6 +137,8 @@ export const IPC_CHANNELS = [
   'logs:reveal',
   'setup:state',
   'setup:step',
+  'setup:reopenMachine',
+  'setup:machineReport',
   'setup:detect',
   'setup:v2Detect',
   'paperclip:login',

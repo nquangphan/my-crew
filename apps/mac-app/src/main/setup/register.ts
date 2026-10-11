@@ -12,7 +12,7 @@ import { createMachineStep } from './machine-step.js';
 import { handoffSshd, listenerPids } from './sshd-handoff.js';
 import { isRecord } from './types.js';
 import { createMoveStep, createV2Step, detectV2, type V2Deps } from './v2-removal.js';
-import { createDoctorStep, createPaperclipStep, createWizard } from './wizard.js';
+import { createDoctorStep, createPaperclipStep, createWizard, readMachineReport } from './wizard.js';
 
 /**
  * Wizard cài đặt lần đầu (kênh `setup:*`). `health.run` làm mới chấm màu tray sau khi đổi chủ sshd và sau khi
@@ -102,6 +102,8 @@ export function registerSetup(
 
   ctx.ipc.handle('setup:state', () => wizard.state());
   ctx.ipc.handle('setup:step', (step, input) => wizard.step(step, input));
+  ctx.ipc.handle('setup:reopenMachine', () => wizard.reopenMachine());
+  ctx.ipc.handle('setup:machineReport', () => readMachineReport(paths.statusLast));
   ctx.ipc.handle('setup:detect', () => detect());
   ctx.ipc.handle('setup:v2Detect', () => detectV2(v2Deps));
 }

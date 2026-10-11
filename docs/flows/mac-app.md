@@ -77,7 +77,7 @@ cắm vào các điểm đã chừa.
 
 ## Cài đặt lần đầu (wizard)
 
-`src/main/setup/register.ts` → `registerSetup(ctx, sshd, health)` cài các kênh `setup:state`, `setup:step`, `setup:detect`, `setup:v2Detect`.
+`src/main/setup/register.ts` → `registerSetup(ctx, sshd, health)` cài các kênh `setup:state`, `setup:step`, `setup:reopenMachine`, `setup:machineReport`, `setup:detect`, `setup:v2Detect`.
 Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bước khi màn Sức khỏe báo lỗi ("Chạy lại cài đặt").
 
 - **Thứ tự bước** (`wizard.ts` → `STEP_ORDER`): `check → v2 → move → paperclip → machine → disk-access → sshd → doctor →
@@ -85,6 +85,14 @@ Màn hình `#/setup` (`routes/setup.tsx`) cũng là chỗ chạy lại một bư
   bước dở. Chỉ chạy được bước đã tới lượt hoặc bước cũ (chạy lại không lùi tiến độ; đã `done` thì chạy lại không đổi
   tiến độ). Bước ném lỗi thành kết quả `ok: false`. `v2` phải xong trước `move` vì app v2 và app này cùng tên
   `2P Crew.app` (bundle khác nhau: `com.2p-solutions.crew` và `com.2p-solutions.crew.mac`).
+- **Đổi company / Ghép lại máy** (màn `done`, `DonePanel`): dùng khi owner đã "Gỡ máy" trên web rồi muốn ghép lại, hoặc
+  máy ghép nhầm company. Nút gọi `setup:reopenMachine` → `wizard.reopenMachine()`; Main đưa `setup.step` về `paperclip`
+  (chỉ khi tiến độ đã qua bước đó; giữ origin và company), renderer chỉ nạp lại trạng thái. Sau đó owner đi lại
+  `paperclip → machine → ...` bình thường (ghép tự động, "Ghép lại máy này"). Bước `paperclip` bỏ
+  `pairedEnvironmentId` khi company đổi để không dùng environment của company cũ. Cùng màn `done`, `setup:machineReport`
+  (`readMachineReport`, đọc `~/.crew/status-last.json`, chỉ đọc, không secret) cho biết lần gửi bản tin máy gần nhất;
+  `ok: false` (HTTP 401/403/502, `machine_revoked`, lỗi mạng) thì hiện cảnh báo "Máy này không báo trạng thái lên
+  Paperclip" kèm đúng nút trên. Chưa có file thì không cảnh báo.
 - **`v2`** (`v2-removal.ts`, "Gỡ app 2P Crew cũ"): CHỈ GỠ APP v2, GIỮ NGUYÊN DỮ LIỆU v2 (quyết định owner Q5).
   `setup:v2Detect` (chỉ đọc) tìm `/Applications/2P Crew.app`, đọc `CFBundleIdentifier` bằng `PlistBuddy` và hỏi
   `pgrep -f '<app>/Contents/MacOS/'` xem app v2 có đang chạy không (bỏ pid của chính app mới). Mỗi việc dưới đây chỉ
@@ -237,7 +245,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/logs.ts` | Đuôi bốn file log, lọc run id | `createLogs`, `tailFile`, `logPaths` |
 | `apps/mac-app/src/main/notifications.ts` | Thông báo hệ thống | `createNotifier` |
 | `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`; bước `check` gọi op `ensureNode`; bước `machine` nhận client Paperclip) | `registerSetup` |
-| `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước (bước không đi tiếp trả kèm `state`), bước `paperclip`, `doctor`, `done` | `createWizard`, `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep` |
+| `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước (bước không đi tiếp trả kèm `state`), bước `paperclip`, `doctor`, `done` | `createWizard` (kèm `reopenMachine`), `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep`, `readMachineReport` |
 | `apps/mac-app/src/main/setup/types.ts` | Kiểu kết quả một bước | `StepOutcome`, `StepRun` |
 | `apps/mac-app/src/main/setup/machine-check.ts` | Bước `check`: macOS, Node (dò hoặc tải), Tailscale, Claude Code | `checkMachine` |
 | `apps/mac-app/src/main/setup/import-existing.ts` | Nhận cài đặt có sẵn của máy | `detectExisting` |

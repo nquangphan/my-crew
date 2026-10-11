@@ -275,6 +275,65 @@ it('đã xong: Hoàn tất bật mở cùng máy và có nút chạy lại bư�
   expect(await screen.findByText('chạy sshd')).toBeTruthy();
 });
 
+it('đã xong: nút Đổi company / Ghép lại máy gọi Main đưa wizard về bước chọn company', async () => {
+  step = 'done';
+  origin = 'https://crew.2p-solutions.com';
+  handlers['setup:reopenMachine'] = () => {
+    step = 'paperclip';
+    return { step, paperclipOrigin: origin, companyId, pairedEnvironmentId: null };
+  };
+  handlers['paperclip:loginStatus'] = () => 'approved';
+  handlers['paperclip:companies'] = () => COMPANIES;
+  render(<SetupScreen />);
+  expect(screen.queryByText(/không báo trạng thái/)).toBeNull();
+  fireEvent.click(await screen.findByRole('button', { name: 'Đổi company / Ghép lại máy' }));
+  expect(await screen.findByRole('heading', { name: 'Đăng nhập Paperclip' })).toBeTruthy();
+  expect(await screen.findByLabelText('Company')).toBeTruthy();
+  expect(invoke).toHaveBeenCalledWith('setup:reopenMachine');
+  expect(stepCalls()).toHaveLength(0);
+});
+
+it('đã xong: lỗi khi quay về bước company thì báo và giữ nguyên màn hình', async () => {
+  step = 'done';
+  handlers['setup:reopenMachine'] = () => {
+    throw new Error('không ghi được app.json');
+  };
+  render(<SetupScreen />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Đổi company / Ghép lại máy' }));
+  expect((await screen.findByRole('alert')).textContent).toContain('không ghi được app.json');
+  expect(screen.getByRole('heading', { name: 'Cài đặt đã xong' })).toBeTruthy();
+});
+
+it.each([
+  [401, /HTTP 401/],
+  [403, /HTTP 403/],
+  [502, /HTTP 502/],
+  [null, /không gửi được tới server/],
+])(
+  'đã xong: lần gửi bản tin gần nhất lỗi (%s) thì cảnh báo máy không báo trạng thái',
+  async (httpStatus, text) => {
+    step = 'done';
+    handlers['setup:machineReport'] = () => ({ at: '2026-10-11T08:00:00Z', ok: false, httpStatus });
+    render(<SetupScreen />);
+    expect((await screen.findByText(/Máy này không báo trạng thái/)).textContent).toMatch(text);
+    expect(screen.getAllByRole('button', { name: 'Đổi company / Ghép lại máy' })).toHaveLength(2);
+  },
+);
+
+it('đã xong: lần gửi gần nhất thành công hoặc chưa có thì không cảnh báo', async () => {
+  step = 'done';
+  handlers['setup:machineReport'] = () => ({ at: '2026-10-11T08:00:00Z', ok: true, httpStatus: 200 });
+  const { unmount } = render(<SetupScreen />);
+  await screen.findByRole('button', { name: 'Hoàn tất' });
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('setup:machineReport'));
+  expect(screen.queryByText(/không báo trạng thái/)).toBeNull();
+  unmount();
+  handlers['setup:machineReport'] = () => null;
+  render(<SetupScreen />);
+  await screen.findByRole('button', { name: 'Hoàn tất' });
+  expect(screen.queryByText(/không báo trạng thái/)).toBeNull();
+});
+
 it('đã xong: có nút Đăng nhập lại Paperclip chạy luồng cli-auth với origin đã lưu', async () => {
   step = 'done';
   origin = 'https://crew.2p-solutions.com';
