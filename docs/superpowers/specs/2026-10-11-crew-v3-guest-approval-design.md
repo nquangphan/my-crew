@@ -337,6 +337,29 @@ Tìm thấy → `approved`, ghi `result_*_id`, `decided_at`. Không thấy → `
 company trước khi trả. Nhờ vậy, nếu tab owner đóng giữa bước 2 và bước 3, lần đọc sau mục vẫn thành `approved`. Bước
 `approve` và `reject` cũng chạy bước tìm này trước.
 
+### 5.4. Chi tiết chốt khi thi công (bổ sung, không đổi hình dạng ở trên)
+
+- `GET /access`:
+  - người không có membership `active` (vd. instance admin) nhận `200` với `membershipRole: null`, `contributor: false`,
+    `canApprove: false`; mọi endpoint khác trả `403` cho người này;
+  - vẫn trả khi bảng góp ý chưa có (`contributor: false`). Các endpoint khác trả `503`.
+- Mọi `409` của mục góp ý trả `{ error, code, contribution }` (`contribution` là trạng thái hiện tại). Các mã:
+  - `crew_contribution_decided`: `approve` trên mục đã `approved`/`rejected`, gồm cả trường hợp bước tìm vừa thấy bản
+    ghi và chuyển `approved`;
+  - `crew_contribution_locked`: owner khác đang giữ khóa `approving` chưa quá 10 phút. Áp dụng cho cả `approve` và
+    `reject`, để không từ chối mục người khác đang đăng;
+  - `crew_contribution_not_materialized`: `complete` khi chưa thấy bản ghi;
+  - `crew_contribution_not_approving`: `complete` trên mục `pending`/`rejected`;
+  - `crew_contribution_already_approved`: `reject` trên mục đã có bản ghi hoặc đã `approved`.
+- `complete` trên mục đã `approved`, và `reject` trên mục đã `rejected`, trả `200` với mục như cũ (gọi lại an toàn).
+- Lỗi đầu vào:
+  - body sai hoặc thừa trường → `400 crew_contribution_invalid`;
+  - project/issue không thuộc company, project đã lưu trữ, issue ẩn hoặc không có → `422 crew_contribution_invalid_target`;
+  - `status`/`kind`/`issueId` sai ở `GET /contributions` → `400`.
+- Mục không tồn tại, id sai định dạng, hoặc khách đọc mục của người khác → `404`.
+- `materialize.description` là `string | null`. Mô tả rỗng hoặc chỉ có khoảng trắng lưu thành `null`.
+- `GET /contributions?status=` nhận `pending` (gồm `approving`), `approving`, `approved`, `rejected`.
+
 ## 6. Đường ghi và đường đọc
 
 ### 6.1. Mọi đường ghi của khách đều bị chặn bằng code stock
