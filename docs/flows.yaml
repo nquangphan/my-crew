@@ -271,6 +271,7 @@ flows:
       - apps/mac-app/src/main/runs.ts
       - apps/mac-app/src/main/logs.ts
       - apps/mac-app/src/main/notifications.ts
+      - apps/mac-app/src/main/status-nudge.ts
       - apps/mac-app/src/main/setup/register.ts
       - apps/mac-app/src/main/setup/wizard.ts
       - apps/mac-app/src/main/setup/types.ts
@@ -302,6 +303,7 @@ flows:
       - apps/mac-app/test/runs.test.ts
       - apps/mac-app/test/logs.test.ts
       - apps/mac-app/test/notifications.test.ts
+      - apps/mac-app/test/status-nudge.test.ts
       - apps/mac-app/test/tray-state.test.ts
       - apps/mac-app/test/window-controller.test.ts
       - apps/mac-app/test/renderer/health.test.tsx
@@ -361,6 +363,7 @@ flows:
       - apps/mac-app/test/projects-instructions.test.ts
       - apps/mac-app/test/projects-fixture.ts
       - apps/mac-app/test/projects-ipc.test.ts
+      - apps/mac-app/test/projects-ipc-add.test.ts
       - apps/mac-app/test/renderer/projects.test.tsx
       - apps/mac-app/test/jobs/poller.test.ts
       - apps/mac-app/test/jobs/targets.test.ts

@@ -16,6 +16,7 @@ import { registerProjects } from './projects/register.js';
 import { registerHealth } from './register-health.js';
 import { registerSetup } from './setup/register.js';
 import { registerSshd } from './sshd/register.js';
+import { createStatusNudge } from './status-nudge.js';
 import { CrewTray } from './tray.js';
 import { registerUpdate } from './update/register.js';
 import { createMainWindow } from './window.js';
@@ -88,6 +89,10 @@ async function start(): Promise<void> {
     isTrusted: (url) => isTrustedSender(url, rendererUrl),
     log: (event, fields) => log('warn', event, fields),
   });
+  const statusNudge = createStatusNudge({
+    send: () => ops.call('sendStatus'),
+    log: (level, event, fields) => log(level, event, fields),
+  });
   const tray = new CrewTray({ open: () => showWindow('tray'), quit: () => app.quit() });
   const ctx: AppContext = {
     home,
@@ -96,6 +101,7 @@ async function start(): Promise<void> {
     store,
     log,
     ops,
+    sendStatusSoon: (reason) => statusNudge.request(reason),
     ipc,
     loginItem,
     tray,

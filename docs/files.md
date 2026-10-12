@@ -221,6 +221,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/sshd/supervisor.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/system-deps.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
 | `apps/mac-app/src/main/sshd/takeover.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (file) |
+| `apps/mac-app/src/main/status-nudge.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/tray-state.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/tray.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/update/drain.ts` | [mac-app-update](flows/mac-app-update.md) (file) |
@@ -274,6 +275,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/projects-fixture.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-folder.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-instructions.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
+| `apps/mac-app/test/projects-ipc-add.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-ipc.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/projects-remove.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/quit-guard.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
@@ -293,6 +295,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/sshd-supervisor.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-system-deps.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
 | `apps/mac-app/test/sshd-takeover.test.ts` | [mac-app-sshd](flows/mac-app-sshd.md) (test) |
+| `apps/mac-app/test/status-nudge.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/tray-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/update-drain.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |
 | `apps/mac-app/test/update-probation.test.ts` | [mac-app-update](flows/mac-app-update.md) (test) |

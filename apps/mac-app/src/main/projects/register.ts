@@ -18,6 +18,7 @@ export function registerProjects(ctx: AppContext): void {
       store: ctx.store,
       log: (event, fields) => ctx.log('info', event, fields),
     }),
+    onAdded: (key) => ctx.sendStatusSoon(`project-added:${key}`),
     pickDirectory: async () => {
       const options: OpenDialogOptions = {
         title: 'Chọn folder project',

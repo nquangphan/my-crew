@@ -18,6 +18,8 @@ export interface AppContext {
   store: AppStateStore;
   log: (level: AppLogEntry['level'], event: string, fields?: Record<string, unknown>) => void;
   ops: OpsBridge;
+  /** Nhờ gửi bản tin máy sớm (gộp, chạy nền, không ném) sau khi checkout agent vừa được tạo. */
+  sendStatusSoon: (reason: string) => void;
   ipc: IpcRegistry;
   loginItem: LoginItem;
   tray: CrewTray;

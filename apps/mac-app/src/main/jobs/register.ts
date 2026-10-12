@@ -6,6 +6,7 @@ import type { AppContext } from '../app-context.js';
 import { type UtilityLike, UtilityOpsBridge } from '../ops-bridge.js';
 import { createPaperclipClient } from '../paperclip/client.js';
 import { boardKeys } from '../paperclip/register.js';
+import { jobCreatedCheckouts } from '../status-nudge.js';
 import { sendIfAlive } from '../window-controller.js';
 import { createJobsPoller, MissingKeyError } from './poller.js';
 import { createJobsRemote } from './remote.js';
@@ -65,6 +66,8 @@ export function registerJobs(ctx: AppContext): void {
       await forgetRemovedProject(ctx.store, job, outcome).catch((error) =>
         ctx.log('warn', 'jobs-forget-progress-failed', { error: String(error) }),
       );
+      // Checkout agent mới có trên máy: báo bản tin máy ngay để web thấy checkout mà không chờ lượt định kỳ.
+      if (jobCreatedCheckouts(job.kind, outcome)) ctx.sendStatusSoon(`job:${job.kind}`);
       return outcome;
     },
     cancelRunning: async () => {

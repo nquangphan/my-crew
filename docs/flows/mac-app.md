@@ -45,6 +45,12 @@ cắm vào các điểm đã chừa.
    Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới, gồm gỡ app v2) và
    `registerUpdate(ctx, sshd)` (updater và màn hình Cập nhật, flow `mac-app-update`).
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
+   `ctx.sendStatusSoon(reason)` (`src/main/status-nudge.ts` → `createStatusNudge`, dựng trong `start`) nhờ gửi bản tin
+   máy sớm bằng đúng op `sendStatus` (cùng đường với `crew-mac status send` của launchd `com.2p.crew-mac-status`):
+   chờ 2 giây rồi gửi một lần, các lần nhờ trong lúc chờ gộp vào lần đó, nhờ trong lúc đang gửi thì gửi thêm đúng một
+   lần sau khi xong. Không chờ, không ném: gửi lỗi chỉ ghi `status-nudge-failed` (warn) vào `app.log`, gửi được ghi
+   `status-nudge-sent` kèm lý do. Thêm project xong và việc máy tạo checkout xong (flow `mac-app-paperclip`) gọi nó, để
+   kiểm tra "Sẵn sàng" của web thấy checkout mới ngay thay vì chờ lượt gửi định kỳ.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
    bằng thông báo tiếng Việt của Main; `useStateChanged` nghe sự kiện `state:changed` (không payload, renderer gọi
@@ -264,6 +270,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | `apps/mac-app/src/main/runs.ts` | Danh sách run, hủy run qua REST, mở link web | `createRuns` |
 | `apps/mac-app/src/main/logs.ts` | Đuôi bốn file log, lọc run id | `createLogs`, `tailFile`, `logPaths` |
 | `apps/mac-app/src/main/notifications.ts` | Thông báo hệ thống | `createNotifier` |
+| `apps/mac-app/src/main/status-nudge.ts` | Gửi bản tin máy sớm (gộp, chạy nền, nuốt lỗi) sau khi checkout agent vừa được tạo | `createStatusNudge`, `jobCreatedCheckouts`, `STATUS_NUDGE_DELAY_MS` |
 | `apps/mac-app/src/main/setup/register.ts` | Nối wizard vào Electron (`setup:*`; bước `check` gọi op `ensureNode`; bước `machine` nhận client Paperclip) | `registerSetup` |
 | `apps/mac-app/src/main/setup/wizard.ts` | Máy trạng thái các bước (bước không đi tiếp trả kèm `state`), bước `paperclip`, `doctor`, `done` | `createWizard` (kèm `reopenMachine`), `STEP_ORDER`, `createPaperclipStep`, `createDoctorStep`, `readMachineReport` |
 | `apps/mac-app/src/main/setup/types.ts` | Kiểu kết quả một bước | `StepOutcome`, `StepRun` |
@@ -349,6 +356,9 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/runs.test.ts`: danh sách, hủy qua REST (không kill), 401, 403 không bảo đăng nhập lại, mở link web.
 - `apps/mac-app/test/logs.test.ts`: đuôi file, lọc run id, giới hạn 512 KB, file ngoài danh sách bị từ chối.
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
+- `apps/mac-app/test/status-nudge.test.ts`: gửi sau thời gian chờ, nhiều lần nhờ gộp một lần gửi, nhờ lúc đang gửi thì
+  gửi thêm đúng một lần, gửi lỗi (cả giá trị không phải `Error`) bị nuốt và ghi log warn, lần nhờ sau vẫn gửi;
+  `jobCreatedCheckouts` chỉ đúng với `prepare-checkouts`/`agent-workspace` làm xong.
 - `apps/mac-app/test/window-controller.test.ts`: mở/đóng cửa sổ, nguồn mở trong nhật ký, gửi sự kiện không ném lỗi.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, khung nhận việc và nút Đăng nhập lại, màn Run và Log, giờ Việt Nam.
 - `apps/mac-app/test/setup-wizard.test.ts`: `check` (bốn dòng, dòng `node` hiện nhãn nguồn, tải lỗi thì không đạt kèm

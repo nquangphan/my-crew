@@ -153,6 +153,11 @@ song.
 | (đặt quyền) | Không phải bước trong `done`: mỗi lần chạy mà `check` chưa xong thì `setAgentPermissions` cho mọi agent của project (tạo mới hay dùng lại) ngay trước `check`, lúc agent còn `paused`. Quyền agent Crew như wizard web và `agent-permissions.sh`: `canCreateAgents: false`, `canCreateSkills: false`, `canAssignTasks` chỉ `true` cho Trợ Lý. Paperclip mặc định cho agent mới cả ba (tạo agent, tạo skill, grant `tasks:assign`); bản app trước không đặt lại (8 agent `visinote-*`, `business-app-*` trên prod 11/10 phải sửa tay). Vì không ghi vào `done`, tiến độ của bản cũ đã qua mọi `role:*` vẫn được đặt quyền khi Chạy tiếp; PATCH lặp lại không đổi gì |
 | `check` | `doctor({ probe: false, skipTcc: true })` không có `fail` ở `worktree-workflows`, `worktree-root`; `workflowCheck` sạch cho từng checkout; `getRoles` đọc lại khớp; `getAgent` từng agent đọc lại có `engine` = `cli` (agent dùng lại do bản app cũ tạo thiếu `engine` bị chặn ở đây, phải PATCH `adapterConfig.engine` rồi Chạy tiếp); `getAgentPermissions` từng agent đọc lại đúng quyền agent Crew, lệch thì lỗi "Quyền của agent `<key>-<vai>` chưa bị giới hạn (còn được tạo agent, còn được tạo skill, còn được giao việc / Trợ Lý thiếu quyền giao việc): bấm Chạy tiếp để đặt lại". Đạt hết thì mới `resumeAgent` các agent đang `paused` |
 
+Thêm xong không lỗi (`progress.error` là `null`) thì `projects:add` (`ipc.ts` → `onAdded`, nối ở `register.ts`) gọi
+`ctx.sendStatusSoon('project-added:<key>')` (flow `mac-app`): bản tin máy mang các checkout `~/crew-agents/<key>/*` mới
+được gửi ngay, nên kiểm tra A5 "checkout máy đã báo" của web đạt mà không chờ lượt gửi định kỳ. Thêm dở hay ném lỗi thì
+không gửi; gửi lỗi không làm hỏng kết quả thêm.
+
 Những gì app ghi vào folder của owner, tất cả nằm trong `.git`: metadata worktree (`.git/worktrees/<tên>`), nhánh
 `agent/<key>-<vai>`, git config `crew-docs.*` (khi chưa có hoặc hỏng), một dòng `.paperclip-runtime/` trong `info/exclude`.
 
@@ -255,6 +260,9 @@ và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ 
   30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). Bản tin máy của crew-mac đọc key này
   (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
   không ghi.
+- Việc `prepare-checkouts` hay `agent-workspace` (web thêm project hay thêm agent) làm xong thì Main
+  (`register.ts`, `jobCreatedCheckouts`) gọi `ctx.sendStatusSoon('job:<loại>')`: bản tin máy được gửi sau khoảng 2 giây
+  (gộp nếu nhiều việc liền nhau), chạy nền, lỗi chỉ ghi log, không đổi kết quả việc.
 - Báo kết quả hỏng (mạng) thì chỉ ghi log: việc vẫn `claimed`, hết lease plugin trả về hàng đợi và máy làm lại (mọi việc
   đều chạy lại được).
 
@@ -308,8 +316,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/projects/progress.ts` | Tiến độ trong `app.json`, đường dẫn, tên vai trò, lệnh gỡ owner tự chạy | `ProjectDeps`, `ProgressRecorder`, `roleNames`, `projectPaths`, `KEY_RE`, `isLegacyProgress`, `manualRemoveCommand` |
 | `apps/mac-app/src/main/projects/folder.ts` | Kiểm folder owner chọn, worktree agent, `info/exclude`, bundle crew-docs, `git` của owner | `inspectFolder`, `folderGuardReason`, `suggestKey`, `ensureWorktree`, `isWorktreeOf`, `agentBranch`, `ensureRuntimeExcluded`, `configureDocsBundle`, `runGit`, `killActiveGit`, `shellQuote` |
 | `apps/mac-app/src/main/projects/docs-runtime.ts` | Runtime/bundle crew-docs: kiểm runtime, cài bundle mang theo, tự sửa git config lúc app mở | `runtimeProblem`, `installDocsBundle`, `installedDocsBundle`, `repairDocsConfig`, `repairDocsOnStart`, `DocsRepairReport` |
-| `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; chọn folder; thêm/gỡ | `createProjectsIpc` |
-| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở | `registerProjects` |
+| `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; chọn folder; thêm/gỡ; thêm xong không lỗi thì gọi `onAdded` | `createProjectsIpc` |
+| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở, gửi bản tin máy sớm sau khi thêm xong | `registerProjects` |
 | `apps/mac-app/src/renderer/routes/projects.tsx` | Màn hình Project: danh sách, wizard thêm (Chọn folder), Chạy tiếp, Gỡ khỏi Mac | `ProjectsScreen`, `stepLabel` |
 | `apps/mac-app/src/main/projects/add-project.ts` | Các bước thêm project; bộ lọc environment khuôn (kèm điều kiện secret thuộc company) dùng chung với bước Máy | `addProject`, `isInPlaceSshTemplate`, `isCompanyTemplate`, `inPlaceSshTemplates`, `companySecretIds` |
 | `apps/mac-app/src/main/projects/remove-project.ts` | Gỡ project khỏi Mac | `removeProject` |
@@ -323,7 +331,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent`, trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus` |
 | `apps/mac-app/src/main/jobs/targets.ts` | Hỏi việc ở origin board đã đăng nhập, chỉ company tài khoản thấy được | `createTargetResolver` |
 | `apps/mac-app/src/main/jobs/remote.ts` | REST của hàng đợi (claim, result), lấy trước `projectId` và file skill | `createJobsRemote` |
-| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống | `registerJobs` |
+| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm | `registerJobs` |
 
 ## Tests
 
@@ -399,6 +407,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 - `apps/mac-app/test/projects-ipc.test.ts`: `projects:list` ghép project với tiến độ, checkout (thứ tự vai trò, `head`),
   repo docs và commit gửi cuối; project R1 không có vai trò; thêm dở chưa có project; chưa chọn company; thêm → liệt kê
   → gỡ với Paperclip giả và HOME giả; `pickFolder` (Hủy, gợi ý tên/khóa, folder hỏng trả `problem`).
+- `apps/mac-app/test/projects-ipc-add.test.ts`: `projects:add` thêm xong không lỗi gọi `onAdded` đúng một lần; thêm dở
+  (`progress.error`) hay ném lỗi thì không gọi, lỗi vẫn tới người gọi.
 - `apps/mac-app/test/renderer/projects.test.tsx`: danh sách, "Chọn folder" hiện đường dẫn và gợi ý tên/khóa, folder
   hỏng khóa nút, khóa sai khóa nút, dữ liệu gửi đi, bước hiện tại + lỗi + "Chạy tiếp", tiến độ kiểu cũ không có "Chạy
   tiếp", "Gỡ khỏi Mac" hỏi xác nhận rồi hiện lệnh bỏ worktree.

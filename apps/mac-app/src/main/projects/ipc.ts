@@ -11,6 +11,8 @@ export interface ProjectsIpcOptions {
   deps: () => ProjectDeps;
   /** Commit rút gọn của HEAD trong một checkout; `null` khi thư mục không phải repo. Mặc định dùng `git`. */
   headOf?: (path: string, env: NodeJS.ProcessEnv) => Promise<string | null>;
+  /** Thêm project xong không lỗi (checkout agent vừa có trên máy). Không được ném. */
+  onAdded?: (key: string) => void;
   /** Hộp thoại chọn một thư mục (Electron `dialog.showOpenDialog` ở Main); `null` khi owner bấm Hủy. */
   pickDirectory?: () => Promise<string | null>;
 }
@@ -112,8 +114,10 @@ export function createProjectsIpc(options: ProjectsIpcOptions) {
       }
     },
 
-    add(input: AddProjectInput): Promise<ProjectProgress> {
-      return addProject(options.deps(), input);
+    async add(input: AddProjectInput): Promise<ProjectProgress> {
+      const progress = await addProject(options.deps(), input);
+      if (progress.error === null) options.onAdded?.(progress.key);
+      return progress;
     },
 
     remove(projectId: string): Promise<{ removed: string[]; manualCommand: string }> {
