@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup Roadmap — 2P Crew (dữ liệu giả)</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --fg: #1c1d1f; --muted: #6b6f76; --border: #e2e2de; --primary: #2b59c3;
+    --edge: #c9cbd0; --dep: #2b59c3; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+    --s-backlog: #52585d; --s-todo: #cc7a00; --s-in_progress: #2563eb; --s-in_review: #7c3aed;
+    --s-blocked: #dc2626; --s-done: #15803d; --s-cancelled: #9ca3af;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1); --zoom-in: 520ms; --zoom-out: 760ms;
+  }
+  html.dark {
+    --bg: #111214; --card: #1b1c1f; --fg: #ececee; --muted: #9a9ea6; --border: #2c2e33; --primary: #7aa2ff;
+    --edge: #3a3d44; --dep: #7aa2ff; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+    --s-backlog: #9aa0a6; --s-todo: #f5a524; --s-in_progress: #60a5fa; --s-in_review: #a78bfa;
+    --s-blocked: #f87171; --s-done: #4ade80; --s-cancelled: #6b7280;
+  }
+  @media (prefers-reduced-motion: reduce) { :root { --zoom-in: 0ms; --zoom-out: 0ms; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+  .app { display: grid; grid-template-rows: auto 1fr; height: 100dvh; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--card); }
+  header h1 { font-size: 16px; margin: 0 8px 0 0; }
+  nav.crumbs ol { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; align-items: center; }
+  nav.crumbs li + li::before { content: "›"; color: var(--muted); margin-right: 4px; }
+  nav.crumbs button { background: none; border: 0; color: var(--primary); cursor: pointer; font: inherit; padding: 2px 4px; border-radius: 4px; }
+  nav.crumbs [aria-current] { color: var(--fg); font-weight: 600; }
+  .spacer { flex: 1; }
+  .tool { border: 1px solid var(--border); background: var(--card); color: var(--fg); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
+  .tool[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+  .stage { position: relative; overflow: hidden; touch-action: none; }
+  .stage.grabbing { cursor: grabbing; }
+  .world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+  .world.animate { transition: transform var(--dur, 700ms) var(--ease); }
+  svg.edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+  svg.edges path { fill: none; stroke: var(--edge); stroke-width: 2; opacity: 0; transition: opacity 400ms ease var(--d, 0ms); }
+  svg.edges path.dep { stroke: var(--dep); stroke-dasharray: 6 5; }
+  svg.edges.on path { opacity: 1; }
+  .node { position: absolute; left: 0; top: 0; transform: translate(var(--x), var(--y)) translate(-50%, -50%) scale(var(--k, 1));
+          transition: transform var(--zoom-out) var(--ease) var(--d, 0ms), opacity 300ms ease var(--d, 0ms);
+          border: 0; padding: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+  .node.hidden { opacity: 0; --k: .3; }
+  .node.dim { opacity: .12; transition: opacity 300ms ease; pointer-events: none; }
+  .node:focus-visible { outline: none; }
+  .node:focus-visible .face { outline: 3px solid var(--primary); outline-offset: 3px; }
+  .face { display: block; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .node:hover .face { border-color: var(--primary); }
+  .company .face { width: 150px; height: 150px; border-radius: 50%; display: grid; place-content: center; text-align: center; border: 2px solid var(--primary); }
+  .company strong { font-size: 16px; }
+  .project .face { width: 132px; height: 132px; border-radius: 50%; display: grid; place-content: center; text-align: center; padding: 10px; border-width: 3px; border-color: var(--pc); }
+  .project strong { font-size: 14px; }
+  .center.project .face { width: 150px; height: 150px; }
+  .card .face { width: 196px; border-radius: 10px; padding: 8px 10px 8px 12px; border-left: 4px solid var(--sc); }
+  .card.center .face { width: 230px; border-width: 2px; border-left-width: 6px; }
+  .title { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meta { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--sc); flex: none; }
+  .bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--s-done); width: var(--p); }
+  .count { font-size: 12px; color: var(--muted); }
+  .more .face { width: 120px; border-radius: 999px; padding: 8px 12px; text-align: center; border-style: dashed; color: var(--primary); font-weight: 600; }
+  .legend { position: absolute; left: 12px; bottom: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: var(--shadow); }
+  .legend ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, auto); gap: 4px 14px; }
+  .legend li { display: flex; align-items: center; gap: 6px; }
+  .legend .ln { width: 22px; border-top: 2px solid var(--edge); } .legend .ln.dep { border-top: 2px dashed var(--dep); }
+  .zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .zoombar .tool { width: 34px; height: 34px; padding: 0; }
+  .hint { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; color: var(--muted); }
+  .listview { position: absolute; inset: 0; overflow: auto; background: var(--bg); padding: 16px 20px 80px; display: none; }
+  .listview.on { display: block; }
+  .listview ul { list-style: none; padding-left: 18px; margin: 4px 0; }
+  .listview > ul { padding-left: 0; }
+  .listview li button { background: none; border: 0; color: var(--fg); font: inherit; cursor: pointer; padding: 4px 6px; border-radius: 4px; display: inline-flex; gap: 8px; align-items: center; text-align: left; }
+  .listview li button:hover { background: var(--card); }
+  dialog { width: min(760px, 96vw); max-height: 88dvh; border: 1px solid var(--border); border-radius: 12px; padding: 0; background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(0,0,0,.35); }
+  dialog header { border: 0; padding: 14px 18px 0; background: none; }
+  dialog .body { padding: 8px 18px 18px; }
+  dialog dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 12px 0; }
+  dialog dt { color: var(--muted); }
+  .note { color: var(--muted); font-size: 12px; }
+  @media (max-width: 600px) {
+    header h1 { font-size: 15px; }
+    .legend { left: 8px; right: 8px; bottom: 8px; } .legend ul { grid-template-columns: repeat(3, auto); }
+    .zoombar { bottom: 110px; right: 8px; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Roadmap</h1>
+    <nav class="crumbs" aria-label="Vị trí trên bản đồ"><ol id="crumbs"></ol></nav>
+    <span class="spacer"></span>
+    <button class="tool" id="btnBack" title="Lùi một tầng (Esc)">← Lùi</button>
+    <button class="tool" id="btnList" aria-pressed="false">Dạng danh sách</button>
+    <button class="tool" id="btnTheme">Sáng/Tối</button>
+  </header>
+  <main class="stage" id="stage" aria-label="Bản đồ công ty">
+    <div class="world" id="world"><svg class="edges" id="edges" width="1" height="1"></svg></div>
+    <div class="hint" id="hint">Bấm project để đi vào · kéo để di chuyển · cuộn để phóng to</div>
+    <div class="legend" aria-label="Chú giải">
+      <ul id="legend"></ul>
+    </div>
+    <div class="zoombar">
+      <button class="tool" id="zin" aria-label="Phóng to">+</button>
+      <button class="tool" id="zout" aria-label="Thu nhỏ">−</button>
+      <button class="tool" id="zfit" aria-label="Vừa màn hình">⤢</button>
+    </div>
+    <section class="listview" id="listview" aria-label="Bản đồ dạng danh sách"></section>
+  </main>
+</div>
+
+<dialog id="popup" aria-labelledby="popTitle">
+  <header><span class="note" id="popCode"></span><h2 id="popTitle" style="margin:4px 0 0;font-size:18px"></h2></header>
+  <div class="body">
+    <dl id="popProps"></dl>
+    <p id="popDesc"></p>
+    <p class="note">Trong sản phẩm thật, cửa sổ này là chính popup chi tiết yêu cầu có sẵn (<code>?issue=&lt;mã&gt;</code>): bình luận, lịch sử, cổng duyệt…</p>
+    <form method="dialog" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="tool" value="close">Đóng</button>
+    </form>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+// ---------- Dữ liệu giả (cố định nhờ hạt giống) ----------
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const pick = (a) => a[Math.floor(rnd() * a.length)];
+const STATUS = ["backlog", "todo", "in_progress", "in_review", "blocked", "done", "cancelled"];
+const STATUS_VI = { backlog: "Backlog", todo: "Cần làm", in_progress: "Đang làm", in_review: "Chờ duyệt", blocked: "Bị chặn", done: "Xong", cancelled: "Đã hủy" };
+const AGENTS = ["CTO", "Dev Agent", "QA Agent", "Docs Agent", "Research Agent"];
+const VERBS = ["Thêm", "Sửa", "Tối ưu", "Viết test cho", "Thiết kế", "Kiểm tra", "Tách", "Dọn"];
+const THINGS = ["trang đăng nhập", "bảng Kanban", "popup chi tiết", "API báo cáo", "thông báo email", "quyền project", "trang Thành viên", "bộ lọc yêu cầu", "migration DB", "trang Docs", "biểu đồ chi phí", "sidebar mobile"];
+const COMPANY = { name: "2P Solutions", prefix: "TPS" };
+const PROJECTS = [
+  { id: "p1", name: "Crew", color: "#2b59c3", n: 9 }, { id: "p2", name: "Nhà Mới", color: "#0f9d58", n: 6 },
+  { id: "p3", name: "my_money", color: "#e37400", n: 4 }, { id: "p4", name: "Paperclip fork", color: "#7c3aed", n: 7 },
+  { id: "p5", name: "Website Marketing", color: "#d93025", n: 3 }, { id: "p6", name: "Kho dữ liệu lớn", color: "#00838f", n: 72 },
+];
+let num = 100;
+const issues = []; // {id, code, title, status, projectId, parentId, human, assignee, blockedBy[]}
+function mk(projectId, parentId, human) {
+  const st = parentId ? pick(STATUS.slice(0, 6)) : pick(["todo", "in_progress", "in_progress", "in_review", "blocked", "done", "backlog"]);
+  const it = { id: "i" + (++num), code: `${COMPANY.prefix}-${num}`, title: `${pick(VERBS)} ${pick(THINGS)}`, status: st,
+    projectId, parentId, human, assignee: human && !parentId ? null : pick(AGENTS), blockedBy: [] };
+  issues.push(it); return it;
+}
+for (const p of PROJECTS) {
+  for (let r = 0; r < p.n; r++) {
+    const root = mk(p.id, null, true);
+    const kids = p.n > 50 ? Math.floor(rnd() * 3) : 1 + Math.floor(rnd() * 9);
+    const made = [];
+    for (let c = 0; c < kids; c++) {
+      const k = mk(p.id, root.id, false); made.push(k);
+      if (rnd() < .3) for (let g = 0; g < 1 + Math.floor(rnd() * 3); g++) made.push(mk(p.id, k.id, false));
+    }
+    for (let i = 1; i < made.length; i++) if (rnd() < .25) made[i].blockedBy.push(made[Math.floor(rnd() * i)].id);
+  }
+  mk(p.id, null, false); // việc gốc do agent tạo: KHÔNG hiện trên bản đồ (chỉ yêu cầu do người tạo)
+}
+const byId = new Map(issues.map((i) => [i.id, i]));
+const kidsOf = (id) => issues.filter((i) => i.parentId === id);
+const descendants = (id) => { const out = []; const walk = (x) => kidsOf(x).forEach((k) => { out.push(k); walk(k.id); }); walk(id); return out; };
+const humanRoots = (pid) => issues.filter((i) => i.projectId === pid && !i.parentId && i.human);
+const isOpen = (s) => s !== "done" && s !== "cancelled";
+const ORDER = (a, b) => (isOpen(b.status) - isOpen(a.status)) || a.code.localeCompare(b.code, "vi", { numeric: true });
+
+// ---------- Bố cục bán kính (thuần, không thư viện) ----------
+const MAX_REQUESTS = 60, MAX_TICKETS = 150;
+function rings(n, r0, gap, spacing) { // đặt n điểm trên các vòng đồng tâm, vòng ngoài chứa nhiều hơn
+  const pts = []; let ring = 0;
+  while (pts.length < n) {
+    const r = r0 + ring * gap, cap = Math.max(6, Math.floor((2 * Math.PI * r) / spacing));
+    const take = Math.min(cap, n - pts.length), off = ring % 2 ? Math.PI / take : 0;
+    for (let i = 0; i < take; i++) { const a = -Math.PI / 2 + off + (2 * Math.PI * i) / take; pts.push({ x: r * Math.cos(a), y: r * Math.sin(a) }); }
+    ring++;
+  }
+  return pts;
+}
+function radialTree(rootId, list) { // góc theo số lá, bán kính theo độ sâu
+  const kids = new Map(); list.forEach((i) => { const a = kids.get(i.parentId) || []; a.push(i); kids.set(i.parentId, a); });
+  const leaves = (id) => { const k = kids.get(id) || []; return k.length ? k.reduce((s, c) => s + leaves(c.id), 0) : 1; };
+  const pos = {}; const R = 260;
+  const place = (id, a0, a1, depth) => {
+    let a = a0; const total = leaves(id);
+    for (const c of (kids.get(id) || []).sort(ORDER)) {
+      const span = ((a1 - a0) * leaves(c.id)) / total, mid = a + span / 2, r = R * depth + (depth > 1 ? 40 : 0);
+      pos[c.id] = { x: r * Math.cos(mid), y: r * Math.sin(mid) };
+      place(c.id, a, a + span, depth + 1); a += span;
+    }
+  };
+  place(rootId, -Math.PI / 2, (3 * Math.PI) / 2, 1);
+  return pos;
+}
+
+// ---------- Trạng thái + URL (#project=&request=) ----------
+const state = { project: null, request: null, list: false };
+function readHash() { const h = new URLSearchParams(location.hash.slice(1)); state.project = h.get("project"); state.request = h.get("request"); }
+function writeHash() { const h = new URLSearchParams(); if (state.project) h.set("project", state.project); if (state.request) h.set("request", state.request);
+  history.pushState(null, "", "#" + h.toString()); }
+
+// ---------- Dựng một tầng ----------
+function buildLevel() {
+  if (!state.project) {
+    const pts = rings(PROJECTS.length, 300, 190, 190);
+    return { center: { kind: "company", id: "company" },
+      nodes: PROJECTS.map((p, i) => ({ kind: "project", id: p.id, ...pts[i], p })),
+      edges: PROJECTS.map((p) => ({ from: "company", to: p.id })) };
+  }
+  const p = PROJECTS.find((x) => x.id === state.project);
+  if (!state.request) {
+    const roots = humanRoots(p.id).sort(ORDER), shown = roots.slice(0, MAX_REQUESTS), extra = roots.length - shown.length;
+    const pts = rings(shown.length + (extra > 0 ? 1 : 0), 280, 150, 230);
+    const nodes = shown.map((r, i) => ({ kind: "request", id: r.id, ...pts[i], it: r }));
+    if (extra > 0) nodes.push({ kind: "more", id: "more", ...pts[shown.length], extra });
+    return { center: { kind: "project", id: p.id, p }, nodes, edges: nodes.map((n) => ({ from: p.id, to: n.id })) };
+  }
+  const req = byId.get(state.request);
+  let desc = descendants(req.id);
+  const extra = Math.max(0, desc.length - MAX_TICKETS); desc = desc.slice(0, MAX_TICKETS);
+  const pos = radialTree(req.id, desc);
+  const nodes = desc.map((t) => ({ kind: "ticket", id: t.id, ...pos[t.id], it: t }));
+  const ids = new Set(desc.map((d) => d.id).concat(req.id));
+  const edges = desc.map((t) => ({ from: t.parentId, to: t.id }));
+  desc.forEach((t) => t.blockedBy.forEach((b) => ids.has(b) && edges.push({ from: b, to: t.id, dep: true })));
+  if (extra > 0) { nodes.push({ kind: "more", id: "more", x: 0, y: -170, extra }); }
+  return { center: { kind: "request", id: req.id, it: req }, nodes, edges };
+}
+
+// ---------- Vẽ ----------
+const stage = document.getElementById("stage"), world = document.getElementById("world"), svg = document.getElementById("edges");
+const cam = { x: 0, y: 0, s: 1 };
+function applyCam(dur) {
+  world.style.setProperty("--dur", dur + "ms");
+  world.classList.toggle("animate", dur > 0);
+  const w = stage.clientWidth, h = stage.clientHeight;
+  world.style.transform = `translate(${w / 2 - cam.x * cam.s}px, ${h / 2 - cam.y * cam.s}px) scale(${cam.s})`;
+}
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ms = (name) => (reduced() ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue(name), 10));
+function fit(level) {
+  const xs = level.nodes.map((n) => n.x).concat(0), ys = level.nodes.map((n) => n.y).concat(0);
+  const bw = Math.max(...xs) - Math.min(...xs) + 320, bh = Math.max(...ys) - Math.min(...ys) + 220;
+  return { x: (Math.max(...xs) + Math.min(...xs)) / 2, y: (Math.max(...ys) + Math.min(...ys)) / 2,
+    s: Math.min(1.2, Math.max(0.25, Math.min(stage.clientWidth / bw, stage.clientHeight / bh))) };
+}
+const pct = (d, t) => (t ? Math.round((d / t) * 100) : 0);
+function nodeHtml(n, center) {
+  if (n.kind === "company") {
+    const open = issues.filter((i) => !i.parentId && i.human && isOpen(i.status)).length;
+    return `<span class="face"><strong>${COMPANY.name}</strong><span class="count">${PROJECTS.length} project · ${open} yêu cầu đang mở</span></span>`;
+  }
+  if (n.kind === "project") {
+    const roots = humanRoots(n.p.id), open = roots.filter((r) => isOpen(r.status)).length;
+    return `<span class="face"><strong>${n.p.name}</strong><span class="count">${roots.length} yêu cầu</span><span class="count">${open} đang mở</span></span>`;
+  }
+  if (n.kind === "more") return `<span class="face">+${n.extra} khác</span>`;
+  const it = n.it, d = descendants(it.id), done = d.filter((x) => x.status === "done").length;
+  const sub = n.kind === "request" || center ? `<span class="bar" style="--p:${pct(done, d.length)}%"><i></i></span><span class="meta">${done}/${d.length} việc con xong</span>`
+    : `<span class="meta">${it.assignee ?? "Chưa giao"}${kidsOf(it.id).length ? ` · ${kidsOf(it.id).length} con` : ""}</span>`;
+  return `<span class="face" style="--sc:var(--s-${it.status})"><span class="meta"><span class="dot"></span>${it.code} · ${STATUS_VI[it.status]}</span><span class="title">${it.title}</span>${sub}</span>`;
+}
+function label(n) {
+  if (n.kind === "company") return `Công ty ${COMPANY.name}`;
+  if (n.kind === "project") return `Project ${n.p.name}, ${humanRoots(n.p.id).length} yêu cầu. Bấm để xem.`;
+  if (n.kind === "more") return `Còn ${n.extra} mục khác, mở dạng danh sách`;
+  return `${n.it.code}: ${n.it.title}, ${STATUS_VI[n.it.status]}`;
+}
+let level = null;
+function render(fromCenter) {
+  level = buildLevel();
+  world.querySelectorAll(".node").forEach((el) => el.remove());
+  const all = [{ ...level.center, x: 0, y: 0, center: true }, ...level.nodes];
+  const pos = new Map(all.map((n) => [n.id, n]));
+  all.forEach((n, i) => {
+    const el = document.createElement("button");
+    el.type = "button"; el.className = `node ${n.kind}${n.center ? " center" : ""}${n.it || n.kind === "request" ? " card" : ""}`;
+    if (n.kind === "ticket") el.classList.add("card");
+    if (n.p) el.style.setProperty("--pc", n.p.color);
+    el.innerHTML = nodeHtml(n, n.center); el.setAttribute("aria-label", label(n)); el.dataset.id = n.id;
+    const startAtCenter = fromCenter && !n.center;
+    el.style.setProperty("--x", (startAtCenter ? 0 : n.x) + "px"); el.style.setProperty("--y", (startAtCenter ? 0 : n.y) + "px");
+    if (startAtCenter) el.classList.add("hidden");
+    el.style.setProperty("--d", reduced() ? "0ms" : Math.min(i * 18, 500) + "ms");
+    el.addEventListener("click", () => onNode(n));
+    world.appendChild(el);
+    if (startAtCenter) requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.classList.remove("hidden"); el.style.setProperty("--x", n.x + "px"); el.style.setProperty("--y", n.y + "px"); }));
+  });
+  svg.classList.remove("on");
+  svg.innerHTML = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--dep)" style="opacity:1"/></marker></defs>` +
+    level.edges.map((e, i) => { const a = pos.get(e.from), b = pos.get(e.to); if (!a || !b) return "";
+      const mx = (a.x + b.x) / 2 * (e.dep ? 0.85 : 1), my = (a.y + b.y) / 2 * (e.dep ? 0.85 : 1);
+      return `<path class="${e.dep ? "dep" : ""}" style="--d:${reduced() ? 0 : 250 + Math.min(i * 10, 400)}ms" ${e.dep ? 'marker-end="url(#arr)"' : ""} d="M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}"/>`; }).join("");
+  setTimeout(() => svg.classList.add("on"), 30);
+  renderCrumbs(); renderList(); world.querySelector(".node.center")?.focus({ preventScroll: true });
+}
+
+// ---------- Chuyển tầng: phóng vào nút, đổi tầng, rồi thu ra để lộ tầng mới ----------
+let busy = false;
+function dive(target, apply) {
+  if (busy) return; busy = true;
+  world.querySelectorAll(".node").forEach((el) => el.dataset.id !== target.id && !el.classList.contains("center") && el.classList.add("dim"));
+  Object.assign(cam, { x: target.x, y: target.y, s: 2.6 }); applyCam(ms("--zoom-in"));
+  setTimeout(() => {
+    apply(); writeHash();
+    Object.assign(cam, { x: 0, y: 0, s: 2.6 }); applyCam(0); render(true);
+    requestAnimationFrame(() => { Object.assign(cam, fit(level)); applyCam(ms("--zoom-out")); });
+    setTimeout(() => (busy = false), ms("--zoom-out"));
+  }, ms("--zoom-in"));
+}
+function up() {
+  if (busy || (!state.project && !state.request)) return;
+  const was = state.request || state.project;
+  if (state.request) state.request = null; else state.project = null;
+  writeHash(); render(false);
+  const n = level.nodes.find((x) => x.id === was) || { x: 0, y: 0 };
+  Object.assign(cam, { x: n.x, y: n.y, s: 2.6 }); applyCam(0);
+  requestAnimationFrame(() => { Object.assign(cam, fit(level)); applyCam(ms("--zoom-out")); world.querySelector(`[data-id="${was}"]`)?.focus({ preventScroll: true }); });
+}
+function onNode(n) {
+  if (n.kind === "more") return toggleList(true);
+  if (n.center) { if (n.kind === "request") openPopup(n.it); else up(); return; }
+  if (n.kind === "project") return dive(n, () => { state.project = n.id; });
+  if (n.kind === "request") return dive(n, () => { state.request = n.id; });
+  if (n.kind === "ticket") return openPopup(n.it);
+}
+function jump(project, request) { state.project = project; state.request = request; writeHash(); render(true); Object.assign(cam, fit(level)); applyCam(0); }
+
+// ---------- Breadcrumb, danh sách, popup, chú giải ----------
+function renderCrumbs() {
+  const p = PROJECTS.find((x) => x.id === state.project), r = state.request && byId.get(state.request);
+  const items = [[COMPANY.name, () => jump(null, null)]];
+  if (p) items.push([p.name, () => jump(p.id, null)]);
+  if (r) items.push([`${r.code} ${r.title}`, null]);
+  const ol = document.getElementById("crumbs"); ol.innerHTML = "";
+  items.forEach(([t, fn], i) => { const li = document.createElement("li"), b = document.createElement("button"); b.textContent = t;
+    if (i === items.length - 1) b.setAttribute("aria-current", "location"); else b.onclick = fn; li.appendChild(b); ol.appendChild(li); });
+  document.getElementById("btnBack").disabled = !p;
+  document.getElementById("hint").textContent = !p ? "Bấm project để đi vào · kéo để di chuyển · cuộn để phóng to"
+    : !r ? "Bấm một yêu cầu để xem các việc con" : "Bấm việc con để xem chi tiết · nét đứt: phụ thuộc (chặn)";
+}
+function renderList() {
+  const lv = document.getElementById("listview");
+  const btn = (it, act) => `<button data-act="${act}" data-id="${it.id}"><span class="dot" style="--sc:var(--s-${it.status})"></span>${it.code} · ${it.title} <span class="note">${STATUS_VI[it.status]}</span></button>`;
+  const tree = (id) => { const k = kidsOf(id).sort(ORDER); return k.length ? `<ul>${k.map((c) => `<li>${btn(c, "popup")}${tree(c.id)}</li>`).join("")}</ul>` : ""; };
+  let html;
+  if (!state.project) html = `<h2>${COMPANY.name}</h2><ul>${PROJECTS.map((p) => `<li><button data-act="project" data-id="${p.id}">${p.name} <span class="note">${humanRoots(p.id).length} yêu cầu</span></button></li>`).join("")}</ul>`;
+  else if (!state.request) html = `<h2>${PROJECTS.find((p) => p.id === state.project).name}</h2><ul>${humanRoots(state.project).sort(ORDER).map((r) => `<li>${btn(r, "request")}</li>`).join("")}</ul>`;
+  else { const r = byId.get(state.request); html = `<h2>${r.code} · ${r.title}</h2>${tree(r.id) || '<p class="note">Chưa có việc con.</p>'}`; }
+  lv.innerHTML = html;
+  lv.querySelectorAll("button[data-act]").forEach((b) => b.onclick = () => {
+    const id = b.dataset.id, act = b.dataset.act;
+    if (act === "project") jump(id, null); else if (act === "request") jump(state.project, id); else openPopup(byId.get(id));
+  });
+}
+function toggleList(on) { state.list = on ?? !state.list; document.getElementById("listview").classList.toggle("on", state.list);
+  document.getElementById("btnList").setAttribute("aria-pressed", String(state.list)); }
+function openPopup(it) {
+  const d = document.getElementById("popup"), parent = it.parentId && byId.get(it.parentId);
+  document.getElementById("popCode").textContent = it.code; document.getElementById("popTitle").textContent = it.title;
+  document.getElementById("popProps").innerHTML = `<dt>Trạng thái</dt><dd><span class="dot" style="display:inline-block;--sc:var(--s-${it.status})"></span> ${STATUS_VI[it.status]}</dd>
+    <dt>Người làm</dt><dd>${it.assignee ?? "Chưa giao"}</dd><dt>Project</dt><dd>${PROJECTS.find((p) => p.id === it.projectId).name}</dd>
+    <dt>Thuộc</dt><dd>${parent ? `${parent.code} · ${parent.title}` : "— (yêu cầu gốc)"}</dd>
+    <dt>Bị chặn bởi</dt><dd>${it.blockedBy.map((b) => byId.get(b).code).join(", ") || "—"}</dd>
+    <dt>Việc con</dt><dd>${kidsOf(it.id).length}</dd>`;
+  document.getElementById("popDesc").textContent = "Mô tả giả: đây là nội dung yêu cầu. Bản thật hiện markdown, bình luận và lịch sử.";
+  d.showModal();
+}
+document.getElementById("legend").innerHTML = STATUS.map((s) => `<li><span class="dot" style="--sc:var(--s-${s})"></span>${STATUS_VI[s]}</li>`).join("") +
+  `<li><span class="ln"></span>Cha → con</li><li><span class="ln dep"></span>Chặn (phụ thuộc)</li>`;
+
+// ---------- Kéo, cuộn, phím ----------
+let drag = null;
+stage.addEventListener("pointerdown", (e) => { if (e.target.closest(".node,.tool,.legend,.listview")) return; drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; stage.classList.add("grabbing"); stage.setPointerCapture(e.pointerId); });
+stage.addEventListener("pointermove", (e) => { if (!drag) return; cam.x = drag.cx - (e.clientX - drag.x) / cam.s; cam.y = drag.cy - (e.clientY - drag.y) / cam.s; applyCam(0); });
+stage.addEventListener("pointerup", () => { drag = null; stage.classList.remove("grabbing"); });
+stage.addEventListener("wheel", (e) => { e.preventDefault(); cam.s = Math.min(3, Math.max(0.2, cam.s * (e.deltaY < 0 ? 1.1 : 0.9))); applyCam(0); }, { passive: false });
+document.getElementById("zin").onclick = () => { cam.s = Math.min(3, cam.s * 1.25); applyCam(200); };
+document.getElementById("zout").onclick = () => { cam.s = Math.max(0.2, cam.s / 1.25); applyCam(200); };
+document.getElementById("zfit").onclick = () => { Object.assign(cam, fit(level)); applyCam(400); };
+document.getElementById("btnBack").onclick = up;
+document.getElementById("btnList").onclick = () => toggleList();
+document.getElementById("btnTheme").onclick = () => document.documentElement.classList.toggle("dark");
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !document.getElementById("popup").open) { if (state.list) toggleList(false); else up(); } });
+window.addEventListener("popstate", () => { readHash(); render(false); Object.assign(cam, fit(level)); applyCam(300); });
+window.addEventListener("resize", () => { Object.assign(cam, fit(level)); applyCam(0); });
+
+// ---------- Mở đầu: công ty ở giữa, project tỏa ra ----------
+readHash();
+if (state.project && !PROJECTS.some((p) => p.id === state.project)) state.project = state.request = null;
+if (state.request && !byId.has(state.request)) state.request = null;
+Object.assign(cam, { x: 0, y: 0, s: 1.6 }); applyCam(0); render(true);
+requestAnimationFrame(() => { Object.assign(cam, fit(level)); applyCam(ms("--zoom-out")); });
+</script>
+</body>
+</html>
