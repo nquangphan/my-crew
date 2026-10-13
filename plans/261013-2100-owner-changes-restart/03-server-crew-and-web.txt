@@ -1,0 +1,8 @@
+$ vitest run src/__tests__/crew-*  (mọi test Crew của server)
+ Test Files  37 passed (37)
+      Tests  673 passed (673)
+
+$ crew-web: vitest run (toàn bộ) + tsc -b --noEmit
+ Test Files  161 passed (161)
+      Tests  1496 passed | 1 todo (1497)
+tsc: không lỗi
