@@ -51,6 +51,16 @@ function freshChange(repo: TestRepo, n: number) {
   repo.append('docs/flows/checkout.md', `\nThay đổi ${n}.\n`);
 }
 
+/** Stages a fake credential: the one thing pre-commit still blocks (R7). */
+function leakSecret(repo: TestRepo) {
+  repo.write('src/dev-reset.ts', `export const key = '${fakeAwsKey()}';\n`);
+}
+
+/** Replaces the leaked credential with a clean change that pre-commit lets through. */
+function cleanChange(repo: TestRepo, n: number) {
+  repo.write('src/dev-reset.ts', `export const reset = () => ${n};\n`);
+}
+
 /** Hook files, their modes and the local git config, to prove a second install changes nothing. */
 function snapshotSetup(repo: TestRepo, dir: string): string {
   const files = HOOKS.map((hook) => {
@@ -76,7 +86,7 @@ describe('bundle', () => {
 });
 
 describe('plain repo: .githooks with core.hooksPath', () => {
-  it('installs pre-commit, commit-msg and pre-push that enforce R3, R6 and R7, idempotently', async () => {
+  it('installs pre-commit (R7), commit-msg (R6) and pre-push hooks idempotently; R3 waits for the push', async () => {
     const repo = await fixtureRepo();
     const first = install(repo);
     expect(first.code, first.err).toBe(0);
@@ -99,9 +109,8 @@ describe('plain repo: .githooks with core.hooksPath', () => {
     expect(commitWithHooks(repo, 'chore: cài hook\n\nCrew-Owner-Approved: WEB-1').code).toBe(0);
 
     staleChange(repo, 1);
-    let res = commitWithHooks(repo, 'feat: thiếu docs');
-    expect(res.code).not.toBe(0);
-    expect(res.out).toContain('R3 src/checkout/cart.ts: changed without updating docs/flows/checkout.md');
+    let res = commitWithHooks(repo, 'feat: chưa có docs');
+    expect(res.code, res.out).toBe(0);
     freshChange(repo, 1);
     expect(commitWithHooks(repo, 'feat: có docs').code).toBe(0);
 
@@ -142,8 +151,10 @@ describe('plain repo: .githooks with core.hooksPath', () => {
 
     staleChange(repo, 1);
     res = commitWithHooks(repo, 'feat: thiếu docs');
-    expect(res.code).not.toBe(0);
-    expect(res.out).toContain('R3 src/checkout/cart.ts');
+    expect(res.code, res.out).toBe(0);
+    const push = repo.tryGit('push', '-q', 'origin', 'main');
+    expect(push.code).not.toBe(0);
+    expect(push.out).toContain('R3 src/checkout/cart.ts');
   });
 
   it('blocks a push carrying a credential or a stale commit that skipped the local hooks', async () => {
@@ -200,12 +211,12 @@ describe('plain repo: .githooks with core.hooksPath', () => {
     const wt = new (repo.constructor as new (root: string) => TestRepo)(worktree);
 
     expect(install(wt).code).toBe(2);
-    staleChange(wt, 3);
-    const res = commitWithHooks(wt, 'feat: thiếu docs');
+    leakSecret(wt);
+    const res = commitWithHooks(wt, 'chore: lỡ tay');
     expect(res.code).not.toBe(0);
-    expect(res.out).toContain('R3 src/checkout/cart.ts');
-    freshChange(wt, 3);
-    expect(commitWithHooks(wt, 'feat: có docs').code).toBe(0);
+    expect(res.out).toContain('R7 src/dev-reset.ts');
+    cleanChange(wt, 3);
+    expect(commitWithHooks(wt, 'chore: sạch').code).toBe(0);
     repo.git('worktree', 'remove', '--force', worktree);
   });
 
@@ -248,23 +259,23 @@ describe('chaining with existing hook managers', () => {
     expect(snapshotSetup(repo, join(repo.root, '.husky'))).toBe(before);
     repo.commit('chore: crew-docs hooks\n\nCrew-Owner-Approved: WEB-2');
 
-    staleChange(repo, 5);
-    const blocked = commitWithHooks(repo, 'feat: thiếu docs');
+    leakSecret(repo);
+    const blocked = commitWithHooks(repo, 'chore: lỡ tay');
     expect(blocked.code).not.toBe(0);
-    expect(blocked.out).toContain('R3 src/checkout/cart.ts');
+    expect(blocked.out).toContain('R7 src/dev-reset.ts');
     // The crew-docs line runs first and fails fast, so husky's own command did not run for this commit.
     expect(existsSync(marker)).toBe(false);
-    freshChange(repo, 5);
-    expect(commitWithHooks(repo, 'feat: có docs').code).toBe(0);
+    cleanChange(repo, 5);
+    expect(commitWithHooks(repo, 'chore: sạch').code).toBe(0);
     expect(readFileSync(marker, 'utf8')).toBe('husky\n');
 
     const worktree = join(tempDir('crew-docs-wt-'), 'husky-feature');
     repo.git('worktree', 'add', '-q', '-b', 'husky-feature', worktree);
     const wt = new (repo.constructor as new (root: string) => TestRepo)(worktree);
-    staleChange(wt, 6);
-    expect(commitWithHooks(wt, 'feat: thiếu docs').out).toContain('R3 src/checkout/cart.ts');
-    freshChange(wt, 6);
-    expect(commitWithHooks(wt, 'feat: có docs').code).toBe(0);
+    leakSecret(wt);
+    expect(commitWithHooks(wt, 'chore: lỡ tay').out).toContain('R7 src/dev-reset.ts');
+    cleanChange(wt, 6);
+    expect(commitWithHooks(wt, 'chore: sạch').code).toBe(0);
     expect(readFileSync(marker, 'utf8')).toBe('husky\nhusky\n');
     repo.git('worktree', 'remove', '--force', worktree);
   });
@@ -296,13 +307,13 @@ describe('chaining with existing hook managers', () => {
     expect(install(repo, env).out).toContain('unchanged');
     repo.commit('chore: crew-docs hooks\n\nCrew-Owner-Approved: WEB-2');
 
-    staleChange(repo, 9);
-    const blocked = commitWithHooks(repo, 'feat: thiếu docs', env);
+    leakSecret(repo);
+    const blocked = commitWithHooks(repo, 'chore: lỡ tay', env);
     expect(blocked.code).not.toBe(0);
-    expect(`${blocked.out}${blocked.err}`).toContain('R3 src/checkout/cart.ts');
+    expect(`${blocked.out}${blocked.err}`).toContain('R7 src/dev-reset.ts');
     expect(readFileSync(marker, 'utf8')).toContain('lefthook');
-    freshChange(repo, 9);
-    expect(commitWithHooks(repo, 'feat: có docs', env).code).toBe(0);
+    cleanChange(repo, 9);
+    expect(commitWithHooks(repo, 'chore: sạch', env).code).toBe(0);
 
     repo.write('.claude/settings.json', '{}\n');
     const r6 = commitWithHooks(repo, 'chore: settings', env);
@@ -337,11 +348,11 @@ describe('chaining with existing hook managers', () => {
       ]);
       if (setup === 'hooks-path') repo.commit('chore: crew-docs hooks\n\nCrew-Owner-Approved: WEB-2');
 
-      staleChange(repo, 10);
-      const stale = commitWithHooks(repo, 'feat: thiếu docs');
-      expect(stale.out).toContain('R3 src/checkout/cart.ts');
-      freshChange(repo, 10);
-      expect(commitWithHooks(repo, 'feat: có docs').code).toBe(0);
+      leakSecret(repo);
+      const leaked = commitWithHooks(repo, 'chore: lỡ tay');
+      expect(leaked.out).toContain('R7 src/dev-reset.ts');
+      cleanChange(repo, 10);
+      expect(commitWithHooks(repo, 'chore: sạch').code).toBe(0);
       expect(readFileSync(marker, 'utf8')).toBe('custom\n');
     }
   });

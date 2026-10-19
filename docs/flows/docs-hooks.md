@@ -68,5 +68,5 @@ trên push/PR với bundle vendor sẵn (CI không cần mạng).
 - `packages/docs-kit/test/hook-installer.test.ts`: phát hiện đúng loại hook (`githooks`, husky, lefthook,
   `hooks-path` tuỳ chỉnh), chèn/dòng thay thế đúng marker mà không phá hook có sẵn, chạy lại không đổi gì,
   chặn khi chạy trong worktree phụ, lefthook YAML giữ nguyên cấu trúc; hook cho chủ dự án commit và push trước
-  docs-init (đúng một dòng cảnh báo), rồi từ commit docs-init trở đi lại chặn đúng như thường (ví dụ thiếu
-  R3).
+  docs-init (đúng một dòng cảnh báo), rồi từ commit docs-init trở đi lại chặn đúng như thường: pre-commit
+  chặn credential (R7), commit-msg chặn đường dẫn được bảo vệ (R6), pre-push chặn thiếu docs (R3).

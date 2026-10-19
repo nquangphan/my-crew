@@ -1,0 +1,161 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[17:24:24] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[17:24:27] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"740a1b17-efeb-48b6-8c3a-711659baf615","agentId":"b5254c29-1bdb-470f-961e-1d60dcfa2068","runId":"347ad52e-f671-4061-86ea-d89c8085535f"}[39m
+[17:24:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"740a1b17-efeb-48b6-8c3a-711659baf615","agentId":"b5254c29-1bdb-470f-961e-1d60dcfa2068","runId":"fc80ef5c-f9cd-4c99-81e7-2a47dcbd19a1"}[39m
+[17:24:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e72f8485-9ac0-4c1e-93c6-ea1d3b844cb9","agentId":"e8fc214c-2e3e-43e2-a690-b40868ccc47c","runId":"b3f7c6df-0bb3-4dc5-a7e5-7421accdca6d"}[39m
+[17:24:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e72f8485-9ac0-4c1e-93c6-ea1d3b844cb9","agentId":"e8fc214c-2e3e-43e2-a690-b40868ccc47c","runId":"47045249-7aca-43fa-a4c3-6705ea55e8ae"}[39m
+[17:24:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"45138eda-ea4e-43cf-9d44-4cc3e1958030","agentId":"2bd0daee-7c08-43b5-a27f-2d71a7b15a91","runId":"f07f4f5b-0987-4bcb-8b98-822da7a575ab"}[39m
+[17:24:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"45138eda-ea4e-43cf-9d44-4cc3e1958030","agentId":"2bd0daee-7c08-43b5-a27f-2d71a7b15a91","runId":"3de5d5d4-b6ff-45c7-8cde-00eb80e6ee5e"}[39m
+[17:24:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"81f5b342-a49f-486c-98a5-49e0e0572d0c","agentId":"d46ecc00-5655-4f49-b931-06711792f897","runId":"d6b61aaa-6344-4b34-bff9-3dbc1760b60b"}[39m
+[17:24:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"81f5b342-a49f-486c-98a5-49e0e0572d0c","agentId":"d46ecc00-5655-4f49-b931-06711792f897","runId":"e03515eb-3f4d-430a-bc43-10d1fdd8c806"}[39m
+[17:24:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"14d0344f-f165-42cd-9151-ad19c4b2f6d0","agentId":"5f14726a-714a-43d0-afa4-31ec5eff04e8","runId":"4e73a0ab-dc0e-4f84-885d-48cd3a54649f"}[39m
+[17:24:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"14d0344f-f165-42cd-9151-ad19c4b2f6d0","agentId":"5f14726a-714a-43d0-afa4-31ec5eff04e8","runId":"4d85ec1b-ce8b-4c55-90ab-198872a7a3e7"}[39m
+[17:24:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"42e9da82-67e6-4d54-b84f-ec205f18584c","agentId":"ae13d409-f81d-4dcf-9032-5499b4e1a321","runId":"2675356b-af4e-48ac-ba6a-1b23a2ca1b9c"}[39m
+[17:24:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"42e9da82-67e6-4d54-b84f-ec205f18584c","agentId":"ae13d409-f81d-4dcf-9032-5499b4e1a321","runId":"5fcc22aa-398a-4bb2-b54b-53e94854afbe"}[39m
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts (22 tests | 7 failed) 5361ms
+     × run A cancelled còn sessionIdAfter, không task session: B nhận đúng session và audit một lần 723ms
+     × cứu session từ sessionIdBefore khi sessionIdAfter null 437ms
+     × cứu session từ resultJson.session_id khi sessionIdAfter null 338ms
+     × cứu session từ resultJson.sessionId khi sessionIdAfter null 350ms
+     × cứu session từ contextSnapshot.resumeSessionParams khi sessionIdAfter null 357ms
+     × run mới nhất của agent khác không che session executor 12ms
+     × Claude: UUID hợp lệ và identity SSH từ context run được giữ 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > run A cancelled còn sessionIdAfter, không task session: B nhận đúng session và audit một lần
+AssertionError: expected null to be 'b84d6e0b-1284-4051-b0f6-5acd2ca12d01' // Object.is equality
+
+- Expected:
+"b84d6e0b-1284-4051-b0f6-5acd2ca12d01"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:80:52
+     78|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+     79|     expect(calls).toHaveLength(1);
+     80|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+     81|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+     82|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:91:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > cứu session từ sessionIdBefore khi sessionIdAfter null
+AssertionError: expected null to be '319f4e1c-0157-4c32-87e2-446b6f878f6d' // Object.is equality
+
+- Expected:
+"319f4e1c-0157-4c32-87e2-446b6f878f6d"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:80:52
+     78|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+     79|     expect(calls).toHaveLength(1);
+     80|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+     81|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+     82|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:97:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > cứu session từ resultJson.session_id khi sessionIdAfter null
+AssertionError: expected null to be '06f1bcda-7eb1-4051-9557-b3807a6aa599' // Object.is equality
+
+- Expected:
+"06f1bcda-7eb1-4051-9557-b3807a6aa599"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:80:52
+     78|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+     79|     expect(calls).toHaveLength(1);
+     80|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+     81|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+     82|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:97:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > cứu session từ resultJson.sessionId khi sessionIdAfter null
+AssertionError: expected null to be '89f8388d-a804-48af-a51a-ddf12ea42022' // Object.is equality
+
+- Expected:
+"89f8388d-a804-48af-a51a-ddf12ea42022"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:80:52
+     78|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+     79|     expect(calls).toHaveLength(1);
+     80|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+     81|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+     82|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:97:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > cứu session từ contextSnapshot.resumeSessionParams khi sessionIdAfter null
+AssertionError: expected null to be 'd718dc50-9660-4d45-ba79-d68dc620ab9b' // Object.is equality
+
+- Expected:
+"d718dc50-9660-4d45-ba79-d68dc620ab9b"
+
++ Received:
+null
+
+ ❯ claim src/crew/crew-bundle-resume.cancelled.test.ts:80:52
+     78|     const calls = execute.mock.calls.filter(([ctx]) => ctx.runId === s…
+     79|     expect(calls).toHaveLength(1);
+     80|     expect(calls[0]![0].runtime.sessionId ?? null).toBe(expected);
+       |                                                    ^
+     81|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+     82|     expect(run?.status).toBe("succeeded");
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:97:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > run mới nhất của agent khác không che session executor
+AssertionError: expected undefined to be 'a9d2a366-8e8b-43ae-ba2a-3b6c00770fed' // Object.is equality
+
+- Expected:
+"a9d2a366-8e8b-43ae-ba2a-3b6c00770fed"
+
++ Received:
+undefined
+
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:112:60
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > Claude: UUID hợp lệ và identity SSH từ context run được giữ
+AssertionError: expected 'skipped' to be 'applied' // Object.is equality
+
+Expected: "applied"
+Received: "skipped"
+
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:120:56
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 15 passed (22)
+   Start at  17:24:19
+   Duration  10.65s (transform 3.40s, setup 92ms, import 5.12s, tests 5.36s, environment 0ms)
+
+undefined
+/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/crew/crew-bundle-resume.cancelled.test.ts

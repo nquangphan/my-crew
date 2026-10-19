@@ -1,1 +1,0 @@
-ALTER TABLE "attachments" ALTER COLUMN "ticket_id" DROP NOT NULL;

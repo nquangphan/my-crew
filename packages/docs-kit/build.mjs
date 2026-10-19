@@ -35,8 +35,6 @@ export async function buildBundle(outfile = DEFAULT_OUTFILE) {
     format: 'cjs',
     banner: { js: '#!/usr/bin/env node' },
     define: { __CREW_DOCS_VERSION__: JSON.stringify(pkg.version) },
-    // crew-docs uses only the docs contracts; bundling them alone keeps the other API schemas out.
-    alias: { '@crew/shared': resolve(here, '..', 'shared', 'src', 'docs-schemas.ts') },
     minifySyntax: true,
     minifyWhitespace: true,
     plugins: [rawTextPlugin],

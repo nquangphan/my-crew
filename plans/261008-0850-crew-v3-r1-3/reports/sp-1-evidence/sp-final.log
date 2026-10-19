@@ -1,0 +1,29 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[14:07:31] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+ ❯ src/__tests__/crew-claim-resume-contract.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/crew-claim-resume-contract.test.ts [ src/__tests__/crew-claim-resume-contract.test.ts ]
+Error: Embedded PostgreSQL unavailable: Failed to start embedded PostgreSQL test database after 5 attempts: embedded Postgres startup failed: Postgres init script exited with code 1. Please check the logs for extra info. The data directory might already exist. Recent embedded Postgres logs: 20 | selecting default "shared_buffers" ... | 400kB | selecting default time zone ... | Asia/Ho_Chi_Minh | creating configuration files ... | ok | running bootstrap script ...
+ ❯ src/__tests__/crew-claim-resume-contract.test.ts:25:31
+     23| });
+     24| const support = await getEmbeddedPostgresTestSupport();
+     25| if (!support.supported) throw new Error(`Embedded PostgreSQL unavailab…
+       |                               ^
+     26| const suite = describe;
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  14:07:28
+   Duration  40.89s (transform 23.44s, setup 144ms, import 0ms, tests 0ms, environment 0ms)
+
+undefined
+/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/__tests__/crew-claim-resume-contract.test.ts

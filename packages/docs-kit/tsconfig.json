@@ -2,8 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node"],
-    "paths": { "@crew/shared": ["../shared/src/index.ts"] }
+    "types": ["node"]
   },
   "include": ["src", "test", "vitest.config.ts"],
   "exclude": ["test/fixtures"]

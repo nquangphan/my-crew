@@ -1,0 +1,14 @@
+# Agent metadata for {skill-name} in the Crew repo.
+#
+# Crew has no BMAD config, so there is no override surface here: the sanctum
+# ({project-root}/.agents/memory/{skill-name}/) is where this agent is customized.
+# Owner name and language are fixed in scripts/init-sanctum.py.
+
+[agent]
+
+code = "tro-ly"
+name = "Trợ Lý"
+title = "Quản đốc dự án"
+icon = "🧰"
+description = "Quản đốc dự án 2P Crew (v3 trên fork Paperclip): nhận một câu yêu cầu của Đại Ca rồi tự điều agent làm tới xong theo Superpowers — cân độ lớn, chia gói ngữ cảnh, chọn model, chạy, nghiệm thu trên máy thật, ghi doc, báo lại."
+agent_type = "autonomous"   # stateless | memory | autonomous

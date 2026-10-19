@@ -25,7 +25,9 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
    docs (áp dụng từ commit docs-init)`) và giữ exit code `0` của `outcome`.
 2. `packages/docs-kit/src/commands/check.ts` → `runCheck(root, mode)`: một trong 5 chế độ
    (`staged`/`commit-msg`/`range`/`pre-push`/`all`), mỗi chế độ gọi đúng tập luật R1–R7 theo bảng ở
-   `STANDARD.md#chế-độ`. `treeRules()` chạy R1 luôn, R2+R4 khi manifest hợp lệ. Commit merge (`isMerging()` từ
+   `STANDARD.md#chế-độ`. `staged` chỉ chạy R7 (`checkSecrets`) để commit nhanh. `treeRules()` chạy R1 luôn,
+   R2+R4 khi manifest hợp lệ. R3 chạy một lần trên cả range qua `rangeFreshness()`: gộp thay đổi của mọi
+   commit sau docs-init và báo lỗi trên head; `commitRules()` chỉ còn R6/R7 cho từng commit. Commit merge (`isMerging()` từ
    `git.ts`, hoặc phát hiện qua `firstParent`) được bỏ qua ở R3 và R6 vì các commit nó mang vào đã được kiểm
    tra riêng khi tạo ra; R1, R2, R4, R7 vẫn chạy. Ba chế độ hook (`staged`/`commit-msg`/`pre-push`) gọi
    `notAdopted()` khi `docs/flows.yaml` thiếu ở cả bản đang xét và bản trước (`headManifest()` cho staged/
@@ -33,7 +35,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
    `CheckOutcome.skipped = 'not-initialized'`, không luật nào chạy, code `0` — để chủ dự án còn commit/push
    được trước khi chạy docs-init; `--all`/`--range` không có lối tắt này, vẫn `uninitialized()` (exit 3).
 3. `packages/docs-kit/src/manifest.ts` → `loadManifest()`/`parseManifest()`: parse YAML (`uniqueKeys: true` để
-   bắt flow id trùng) rồi validate bằng schema `FlowsManifest` (`@crew/shared`); `sourceMatcher()` dùng
+   bắt flow id trùng) rồi validate bằng schema `FlowsManifest` (`packages/docs-kit/src/flows-schema.ts`); `sourceMatcher()` dùng
    `picomatch` để khớp `source.include` trừ `source.exclude`.
 4. `packages/docs-kit/src/tree.ts` → `TreeReader`: trừu tượng hoá một phiên bản repo (working tree, index,
    hoặc một commit qua `git cat-file`/`ls-tree`), để cùng một luật chạy được trên cả ba nguồn.
@@ -51,7 +53,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
    `INIT_CHECKLIST`; `--flow <id> --title` tạo một trang flow từ `templates/flow.md`
    (`renderFlowTemplate()`).
 9. `packages/docs-kit/src/commands/where.ts`/`flow.ts` → `whereCommand()`/`flowCommand()`: tra `flow ↔ file`
-   hai chiều qua `flowsForPath()` (schema `@crew/shared`) cho agent dùng trước khi sửa code.
+   hai chiều qua `flowsForPath()` (`packages/docs-kit/src/flows-schema.ts`) cho agent dùng trước khi sửa code.
 
 ## Files
 
@@ -68,6 +70,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 | `packages/docs-kit/src/commands/io.ts` | Giao diện I/O, mã lỗi CLI | `Io`, `EXIT`, `UsageError` |
 | `packages/docs-kit/src/git.ts` | Bọc lệnh git dùng cho mọi luật | `git`, `stagedChanges`, `commitChanges`, `isMerging`, `hasTrailer` |
 | `packages/docs-kit/src/tree.ts` | Đọc file từ working tree/index/commit | `TreeReader`, `workingTreeReader`, `indexReader`, `commitReader` |
+| `packages/docs-kit/src/flows-schema.ts` | Schema zod của `flows.yaml` và tra chủ sở hữu của một path | `FlowsManifest`, `FlowId`, `flowsForPath`, `FLOWS_MANIFEST_PATH` |
 | `packages/docs-kit/src/manifest.ts` | Parse + truy vấn `flows.yaml` | `loadManifest`, `sourceMatcher`, `mappedPaths`, `flowsListing` |
 | `packages/docs-kit/src/generate.ts` | Sinh/so khớp block tự động | `applyBlock`, `isBlockCurrent`, `blockBody` |
 | `packages/docs-kit/src/secret-scan.ts` | Quét credential trong diff | `scanPatch`, `SECRET_RULES`, `findGitleaks` |
@@ -98,15 +101,15 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 ## Flow liên quan
 
 - docs-hooks: `install-hooks`/`ci-workflow` (flow riêng) dùng cùng bundle và gọi `crew-docs check` qua hook.
-- docs-sync-viewer: `docs/flows.yaml` và các trang `docs/flows/<id>.md` mà công cụ này kiểm tra chính là nội
-  dung được daemon đồng bộ và web hiển thị.
 
 ## Tests
 
-- `packages/docs-kit/test/rules.test.ts`: từng luật R1–R7, cả 5 chế độ `check`, lệnh `where`/`flow`, sinh block
+- `packages/docs-kit/test/rules.test.ts`: từng luật R1–R7, cả 5 chế độ `check`, pre-commit không chặn R2/R3,
+  R3 chấp nhận doc được sửa ở commit sau trong cùng range và báo lỗi trên head, lệnh `where`/`flow`, sinh block
   tự động, hành vi bỏ qua R3/R6 trên commit merge, `--all`/`--range` vẫn báo `NOT_INITIALIZED`, ba chế độ hook
   cho qua với đúng một dòng cảnh báo khi repo chưa có `docs/flows.yaml` ở cả hai bản so sánh, và vẫn từ chối
   (exit 3) khi một commit hay một push xoá manifest khỏi repo đã khởi tạo docs; R6 với `AGENTS.md` ở gốc repo:
   thất bại khi thiếu trailer, đạt với trailer, một `AGENTS.md` lồng trong thư mục con (ví dụ
   `src/checkout/AGENTS.md`) không bị coi là đường dẫn được bảo vệ, và commit docs-init vẫn được miễn như
   `CLAUDE.md`.
+- `packages/docs-kit/test/flows-schema.test.ts`: `flowsForPath()` trả đúng các flow sở hữu một path cùng vai trò, lý do `unassigned` và path lạ.

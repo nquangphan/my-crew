@@ -1,0 +1,147 @@
+import type {
+  CheckResult,
+  DoctorOptions,
+  InstallCrewMacResult,
+  MachineFacts,
+  NodeInfo,
+  SetupOptions,
+  SetupReport,
+  StatusConfig,
+  StatusRepo,
+  StatusTestResult,
+  WorkflowReport,
+} from '@crew/mac';
+import type { JobExtras, JobOutcome, MachineJob } from './jobs/types.js';
+import type { DocsRepairReport } from './projects/docs-runtime.js';
+
+/** Các thao tác của `@crew/mac` chạy trong utilityProcess. Hàm thư viện không nhận `ctx` qua IPC. */
+export interface OpsApi {
+  /**
+   * Dò node ≥ 22 (Homebrew, `~/.crew/node`, shell đăng nhập), không có thì tải Node LTS vào `~/.crew/node`. Kết quả được
+   * nhớ trong utility và dùng làm `nodePath` của mọi thao tác sau (launcher, plist, khối PATH).
+   */
+  ensureNode(): Promise<NodeInfo>;
+  /**
+   * Node thật cho `crew-docs.runtime`: node đang nhớ hoặc dò được, không có thì tải như `ensureNode`. Không có (kể cả
+   * tải lỗi) thì null, không ném.
+   */
+  docsNodePath(): Promise<string | null>;
+  /**
+   * Cài bundle `crew-docs` mang theo (`bundleSrc`) vào `~/.crew/bin/crew-docs.cjs` rồi sửa git config crew-docs của
+   * các repo trong bản tin (`repairDocsConfig`). Lỗi nằm trong báo cáo, không ném.
+   */
+  repairDocsHooks(bundleSrc: string): Promise<DocsRepairReport>;
+  doctor(opts: DoctorOptions): Promise<CheckResult[]>;
+  setup(opts: SetupOptions): Promise<SetupReport>;
+  configureStatus(url: string, companyId: string): StatusConfig;
+  setStatusSecret(secret: string): Promise<void>;
+  /** Ghi secret (key máy hay secret dán tay) vào service Keychain của đích thuộc `companyId`, không đụng đích khác. */
+  setTargetSecret(companyId: string, secret: string): Promise<void>;
+  /** Gửi đúng một bản tin máy tới đích của `companyId` để kiểm secret với server; không ghi `status-last.json`. */
+  testStatus(companyId: string): Promise<StatusTestResult>;
+  /** IP Tailscale, cổng, thư mục, dòng known_hosts, fingerprint host key, user và tên máy để ghép máy. */
+  machineFacts(): Promise<MachineFacts>;
+  /** `companyId`: company nhận ảnh chụp docs của repo (thiếu thì là company của đích đầu tiên). */
+  addStatusRepo(projectId: string, path: string, companyId?: string): void;
+  removeStatusRepo(projectId: string): void;
+  listStatusRepos(): StatusRepo[];
+  installCrewMacFrom(srcDir: string): Promise<InstallCrewMacResult>;
+  sendStatus(): Promise<void>;
+  workflowCheck(input: { root: string; pluginDir: string }): Promise<WorkflowReport>;
+  /** Máy và các đích của bản tin (`~/.crew/status.json`): hàng đợi việc trên máy hỏi từng đích. */
+  jobTargets(): { machineId: string | null; targets: { url: string; companyId: string }[] };
+  /** Làm một việc của hàng đợi máy trên máy này (git, file, crew-mac). Không bao giờ ném: lỗi thành `failed`. */
+  runMachineJob(job: MachineJob, extras: JobExtras): Promise<JobOutcome>;
+  /** Giết mọi `git` (cùng con cháu) việc máy đang chạy. */
+  cancelMachineJob(): Promise<void>;
+}
+
+export type OpsName = keyof OpsApi;
+
+export interface OpsBridge {
+  call<K extends OpsName>(op: K, ...args: Parameters<OpsApi[K]>): Promise<Awaited<ReturnType<OpsApi[K]>>>;
+}
+
+/** Thông điệp Main → utility. */
+export interface OpsRequest {
+  id: number;
+  op: string;
+  args: unknown[];
+}
+
+/** Thông điệp utility → Main. */
+export type OpsResponse =
+  | { id: number; ok: true; result: unknown }
+  | { id: number; ok: false; error: { name: string; message: string } };
+
+/** Phần của `UtilityProcess` mà cầu nối dùng (để test bằng EventEmitter giả). */
+export interface UtilityLike {
+  postMessage(message: OpsRequest): void;
+  on(event: 'message', listener: (message: OpsResponse) => void): unknown;
+  on(event: 'exit', listener: (code: number | null) => void): unknown;
+  kill(): unknown;
+}
+
+const CRASHED = 'Tiến trình phụ dừng bất thường';
+
+interface Pending {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+}
+
+/**
+ * Gọi `@crew/mac` trong utilityProcess, một lời gọi một `id`. Utility chết giữa chừng thì mọi lời gọi đang chờ
+ * bị reject và lần gọi sau tự `fork` lại. Không ghi tham số vào log: `setStatusSecret` và `setTargetSecret` mang secret.
+ */
+export class UtilityOpsBridge implements OpsBridge {
+  private child: UtilityLike | null = null;
+  private nextId = 1;
+  private readonly pending = new Map<number, Pending>();
+
+  constructor(private readonly fork: () => UtilityLike) {}
+
+  call<K extends OpsName>(op: K, ...args: Parameters<OpsApi[K]>): Promise<Awaited<ReturnType<OpsApi[K]>>> {
+    return new Promise((resolve, reject) => {
+      const child = this.ensureChild();
+      const id = this.nextId++;
+      this.pending.set(id, { resolve: resolve as (value: unknown) => void, reject });
+      child.postMessage({ id, op, args });
+    });
+  }
+
+  dispose(): void {
+    const child = this.child;
+    this.child = null;
+    this.rejectAll(new Error(CRASHED));
+    child?.kill();
+  }
+
+  private ensureChild(): UtilityLike {
+    if (this.child) return this.child;
+    const child = this.fork();
+    this.child = child;
+    child.on('message', (message) => {
+      const waiter = this.pending.get(message.id);
+      if (!waiter) return;
+      this.pending.delete(message.id);
+      if (message.ok) {
+        waiter.resolve(message.result);
+        return;
+      }
+      const error = new Error(message.error.message);
+      error.name = message.error.name;
+      waiter.reject(error);
+    });
+    child.on('exit', () => {
+      if (this.child === child) this.child = null;
+      this.rejectAll(new Error(CRASHED));
+    });
+    return child;
+  }
+
+  private rejectAll(error: Error): void {
+    const waiting = [...this.pending.values()];
+    this.pending.clear();
+    for (const waiter of waiting) waiter.reject(error);
+  }
+}

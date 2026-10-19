@@ -1,0 +1,12 @@
+# GHI CHÚ: fixture DỰNG TAY từ argv adapter codex_local (codex-args.ts) và bằng chứng `codex app-server` đo ở SP-C
+# (ps -E -axww đọc được env binary codex qua sshd; argv[0] giữ đường symlink ~/.local/bin/codex). Chưa chụp từ
+# `codex exec` thật. Mỗi mục "# tree|argv|env" là đầu ra của ps tương ứng trong process-table.ts.
+# tree
+84305     1 84305 ??          00:06 zsh
+84310 84305 84305 ??          00:05 codex
+# argv
+84305 zsh
+84310 /Users/a/.local/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-6-luna -c model_reasoning_effort="low" -
+# env
+84305 zsh
+84310 /Users/a/.local/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-6-luna -c model_reasoning_effort="low" - CODEX_HOME=<bỏ> PAPERCLIP_RUN_ID=b8d37c86-3edb-4634-953c-64a1a654ab41 SHELL=<bỏ> TMPDIR=<bỏ> SSH_CLIENT=<bỏ> USER=<bỏ> PATH=<bỏ> PWD=<bỏ> SHLVL=<bỏ> HOME=<bỏ> LOGNAME=<bỏ> SSH_CONNECTION=<bỏ> _=<bỏ>

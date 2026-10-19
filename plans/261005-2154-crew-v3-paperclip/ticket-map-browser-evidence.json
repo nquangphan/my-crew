@@ -1,0 +1,23 @@
+{
+  "verifiedAt": "2026-10-05T16:13:26.081Z",
+  "fixRound": 1,
+  "scope": "Artifact offline; fixture all-accepted/empty không phải gate release thật; không chứng nhận Crew API/DB",
+  "browser": "Chromium headless; Playwright 1.63.0 hiện có",
+  "sourceSha": "236b6b1e39a007ef7b15368588985cf63878186c0a9eb679ef3d81161050823f",
+  "generatedAt": "05/10/2026 23:11:52",
+  "workItemCount": 31,
+  "results": [
+    "31 work items và SHA từ ledger; PM-02 fixing chiếu đúng",
+    "Click/Enter mở đúng dialog; Escape/focus return và Tab giữ trong dialog",
+    "Search/no results/filter state/R2 kể cả task dùng chung giữ đúng",
+    "Zoom/reset/dependency toggle và cạnh cổng release R1 giữ đúng",
+    "390×844 không tràn body; vừa ngang và dialog đúng",
+    "REGRESSION all-child-accepted/no gate: tất cả root/release/phase đều trung tính, chỉ leaf task xanh; dialog ghi rõ thống kê task con",
+    "REGRESSION empty aggregate: không accepted, trạng thái trống rõ ràng",
+    "Injection title/evidence vẫn chỉ text, không chèn DOM/chạy mã",
+    "0 console/page errors và 0 external requests"
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "processCleanup": "Browser đóng trong finally; không mở server/port"
+}

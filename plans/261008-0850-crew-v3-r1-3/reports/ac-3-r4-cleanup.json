@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-08T11:14:45.060065+00:00",
+  "active": [],
+  "activeLeases": [],
+  "originMain": "5bcc3034837f1aa2762f565ca1e381c22672bb16",
+  "ownerWipSHA256": "df2eb96d9f84ab66c8140324b7e9f4700f6404c82fe5499771f64f1941d598b7",
+  "forkStatus": "",
+  "forkHead": "01d07bdd6abfde2429a0a1c2fa38d2e1dc49a672",
+  "executorGitStatus": "",
+  "executorHead": "0a401a245df2e12aee570d62a0fd476781119119 feat(CRE-45): greetAll nhận lang và truyền xuống greet",
+  "claudeProcesses": [
+    "58305 57355 04-08:58:30 claude",
+    "49360 85453    19:37:15 claude",
+    "79225 78864 21-11:47:24 claude",
+    "80511 80106 21-11:47:15 claude",
+    "72637 87028    19:24:25 claude"
+  ],
+  "environments": [
+    {
+      "id": "f92f5dd8-fd34-47df-95a8-6adb87e49ec8",
+      "name": "mac-mini",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "02600795-4017-45d0-a07c-4ddad7b53444",
+      "name": "mac-mini-assistant",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "5e7aa9c4-531c-4fe8-a6d5-fcd4816a244e",
+      "name": "mac-mini-executor-2",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "ffd322ff-670a-4e9c-bab1-6341cb2d38cc",
+      "name": "mac-mini-integrator",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    },
+    {
+      "id": "c37a8692-77b3-4d4a-8f92-2b02bde38ec6",
+      "name": "mac-mini-reviewer",
+      "crewLoadGate": {
+        "maxLoad1": 16,
+        "maxWaitMinutes": 60
+      }
+    }
+  ]
+}

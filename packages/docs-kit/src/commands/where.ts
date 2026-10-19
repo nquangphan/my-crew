@@ -1,4 +1,4 @@
-import { flowsForPath } from '@crew/shared';
+import { flowsForPath } from '../flows-schema.js';
 import { FLOWS_MANIFEST_PATH, sourceMatcher } from '../manifest.js';
 import { EXIT, type Io } from './io.js';
 import { lookupManifest, repoRelative } from './lookup.js';

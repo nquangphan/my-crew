@@ -1,9 +1,9 @@
 # AGENTS.md
 
-Hướng dẫn cho agent (và người) làm việc trong repo này. Repo `crew` là pnpm TypeScript monorepo cho **2P
-Crew**: `apps/api` (Fastify + Drizzle + PostgreSQL), `apps/web` (React 19 + Vite + TanStack Router/Query),
-`apps/daemon` (daemon `crewd` chạy agent Claude Code trên máy local qua Agent SDK), `packages/shared` (schema
-zod dùng chung) và `packages/docs-kit` (CLI `crew-docs`).
+Hướng dẫn cho agent (và người) làm việc trong repo này. Repo `crew` là pnpm TypeScript monorepo của **2P
+Crew**. Sản phẩm Crew v3 chạy trên bản fork Paperclip nằm ở repo khác; repo này chỉ giữ `apps/crew-mac` (CLI
+`crew-mac` cài và kiểm Mac chạy agent), `apps/mac-app` (app macOS "2P Crew" bằng Electron, bọc `@crew/mac`,
+ký Developer ID), `packages/docs-kit` (CLI `crew-docs`), cùng `docs/` và `plans/`.
 
 ## Đọc trước tiên
 
@@ -15,20 +15,16 @@ zod dùng chung) và `packages/docs-kit` (CLI `crew-docs`).
 ## Lệnh
 
 - Cài đặt: `pnpm install`
-- Database dev/test (Postgres, container `crew-dev-postgres` trên `127.0.0.1:55432` — không bao giờ dùng cổng
-  5432 mặc định): `docker compose -f docker-compose.dev.yml up -d --wait`
 - Typecheck: `pnpm -r typecheck`
 - Test (tất cả package): `pnpm -r test`
-- Test E2E (web, Playwright, có server và DB riêng): `pnpm --filter @crew/web test:e2e`
 - Lint (biome, toàn repo): `pnpm lint`
 - Build (tất cả package): `pnpm -r build`
-- Chạy API dev (cổng 8787 mặc định, cần `DATABASE_URL`, `SESSION_SECRET` ≥ 32 ký tự, `PUBLIC_ORIGIN`):
-  `pnpm --filter @crew/api dev`
-- Chạy web dev (cổng 5173, proxy `/v1` sang API): `pnpm --filter @crew/web dev`
-- Migrate DB: `pnpm --filter @crew/api db:migrate`
-- Build bundle `crew-docs`: `pnpm --filter @crew/docs-kit build`
-
-Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
+- Build bundle `crew-docs`: `pnpm --filter @crew/docs-kit build` (ra `packages/docs-kit/dist/crew-docs.cjs`)
+- Build `crew-mac`: `pnpm --filter @crew/mac build` (ra `apps/crew-mac/dist/cli.js`)
+- Build app macOS: `pnpm --filter @crew/mac-app build` (electron-vite, ra `apps/mac-app/out/`). Đóng gói thử:
+  `pnpm --filter @crew/mac-app release --dev-sign --no-publish` (ký Apple Development, không đăng) hoặc `--dry-run`
+  (không ký, chỉ thử build). Không gọi `electron-builder` trực tiếp để đóng gói không ký: bản đã lật fuse mà không có
+  chữ ký hợp lệ bị kernel giết (mã 137), và `electron-builder` không tự build lại `@crew/mac`.
 
 ## Quy ước
 
@@ -38,9 +34,10 @@ Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
 - Commit theo Conventional Commits.
 - Lint/format bằng Biome (`biome.json` ở gốc repo); không dùng ESLint/Prettier.
 
-## Docs đi cùng mỗi commit
+## Docs đi cùng mỗi lần push
 
-- Commit nào đổi file nguồn cũng phải sửa `docs/flows/<id>.md` của mọi flow chứa file đó (luật R3).
+- Mỗi lần push hoặc merge, nếu tập commit đổi file nguồn thì phải có commit (trong cùng lần đó) sửa
+  `docs/flows/<id>.md` của mọi flow chứa file đó (luật R3). Từng commit riêng lẻ không cần tự sửa docs.
 - File nguồn mới phải có mặt trong một flow của `docs/flows.yaml` (luật R2).
 - Sửa `docs/flows.yaml` xong thì chạy bundle `crew-docs generate` (build bằng
   `pnpm --filter @crew/docs-kit build`, ra `packages/docs-kit/dist/crew-docs.cjs`).
@@ -49,4 +46,5 @@ Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
   `Crew-Owner-Approved: <ticket-key>`.
 - Commit khởi tạo docs (thêm `docs/flows.yaml` lần đầu) cần trailer `Crew-Docs-Init: true`.
 - Không bao giờ commit credential (luật R7).
-- Kiểm tra trước khi commit: `crew-docs check --staged`.
+- Pre-commit chỉ chặn credential (`crew-docs check --staged`, R7). Kiểm docs trước khi push:
+  `crew-docs check --range <base>..HEAD`.

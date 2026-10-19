@@ -1,1 +1,0 @@
-ALTER TYPE "public"."project_change_status" ADD VALUE 'withdrawn';

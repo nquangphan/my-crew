@@ -1,0 +1,12 @@
+# GIẢ ĐỊNH (A5, chưa đo thật vì chưa có key OpenCode Go): dựng theo mẫu `opencode run` của SP-K/spec. Cần kiểm lại
+# bằng `ps -E -axww` khi SP-O chạy: basename `opencode` hay `.opencode` (shim Homebrew), subcommand `run`, env
+# PAPERCLIP_RUN_ID đọc được. Sai thì sửa fixture này và hằng trong run-members.ts (FX-O).
+# tree
+85305     1 85305 ??          00:06 zsh
+85310 85305 85305 ??          00:05 opencode
+# argv
+85305 zsh
+85310 /opt/homebrew/bin/opencode run --format json --model opencode-go/kimi-k3 --dir /Users/a/crew-agents/repo-a
+# env
+85305 zsh
+85310 /opt/homebrew/bin/opencode run --format json --model opencode-go/kimi-k3 --dir /Users/a/crew-agents/repo-a OPENCODE_CONFIG_CONTENT=<bỏ> CREW_OPENCODE_GO_KEY=<bỏ> PAPERCLIP_RUN_ID=c9e48d97-4edb-4634-953c-64a1a654ab42 HOME=<bỏ> PATH=<bỏ> PWD=<bỏ>

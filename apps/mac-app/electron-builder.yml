@@ -1,0 +1,63 @@
+# Đóng gói 2P Crew (bundle com.2p-solutions.crew.mac). Danh tính ký lấy từ biến CSC_NAME lúc chạy, không ghi vào
+# file này. Ký, notarize và đăng do scripts/release.mjs làm (luôn chạy electron-builder với --publish never).
+appId: com.2p-solutions.crew.mac
+productName: 2P Crew
+copyright: Copyright © 2P Solutions
+directories:
+  output: dist
+  buildResources: build
+asar: true
+# Bản crew-mac đã build (apps/crew-mac/dist) mang theo để app cài ra ~/.crew/app/crew-mac.
+extraResources:
+  - from: ../crew-mac
+    to: crew-mac
+    filter:
+      - package.json
+      - dist/**
+      - assets/**
+  # Bundle crew-docs (packages/docs-kit/dist) mang theo để app cài ra ~/.crew/bin/crew-docs.cjs cho hook docs.
+  - from: ../../packages/docs-kit/dist/crew-docs.cjs
+    to: crew-docs.cjs
+  # Helper quay lui của updater (chạy bằng /bin/sh, tách rời khỏi app).
+  - from: src/main/update/rollback-helper.sh
+    to: rollback-helper.sh
+files:
+  - out/**
+  - package.json
+# Fuse Electron lật trong binary lúc đóng gói. Board key Paperclip nằm trong Keychain qua safeStorage, mà ACL của
+# nó tin chính app này: nếu binary còn chạy được như node (ELECTRON_RUN_AS_NODE, NODE_OPTIONS, --inspect) thì agent
+# cùng user chạy mã tùy ý dưới danh tính app và giải mã được key. App chỉ dùng utilityProcess (không child_process.fork
+# vào chính binary) nên tắt runAsNode an toàn. Không đụng grantFileProtocolExtraPrivileges (renderer nạp bằng file://),
+# enableCookieEncryption (app không dùng cookie) và loadBrowserProcessSpecificV8Snapshot (cần file snapshot riêng).
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+mac:
+  target:
+    - { target: zip, arch: [arm64] }
+    - { target: dmg, arch: [arm64] }
+  artifactName: 2P-Crew-${version}-${arch}-mac.${ext}
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  extendInfo:
+    LSUIElement: false
+    NSDocumentsFolderUsageDescription: Agent Crew chạy trên máy này cần đọc và ghi mã nguồn trong thư mục Tài liệu.
+    NSDesktopFolderUsageDescription: Agent Crew chạy trên máy này cần truy cập thư mục Màn hình nền khi việc yêu cầu.
+    NSDownloadsFolderUsageDescription: Agent Crew chạy trên máy này cần truy cập thư mục Tải về khi việc yêu cầu.
+    NSRemovableVolumesUsageDescription: Agent Crew chạy trên máy này cần truy cập ổ đĩa ngoài khi việc yêu cầu.
+dmg:
+  title: 2P Crew ${version}
+  artifactName: 2P-Crew-${version}-${arch}.${ext}
+# Kênh phát hành của updater: electron-builder sinh Contents/Resources/app-update.yml và latest-mac.yml từ mục này.
+publish:
+  provider: github
+  owner: nquangphan
+  repo: crew-mac-releases
+  releaseType: release

@@ -1,0 +1,78 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[17:27:45] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[17:27:49] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f981de3f-5a46-49d4-935e-db6084e4e0c9","agentId":"1109096a-7bb2-4972-beae-7cabd8b2e0e8","runId":"612cc87b-3c5e-4f54-bde9-037b56cb3ab7"}[39m
+[17:27:50] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f981de3f-5a46-49d4-935e-db6084e4e0c9","agentId":"1109096a-7bb2-4972-beae-7cabd8b2e0e8","runId":"a495094e-dd36-4ce9-99cd-d3b32e3084a0"}[39m
+[17:27:50] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"32e6d0ad-e722-4cbd-94b9-49eafab8db6e","agentId":"b3245ba1-047c-47e4-8c00-60bc3c11d297","runId":"e6a1b047-731d-4e64-b9e0-363f0ad3cecb"}[39m
+[17:27:50] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"32e6d0ad-e722-4cbd-94b9-49eafab8db6e","agentId":"b3245ba1-047c-47e4-8c00-60bc3c11d297","runId":"c84e7ed7-1048-41d4-8d83-6aba65efba5e"}[39m
+[17:27:51] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3932d506-ff89-4da7-8b93-181165660910","agentId":"047dcfec-fb7a-4b6a-8c95-c118005987cb","runId":"cefe924e-24bf-4cf4-a0e2-d11227c658e0"}[39m
+[17:27:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3932d506-ff89-4da7-8b93-181165660910","agentId":"047dcfec-fb7a-4b6a-8c95-c118005987cb","runId":"6e6024bd-9a4e-4fcf-beee-7df6989fcf3b"}[39m
+[17:27:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"773820f3-0178-4a9c-8c18-55fb0dad39e8","agentId":"12144934-cc06-4717-91fb-4f319143b4d1","runId":"d222fc6a-b450-43cb-afe6-943a3a90e350"}[39m
+[17:27:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"44d09891-b9ca-4ba7-9a25-8f153c7fe63c","agentId":"ae0ac031-d31d-464a-b3c1-8d62ef2d4816","runId":"6793609a-5c18-4207-9db9-e2859af7dc9c"}[39m
+[17:27:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1faadada-8d72-4c5a-a1f7-42bdebb55031","agentId":"8ab7a0a7-750e-4002-a84b-34c797eef284","runId":"23426916-73ee-4788-a33c-1d619c6bb043"}[39m
+[17:27:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a1042169-40d6-443c-97a0-9be411ddecfe","agentId":"4b527468-7ab3-49c9-81f4-ae9547a06cb0","runId":"80905dc0-4a94-4a6c-bbfc-1312e0365fe9"}[39m
+[17:27:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"773820f3-0178-4a9c-8c18-55fb0dad39e8","agentId":"12144934-cc06-4717-91fb-4f319143b4d1","runId":"bd5badd2-0cc3-4e0b-bb0b-420038937637"}[39m
+[17:27:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"44d09891-b9ca-4ba7-9a25-8f153c7fe63c","agentId":"ae0ac031-d31d-464a-b3c1-8d62ef2d4816","runId":"30ad8e88-a0de-495c-a375-3cde2aa77fe4"}[39m
+[17:27:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1faadada-8d72-4c5a-a1f7-42bdebb55031","agentId":"8ab7a0a7-750e-4002-a84b-34c797eef284","runId":"aee48195-2fa1-4374-8da9-8949c2f9b524"}[39m
+[17:27:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a1042169-40d6-443c-97a0-9be411ddecfe","agentId":"4b527468-7ab3-49c9-81f4-ae9547a06cb0","runId":"f111b359-e83b-4b96-815d-753d6a2a6dd4"}[39m
+[17:27:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7d449323-b32e-439c-aaff-020ef75ea86c","agentId":"597c3582-5427-4077-aca1-b0197bed83b5","runId":"7a0765e3-a7d6-4c2e-b888-55401c03ea22"}[39m
+[17:27:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7d449323-b32e-439c-aaff-020ef75ea86c","agentId":"597c3582-5427-4077-aca1-b0197bed83b5","runId":"d4839fe9-5233-4f1f-a39a-98de0a45b547"}[39m
+[17:27:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"950dc96a-165d-4955-bf4a-f8dcaa65d42e","agentId":"1ccac18a-b3d2-4e21-9d47-569f99b1001f","runId":"d0437111-7e61-4f84-84e3-1fa1c5275475"}[39m
+[17:27:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"950dc96a-165d-4955-bf4a-f8dcaa65d42e","agentId":"1ccac18a-b3d2-4e21-9d47-569f99b1001f","runId":"184a3eef-fb3d-4bfa-a682-e06d7dd7a1b4"}[39m
+[17:28:05] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[17:28:16] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"633d31d0-2727-4132-b75b-dcc54a25bfd8","agentId":"492536f3-78b4-4c8b-b52b-cd127f97dd40","runId":"c03e3aca-46ef-4201-bfa1-f000384cb72a"}[39m
+[17:28:16] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"633d31d0-2727-4132-b75b-dcc54a25bfd8","agentId":"492536f3-78b4-4c8b-b52b-cd127f97dd40","runId":"de594afc-3400-47ae-ba48-0d0b832a5c34"}[39m
+[17:28:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fbc1e74f-56cd-4d2a-baa7-0ee674d5d1e9","agentId":"f63f4ec5-e317-41a7-a0c3-3e6d7825f3db","runId":"e29bde5e-8155-4fe0-9245-0f9fb874e87f"}[39m
+[17:28:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fbc1e74f-56cd-4d2a-baa7-0ee674d5d1e9","agentId":"f63f4ec5-e317-41a7-a0c3-3e6d7825f3db","runId":"64fd0eb9-f587-4850-a5b6-9ad5655187f9"}[39m
+[17:28:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9cb50267-8782-481f-aea6-337866a2c0eb","agentId":"7b18c248-2fd3-4b58-a659-e28c844b1bba","runId":"edbc86a9-679a-467e-b61d-52c47b026562"}[39m
+[17:28:17] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9cb50267-8782-481f-aea6-337866a2c0eb","agentId":"7b18c248-2fd3-4b58-a659-e28c844b1bba","runId":"7e778773-b966-4f3f-8d3b-ac9fe6b05c75"}[39m
+[17:28:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b514dd4c-5bb9-4463-8ae0-5c251f322bb8","agentId":"d2dba7f4-28c2-4119-a7d1-30ee5abccf15","runId":"c2cb2c04-2231-4cee-b2e5-eaa5d6b68845"}[39m
+[17:28:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b514dd4c-5bb9-4463-8ae0-5c251f322bb8","agentId":"d2dba7f4-28c2-4119-a7d1-30ee5abccf15","runId":"1ab05582-9553-446d-805a-eba26ebf44fe"}[39m
+[17:28:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0518da5e-3eae-4b73-8c61-d7d40adebf8c","agentId":"89b6d738-2a0c-4644-9756-2c9f1513437d","runId":"4b850d39-2257-43f8-bae9-9969bb5811be"}[39m
+[17:28:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0518da5e-3eae-4b73-8c61-d7d40adebf8c","agentId":"89b6d738-2a0c-4644-9756-2c9f1513437d","runId":"e94654a1-1a20-47e6-85d9-89879a68666b"}[39m
+[17:28:18] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"aef32059-805d-40ba-a383-4f3bda5831ba","agentId":"47c85707-6ed3-4b50-845d-62717d137c26","runId":"bff22950-3d12-47b1-b7d4-eaa96d09652f"}[39m
+[17:28:19] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"aef32059-805d-40ba-a383-4f3bda5831ba","agentId":"47c85707-6ed3-4b50-845d-62717d137c26","runId":"66b4eb6f-1edb-4db8-b528-2c1ac86ef608"}[39m
+[17:28:20] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[17:28:26] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a8d038d8-276b-4f6c-8738-af508638180f","agentId":"68b9870f-2113-4045-8a60-36f57fa3ca28","runId":"810ab129-85a0-4405-85b6-de20d93513d0"}[39m
+[17:28:26] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a8d038d8-276b-4f6c-8738-af508638180f","agentId":"68b9870f-2113-4045-8a60-36f57fa3ca28","runId":"60fd33ec-7601-4ef2-acc3-61ad18bf1234"}[39m
+[17:28:27] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ec9a61aa-3ec1-459d-8db2-40abf8fd2119","agentId":"83bcd5c4-97c4-47b2-88dc-2ea361d8730a","runId":"e41f2cf4-231c-49da-9662-70f90e3b6ce5"}[39m
+[17:28:27] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ec9a61aa-3ec1-459d-8db2-40abf8fd2119","agentId":"83bcd5c4-97c4-47b2-88dc-2ea361d8730a","runId":"8b5eb1e6-c354-49e6-a7a1-d5952010fb99"}[39m
+[17:28:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5578ecae-23fb-42ef-b374-8fd539f20e09","agentId":"1675b1e5-6f66-46ed-8f2f-598625338cc3","runId":"85c6a30b-e97b-48ec-b0d4-abdde5c74b20"}[39m
+[17:28:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5578ecae-23fb-42ef-b374-8fd539f20e09","agentId":"1675b1e5-6f66-46ed-8f2f-598625338cc3","runId":"7bf1cee3-48ab-48ce-8372-4deb63bf45a0"}[39m
+[17:28:30] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[17:28:30] [33mWARN[39m: [36mcrew-load-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:488:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:268:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:295:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:265:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/load-gate.ts:708:18)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:84:15)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:96:43)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-core-hooks.test.ts:50:21
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    }
+[17:28:30] [33mWARN[39m: [36mcrew onRunLeaseReleased failed; releasing the lease anyway[39m [90m{"leaseId":"lease-1","environmentId":"env-1","status":"expired"}[39m
+    err: {
+      "type": "Error",
+      "message": "ssh timeout",
+      "stack":
+          Error: ssh timeout
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/__tests__/crew-core-hooks.test.ts:108:15)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:107:39
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/crew/core-hooks.ts:105:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server/src/services/environment-runtime.ts:1209:7)
+    }
+
+ Test Files  4 passed (4)
+      Tests  64 passed (64)
+   Start at  17:27:39
+   Duration  50.80s (transform 5.06s, setup 313ms, import 21.22s, tests 28.77s, environment 0ms)
+

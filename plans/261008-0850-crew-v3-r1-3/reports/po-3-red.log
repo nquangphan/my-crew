@@ -1,0 +1,608 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-policy/server
+
+[15:01:46] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[15:01:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+ ❯ src/__tests__/crew-agent-config.test.ts (39 tests | 28 failed) 5308ms
+     × đặt đúng một hook chung trên agent router và đăng ký test 6ms
+     × agent PATCH actor command bị 422 và DB không đổi 265ms
+     × agent PATCH actor extraArgs bị 422 và DB không đổi 41ms
+     × agent PATCH actor env bị 422 và DB không đổi 52ms
+     × agent PATCH actor model bị 422 và DB không đổi 57ms
+     × agent PATCH other command bị 422 và DB không đổi 35ms
+     × agent PATCH other extraArgs bị 422 và DB không đổi 30ms
+     × agent PATCH other env bị 422 và DB không đổi 33ms
+     × agent PATCH other model bị 422 và DB không đổi 27ms
+     × agent POST agents command bị 422 và không tạo agent 33ms
+     × agent POST agents extraArgs bị 422 và không tạo agent 31ms
+     × agent POST agents env bị 422 và không tạo agent 27ms
+     × agent POST agents model bị 422 và không tạo agent 22ms
+     × agent POST agent-hires command bị 422 và không tạo agent 35ms
+     × agent POST agent-hires extraArgs bị 422 và không tạo agent 21ms
+     × agent POST agent-hires env bị 422 và không tạo agent 25ms
+     × agent POST agent-hires model bị 422 và không tạo agent 26ms
+     × cấu hình Crew invalid vẫn chặn 19ms
+     × agent rollback command bị 422 và DB không đổi 22ms
+     × agent rollback extraArgs bị 422 và DB không đổi 18ms
+     × agent rollback env bị 422 và DB không đổi 16ms
+     × agent rollback model bị 422 và DB không đổi 24ms
+     × agent không thể xóa ghim bằng thay toàn bộ cấu hình hoặc adapter 20ms
+     × agent không thể xóa ghim bằng thay toàn bộ cấu hình hoặc adapter 19ms
+     × rollback snapshot thiếu key vẫn bị chặn 27ms
+     × không vượt guard bằng URL alias 29ms
+     × không vượt guard bằng URL encoded 18ms
+     × không vượt guard bằng URL uppercase 20ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > agent config hook registration > đặt đúng một hook chung trên agent router và đăng ký test
+AssertionError: Target cannot be null or undefined.
+ ❯ src/__tests__/crew-agent-config.test.ts:31:67
+     29|   it("đặt đúng một hook chung trên agent router và đăng ký test", () =…
+     30|     const source = readFileSync(new URL("../routes/agents.ts", import.…
+     31|     expect(source.match(/crewCoreHooks\.beforeAgentMutation\(/g)).toHa…
+       |                                                                   ^
+     32|     const registry = JSON.parse(readFileSync(new URL("../../../crew/re…
+     33|     expect(registry.entries.filter((entry: { kind: string }) => entry.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH actor command bị 422 và DB không đổi
+AssertionError: {"id":"c8f82b48-339d-46ca-8524-09ad404c5007","companyId":"f9d62deb-672f-48de-9fda-9c66756fc254","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"orchid-peach"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"/bin/sh","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.460Z","updatedAt":"2026-10-08T08:01:56.612Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/orchid-peach/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"c8f82b48-339d-46ca-8524-09ad404c5007","companyId":"f9d62deb-672f-48de-9fda-9c66756fc254","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH actor extraArgs bị 422 và DB không đổi
+AssertionError: {"id":"84840f67-7df9-4d97-8a30-cdcd83781097","companyId":"f00b7be5-2bd8-4821-8a56-44cf77f75992","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"orchid-peach"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":[],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.647Z","updatedAt":"2026-10-08T08:01:56.673Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/orchid-peach/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"84840f67-7df9-4d97-8a30-cdcd83781097","companyId":"f00b7be5-2bd8-4821-8a56-44cf77f75992","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH actor env bị 422 và DB không đổi
+AssertionError: {"id":"0a4175d2-f232-45fa-bd25-11dfb6c20874","companyId":"2699eb9c-7277-411e-8dd5-a7275d1aa534","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"arctic-blue"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":["--plugin-dir","/crew/pinned"],"env":{}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.687Z","updatedAt":"2026-10-08T08:01:56.719Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/arctic-blue/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"0a4175d2-f232-45fa-bd25-11dfb6c20874","companyId":"2699eb9c-7277-411e-8dd5-a7275d1aa534","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH actor model bị 422 và DB không đổi
+AssertionError: {"id":"2452c275-36c5-4b17-88e5-5af5930a5b0b","companyId":"4d576969-8b8f-49dd-ab2c-d20c84f1d808","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"solar-flare"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-fable-5","command":"crew-claude-run","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.739Z","updatedAt":"2026-10-08T08:01:56.782Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/solar-flare/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"2452c275-36c5-4b17-88e5-5af5930a5b0b","companyId":"4d576969-8b8f-49dd-ab2c-d20c84f1d808","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH other command bị 422 và DB không đổi
+AssertionError: {"id":"e1da3477-63b9-435b-b250-3599f8afdc65","companyId":"25185256-f70f-4f3c-a798-2be15aba3873","name":"Peer","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"bubblegum-sky"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"/bin/sh","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.796Z","updatedAt":"2026-10-08T08:01:56.814Z","urlKey":"peer","avatarUrl":"/api/agent-avatars/cap-v1/bubblegum-sky/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"e1da3477-63b9-435b-b250-3599f8afdc65","companyId":"25185256-f70f-4f3c-a798-2be15aba3873","name":"Peer","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH other extraArgs bị 422 và DB không đổi
+AssertionError: {"id":"172d199c-1f2b-44e6-b593-efe202e413fb","companyId":"2f4248bd-47b3-4156-895b-846fb6d7dff9","name":"Peer","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"orchid-peach"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":[],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.830Z","updatedAt":"2026-10-08T08:01:56.846Z","urlKey":"peer","avatarUrl":"/api/agent-avatars/cap-v1/orchid-peach/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"172d199c-1f2b-44e6-b593-efe202e413fb","companyId":"2f4248bd-47b3-4156-895b-846fb6d7dff9","name":"Peer","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH other env bị 422 và DB không đổi
+AssertionError: {"id":"aceb2707-7bcf-4627-9bbf-2008b077ff62","companyId":"c6e45f41-4da3-4625-8768-ed6522168ac6","name":"Peer","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"flamingo-jade"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":["--plugin-dir","/crew/pinned"],"env":{}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.861Z","updatedAt":"2026-10-08T08:01:56.877Z","urlKey":"peer","avatarUrl":"/api/agent-avatars/cap-v1/flamingo-jade/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"aceb2707-7bcf-4627-9bbf-2008b077ff62","companyId":"c6e45f41-4da3-4625-8768-ed6522168ac6","name":"Peer","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent PATCH other model bị 422 và DB không đổi
+AssertionError: {"id":"861c344f-de82-435e-9e2f-2002a1377259","companyId":"59c9e832-4531-486b-96a9-84b0f9c407ba","name":"Peer","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"pink-lemonade"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-fable-5","command":"crew-claude-run","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.894Z","updatedAt":"2026-10-08T08:01:56.908Z","urlKey":"peer","avatarUrl":"/api/agent-avatars/cap-v1/pink-lemonade/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"861c344f-de82-435e-9e2f-2002a1377259","companyId":"59c9e832-4531-486b-96a9-84b0f9c407ba","name":"Peer","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:109:62
+    107|       const before = await snapshot(c.companyId);
+    108|       const response = await request(app(c)).patch(`/api/agents/${c[ta…
+    109|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    110|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    111|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agents command bị 422 và không tạo agent
+AssertionError: {"id":"a8ebd074-ab17-4ed4-981d-328393d43ad8","companyId":"6ba9ef99-b634-43d0-8cc1-84339944e542","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"coral-mint"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"command":"/bin/sh"},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.935Z","updatedAt":"2026-10-08T08:01:56.935Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/coral-mint/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"a8ebd074-ab17-4ed4-981d-328393d43ad8","companyId":"6ba9ef99-b634-43d0-8cc1-84339944e542","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agents extraArgs bị 422 và không tạo agent
+AssertionError: {"id":"7c9d81e7-88b3-48bd-865e-9505d6cb7cfd","companyId":"3f12d863-15ca-460e-9380-cdbe837b0f59","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"coral-current"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"extraArgs":[]},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.970Z","updatedAt":"2026-10-08T08:01:56.970Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/coral-current/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"7c9d81e7-88b3-48bd-865e-9505d6cb7cfd","companyId":"3f12d863-15ca-460e-9380-cdbe837b0f59","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agents env bị 422 và không tạo agent
+AssertionError: {"id":"5a32c094-0795-4535-bac4-44bb884e0d90","companyId":"f3bbf2ad-94de-421c-a4a6-aa68f049adae","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"coral-current"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"env":{}},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:56.997Z","updatedAt":"2026-10-08T08:01:56.997Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/coral-current/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"5a32c094-0795-4535-bac4-44bb884e0d90","companyId":"f3bbf2ad-94de-421c-a4a6-aa68f049adae","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agents model bị 422 và không tạo agent
+AssertionError: {"id":"a0a024bd-8cbe-4449-80c3-e9607ebb15da","companyId":"7ba6f75b-0178-46f2-81e7-d05a9089220a","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"turquoise-cherry"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-fable-5"},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.022Z","updatedAt":"2026-10-08T08:01:57.022Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/turquoise-cherry/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"a0a024bd-8cbe-4449-80c3-e9607ebb15da","companyId":"7ba6f75b-0178-46f2-81e7-d05a9089220a","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agent-hires command bị 422 và không tạo agent
+AssertionError: {"agent":{"id":"40418f23-cae4-46f1-8123-d68c1124d013","companyId":"ddb65ac7-2883-4f13-a837-91a4ba2e8da3","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"deep-tide"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"command":"/bin/sh"},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.058Z","updatedAt":"2026-10-08T08:01:57.058Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/deep-tide/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"40418f23-cae4-46f1-8123-d68c1124d013","companyId":"ddb65ac7-2883-4f13-a837-91a4ba2e8da3","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}},"approval":null}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agent-hires extraArgs bị 422 và không tạo agent
+AssertionError: {"agent":{"id":"3ddbbe0b-aa8d-42f2-accc-660fda3a305d","companyId":"85a62d52-994b-47df-8d52-8949d3fd4860","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"electric-grove"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"extraArgs":[]},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.080Z","updatedAt":"2026-10-08T08:01:57.080Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/electric-grove/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"3ddbbe0b-aa8d-42f2-accc-660fda3a305d","companyId":"85a62d52-994b-47df-8d52-8949d3fd4860","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}},"approval":null}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agent-hires env bị 422 và không tạo agent
+AssertionError: {"agent":{"id":"efc5a5cb-eb4a-4a08-8178-b89752f99194","companyId":"34c0abc4-c32e-471d-924a-19b27c17eb6b","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"golden-hour"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"env":{}},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.100Z","updatedAt":"2026-10-08T08:01:57.100Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/golden-hour/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"efc5a5cb-eb4a-4a08-8178-b89752f99194","companyId":"34c0abc4-c32e-471d-924a-19b27c17eb6b","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}},"approval":null}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent POST agent-hires model bị 422 và không tạo agent
+AssertionError: {"agent":{"id":"bd8d7f15-ce80-4e9f-8aa7-754599015a41","companyId":"764b87fb-78e6-4f5d-b64c-97e290452fb8","name":"New agent","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"violet-ember"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-fable-5"},"runtimeConfig":{"heartbeat":{"enabled":false,"maxConcurrentRuns":20}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.127Z","updatedAt":"2026-10-08T08:01:57.127Z","urlKey":"new-agent","avatarUrl":"/api/agent-avatars/cap-v1/violet-ember/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"bd8d7f15-ce80-4e9f-8aa7-754599015a41","companyId":"764b87fb-78e6-4f5d-b64c-97e290452fb8","name":"New agent","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}},"approval":null}: expected 201 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 201
+
+ ❯ src/__tests__/crew-agent-config.test.ts:120:62
+    118|       const before = await snapshot(c.companyId);
+    119|       const response = await request(app(c)).post(`/api/companies/${c.…
+    120|       expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                              ^
+    121|       expect(response.body.details).toMatchObject({ code: "crew_agent_…
+    122|       expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > cấu hình Crew invalid vẫn chặn
+AssertionError: {"id":"da2ae824-68cd-4ffe-bb68-3300b7b0a831","companyId":"c44d65b8-f929-4858-8909-07feea61d38a","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"coral-mint"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":[],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.140Z","updatedAt":"2026-10-08T08:01:57.151Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/coral-mint/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"da2ae824-68cd-4ffe-bb68-3300b7b0a831","companyId":"c44d65b8-f929-4858-8909-07feea61d38a","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:130:60
+    128|     const before = await snapshot(c.companyId);
+    129|     const response = await request(app(c)).patch(`/api/agents/${c.acto…
+    130|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    131|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    132|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent rollback command bị 422 và DB không đổi
+AssertionError: {"id":"5c0d6e62-052b-4f94-9576-79b3214bf93c","companyId":"107fd335-4223-4c1a-a26d-e354649e6aa1","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"lime-lagoon"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"/bin/sh","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.213Z","updatedAt":"2026-10-08T08:01:57.228Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/lime-lagoon/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"5c0d6e62-052b-4f94-9576-79b3214bf93c","companyId":"107fd335-4223-4c1a-a26d-e354649e6aa1","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:158:60
+    156|     const before = await snapshot(c.companyId);
+    157|     const response = await request(app(c)).post(`/api/agents/${c.actor…
+    158|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    159|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    160|     expect(response.body.details.keys).toContain(`adapterConfig.${key}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent rollback extraArgs bị 422 và DB không đổi
+AssertionError: {"id":"dda58aa8-eedb-4bcd-bd92-8f9a734fbd51","companyId":"2707dfa5-b8c3-4dde-8113-13a6d6d26ed8","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"cherry-pop"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":[],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.235Z","updatedAt":"2026-10-08T08:01:57.247Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/cherry-pop/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"dda58aa8-eedb-4bcd-bd92-8f9a734fbd51","companyId":"2707dfa5-b8c3-4dde-8113-13a6d6d26ed8","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:158:60
+    156|     const before = await snapshot(c.companyId);
+    157|     const response = await request(app(c)).post(`/api/agents/${c.actor…
+    158|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    159|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    160|     expect(response.body.details.keys).toContain(`adapterConfig.${key}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent rollback env bị 422 và DB không đổi
+AssertionError: {"id":"b7e0cc4d-56b5-4d57-9fdc-c4b166e34e9e","companyId":"cd52675f-f711-4025-9eaa-4efc984f1f52","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"deep-tide"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"crew-claude-run","extraArgs":["--plugin-dir","/crew/pinned"],"env":{}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.253Z","updatedAt":"2026-10-08T08:01:57.264Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/deep-tide/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"b7e0cc4d-56b5-4d57-9fdc-c4b166e34e9e","companyId":"cd52675f-f711-4025-9eaa-4efc984f1f52","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:158:60
+    156|     const before = await snapshot(c.companyId);
+    157|     const response = await request(app(c)).post(`/api/agents/${c.actor…
+    158|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    159|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    160|     expect(response.body.details.keys).toContain(`adapterConfig.${key}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent rollback model bị 422 và DB không đổi
+AssertionError: {"id":"719c114e-d699-4a98-9b5b-d9f9a88442d8","companyId":"576e8e20-cabb-4601-bae4-f0e9e797008e","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"tangerine-cobalt"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-fable-5","command":"crew-claude-run","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.268Z","updatedAt":"2026-10-08T08:01:57.285Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/tangerine-cobalt/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"719c114e-d699-4a98-9b5b-d9f9a88442d8","companyId":"576e8e20-cabb-4601-bae4-f0e9e797008e","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:158:60
+    156|     const before = await snapshot(c.companyId);
+    157|     const response = await request(app(c)).post(`/api/agents/${c.actor…
+    158|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    159|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    160|     expect(response.body.details.keys).toContain(`adapterConfig.${key}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent không thể xóa ghim bằng thay toàn bộ cấu hình hoặc adapter
+AssertionError: {"id":"ab7856fd-47db-4fb5-905c-c1c3a874aec1","companyId":"4e81df5e-ab57-40e4-b6da-8fe67fb80281","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"bubblegum-sky"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.292Z","updatedAt":"2026-10-08T08:01:57.302Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/bubblegum-sky/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"ab7856fd-47db-4fb5-905c-c1c3a874aec1","companyId":"4e81df5e-ab57-40e4-b6da-8fe67fb80281","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:171:60
+    169|     const before = await snapshot(c.companyId);
+    170|     const response = await request(app(c)).patch(`/api/agents/${c.acto…
+    171|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    172|     expect(response.body.details).toMatchObject({ code: "crew_agent_co…
+    173|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > agent không thể xóa ghim bằng thay toàn bộ cấu hình hoặc adapter
+AssertionError: {"id":"48112370-3ab8-4e95-bc57-83c8d901f47e","companyId":"3933c229-4b9f-4ade-8e3d-e8b8f27649ba","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"golden-hour"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"http","adapterConfig":{"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.313Z","updatedAt":"2026-10-08T08:01:57.322Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/golden-hour/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"48112370-3ab8-4e95-bc57-83c8d901f47e","companyId":"3933c229-4b9f-4ade-8e3d-e8b8f27649ba","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:171:60
+    169|     const before = await snapshot(c.companyId);
+    170|     const response = await request(app(c)).patch(`/api/agents/${c.acto…
+    171|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    172|     expect(response.body.details).toMatchObject({ code: "crew_agent_co…
+    173|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > rollback snapshot thiếu key vẫn bị chặn
+AssertionError: {"id":"8529bcd9-42b0-4373-8d41-00f9d8fb74ff","companyId":"54f99326-7a28-41d6-ace3-17070762d014","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"bubblegum-sky"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.331Z","updatedAt":"2026-10-08T08:01:57.347Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/bubblegum-sky/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"8529bcd9-42b0-4373-8d41-00f9d8fb74ff","companyId":"54f99326-7a28-41d6-ace3-17070762d014","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:181:60
+    179|     const before = await snapshot(c.companyId);
+    180|     const response = await request(app(c)).post(`/api/agents/${c.actor…
+    181|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    182|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    183|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > không vượt guard bằng URL alias
+AssertionError: {"id":"d63bf501-96de-4f4f-8a70-df07d914ed6e","companyId":"3e9103e2-1752-4e01-9cd0-995c543ce18a","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"pink-lemonade"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"/bin/sh","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.526Z","updatedAt":"2026-10-08T08:01:57.544Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/pink-lemonade/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"d63bf501-96de-4f4f-8a70-df07d914ed6e","companyId":"3e9103e2-1752-4e01-9cd0-995c543ce18a","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:220:60
+    218|     const url = mode === "uppercase" ? `/api/AGENTS/${id}/` : `/api/ag…
+    219|     const response = await request(app(c)).patch(url).send({ adapterCo…
+    220|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    221|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    222|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > không vượt guard bằng URL encoded
+AssertionError: {"id":"d1b5206d-4535-4122-939d-36c093cd22ad","companyId":"c3814848-8fd3-4090-bb06-988505a30a96","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"flamingo-jade"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"/bin/sh","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.555Z","updatedAt":"2026-10-08T08:01:57.566Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/flamingo-jade/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"d1b5206d-4535-4122-939d-36c093cd22ad","companyId":"c3814848-8fd3-4090-bb06-988505a30a96","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:220:60
+    218|     const url = mode === "uppercase" ? `/api/AGENTS/${id}/` : `/api/ag…
+    219|     const response = await request(app(c)).patch(url).send({ adapterCo…
+    220|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    221|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    222|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/28]⎯
+
+ FAIL  src/__tests__/crew-agent-config.test.ts > Crew agent config routes with PostgreSQL > không vượt guard bằng URL uppercase
+AssertionError: {"id":"cd95b7e5-43af-43c2-bdae-ece29b764fa7","companyId":"98680629-fa88-4177-a4ba-1bb669561d26","name":"Executor","role":"engineer","title":null,"icon":null,"appearance":{"schemaVersion":1,"characterVersion":"cap-v1","paletteId":"pink-lemonade"},"status":"idle","reportsTo":null,"capabilities":null,"adapterType":"process","adapterConfig":{"model":"claude-sonnet-5","command":"/bin/sh","extraArgs":["--plugin-dir","/crew/pinned"],"env":{"CREW_TEST_VALUE":{"type":"plain","value":"***REDACTED***"}}},"runtimeConfig":{"heartbeat":{"enabled":false,"wakeOnDemand":false}},"defaultEnvironmentId":null,"budgetMonthlyCents":0,"spentMonthlyCents":0,"pauseReason":null,"pausedAt":null,"errorReason":null,"permissions":{"canCreateAgents":true,"canCreateSkills":true},"lastHeartbeatAt":null,"metadata":null,"createdAt":"2026-10-08T08:01:57.573Z","updatedAt":"2026-10-08T08:01:57.585Z","urlKey":"executor","avatarUrl":"/api/agent-avatars/cap-v1/pink-lemonade/rest.png?size=512&scale=1","orgChainHealth":{"status":"healthy","reason":"healthy","fullChain":[{"id":"cd95b7e5-43af-43c2-bdae-ece29b764fa7","companyId":"98680629-fa88-4177-a4ba-1bb669561d26","name":"Executor","status":"idle","reportsTo":null,"depth":0,"relation":"self"}],"firstInvalidAncestor":null,"invalidAncestors":[],"repairGuidance":null,"pausedAncestors":[],"escalationWarning":null}}: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ src/__tests__/crew-agent-config.test.ts:220:60
+    218|     const url = mode === "uppercase" ? `/api/AGENTS/${id}/` : `/api/ag…
+    219|     const response = await request(app(c)).patch(url).send({ adapterCo…
+    220|     expect(response.status, JSON.stringify(response.body)).toBe(422);
+       |                                                            ^
+    221|     expect(response.body.details.code).toBe("crew_agent_config_forbidd…
+    222|     expect(await snapshot(c.companyId)).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/28]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  28 failed | 11 passed (39)
+   Start at  15:01:39
+   Duration  18.34s (transform 8.69s, setup 103ms, import 12.80s, tests 5.31s, environment 0ms)
+
+undefined
+/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-policy/server:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/__tests__/crew-agent-config.test.ts

@@ -1,7 +1,7 @@
 # Hướng dẫn đóng góp
 
-Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew`. Muốn dựng máy dev trước, xem
-[`guides/dev-setup.md`](guides/dev-setup.md).
+Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew`. Chạy `pnpm install` là đủ để
+dựng máy dev.
 
 ## Thứ tự đọc trước khi sửa code
 
@@ -21,15 +21,16 @@ Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew
 - Lint/format bằng Biome (`biome.json` ở gốc repo, chạy `pnpm lint` để kiểm và `pnpm format` để tự sửa); không
   dùng ESLint hay Prettier.
 
-## Docs đi cùng mỗi commit
+## Docs đi cùng mỗi lần push
 
 Repo áp dụng chuẩn docs-kit chung (định nghĩa đầy đủ ở đường dẫn `packages/docs-kit/STANDARD.md`, kiểm bằng CLI
 `crew-docs`). Năm luật hay gặp nhất khi sửa code:
 
 - **R2 (coverage)** — mọi file nguồn mới (khớp `source.include` trừ `source.exclude` của `docs/flows.yaml`)
   phải thuộc một flow trong mục `flows`, hoặc được khai vào `shared`/`unassigned` kèm lý do.
-- **R3 (freshness)** — commit đổi một file nguồn mà không sửa `docs/flows/<id>.md` của mọi flow chứa file đó
-  (kể cả qua `shared`) trong cùng commit sẽ bị chặn. Sửa trang flow tương ứng cùng lúc với code.
+- **R3 (freshness)** — một lần push hoặc merge có commit đổi file nguồn mà không commit nào trong lần đó sửa
+  `docs/flows/<id>.md` của mọi flow chứa file đó (kể cả qua `shared`) sẽ bị chặn ở pre-push/CI. Commit giữa
+  chừng không cần sửa docs; pre-commit chỉ chặn credential (R7).
 - **R4 (generated)** — block tự động trong `index.md`/`files.md` (giữa marker `crew-docs:flows`/`crew-docs:files`)
   phải khớp đúng kết quả `crew-docs generate`; không sửa tay phần đó.
 - **R6 (protected)** — đổi `.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md` ở gốc repo, file cấu hình hook
@@ -61,10 +62,7 @@ mạng. Chi tiết cơ chế phát hiện hook và nội dung workflow đó nằ
 [`flows/docs-hooks.md`](flows/docs-hooks.md).
 
 CI chính của repo (không phải workflow riêng của crew-docs) chạy trong `.github/workflows/ci.yml`: job `check`
-gồm typecheck, lint, `crew-docs check --range` rồi `check --all`, toàn bộ test, build web/daemon/desktop, và
-shellcheck script deploy; job `e2e` chạy Playwright toàn hệ thống; job `release`/`runtime-release` build và
-phát hành khi đẩy tag `v*`/`runtime-v*`. Tóm tắt đầy đủ từng bước nằm ở mục CI trong
-[`flows/deployment.md`](flows/deployment.md).
+gồm typecheck, lint, bundle `crew-docs`, `crew-docs check --range` rồi `check --all`, toàn bộ test và build.
 
 ## Thêm file nguồn mới
 
@@ -87,5 +85,5 @@ phát hành khi đẩy tag `v*`/`runtime-v*`. Tóm tắt đầy đủ từng bư
 ## Không commit credential
 
 Không commit mật khẩu, token, khoá ký hay bất kỳ giá trị bí mật thật nào — kể cả trong test hay file mẫu
-(`.env.example` chỉ chứa tên biến và giá trị mẫu cục bộ vô hại). `crew-docs check` chặn credential ở dòng mới
+(file mẫu chỉ chứa tên biến và giá trị mẫu vô hại). `crew-docs check` chặn credential ở dòng mới
 thêm trong diff (luật R7) và không có cách bỏ qua.

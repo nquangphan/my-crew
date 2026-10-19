@@ -1,0 +1,135 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server
+
+[18:18:45] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[18:18:50] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e64a99ee-6dbf-47af-9735-12e199db84a7","agentId":"597528a3-f427-41dc-b887-18d4ee1f152f","runId":"03ce116c-ca29-4eb7-a290-72aba887327d"}[39m
+[18:18:50] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e64a99ee-6dbf-47af-9735-12e199db84a7","agentId":"597528a3-f427-41dc-b887-18d4ee1f152f","runId":"fba03cc8-b7cc-4771-83fc-b19248d3d5be"}[39m
+[18:18:51] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0d628de4-d41d-449e-b1de-bb6444d41582","agentId":"fc3910b6-5a1e-4e00-85ab-e57e6a1499c2","runId":"73a350b9-819d-4ec4-8200-3ea0706cef66"}[39m
+[18:18:51] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0d628de4-d41d-449e-b1de-bb6444d41582","agentId":"fc3910b6-5a1e-4e00-85ab-e57e6a1499c2","runId":"4180dc02-bba2-4450-96bd-6101f066f24d"}[39m
+[18:18:51] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7777ee69-1f25-4b20-9796-0881bb26eec4","agentId":"83384502-5fa7-4f2e-8b5b-b4b0ffc1de99","runId":"7455e608-9c0d-4452-8927-05e0cea3fac3"}[39m
+[18:18:51] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"7777ee69-1f25-4b20-9796-0881bb26eec4","agentId":"83384502-5fa7-4f2e-8b5b-b4b0ffc1de99","runId":"503be983-ef3e-4fb6-a07e-70e74643b44b"}[39m
+[18:18:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"cfd16c73-8980-49ba-8ff2-6afeaa1db99e","agentId":"93b41f33-d4e8-42fb-9a60-90ef08805a0c","runId":"8974e49d-d229-4577-8457-c899590d9e15"}[39m
+[18:18:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ecb6b745-106c-43b0-8834-d61944db7c3e","agentId":"7cb4c177-053e-4e08-8841-f9b9aff65987","runId":"c3f289ef-f076-4afc-9f5f-d2414b802e65"}[39m
+[18:18:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"cfd16c73-8980-49ba-8ff2-6afeaa1db99e","agentId":"93b41f33-d4e8-42fb-9a60-90ef08805a0c","runId":"acee57c9-5868-4394-b00d-88743f3fce31"}[39m
+[18:18:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ecb6b745-106c-43b0-8834-d61944db7c3e","agentId":"7cb4c177-053e-4e08-8841-f9b9aff65987","runId":"bdcf4cb4-c045-4068-b1bc-4a9c65841d46"}[39m
+[18:18:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"37ec0048-1d1d-43b5-a728-cb0aaf5bcb44","agentId":"94c4d4ee-1151-4377-a1e7-5a827645494f","runId":"97a17cf2-4068-4fe5-96a3-56eb41d59cdb"}[39m
+[18:18:52] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"37ec0048-1d1d-43b5-a728-cb0aaf5bcb44","agentId":"94c4d4ee-1151-4377-a1e7-5a827645494f","runId":"f17572e3-e5c8-4284-afc7-c5da88fada36"}[39m
+[18:18:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4bdfef98-c7f5-46f5-8f36-35658e5bc736","agentId":"5a430ea7-a8e5-468e-9818-2084631ca231","runId":"61b48949-9c39-4cac-9c3b-58fee7388f89"}[39m
+[18:18:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a4d2aa83-bb35-46b7-8009-7ab4fd342f67","agentId":"982ab29a-9110-4dc7-aa1c-ae554bb6562d","runId":"4d942ae8-6aa0-4075-b77f-ece3428106f0"}[39m
+[18:18:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"66af43f0-4067-495f-ac91-33ba615fbe7f","agentId":"f81079ed-fd89-4347-a0e5-c6c563872ce0","runId":"eb691b4c-a8bb-415f-b1dd-a53f48858595"}[39m
+[18:18:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"699ff137-f312-425b-b706-516e67158355","agentId":"4d9615b0-2163-475e-9e36-00df2a2e2066","runId":"f39adbfe-0ba9-4b4c-8156-70516e6f85e4"}[39m
+[18:18:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"879db1ac-b3b9-47a2-a2d6-dbbeb33d3323","agentId":"465af4eb-7b2f-4f09-b071-47a0f465db3b","runId":"93402d64-8d60-401c-8a58-9fd67eded230"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4bdfef98-c7f5-46f5-8f36-35658e5bc736","agentId":"5a430ea7-a8e5-468e-9818-2084631ca231","runId":"e08b51d0-c96b-4e4c-9831-c4ce154ea248"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a4d2aa83-bb35-46b7-8009-7ab4fd342f67","agentId":"982ab29a-9110-4dc7-aa1c-ae554bb6562d","runId":"1e608ee5-d050-4f46-8f79-22d7c1d4c4e6"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"66af43f0-4067-495f-ac91-33ba615fbe7f","agentId":"f81079ed-fd89-4347-a0e5-c6c563872ce0","runId":"28b0766a-fa32-4642-bd4e-e5fc626cf992"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"699ff137-f312-425b-b706-516e67158355","agentId":"4d9615b0-2163-475e-9e36-00df2a2e2066","runId":"be2dc35a-381c-4bc1-b383-c37fd7ea01aa"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"879db1ac-b3b9-47a2-a2d6-dbbeb33d3323","agentId":"465af4eb-7b2f-4f09-b071-47a0f465db3b","runId":"ad4477b8-7808-4ae6-a3b5-82e4aa85d110"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5e1eb581-c1e9-4dca-b9d6-21cfea7e126c","agentId":"bc320407-9d6f-4218-bb37-f49305c6ea59","runId":"76df2c02-fe3f-4f97-a1e5-5826dbe48c86"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5e1eb581-c1e9-4dca-b9d6-21cfea7e126c","agentId":"bc320407-9d6f-4218-bb37-f49305c6ea59","runId":"f6e7607a-c1d5-4d62-a2f3-cdf23e5b01d1"}[39m
+[18:18:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4e9d0e9d-7de3-470a-b243-29a4293b02bc","agentId":"98a7c9ec-54fb-4a89-94ae-ea45cfe7ad6a","runId":"e1607e5b-abc9-4990-856a-89646d87dcdf"}[39m
+[18:18:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4e9d0e9d-7de3-470a-b243-29a4293b02bc","agentId":"98a7c9ec-54fb-4a89-94ae-ea45cfe7ad6a","runId":"0025b146-ed25-44c8-8cd2-962e24035c29"}[39m
+[18:18:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"38a7a9bd-ec9f-4ad1-b622-31dfdf9c556a","agentId":"6c9b3459-4999-408a-a8b7-df3a2ec1a111","runId":"c6991590-f8be-49bc-b851-26efa0c82189"}[39m
+[18:18:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"38a7a9bd-ec9f-4ad1-b622-31dfdf9c556a","agentId":"6c9b3459-4999-408a-a8b7-df3a2ec1a111","runId":"0d762bf1-5046-4130-8ea2-6b518f9a4747"}[39m
+[18:18:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a6b61aa7-cf2a-451d-8a66-dbb6088ce6ef","agentId":"21ebe39b-981e-44d6-933b-81e69dca67e2","runId":"c7218a3b-8249-46e3-8695-c880fd94150c"}[39m
+[18:18:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a6b61aa7-cf2a-451d-8a66-dbb6088ce6ef","agentId":"21ebe39b-981e-44d6-933b-81e69dca67e2","runId":"dceae214-6300-4012-b3ee-afe9949045c5"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9cc1ba82-a042-49f7-89f1-2f27acbd6a40","agentId":"6b6073f9-e85c-4f76-9c75-d3d8f98e36ca","runId":"c2a42c45-c65e-4756-8cbd-f5d9b7ae92f5"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9cc1ba82-a042-49f7-89f1-2f27acbd6a40","agentId":"6b6073f9-e85c-4f76-9c75-d3d8f98e36ca","runId":"e1516dc7-3014-41cc-b979-e3d6d30d43f6"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"13a97951-ed55-4bd6-a491-4c30f0efb5ce","agentId":"7d3f7cc4-36c5-4e98-ba3d-ca09f92231e0","runId":"cf25d758-b163-43dd-bd91-7b9f223fee9b"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"8690e1ca-f047-4f3e-85e1-71a054a5a192","agentId":"f354fa08-6450-451a-943d-6b42afedfe93","runId":"33f5bc92-4f97-4766-b0ef-ed1feb60a59b"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c6204fc2-1602-4122-ae9c-756d6e9b98ec","agentId":"7f279ab9-cbbb-4f56-8f7d-1f6560992890","runId":"a92f9a5f-5faf-4052-8463-acb7a1c7357d"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"6b652754-c1b8-4e44-adf5-032190c9f76c","agentId":"5de08e34-20ae-4db3-a9a3-6201f57e2a39","runId":"e42a887e-8ff4-45c9-bb40-f421f4ce1553"}[39m
+[18:18:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4af508a3-d4f5-4b52-8aca-7926cbe4baa8","agentId":"429d5da3-9d32-4079-b489-e1dd4a5f4383","runId":"b086b386-08fa-48d1-b5a8-ff8a7343a530"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"dcc12491-86c1-458f-8c37-a1af13d501a3","agentId":"bfc64fa0-4495-47f5-8c29-501d23bc7576","runId":"a5c895ec-7f23-4a2a-85f1-75ed720f1ed3"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"762c8d70-7074-4a6f-b481-1d6e0afaf334","agentId":"7dee9c3e-b8b7-4410-a318-00e265d3f928","runId":"600c9d37-8b4e-4b30-973a-0415ff731f36"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"13a97951-ed55-4bd6-a491-4c30f0efb5ce","agentId":"7d3f7cc4-36c5-4e98-ba3d-ca09f92231e0","runId":"77f12f35-e36a-4644-b480-c793c63f419a"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"8690e1ca-f047-4f3e-85e1-71a054a5a192","agentId":"f354fa08-6450-451a-943d-6b42afedfe93","runId":"9a08cea5-3eb6-4608-b2a2-653655192228"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c6204fc2-1602-4122-ae9c-756d6e9b98ec","agentId":"7f279ab9-cbbb-4f56-8f7d-1f6560992890","runId":"4facb596-fe04-4b63-9e5a-e082a860be70"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"6b652754-c1b8-4e44-adf5-032190c9f76c","agentId":"5de08e34-20ae-4db3-a9a3-6201f57e2a39","runId":"7e096558-1025-4f0b-be07-e97bd1d33055"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4af508a3-d4f5-4b52-8aca-7926cbe4baa8","agentId":"429d5da3-9d32-4079-b489-e1dd4a5f4383","runId":"23fb30b4-bafa-4789-aa88-98c6660193b7"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"dcc12491-86c1-458f-8c37-a1af13d501a3","agentId":"bfc64fa0-4495-47f5-8c29-501d23bc7576","runId":"99afcd10-9566-4c25-a306-72deb36a453c"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"762c8d70-7074-4a6f-b481-1d6e0afaf334","agentId":"7dee9c3e-b8b7-4410-a318-00e265d3f928","runId":"aa311466-bed0-4f11-aabb-a142b8b72fc6"}[39m
+[18:18:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"bdd3f32d-0009-4a8a-bb2d-8030bfce8b20","agentId":"bab1253e-c4aa-41c4-93ca-d58008e0712f","runId":"04cd1ba6-e7f8-4e36-8063-e8621c5dc749"}[39m
+[18:18:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"bdd3f32d-0009-4a8a-bb2d-8030bfce8b20","agentId":"bab1253e-c4aa-41c4-93ca-d58008e0712f","runId":"8c964e8a-fe00-4c7d-94c0-5c875de63afd"}[39m
+[18:18:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"649f9d97-cd54-41ea-8899-3f0bebc542a7","agentId":"12fbff8d-5b5d-44b9-98a4-fc3896b90eac","runId":"8993cf42-8b57-4f63-90cf-572a0f492012"}[39m
+[18:18:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"649f9d97-cd54-41ea-8899-3f0bebc542a7","agentId":"12fbff8d-5b5d-44b9-98a4-fc3896b90eac","runId":"a7d94450-5c33-4fc9-9176-e7076442fdaf"}[39m
+[18:18:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"83d9179a-278b-4085-824b-04340b62f68c","agentId":"2a0a3b10-8422-4150-8ce5-3fd9365cb167","runId":"31ab2e51-ca7f-4118-ad85-e923723b4a37"}[39m
+[18:18:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"83d9179a-278b-4085-824b-04340b62f68c","agentId":"2a0a3b10-8422-4150-8ce5-3fd9365cb167","runId":"57cf68ce-dee7-41b9-8916-3c4588fb79c3"}[39m
+[18:18:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1ab6b282-832d-44e8-89ed-4dc45ffcd2f8","agentId":"6b99a264-c596-49bb-8336-76efc4f3b86b","runId":"52f2a18d-9653-44ed-a20d-edbcb24d8007"}[39m
+[18:18:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1ab6b282-832d-44e8-89ed-4dc45ffcd2f8","agentId":"6b99a264-c596-49bb-8336-76efc4f3b86b","runId":"0021ab10-0d59-4611-a79a-0ad275cb3711"}[39m
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts (53 tests | 4 failed) 13045ms
+     × log: claim B bổ sung MCP từ task khác của executor, giữ UUID/cwd/SSH của A 519ms
+     × columns: claim B bổ sung MCP từ task khác của executor, giữ UUID/cwd/SSH của A 490ms
+     × MCP fallback chọn chuỗi không rỗng mới nhất, không lấy company/agent/adapter khác 43ms
+     × Claude execute thật chấp nhận params dựng từ log với 2 MCP và truyền --resume; guard vẫn từ chối identity khác 527ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > log: claim B bổ sung MCP từ task khác của executor, giữ UUID/cwd/SSH của A
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > columns: claim B bổ sung MCP từ task khác của executor, giữ UUID/cwd/SSH của A
+AssertionError: expected { cwd: '/fixture/local', …(2) } to deeply equal { …(4) }
+
+- Expected
++ Received
+
+@@ -1,8 +1,7 @@
+  {
+    "cwd": "/fixture/local",
+-   "mcpServerIdentity": "[{\"name\":\"Paperclip projects\",\"url\":\"http://fixture.invalid/api/mcp/project-tools\",\"connectionId\":\"paperclip-project-tools\"},{\"name\":\"Paperclip connections\",\"url\":\"http://fixture.invalid/api/mcp/runtime-tools\",\"connectionId\":\"paperclip-runtime-tools\"}]",
+    "remoteExecution": {
+      "host": "fixture.invalid",
+      "port": 22,
+      "remoteCwd": "/fixture/repo",
+      "transport": "ssh",
+
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:161:20
+    159|     const [run] = await db.select().from(heartbeatRuns).where(eq(heart…
+    160|     const params = run!.contextSnapshot?.resumeSessionParams as Record…
+    161|     expect(params).toEqual({ sessionId: s.sessionId, cwd: "/fixture/lo…
+       |                    ^
+    162|     expect(claudeSessionCwdMatchesExecutionTarget({ runtimeSessionCwd:…
+    163|     const target = { kind: "remote" as const, transport: "ssh" as cons…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > MCP fallback chọn chuỗi không rỗng mới nhất, không lấy company/agent/adapter khác
+AssertionError: expected { Object (sessionId) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+-   "mcpServerIdentity": "[{\"name\":\"Paperclip projects\",\"url\":\"http://fixture.invalid/api/mcp/project-tools\",\"connectionId\":\"paperclip-project-tools\"},{\"name\":\"Paperclip connections\",\"url\":\"http://fixture.invalid/api/mcp/runtime-tools\",\"connectionId\":\"paperclip-runtime-tools\"}]",
+    "sessionId": "5a55ba4a-6f42-40b1-b450-a5746dc88b3e",
+  }
+
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:180:68
+    178|     await seedMcpSession(s, { agentId: s.otherAgentId, sessionParamsJs…
+    179|     await seedMcpSession(s, { adapterType: "codex_local", sessionParam…
+    180|     expect((await find(s))?.predecessor.session.sessionParamsJson).toE…
+       |                                                                    ^
+    181|   });
+    182|   it("MCP fallback không ghi đè identity đã có của session A", async (…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/crew/crew-bundle-resume.cancelled.test.ts > crew-bundle-resume: cancellation issue_reassigned trước task session > Claude execute thật chấp nhận params dựng từ log với 2 MCP và truyền --resume; guard vẫn từ chối identity khác
+AssertionError: expected [ '--print', '--output-format', …(14) ] to include '--resume'
+ ❯ src/crew/crew-bundle-resume.cancelled.test.ts:231:32
+    229|       expect(invocations).toHaveLength(1);
+    230|       if (guard === "matching") {
+    231|         expect(invocations[0]).toContain("--resume");
+       |                                ^
+    232|         expect(invocations[0]![invocations[0]!.indexOf("--resume") + 1…
+    233|         expect(result.sessionId).toBe(s.sessionId);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 49 passed (53)
+   Start at  18:18:39
+   Duration  20.49s (transform 4.77s, setup 113ms, import 7.24s, tests 13.04s, environment 0ms)
+
+undefined
+/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-r13-session/server:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/crew/crew-bundle-resume.cancelled.test.ts

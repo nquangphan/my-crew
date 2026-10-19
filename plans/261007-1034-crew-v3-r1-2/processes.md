@@ -1,0 +1,28 @@
+# Process nền và thay đổi môi trường của R1-2
+
+Ghi mọi process nền (server, watcher, container, lệnh theo dõi) và mọi thay đổi trên Mac mini/VPS ngay khi bật, kèm cách tắt. Dừng khi xong task. Không ghi credential. Không đặt `PAPERCLIP_RUN_ID` trong phiên làm việc.
+
+| Lệnh | PID | Cổng | Worktree / máy | Bật lúc | Trạng thái | Cách tắt hoặc gỡ |
+|---|---|---|---|---|---|---|
+| (AC-2) bundle `crew-docs` 2ce11c9 chép ra `~/.crew/bin/crew-docs-2ce11c9.cjs` (sha256 1948a4cb…) | — | — | Mac mini | 07/10 13:26 | giữ (integrator dùng) | `rm ~/.crew/bin/crew-docs-2ce11c9.cjs` sau khi gỡ `crew-docs.bundle` của repo thử |
+| (AC-2) repo thử `~/crew-spike/repo-a`: commit `cdaaeb5` khởi tạo crew-docs + `src/greet.js`, `install-hooks` (git config `crew-docs.*`, `core.hooksPath`) | — | — | Mac mini | 07/10 13:28 | giữ | `git -C ~/crew-spike/repo-a reset --hard b66cd7c` + `git config --unset` (chỉ khi owner muốn) |
+| (AC-2) remote bare `~/crew-spike/repo-a-origin.git` (origin của repo thử) | — | — | Mac mini | 07/10 13:29 | giữ | `git -C ~/crew-spike/repo-a remote remove origin` rồi xóa thư mục bare |
+| (AC-2) worktree `~/crew-agents/reviewer` (`agent/reviewer-r12`), `~/crew-agents/integrator` (`agent/integrator-r12`) | — | — | Mac mini | 07/10 13:29 | giữ (agent dùng) | `git -C ~/crew-spike/repo-a worktree remove <path>` |
+| (AC-2) environment `mac-mini-reviewer` `c37a8692…` và `mac-mini-integrator` `ffd322ff…` (Paperclip spike, cùng host/key với `mac-mini`, `remoteWorkspacePath` riêng) | — | — | VPS spike | 07/10 13:31 | giữ | board `DELETE /environments/<id>` sau khi gỡ agent |
+| (AC-2) agent `reviewer` `946f1a73…`, `integrator` `b7cd2d89…` (claude_local, haiku, maxConcurrentRuns 1); `apply-roles.sh agent` cho cả 3 agent; `adapterConfig.env.PATH` thêm `/opt/homebrew/bin` cho cả 3 (sshd agent không có `node`) | — | — | VPS spike | 07/10 13:33 | giữ | board PATCH `adapterConfig` bỏ `env.PATH`; terminate agent |
+| (AC-2) `/opt/crew-v3-spike/crew-policy/crew-policy.json` = company Crew Spike (bản cũ `crew-policy.json.bak-ac2-*`); `docker compose restart server` | — | 3100 | VPS spike | 07/10 13:30 | giữ | chép lại bản `.bak-ac2-*` rồi restart server |
+| (AC-2) thư mục tạm VPS `/tmp/ac2.*` (đường dẫn trong `/root/.ac2-dir`): `q.sh`, `ak.sh`, key agent `ac2-gate` của executor/reviewer/integrator company Crew Spike Policy (key id `4e6a6f6a…`, `29e23e5c…`, `c2538761…`) | — | — | VPS | 07/10 13:32 | giữ tới hết Cổng 2 | board `DELETE /agents/<id>/keys/<keyId>` rồi xóa thư mục tạm |
+| (AC-2) company Crew Spike Policy: thêm vào `crew-policy.json` (reviewer `8eb687b6…`, integrator `328b852e…`, owner board); resume 3 agent process; đổi `adapterConfig` executor/reviewer/integrator sang `sleep 900` để run sống khi thử API; executor bị tự đặt `metadata.crewRole` (Cổng 2b) | — | — | VPS spike | 07/10 13:36 | tạm | board PATCH lại `{"command":"sleep","args":["60"]}` / `{"command":"true"}`, `metadata: null`, pause 3 agent; bỏ company khỏi file nếu owner muốn |
+| (AC-2) issue thật CRE-21 `4471d9f1…` (Crew Spike, executor mac-claude) | — | — | VPS spike + Mac | 07/10 13:39 | đang chạy | board PATCH `cancelled` khi xong |
+| (AC-2) issue thật CRE-24 `ad5042b6…` (thay CRE-21 đã hủy); CRE-22, CRE-23 do thử tạo | — | — | VPS spike + Mac | 07/10 14:49 | đang chạy | board PATCH `cancelled` khi xong |
+| (AC-2) hook `~/crew-spike/repo-a-origin.git/hooks/pre-receive` từ chối push (thử push lỗi); ref `crew/req/cre-24` bị dời sang commit chèn `1e2abe4` (thử update-ref) | — | — | Mac mini | 07/10 14:55 | tạm | `rm ~/crew-spike/repo-a-origin.git/hooks/pre-receive` sau thử |
+| (Trợ Lý, owner duyệt 07/10 15:05) `crewLoadGate.maxLoad1` 8 → 16 cho environment `mac-mini`, `mac-mini-reviewer`, `mac-mini-integrator` (maxWaitMinutes giữ 60) để AC-2 không chờ tải do việc khác trên Mac | — | — | VPS spike | 07/10 15:05 | tạm, trả về 8 khi AC-2 xong | PATCH metadata.crewLoadGate.maxLoad1=8 cho 3 environment |
+| (AC-2) dọn 15:12: issue thử cancelled, agent process CREA trả cấu hình + pause, key `ac2-gate` xóa, thư mục tạm VPS xóa, hook pre-receive gỡ | — | — | VPS + Mac | 07/10 15:12 | xong | — |
+| (AC-2 lần 2) model 3 agent Crew Spike → `claude-sonnet-5`, bỏ `adapterConfig.env.PATH`, `apply-roles.sh agent` ×3 (instructions `7942ec2`); issue CRE-25 (gốc) `2569da86…`, CRE-26 (con) `ba0f4472…`; thư mục tạm VPS `/tmp/ac2b.*` | — | — | VPS + Mac | 07/10 16:18 | đang chạy | board cancel issue; xóa thư mục tạm |
+| (AC-2 lần 2) owner push `06abb30` (ghép chuỗi chào, đụng cùng dòng với CRE-26) lên `origin/main` của repo thử để tạo conflict thật | — | — | Mac mini | 07/10 16:28 | giữ | không cần gỡ (repo thử) |
+| (AC-2 lần 2) CRE-28 `e9206174…` (thử retry S3) + `s3-tsdown.sh` trên VPS (tắt Tailscale VPS 60 giây) | — | — | VPS + Mac | 07/10 17:12 | tạm | board cancel CRE-28; script tự bật lại Tailscale |
+| (AC-2 lần 2) dọn 17:24: CRE-25…28 cancelled, hook pre-receive gỡ, `/tmp/ac2b.*` xóa, Tailscale VPS lên lại | — | — | VPS + Mac | 07/10 17:24 | xong | — |
+| (AC-2 lần 3) `apply-roles.sh agent` ×3 (instructions `6c20d40`); issue gốc thử push lỗi; thư mục tạm VPS `/tmp/ac2c.*` | — | — | VPS + Mac | 07/10 17:30 | đang chạy | board cancel; xóa thư mục tạm |
+| (AC-2 lần 3) hook pre-receive từ chối push | — | — | Mac | 07/10 17:35 | tạm | rm hook |
+| (AC-2 lần 3) env tạm `mac-mini-h3-old` `d6704bb9…` (thư mục `~/crew-spike/worktrees/mac-claude`); executor tạm `defaultEnvironmentId` = env này | — | — | VPS | 07/10 17:42 | tạm | trả `defaultEnvironmentId` f92f5dd8…; DELETE env |
+| (AC-2 lần 3) dọn 17:43: CRE-29/30 cancelled, hook gỡ, env tạm xóa, executor về `mac-mini`, `/tmp/ac2c.*` xóa | — | — | VPS + Mac | 07/10 17:43 | xong | — |

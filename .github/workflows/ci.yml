@@ -1,14 +1,9 @@
-# 2P Crew CI: every push and pull request runs the full check (types, lint, all tests including the daemon's
-# scripted lifecycle matrix, the crew-docs gate, all builds) and the E2E suite against the compose stack.
-# A `v*` tag additionally builds the macOS dmgs and zips (signed with the stable self-signed certificate when
-# its secrets are set) and publishes them to GitHub Releases. A `runtime-v*` tag builds, signs and publishes the
-# runtime bundle (daemon host + renderer) that running apps pick up as a signed hot update.
+# 2P Crew CI: every push and pull request runs types, lint, the crew-docs gate, all tests and all builds.
 name: ci
 
 on:
   push:
     branches: ['**']
-    tags: ['v*', 'runtime-v*']
   pull_request:
 
 permissions:
@@ -16,26 +11,12 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
-
-env:
-  # The test suites default to this server (docker-compose.dev.yml uses the same host port).
-  PGPASSWORD: crew
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: crew
-          POSTGRES_PASSWORD: crew
-          POSTGRES_DB: crew
-        ports: ['55432:5432']
-        options: >-
-          --health-cmd "pg_isready -U crew -d crew" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,11 +28,6 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Test databases
-        run: |
-          for db in crew_test crew_daemon_test crew_desktop_test; do
-            psql -h 127.0.0.1 -p 55432 -U crew -d crew -v ON_ERROR_STOP=1 -c "create database $db owner crew"
-          done
       - name: Typecheck
         run: pnpm -r typecheck
       - name: Lint
@@ -74,158 +50,7 @@ jobs:
           fi
       - name: crew-docs check --all
         run: node packages/docs-kit/dist/crew-docs.cjs check --all
-      - name: Tests (all packages, including the daemon's scripted lifecycle matrix)
+      - name: Tests
         run: pnpm -r test
-      - name: Web build
-        run: pnpm --filter @crew/web build
-      - name: Daemon build
-        run: pnpm --filter @crew/shared build && pnpm --filter @crew/daemon build
-      - name: Desktop build (electron-vite)
-        run: pnpm --filter @crew/desktop build
-      - name: Deploy scripts (shellcheck)
-        run: shellcheck -x -S warning scripts/*.sh scripts/lib/*.sh deploy/backup/backup.sh
-
-  e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Install
-        run: pnpm install --frozen-lockfile
-      - name: Chromium
-        run: pnpm --filter @crew/e2e exec playwright install --with-deps chromium
-      - name: E2E (compose stack + daemon, phone/tablet/desktop)
-        run: pnpm --filter @crew/e2e test:e2e
-      - name: Failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-results
-          path: e2e/test-results
-          retention-days: 7
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [check, e2e]
-    runs-on: macos-latest
-    timeout-minutes: 60
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Tag matches the app version
-        run: |
-          version=$(node -p "require('./apps/desktop/package.json').version")
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "tag $GITHUB_REF_NAME does not match apps/desktop version $version"; exit 1
-          fi
-      - name: Install
-        run: pnpm install --frozen-lockfile
-      - name: crew-docs bundle (shipped inside the app)
-        run: pnpm --filter @crew/docs-kit build
-      - name: Stable code-signing identity (temporary keychain)
-        # The self-signed "2P Crew Code Signing" certificate (p12 + password in secrets) signs every build the
-        # same way, so macOS keeps its privacy grants across app updates. Without the secrets the build stays
-        # ad hoc (a warning, not a failure).
-        env:
-          P12_BASE64: ${{ secrets.CREW_CODESIGN_P12_BASE64 }}
-          P12_PASSWORD: ${{ secrets.CREW_CODESIGN_P12_PASSWORD }}
-        run: |
-          if [ -z "$P12_BASE64" ] || [ -z "$P12_PASSWORD" ]; then
-            echo "::warning::CREW_CODESIGN_P12_BASE64 / CREW_CODESIGN_P12_PASSWORD are not set: the app is signed ad hoc and macOS asks for permissions again after each update."
-            exit 0
-          fi
-          keychain="$RUNNER_TEMP/crew-signing.keychain-db"
-          keychain_password="$(openssl rand -hex 24)"
-          p12="$RUNNER_TEMP/crew-signing.p12"
-          printf '%s' "$P12_BASE64" | base64 --decode > "$p12"
-          security create-keychain -p "$keychain_password" "$keychain"
-          security set-keychain-settings -lut 21600 "$keychain"
-          security unlock-keychain -p "$keychain_password" "$keychain"
-          security import "$p12" -k "$keychain" -f pkcs12 -P "$P12_PASSWORD" -T /usr/bin/codesign >/dev/null
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" >/dev/null
-          # shellcheck disable=SC2046
-          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
-          rm -f "$p12"
-          echo "CREW_CODESIGN_REQUIRED=1" >> "$GITHUB_ENV"
-      - name: Build the dmgs and zips
-        # One dmg and one zip per architecture (arm64 and x64); the packaging script and electron-builder.yml
-        # decide the targets. electron-builder's own publishing uploads in parallel and each upload may create
-        # the tag's release, which once split v0.1.0 into two releases; so the release is created once, below.
-        run: pnpm --filter @crew/desktop package:mac
-      - name: Verify the designated requirement is anchored to the certificate
-        if: env.CREW_CODESIGN_REQUIRED == '1'
-        run: node apps/desktop/scripts/codesign.mjs verify apps/desktop/release/mac-arm64/*.app apps/desktop/release/mac/*.app
-      - name: Publish one GitHub Release with every artifact
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # The updater reads latest-mac.yml from the latest release and installs the zip for its architecture.
-        run: |
-          cd apps/desktop/release
-          gh release create "$GITHUB_REF_NAME" --title "2P Crew $GITHUB_REF_NAME" --generate-notes \
-            *.dmg *.zip *.blockmap latest-mac.yml
-      - name: Keep the dmgs and zips as workflow artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-release
-          path: |
-            apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
-            apps/desktop/release/latest-mac.yml
-          if-no-files-found: error
-
-  runtime-release:
-    if: startsWith(github.ref, 'refs/tags/runtime-v')
-    needs: [check, e2e]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Tag matches the runtime version
-        run: |
-          version=$(node -p "require('./apps/desktop/package.json').crewRuntime.version")
-          if [ "$GITHUB_REF_NAME" != "runtime-v$version" ]; then
-            echo "tag $GITHUB_REF_NAME does not match apps/desktop crewRuntime.version $version"; exit 1
-          fi
-      - name: Install
-        run: pnpm install --frozen-lockfile
-      - name: Build and sign the runtime bundle
-        # Without the secret the bundle is unsigned: it is still published (so the gap is visible), and every
-        # app and the server refuse it.
-        env:
-          CREW_RUNTIME_SIGNING_KEY: ${{ secrets.CREW_RUNTIME_SIGNING_KEY }}
-        run: |
-          if [ -z "$CREW_RUNTIME_SIGNING_KEY" ]; then
-            echo "::warning::CREW_RUNTIME_SIGNING_KEY is not set: this runtime bundle is UNSIGNED and will be refused."
-          fi
-          pnpm --filter @crew/desktop runtime:release
-      - name: Verify the signature like an app would
-        env:
-          HAS_KEY: ${{ secrets.CREW_RUNTIME_SIGNING_KEY != '' }}
-        run: |
-          if [ "$HAS_KEY" = "true" ]; then node apps/desktop/scripts/runtime-bundle.mjs verify; fi
-      - name: Publish the runtime release (never marked latest, so the app updater keeps reading the app release)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd apps/desktop/release/runtime
-          gh release create "$GITHUB_REF_NAME" --title "2P Crew runtime $GITHUB_REF_NAME" --latest=false \
-            --notes "Runtime bundle (daemon host + renderer) for 2P Crew apps; servers import it and machines switch to it without reinstalling." \
-            crew-runtime-*
+      - name: Build
+        run: pnpm -r build
