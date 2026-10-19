@@ -239,6 +239,7 @@ flows:
       - apps/crew-mac/test/workflows-pin.test.ts
       - apps/crew-mac/test/workflows-inventory.test.ts
       - apps/crew-mac/test/workflow-check.test.ts
+      - apps/crew-mac/test/workflow-check-orphans.test.ts
       - apps/crew-mac/test/workflows-registry.test.ts
       - apps/crew-mac/test/workflows-bmad-install.test.ts
       - apps/crew-mac/test/workflows-command.test.ts

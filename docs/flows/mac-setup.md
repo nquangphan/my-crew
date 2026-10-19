@@ -28,7 +28,8 @@ không cần token và không login lại.
   chọn company nhận ảnh chụp (thiếu thì là company của đích đầu tiên); `remove-repo <projectId>` gỡ repo; `list-repos`
   xem danh sách và commit gửi cuối.
 - `crew-mac workflow-check`, `crew-mac run-init-check`: kiểm nguồn skill của run (flow `mac-workflows`;
-  `workflow-check --runtime codex_local|opencode_local` thuộc flow `mac-runtimes`).
+  `workflow-check --runtime codex_local|opencode_local` thuộc flow `mac-runtimes`). Cờ `--require-no-orphans` (agent
+  chạy trước khi báo xong) chặn khi process của run còn sống; `cli.ts` chỉ nhận cờ và gộp kết quả `orphanCheck`.
 - `crew-mac workflows list [--json] | install`: xem sổ workflow đã chứng nhận, hoặc chỉ cài hai bản ghim mà không chạy
   lại cả `setup` (không đụng sshd/launchd; dùng khi app 2P Crew đang giữ sshd agent). Chi tiết ở flow `mac-workflows`.
 - `crew-mac bmad stories --root <dir> --file <file.md> [--rev <sha>] [--json] | setup-project --root <dir>`: agent BMAD

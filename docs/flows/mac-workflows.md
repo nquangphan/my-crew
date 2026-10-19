@@ -53,6 +53,12 @@ code, review, merge) và `bmad` (epic/story). `superpowers` chạy được `cla
 - `crew-mac workflow-check --runtime codex_local|opencode_local --root <worktree>`: wrapper Codex/OpenCode gọi trước
   mỗi run; kiểm `CREW_SUPERPOWERS_DIR` và cấu hình runtime trong worktree (flow `mac-runtimes`). `--runtime` không đi
   cùng `--plugin-dir`; giá trị khác hai runtime trên thì thoát 2.
+- Cờ `--require-no-orphans` (cả dạng `--plugin-dir` và `--runtime`): agent chạy trước khi báo xong để chắc đã tắt
+  process mình bật. Wrapper gọi trước run KHÔNG thêm cờ này. Mỗi process còn sống một dòng
+  `crew-workflow blocked: process còn chạy pid=<pid> cmd=<lệnh, tối đa 80 ký tự> — tắt process bạn đã bật rồi chạy
+  lại` và thoát 78; sạch thì thêm dòng `crew-workflow ok không còn process nào của run <runId>`. Không có
+  `PAPERCLIP_RUN_ID` thì in `crew-workflow warn: không có PAPERCLIP_RUN_ID, bỏ qua kiểm process` và không chặn.
+  Không bao giờ kill (dọn là việc của `stop-run`/`reap`, flow `mac-orphan-reaper`).
 
 ## Các bước
 
@@ -222,6 +228,20 @@ code, review, merge) và `bmad` (epic/story). `superpowers` chạy được `cla
    - Không xét `slash_commands`.
    - CLI nâng bản mà thêm skill dựng sẵn thì `run-init-check` báo `skill <tên>: không rõ nguồn`: thêm tên đó vào
      `BUILTIN_SKILLS`.
+
+**Kiểm process còn chạy** (`orphanCheck`, chỉ khi có `--require-no-orphans`; chạy sau `workflowCheck` hoặc
+`workflowCheckRuntime`, gộp dòng và `ok` của hai bên):
+
+- `PAPERCLIP_RUN_ID` rỗng hoặc không có: dòng `warn`, `ok`, không gọi `ps`. Sai dạng (`[A-Za-z0-9_-]{1,128}`, chặn
+  `../` trước khi ghép vào `runs/<runId>`): chặn.
+- Lấy process của run bằng mã của reaper (flow `mac-orphan-reaper`): `listProcesses`, `readBootTime`, rồi
+  `collectRunMembers` với `root` đã `realpath`. Thành viên gồm (a) cây con cháu của process agent mang đúng
+  `PAPERCLIP_RUN_ID`, (b') mồ côi đã reparent về launchd có cwd dưới worktree, không tty, sinh trong cửa sổ run, (c)
+  cùng group wrapper ghi. (b') và (c) cần marker `started`/`pgid` dưới `<root>/.paperclip-runtime/runs/<runId>/`
+  (wrapper ghi); thiếu marker thì chỉ còn nhánh (a).
+- Loại khỏi danh sách: chính process đang chạy và cả chuỗi tổ tiên theo PPID (shell của tool, claude/codex/opencode,
+  wrapper), cùng con cháu của chính nó (`ps`/`lsof` đang quét). Còn lại pid nào thì chặn.
+- `ps` lỗi: chặn với dòng `không đọc được bảng process để kiểm process còn chạy (<lỗi>)`.
 
 **Phân loại nguồn** (`classifyOrigin`, `discoverSources`):
 
@@ -408,7 +428,7 @@ bản ghim (hoặc không còn cài).
 | `apps/crew-mac/src/workflows/tree-checksum.ts` | Checksum cây | `treeChecksum` |
 | `apps/crew-mac/src/workflows/inventory.ts` | Phân loại nguồn trong worktree theo workflow của run (nạp chéo, `_bmad/`) | `classifyOrigin`, `discoverSources`, `describeSource`, `compareBmadScripts`, `bmadSetupStampPath`, `recordBmadSetup`, `worktreeWorkflowStampPath`, `recordWorktreeWorkflow`, `lastRunWorkflow`, `CROSS_WORKFLOW_REASON`, `PARALLEL_PLUGIN_REASON`, `BMAD_SCRIPT_MISMATCH_REASON`, `BMAD_PERSONAL_REASON`, `BMAD_SETUP_UNCOMMITTED_WARNING`, `Origin`, `DiscoveredSource` |
 | `apps/crew-mac/src/workflows/run-init.ts` | Kiểm `system/init` của run | `findInitEvent`, `selectInitWorkflow`, `checkInitEvent`, `BUILTIN_SKILLS`, `BUILTIN_AGENTS`, `PAPERCLIP_DYNAMIC_MCP` |
-| `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` (nhánh `--runtime` ở flow `mac-runtimes`) | `workflowCheck`, `workflowCheckRuntime`, `runInitCheck` |
+| `apps/crew-mac/src/commands/workflow-check.ts` | Lệnh `workflow-check`, `run-init-check` (nhánh `--runtime` ở flow `mac-runtimes`), kiểm process còn chạy của `--require-no-orphans` (dùng `reaper/run-members.ts`) | `workflowCheck`, `workflowCheckRuntime`, `orphanCheck`, `runInitCheck`, `WorkflowReport` |
 | `apps/crew-mac/assets/crew-claude-run.sh` | Wrapper gọi `workflow-check` trước run, ghi dấu `.in_use/<runId>` vào thư mục ghim (flow `mac-setup` giữ phần `pgid`/`started`), chuyển sang stub khi checkout `e2e-*` có tệp đánh dấu | — |
 | `apps/crew-mac/assets/crew-e2e-stub.sh` | Stub nghiệm thu: ngủ theo tệp đánh dấu rồi in một dòng kết quả stream-json, không gọi model | — |
 
@@ -422,6 +442,8 @@ bản ghim (hoặc không còn cài).
   mục cha 700; bản tạm `<dir>.tmp-<pid>` chỉ tồn tại trong lúc cài). Uninstall để nguyên các thư mục này, vô hại.
 - **`workflow-check`:** ba lệnh `/usr/bin/git` cho cả worktree và chỉ đọc file trong worktree và thư mục ghim; ghi duy
   nhất dấu `~/.crew/state/worktree-workflow/<rootKey>` (thư mục 700, file 600).
+- **`--require-no-orphans`:** chỉ đọc: ba lệnh `/bin/ps`, `/usr/sbin/sysctl -n kern.boottime`, `/usr/sbin/lsof` cho
+  ứng viên mồ côi, và marker `started`/`pgid` dưới `<root>/.paperclip-runtime/runs/<runId>/`. Không gửi tín hiệu nào.
 ## Pin theo run và dọn bản cũ
 
 `apps/crew-mac/src/workflows/workflow-gc.ts` → `gcWorkflowPins(ctx, { isAlive? })` duyệt `~/.crew/workflows/<id>/*`
@@ -507,6 +529,11 @@ cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ 
   - `runInitCheck` với `system/init` thật của run Paperclip (`test/fixtures/paperclip-run-init.json`, đã ẩn định
     danh): hai MCP Paperclip `dynamic` được phép; MCP `dynamic` khác tên hay tên Paperclip với nguồn khác bị chặn.
   - CLI: mã 0/2/78/1.
+- `apps/crew-mac/test/workflow-check-orphans.test.ts` (runner giả, không spawn process): chỉ còn chuỗi tổ tiên thì
+  ok; dev server con cháu của claude còn sống thì chặn có pid và lệnh rút gọn 80 ký tự; mồ côi reparent về launchd có
+  cwd dưới worktree trong cửa sổ run thì chặn (sinh trước run hay cwd ngoài worktree thì không); wrapper, claude, shell
+  tool, chính lệnh và `ps` con không bị tính; thiếu `PAPERCLIP_RUN_ID` thì cảnh báo, ok, không gọi `ps`; run id sai dạng
+  hay `ps` lỗi thì chặn; CLI dạng `--runtime` (0/78/cảnh báo) và `--plugin-dir` (không có cờ thì không quét process).
 - `apps/crew-mac/test/workflows-gc.test.ts`: bản hiện hành luôn giữ; dấu pid sống giữ; pid chết và 25 giờ thì xóa dấu rồi
   thư mục; pid chết nhưng mới đổi thì giữ (`recent`); dấu hỏng sống tới 7 ngày; dấu hợp lệ cũ hơn 7 ngày bị xóa dù pid
   sống; dấu ghi 2 giờ trước trên thư mục ghim 48 giờ thì giữ (`recent`); `*.tmp-*`, tên lạ và symlink không bị

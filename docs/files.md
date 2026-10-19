@@ -153,6 +153,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/system-wrappers.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/system.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/uninstall.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/workflow-check-orphans.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflow-check-runtime.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |
 | `apps/crew-mac/test/workflow-check.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflows-bmad-install.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |

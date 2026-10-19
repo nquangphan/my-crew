@@ -1,6 +1,9 @@
-import { type Dirent, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { type Dirent, existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import type { MacContext } from '../context.js';
+import { listProcesses, type ProcInfo, readBootTime } from '../reaper/process-table.js';
+import { collectRunMembers, descendants } from '../reaper/run-members.js';
+import type { CommandRunner } from '../system.js';
 import { missingExecutables } from '../workflows/install.js';
 import { describeSource, discoverSources, recordWorktreeWorkflow } from '../workflows/inventory.js';
 import { pinDir } from '../workflows/pin.js';
@@ -74,6 +77,72 @@ export async function workflowCheck(
         `project=${count('project')} pinned-dup=${count('pinned')}`,
       ...warnings,
     ],
+  };
+}
+
+/** Run id Paperclip hợp lệ (cùng tập ký tự `ps -E` nhận); chặn `..`/`/` trước khi ghép vào đường dẫn `runs/<id>`. */
+const RUN_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+const CMD_MAX = 80;
+
+/** Chuỗi tổ tiên của `selfPid` theo PPID (gồm chính nó): shell của tool, claude/codex/opencode, wrapper. */
+function ancestorChain(selfPid: number, procs: readonly ProcInfo[]): Set<number> {
+  const ppidOf = new Map(procs.map((p) => [p.pid, p.ppid]));
+  const chain = new Set<number>();
+  let current: number | undefined = selfPid;
+  while (current !== undefined && current > 1 && !chain.has(current)) {
+    chain.add(current);
+    current = ppidOf.get(current);
+  }
+  return chain;
+}
+
+function shortCommand(p: ProcInfo): string {
+  const cmd = (p.command || p.comm).replace(/\s+/g, ' ').trim();
+  return cmd.slice(0, CMD_MAX);
+}
+
+/**
+ * Kiểm trước khi agent báo xong (`--require-no-orphans`): process của run `runId` (cây con cháu của agent, mồ côi
+ * reparent về launchd có cwd dưới worktree, cùng group wrapper ghi) còn sống ngoài chuỗi tổ tiên của chính lệnh này
+ * thì chặn. Con cháu của chính lệnh (ps/lsof đang quét) cũng không tính. Chỉ báo, không kill.
+ */
+export async function orphanCheck(
+  deps: { runner: CommandRunner; now: () => Date; selfPid: number },
+  input: { root: string; runId: string | undefined },
+): Promise<WorkflowReport> {
+  const runId = input.runId?.trim() ?? '';
+  if (runId === '') {
+    return { ok: true, lines: ['crew-workflow warn: không có PAPERCLIP_RUN_ID, bỏ qua kiểm process'] };
+  }
+  if (!RUN_ID_RE.test(runId)) {
+    return { ok: false, lines: [blocked(`PAPERCLIP_RUN_ID không hợp lệ (${runId.slice(0, CMD_MAX)})`)] };
+  }
+  const root = existsSync(input.root) ? realpathSync(input.root) : resolve(input.root);
+  let procs: ProcInfo[];
+  let members: number[];
+  try {
+    procs = await listProcesses(deps.runner, deps.now());
+    const bootTime = await readBootTime(deps.runner);
+    ({ members } = await collectRunMembers(deps.runner, procs, { runId, root }, deps.selfPid, bootTime));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      lines: [blocked(`không đọc được bảng process để kiểm process còn chạy (${message})`)],
+    };
+  }
+  const ignored = new Set([...ancestorChain(deps.selfPid, procs), ...descendants(deps.selfPid, procs)]);
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  const left = members.filter((pid) => !ignored.has(pid));
+  if (left.length === 0)
+    return { ok: true, lines: [`crew-workflow ok không còn process nào của run ${runId}`] };
+  return {
+    ok: false,
+    lines: left.map((pid) => {
+      const p = byPid.get(pid);
+      const cmd = p ? shortCommand(p) : '?';
+      return blocked(`process còn chạy pid=${pid} cmd=${cmd} — tắt process bạn đã bật rồi chạy lại`);
+    }),
   };
 }
 

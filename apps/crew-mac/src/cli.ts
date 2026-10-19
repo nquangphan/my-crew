@@ -16,7 +16,13 @@ import {
 } from './commands/status.js';
 import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
 import { uninstall } from './commands/uninstall.js';
-import { runInitCheck, workflowCheck, workflowCheckRuntime } from './commands/workflow-check.js';
+import {
+  orphanCheck,
+  runInitCheck,
+  type WorkflowReport,
+  workflowCheck,
+  workflowCheckRuntime,
+} from './commands/workflow-check.js';
 import { WORKFLOWS_USAGE, workflowsCommand } from './commands/workflows.js';
 import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
@@ -52,9 +58,12 @@ Cách dùng:
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
-  crew-mac workflow-check --root <worktree tuyệt đối> --plugin-dir <thư mục tuyệt đối>   (wrapper gọi trước mỗi run)
-  crew-mac workflow-check --runtime codex_local|opencode_local --root <worktree tuyệt đối>
+  crew-mac workflow-check --root <worktree tuyệt đối> --plugin-dir <thư mục tuyệt đối> [--require-no-orphans]
+                 (wrapper gọi trước mỗi run)
+  crew-mac workflow-check --runtime codex_local|opencode_local --root <worktree tuyệt đối> [--require-no-orphans]
                  (wrapper Codex/OpenCode gọi trước mỗi run; đọc CREW_SUPERPOWERS_DIR)
+                 --require-no-orphans: agent chạy trước khi báo xong; chặn khi process của run PAPERCLIP_RUN_ID
+                 (ngoài chuỗi tổ tiên của lệnh này) còn sống; không có PAPERCLIP_RUN_ID thì chỉ cảnh báo, không kill gì
   crew-mac run-init-check --root <worktree tuyệt đối> --log <file stream-json | ->   (kiểm system/init của một run)
   crew-mac files --issue <uuid> --run <uuid> [--json]   (agent gọi trong run Paperclip: liệt kê file đính kèm của issue và issue cha)
   crew-mac files --gc-only   (chỉ dọn cache file đính kèm)
@@ -393,11 +402,21 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return 0;
       }
       case 'workflow-check': {
-        const flags = parseFlags(args, ['--root', '--plugin-dir', '--runtime']);
+        const flags = parseFlags(args, ['--root', '--plugin-dir', '--runtime'], ['--require-no-orphans']);
         const root = flags.value('--root');
         const pluginDir = flags.value('--plugin-dir');
         const runtime = flags.value('--runtime');
         if (!root || !isAbsolute(root)) throw new UsageError('--root phải là đường dẫn tuyệt đối');
+        const finish = async (first: WorkflowReport) => {
+          const report = flags.has('--require-no-orphans')
+            ? await orphanCheck(
+                { runner: ctx.runner, now: ctx.now, selfPid: process.pid },
+                { root, runId: io.env.PAPERCLIP_RUN_ID },
+              ).then((second) => ({ ok: first.ok && second.ok, lines: [...first.lines, ...second.lines] }))
+            : first;
+          for (const line of report.lines) (report.ok ? io.out : io.err)(line);
+          return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
+        };
         if (runtime !== undefined) {
           const external = EXTERNAL_RUNTIMES.find((r) => r === runtime);
           if (!external)
@@ -405,19 +424,17 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
               `--runtime chỉ nhận ${EXTERNAL_RUNTIMES.join(' | ')} (claude_local dùng --plugin-dir)`,
             );
           if (pluginDir !== undefined) throw new UsageError('--runtime không đi cùng --plugin-dir');
-          const report = await workflowCheckRuntime(ctx, {
-            root,
-            runtime: external,
-            superpowersDir: io.env.CREW_SUPERPOWERS_DIR,
-          });
-          for (const line of report.lines) (report.ok ? io.out : io.err)(line);
-          return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
+          return await finish(
+            await workflowCheckRuntime(ctx, {
+              root,
+              runtime: external,
+              superpowersDir: io.env.CREW_SUPERPOWERS_DIR,
+            }),
+          );
         }
         if (!pluginDir || !isAbsolute(pluginDir))
           throw new UsageError('--plugin-dir phải là đường dẫn tuyệt đối');
-        const report = await workflowCheck(ctx, { root, pluginDir });
-        for (const line of report.lines) (report.ok ? io.out : io.err)(line);
-        return report.ok ? 0 : WORKFLOW_BLOCKED_EXIT;
+        return await finish(await workflowCheck(ctx, { root, pluginDir }));
       }
       case 'run-init-check': {
         const flags = parseFlags(args, ['--root', '--log']);
