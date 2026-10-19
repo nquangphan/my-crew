@@ -1,0 +1,14 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server
+
+[21:52:02] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:52:20] [32mINFO[39m: [36mworkspace Git scan finished without a result[39m [90m{"event":"workspace_git_scan","operation":"referenced_source.toplevel","workspaceHash":"953349d5794cc888","outcome":"workspace_git_scan_failed","queueWaitMs":1,"executionMs":34,"activeCount":1,"queuedCount":0,"cacheHit":false,"singleFlightJoinCount":0,"exitOutcome":"workspace_git_scan_failed"}[39m
+[21:52:22] [32mINFO[39m: [36mworkspace Git scan finished without a result[39m [90m{"event":"workspace_git_scan","operation":"referenced_source.toplevel","workspaceHash":"2937e1c2fa3deaf6","outcome":"workspace_git_scan_failed","queueWaitMs":0,"executionMs":65,"activeCount":1,"queuedCount":0,"cacheHit":false,"singleFlightJoinCount":0,"exitOutcome":"workspace_git_scan_failed"}[39m
+[21:52:23] [32mINFO[39m: [36mworkspace Git scan finished without a result[39m [90m{"event":"workspace_git_scan","operation":"referenced_source.toplevel","workspaceHash":"9198c4153dba2c61","outcome":"workspace_git_scan_failed","queueWaitMs":0,"executionMs":41,"activeCount":1,"queuedCount":0,"cacheHit":false,"singleFlightJoinCount":0,"exitOutcome":"workspace_git_scan_failed"}[39m
+[21:52:25] [32mINFO[39m: [36mworkspace Git scan finished without a result[39m [90m{"event":"workspace_git_scan","operation":"referenced_source.toplevel","workspaceHash":"9198c4153dba2c61","outcome":"workspace_git_scan_failed","queueWaitMs":0,"executionMs":44,"activeCount":1,"queuedCount":0,"cacheHit":false,"singleFlightJoinCount":0,"exitOutcome":"workspace_git_scan_failed"}[39m
+
+ Test Files  2 passed (2)
+      Tests  36 passed (36)
+   Start at  21:51:42
+   Duration  50.02s (transform 21.61s, setup 351ms, import 31.09s, tests 18.05s, environment 0ms)
+

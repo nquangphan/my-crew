@@ -1,0 +1,121 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/adapters/claude-local
+
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+Error handling request { method: 'nes/close' } { code: -32601 }
+paperclip-acp-echo-agent started
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+Error handling request { method: 'nes/close' } { code: -32601 }
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+Error handling request { method: 'nes/close' } { code: -32601 }
+paperclip-acp-echo-agent started
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+Error handling request { method: 'nes/close' } { code: -32601 }
+paperclip-acp-echo-agent started
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+Error handling request { method: 'nes/close' } { code: -32601 }
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+Error handling request { method: 'nes/close' } { code: -32601 }
+paperclip-acp-echo-agent started
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+[acpx] spawning agent: /opt/homebrew/Cellar/node@24/24.21.0/bin/node /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/scripts/mcp-fixtures/servers/acp-echo-agent.mjs
+paperclip-acp-echo-agent started
+[acpx] initialized protocol version 1
+
+ Test Files  22 passed | 1 skipped (23)
+      Tests  335 passed | 1 skipped (336)
+   Start at  21:52:44
+   Duration  45.01s (transform 61.94s, setup 0ms, import 140.06s, tests 65.80s, environment 5ms)
+
+rc=0

@@ -1,0 +1,37 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/crew-plugin
+
+ ✓ src/__tests__/runtime-fallback.db.test.ts > khai báo > job runtime-fallback mỗi phút, không thêm capability; đăng ký sự kiện agent.run.failed và job 10ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > hết quota (errorFamily đọc từ heartbeat_runs): ghi một quyết định, đổi assignee + override, comment, đánh thức một lần; gửi lại thì không làm gì 35ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > đích OpenCode chỉ có model; đích Codex dùng modelReasoningEffort 44ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > lỗi khác (timeout, crew-workflow blocked) và agent ngoài ba runtime: không làm gì 11ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > dừng khi issue không thuộc project Crew, không có policy Crew, đã xong, đã giao agent khác, agent không phải executor 9ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > large lỗi đăng nhập: từ chối, hẹn đánh thức lại sau 5 phút, không block; gửi lại không comment thêm 22ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > large hết quota: stock hẹn chạy lại lúc quota hồi, Crew không hẹn thêm 33ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > đã chuyển 2 lần: từ chối và block; runtime đã thử bị bỏ khi đếm 34ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > issue có ảnh và không còn model đọc ảnh: từ chối 17ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > executor > H2 từ chối lệnh đổi assignee: quyết định thành fallback_refused, comment từ chối, block 15ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > large: Claude lỗi đăng nhập thì Crew đánh thức lại theo backoff > TPS-208: hẹn 5 phút, chưa tới hạn không đánh thức; tới hạn đánh thức một lần rồi chờ kết quả 21ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > large: Claude lỗi đăng nhập thì Crew đánh thức lại theo backoff > run đánh thức lại hỏng tiếp: chờ 15, 30, 60 phút; hết 4 lần thì comment rõ và block, không đánh thức nữa 82ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > large: Claude lỗi đăng nhập thì Crew đánh thức lại theo backoff > run đánh thức lại thành công: xóa dòng, lần lỗi sau bắt đầu lại từ 5 phút 43ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > large: Claude lỗi đăng nhập thì Crew đánh thức lại theo backoff > có người đánh thức trước (board comment): không đánh thức thêm; issue đổi người, đóng hay blocked: xóa dòng 59ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > large: Claude lỗi đăng nhập thì Crew đánh thức lại theo backoff > lỗi đánh thức (issue bị chặn): không tính lần, thử lại sau 5 phút 23ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > job runtime-fallback (run bị công tắc giữ) > chỉ xử lý dòng quá 60 giây, run còn queued, công tắc vẫn tắt; đánh thức sau khi run cũ bị hủy; chạy lại không làm gì 34ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > job runtime-fallback (run bị công tắc giữ) > run cũ không bị hủy sau 30 phút: vẫn đánh thức agent đích (như trước) 31ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > job runtime-fallback (run bị công tắc giữ) > agent đích đã có run trên issue sau quyết định: không đánh thức thêm 20ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > job runtime-fallback (run bị công tắc giữ) > công tắc đã bật lại: đặt handled_at, không chuyển 7ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > job runtime-fallback (run bị công tắc giữ) > không có đích: một comment chờ có tên máy, fallback_refused có run_id, không block 27ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex → reviewer Claude > run reviewer Codex lỗi (kể cả lỗi khác): chỉ đổi currentParticipant + assignee, không policy, không actor; comment; đánh thức 9ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex → reviewer Claude > công tắc Codex tắt: job chuyển run reviewer bị giữ sang reviewer Claude 13ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex → reviewer Claude > issue cũ chỉ có reviewer Codex trong stage: fallback_refused, comment; quota thì block, công tắc tắt thì giữ 12ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex → reviewer Claude > H2 từ chối: quyết định thành fallback_refused; lượt review không còn chờ Codex thì dừng 12ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex bị pause/terminate sau khi đã được chọn > pause hoặc terminate: chuyển sang reviewer Claude như reviewer Codex lỗi (không run) 62ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex bị pause/terminate sau khi đã được chọn > agent không pause thì bỏ qua; issue không in_review thì bỏ qua 12ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex bị pause/terminate sau khi đã được chọn > stage không có reviewer Claude: fallback_refused, comment, block 13ms
+ ✓ src/__tests__/runtime-fallback.db.test.ts > reviewer Codex bị pause/terminate sau khi đã được chọn > job runtime-fallback gọi cả lượt quét này 14ms
+
+ Test Files  1 passed (1)
+      Tests  28 passed (28)
+   Start at  21:36:38
+   Duration  5.44s (transform 1.15s, setup 0ms, import 1.84s, tests 3.47s, environment 0ms)
+

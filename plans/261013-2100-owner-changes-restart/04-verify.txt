@@ -1,0 +1,50 @@
+$ bash crew/release/verify.sh   (HEAD a057f68f7, chạy đủ mọi bước)
+== node crew/release/check-core-hooks.mjs
+== node --test crew/release/check-core-hooks.test.mjs
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+== node --test crew/ops/plugin-state.test.mjs
+ℹ tests 5
+ℹ pass 5
+ℹ fail 0
+== node --test crew/ops/policy-config.test.mjs
+ℹ tests 10
+ℹ pass 10
+ℹ fail 0
+== node --test crew/release/upgrade.test.mjs crew/ops/compose-set-image.test.mjs crew/ops/pull-backup.test.mjs
+ℹ tests 18
+ℹ pass 18
+ℹ fail 0
+== corepack pnpm install --frozen-lockfile
+== corepack pnpm --filter @paperclipai/plugin-sdk ensure-build-deps
+== corepack pnpm --filter @paperclipai/paperclip-runner run build:typescript
+== corepack pnpm --filter @paperclipai/plugin-sdk... build
+== corepack pnpm --filter @paperclipai/server exec vitest run src/__tests__/crew- src/crew/ src/adapters/plugin-loader.test.ts
+ Test Files  39 passed (39)
+      Tests  732 passed (732)
+== corepack pnpm --filter @paperclipai/adapter-claude-local exec vitest run src/server/execute.remote.crew.test.ts src/server/session-codec.crew.test.ts src/server/execute.remote.test.ts
+ Test Files  3 passed (3)
+      Tests  17 passed (17)
+== corepack pnpm --filter @paperclipai/adapter-codex-local exec vitest run src/server/session-codec.crew.test.ts src/server/execute.remote.test.ts
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+== corepack pnpm --filter @paperclipai/adapter-opencode-local exec vitest run src/server/execute.in-place.crew.test.ts src/server/session-codec.crew.test.ts src/server/execute.remote.test.ts
+ Test Files  3 passed (3)
+      Tests  12 passed (12)
+== corepack pnpm --filter @crew/paperclip-plugin test
+ Test Files  57 passed (57)
+      Tests  467 passed (467)
+== node --test crew/agents/add-base.test.mjs crew/agents/apply-roles.test.mjs crew/agents/instructions.test.mjs crew/agents/integrator-pr.test.mjs crew/agents/merge-agent-config.test.mjs crew/agents/policy-config.test.mjs crew/agents/render-instructions.test.mjs crew/agents/verify-result.test.mjs
+ℹ tests 158
+ℹ pass 158
+ℹ fail 0
+== corepack pnpm --filter @paperclipai/server exec tsc --noEmit
+== corepack pnpm --filter @paperclipai/adapter-claude-local exec tsc --noEmit
+== corepack pnpm --filter @paperclipai/adapter-codex-local exec tsc --noEmit
+== corepack pnpm --filter @paperclipai/adapter-opencode-local exec tsc --noEmit
+== corepack pnpm --filter @crew/paperclip-plugin exec tsc --noEmit
+== corepack pnpm --filter @crew/paperclip-plugin build
+== no_bare_react_require
+XANH: mốc hook đủ, test vá, test plugin/agents và typecheck đạt
+rc=0

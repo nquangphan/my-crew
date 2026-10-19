@@ -1,0 +1,10 @@
+# Giả định Trợ Lý tự quyết (R2-1)
+
+- 09/10 12:45 — m1 (review PG-1/PL-1): khi đọc bảng `crew_project_roles` lỗi mà issue CÓ `projectId`, H4 trả lỗi tạm (để bên gọi thử lại) thay vì rơi về vai trò file — vì vai trò file có thể không có checkout repo của project đó, issue sẽ kẹt. Issue không project vẫn dùng vai trò file. Lý do: cùng tinh thần fail closed PL-1 đã chọn cho agent bị xóa. Đổi Interface I7 tương ứng. Owner phủ quyết được.
+- 09/10 15:05 — AP-4: chấp nhận dùng Electron `safeStorage` cho RIÊNG board key (lệch Global Constraint "không safeStorage" — lý do gốc chỉ áp cho `crew-mac-status` mà CLI cũng phải đọc). Thực nghiệm: tiến trình khác chỉ đọc được bản mã; đọc khóa Safe Storage bị chặn chờ hộp thoại. Điều kiện bắt buộc: bản đóng gói bật Electron fuses (`runAsNode:false`, `enableNodeOptionsEnvironment:false`, `enableNodeCliInspectArguments:false`, `enableEmbeddedAsarIntegrityValidation:true`, `onlyLoadAppFromAsar:true`) — giao AP-3; đo lại trên bản ký ở CV-1/AC.
+- 09/10 15:40 — AP-5: manifest crew-mac hỏng thì wizard chỉ có nút 'Đã xử lý, kiểm tra lại' (app không xóa/sửa file trong ~/.crew-mac, ~/.crew); không làm resetManifest ở R2-1. Owner phủ quyết được.
+- 09/10 17:20 — RV-1 M4: wizard KHÔNG ghi đè `url` đã có trong `~/.crew/status.json` (hiện qua Tailscale); chỉ máy mới mới ghi url (lấy theo URL Paperclip app đang đăng nhập). Lý do: bản tin đang chạy 200 qua đường cũ, đổi đường là rủi ro không cần thiết.
+- 09/10 17:20 — RV-1 câu 2 ("thoát app = Mac ngừng nhận run"): giữ đúng spec §6 owner đã duyệt (thoát app dừng listener chính, phiên SSH đang chạy sống tới xong, run mới chờ trên Paperclip); bổ sung m6: quit guard cảnh báo cả khi 0 run rằng máy sẽ ngừng nhận việc.
+- 09/10 17:20 — RV-1 m11: tách `userData` Chromium của app mới sang thư mục con `…/2P Crew/chromium` để không đọc/ghi file Chromium của app v2; `app.json`/`app.log` giữ chỗ cũ.
+- 09/10 17:20 — RV-1 m1: sửa hướng dẫn đóng gói trong `AGENTS.md` (nằm trong phạm vi duyệt CREWV3-3 cho `apps/mac-app`).
+- 09/10 16:35 — OWNER: project đã có sẵn trên máy; 'Thêm project' = CHỌN FOLDER trên máy (không nhập URL, không clone). Làm ngay.

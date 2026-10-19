@@ -1,0 +1,65 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/adapters/claude-local
+
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > classifies Claude's invalid API key login prompt as auth required 5ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > does not classify a bare invalid API key as the Claude login flow 1ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > classifies an invalid or expired OAuth bearer token as login required 1ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > does not route an invalid token to the transient or quota classifiers 2ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > classifies an expired or revoked token in the parsed result as login required 0ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > does not classify a successful probe whose assistant text repeats a token phrase 0ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > does not classify a success whose result text repeats a token phrase 0ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > keeps a transient failure with an assistant token phrase on the transient lane 1ms
+ ✓ src/server/parse.test.ts > detectClaudeLoginRequired > does not treat a bare token phrase in raw stdout with no parsed result as login required 0ms
+ ✓ src/server/parse.test.ts > isClaudeModelNotFoundError > detects model resolution failures from structured and fallback output 1ms
+ ✓ src/server/parse.test.ts > isClaudeModelNotFoundError > does not classify unrelated provider failures as model resolution errors 0ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > classifies the 'out of extra usage' subscription window failure as provider quota 1ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > classifies Claude session-limit windows as provider quota and extracts the retry time 3ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > classifies the qualifier-less limit wording as provider quota and extracts the retry time 2ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > classifies Anthropic API rate_limit_error and overloaded_error as transient 1ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > classifies the subscription 5-hour / weekly limit wording as provider quota 1ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > does not classify login/auth failures as transient 0ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > does not classify max-turns or unknown-session as transient 0ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > does not classify deterministic validation errors as transient 0ms
+ ✓ src/server/parse.test.ts > isClaudeTransientUpstreamError > does not classify poisoned previous_message_id errors as transient 0ms
+ ✓ src/server/parse.test.ts > isClaudePoisonedPreviousMessageIdError > detects the previous_message_id 400 error in the result field 0ms
+ ✓ src/server/parse.test.ts > isClaudePoisonedPreviousMessageIdError > detects the error in the errors array 0ms
+ ✓ src/server/parse.test.ts > isClaudePoisonedPreviousMessageIdError > returns false for unrelated errors 0ms
+ ✓ src/server/parse.test.ts > isClaudePoisonedPreviousMessageIdError > returns false for empty parsed result 0ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > detects stop_reason: refusal even on a clean (is_error=false) result 0ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > detects the camelCase stopReason variant 0ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > detects subtype: model_refusal 1ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > is case-insensitive and tolerant of surrounding whitespace 0ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > returns false for ordinary successful turns 0ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > returns false for max-turns and other stop reasons 0ms
+ ✓ src/server/parse.test.ts > isClaudeRefusalResult > returns false for null/empty parsed result 0ms
+ ✓ src/server/parse.test.ts > isClaudeUnknownSessionError > detects the legacy 'no conversation found' message 0ms
+ ✓ src/server/parse.test.ts > isClaudeUnknownSessionError > detects 'session ... not found' style errors 0ms
+ ✓ src/server/parse.test.ts > isClaudeUnknownSessionError > detects '--resume requires a valid session' validation error from non-UUID input 0ms
+ ✓ src/server/parse.test.ts > isClaudeUnknownSessionError > returns false for unrelated error text 0ms
+ ✓ src/server/parse.test.ts > isClaudeImageProcessingError > detects the 'Could not process image' 400 error in the result field 0ms
+ ✓ src/server/parse.test.ts > isClaudeImageProcessingError > detects the error in the errors array 0ms
+ ✓ src/server/parse.test.ts > isClaudeImageProcessingError > is case-insensitive 0ms
+ ✓ src/server/parse.test.ts > isClaudeImageProcessingError > returns false for unrelated errors 0ms
+ ✓ src/server/parse.test.ts > isClaudeImageProcessingError > returns false for empty parsed result 0ms
+ ✓ src/server/parse.test.ts > extractClaudeRetryNotBefore > parses the 'resets 4pm' hint in its explicit timezone 1ms
+ ✓ src/server/parse.test.ts > extractClaudeRetryNotBefore > rolls forward past midnight when the reset time has already passed today 0ms
+ ✓ src/server/parse.test.ts > extractClaudeRetryNotBefore > returns null when no reset hint is present 0ms
+ ✓ src/server/parse.test.ts > claudeModelUsageTotals > sums per-model usage across models and counts cache writes as input 0ms
+ ✓ src/server/parse.test.ts > claudeModelUsageTotals > returns null for missing or empty modelUsage 0ms
+ ✓ src/server/parse.test.ts > parseClaudeStreamJson usage extraction > prefers modelUsage totals over the main-loop usage block and marks them per-run 4ms
+ ✓ src/server/parse.test.ts > parseClaudeStreamJson usage extraction > falls back to the result usage block when modelUsage is absent 0ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > does not flag a successful result whose tool output says Unauthorized 3ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > does not flag tool output that says Unauthorized when no result was parsed 1ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > still flags a failed result that asks to run /login 1ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > still flags Claude's own plain-text login prompt on stdout or stderr 1ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > still flags Claude's synthetic error assistant event when the run stopped before a result 0ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > still flags an is_error result with an expired OAuth token 1ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > does not classify a successful run that exits 255 with Unauthorized tool output as claude_auth_required 502ms
+ ✓ src/server/parse.auth.crew.test.ts > Claude auth classification ignores tool output (Crew) > classifies a real login-required run as claude_auth_required 480ms
+
+ Test Files  2 passed (2)
+      Tests  55 passed (55)
+   Start at  21:53:30
+   Duration  4.72s (transform 4.49s, setup 0ms, import 6.75s, tests 1.02s, environment 0ms)
+
+rc=0

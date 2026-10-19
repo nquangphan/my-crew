@@ -1,0 +1,35 @@
+$ node --test crew/agents/*.test.mjs crew/ops/*.test.mjs   (HEAD a057f68f7)
+ℹ tests 273
+ℹ suites 0
+ℹ pass 273
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43573.916875
+
+$ node crew/release/check-core-hooks.mjs
+CẢNH BÁO P1: chưa có PR upstream
+CẢNH BÁO P2: chưa có PR upstream
+CẢNH BÁO P3: chưa có PR upstream
+CẢNH BÁO P4: chưa có PR upstream
+CẢNH BÁO P5: chưa có PR upstream
+CẢNH BÁO P6: chưa có PR upstream
+CẢNH BÁO P7: chưa có PR upstream
+CẢNH BÁO P8: chưa có PR upstream
+CẢNH BÁO C1: chưa có PR upstream
+CẢNH BÁO C2: chưa có PR upstream
+CẢNH BÁO C3: chưa có PR upstream
+CẢNH BÁO C4: chưa có PR upstream
+CẢNH BÁO C5: chưa có PR upstream
+CẢNH BÁO C6: chưa có PR upstream
+CẢNH BÁO C7: chưa có PR upstream
+CẢNH BÁO C8: chưa có PR upstream
+CẢNH BÁO C9: chưa có PR upstream
+CẢNH BÁO C10: chưa có PR upstream
+Hook một dòng: 5/5; vá lõi: 10; mục: 23; lỗi: 0
+
+$ node --test crew/release/check-core-hooks.test.mjs
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0

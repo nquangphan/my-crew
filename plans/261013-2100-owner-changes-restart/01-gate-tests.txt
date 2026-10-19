@@ -1,0 +1,37 @@
+a057f68f7 docs(agents): owner yêu cầu sửa thì gốc chạy lại từ reviewer, integrator gộp lại và ghi bằng chứng docs mới
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server
+[21:26:08] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > luồng gốc 4 stage: reviewer → integrator docs → owner → integrator crew-merge pushed=yes → done 102ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > owner yêu cầu sửa ở stage owner, Trợ Lý thêm con sửa có code mới: gốc chạy lại reviewer → integrator docs mới → owner → PR đúng commit mới 136ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > owner yêu cầu sửa không cần code mới: vẫn chạy lại từ reviewer, integrator ghi lại bằng chứng docs cho cùng commit 100ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > issue gốc đã ở trạng thái owner yêu cầu sửa từ trước khi có luật chạy lại: nộp lại về stage owner, PR với bằng chứng docs cũ vẫn done 42ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > integrator yêu cầu sửa ở stage push (giao lỗi): nộp lại về stage push, không chạy lại từ đầu, bằng chứng docs vẫn còn hiệu lực 85ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > luồng gốc 4 stage: stage push thiếu, cũ hơn owner, lệch sha hoặc pushed=no đều 422 312ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > issue gốc cũ 3 stage vẫn chạy như trước: owner duyệt là done 60ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > push lỗi ở stage 4 → recovery chuyển blocked → owner comment mở về todo: stage 4 vẫn chờ integrator, push lại rồi done 129ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > issue blocked ở stage 4: owner đặt lại in_review thì stock giữ stage 4 và giao integrator 104ms
+ ✓ src/__tests__/crew-issue-gate.db.test.ts > crew issue gate in issueService.update > owner comment mở lại issue gốc đã done (assignee là integrator): giao lại executor, luồng chạy lại từ reviewer 103ms
+[21:26:20] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+ ✓ src/__tests__/crew-issue-gate.test.ts > parseCrewPolicyConfig > company có trong file và đủ trường thì trả vai trò và owner 1ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > buildCrewPolicy > research qua reviewer rồi owner, không có gate docs hay push 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > buildCrewPolicy > research cần owner 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > buildCrewPolicy > issue gốc có reviewer, integrator (merge + docs), owner rồi integrator (push), 5 vòng 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > buildCrewPolicy > issue gốc thiếu owner thì báo lỗi 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > owner duyệt stage cuối trong chính request này: cho qua khi các stage trước có decision và docs đạt 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template gốc 4 stage > integrator hoàn tất stage push với crew-merge mới hơn owner và đúng sha: done 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template gốc 4 stage > bằng chứng pull request (pushed=pr) hoàn tất stage push như push thẳng, cùng luật thời điểm và sha 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template gốc 4 stage > thiếu, cũ hơn quyết định owner, hoặc lệch sha bằng chứng docs: 422 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template gốc 4 stage > stage 2 vẫn cần bằng chứng docs; stage push không đòi docs riêng khi stage 2 chưa xong 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template gốc 4 stage > owner duyệt stage 3 không phải done và không đòi crew-merge 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template bmad (reviewer rồi owner) > không có stage docs hay push 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template bmad (reviewer rồi owner) > executor done chuyển sang reviewer 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template bmad (reviewer rồi owner) > reviewer duyệt thì sang stage owner, không đòi bằng chứng docs hay push 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template bmad (reviewer rồi owner) > agent không duyệt thay owner: reviewer hay executor tự done đều bị chặn 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template bmad (reviewer rồi owner) > owner duyệt stage approval thì done 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > template bmad (reviewer rồi owner) > agent gửi executionPolicy khác (bỏ stage owner) bị khóa 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > evaluateIssueGate > reviewer Codex lỗi hoặc bị tắt: hệ thống chuyển participant đang chờ sang reviewer Claude > đường stock không bị chặn: reviewer Codex duyệt, trả về executor, leo thang lên owner; board đổi participant 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > owner yêu cầu sửa ở stage duyệt: issue gốc chạy lại từ stage đầu > stage chạy lại là stage approval đứng sau stage docs; research và việc con không có 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > owner yêu cầu sửa ở stage duyệt: issue gốc chạy lại từ stage đầu > yêu cầu sửa ở stage owner: xóa stage đã xong và stage hiện tại, giữ người yêu cầu, loại stage và quyết định 0ms
+ ✓ src/__tests__/crew-issue-gate.test.ts > owner yêu cầu sửa ở stage duyệt: issue gốc chạy lại từ stage đầu > không đụng yêu cầu sửa ở stage reviewer, integrator hay push, hay lệnh ghi không phải quyết định yêu cầu sửa 0ms
+ Test Files  2 passed (2)
+      Tests  118 passed (118)

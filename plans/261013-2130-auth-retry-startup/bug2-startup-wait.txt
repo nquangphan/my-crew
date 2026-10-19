@@ -1,0 +1,15 @@
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server
+
+[21:36:46] WARN: CREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company {"env":"CREW_POLICY_CONFIG"}
+[21:36:46] WARN: crew: plugin startup still loading, passing request through {"url":"/api/plugins/crew.core/data/crew.companies","waitedMs":51}
+ ✓ src/__tests__/crew-plugin-startup-wait.test.ts > Crew: request plugin lúc vừa khởi động chờ worker đăng ký > router Crew giữ request /plugins/... tới khi lượt nạp plugin xong rồi route stock trả 200 (trước đây 502) 117ms
+ ✓ src/__tests__/crew-plugin-startup-wait.test.ts > Crew: request plugin lúc vừa khởi động chờ worker đăng ký > request ngoài /plugins không chờ lượt nạp plugin 2ms
+ ✓ src/__tests__/crew-plugin-startup-wait.test.ts > Crew: request plugin lúc vừa khởi động chờ worker đăng ký > lượt nạp quá hạn chờ: đi tiếp tới route stock như cũ (không treo request) 52ms
+ ✓ src/__tests__/crew-plugin-startup-wait.test.ts > Crew: request plugin lúc vừa khởi động chờ worker đăng ký > không có promise khởi động (app không phải createApp): đi tiếp ngay 2ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  21:36:44
+   Duration  2.66s (transform 1.50s, setup 47ms, import 2.35s, tests 174ms, environment 0ms)
+

@@ -1,0 +1,137 @@
+{
+  "result": [
+    {
+      "name": "marker",
+      "crewUi": "f569bf4a5c4d534810c762deb0cad2ef15fec73f"
+    },
+    {
+      "name": "01-login",
+      "url": "/login",
+      "h1": null
+    },
+    {
+      "name": "sign-in",
+      "status": 200
+    },
+    {
+      "name": "02-sau-dang-nhap",
+      "url": "/TPS/dashboard",
+      "h1": "Tổng quan"
+    },
+    {
+      "name": "03-tong-quan",
+      "url": "/TPS/dashboard",
+      "h1": "Tổng quan"
+    },
+    {
+      "name": "04-hop-thu",
+      "url": "/TPS/inbox",
+      "h1": "Hộp thư"
+    },
+    {
+      "name": "05-yeu-cau",
+      "url": "/TPS/issues",
+      "h1": "Yêu cầu"
+    },
+    {
+      "name": "06-tps-72",
+      "url": "/TPS/issues/TPS-72",
+      "h1": "TPS-72"
+    },
+    {
+      "name": "07-projects",
+      "url": "/TPS/projects",
+      "h1": "Project"
+    },
+    {
+      "name": "08-project",
+      "url": "/TPS/projects/2ps-landing",
+      "h1": "2ps-landing"
+    },
+    {
+      "name": "09-agents",
+      "url": "/TPS/agents",
+      "h1": "Agent"
+    },
+    {
+      "name": "10-agent",
+      "url": "/TPS/agents/bmad",
+      "h1": "bmad"
+    },
+    {
+      "name": "11-may",
+      "url": "/TPS/machines",
+      "h1": "Máy"
+    },
+    {
+      "name": "sign-out",
+      "status": 200
+    },
+    {
+      "name": "after-logout /api/companies",
+      "status": 403
+    },
+    {
+      "name": "12-sau-dang-xuat",
+      "url": "/login",
+      "h1": null
+    }
+  ],
+  "log": [
+    {
+      "stage": "login",
+      "kind": "http",
+      "text": "401 GET /api/auth/get-session"
+    },
+    {
+      "stage": "login",
+      "kind": "console.error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "stage": "03-tong-quan",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "04-hop-thu",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "05-yeu-cau",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "06-tps-72",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "07-projects",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "09-agents",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "11-may",
+      "kind": "console.warning",
+      "text": "No `HydrateFallback` element provided to render during initial hydration"
+    },
+    {
+      "stage": "logout",
+      "kind": "http",
+      "text": "401 GET /api/auth/get-session"
+    },
+    {
+      "stage": "logout",
+      "kind": "console.error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    }
+  ]
+}

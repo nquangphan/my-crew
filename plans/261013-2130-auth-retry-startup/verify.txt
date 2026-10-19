@@ -1,0 +1,1416 @@
+== node crew/release/check-core-hooks.mjs
+CẢNH BÁO P1: chưa có PR upstream
+CẢNH BÁO P2: chưa có PR upstream
+CẢNH BÁO P3: chưa có PR upstream
+CẢNH BÁO P4: chưa có PR upstream
+CẢNH BÁO P5: chưa có PR upstream
+CẢNH BÁO P6: chưa có PR upstream
+CẢNH BÁO P7: chưa có PR upstream
+CẢNH BÁO P8: chưa có PR upstream
+CẢNH BÁO C1: chưa có PR upstream
+CẢNH BÁO C2: chưa có PR upstream
+CẢNH BÁO C3: chưa có PR upstream
+CẢNH BÁO C4: chưa có PR upstream
+CẢNH BÁO C5: chưa có PR upstream
+CẢNH BÁO C6: chưa có PR upstream
+CẢNH BÁO C7: chưa có PR upstream
+CẢNH BÁO C8: chưa có PR upstream
+CẢNH BÁO C9: chưa có PR upstream
+CẢNH BÁO C10: chưa có PR upstream
+Hook một dòng: 5/5; vá lõi: 10; mục: 23; lỗi: 0
+== node --test crew/release/check-core-hooks.test.mjs
+✔ registry thật của fork đạt (35.047041ms)
+✔ hook đúng vị trí thì không có lỗi (0.841958ms)
+✔ mất anchor thì đỏ (0.85425ms)
+✔ có lệnh chen trước hook thì đỏ (0.665583ms)
+✔ import không nằm cuối file thì đỏ (0.556292ms)
+✔ anchor nằm ngoài scope thì đỏ (0.494959ms)
+✔ vượt ngân sách hook thì đỏ (0.699916ms)
+✔ vá adapter chưa có PR upstream chỉ cảnh báo (0.650333ms)
+✔ test được khai báo mà không tồn tại thì đỏ (0.439542ms)
+✔ vá lõi hợp lệ chỉ cảnh báo thiếu PR, không tính vào ngân sách hook và được đếm riêng (0.586ms)
+✔ vá lõi mất anchor thì đỏ (0.3735ms)
+✔ vá lõi không khai test thì đỏ (0.420917ms)
+✔ registry thật khai vá lõi cho mọi điểm sửa route và host sự kiện plugin (0.164333ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.840792
+== node --test crew/ops/plugin-state.test.mjs
+✔ healthy khi health ok và worker mới chạy sau khi container start (31.532041ms)
+✔ status ready cũ nhưng không có worker thì không healthy (76.236292ms)
+✔ worker khởi động trước container thì bị coi là cũ (25.8405ms)
+✔ health không ok trả lại status (26.027625ms)
+✔ không có phản hồi (50.374125ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 261.461542
+== node --test crew/ops/policy-config.test.mjs
+✔ file hợp lệ có object companies thì đạt (26.372541ms)
+✔ file thiếu, JSON lỗi hay không có companies thì bị từ chối (119.823375ms)
+✔ log khởi động: chỉ lỗi khi có cảnh báo gate Crew tắt, không đòi dòng enabled (91.093ms)
+✔ dùng sai cách thì thoát 2 (23.383084ms)
+✔ compose-env tạo .env khi chưa có (23.5685ms)
+✔ compose-env giữ nguyên các dòng khác và không in nội dung (24.547625ms)
+✔ compose-env idempotent: chạy lại không đổi, dòng COMPOSE_FILE cũ được thay và không nhân đôi (45.612458ms)
+✔ policy-env.sh ghi override mount thư mục :ro ngoài thư mục dữ liệu và đặt COMPOSE_FILE (35.775084ms)
+✔ list-companies in id company theo thứ tự đã sắp, mỗi dòng một id, không in gì khác (24.603375ms)
+✔ list-companies: companies rỗng thì không in gì; file hỏng thì thoát 1 (68.882917ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 530.547708
+== node --test crew/release/upgrade.test.mjs crew/ops/compose-set-image.test.mjs crew/ops/pull-backup.test.mjs
+✔ changes only the server image and adds stop_grace_period once (60.253ms)
+✔ fails and leaves the file untouched when the server block has no image line (34.355083ms)
+✔ fails when there is no server service (23.587584ms)
+✔ fails when the image tag is not a plain image reference (64.980625ms)
+✔ serve lists only complete sets and refuses anything else (179.125792ms)
+✔ pull copies every complete set inside the retention window and verifies it (1187.531084ms)
+✔ pull rejects a corrupted transfer and leaves no partial set behind (938.995542ms)
+✔ pull rotates local sets older than 14 days and keeps everything else (648.118958ms)
+✔ pull always keeps the 3 newest sets and reports stale when the VPS has no fresh backup (1370.434084ms)
+✔ pull rejects a manifest whose names do not match the requested set (506.631833ms)
+✔ không có ref thì in cách dùng và thoát 64 (5.248166ms)
+✔ ref không tồn tại thì thoát 65 (63.693917ms)
+✔ worktree đã tồn tại thì thoát 66 và không tạo nhánh (125.487084ms)
+✔ base không có crew/release/verify.sh thì thoát 65 và không tạo nhánh hay worktree (170.847041ms)
+✔ verify.sh từ chối chạy ngoài gốc worktree (65.48875ms)
+✔ conflict ở file nguồn thì thoát 2, liệt kê số hunk và không đổi nhánh base (430.47375ms)
+✔ chỉ pnpm-lock.yaml conflict thì lấy bản upstream và thoát 0 (worktree tương đối theo cwd) (529.016417ms)
+✔ verify.sh sinh lại importer Crew trong lockfile thì tự commit trên nhánh sync (761.988292ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4891.706958
+== corepack pnpm install --frozen-lockfile
+Scope: all 38 workspace projects
+(node:7619) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+. postinstall$ node scripts/link-plugin-dev-sdk.mjs
+. postinstall:   ✓ Linked @paperclipai/plugin-sdk into 0 excluded plugin(s) (skipped 9)
+. postinstall: Done
+Done in 3.4s
+== corepack pnpm --filter @paperclipai/plugin-sdk ensure-build-deps
+
+> @paperclipai/plugin-sdk@1.0.0 ensure-build-deps /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/plugins/sdk
+> node ../../../scripts/ensure-plugin-build-deps.mjs
+
+== corepack pnpm --filter @paperclipai/paperclip-runner run build:typescript
+
+> @paperclipai/paperclip-runner@0.0.0 build:typescript /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/paperclip-runner
+> pnpm run ensure:eval-build-deps && pnpm run check:protocol-types && node ./node_modules/typescript/bin/tsc --version && node ./node_modules/typescript/bin/tsc -p tsconfig.json && node ./node_modules/typescript/bin/tsc -p tsconfig.surfaces.json && node scripts/build-verified-provider-entrypoints.mjs
+
+
+> @paperclipai/paperclip-runner@0.0.0 ensure:eval-build-deps /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/paperclip-runner
+> pnpm --filter @paperclipai/paperclip-eval-kernel build
+
+
+> @paperclipai/paperclip-eval-kernel@0.1.0 build /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/paperclip-eval-kernel
+> tsc -p tsconfig.json
+
+
+> @paperclipai/paperclip-runner@0.0.0 check:protocol-types /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/paperclip-runner
+> node scripts/generate-protocol-schema-module.mjs --check && node scripts/generate-acpx-sidecar-contract.mjs --check
+
+Generated PRP schema modules match the JSON Schema sources.
+Generated TypeScript/Rust ACPX sidecar contracts match the schema.
+Version 7.0.2
+== corepack pnpm --filter @paperclipai/plugin-sdk... build
+Scope: 2 of 38 workspace projects
+packages/shared build$ tsc && mkdir -p dist/cliplab && cp src/cliplab/LICENSE src/cliplab/PROVENANCE.md dist/cliplab/
+packages/shared build: Done
+packages/plugins/sdk build$ pnpm --filter @paperclipai/shared build && tsc
+packages/plugins/sdk build: > @paperclipai/shared@0.3.1 build /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/shared
+packages/plugins/sdk build: > tsc && mkdir -p dist/cliplab && cp src/cliplab/LICENSE src/cliplab/PROVENANCE.md dist/cliplab/
+packages/plugins/sdk build: Done
+== corepack pnpm --filter @paperclipai/server exec vitest run src/__tests__/crew- src/crew/ src/adapters/plugin-loader.test.ts
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server
+
+[21:36:43] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:36:43] [33mWARN[39m: [36mcrew: plugin startup still loading, passing request through[39m [90m{"url":"/api/plugins/crew.core/data/crew.companies","waitedMs":52}[39m
+[21:36:47] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:36:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"721edb89-3fd9-4010-bd62-3b2932bccf0f","agentId":"4152aa1d-417c-4c32-b3b6-b0f4c457f1e6","runId":"3243cf78-4850-4d0e-b3d9-b1a9ed504bd5"}[39m
+[21:36:53] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"721edb89-3fd9-4010-bd62-3b2932bccf0f","agentId":"4152aa1d-417c-4c32-b3b6-b0f4c457f1e6","runId":"05821a00-7571-4469-8dbd-39a07d18675f"}[39m
+[21:36:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"aa6a98e5-343c-44cc-a042-31322d1dde3d","agentId":"bf953240-dad2-43a1-bafe-73aa0d051187","runId":"76b5fa6e-c940-469a-b8bc-df6fc4a902f7"}[39m
+[21:36:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"aa6a98e5-343c-44cc-a042-31322d1dde3d","agentId":"bf953240-dad2-43a1-bafe-73aa0d051187","runId":"93cc9867-c99f-4980-907e-c9a970713896"}[39m
+[21:36:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9fb7836c-010a-4af5-adcd-4247eb2dcae3","agentId":"ad701ca4-5f49-4b12-8e42-f58891775fbb","runId":"fafbee93-cc95-4b76-a224-a9d2c97675b2"}[39m
+[21:36:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9fb7836c-010a-4af5-adcd-4247eb2dcae3","agentId":"ad701ca4-5f49-4b12-8e42-f58891775fbb","runId":"f4f35c45-33a7-476b-8fc1-2754cf08b267"}[39m
+[21:36:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"81a415a9-2fad-49ff-9792-966163afbaef","agentId":"fa202454-98fa-421e-9a99-26ff69f68da2","runId":"13f9e1cb-13df-4a0d-af85-2702e32d8415"}[39m
+[21:36:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"52ba785c-abe5-4054-888d-b0a77115e3b1","agentId":"ec048fad-b20c-44e0-82e2-23be12bdab5e","runId":"87d1ee98-1dfb-4070-84d1-8a5b8d919dbf"}[39m
+[21:36:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"81a415a9-2fad-49ff-9792-966163afbaef","agentId":"fa202454-98fa-421e-9a99-26ff69f68da2","runId":"5a3cb189-e309-4332-9986-4f9834bf4382"}[39m
+[21:36:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"52ba785c-abe5-4054-888d-b0a77115e3b1","agentId":"ec048fad-b20c-44e0-82e2-23be12bdab5e","runId":"4e14bc1d-80c0-4a84-9d76-c94b061c0b72"}[39m
+[21:36:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fe9ca028-66bb-4033-bf94-3d29d52fa80a","agentId":"37bf08bd-025f-417b-906f-b8ff3ede8a13","runId":"cffba088-7fa7-4dbe-afe2-e2503e121a7f"}[39m
+[21:36:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fe9ca028-66bb-4033-bf94-3d29d52fa80a","agentId":"37bf08bd-025f-417b-906f-b8ff3ede8a13","runId":"1114499f-96e4-4430-95f3-4e430682a9a9"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"32a97b34-0d83-48ff-8c4d-38238156d660","agentId":"256216af-662d-4ffc-ae38-a1683471d5b6","runId":"f69b6868-8cb6-4208-ad4a-562992c0385a"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"8cecec49-de59-4c3e-9eb5-1bac6d022d9f","agentId":"8717233e-d0d7-46c6-a361-87c3bb43e2a6","runId":"568f6f77-5d76-49a1-9788-18dcc7d9c130"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f77f72d8-90a9-4f9a-9a15-8bcf1c308987","agentId":"0a9063c6-dc7a-4e66-afbd-ea376e5d49f0","runId":"b394b4a1-03b5-469d-914c-5b936924a84b"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"29dbe70f-130d-4928-ba3f-0ae26de1b282","agentId":"e4259ab7-4b60-4c03-9b4f-d9c080ba990b","runId":"20798918-d846-4a81-8b58-e0f6eba7ffa0"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a886254f-ac11-4775-b99e-0f203f960111","agentId":"9cc6b716-05d0-4901-9d62-97f0413d77f7","runId":"d03d20cf-ba5c-4f7a-8c3e-6f9e96066024"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"434a7dad-a0c2-485c-8298-7fa8cd8a6ab7","agentId":"a10ba566-cca4-4b12-9d92-5cecef1ac4a0","runId":"e3002779-a07b-4d8e-9fd1-0fdc371cafe3"}[39m
+[21:36:57] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9ebf298f-a3ae-4021-8a64-b2d4330483cc","agentId":"f349d767-c6bd-4bf5-a279-ccf22665c223","runId":"815b9daa-e9a5-4d5b-9163-73588cb22ac1"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"6137a9e5-954c-43b1-bf2d-f222cd23ba83","agentId":"40f88343-a669-45d2-b6f7-1824a3d964fb","runId":"1a004eab-9cc0-4464-af19-5ca574b7d2e4"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"32a97b34-0d83-48ff-8c4d-38238156d660","agentId":"256216af-662d-4ffc-ae38-a1683471d5b6","runId":"efb26e06-8aab-412d-afa5-62926ad9d32d"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"8cecec49-de59-4c3e-9eb5-1bac6d022d9f","agentId":"8717233e-d0d7-46c6-a361-87c3bb43e2a6","runId":"7e285d76-40cb-4308-ab77-00f89c050df9"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f77f72d8-90a9-4f9a-9a15-8bcf1c308987","agentId":"0a9063c6-dc7a-4e66-afbd-ea376e5d49f0","runId":"c1641fbe-75e3-4917-a82d-b407f243f83a"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"29dbe70f-130d-4928-ba3f-0ae26de1b282","agentId":"e4259ab7-4b60-4c03-9b4f-d9c080ba990b","runId":"31cedd2e-254d-4829-8c1a-576c01e99103"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a886254f-ac11-4775-b99e-0f203f960111","agentId":"9cc6b716-05d0-4901-9d62-97f0413d77f7","runId":"37e3c45a-c9d3-4737-896e-117b01206634"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"434a7dad-a0c2-485c-8298-7fa8cd8a6ab7","agentId":"a10ba566-cca4-4b12-9d92-5cecef1ac4a0","runId":"6fd4abac-2d36-47b3-a85b-cad070dfe080"}[39m
+[21:36:58] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"9ebf298f-a3ae-4021-8a64-b2d4330483cc","agentId":"f349d767-c6bd-4bf5-a279-ccf22665c223","runId":"08559779-fd26-4dc6-9c95-faa4214b4d42"}[39m
+[21:36:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"6137a9e5-954c-43b1-bf2d-f222cd23ba83","agentId":"40f88343-a669-45d2-b6f7-1824a3d964fb","runId":"53fea7e2-2ef8-4fe0-a22d-6a435ed00ddd"}[39m
+[21:36:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3c7f1ea3-1a46-4e4b-899a-7327fb2de9f1","agentId":"75a8535f-9d38-4518-84f6-42cfcff10a4e","runId":"e8e3078f-35da-4a63-8032-442e42d58461"}[39m
+[21:36:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3c7f1ea3-1a46-4e4b-899a-7327fb2de9f1","agentId":"75a8535f-9d38-4518-84f6-42cfcff10a4e","runId":"4f02d74d-bfdd-485f-89d8-070a7bcee032"}[39m
+[21:36:59] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a41cb369-1433-48d2-949c-125f0129a0a6","agentId":"beffd3e4-348e-467d-ac62-557f1e780860","runId":"81720d55-e5b7-425a-b853-b6ede2bb5c03"}[39m
+[21:37:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a41cb369-1433-48d2-949c-125f0129a0a6","agentId":"beffd3e4-348e-467d-ac62-557f1e780860","runId":"04c95111-178a-45fe-8eb6-5e0748d11150"}[39m
+[21:37:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"87186b59-24e5-458e-bd68-bbbbbaa7dd5c","agentId":"86290c59-a1c1-4a27-8328-ae5ed9d86048","runId":"1f14c5db-a235-4bf6-a112-1ed765d0777d"}[39m
+[21:37:00] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"87186b59-24e5-458e-bd68-bbbbbaa7dd5c","agentId":"86290c59-a1c1-4a27-8328-ae5ed9d86048","runId":"37f89a3f-b428-4286-ba60-cd6c51fa0dfc"}[39m
+[21:37:01] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ef13cfbe-75cc-4719-acb4-3955572d0ec1","agentId":"4c5be875-2038-4b36-b2b4-0267a45c9eae","runId":"3a67ff3c-5b30-4c95-8d27-a335df00dbb6"}[39m
+[21:37:01] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ef13cfbe-75cc-4719-acb4-3955572d0ec1","agentId":"4c5be875-2038-4b36-b2b4-0267a45c9eae","runId":"6fad01dc-ff06-4649-9622-36fcf937e7de"}[39m
+[21:37:01] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"25ee91ec-af03-476c-9f96-87becd21c312","agentId":"591cbaab-3da7-45aa-8777-31abe67821b1","runId":"62b09e9f-2dd4-4943-801d-4be10a074bb6"}[39m
+[21:37:01] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"25ee91ec-af03-476c-9f96-87becd21c312","agentId":"591cbaab-3da7-45aa-8777-31abe67821b1","runId":"3f748b8d-6c6d-4f2a-96a0-e92ff153d015"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"528d6767-5079-4bd2-a8fe-4fd1c1a3781f","agentId":"cfa63f65-c700-4834-90b0-d5f3997d30b8","runId":"cbac55f7-47b4-45b0-a497-dad49f3a4e38"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e392876a-9fde-4dff-9f24-f89c8f552089","agentId":"514f7af5-58d6-4e0b-a599-2afaeb2481bf","runId":"e4f50a2d-7cb8-4881-bb75-86a418a8b1a3"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d320f29c-138d-4741-be93-803da63314ab","agentId":"24bfa9cf-569b-48c3-8770-5667fedd49bd","runId":"66d6e916-16f5-447c-9735-3cb330a64318"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3afac246-efb9-496e-9204-a611260482d3","agentId":"a6bfc313-3ade-49e5-baa2-ef2c01fed5c8","runId":"a11c6c12-1a71-4345-9bad-4c2f7f0347f0"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ba33e389-613f-435c-b6c2-7df5456d7af8","agentId":"7a72dc08-1e4d-4a3b-8bab-04e1fd29c717","runId":"2de2490f-f299-42a2-a237-d0101cb1333d"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1b46ecca-2688-4082-9f22-0a4303e1e69e","agentId":"ebe58812-348d-4b18-ac6e-cd80714ba321","runId":"0c18ec41-e53f-415e-9ef7-1185fd8dc1a3"}[39m
+[21:37:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5a7d619b-b2c1-4eb4-bd96-7cd0a31a6d86","agentId":"5c26c50d-6fd5-4fe7-9f6d-cb46e7df2b21","runId":"92b52015-efbd-418d-a22a-3bdc873cfa67"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"528d6767-5079-4bd2-a8fe-4fd1c1a3781f","agentId":"cfa63f65-c700-4834-90b0-d5f3997d30b8","runId":"3949199d-1966-43e3-a123-5f20f4462cc0"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"e392876a-9fde-4dff-9f24-f89c8f552089","agentId":"514f7af5-58d6-4e0b-a599-2afaeb2481bf","runId":"07fb70f9-ea41-45d8-9e2b-0e1378af00dd"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"d320f29c-138d-4741-be93-803da63314ab","agentId":"24bfa9cf-569b-48c3-8770-5667fedd49bd","runId":"b643d134-11f8-4de1-8599-8d07a388260d"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3afac246-efb9-496e-9204-a611260482d3","agentId":"a6bfc313-3ade-49e5-baa2-ef2c01fed5c8","runId":"d79e6b35-e432-4e60-b0b6-7fa59b20c7ad"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ba33e389-613f-435c-b6c2-7df5456d7af8","agentId":"7a72dc08-1e4d-4a3b-8bab-04e1fd29c717","runId":"ff04cfa6-b543-456b-9141-81845e32219a"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1b46ecca-2688-4082-9f22-0a4303e1e69e","agentId":"ebe58812-348d-4b18-ac6e-cd80714ba321","runId":"2d9e742b-63ec-47b7-9d15-a735d1cfce3a"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"5a7d619b-b2c1-4eb4-bd96-7cd0a31a6d86","agentId":"5c26c50d-6fd5-4fe7-9f6d-cb46e7df2b21","runId":"639cd951-1659-4eae-a09b-478824eb28d0"}[39m
+[21:37:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c2c05112-b9c0-4085-98ee-a1ad603ee2dd","agentId":"f5dceff6-592c-44b9-98f6-b24b7b2fe315","runId":"e3d0b6f2-03d3-46b3-b553-922e0ee4dd8c"}[39m
+[21:37:04] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"c2c05112-b9c0-4085-98ee-a1ad603ee2dd","agentId":"f5dceff6-592c-44b9-98f6-b24b7b2fe315","runId":"2c957c63-56d8-40bd-8c26-8f17fa8b45b6"}[39m
+[21:37:04] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"2536a8c2-fe74-4257-8d1a-1156b8b8c4da","agentId":"fb1bf9ec-e323-4ad1-b700-5e36ab8ccc40","runId":"a38a679d-8cb5-4cd7-b795-40a2ec3bd3c6"}[39m
+[21:37:04] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"2536a8c2-fe74-4257-8d1a-1156b8b8c4da","agentId":"fb1bf9ec-e323-4ad1-b700-5e36ab8ccc40","runId":"08f6115c-d738-476c-ab9b-8ff1dfc9982e"}[39m
+[21:37:05] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"81896985-d520-415d-8061-d4a9d11a6701","agentId":"493fc732-4042-4fdd-abe9-218dc232e5fe","runId":"03d2718f-73b8-4fcf-bda7-7f6c69de3463"}[39m
+[21:37:05] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"81896985-d520-415d-8061-d4a9d11a6701","agentId":"493fc732-4042-4fdd-abe9-218dc232e5fe","runId":"f408f372-b3b2-4374-9788-25408b936c0f"}[39m
+[21:37:05] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"dd3516b1-5745-4ca6-862e-cf0198f8378b","agentId":"225bcc75-1e8b-4841-bac2-18f9129944e1","runId":"296b0b34-1382-43c8-8bd2-5300c7d72da3"}[39m
+[21:37:06] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"dd3516b1-5745-4ca6-862e-cf0198f8378b","agentId":"225bcc75-1e8b-4841-bac2-18f9129944e1","runId":"b51bf2ed-7d30-419b-90fb-51e298db8ec0"}[39m
+[21:37:08] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+stub stderr
+stub stderr
+stub stderr
+stub stderr
+[21:37:21] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"stopped","matched":2,"killed":0,"remaining":0}[39m
+[21:37:21] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "Connection timed out during banner exchange"
+[21:37:21] [33mWARN[39m: [36mcrew: failed to record remote stop activity[39m [90m{"runId":"11111111-2222-4333-8444-555555555555"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.recordActivity (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-remote-stop.test.ts:351:15)
+              at stopRemoteRunOnRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/remote-stop.ts:226:13)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-remote-stop.test.ts:345:20
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:37:21] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"failed","exitCode":1}[39m
+    error: "crew-mac: ps failed"
+[21:37:21] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "Connection timed out"
+[21:37:21] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "Command failed"
+[21:37:21] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"failed"}[39m
+    error: "unexpected output: something else\n"
+[21:37:21] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"stopped","matched":2,"killed":0,"remaining":0,"via":"fallback"}[39m
+[21:37:21] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"11111111-2222-4333-8444-555555555555","leaseStatus":"expired","outcome":"incomplete","matched":2,"killed":2,"remaining":1}[39m
+[21:37:23] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:37:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fc1a116c-bbd6-4c64-a500-dd1ba50a6171","agentId":"c5f1aa91-701e-49a8-ae29-aa88f22c38d3","runId":"4e00f87c-8d0c-44f3-bc73-45b28985fbac"}[39m
+[21:37:28] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"fc1a116c-bbd6-4c64-a500-dd1ba50a6171","agentId":"c5f1aa91-701e-49a8-ae29-aa88f22c38d3","runId":"396563e1-269f-4e56-89ca-33c28d9ef162"}[39m
+[21:37:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ed285f48-3a65-4473-a780-080f6ef83dde","agentId":"e458142a-0fe9-4c88-b9dd-b79e307501f3","runId":"6d1db838-5619-4271-bdf1-5ac91cc68e10"}[39m
+[21:37:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ed285f48-3a65-4473-a780-080f6ef83dde","agentId":"e458142a-0fe9-4c88-b9dd-b79e307501f3","runId":"587b8f00-e941-4cc2-87f6-d9d5e2d399d5"}[39m
+[21:37:29] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4078697c-3669-4a62-961a-9301d3acda58","agentId":"5a603cf8-563f-4480-941d-0d1479e99b82","runId":"174adcb5-bf7b-4410-9872-1fe17a1c5418"}[39m
+[21:37:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"4078697c-3669-4a62-961a-9301d3acda58","agentId":"5a603cf8-563f-4480-941d-0d1479e99b82","runId":"4b603d8d-4112-453a-8adc-cafe4bfcd3af"}[39m
+[21:37:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"2d96b2f5-b0bc-4010-821a-5b8630c00641","agentId":"9ef69fcf-05df-4dd4-9103-b8c41c66da53","runId":"7cbbcf87-a51f-49ac-be12-0f00f44576d6"}[39m
+[21:37:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"178f55eb-29c1-4aa6-9cc9-5abfa64a5369","agentId":"59527aba-5c2b-4141-abc1-c56d1f0e1b7b","runId":"9c2f20de-7ff1-4651-8c7c-91aa23710c11"}[39m
+[21:37:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f2d4a109-1b55-4c62-95a2-0b7f7d427c88","agentId":"90076a10-9583-4e0b-aa5a-b8b5929b377c","runId":"a8bc8f05-cd1e-4395-92a0-a137d713cc4f"}[39m
+[21:37:30] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"74d1bc32-1c5f-4eca-83ef-91e8b6fed34d","agentId":"fec0f5f0-dd41-4289-8031-2e446c9b589b","runId":"54d7c431-02b9-46c1-bcd2-04f9b2fe54e4"}[39m
+[21:37:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"2d96b2f5-b0bc-4010-821a-5b8630c00641","agentId":"9ef69fcf-05df-4dd4-9103-b8c41c66da53","runId":"e2176020-1e15-43db-bcb8-8a9ada2b8714"}[39m
+[21:37:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"178f55eb-29c1-4aa6-9cc9-5abfa64a5369","agentId":"59527aba-5c2b-4141-abc1-c56d1f0e1b7b","runId":"020add1d-6065-44b9-8fb2-ade53fb08642"}[39m
+[21:37:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f2d4a109-1b55-4c62-95a2-0b7f7d427c88","agentId":"90076a10-9583-4e0b-aa5a-b8b5929b377c","runId":"ce7bfd3d-6935-40c1-8f8c-31e0a205852a"}[39m
+[21:37:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"74d1bc32-1c5f-4eca-83ef-91e8b6fed34d","agentId":"fec0f5f0-dd41-4289-8031-2e446c9b589b","runId":"a4f7e6ad-3838-4ecc-80cf-80e4d28ad02b"}[39m
+[21:37:31] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ec1ebc19-8e97-4cb2-bb88-adcb6733e0da","agentId":"52b2a0a6-a559-40ba-b898-11ef09793491","runId":"b1dfc7d2-3afb-4581-b8da-4c67ef41ef90"}[39m
+[21:37:32] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ec1ebc19-8e97-4cb2-bb88-adcb6733e0da","agentId":"52b2a0a6-a559-40ba-b898-11ef09793491","runId":"b3944fe0-d7fc-4e07-b1ec-31c0e0762ab9"}[39m
+[21:37:32] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0e4b626b-4048-43b8-826d-d1065bb90bed","agentId":"f9510e5d-091e-4486-a5ea-1fd88c158fd7","runId":"c44fcca8-8530-4f37-9f80-495f87982471"}[39m
+[21:37:32] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0e4b626b-4048-43b8-826d-d1065bb90bed","agentId":"f9510e5d-091e-4486-a5ea-1fd88c158fd7","runId":"1c988627-061d-4d18-8080-07133cd0a5d0"}[39m
+[21:37:34] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","userId":"user-guest"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","userId":"user-guest","projects":1}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"14efc7f8-e550-4661-afc8-5508019506ab","kind":"issue"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"5151f5e0-39e8-48d5-84d0-7e59d0c28be9","kind":"comment"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"11c341e6-11be-4bdf-a677-791692b23a92","kind":"comment"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"11c341e6-11be-4bdf-a677-791692b23a92","outcome":"rejected"}[39m
+[21:37:41] [34mDEBUG[39m: [36msafe authenticated GET observed[39m [90m{"event":"safe_get_request_observed","route":"GET /api/companies/:companyId/issues","companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","actorType":"agent","actorIdentityHash":"uRt_OG2bcW4uvMgo","clientHash":"tyW0XNaQNMuB9rot","cacheKeyHash":"WGjgweKvOGEYLdkk","queryKeys":["excludeRoutineExecutions","includeBlockedBy","includeBlockedInboxAttention","includeLiveDescendantSummary","includePluginOperations","includeRoutineExecutions","limit","offset"],"requestCount":1,"durationMs":64,"statusCode":200,"responseBytes":2281,"compressedBytes":null,"contentEncoding":null,"cacheStatus":"miss","etagOutcome":"none","referer":null,"visibilityHint":null}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"5151f5e0-39e8-48d5-84d0-7e59d0c28be9","outcome":"approving"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"5151f5e0-39e8-48d5-84d0-7e59d0c28be9","outcome":"approved"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"14efc7f8-e550-4661-afc8-5508019506ab","outcome":"approving"}[39m
+[21:37:41] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","contributionId":"14efc7f8-e550-4661-afc8-5508019506ab","outcome":"approved"}[39m
+[21:37:41] [34mDEBUG[39m: [36msafe authenticated GET observed[39m [90m{"event":"safe_get_request_observed","route":"GET /api/companies/:companyId/issues","companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","actorType":"agent","actorIdentityHash":"uRt_OG2bcW4uvMgo","clientHash":"tyW0XNaQNMuB9rot","cacheKeyHash":"WGjgweKvOGEYLdkk","queryKeys":["excludeRoutineExecutions","includeBlockedBy","includeBlockedInboxAttention","includeLiveDescendantSummary","includePluginOperations","includeRoutineExecutions","limit","offset"],"requestCount":1,"durationMs":7,"statusCode":200,"responseBytes":4668,"compressedBytes":null,"contentEncoding":null,"cacheStatus":"miss","etagOutcome":"none","referer":null,"visibilityHint":null}[39m
+[21:37:41] [34mDEBUG[39m: [36msafe authenticated GET observed[39m [90m{"event":"safe_get_request_observed","route":"GET /api/companies/:companyId/issues","companyId":"f97806da-fa99-4b4b-a86c-f0d54c6324c7","actorType":"agent","actorIdentityHash":"uRt_OG2bcW4uvMgo","clientHash":"tyW0XNaQNMuB9rot","cacheKeyHash":"WGjgweKvOGEYLdkk","queryKeys":["excludeRoutineExecutions","includeBlockedBy","includeBlockedInboxAttention","includeLiveDescendantSummary","includePluginOperations","includeRoutineExecutions","limit","offset"],"requestCount":1,"durationMs":7,"statusCode":200,"responseBytes":4668,"compressedBytes":null,"contentEncoding":null,"cacheStatus":"miss","etagOutcome":"none","referer":null,"visibilityHint":null}[39m
+[21:37:43] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:37:48] [33mWARN[39m: [36mcrew project roles unreadable; rejecting the issue write so the caller retries[39m [90m{"companyId":"f000e0d2-5632-4bcf-a2de-dbacf4046030","projectId":"5c2d08d6-76e1-477b-9cba-cd3aa260e06f"}[39m
+    err: {
+      "type": "DrizzleQueryError",
+      "message": "Failed query: SELECT r.reviewer_agent_id::text AS reviewer_agent_id,\n          r.integrator_agent_id::text AS integrator_agent_id,\n          ra.status AS reviewer_status,\n          ia.status AS integrator_status,\n          ca.id::text AS codex_reviewer_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r\n        JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id\n        LEFT JOIN \"agents\" ra ON ra.id = r.reviewer_agent_id AND ra.company_id = r.company_id\n        LEFT JOIN \"agents\" ia ON ia.id = r.integrator_agent_id AND ia.company_id = r.company_id\n        LEFT JOIN \"agents\" ca ON ca.id::text = (to_jsonb(r) ->> 'codex_reviewer_agent_id') AND ca.company_id = r.company_id\n        WHERE r.company_id = $1 AND r.project_id = $2\n        LIMIT 1\nparams: f000e0d2-5632-4bcf-a2de-dbacf4046030,5c2d08d6-76e1-477b-9cba-cd3aa260e06f: column r.project_id does not exist",
+      "stack":
+          Error: Failed query: SELECT r.reviewer_agent_id::text AS reviewer_agent_id,
+                    r.integrator_agent_id::text AS integrator_agent_id,
+                    ra.status AS reviewer_status,
+                    ia.status AS integrator_status,
+                    ca.id::text AS codex_reviewer_agent_id
+                  FROM plugin_crew_core_0433ea20b6.crew_project_roles r
+                  JOIN "projects" p ON p.id = r.project_id AND p.company_id = r.company_id
+                  LEFT JOIN "agents" ra ON ra.id = r.reviewer_agent_id AND ra.company_id = r.company_id
+                  LEFT JOIN "agents" ia ON ia.id = r.integrator_agent_id AND ia.company_id = r.company_id
+                  LEFT JOIN "agents" ca ON ca.id::text = (to_jsonb(r) ->> 'codex_reviewer_agent_id') AND ca.company_id = r.company_id
+                  WHERE r.company_id = $1 AND r.project_id = $2
+                  LIMIT 1
+          params: f000e0d2-5632-4bcf-a2de-dbacf4046030,5c2d08d6-76e1-477b-9cba-cd3aa260e06f
+              at PostgresJsPreparedQuery.queryWithCache (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_kysely@0.29.5_pg@8.18.0_postgres@3.4.9_patch_hash_uil4xuf7icnddjurbgy2qn5oo4/node_modules/drizzle-orm/pg-core/session.js:41:15)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:48:19
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at loadCrewRoles (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:93:12)
+              at Object.crewBeforeIssueWrite [as beforeIssueWrite] (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/issue-gate.ts:520:18)
+              at runUpdate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:10898:9)
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at sql.begin (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:257:14)
+              at Object.update (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:11259:22)
+          caused by: PostgresError: column r.project_id does not exist
+              at ErrorResponse (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:819:30)
+              at handle (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:493:6)
+              at Socket.data (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:324:9)
+              at Socket.emit (node:events:514:28)
+              at addChunk (node:internal/streams/readable:568:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+              at Socket.Readable.push (node:internal/streams/readable:399:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      "query": "SELECT r.reviewer_agent_id::text AS reviewer_agent_id,\n          r.integrator_agent_id::text AS integrator_agent_id,\n          ra.status AS reviewer_status,\n          ia.status AS integrator_status,\n          ca.id::text AS codex_reviewer_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r\n        JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id\n        LEFT JOIN \"agents\" ra ON ra.id = r.reviewer_agent_id AND ra.company_id = r.company_id\n        LEFT JOIN \"agents\" ia ON ia.id = r.integrator_agent_id AND ia.company_id = r.company_id\n        LEFT JOIN \"agents\" ca ON ca.id::text = (to_jsonb(r) ->> 'codex_reviewer_agent_id') AND ca.company_id = r.company_id\n        WHERE r.company_id = $1 AND r.project_id = $2\n        LIMIT 1",
+      "params": [
+        "f000e0d2-5632-4bcf-a2de-dbacf4046030",
+        "5c2d08d6-76e1-477b-9cba-cd3aa260e06f"
+      ]
+    }
+[21:37:48] [33mWARN[39m: [36mcrew project roles unreadable; rejecting the issue write so the caller retries[39m [90m{"companyId":"6c50a99e-45bf-4fae-b0ed-fcab6837fca8"}[39m
+    err: {
+      "type": "DrizzleQueryError",
+      "message": "Failed query: SELECT r.reviewer_agent_id::text AS reviewer_agent_id, r.integrator_agent_id::text AS integrator_agent_id,\n          (to_jsonb(r) ->> 'codex_reviewer_agent_id') AS codex_reviewer_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id WHERE r.company_id = $1\nparams: 6c50a99e-45bf-4fae-b0ed-fcab6837fca8: column r.project_id does not exist",
+      "stack":
+          Error: Failed query: SELECT r.reviewer_agent_id::text AS reviewer_agent_id, r.integrator_agent_id::text AS integrator_agent_id,
+                    (to_jsonb(r) ->> 'codex_reviewer_agent_id') AS codex_reviewer_agent_id
+                  FROM plugin_crew_core_0433ea20b6.crew_project_roles r JOIN "projects" p ON p.id = r.project_id AND p.company_id = r.company_id WHERE r.company_id = $1
+          params: 6c50a99e-45bf-4fae-b0ed-fcab6837fca8
+              at PostgresJsPreparedQuery.queryWithCache (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_kysely@0.29.5_pg@8.18.0_postgres@3.4.9_patch_hash_uil4xuf7icnddjurbgy2qn5oo4/node_modules/drizzle-orm/pg-core/session.js:41:15)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:48:19
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at loadCompanyRoleAgentIds (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:157:18)
+              at Object.crewBeforeIssueWrite [as beforeIssueWrite] (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/issue-gate.ts:525:9)
+              at runUpdate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:10898:9)
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at sql.begin (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:257:14)
+              at Object.update (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:11259:22)
+          caused by: PostgresError: column r.project_id does not exist
+              at ErrorResponse (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:819:30)
+              at handle (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:493:6)
+              at Socket.data (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:324:9)
+              at Socket.emit (node:events:514:28)
+              at addChunk (node:internal/streams/readable:568:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+              at Socket.Readable.push (node:internal/streams/readable:399:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      "query": "SELECT r.reviewer_agent_id::text AS reviewer_agent_id, r.integrator_agent_id::text AS integrator_agent_id,\n          (to_jsonb(r) ->> 'codex_reviewer_agent_id') AS codex_reviewer_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id WHERE r.company_id = $1",
+      "params": [
+        "6c50a99e-45bf-4fae-b0ed-fcab6837fca8"
+      ]
+    }
+[21:37:48] [33mWARN[39m: [36mcrew project roles unreadable; rejecting the issue write so the caller retries[39m [90m{"companyId":"a4936f22-2d73-47c7-bf6a-20e228f72a24","projectId":"bcfe2c07-d68f-45f2-a90e-dc6f2a856acb"}[39m
+    err: {
+      "type": "DrizzleQueryError",
+      "message": "Failed query: SELECT r.reviewer_agent_id::text AS reviewer_agent_id,\n          r.integrator_agent_id::text AS integrator_agent_id,\n          ra.status AS reviewer_status,\n          ia.status AS integrator_status,\n          ca.id::text AS codex_reviewer_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r\n        JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id\n        LEFT JOIN \"agents\" ra ON ra.id = r.reviewer_agent_id AND ra.company_id = r.company_id\n        LEFT JOIN \"agents\" ia ON ia.id = r.integrator_agent_id AND ia.company_id = r.company_id\n        LEFT JOIN \"agents\" ca ON ca.id::text = (to_jsonb(r) ->> 'codex_reviewer_agent_id') AND ca.company_id = r.company_id\n        WHERE r.company_id = $1 AND r.project_id = $2\n        LIMIT 1\nparams: a4936f22-2d73-47c7-bf6a-20e228f72a24,bcfe2c07-d68f-45f2-a90e-dc6f2a856acb: column r.project_id does not exist",
+      "stack":
+          Error: Failed query: SELECT r.reviewer_agent_id::text AS reviewer_agent_id,
+                    r.integrator_agent_id::text AS integrator_agent_id,
+                    ra.status AS reviewer_status,
+                    ia.status AS integrator_status,
+                    ca.id::text AS codex_reviewer_agent_id
+                  FROM plugin_crew_core_0433ea20b6.crew_project_roles r
+                  JOIN "projects" p ON p.id = r.project_id AND p.company_id = r.company_id
+                  LEFT JOIN "agents" ra ON ra.id = r.reviewer_agent_id AND ra.company_id = r.company_id
+                  LEFT JOIN "agents" ia ON ia.id = r.integrator_agent_id AND ia.company_id = r.company_id
+                  LEFT JOIN "agents" ca ON ca.id::text = (to_jsonb(r) ->> 'codex_reviewer_agent_id') AND ca.company_id = r.company_id
+                  WHERE r.company_id = $1 AND r.project_id = $2
+                  LIMIT 1
+          params: a4936f22-2d73-47c7-bf6a-20e228f72a24,bcfe2c07-d68f-45f2-a90e-dc6f2a856acb
+              at PostgresJsPreparedQuery.queryWithCache (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_kysely@0.29.5_pg@8.18.0_postgres@3.4.9_patch_hash_uil4xuf7icnddjurbgy2qn5oo4/node_modules/drizzle-orm/pg-core/session.js:41:15)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:48:19
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at sql.begin (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:257:14)
+              at loadCrewRoles (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:93:12)
+              at Object.crewBeforeIssueCreate [as beforeIssueCreate] (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/issue-create-policy.ts:336:18)
+              at Object.create (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:9742:14)
+              at Object.createChild (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:9307:19)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-project-roles.db.test.ts:217:9
+          caused by: PostgresError: column r.project_id does not exist
+              at ErrorResponse (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:819:30)
+              at handle (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:493:6)
+              at Socket.data (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:324:9)
+              at Socket.emit (node:events:514:28)
+              at addChunk (node:internal/streams/readable:568:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+              at Socket.Readable.push (node:internal/streams/readable:399:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      "query": "SELECT r.reviewer_agent_id::text AS reviewer_agent_id,\n          r.integrator_agent_id::text AS integrator_agent_id,\n          ra.status AS reviewer_status,\n          ia.status AS integrator_status,\n          ca.id::text AS codex_reviewer_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r\n        JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id\n        LEFT JOIN \"agents\" ra ON ra.id = r.reviewer_agent_id AND ra.company_id = r.company_id\n        LEFT JOIN \"agents\" ia ON ia.id = r.integrator_agent_id AND ia.company_id = r.company_id\n        LEFT JOIN \"agents\" ca ON ca.id::text = (to_jsonb(r) ->> 'codex_reviewer_agent_id') AND ca.company_id = r.company_id\n        WHERE r.company_id = $1 AND r.project_id = $2\n        LIMIT 1",
+      "params": [
+        "a4936f22-2d73-47c7-bf6a-20e228f72a24",
+        "bcfe2c07-d68f-45f2-a90e-dc6f2a856acb"
+      ]
+    }
+[21:37:48] [33mWARN[39m: [36mcrew project roles point at missing agents; Crew gates fail closed for this project[39m [90m{"companyId":"b706a8e1-dba4-48d0-9b83-07aabd957583","projectId":"9240f9d4-cfed-4562-89b0-e99c62b056de","agentIds":["f29f4cf4-856a-4819-9446-20606faefb02"]}[39m
+[21:37:48] [33mWARN[39m: [36mcrew project roles point at missing agents; Crew gates fail closed for this project[39m [90m{"companyId":"8056bc47-0d23-428a-93f4-eefecdf0866f","projectId":"55aa83e2-da41-4d4a-8875-c1aa131d903e","agentIds":["57185fea-c55f-4fb7-bb80-fb0e0246ecb9"]}[39m
+[21:37:48] [33mWARN[39m: [36mcrew project roles point at missing agents; Crew gates fail closed for this project[39m [90m{"companyId":"aae3ed63-ccd7-43c9-ba2c-2eeee1f4fb0c","projectId":"af67cda3-ca3d-438b-bace-148959dafac5","agentIds":["5044c500-56bb-4b3d-bf76-808422a371b6"]}[39m
+[21:37:48] [33mWARN[39m: [36mcrew project roles point at missing agents; Crew gates fail closed for this project[39m [90m{"companyId":"7396dc3a-bf46-4d8a-99f8-a77be4fe6e90","projectId":"142d826c-371e-4039-a1b3-7caf448879b8","agentIds":["37a82ae4-6f9f-4c7a-9cc0-ff1d269b3ac7"]}[39m
+[21:37:49] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:37:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f325878e-e9fa-40dc-9b2b-2ae8a9ce598d","agentId":"5dbbd09a-b6db-4870-bc93-da415e568b02","runId":"78a4100d-faf9-419a-a4a2-b4135ed08982"}[39m
+[21:37:54] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f325878e-e9fa-40dc-9b2b-2ae8a9ce598d","agentId":"5dbbd09a-b6db-4870-bc93-da415e568b02","runId":"68b2a5ba-3af6-48ab-95e7-9fb2ee825102"}[39m
+[21:37:55] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"58f958b3-860e-4e5f-ac7c-331ca8925a8b","agentId":"a3f8f01e-366b-4bdc-83f1-b9979cbb8324","runId":"cc3c4573-8eca-482a-9790-ccfd2f53ffd9"}[39m
+[21:37:56] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"58f958b3-860e-4e5f-ac7c-331ca8925a8b","agentId":"a3f8f01e-366b-4bdc-83f1-b9979cbb8324","runId":"81a3f25b-2b40-4885-bb81-14b6ac17b50b"}[39m
+[21:37:57] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:38:01] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0fdaead4-5b10-4b51-ba5d-bcb7b711dea6","agentId":"75e5756e-e25a-4dc0-b723-15eab832263e","runId":"966a64eb-0182-444a-9c46-e150ed9a2ce2"}[39m
+[21:38:02] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"0fdaead4-5b10-4b51-ba5d-bcb7b711dea6","agentId":"75e5756e-e25a-4dc0-b723-15eab832263e","runId":"60941f37-3ea8-47eb-bc14-696b9431124d"}[39m
+[21:38:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b8ec5dc6-c54f-483d-a6f1-4906b91ae667","agentId":"fa32e39f-29ee-4339-af7e-6fdd40bd15dc","runId":"bc3486e8-791c-4d42-b8fa-d12a70438aa7"}[39m
+[21:38:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b8ec5dc6-c54f-483d-a6f1-4906b91ae667","agentId":"fa32e39f-29ee-4339-af7e-6fdd40bd15dc","runId":"c055a9b7-4522-4a0d-8b5e-cdf6dc62dd82"}[39m
+[21:38:03] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b03e86f4-4425-42d7-8f9e-242f13c8d3aa","agentId":"4714c458-2aa7-4039-8006-43243d9afee3","runId":"bce67639-a42f-4fc2-9ebd-2111672224da"}[39m
+[21:38:04] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"b03e86f4-4425-42d7-8f9e-242f13c8d3aa","agentId":"4714c458-2aa7-4039-8006-43243d9afee3","runId":"f9e95bdd-1a58-4afc-b51f-151e6cb75a46"}[39m
+[21:38:05] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:38:09] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ca301f9c-0b58-4669-b990-98a197c86cd2","agentId":"92692d79-df20-4b26-a9fe-e77208d7b5a2","runId":"88635a75-3f25-4a20-a643-5c4ba6a6f1ed"}[39m
+[21:38:10] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"ca301f9c-0b58-4669-b990-98a197c86cd2","agentId":"92692d79-df20-4b26-a9fe-e77208d7b5a2","runId":"914a14f2-051b-474d-8ccb-f999c28fb73b"}[39m
+[21:38:10] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"90d1b854-cc0b-4a0b-ae4f-cc9f4d2d553e","agentId":"8b2ae969-28db-41c3-af2b-71fbe81fb36d","runId":"4bb1645e-d516-4ee0-851e-3af510a96185"}[39m
+[21:38:10] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"90d1b854-cc0b-4a0b-ae4f-cc9f4d2d553e","agentId":"8b2ae969-28db-41c3-af2b-71fbe81fb36d","runId":"d43ca6cd-65d0-42e4-aaaa-3cc779fa8ffb"}[39m
+[21:38:10] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"90dd5886-b35f-4bb5-b682-60b182e3b186","agentId":"09873f2a-fab9-4214-b24c-9f41b9ee200a","runId":"8381f4ab-4d9d-41a8-8c19-64fca836bd98"}[39m
+[21:38:11] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"90dd5886-b35f-4bb5-b682-60b182e3b186","agentId":"09873f2a-fab9-4214-b24c-9f41b9ee200a","runId":"9d9b3a27-65a8-4d10-9456-91add20131c7"}[39m
+[21:38:12] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:38:17] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:38:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1a662bfe-3250-4ecc-b7c6-ca5c46e69bd1","agentId":"87ff1e06-5de2-4fb9-80ae-91cc96d590ae","runId":"9f027461-cf75-4b0f-896c-20db69e6c014"}[39m
+[21:38:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3590375f-406c-475c-ab5d-0a8e6a42be0d","agentId":"a3ff0408-4a64-4c04-9ddb-734bbbb634c3","runId":"494152c0-958a-43d6-bc7c-3799dc13a7ef"}[39m
+[21:38:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1a662bfe-3250-4ecc-b7c6-ca5c46e69bd1","agentId":"87ff1e06-5de2-4fb9-80ae-91cc96d590ae","runId":"c3574967-def7-4f15-9352-2aae17def6f6"}[39m
+[21:38:21] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"3590375f-406c-475c-ab5d-0a8e6a42be0d","agentId":"a3ff0408-4a64-4c04-9ddb-734bbbb634c3","runId":"9581ded0-5b31-4004-bf6e-b3275d459ce0"}[39m
+[21:38:22] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a0c9593b-fa8b-4e87-a1a1-05807dd6ed1f","agentId":"22b95a3d-cbe5-4ff1-a11f-0bd5d88dd739","runId":"862a497d-8e1b-47f4-91d7-d60c88b385ae"}[39m
+[21:38:22] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a0c9593b-fa8b-4e87-a1a1-05807dd6ed1f","agentId":"22b95a3d-cbe5-4ff1-a11f-0bd5d88dd739","runId":"fc5f0460-52ae-48d6-838a-408e875e355e"}[39m
+[21:38:28] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:38:46] [32mINFO[39m: [36mcrew-runtime-gate: cancelling a queued run of an agent the issue was moved away from[39m [90m{"runId":"e86b7a1c-4e86-492e-9e5b-ef9357350e46","issueId":"8140612e-9b33-4b67-b511-2cdcb8c51e01"}[39m
+[21:38:46] [32mINFO[39m: [36mcrew-runtime-gate: cancelling a queued run of an agent the issue was moved away from[39m [90m{"runId":"542b6186-e9f1-4f1a-8009-6cf96c75f90e","issueId":"ddec269e-1834-4ed2-af55-b072a1e4f0e9"}[39m
+[21:38:47] [32mINFO[39m: [36mcrew-runtime-gate: cancelling a queued run of an agent the issue was moved away from[39m [90m{"runId":"4ebdef65-8e47-4860-9e5e-703a7e92307a","issueId":"efe5a604-4907-4a33-a6b7-e3d775b55316"}[39m
+[21:38:51] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-agent-config-EmWbpu/crew-policy.json","companyId":"be64ab6f-c94f-4fdf-a307-87ddce176e69","reason":"companies.be64ab6f-c94f-4fdf-a307-87ddce176e69.reviewerAgentId phải là uuid"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:56] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:57] [32mINFO[39m: [36mSetup-token login confidential transport startup assessment[39m [90m{"proxyForwardingEnabled":false,"reason":"no_proxy_allowlist_local_trusted_loopback_only","deploymentMode":"local_trusted"}[39m
+[21:38:59] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:39:05] [33mWARN[39m: [36mcrew project roles unreadable; rejecting the issue write so the caller retries[39m [90m{"companyId":"2a0fa66e-c643-4ba2-bb1d-d41eab96d52f","projectId":"6687bb21-f28e-40e1-9d73-56b22d3fe0d5"}[39m
+    err: {
+      "type": "DrizzleQueryError",
+      "message": "Failed query: SELECT r.assistant_agent_id::text AS assistant_agent_id,\n          array_to_string(r.executor_agent_ids, ',') AS executor_agent_ids,\n          (to_jsonb(r) ->> 'codex_executor_agent_id') AS codex_executor_agent_id,\n          (to_jsonb(r) ->> 'opencode_executor_agent_id') AS opencode_executor_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r\n        JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id\n        WHERE r.company_id = $1 AND r.project_id = $2\n        LIMIT 1\nparams: 2a0fa66e-c643-4ba2-bb1d-d41eab96d52f,6687bb21-f28e-40e1-9d73-56b22d3fe0d5: column r.executor_agent_ids does not exist",
+      "stack":
+          Error: Failed query: SELECT r.assistant_agent_id::text AS assistant_agent_id,
+                    array_to_string(r.executor_agent_ids, ',') AS executor_agent_ids,
+                    (to_jsonb(r) ->> 'codex_executor_agent_id') AS codex_executor_agent_id,
+                    (to_jsonb(r) ->> 'opencode_executor_agent_id') AS opencode_executor_agent_id
+                  FROM plugin_crew_core_0433ea20b6.crew_project_roles r
+                  JOIN "projects" p ON p.id = r.project_id AND p.company_id = r.company_id
+                  WHERE r.company_id = $1 AND r.project_id = $2
+                  LIMIT 1
+          params: 2a0fa66e-c643-4ba2-bb1d-d41eab96d52f,6687bb21-f28e-40e1-9d73-56b22d3fe0d5
+              at PostgresJsPreparedQuery.queryWithCache (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_kysely@0.29.5_pg@8.18.0_postgres@3.4.9_patch_hash_uil4xuf7icnddjurbgy2qn5oo4/node_modules/drizzle-orm/pg-core/session.js:41:15)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:48:19
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at loadProjectAgentRoles (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/project-roles.ts:203:12)
+              at Object.crewBeforeIssueWrite [as beforeIssueWrite] (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/issue-gate.ts:529:28)
+              at runUpdate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:10898:9)
+              at scope (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:279:18)
+              at sql.begin (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/index.js:257:14)
+              at Object.update (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/issues.ts:11259:22)
+          caused by: PostgresError: column r.executor_agent_ids does not exist
+              at ErrorResponse (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:819:30)
+              at handle (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:493:6)
+              at Socket.data (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:324:9)
+              at Socket.emit (node:events:514:28)
+              at addChunk (node:internal/streams/readable:568:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+              at Socket.Readable.push (node:internal/streams/readable:399:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      "query": "SELECT r.assistant_agent_id::text AS assistant_agent_id,\n          array_to_string(r.executor_agent_ids, ',') AS executor_agent_ids,\n          (to_jsonb(r) ->> 'codex_executor_agent_id') AS codex_executor_agent_id,\n          (to_jsonb(r) ->> 'opencode_executor_agent_id') AS opencode_executor_agent_id\n        FROM plugin_crew_core_0433ea20b6.crew_project_roles r\n        JOIN \"projects\" p ON p.id = r.project_id AND p.company_id = r.company_id\n        WHERE r.company_id = $1 AND r.project_id = $2\n        LIMIT 1",
+      "params": [
+        "2a0fa66e-c643-4ba2-bb1d-d41eab96d52f",
+        "6687bb21-f28e-40e1-9d73-56b22d3fe0d5"
+      ]
+    }
+[21:39:13] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:39:31] [32mINFO[39m: [36mcrew-load-gate: stock cancelled a stale run the gate held[39m [90m{"runId":"bf9a1817-dca3-4ea8-b2b0-f8adff77d88b","errorCode":"issue_continuation_waiting_on_review"}[39m
+[21:39:35] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"dfb947a1-236b-4066-be92-b04d34984e35","agentId":"29f1454a-9f3a-4692-bd52-ee328558102b","runId":"4c112282-0d01-438d-a956-fa52a24ce69f"}[39m
+[21:39:35] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1ac3808f-3e10-40c9-a0b5-6e41ca097f9f","agentId":"c9046e6d-d84a-4ce6-8319-5c1eb1182c23","runId":"0b454863-c0b6-4eb1-84b5-57b7576f678b"}[39m
+[21:39:36] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a4e170bd-95cc-49fb-a187-6a9738c99a69","agentId":"fed088b0-6069-4275-8985-439e0d42f572","runId":"eaf979ff-5aa8-4b82-8f6c-31dab9753b23"}[39m
+[21:39:36] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f5587867-869e-4c62-83f4-57a7559c2958","agentId":"d7ef3dbc-88c4-4b77-8430-3bc24dd46f4a","runId":"7501ada1-36b5-4ae6-be36-a27d2f2f5262"}[39m
+[21:39:38] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"dfb947a1-236b-4066-be92-b04d34984e35","agentId":"29f1454a-9f3a-4692-bd52-ee328558102b","runId":"2c5c11a4-460e-45fe-9aa4-acfb1ce9b53f"}[39m
+[21:39:38] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"1ac3808f-3e10-40c9-a0b5-6e41ca097f9f","agentId":"c9046e6d-d84a-4ce6-8319-5c1eb1182c23","runId":"74d7a42c-8dfe-4887-8191-e281f4b4cf51"}[39m
+[21:39:38] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"a4e170bd-95cc-49fb-a187-6a9738c99a69","agentId":"fed088b0-6069-4275-8985-439e0d42f572","runId":"b9f4da74-0638-41aa-89bd-9693b2e65537"}[39m
+[21:39:38] [33mWARN[39m: [36mruntime connection tools could not be delivered[39m [90m{"companyId":"f5587867-869e-4c62-83f4-57a7559c2958","agentId":"d7ef3dbc-88c4-4b77-8430-3bc24dd46f4a","runId":"eb4a281c-7526-46d5-8e86-926414654570"}[39m
+[21:39:39] [33mWARN[39m: [36mcrew-load-gate: cancelling an expired run failed; retried next tick[39m [90m{"runId":"21baa76c-2f52-49b7-a61e-2f43eb378210"}[39m
+    err: {
+      "type": "Error",
+      "message": "write CONNECTION_CLOSED 127.0.0.1:64279",
+      "stack":
+          Error: write CONNECTION_CLOSED 127.0.0.1:64279
+              at Socket.closed (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/postgres@3.4.9_patch_hash=sryle6qd5qfmnxvoebal4gashi/node_modules/postgres/src/connection.js:461:32)
+              at Socket.emit (node:events:514:28)
+              at TCP.<anonymous> (node:net:362:12)
+      "code": "CONNECTION_CLOSED",
+      "errno": "CONNECTION_CLOSED",
+      "address": [
+        "127.0.0.1"
+      ],
+      "port": [
+        64279
+      ]
+    }
+[21:39:43] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:39:58] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-guest"}[39m
+[21:39:58] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-guest","projects":1}[39m
+[21:39:58] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-guest-2"}[39m
+[21:39:58] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-guest-2","projects":1}[39m
+[21:39:58] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"a9f7c03c-5191-45ab-9ec8-5c0098d9a948","kind":"issue"}[39m
+[21:39:58] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-contributions-f33NrE/crew-policy.json","companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","reason":"JSON không hợp lệ: Expected property name or '}' in JSON at position 2 (line 1 column 3)"}[39m
+[21:39:58] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"1dcbbdde-0518-422b-8796-7c352e25fc9b","kind":"issue"}[39m
+[21:39:58] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"51bb9f52-26f3-4751-b50c-bf59cdb205b4","kind":"comment"}[39m
+[21:39:58] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"acdf9ac7-2c62-4f27-bc84-76a4e91204ac","kind":"issue"}[39m
+[21:39:59] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"b19c3b9f-d812-4b29-b289-93e7ff0a1182","kind":"issue"}[39m
+[21:39:59] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"cfc5ba4d-7e52-4996-a38e-826e6c14c50a","kind":"comment"}[39m
+[21:39:59] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"58c36884-6e56-4e02-9f5c-a8d6dc86114e","kind":"issue"}[39m
+[21:39:59] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"e04339f6-dcdc-4b57-a881-b7aa9cfaff70","kind":"issue"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"30f2408b-721f-4f6a-b7be-75fbe056d7da","kind":"comment"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"30f2408b-721f-4f6a-b7be-75fbe056d7da","outcome":"approving"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"af1a5933-ead3-4e29-81c2-9e4c3a47b6fa","kind":"issue"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"af1a5933-ead3-4e29-81c2-9e4c3a47b6fa","outcome":"approving"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"af1a5933-ead3-4e29-81c2-9e4c3a47b6fa","outcome":"approving"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"73169ce6-ffde-4b16-b1e8-b480b19d2440","kind":"comment"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"73169ce6-ffde-4b16-b1e8-b480b19d2440","outcome":"approving"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"78dbb7c0-3b49-440a-8531-dc5d36732113","kind":"comment"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"78dbb7c0-3b49-440a-8531-dc5d36732113","outcome":"approving"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"78dbb7c0-3b49-440a-8531-dc5d36732113","outcome":"locked"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"78dbb7c0-3b49-440a-8531-dc5d36732113","outcome":"locked"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"78dbb7c0-3b49-440a-8531-dc5d36732113","outcome":"approving"}[39m
+[21:40:00] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc9874f2-c756-4343-b125-6eb7bac0cc3f","kind":"comment"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc9874f2-c756-4343-b125-6eb7bac0cc3f","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc9874f2-c756-4343-b125-6eb7bac0cc3f","outcome":"decided"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"fc2818c7-07d7-460f-accf-4ccad6a22fba","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"fc2818c7-07d7-460f-accf-4ccad6a22fba","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"fc2818c7-07d7-460f-accf-4ccad6a22fba","outcome":"not_materialized"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c68c3f9d-4c2a-4b6f-a218-a530ff9ba640","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c68c3f9d-4c2a-4b6f-a218-a530ff9ba640","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c68c3f9d-4c2a-4b6f-a218-a530ff9ba640","outcome":"approved"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c68c3f9d-4c2a-4b6f-a218-a530ff9ba640","outcome":"approved"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"603991b3-46bf-4e55-9ac7-54d3bd56b6ec","kind":"comment"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"603991b3-46bf-4e55-9ac7-54d3bd56b6ec","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"603991b3-46bf-4e55-9ac7-54d3bd56b6ec","outcome":"approved"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"20d9327a-462e-4dc2-ba7d-ac439ba3ef6a","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"20d9327a-462e-4dc2-ba7d-ac439ba3ef6a","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"20d9327a-462e-4dc2-ba7d-ac439ba3ef6a","outcome":"not_materialized"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"e332bc2b-05bb-46c3-9512-4116f6c1c44c","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"e332bc2b-05bb-46c3-9512-4116f6c1c44c","outcome":"not_approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"a19fd8bd-2b1a-4177-86e8-9c712ece77de","kind":"comment"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"a19fd8bd-2b1a-4177-86e8-9c712ece77de","outcome":"rejected"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"a19fd8bd-2b1a-4177-86e8-9c712ece77de","outcome":"rejected"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"a19fd8bd-2b1a-4177-86e8-9c712ece77de","outcome":"decided"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"b69919d3-0517-478e-944e-8bbb318fb213","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"b69919d3-0517-478e-944e-8bbb318fb213","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"b69919d3-0517-478e-944e-8bbb318fb213","outcome":"rejected"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8501eac3-dea4-4b82-8943-ae71cf65ed30","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8501eac3-dea4-4b82-8943-ae71cf65ed30","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8501eac3-dea4-4b82-8943-ae71cf65ed30","outcome":"approved"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8501eac3-dea4-4b82-8943-ae71cf65ed30","outcome":"approved"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8501eac3-dea4-4b82-8943-ae71cf65ed30","outcome":"decided"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"7bb75b35-b0fc-428e-a35e-5add2e0f8584","kind":"issue"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"7bb75b35-b0fc-428e-a35e-5add2e0f8584","outcome":"approving"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"7bb75b35-b0fc-428e-a35e-5add2e0f8584","outcome":"locked"}[39m
+[21:40:01] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"6e23eeb6-c129-4075-817e-316c134260fc","kind":"issue"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8d611dbd-f325-489b-9157-e01f0f27ae65","kind":"issue"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8d611dbd-f325-489b-9157-e01f0f27ae65","outcome":"approving"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8d611dbd-f325-489b-9157-e01f0f27ae65","outcome":"rejected"}[39m
+[21:40:02] [33mWARN[39m: [36mcrew contribution was rejected but its core record exists; marked approved[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8d611dbd-f325-489b-9157-e01f0f27ae65","resultIssueId":"a9df2994-6f44-4a8a-9e4e-00fa0205ced3","resultCommentId":null}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c205f218-4082-4f77-a682-beb227751927","kind":"comment"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c205f218-4082-4f77-a682-beb227751927","outcome":"approving"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c205f218-4082-4f77-a682-beb227751927","outcome":"rejected"}[39m
+[21:40:02] [33mWARN[39m: [36mcrew contribution was rejected but its core record exists; marked approved[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c205f218-4082-4f77-a682-beb227751927","resultIssueId":null,"resultCommentId":"4ffffe3c-2bc1-431b-ba5b-4a6ffbc88e41"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"c205f218-4082-4f77-a682-beb227751927","outcome":"approved"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"4303d6c8-6161-432a-b198-1493672c3350","kind":"comment"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"4303d6c8-6161-432a-b198-1493672c3350","outcome":"approving"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"4303d6c8-6161-432a-b198-1493672c3350","outcome":"rejected"}[39m
+[21:40:02] [33mWARN[39m: [36mcrew contribution was rejected but its core record exists; marked approved[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"4303d6c8-6161-432a-b198-1493672c3350","resultIssueId":null,"resultCommentId":"15b54514-ad4a-4187-a029-d832a882ce8c"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve complete[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"4303d6c8-6161-432a-b198-1493672c3350","outcome":"approved"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"1c865bbc-e14e-4a2b-bf6d-e7279606eb7d","kind":"comment"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"1c865bbc-e14e-4a2b-bf6d-e7279606eb7d","outcome":"approving"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"1c865bbc-e14e-4a2b-bf6d-e7279606eb7d","outcome":"rejected"}[39m
+[21:40:02] [33mWARN[39m: [36mcrew contribution was rejected but its core record exists; marked approved[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"1c865bbc-e14e-4a2b-bf6d-e7279606eb7d","resultIssueId":null,"resultCommentId":"c13acab3-76c4-42be-afe3-99205a3643da"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"1c865bbc-e14e-4a2b-bf6d-e7279606eb7d","outcome":"decided"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"295946f9-8a87-4300-aa4a-18adb3f0c098","kind":"comment"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"295946f9-8a87-4300-aa4a-18adb3f0c098","outcome":"rejected"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"379d4ff3-e7fb-49dd-93ca-56c1796f8c5f","kind":"comment"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"379d4ff3-e7fb-49dd-93ca-56c1796f8c5f","outcome":"approving"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"2b4c6c12-31a6-4027-b311-279c835c8207","kind":"issue"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"2b4c6c12-31a6-4027-b311-279c835c8207","outcome":"approving"}[39m
+[21:40:02] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-pager-631459f3-02b2-49f5-9f44-69dd2f6d2b41"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8d29098d-3b69-4b8e-919a-c5317733b50e","kind":"comment"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-temp-5f753fa1-5207-49ef-ace2-f8f1bef1aaa9","projects":1}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-temp-5f753fa1-5207-49ef-ace2-f8f1bef1aaa9"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-temp-5f753fa1-5207-49ef-ace2-f8f1bef1aaa9"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"8cd046a6-6cff-4780-ac89-5f9d42cdc874","kind":"comment"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor revoked[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-temp-5f753fa1-5207-49ef-ace2-f8f1bef1aaa9"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor revoked[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-temp-5f753fa1-5207-49ef-ace2-f8f1bef1aaa9"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-promoted-5f090095-e9a1-4f64-89b3-9505abafa7fd"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-returning-archive-570e7543-3201-4ba6-b543-4dbf7e0af2a1"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-returning-archive-570e7543-3201-4ba6-b543-4dbf7e0af2a1"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-returning-promote-18d85cad-d87d-4aca-9804-51fc703855f0"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","userId":"user-returning-promote-18d85cad-d87d-4aca-9804-51fc703855f0"}[39m
+[21:40:03] [31mERROR[39m: [36mcrew contribution store failed[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","sqlState":"23514"}[39m
+[21:40:03] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc8afae1-8938-4c9d-bef2-17a3259e3b7f","kind":"comment"}[39m
+[21:40:04] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc8afae1-8938-4c9d-bef2-17a3259e3b7f","outcome":"approving"}[39m
+[21:40:04] [32mINFO[39m: [36mcrew contribution reject[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc8afae1-8938-4c9d-bef2-17a3259e3b7f","outcome":"rejected"}[39m
+[21:40:04] [33mWARN[39m: [36mcrew contribution was rejected but its core record exists; marked approved[39m [90m{"companyId":"ddc720c3-03b4-4b9c-a824-9a8c994fd4cd","contributionId":"dc8afae1-8938-4c9d-bef2-17a3259e3b7f","resultIssueId":null,"resultCommentId":"56ebd4f9-b068-461a-b2fa-386e5d4f1f04"}[39m
+[21:40:07] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:40:24] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-issue-create-config-R41xiM/crew-policy.json","companyId":"0229f1a9-21f1-4ef5-ad02-b3376de89baa","reason":"companies.0229f1a9-21f1-4ef5-ad02-b3376de89baa: reviewer và integrator phải là hai agent khác nhau"}[39m
+[21:40:27] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:40:36] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-plugin-data-viewer-FvDz8t/crew-policy.json","companyId":"2eecbb44-a8bc-4c6c-ba02-fc4d4882150f","reason":"JSON không hợp lệ: Expected property name or '}' in JSON at position 2 (line 1 column 3)"}[39m
+[21:40:38] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"fcfed190-1eed-4400-b8a5-b3f439d88f01","leaseId":"7b1a5cba-1ee2-49de-8034-0f8428c6e2a4","proof":"never_started","attempt":1}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"fcfed190-1eed-4400-b8a5-b3f439d88f01","leaseId":"7b1a5cba-1ee2-49de-8034-0f8428c6e2a4","proof":"never_started","attempt":1}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"6ef2a834-6019-4793-9388-286b71adaeb8","leaseId":"ab40a3f9-809f-4736-9368-e7d8160cb16c","proof":"never_started","attempt":1}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"c86e966c-bfdf-4e53-bbdc-8781a001641e","leaseStatus":"expired","outcome":"stopped","matched":2,"killed":0,"remaining":0}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"c86e966c-bfdf-4e53-bbdc-8781a001641e","leaseId":"2897182c-0c61-4735-bf88-2b4632428db7","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:43] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:40:43] [33mWARN[39m: [36mpending_cleanup lease retry failed[39m [90m{"errorKind":"destroy_failed","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":1}[39m
+[21:40:43] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:40:43] [33mWARN[39m: [36mpending_cleanup lease retry failed[39m [90m{"errorKind":"destroy_failed","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":2}[39m
+[21:40:43] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:40:43] [33mWARN[39m: [36mpending_cleanup lease retry failed[39m [90m{"errorKind":"destroy_failed","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":3}[39m
+[21:40:43] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:40:43] [33mWARN[39m: [36mpending_cleanup lease retry failed[39m [90m{"errorKind":"destroy_failed","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":4}[39m
+[21:40:43] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:40:43] [33mWARN[39m: [36mcrew: SSH stop still unverified after repeated cleanup attempts; the lease keeps holding its task[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","attempt":5,"outcome":"unreachable"}[39m
+[21:40:43] [33mWARN[39m: [36mpending_cleanup lease retry failed[39m [90m{"errorKind":"destroy_failed","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":5}[39m
+[21:40:43] [33mWARN[39m: [36menvironment lease needs operator attention; automatic cleanup continues with backoff[39m [90m{"leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":4}[39m
+[21:40:43] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:40:43] [33mWARN[39m: [36mpending_cleanup lease retry failed[39m [90m{"errorKind":"destroy_failed","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","environmentId":"255031e3-dc2b-43ed-8cbf-3cf1706b2bac","attempts":6}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseStatus":"expired","outcome":"stopped","matched":2,"killed":0,"remaining":0}[39m
+[21:40:43] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"95269c8c-cb57-4a93-bb81-c62492eb31ba","leaseId":"23b1201b-3864-46dd-9e2b-99c53846dd75","proof":"remote_stop_verified","attempt":6}[39m
+[21:40:44] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"48c51a9c-9d0a-417d-9af1-b7c6bb6f79dc","leaseStatus":"expired","outcome":"stopped","matched":2,"killed":0,"remaining":0}[39m
+[21:40:44] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"48c51a9c-9d0a-417d-9af1-b7c6bb6f79dc","leaseId":"c3035902-36ad-4c6a-89f7-ec978e2ddd56","proof":"remote_stop_verified","attempt":6}[39m
+[21:40:44] [32mINFO[39m: [36mcrew: recorded SSH termination receipt[39m [90m{"runId":"957d9647-c912-438c-8202-b2b42747bbbd","leaseId":"faf82841-e2af-4c96-8f29-161cded08ab3","proof":"remote_stop_verified"}[39m
+[21:40:46] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:40:56] [33mWARN[39m: [36mrecovered orphaned active environment leases[39m [90m{"recovered":1}[39m
+[21:40:56] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"a597d499-3c2f-4086-9f9d-94289df689dd","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:56] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"a597d499-3c2f-4086-9f9d-94289df689dd","leaseId":"258b1fef-eefc-4ce5-a4f1-b7b0058023ce","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:56] [33mWARN[39m: [36mswept pending_cleanup environment leases[39m [90m{"destroyed":1,"capped":0,"swept":1}[39m
+[21:40:56] [32mINFO[39m: [36mcrew: replayed a stranded skipped wake[39m [90m{"issueId":"7b6d7f44-8fcf-4256-bbc6-20f83a002f6f","agentId":"473de051-a1ee-48ac-aadd-ceb937728bc5","skippedWakeId":"2bea06fa-5a09-4137-b962-494dca16fdf4"}[39m
+[21:40:56] [33mWARN[39m: [36mrecovered orphaned active environment leases[39m [90m{"recovered":1}[39m
+[21:40:56] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"a7e2a9a5-fc6f-4c2d-91ae-a41e33133a5e","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:56] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"a7e2a9a5-fc6f-4c2d-91ae-a41e33133a5e","leaseId":"8b0dea0b-000e-4376-90ce-e05fc197d93d","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:56] [33mWARN[39m: [36mswept pending_cleanup environment leases[39m [90m{"destroyed":1,"capped":0,"swept":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: replayed a stranded skipped wake[39m [90m{"issueId":"9258462d-af7e-48ab-b54f-4e1c0ab54d0d","agentId":"475ceae3-6651-4bda-820f-398ef243ebda","skippedWakeId":"48b898ad-0149-42d1-b4bf-b1025b9c2610"}[39m
+[21:40:57] [33mWARN[39m: [36mrecovered orphaned active environment leases[39m [90m{"recovered":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"bd6861cf-f6aa-4a41-bb79-350b73a7b7f0","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"bd6861cf-f6aa-4a41-bb79-350b73a7b7f0","leaseId":"92d2bf3c-b902-440c-95f8-631ec85499cc","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"78358b51-74ac-45c9-a069-b9fa77ce4670","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"78358b51-74ac-45c9-a069-b9fa77ce4670","leaseId":"0092963a-b270-4679-b52a-52f728a0b4e2","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:57] [33mWARN[39m: [36mswept pending_cleanup environment leases[39m [90m{"destroyed":2,"capped":0,"swept":2}[39m
+[21:40:57] [33mWARN[39m: [36mrecovered orphaned active environment leases[39m [90m{"recovered":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"1ec52606-697c-47ce-aef8-e96051961551","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"1ec52606-697c-47ce-aef8-e96051961551","leaseId":"79ea5200-298e-4689-85bf-a6f9e86dfdcf","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:57] [33mWARN[39m: [36mswept pending_cleanup environment leases[39m [90m{"destroyed":1,"capped":0,"swept":1}[39m
+[21:40:57] [33mWARN[39m: [36mrecovered orphaned active environment leases[39m [90m{"recovered":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"9b01b653-9c30-4b79-b7cc-72e36f9f757f","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"9b01b653-9c30-4b79-b7cc-72e36f9f757f","leaseId":"fa157a62-b9ab-466f-928a-7ed1fd46b81c","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:57] [33mWARN[39m: [36mswept pending_cleanup environment leases[39m [90m{"destroyed":1,"capped":0,"swept":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: replayed a stranded skipped wake[39m [90m{"issueId":"8f72adfc-23f6-4ed3-b16d-d2023d503bcf","agentId":"0eb52ff2-a2f4-400e-8f40-4d599112af8d","skippedWakeId":"d02a6006-9d36-4067-98a7-84a813047d35"}[39m
+[21:40:57] [33mWARN[39m: [36mrecovered orphaned active environment leases[39m [90m{"recovered":1}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"94941255-180f-40d8-aa49-0bf83b0b433c","leaseStatus":"expired","outcome":"stopped","matched":1,"killed":0,"remaining":0}[39m
+[21:40:57] [32mINFO[39m: [36mcrew: SSH cleanup retry proved the run stopped[39m [90m{"runId":"94941255-180f-40d8-aa49-0bf83b0b433c","leaseId":"4fcc9e76-5271-413f-8fec-a44b68658227","proof":"remote_stop_verified","attempt":1}[39m
+[21:40:57] [33mWARN[39m: [36mswept pending_cleanup environment leases[39m [90m{"destroyed":1,"capped":0,"swept":1}[39m
+[21:41:00] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:41:10] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-issue-gate-config-6gaz7S/crew-policy.json","companyId":"b726c046-54a6-4db4-9127-3a60830b67f4","reason":"companies.b726c046-54a6-4db4-9127-3a60830b67f4.integratorAgentId phải là uuid"}[39m
+[21:41:17] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:41:20] [32mINFO[39m: [36mcrew: recorded SSH termination receipt[39m [90m{"runId":"4d368fe0-61ce-4dd4-806b-6cb4187aed25","leaseId":"2677d797-fdac-486e-b2dd-4b5466846327","proof":"never_started"}[39m
+[21:41:21] [32mINFO[39m: [36mcrew: recorded SSH termination receipt[39m [90m{"runId":"d9b5e4ae-3363-45f7-863e-ad2843e17140","leaseId":"7a64ac37-f004-4919-a324-c0ff29c1adbd","proof":"remote_stop_verified"}[39m
+[21:41:21] [32mINFO[39m: [36mcrew: recorded SSH termination receipt[39m [90m{"runId":"5f6bd6aa-43cd-4db6-8834-8a54c19cb6e6","leaseId":"62e3beb0-8c63-4e93-bcff-1f2e1e8e1fbc","proof":"remote_stop_verified"}[39m
+[21:41:22] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contributor granted[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-guest"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-operator","projects":2}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-operator","projects":1}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-operator","projects":0}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-guest","projects":1}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","contributionId":"e357e652-b2f0-4abd-9d11-2d5724abe460","kind":"issue"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","contributionId":"b80ac4dc-884a-4b42-bbb7-8f126a05a9cd","kind":"comment"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-guest","projects":1}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","contributionId":"a9788fe0-0763-4476-b494-bc4458a224c4","kind":"issue"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contribution created[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","contributionId":"22fd2c6a-00fc-442f-b152-5dfbd9e51eb8","kind":"comment"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-guest","projects":1}[39m
+[21:41:27] [32mINFO[39m: [36mcrew project access set[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","userId":"pa-guest","projects":1}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","contributionId":"a9788fe0-0763-4476-b494-bc4458a224c4","outcome":"approving"}[39m
+[21:41:27] [32mINFO[39m: [36mcrew contribution approve[39m [90m{"companyId":"3e16cc15-7355-49bf-bece-a2e784c0055c","contributionId":"22fd2c6a-00fc-442f-b152-5dfbd9e51eb8","outcome":"approving"}[39m
+[21:41:29] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:41:38] [33mWARN[39m: [36mcrew runtime switches table missing; using default switches[39m [90m{"companyId":"7a9f8246-6716-4952-bbbd-be5adbe558c2"}[39m
+[21:41:38] [32mINFO[39m: [36mcrew-runtime-gate: cancelling a queued run of an agent the issue was moved away from[39m [90m{"runId":"b2259623-367e-4be6-a34d-ce9daf45e1c7","issueId":"74877762-1e59-408e-9147-39b7182789b2"}[39m
+[21:41:42] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:41:48] [33mWARN[39m: [36mcrew: replaying a skipped wake failed; retried later[39m [90m{"previousRunId":"b64b4693-a45c-40c9-a1e0-e385b5da1dfe","skippedWakeId":"5523bb39-a47d-43c3-b11a-9d443818eb2c"}[39m
+    err: {
+      "type": "Error",
+      "message": "admission temporarily unavailable",
+      "stack":
+          Error: admission temporarily unavailable
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-handoff-rewake.test.ts:154:13
+              at replaySkippedWake (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/handoff-rewake.ts:140:39)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at Module.rewakeAfterLeaseRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/handoff-rewake.ts:209:12)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-handoff-rewake.test.ts:153:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:41:51] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:11] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:34] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:36] [33mWARN[39m: [36mcrew: replaying a wake skipped while the lease was held failed[39m [90m{"runId":"33333333-3333-4333-8333-333333333333"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at rewakeAfterLeaseRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/handoff-rewake.ts:174:8)
+              at startRemoteStopOnRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/remote-stop.ts:280:20)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:99:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:114:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/environment-runtime.ts:1220:7)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-remote-stop-release.test.ts:92:5
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:36] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"33333333-3333-4333-8333-333333333333","leaseStatus":"failed","outcome":"stopped","matched":2,"killed":0,"remaining":0}[39m
+[21:42:36] [33mWARN[39m: [36mcrew: replaying a wake skipped while the lease was held failed[39m [90m{"runId":"33333333-3333-4333-8333-333333333333"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at rewakeAfterLeaseRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/handoff-rewake.ts:174:8)
+              at startRemoteStopOnRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/remote-stop.ts:280:20)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:99:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:114:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/environment-runtime.ts:1220:7)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-remote-stop-release.test.ts:117:5
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:36] [32mINFO[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"33333333-3333-4333-8333-333333333333","leaseStatus":"released","outcome":"stopped","matched":0,"killed":0,"remaining":0,"via":"fallback"}[39m
+[21:42:36] [33mWARN[39m: [36mcrew: replaying a wake skipped while the lease was held failed[39m [90m{"runId":"33333333-3333-4333-8333-333333333333"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at rewakeAfterLeaseRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/handoff-rewake.ts:174:8)
+              at startRemoteStopOnRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/remote-stop.ts:280:20)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:99:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:114:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/environment-runtime.ts:1220:7)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-remote-stop-release.test.ts:125:5
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:36] [33mWARN[39m: [36mcrew: remote stop on lease release[39m [90m{"runId":"33333333-3333-4333-8333-333333333333","leaseStatus":"failed","outcome":"unreachable"}[39m
+    error: "ssh: connect timed out"
+[21:42:36] [33mWARN[39m: [36mcrew: replaying a wake skipped while the lease was held failed[39m [90m{"runId":"33333333-3333-4333-8333-333333333333"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at rewakeAfterLeaseRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/handoff-rewake.ts:174:8)
+              at startRemoteStopOnRelease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/remote-stop.ts:280:20)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:99:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:114:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/environment-runtime.ts:1220:7)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-remote-stop-release.test.ts:138:5
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:39] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:39] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-policy-config-msQ2wG/missing.json","companyId":"55555555-5555-4555-8555-555555555555","reason":"không đọc được file: ENOENT"}[39m
+[21:42:42] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:42] [31mERROR[39m: [36mcrew policy config invalid; Crew gates fail closed for this company[39m [90m{"file":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-project-roles-a3qHNC/crew-policy.json","companyId":"10000000-0000-4000-8000-000000000001","reason":"companies.10000000-0000-4000-8000-000000000001.integratorAgentId phải là uuid"}[39m
+[21:42:47] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:49] [33mWARN[39m: [36mcrew-load-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:587:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:313:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:340:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:809:18)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:92:15)
+              at Object.beforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:105:43)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-core-hooks.test.ts:50:21
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    }
+[21:42:49] [33mWARN[39m: [36mcrew onRunLeaseReleased failed; releasing the lease anyway[39m [90m{"leaseId":"lease-1","environmentId":"env-1","status":"expired"}[39m
+    err: {
+      "type": "Error",
+      "message": "ssh timeout",
+      "stack":
+          Error: ssh timeout
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-core-hooks.test.ts:131:15)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:116:39
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at Object.onRunLeaseReleased (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/core-hooks.ts:114:23)
+              at Object.releaseRunLease (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/services/environment-runtime.ts:1220:7)
+    }
+[21:42:52] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: waiting comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "comment store down",
+      "stack":
+          Error: comment store down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:122:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:431:20
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:5)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:429:7)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:252:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: waiting marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.recordNotice (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:258:65)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:425:14
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:424:13)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:259:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: waiting comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "comment store down",
+      "stack":
+          Error: comment store down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:122:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:431:20
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:5)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:429:7)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:265:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: expired comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "comment store down",
+      "stack":
+          Error: comment store down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:122:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:442:12
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:441:11)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:268:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: expired marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.recordNotice (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:297:41)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:438:57
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:438:9)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:300:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: block issue failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "issue locked",
+      "stack":
+          Error: issue locked
+              at Object.blockIssue (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:296:39)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:440:56
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:440:11)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:300:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:52] [33mWARN[39m: [36mcrew-load-gate: expired comment failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.postComment (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:298:40)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:442:12
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:11)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:441:11)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:16)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:300:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:53] [33mWARN[39m: [36mcrew-load-gate: never-started marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.h.deps.markHeld (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:430:13)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:321:109
+              at logFailure (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:450:11)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:321:55)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:432:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:53] [33mWARN[39m: [36mcrew-load-gate: releasing the never-started marker failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.h.deps.releaseHeld (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:457:13)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:330:24)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:459:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:53] [33mWARN[39m: [36mcrew-load-gate: failed closed for a retry, run stays queued[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:587:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:313:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:340:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:809:18)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:480:18
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+    }
+[21:42:53] [33mWARN[39m: [36mcrew-load-gate: failed closed for a retry, run stays queued[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:587:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:313:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:340:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:809:18)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:485:18
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+    }
+[21:42:53] [33mWARN[39m: [36mcrew-load-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "TypeError",
+      "message": "db.select is not a function",
+      "stack":
+          TypeError: db.select is not a function
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:587:10)
+              at Object.loadTarget (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:313:33)
+              at decideBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:340:29)
+              at evaluateBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:310:22)
+              at crewBeforeClaim (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/load-gate.ts:809:18)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-load-gate.test.ts:489:18
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+    }
+[21:42:54] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: recording the waiting run failed; the run stays held[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.recordWaiting (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:86:86)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:88:20)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:87:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "x",
+      "stack":
+          Error: x
+              at Object.switchOn (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:136:180)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:81:23)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:136:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "x",
+      "stack":
+          Error: x
+              at Object.loadAgent (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:137:96)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:56:30)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:137:18
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "x",
+      "stack":
+          Error: x
+              at Object.resolveMachine (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:138:188)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:74:32)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:138:12
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: resolving the agent machine failed; treating the switch as default (off)[39m [90m{"runId":"run-1","runtime":"codex_local"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.resolveMachine (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:147:47)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:74:32)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:150:16
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: resolving the agent machine failed; treating the switch as default (off)[39m [90m{"runId":"run-1","runtime":"opencode_local"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.resolveMachine (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:147:47)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:74:32)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:150:16
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: reading the runtime switch failed; treating the switch as default (off)[39m [90m{"runId":"run-1","runtime":"codex_local"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.switchOn (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:157:54)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:81:23)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:158:14
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.switchOn (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:164:74)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:81:23)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:165:14
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: failed open, run may be claimed[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.resolveMachine (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:166:80)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:74:32)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:167:14
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:54] [33mWARN[39m: [36mcrew-runtime-gate: checking for a superseded run failed; continuing[39m [90m{"runId":"run-1"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at Object.cancelSuperseded (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:191:62)
+              at evaluateRuntimeGate (/Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/crew/runtime-gate.ts:60:22)
+              at processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-gate.test.ts:192:14
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+    }
+[21:42:57] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+[21:42:57] [33mWARN[39m: [36mcrew-load-gate: runtime fallback decisions unreadable; claiming without the previous run check[39m [90m{"companyId":"company-1","runId":"run-new"}[39m
+    err: {
+      "type": "Error",
+      "message": "db down",
+      "stack":
+          Error: db down
+              at /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/server/src/__tests__/crew-runtime-fallback-reconcile.test.ts:246:35
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+              at new Promise (<anonymous>)
+              at runWithCancel (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+              at file:///Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:2956:64
+    }
+[21:43:00] [33mWARN[39m: [36mCREW_POLICY_CONFIG chưa đặt: gate Crew (review, integrator, owner, docs) tắt cho mọi company[39m [90m{"env":"CREW_POLICY_CONFIG"}[39m
+
+ Test Files  40 passed (40)
+      Tests  736 passed (736)
+   Start at  21:36:41
+   Duration  381.56s (transform 12.08s, setup 4.01s, import 145.71s, tests 225.16s, environment 3ms)
+
+== corepack pnpm --filter @paperclipai/adapter-claude-local exec vitest run src/server/execute.remote.crew.test.ts src/server/session-codec.crew.test.ts src/server/execute.remote.test.ts
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/adapters/claude-local
+
+
+ Test Files  3 passed (3)
+      Tests  17 passed (17)
+   Start at  21:43:03
+   Duration  3.00s (transform 5.35s, setup 0ms, import 8.20s, tests 269ms, environment 0ms)
+
+== corepack pnpm --filter @paperclipai/adapter-codex-local exec vitest run src/server/session-codec.crew.test.ts src/server/execute.remote.test.ts
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/adapters/codex-local
+
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  21:43:07
+   Duration  2.38s (transform 2.57s, setup 0ms, import 3.73s, tests 424ms, environment 0ms)
+
+== corepack pnpm --filter @paperclipai/adapter-opencode-local exec vitest run src/server/execute.in-place.crew.test.ts src/server/session-codec.crew.test.ts src/server/execute.remote.test.ts
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/adapters/opencode-local
+
+
+ Test Files  3 passed (3)
+      Tests  12 passed (12)
+   Start at  21:43:10
+   Duration  2.90s (transform 5.30s, setup 0ms, import 7.87s, tests 271ms, environment 0ms)
+
+== corepack pnpm --filter @crew/paperclip-plugin test
+
+> @crew/paperclip-plugin@0.0.0 test /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/crew-plugin
+> vitest run --config vitest.config.ts
+
+
+ RUN  v4.1.11 /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/crew-plugin
+
+
+ Test Files  57 passed (57)
+      Tests  473 passed (473)
+   Start at  21:43:14
+   Duration  54.35s (transform 20.26s, setup 0ms, import 76.07s, tests 379.36s, environment 20ms)
+
+== node --test crew/agents/add-base.test.mjs crew/agents/apply-roles.test.mjs crew/agents/instructions.test.mjs crew/agents/integrator-pr.test.mjs crew/agents/merge-agent-config.test.mjs crew/agents/policy-config.test.mjs crew/agents/render-instructions.test.mjs crew/agents/verify-result.test.mjs
+✔ lấy contentHash của file hiện tại làm baseHash (4.982083ms)
+✔ file chưa có thì baseHash là null (0.184791ms)
+✔ lỗi khác hoặc phản hồi lạ thì dừng, không đoán null (0.301625ms)
+✔ đọc file hiện tại, gửi kèm baseHash, upload trước rồi mới PATCH extraArgs (935.147666ms)
+✔ file chưa có thì gửi baseHash null và vẫn qua (685.48075ms)
+✔ không đọc được file hiện tại thì dừng trước khi ghi bất cứ gì (1018.336167ms)
+✔ mock đúng hợp đồng: PUT thiếu base bị 422 (17.617083ms)
+✔ vai bmad nhận pin BMAD và upload bmad.md (812.346625ms)
+✔ pin sai loại thì thoát 2 và không ghi gì (47.156958ms)
+✔ assistant nhận danh sách BMAD ở đối số thứ năm (933.150834ms)
+✔ vai bmad (hay vai khác) nhận danh sách thì thoát 2 (11.265792ms)
+✔ executor-codex: gửi executor.md, không thêm --plugin-dir, đo đúng adapterType (845.542708ms)
+✔ executor-opencode: nhận agent opencode_local, bỏ qua CODEX_HOME (872.605ms)
+✔ reviewer-codex: gửi reviewer.md có mục Codex (740.742709ms)
+✔ ô runtime sai adapterType hoặc thiếu CODEX_HOME thì dừng trước khi ghi (2212.372291ms)
+✔ assistant: runtime executor lấy từ adapterType, reviewer Codex vào instructions (1009.115209ms)
+✔ assistant: không đọc được runtime executor hoặc reviewer Codex không phải codex_local thì không ghi (978.8295ms)
+✔ assistant nhận executor kèm :runtime mà không gọi API đọc agent đó (791.164792ms)
+✔ vai khác assistant không nhận reviewer Codex (30.560584ms)
+✔ mọi instructions đều cấm xóa đệ quy ngoài thư mục tạm vừa tạo trong run (4.978875ms)
+✔ dòng mẫu crew-docs-check khớp regex của server (1.059666ms)
+✔ integrator xuống dòng ngay sau exit=N rồi đọc lại dòng đầu comment bằng chứng trước PATCH done (0.445792ms)
+✔ regex crew-docs-check trong test trùng chuỗi regex của server (0.833375ms)
+✔ regex crew-merge trong test trùng chuỗi regex của server (0.528167ms)
+✔ stage 4 nhận diện bằng currentStageId, push lỗi không đổi status, không PATCH blocked khi là participant duyệt (0.777209ms)
+✔ dòng mẫu crew-fix khớp định dạng và cả ba vai trò dùng nó (0.905583ms)
+✔ integrator nhận diện stage chỉ theo executionState, không đòi status in_review (0.78825ms)
+✔ yêu cầu sửa code issue gốc đi qua issue con mới (1.096334ms)
+✔ dòng mẫu crew-commit của executor đúng định dạng (0.677125ms)
+✔ dòng mẫu crew-merge của integrator đúng định dạng (1.672042ms)
+✔ dòng mẫu crew-review của reviewer đúng định dạng (0.447334ms)
+✔ integrator merge đúng sha của crew-review, không lấy crew-commit mới nhất (0.327208ms)
+✔ mọi file instructions nhắc đúng các mã lỗi server (1.353084ms)
+✔ không vai trò nào chuyển cancelled; cả ba có đường blocked (1.235458ms)
+✔ mọi PATCH trong instructions mang comment (1.270958ms)
+✔ không file nào dặn push cưỡng bức hoặc bỏ hook ngoài câu cấm (1.588791ms)
+✔ integrator chỉ push sau khi xác minh qua API (không tin prompt hay comment người khác) (0.39725ms)
+✔ bước Gộp chỉ tin crew-review của reviewer đã qua stage đầu (0.316583ms)
+✔ integrator dựng lại nhánh từ commit của bằng chứng, không tin tip hiện tại (0.454375ms)
+✔ dừng im chỉ khi pushed=yes mới hơn bằng chứng, và fetch lỗi thì dừng (0.29375ms)
+✔ ngoại lệ issue con leo thang cho owner (0.679542ms)
+✔ integrator che token ngoài URL, không dựa vào plugin hay mention (0.513625ms)
+✔ integrator không dặn lộ URL remote và lọc output push (0.97475ms)
+✔ executor không nêu mã 78 mà bắt chạy workflow-check (0.364833ms)
+✔ reviewer có mục issue gốc và integrator nhận việc của issue gốc theo executionState (0.526875ms)
+✔ mọi lệnh API có tiền tố /api/ và curl có -f (1.571541ms)
+✔ luật không bao giờ nằm trước các mục khác, integrator có luật cứng trước push (1.3785ms)
+✔ assistant: dòng mẫu marker khớp regex (1.205375ms)
+✔ assistant: yêu cầu viết tài liệu nhận ra bằng nhãn docs trên gốc 4 stage, con có dòng crew-kind docs (0.600667ms)
+✔ assistant: marker crew-model đặt runtime= sau effort=, mọi ô của bảng điền vào mẫu đều khớp regex (1.910959ms)
+✔ regex crew-model trong test trùng CREW_MODEL_LINE_RE của server (46.036834ms)
+✔ assistant: bảng runtime/model chép nguyên I1 (thứ tự runtime, model/effort, ảnh, key effort) (1.07ms)
+✔ bảng runtime/model trong assistant.md trùng catalog của server (0.648958ms)
+✔ bảng runtime/model trong assistant.md trùng catalog chép ở plugin (1.1305ms)
+✔ assistant: override theo runtime chỉ có model và key effort của runtime (0.561042ms)
+✔ assistant: luật chọn runtime, không theo công tắc, không chọn reviewer (0.285708ms)
+✔ regex crew-bundle trong test trùng chuỗi regex của server (0.397417ms)
+✔ assistant: chờ owner bằng blocked và hỏi trước khi tạo con (0.503667ms)
+✔ assistant: tạo con có blocker, override và không gửi policy (0.343209ms)
+✔ executor và reviewer đọc tiêu chí từ description (1.216792ms)
+✔ mọi vai trò tạo issue con qua route company có parentId (1.066792ms)
+✔ assistant: comment kế hoạch và đóng issue gốc (0.247375ms)
+✔ executor: research báo bằng crew-report; nhánh xếp chồng theo crew-stack (0.1365ms)
+✔ executor: issue tài liệu tạo nhánh và commit như code, không TDD, chỉ kiểm tài liệu, vẫn có ảnh nghiệm thu (0.117292ms)
+✔ reviewer: issue tài liệu duyệt nội dung theo tiêu chí, diff chỉ file tài liệu, kiểm ảnh, không chạy test code (0.093ms)
+✔ reviewer: duyệt research không cần crew-commit, diff crew-stack từ sha nền (0.126959ms)
+✔ integrator: không đặt override khi tạo issue con sửa (0.125667ms)
+✔ crew-stack: executor và reviewer chỉ nhận cùng SHA nền đã được duyệt (0.267417ms)
+✔ assistant: lưu kế hoạch đầy đủ trước POST đầu, đối soát và tạo tiếp bằng khóa ổn định (0.279542ms)
+✔ assistant: việc con owner thêm được nhận vào kế hoạch trước mọi bước, sửa ngay trên việc con, không POST (0.26225ms)
+✔ assistant: yêu cầu sửa gốc được xử lý trước khi đóng lại (0.20675ms)
+✔ mọi vai trò cấm ghi sau PATCH chuyển stage và dừng khi PATCH trả 422 (0.395666ms)
+✔ integrator không bảo ghi bằng chứng rồi PATCH lại sau 422 (0.16ms)
+✔ vai trò khác không bảo comment sau PATCH 422 của quyết định (0.507959ms)
+✔ mọi vai trò cấm PUT /api/issues/:id/title và chỉ dùng PATCH title (0.777917ms)
+✔ PATCH /api/issues/:id có trong allowlist của callback bridge, PUT title thì không (1.069625ms)
+✔ assistant có mục File đính kèm đúng lệnh và luật (0.335875ms)
+✔ executor có mục File đính kèm đúng lệnh và luật (0.142458ms)
+✔ reviewer có mục File đính kèm đúng lệnh và luật (0.10925ms)
+✔ integrator có mục File đính kèm đúng lệnh và luật (0.160042ms)
+✔ bmad có mục File đính kèm đúng lệnh và luật (0.084708ms)
+✔ assistant: ảnh trong comment/mô tả phải là file đính kèm, cấm base64 data: (0.159667ms)
+✔ executor: ảnh trong comment/mô tả phải là file đính kèm, cấm base64 data: (0.092708ms)
+✔ reviewer: ảnh trong comment/mô tả phải là file đính kèm, cấm base64 data: (0.074084ms)
+✔ integrator: ảnh trong comment/mô tả phải là file đính kèm, cấm base64 data: (0.117ms)
+✔ bmad: dòng mẫu crew-bmad-result và crew-commit khớp định dạng (0.367125ms)
+✔ bmad: kiểm file bằng crew-mac bmad stories, dựng repo bằng setup-project, giữ worktree sạch (0.103417ms)
+✔ bmad: khối File đính kèm giống hệt executor (0.169667ms)
+✔ bmad: cấm skill superpowers và cấm tạo issue trong mục Không bao giờ (0.225083ms)
+✔ bmad: không gọi skill trợ giúp bmad:bmad, gọi thẳng chuỗi PRD → architecture → epic/story (0.096667ms)
+✔ bmad: tài liệu viết tiếng Việt nhưng giữ heading khuôn mà parser đọc (0.092ms)
+✔ assistant: chọn workflow, con BMAD và tạo story từ BMAD (0.4775ms)
+✔ assistant: tạo story từ BMAD dùng khóa ổn định, đối soát và không tạo trùng khi bị đánh thức lại (0.213125ms)
+✔ reviewer: mục issue BMAD kiểm lại file epic/story ở đúng commit (0.118959ms)
+✔ assistant: kiểm policy con BMAD ngay sau khi tạo, đối chiếu sha, chỉ chạy 2b cho con của kế hoạch gốc, báo khi con mở lại (0.253375ms)
+✔ assistant: chỉ đặt gốc blocked khi còn blocker mở và chốt trạng thái gốc mỗi run (0.170709ms)
+✔ executor: mục Codex/OpenCode đọc SKILL.md ghim, workflow-check theo runtime, xử lý comment chuyển runtime (0.140916ms)
+✔ reviewer: mục chạy bằng Codex giữ luật duyệt, chỉ nhận issue con code (0.09225ms)
+✔ integrator: deploy tự động chỉ khi repo có crew/release/auto-deploy.json, chạy script của commit T, trước PATCH done (0.473291ms)
+✔ integrator: stage 4 mở pull request thay vì push vào nhánh mặc định khi origin ở GitHub (0.165917ms)
+✔ integrator: mọi ref git dạng <biến>:<đường dẫn> giữ ngoặc nhọn (zsh hiểu $T:c, $T:r là modifier) (0.131125ms)
+✔ assistant: điểm cần owner chốt viết đủ ngay tại chỗ, đánh số Q1…, có lựa chọn, nghĩa và đề xuất, không trỏ file (0.218584ms)
+✔ assistant: không tự mở pull request, giữ mục con Merge request do integrator thêm (0.134417ms)
+✔ mở PR mới: đẩy nhánh yêu cầu đúng commit T, không chạm nhánh mặc định, nội dung PR là tổng kết (2442.956833ms)
+✔ PR đang mở được dùng lại và cập nhật; conflict được báo rõ, mục Merge request cũ bị thay chứ không nhân đôi (1336.882541ms)
+✔ PR đã merge đúng commit T (chạy lại sau khi owner merge): không push lại, không tạo PR (1235.834ms)
+✔ origin không ở GitHub: thoát 3, không gọi gh, không push gì (669.26475ms)
+✔ gh chưa đăng nhập: thoát 4 trước mọi push, lý do đã lọc (1258.482208ms)
+✔ nhánh yêu cầu trên origin đã đi khác: push thường bị từ chối, thoát 5, không --force, không tạo PR (1389.973375ms)
+✔ gh pr create lỗi: thoát 6, URL có credential trong lỗi bị che (1951.120125ms)
+✔ mô tả chưa có tổng kết: thêm mục tổng kết chỉ có Merge request ở cuối, PR lấy nội dung yêu cầu (2222.48ms)
+✔ đầu vào sai: T không phải sha thì thoát 2 trước khi gọi gh (782.662917ms)
+✔ thay cờ setting-sources/plugin-dir cũ, giữ cấu hình khác (1.23025ms)
+✔ bỏ cả dạng --plugin-dir=<dir> và --setting-sources=<v> (0.190584ms)
+✔ agent chưa có extraArgs (0.073ms)
+✔ từ chối đầu vào không phải agent hợp lệ (thân lỗi, thiếu command) (0.231833ms)
+✔ từ chối command không phải wrapper crew-claude-run tuyệt đối (0.083458ms)
+✔ từ chối giá trị bị che ngoài env, cho phép trong env (0.106083ms)
+✔ không đụng metadata của agent (0.063708ms)
+✔ từ chối pin không tuyệt đối hoặc không đúng thư mục pin (0.077083ms)
+✔ nhận pin bmad, giữ đúng một --plugin-dir (0.087ms)
+✔ từ chối thư mục workflow lạ hoặc bmad/.. (0.120583ms)
+✔ codex_local: nhận wrapper crew-codex-run, không thêm cờ của Claude (0.158583ms)
+✔ codex_local: bỏ cờ setting-sources/plugin-dir còn sót, extraArgs luôn là mảng (0.115584ms)
+✔ opencode_local: nhận wrapper crew-opencode-run, không cần CODEX_HOME (0.06425ms)
+✔ wrapper phải khớp adapterType (không lẫn Claude/Codex/OpenCode) (0.101875ms)
+✔ adapterType vắng thì coi là claude_local; claude_local vẫn ghim như cũ (0.055584ms)
+✔ runtime mong đợi của ô vai trò phải khớp adapterType của agent (2.353459ms)
+✔ codex_local: bắt buộc env.CODEX_HOME tuyệt đối, ngoài cây companies/<companyId> (0.491417ms)
+✔ codex_local: không được đặt OPENAI_API_KEY (tránh configuration_incomplete và lộ key) (0.395875ms)
+✔ codex_local: giữ nguyên env khi trả adapterConfig (0.165375ms)
+✔ ghi entry company, giữ company khác trong file cũ (2.3775ms)
+✔ không có file cũ thì tạo mới (0.130208ms)
+✔ từ chối reviewer trùng integrator, id không phải uuid, owner rỗng (0.258167ms)
+✔ companyId viết thường; key cũ khác hoa thường được thay, không sinh hai key (0.118375ms)
+✔ từ chối file cũ đã có hai key trùng khi bỏ hoa thường (0.084958ms)
+✔ từ chối file cũ hỏng thay vì ghi đè (0.076042ms)
+✔ --tracking đặt trackingProjectIds (viết thường), không làm mất company khác (0.114459ms)
+✔ không truyền tracking thì giữ danh sách cũ; mảng rỗng thì xóa (0.097167ms)
+✔ từ chối tracking không phải uuid hoặc trùng (0.109958ms)
+✔ assistant: nối mục Executor của company, giữ thứ tự (2.223167ms)
+✔ assistant: từ chối danh sách rỗng, id sai, trùng nhau hoặc trùng chính Trợ Lý (0.325625ms)
+✔ vai trò khác: giữ nguyên văn bản, không nhận danh sách executor (0.085209ms)
+✔ vai bmad: trả nguyên văn, không nhận danh sách (0.062625ms)
+✔ vai khác ngoài assistant không nhận bmadIds (0.072ms)
+✔ assistant không có bmadIds: mục Agent BMAD ghi Không có, sau mục executor (0.101458ms)
+✔ assistant có bmadIds: mỗi dòng một uuid theo thứ tự (0.10425ms)
+✔ assistant: từ chối bmad uuid sai, trùng, trùng executor, trùng Trợ Lý (0.108334ms)
+✔ assistant: executor ghi runtime cho mọi dòng, id trần là claude_local (0.081416ms)
+✔ assistant: từ chối runtime lạ hoặc trống sau dấu hai chấm (0.11775ms)
+✔ assistant: id trùng nhau dù khác runtime vẫn bị chặn (0.064875ms)
+✔ assistant: mục Reviewer Codex liệt kê reviewer, nằm sau mục BMAD (0.056417ms)
+✔ assistant: reviewer Codex phải là uuid, không trùng executor, BMAD hay Trợ Lý (0.091208ms)
+✔ vai khác assistant không nhận reviewer Codex (0.063458ms)
+✔ ô executor-codex, executor-opencode, reviewer-codex trả nguyên văn như vai gốc (0.041083ms)
+✔ PATCH đạt khi extraArgs khớp (0.962834ms)
+✔ PATCH hỏng: thân lỗi, không phải JSON, extraArgs lệch (0.748125ms)
+✔ PUT hỏng khi thân lỗi hoặc không phải JSON (0.548458ms)
+ℹ tests 158
+ℹ suites 0
+ℹ pass 158
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13389.924083
+== corepack pnpm --filter @paperclipai/server exec tsc --noEmit
+== corepack pnpm --filter @paperclipai/adapter-claude-local exec tsc --noEmit
+== corepack pnpm --filter @paperclipai/adapter-codex-local exec tsc --noEmit
+== corepack pnpm --filter @paperclipai/adapter-opencode-local exec tsc --noEmit
+== corepack pnpm --filter @crew/paperclip-plugin exec tsc --noEmit
+== corepack pnpm --filter @crew/paperclip-plugin build
+
+> @crew/paperclip-plugin@0.0.0 build /Users/phannhatquang/Documents/Projects/crew/.worktrees/paperclip-issues-ui/packages/crew-plugin
+> node build.mjs
+
+== no_bare_react_require
+XANH: mốc hook đủ, test vá, test plugin/agents và typecheck đạt

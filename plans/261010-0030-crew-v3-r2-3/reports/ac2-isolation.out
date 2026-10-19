@@ -1,0 +1,26 @@
+
+### Ca 1: ĐẠT (thoát 0, kỳ vọng 0)
+crew-workflow ok pin=bmad@6.13.0-next rev=d009608292d8 sum=7f62e5cb6033 project=0 pinned-dup=0
+
+### Ca 2: ĐẠT (thoát 78, kỳ vọng 78)
+crew-workflow blocked: --plugin-dir /Users/phannhatquang/.claude/plugins/marketplaces/bmad/plugins/method không phải bản ghim của workflow nào đã chứng nhận (/Users/phannhatquang/crew-r23-probe/ac2/home/.crew/workflows/superpowers/6.4.1-5bf4e7801107, /Users/phannhatquang/crew-r23-probe/ac2/home/.crew/workflows/bmad/6.13.0-next-d009608292d8)
+
+### Ca 3: ĐẠT (thoát 78, kỳ vọng 78)
+crew-workflow blocked: /Users/phannhatquang/crew-r23-probe/ac2/home-bad/.crew/workflows/bmad/6.13.0-next-d009608292d8 (WORKFLOW_SOURCE_MISMATCH)
+
+### Ca 4: ĐẠT (thoát 78, kỳ vọng 78)
+crew-workflow blocked: /Users/phannhatquang/crew-r23-probe/ac2/repos/c4/.claude/settings.json#superpowers@claude-plugins-official (bật workflow superpowers khác với workflow của run (nạp chéo)). Bỏ "superpowers@claude-plugins-official" khỏi enabledPlugins của .claude/settings.json (commit), hoặc giao issue cho agent của workflow superpowers.
+
+### Ca 5: ĐẠT (thoát 78, kỳ vọng 78)
+crew-workflow blocked: /Users/phannhatquang/crew-r23-probe/ac2/repos/c5/.claude/settings.json#bmad-method@bmad (bật workflow bmad khác với workflow của run (nạp chéo)). Bỏ "bmad-method@bmad" khỏi enabledPlugins của .claude/settings.json (commit), hoặc giao issue cho agent của workflow bmad.
+
+### Ca 6: ĐẠT (thoát 78, kỳ vọng 78)
+crew-workflow blocked: /Users/phannhatquang/crew-r23-probe/ac2/repos/c6/_bmad/scripts (khác bản ghim BMAD; khôi phục từ commit, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project). Xem: git -C '/Users/phannhatquang/crew-r23-probe/ac2/repos/c6' status -- _bmad/scripts; khôi phục: git -C '/Users/phannhatquang/crew-r23-probe/ac2/repos/c6' checkout HEAD -- _bmad/scripts, hoặc xóa _bmad/scripts rồi chạy crew-mac bmad setup-project.
+
+### Ca 7: ĐẠT (thoát 78, kỳ vọng 78)
+crew-workflow blocked: /Users/phannhatquang/crew-r23-probe/ac2/repos/c7/_bmad/config.user.toml (lớp cá nhân của BMAD chưa commit). Xử lý: xóa _bmad/config.user.toml (lớp cá nhân không dùng trong run agent), hoặc commit nếu cố ý dùng cho cả nhóm.
+
+### Ca 8: ĐẠT (thoát 0, kỳ vọng 0)
+crew-workflow ok pin=superpowers@6.4.1 rev=5bf4e7801107 sum=3f0ff8c82c07 project=0 pinned-dup=0
+
+Tổng: 8 ĐẠT, 0 KHÔNG ĐẠT
