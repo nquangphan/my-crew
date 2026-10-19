@@ -1,7 +1,7 @@
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { main } from '../src/cli.js';
 import { orphanCheck } from '../src/commands/workflow-check.js';
 import { createRunner } from '../src/system.js';
@@ -26,9 +26,16 @@ interface Row {
   cwd?: string;
 }
 
+/** Thư mục tạm test này tạo (worktree giả, HOME của fakeMac); xóa sau mỗi test. */
+const created: string[] = [];
+afterEach(() => {
+  for (const dir of created.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
 /** Worktree tạm có marker `started`/`pgid` của run như wrapper `crew-claude-run` ghi. */
 function runRoot(): string {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'crew-orphans-')));
+  created.push(root);
   const dir = join(root, '.paperclip-runtime', 'runs', RUN);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'started'), `${START}\n`);
@@ -172,6 +179,68 @@ describe('orphanCheck', () => {
     expect(pidsIn(r.lines)).toEqual([650]);
   });
 
+  it('(f) MCP server stdio là con trực tiếp của claude, cùng Chrome nó mở, không bị chặn', async () => {
+    const root = runRoot();
+    const rows = [
+      ...chain(root, SELF),
+      { pid: 660, ppid: 601, pgid: 600, command: 'npm exec @playwright/mcp@latest', runId: RUN, cwd: root },
+      {
+        pid: 661,
+        ppid: 660,
+        pgid: 600,
+        command: 'node /h/.npm/_npx/abc/node_modules/.bin/mcp-server-playwright',
+        runId: RUN,
+        cwd: root,
+      },
+      {
+        pid: 662,
+        ppid: 661,
+        pgid: 600,
+        command: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --remote-debugging-pipe',
+        runId: RUN,
+        cwd: root,
+      },
+      {
+        pid: 663,
+        ppid: 662,
+        pgid: 600,
+        command: '/Applications/Google Chrome.app/Contents/Frameworks/x/Google Chrome Helper --type=renderer',
+        runId: RUN,
+        cwd: root,
+      },
+      { pid: 670, ppid: 601, pgid: 600, command: 'node /h/mcp/other-server.js', runId: RUN, cwd: root },
+    ];
+    const r = await orphanCheck(deps(rows), { root, runId: RUN });
+    expect(r).toEqual({ ok: true, lines: [`crew-workflow ok không còn process nào của run ${RUN}`] });
+  });
+
+  it('(g) dev server dưới shell con khác của claude bị chặn, MCP cạnh nó thì không', async () => {
+    const root = runRoot();
+    const rows = [
+      ...chain(root, SELF),
+      { pid: 660, ppid: 601, pgid: 600, command: 'npm exec @playwright/mcp@latest', runId: RUN, cwd: root },
+      { pid: 680, ppid: 601, pgid: 680, command: '-zsh -c -l pnpm dev', runId: RUN, cwd: root },
+      { pid: 681, ppid: 680, pgid: 680, command: 'node vite', runId: RUN, cwd: root },
+      // Lệnh nền ngay trong shell đang chạy check (không phải tổ tiên của check) cũng bị chặn.
+      { pid: 690, ppid: 610, pgid: 610, command: 'node server.js', runId: RUN, cwd: root },
+    ];
+    const r = await orphanCheck(deps(rows), { root, runId: RUN });
+    expect(r.ok).toBe(false);
+    expect(pidsIn(r.lines)).toEqual([680, 681, 690]);
+  });
+
+  it('(h) dev server đã reparent về launchd vẫn bị chặn khi có MCP chạy cạnh', async () => {
+    const root = runRoot();
+    const rows = [
+      ...chain(root, SELF),
+      { pid: 660, ppid: 601, pgid: 600, command: 'npm exec @playwright/mcp@latest', runId: RUN, cwd: root },
+      { pid: 700, ppid: 1, pgid: 700, command: 'node vite', startedAt: START + 60, cwd: root },
+    ];
+    const r = await orphanCheck(deps(rows), { root, runId: RUN });
+    expect(r.ok).toBe(false);
+    expect(pidsIn(r.lines)).toEqual([700]);
+  });
+
   it('(e) thiếu PAPERCLIP_RUN_ID thì cảnh báo, ok, không quét process', async () => {
     const root = runRoot();
     for (const runId of [undefined, '', '  ']) {
@@ -200,6 +269,7 @@ describe('orphanCheck', () => {
 describe('CLI workflow-check --require-no-orphans', () => {
   function setup() {
     const mac = fakeMac();
+    created.push(mac.home);
     const pinDir = installSuperpowersPin({ ...mac.ctx, runner: createRunner() }).dir;
     return { mac, pinDir };
   }

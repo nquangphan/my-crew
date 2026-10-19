@@ -2,7 +2,7 @@ import { type Dirent, existsSync, readdirSync, readFileSync, realpathSync, statS
 import { basename, join, resolve } from 'node:path';
 import type { MacContext } from '../context.js';
 import { listProcesses, type ProcInfo, readBootTime } from '../reaper/process-table.js';
-import { collectRunMembers, descendants } from '../reaper/run-members.js';
+import { collectRunMembers, descendants, isAgentPrint } from '../reaper/run-members.js';
 import type { CommandRunner } from '../system.js';
 import { missingExecutables } from '../workflows/install.js';
 import { describeSource, discoverSources, recordWorktreeWorkflow } from '../workflows/inventory.js';
@@ -84,16 +84,59 @@ export async function workflowCheck(
 const RUN_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 const CMD_MAX = 80;
 
-/** Chuỗi tổ tiên của `selfPid` theo PPID (gồm chính nó): shell của tool, claude/codex/opencode, wrapper. */
-function ancestorChain(selfPid: number, procs: readonly ProcInfo[]): Set<number> {
-  const ppidOf = new Map(procs.map((p) => [p.pid, p.ppid]));
-  const chain = new Set<number>();
+/**
+ * Chuỗi tổ tiên của `selfPid` theo PPID, từ chính nó đi lên (shell của tool, claude/codex/opencode, wrapper). Dừng
+ * ở launchd hoặc khi gặp vòng lặp.
+ */
+function ancestorChain(selfPid: number, byPid: ReadonlyMap<number, ProcInfo>): number[] {
+  const chain: number[] = [];
   let current: number | undefined = selfPid;
-  while (current !== undefined && current > 1 && !chain.has(current)) {
-    chain.add(current);
-    current = ppidOf.get(current);
+  while (current !== undefined && current > 1 && !chain.includes(current)) {
+    chain.push(current);
+    current = byPid.get(current)?.ppid;
   }
   return chain;
+}
+
+/**
+ * Shell agent dùng để chạy lệnh (Bash tool của claude, `bash -lc`/`zsh -lc` của codex/opencode), cùng
+ * `sandbox-exec` mà codex có thể bọc ngoài shell. Khớp basename của argv[0] hoặc `comm`, bỏ `-` của login shell.
+ */
+const SHELL_BASENAMES = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'fish', 'sandbox-exec']);
+
+function isCommandShell(p: ProcInfo): boolean {
+  const base = (s: string) => {
+    const exe = s.trim().split(/\s+/)[0] ?? '';
+    return exe.slice(exe.lastIndexOf('/') + 1).replace(/^-/, '');
+  };
+  return SHELL_BASENAMES.has(base(p.command)) || SHELL_BASENAMES.has(base(p.comm));
+}
+
+/**
+ * Process không tính khi kiểm process còn chạy:
+ * - chuỗi tổ tiên của chính lệnh và con cháu của nó (`ps`/`lsof` đang quét);
+ * - con TRỰC TIẾP không phải shell của process agent gần nhất trong chuỗi (claude/codex/opencode mang run id) và của
+ *   các tổ tiên phía trên nó (wrapper), cùng cả cây con: đó là MCP server stdio (`npm exec @playwright/mcp`, Chrome
+ *   do MCP mở) và process khởi tạo của agent, sống suốt run nên không phải thứ agent quên tắt. Lệnh agent chạy luôn
+ *   đi qua một shell, nên con cháu của shell (kể cả shell khác shell đang chạy lệnh này) vẫn bị chặn.
+ * Chuỗi không có process agent (chạy tay ngoài run) thì chỉ loại chuỗi tổ tiên và con cháu của chính lệnh.
+ */
+function ignoredPids(selfPid: number, procs: readonly ProcInfo[]): Set<number> {
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  const chain = ancestorChain(selfPid, byPid);
+  const inChain = new Set(chain);
+  const ignored = new Set([...chain, ...descendants(selfPid, procs)]);
+  const agentAt = chain.findIndex((pid) => {
+    const p = byPid.get(pid);
+    return p !== undefined && isAgentPrint(p);
+  });
+  if (agentAt < 0) return ignored;
+  const agentLevel = new Set(chain.slice(agentAt));
+  for (const p of procs) {
+    if (agentLevel.has(p.ppid) && !inChain.has(p.pid) && !isCommandShell(p))
+      for (const pid of descendants(p.pid, procs)) ignored.add(pid);
+  }
+  return ignored;
 }
 
 function shortCommand(p: ProcInfo): string {
@@ -103,8 +146,8 @@ function shortCommand(p: ProcInfo): string {
 
 /**
  * Kiểm trước khi agent báo xong (`--require-no-orphans`): process của run `runId` (cây con cháu của agent, mồ côi
- * reparent về launchd có cwd dưới worktree, cùng group wrapper ghi) còn sống ngoài chuỗi tổ tiên của chính lệnh này
- * thì chặn. Con cháu của chính lệnh (ps/lsof đang quét) cũng không tính. Chỉ báo, không kill.
+ * reparent về launchd có cwd dưới worktree, cùng group wrapper ghi) còn sống thì chặn, trừ các process `ignoredPids`
+ * loại ra (chuỗi tổ tiên, MCP/khởi tạo của agent). Chỉ báo, không kill.
  */
 export async function orphanCheck(
   deps: { runner: CommandRunner; now: () => Date; selfPid: number },
@@ -131,7 +174,7 @@ export async function orphanCheck(
       lines: [blocked(`không đọc được bảng process để kiểm process còn chạy (${message})`)],
     };
   }
-  const ignored = new Set([...ancestorChain(deps.selfPid, procs), ...descendants(deps.selfPid, procs)]);
+  const ignored = ignoredPids(deps.selfPid, procs);
   const byPid = new Map(procs.map((p) => [p.pid, p]));
   const left = members.filter((pid) => !ignored.has(pid));
   if (left.length === 0)

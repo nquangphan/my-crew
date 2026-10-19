@@ -239,8 +239,13 @@ code, review, merge) và `bmad` (epic/story). `superpowers` chạy được `cla
   `PAPERCLIP_RUN_ID`, (b') mồ côi đã reparent về launchd có cwd dưới worktree, không tty, sinh trong cửa sổ run, (c)
   cùng group wrapper ghi. (b') và (c) cần marker `started`/`pgid` dưới `<root>/.paperclip-runtime/runs/<runId>/`
   (wrapper ghi); thiếu marker thì chỉ còn nhánh (a).
-- Loại khỏi danh sách: chính process đang chạy và cả chuỗi tổ tiên theo PPID (shell của tool, claude/codex/opencode,
-  wrapper), cùng con cháu của chính nó (`ps`/`lsof` đang quét). Còn lại pid nào thì chặn.
+- Loại khỏi danh sách (`ignoredPids`): chính process đang chạy và cả chuỗi tổ tiên theo PPID (shell của tool,
+  claude/codex/opencode, wrapper), con cháu của chính nó (`ps`/`lsof` đang quét), và con TRỰC TIẾP không phải shell
+  của process agent gần nhất trong chuỗi (cùng các tổ tiên phía trên nó) kèm cả cây con: đó là MCP server stdio
+  (`npm exec @playwright/mcp`, Chrome do MCP mở) và process khởi tạo của agent. Shell là basename argv[0] hoặc `comm`
+  thuộc `sh`, `bash`, `zsh`, `dash`, `ksh`, `fish`, `sandbox-exec` (bỏ `-` của login shell). Lệnh agent chạy luôn qua
+  một shell nên con cháu của shell (kể cả lệnh nền trong shell đang chạy check) vẫn bị chặn; mồ côi đã về launchd
+  xét như cũ. Chuỗi không có process agent (chạy tay) thì chỉ loại chuỗi tổ tiên. Còn lại pid nào thì chặn.
 - `ps` lỗi: chặn với dòng `không đọc được bảng process để kiểm process còn chạy (<lỗi>)`.
 
 **Phân loại nguồn** (`classifyOrigin`, `discoverSources`):
@@ -532,7 +537,9 @@ cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ 
 - `apps/crew-mac/test/workflow-check-orphans.test.ts` (runner giả, không spawn process): chỉ còn chuỗi tổ tiên thì
   ok; dev server con cháu của claude còn sống thì chặn có pid và lệnh rút gọn 80 ký tự; mồ côi reparent về launchd có
   cwd dưới worktree trong cửa sổ run thì chặn (sinh trước run hay cwd ngoài worktree thì không); wrapper, claude, shell
-  tool, chính lệnh và `ps` con không bị tính; thiếu `PAPERCLIP_RUN_ID` thì cảnh báo, ok, không gọi `ps`; run id sai dạng
+  tool, chính lệnh và `ps` con không bị tính; MCP con trực tiếp của claude cùng Chrome cháu của nó không bị chặn;
+  dev server dưới shell con khác của claude hay lệnh nền trong shell đang chạy check bị chặn; dev server đã về launchd
+  bị chặn dù có MCP chạy cạnh; thiếu `PAPERCLIP_RUN_ID` thì cảnh báo, ok, không gọi `ps`; run id sai dạng
   hay `ps` lỗi thì chặn; CLI dạng `--runtime` (0/78/cảnh báo) và `--plugin-dir` (không có cờ thì không quét process).
 - `apps/crew-mac/test/workflows-gc.test.ts`: bản hiện hành luôn giữ; dấu pid sống giữ; pid chết và 25 giờ thì xóa dấu rồi
   thư mục; pid chết nhưng mới đổi thì giữ (`recent`); dấu hỏng sống tới 7 ngày; dấu hợp lệ cũ hơn 7 ngày bị xóa dù pid
