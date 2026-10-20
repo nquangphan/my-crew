@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { type RuntimesStatus, treeChecksum } from '@crew/mac';
+import { isFile } from '../projects/docs-runtime.js';
 import {
   configureDocsBundle,
   ensureRuntimeExcluded,
@@ -10,6 +11,7 @@ import {
   type GitRunner,
   inspectFolder,
   isWorktreeOf,
+  type ProcessRunner,
   runGit,
 } from '../projects/folder.js';
 import { type LsofRunner, removeCheckouts, removeSkill } from './remove.js';
@@ -48,6 +50,8 @@ export interface ExecutorDeps {
   home: string;
   env: NodeJS.ProcessEnv;
   git?: GitRunner;
+  /** Chạy `crew-docs install-hooks`; mặc định `runProcess`. */
+  exec?: ProcessRunner;
   /** `lsof` kiểm process đang dùng checkout trước khi gỡ; mặc định `/usr/sbin/lsof`. */
   lsof?: LsofRunner;
   addStatusRepo(projectId: string, path: string, companyId: string): Promise<void>;
@@ -180,14 +184,21 @@ async function inspectJob(folder: string, deps: ExecutorDeps): Promise<JobResult
   };
 }
 
+/** Cài crew-docs cho repo (bundle, runtime, hook); lỗi thành `git_failed` kèm câu tiếng Việt. */
 async function configureDocs(info: FolderInfo, deps: ExecutorDeps): Promise<void> {
-  await configureDocsBundle(info, {
-    home: deps.home,
-    env: deps.env,
-    git: deps.git,
-    statusRepoPaths: () => deps.statusRepoPaths(),
-    nodePath: () => deps.docsNodePath(),
-  });
+  try {
+    await configureDocsBundle(info, {
+      home: deps.home,
+      env: deps.env,
+      git: deps.git,
+      exec: deps.exec,
+      statusRepoPaths: () => deps.statusRepoPaths(),
+      nodePath: () => deps.docsNodePath(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new JobError('git_failed', `Không cài được crew-docs cho ${info.root}: ${message}`);
+  }
 }
 
 async function ensureCheckout(
@@ -285,6 +296,47 @@ const cut = (text: string) => sanitizeJobError(text);
  */
 const PROJECT_DOCTOR_IDS = new Set(['wrapper', 'worktree-root']);
 
+/** Lý do worktree `checkout` chưa chạy được `node "$(git config --get crew-docs.bundle)"`, hoặc null. */
+async function docsBundleProblem(checkout: string, deps: ExecutorDeps): Promise<string | null> {
+  const r = await git(deps, ['-C', checkout, 'config', '--get', 'crew-docs.bundle']);
+  const bundle = r.code === 0 ? r.stdout.trim() : '';
+  if (bundle === '') return 'chưa có git config crew-docs.bundle';
+  return isFile(bundle) ? null : `bundle ${bundle} không tồn tại`;
+}
+
+/** Checkout gốc của repo chứa worktree `checkout`: dòng `worktree` đầu tiên của `git worktree list --porcelain`. */
+async function mainCheckoutOf(checkout: string, deps: ExecutorDeps): Promise<string> {
+  const r = await git(deps, ['-C', checkout, 'worktree', 'list', '--porcelain']);
+  const main = r.code === 0 ? /^worktree (.+)$/m.exec(r.stdout)?.[1]?.trim() : undefined;
+  if (!main) throw new Error(`không tìm được checkout gốc của ${checkout} (git worktree list mã ${r.code})`);
+  return main;
+}
+
+/**
+ * Hợp đồng của integrator: trong worktree integrator, `git config --get crew-docs.bundle` trỏ tới file có thật. Thiếu
+ * thì tự cài lại crew-docs trong checkout gốc rồi kiểm lại, nên run cũ (bước checkouts xong từ bản app chưa cài
+ * crew-docs) sửa được bằng "Chạy tiếp". Vẫn thiếu thì là lỗi của project.
+ */
+async function projectDocsItem(projectKey: string, deps: ExecutorDeps): Promise<CheckItem> {
+  const id = 'crew-docs-project';
+  const title = `crew-docs của ${projectKey}`;
+  const checkout = checkoutPath(deps.home, projectKey, 'integrator');
+  if (!existsSync(checkout)) {
+    return { id, status: 'error', title: cut(`${title}: chưa có worktree integrator ${checkout}`) };
+  }
+  let problem = await docsBundleProblem(checkout, deps);
+  if (problem) {
+    try {
+      await configureDocs(await inspect(await mainCheckoutOf(checkout, deps), deps), deps);
+      problem = await docsBundleProblem(checkout, deps);
+    } catch (error) {
+      problem = `${problem}; tự cài lại không được: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+  if (problem) return { id, status: 'error', title: cut(`${title}: ${checkout}: ${problem}`) };
+  return { id, status: 'ok', title: cut(`${title}: worktree integrator chạy được crew-docs`) };
+}
+
 async function checkJob(projectKey: string, deps: ExecutorDeps): Promise<JobOutcome> {
   const root = join(deps.home, 'crew-agents', projectKey);
   let roles: string[] = [];
@@ -316,6 +368,7 @@ async function checkJob(projectKey: string, deps: ExecutorDeps): Promise<JobOutc
       ),
     });
   }
+  items.push(await projectDocsItem(projectKey, deps));
   const result: JobResult = { kind: 'check', items };
   const errors = items.filter((item) => item.status === 'error');
   if (errors.length === 0) return { status: 'done', result };

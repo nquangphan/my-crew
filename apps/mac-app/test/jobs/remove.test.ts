@@ -37,7 +37,7 @@ function setup(lsof?: Lsof) {
     env: s.env,
     addStatusRepo: async () => undefined,
     statusRepoPaths: async () => [],
-    docsNodePath: async () => null,
+    docsNodePath: async () => process.execPath,
     removeStatusRepo: async (projectId) => {
       calls.removeStatusRepo.push(projectId);
     },

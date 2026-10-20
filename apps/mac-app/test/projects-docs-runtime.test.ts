@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { OpsBridge } from '../src/main/ops-bridge.js';
 import {
@@ -132,14 +133,177 @@ describe('configureDocsBundle', () => {
     expect(second.nodePath).not.toHaveBeenCalled();
   });
 
-  it('không có node thì để runtime như cũ, vẫn đặt bundle và không ném', async () => {
+  it('không có node thì đặt bundle rồi ném lỗi tiếng Việt, runtime giữ như cũ', async () => {
     const s = sandbox();
     const app = fakeAppBinary(s.root);
     s.git(['-C', s.folder, 'config', 'crew-docs.runtime', app]);
-    const { info } = await run(s, { nodePath: async () => null });
-    expect(s.config(info.root, 'crew-docs.runtime')).toBe(app);
-    expect(s.config(info.root, 'crew-docs.bundle')).toBe(installedDocsBundle(s.home));
+    await expect(run(s, { nodePath: async () => null })).rejects.toThrow(
+      'Chưa có node dùng được cho crew-docs.runtime',
+    );
+    expect(s.config(s.folder, 'crew-docs.runtime')).toBe(app);
+    expect(s.config(s.folder, 'crew-docs.bundle')).toBe(installedDocsBundle(s.home));
   });
+});
+
+/**
+ * Bundle giả làm như `crew-docs install-hooks`: đặt runtime/bundle, nối dòng `# crew-docs:<hook>` vào `.husky/`,
+ * vào `core.hooksPath` riêng, hoặc vào `.githooks/` (đặt hooksPath tương đối `.githooks` như bản thật). Mỗi lần chạy
+ * ghi một dòng vào `log`. `fail` thì in lỗi ra stderr và thoát mã 3.
+ */
+function fakeInstallBundle(path: string, log: string, opts: { fail?: boolean } = {}): string {
+  writeFileSync(
+    path,
+    `const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const p = require('node:path');
+const args = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(log)}, args.join(' ') + '\\n');
+if (args[0] !== 'install-hooks') process.exit(0);
+if (${opts.fail ? 'true' : 'false'}) { console.error('install-hooks: lỗi giả'); process.exit(3); }
+const git = (...a) => { try { return execFileSync('/usr/bin/git', a, { encoding: 'utf8' }).trim(); } catch { return ''; } };
+const opt = (n) => args[args.indexOf(n) + 1];
+const root = git('rev-parse', '--show-toplevel');
+git('config', 'crew-docs.runtime', opt('--runtime'));
+git('config', 'crew-docs.bundle', opt('--bundle'));
+const hp = git('config', '--local', '--get', 'core.hooksPath');
+let dir;
+if (fs.existsSync(p.join(root, '.husky'))) dir = p.join(root, '.husky');
+else if (hp && p.resolve(root, hp) !== p.join(root, '.githooks')) dir = p.resolve(root, hp);
+else { if (hp !== '.githooks') git('config', 'core.hooksPath', '.githooks'); dir = p.join(root, '.githooks'); }
+fs.mkdirSync(dir, { recursive: true });
+for (const h of ['pre-commit', 'commit-msg', 'pre-push']) {
+  const f = p.join(dir, h);
+  const cur = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '#!/bin/sh\\n';
+  if (!cur.includes('# crew-docs:' + h)) fs.writeFileSync(f, cur + 'crew-docs check || exit 1 # crew-docs:' + h + '\\n', { mode: 0o755 });
+}
+`,
+  );
+  return path;
+}
+
+/** Bundle crew-docs thật (`pnpm --filter @crew/docs-kit build`); chưa build thì bỏ qua ca dùng bản thật. */
+const REAL_BUNDLE = fileURLToPath(new URL('../../../packages/docs-kit/dist/crew-docs.cjs', import.meta.url));
+
+describe('configureDocsBundle cài hook crew-docs', () => {
+  function setup(opts: { fail?: boolean; bundle?: string } = {}) {
+    const s = sandbox();
+    const log = join(s.root, 'install-hooks.log');
+    const bundle = opts.bundle ?? fakeInstallBundle(installedDocsBundle(s.home), log, opts);
+    const configure = async () => {
+      const info = await inspectFolder(s.folder, { home: s.home, env: s.env });
+      await configureDocsBundle(info, {
+        home: s.home,
+        env: s.env,
+        statusRepoPaths: async () => [],
+        nodePath: async () => process.execPath,
+      });
+      return info;
+    };
+    const runs = () => (existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean) : []);
+    const hooksPath = () => s.config(s.folder, 'core.hooksPath');
+    return { s, bundle, configure, runs, hooksPath };
+  }
+
+  it('repo chưa có docs/flows.yaml vẫn được đặt bundle, runtime và hook', async () => {
+    const { s, bundle, configure, runs, hooksPath } = setup();
+    s.git(['-C', s.folder, 'rm', '-q', 'docs/flows.yaml']);
+    s.git(['-C', s.folder, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'bỏ flows']);
+    s.git(['-C', s.folder, 'push', '-q', 'origin', 'HEAD:main']);
+    const info = await configure();
+    expect(s.config(info.root, 'crew-docs.bundle')).toBe(bundle);
+    expect(s.config(info.root, 'crew-docs.runtime')).toBe(process.execPath);
+    expect(runs()).toEqual([`install-hooks --runtime ${process.execPath} --bundle ${bundle}`]);
+    expect(hooksPath()).toBe(join(info.root, '.githooks'));
+    expect(readFileSync(join(info.root, '.githooks', 'pre-commit'), 'utf8')).toContain(
+      '# crew-docs:pre-commit',
+    );
+  });
+
+  it('hooksPath tương đối .githooks thành đường dẫn tuyệt đối; chạy lại không ghi gì thêm', async () => {
+    const { s, configure, runs, hooksPath } = setup();
+    const info = await configure();
+    expect(hooksPath()).toBe(join(info.root, '.githooks'));
+    const configFile = join(info.commonDir, 'config');
+    const before = { config: readFileSync(configFile, 'utf8'), mtime: statSync(configFile).mtimeMs };
+    const hookMtime = statSync(join(info.root, '.githooks', 'pre-push')).mtimeMs;
+
+    await configure();
+    expect(runs()).toHaveLength(1);
+    expect(readFileSync(configFile, 'utf8')).toBe(before.config);
+    expect(statSync(configFile).mtimeMs).toBe(before.mtime);
+    expect(statSync(join(info.root, '.githooks', 'pre-push')).mtimeMs).toBe(hookMtime);
+    // Worktree agent thấy cùng bundle và cùng thư mục hook của checkout gốc.
+    const wt = join(s.root, 'wt');
+    s.git(['-C', info.root, 'worktree', 'add', '-q', '-b', 'agent', wt]);
+    expect(s.git(['-C', wt, 'rev-parse', '--path-format=absolute', '--git-path', 'hooks'])).toBe(
+      join(info.root, '.githooks'),
+    );
+    expect(s.config(wt, 'crew-docs.bundle')).toBe(installedDocsBundle(s.home));
+  });
+
+  it('husky: hook nối vào .husky, hooksPath giữ như install-hooks để lại; chạy lại không cài lại', async () => {
+    const { s, configure, runs, hooksPath } = setup();
+    mkdirSync(join(s.folder, '.husky', '_'), { recursive: true });
+    const husky = join(realpathSync(s.folder), '.husky', '_');
+    s.git(['-C', s.folder, 'config', 'core.hooksPath', husky]);
+    const info = await configure();
+    expect(hooksPath()).toBe(husky);
+    expect(readFileSync(join(info.root, '.husky', 'commit-msg'), 'utf8')).toContain('# crew-docs:commit-msg');
+    expect(existsSync(join(info.root, '.githooks'))).toBe(false);
+    await configure();
+    expect(runs()).toHaveLength(1);
+  });
+
+  it('core.hooksPath riêng của repo: hook nối vào đó, không đổi hooksPath', async () => {
+    const { s, configure, hooksPath } = setup();
+    s.git(['-C', s.folder, 'config', 'core.hooksPath', 'tools/hooks']);
+    const info = await configure();
+    expect(hooksPath()).toBe('tools/hooks');
+    expect(readFileSync(join(info.root, 'tools', 'hooks', 'pre-commit'), 'utf8')).toContain(
+      '# crew-docs:pre-commit',
+    );
+    expect(existsSync(join(info.root, '.githooks'))).toBe(false);
+  });
+
+  it('install-hooks lỗi thì ném câu tiếng Việt kèm mã và lý do', async () => {
+    const { configure } = setup({ fail: true });
+    await expect(configure()).rejects.toThrow(
+      /crew-docs install-hooks trong .+ thất bại \(mã 3\): install-hooks: lỗi giả/,
+    );
+  });
+
+  it.skipIf(!existsSync(REAL_BUNDLE))(
+    'bundle thật: .githooks tuyệt đối, chạy lại không đổi git config',
+    async () => {
+      const { s, configure, hooksPath } = setup({ bundle: REAL_BUNDLE });
+      s.git(['-C', s.folder, 'config', 'crew-docs.bundle', REAL_BUNDLE]);
+      const info = await configure();
+      expect(hooksPath()).toBe(join(info.root, '.githooks'));
+      for (const hook of ['pre-commit', 'commit-msg', 'pre-push']) {
+        expect(readFileSync(join(info.root, '.githooks', hook), 'utf8')).toContain(`# crew-docs:${hook}`);
+      }
+      const configFile = join(info.commonDir, 'config');
+      const before = readFileSync(configFile, 'utf8');
+      await configure();
+      expect(readFileSync(configFile, 'utf8')).toBe(before);
+      expect(hooksPath()).toBe(join(info.root, '.githooks'));
+    },
+  );
+
+  it.skipIf(!existsSync(REAL_BUNDLE))(
+    'bundle thật + husky: install-hooks tự đổi hooksPath sang tuyệt đối',
+    async () => {
+      const { s, configure, hooksPath } = setup({ bundle: REAL_BUNDLE });
+      s.git(['-C', s.folder, 'config', 'crew-docs.bundle', REAL_BUNDLE]);
+      mkdirSync(join(s.folder, '.husky', '_'), { recursive: true });
+      s.git(['-C', s.folder, 'config', 'core.hooksPath', '.husky/_']);
+      const info = await configure();
+      expect(hooksPath()).toBe(join(info.root, '.husky', '_'));
+      expect(readFileSync(join(info.root, '.husky', 'pre-commit'), 'utf8')).toContain(
+        '# crew-docs:pre-commit',
+      );
+    },
+  );
 });
 
 describe('repairDocsConfig', () => {

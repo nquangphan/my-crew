@@ -8,7 +8,7 @@ import {
   realpathSync,
   statSync,
 } from 'node:fs';
-import { dirname, isAbsolute } from 'node:path';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { BUNDLE_KEY, installedDocsBundle, isFile, RUNTIME_KEY, runtimeProblem } from './docs-runtime.js';
 
 export interface GitResult {
@@ -22,12 +22,23 @@ export type GitRunner = (
   opts: { env: NodeJS.ProcessEnv; timeoutMs: number },
 ) => Promise<GitResult>;
 
-/** `git` của owner (`/usr/bin/git`), không bao giờ hỏi mật khẩu trên terminal. Lỗi chỉ trả mã thoát và stderr. */
-export const runGit: GitRunner = (args, opts) =>
+/** Chạy một lệnh (không qua shell): `cwd` tùy chọn, quá `timeoutMs` thì giết cả nhóm tiến trình. */
+export type ProcessRunner = (
+  file: string,
+  args: string[],
+  opts: { env: NodeJS.ProcessEnv; timeoutMs: number; cwd?: string },
+) => Promise<GitResult>;
+
+/**
+ * Chạy `file` ở nhóm tiến trình riêng, không bao giờ hỏi mật khẩu git trên terminal. Lỗi chỉ trả mã thoát và stderr
+ * (không chạy được thì mã -1).
+ */
+export const runProcess: ProcessRunner = (file, args, opts) =>
   new Promise((resolve) => {
-    // `spawn` (không phải `execFile`, vốn bỏ `detached`): git ở nhóm tiến trình riêng để giết được cả con cháu.
-    const child = spawn('/usr/bin/git', args, {
+    // `spawn` (không phải `execFile`, vốn bỏ `detached`): tiến trình ở nhóm riêng để giết được cả con cháu.
+    const child = spawn(file, args, {
       env: { ...opts.env, GIT_TERMINAL_PROMPT: '0' },
+      ...(opts.cwd ? { cwd: opts.cwd } : {}),
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -54,6 +65,9 @@ export const runGit: GitRunner = (args, opts) =>
     child.on('close', (code) => finish(code ?? -1));
   });
 
+/** `git` của owner (`/usr/bin/git`), không bao giờ hỏi mật khẩu trên terminal. Lỗi chỉ trả mã thoát và stderr. */
+export const runGit: GitRunner = (args, opts) => runProcess('/usr/bin/git', args, opts);
+
 const MAX_GIT_OUTPUT = 16 * 1024 * 1024;
 
 function killGroup(child: ChildProcess): void {
@@ -66,7 +80,7 @@ function killGroup(child: ChildProcess): void {
 
 const activeGit = new Set<ChildProcess>();
 
-/** Giết (SIGKILL) cả nhóm tiến trình của mọi `git` đang chạy qua `runGit`; dùng khi hủy việc quá giờ. */
+/** Giết (SIGKILL) cả nhóm tiến trình của mọi lệnh đang chạy qua `runProcess` (`git`, `install-hooks`); dùng khi hủy việc quá giờ. */
 export function killActiveGit(): void {
   for (const child of activeGit) killGroup(child);
   activeGit.clear();
@@ -263,12 +277,23 @@ export async function ensureRuntimeExcluded(checkout: string, deps: GitDeps): Pr
   appendFileSync(file, `${current === '' || current.endsWith('\n') ? '' : '\n'}${RUNTIME_EXCLUDE}\n`);
 }
 
+/** Ba hook crew-docs cài; mỗi hook có đúng một dòng kết thúc bằng `# crew-docs:<hook>`. */
+const DOCS_HOOKS = ['pre-commit', 'commit-msg', 'pre-push'] as const;
+const PLAIN_HOOKS_DIR = '.githooks';
+const INSTALL_HOOKS_TIMEOUT_MS = 60_000;
+
 /**
- * Nhánh mặc định có `docs/flows.yaml` thì đặt `crew-docs.bundle` và `crew-docs.runtime` trong git config của repo
- * (chung cho mọi worktree agent). Giá trị owner đã đặt mà còn dùng được thì giữ, không ghi đè. Bundle lấy từ repo
- * đã có trong bản tin (`statusRepoPaths`), không có thì `~/.crew/bin/crew-docs.cjs`. Runtime phải là node thật
- * (`runtimeProblem`): lấy runtime dùng được của repo khác, không có thì `nodePath()`; không có node thì để nguyên
- * (doctor báo), không chặn việc thêm project.
+ * Cài crew-docs cho repo (luôn làm, kể cả repo chưa có `docs/flows.yaml`: flows có thể thêm sau, lúc đó integrator
+ * cần sẵn bundle). Ba việc, chạy lại không đổi gì:
+ * 1. Đặt `crew-docs.bundle` và `crew-docs.runtime` trong git config của repo (chung cho mọi worktree agent). Giá trị
+ *    owner đã đặt mà còn dùng được thì giữ. Bundle lấy từ repo đã có trong bản tin (`statusRepoPaths`), không có thì
+ *    `~/.crew/bin/crew-docs.cjs`. Runtime phải là node thật (`runtimeProblem`): lấy của repo khác, không có thì
+ *    `nodePath()`.
+ * 2. Hook chưa có dòng crew-docs thì chạy `crew-docs install-hooks` trong checkout gốc. Lệnh này tự nhận husky,
+ *    lefthook hay `core.hooksPath` riêng của repo và nối vào đó.
+ * 3. `core.hooksPath` là `.githooks` tương đối thì đổi thành đường dẫn tuyệt đối: `.githooks/` không được track nên
+ *    worktree agent không có, hooksPath tương đối làm commit trong worktree bỏ qua hook.
+ * Lỗi thì ném `Error` tiếng Việt.
  */
 export async function configureDocsBundle(
   info: FolderInfo,
@@ -276,48 +301,101 @@ export async function configureDocsBundle(
     statusRepoPaths: () => Promise<string[]>;
     nodePath: () => Promise<string | null>;
     execPath?: string;
+    /** Chạy `install-hooks`; mặc định `runProcess`. */
+    exec?: ProcessRunner;
   },
 ): Promise<void> {
   const run = (args: string[]) =>
     (deps.git ?? runGit)(args, { env: deps.env, timeoutMs: LOCAL_GIT_TIMEOUT_MS });
   const dir = info.root;
-  const tracked = await run(['-C', dir, 'cat-file', '-e', `${info.baseRef}:docs/flows.yaml`]);
-  if (tracked.code !== 0) return;
   const get = async (repo: string, name: string) =>
     (await run(['-C', repo, 'config', '--get', name])).stdout.trim();
   const set = async (name: string, value: string) => {
     const r = await run(['-C', dir, 'config', name, value]);
     if (r.code !== 0) throw new Error(`Không đặt được git config ${name} trong ${dir}`);
   };
-  const usable = (runtime: string) => runtimeProblem(runtime, deps.execPath) === null;
-  const needBundle = !isFile(await get(dir, BUNDLE_KEY));
-  const needRuntime = !usable(await get(dir, RUNTIME_KEY));
-  if (!needBundle && !needRuntime) return;
+  const usable = (path: string) => runtimeProblem(path, deps.execPath) === null;
+  const ownBundle = await get(dir, BUNDLE_KEY);
+  const ownRuntime = await get(dir, RUNTIME_KEY);
+  let bundle: string | null = isFile(ownBundle) ? ownBundle : null;
+  let runtime: string | null = usable(ownRuntime) ? ownRuntime : null;
 
-  let bundle: string | null = null;
-  let runtime: string | null = null;
-  for (const repo of needBundle || needRuntime ? await deps.statusRepoPaths() : []) {
-    if (repo === dir) continue;
-    const other = await get(repo, BUNDLE_KEY);
-    if (bundle === null && isFile(other)) bundle = other;
-    const otherRuntime = await get(repo, RUNTIME_KEY);
-    if (runtime === null && usable(otherRuntime)) runtime = otherRuntime;
-    if (bundle !== null && runtime !== null) break;
+  if (bundle === null || runtime === null) {
+    const needBundle = bundle === null;
+    const needRuntime = runtime === null;
+    for (const repo of await deps.statusRepoPaths()) {
+      if (repo === dir) continue;
+      const other = await get(repo, BUNDLE_KEY);
+      if (bundle === null && isFile(other)) bundle = other;
+      const otherRuntime = await get(repo, RUNTIME_KEY);
+      if (runtime === null && usable(otherRuntime)) runtime = otherRuntime;
+      if (bundle !== null && runtime !== null) break;
+    }
+    if (needBundle) {
+      const fallback = installedDocsBundle(deps.home);
+      if (bundle === null && isFile(fallback)) bundle = fallback;
+      if (bundle === null) {
+        throw new Error(
+          'Không tìm thấy bundle crew-docs (~/.crew/bin/crew-docs.cjs): mở lại app 2P Crew để app tự cài',
+        );
+      }
+      await set(BUNDLE_KEY, bundle);
+    }
+    if (needRuntime) {
+      runtime ??= await deps.nodePath();
+      if (runtime === null || !usable(runtime)) {
+        throw new Error(
+          'Chưa có node dùng được cho crew-docs.runtime: mở lại app 2P Crew để app tự tải node, rồi chạy lại',
+        );
+      }
+      await set(RUNTIME_KEY, runtime);
+    }
   }
-  if (needBundle) {
-    const fallback = installedDocsBundle(deps.home);
-    if (bundle === null && isFile(fallback)) bundle = fallback;
-    if (bundle === null) {
+  if (bundle === null || runtime === null) throw new Error(`Không xác định được bundle crew-docs cho ${dir}`);
+
+  if (!(await docsHooksInstalled(dir, run))) {
+    const exec = deps.exec ?? runProcess;
+    const r = await exec(runtime, [bundle, 'install-hooks', '--runtime', runtime, '--bundle', bundle], {
+      cwd: dir,
+      env: deps.env,
+      timeoutMs: INSTALL_HOOKS_TIMEOUT_MS,
+    });
+    if (r.code !== 0) {
+      const reason = (r.stderr.trim() || r.stdout.trim()).split('\n').at(-1) ?? '';
       throw new Error(
-        'Không tìm thấy bundle crew-docs (~/.crew/bin/crew-docs.cjs): mở lại app 2P Crew để app tự cài',
+        `crew-docs install-hooks trong ${dir} thất bại (mã ${r.code})${reason ? `: ${reason}` : ''}`,
       );
     }
-    await set(BUNDLE_KEY, bundle);
   }
-  if (needRuntime) {
-    runtime ??= await deps.nodePath();
-    if (runtime !== null && usable(runtime)) await set(RUNTIME_KEY, runtime);
+
+  const hooksPath = (await run(['-C', dir, 'config', '--local', '--get', 'core.hooksPath'])).stdout.trim();
+  const plain = join(dir, PLAIN_HOOKS_DIR);
+  if (hooksPath !== '' && !isAbsolute(hooksPath) && resolve(dir, hooksPath) === plain) {
+    await set('core.hooksPath', plain);
   }
+}
+
+/**
+ * Thư mục hook git thật sự dùng (theo `core.hooksPath`) đã có đủ ba dòng crew-docs chưa. Husky chạy hook từ
+ * `.husky/_` (file runner của husky), còn dòng crew-docs nằm trong `.husky/<hook>`.
+ */
+async function docsHooksInstalled(
+  dir: string,
+  run: (args: string[]) => Promise<GitResult>,
+): Promise<boolean> {
+  const r = await run(['-C', dir, 'rev-parse', '--path-format=absolute', '--git-path', 'hooks']);
+  if (r.code !== 0) return false;
+  const active = r.stdout.trim().replace(/\/+$/, '');
+  const hooks = active === join(dir, '.husky', '_') ? join(dir, '.husky') : active;
+  return DOCS_HOOKS.every((hook) => {
+    try {
+      return readFileSync(join(hooks, hook), 'utf8')
+        .split('\n')
+        .some((line) => line.trimEnd().endsWith(`# crew-docs:${hook}`));
+    } catch {
+      return false;
+    }
+  });
 }
 
 /** Thư mục có gì bên trong chưa (thư mục rỗng còn lại sau khi owner gỡ hết worktree thì coi như chưa có). */

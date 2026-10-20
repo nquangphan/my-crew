@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { type ExecutorDeps, runJob } from '../../src/main/jobs/executors.js';
@@ -184,6 +184,23 @@ describe('prepare-checkouts', () => {
     expect(calls.addStatusRepo).toEqual([]);
   });
 
+  it('install-hooks lỗi → failed git_failed, câu tiếng Việt nêu repo và lý do', async () => {
+    const { s, deps } = setup();
+    writeFileSync(
+      join(s.home, '.crew', 'bin', 'crew-docs.cjs'),
+      "console.error('install-hooks: không ghi được hook'); process.exit(2);\n",
+    );
+    const outcome = await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'git_failed' });
+    if (outcome.status !== 'failed') throw new Error('sai kết quả');
+    expect(outcome.errorText).toContain(`Không cài được crew-docs cho ${realpathSync.native(s.folder)}`);
+    expect(outcome.errorText).toContain('thất bại (mã 2): install-hooks: không ghi được hook');
+  });
+
   it('thư mục đích đã có nhưng không phải worktree của repo này → checkout_exists', async () => {
     const { s, deps } = setup();
     mkdirSync(join(s.home, 'crew-agents', 'demo', 'reviewer'), { recursive: true });
@@ -307,11 +324,12 @@ describe('check', () => {
       { id: 'sshd', status: 'ok', title: 'sshd agent: cổng 2222' },
       { id: 'reaper', status: 'warn', title: 'Reaper: chạy lần cuối 2 giờ trước' },
     ]);
-    expect(outcome.result.items.slice(2).map((i) => i.id)).toEqual([
-      'workflow:assistant',
-      'workflow:executor',
-      'workflow:integrator',
-      'workflow:reviewer',
+    expect(outcome.result.items.slice(2).map((i) => [i.id, i.status])).toEqual([
+      ['workflow:assistant', 'ok'],
+      ['workflow:executor', 'ok'],
+      ['workflow:integrator', 'ok'],
+      ['workflow:reviewer', 'ok'],
+      ['crew-docs-project', 'ok'],
     ]);
     expect(calls.workflowCheck).toHaveLength(4);
   });
@@ -380,7 +398,59 @@ describe('check', () => {
       ['workflow:executor', 'ok'],
       ['workflow:integrator', 'ok'],
       ['workflow:reviewer', 'ok'],
+      ['crew-docs-project', 'ok'],
     ]);
+  });
+
+  it('worktree integrator mất crew-docs.bundle → tự cài lại trong checkout gốc rồi đạt', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    s.git(['-C', s.folder, 'config', '--unset', 'crew-docs.bundle']);
+    const integrator = join(s.home, 'crew-agents', 'demo', 'integrator');
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome.status).toBe('done');
+    if (outcome.status !== 'done' || outcome.result.kind !== 'check') throw new Error('sai kết quả');
+    expect(outcome.result.items.at(-1)).toMatchObject({ id: 'crew-docs-project', status: 'ok' });
+    expect(s.git(['-C', integrator, 'config', '--get', 'crew-docs.bundle'])).toBe(
+      join(s.home, '.crew', 'bin', 'crew-docs.cjs'),
+    );
+  });
+
+  it('bundle crew-docs mất mà tự cài lại không được → failed, mục crew-docs-project là error', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    rmSync(join(s.home, '.crew', 'bin', 'crew-docs.cjs'));
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'check_failed' });
+    if (outcome.status !== 'failed' || outcome.result?.kind !== 'check') throw new Error('sai kết quả');
+    const item = outcome.result.items.find((i) => i.id === 'crew-docs-project');
+    expect(item?.status).toBe('error');
+    expect(item?.title).toContain('crew-docs của demo');
+    expect(item?.title).toContain('không tồn tại');
+    expect(item?.title).toContain('tự cài lại không được');
+    expect(outcome.errorText).toContain('crew-docs của demo');
+  });
+
+  it('chưa có worktree integrator → mục crew-docs-project là error', async () => {
+    const { s, deps } = setup();
+    await runJob(
+      job({ kind: 'prepare-checkouts', projectKey: 'demo', folder: s.folder, roles: roles('demo', FOUR) }),
+      { projectId: null },
+      deps,
+    );
+    s.git(['-C', s.folder, 'worktree', 'remove', join(s.home, 'crew-agents', 'demo', 'integrator')]);
+    const outcome = await runJob(job({ kind: 'check', projectKey: 'demo' }), { projectId: null }, deps);
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'check_failed' });
+    if (outcome.status !== 'failed') throw new Error('sai kết quả');
+    expect(outcome.errorText).toContain('chưa có worktree integrator');
   });
 
   it('doctor fail ở wrapper → failed; worktree-workflows fail → chỉ warn', async () => {
