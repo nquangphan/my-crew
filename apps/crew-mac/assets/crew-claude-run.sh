@@ -68,5 +68,10 @@ if [ -n "${PAPERCLIP_RUN_ID:-}" ]; then
       fi
       ;;
   esac
+  # Crew Jev: every Bash command of the run goes through the PreToolUse hook `crew-mac jev gate` (settings written by
+  # crew-mac setup, no secret inside). The hook exits 0 on any failure, so a broken gate never stops the agent.
+  if [ -f "$HOME/.crew/jev/settings.json" ]; then
+    set -- "$@" --settings "$HOME/.crew/jev/settings.json"
+  fi
 fi
 exec "${CREW_CLAUDE_BIN:-claude}" "$@"

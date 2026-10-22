@@ -2,5 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist", "rootDir": "src", "types": ["node"], "declaration": true },
   "include": ["src"],
-  "exclude": ["src/files/worker-entry.ts", "src/files/redact.ts"]
+  "exclude": [
+    "src/files/worker-entry.ts",
+    "src/files/redact.ts",
+    "src/jev/gate-entry.ts",
+    "src/jev/gate.ts",
+    "src/jev/log.ts"
+  ]
 }

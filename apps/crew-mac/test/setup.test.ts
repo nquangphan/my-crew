@@ -166,6 +166,25 @@ describe('crew-mac setup', () => {
     expect(runner.calls.some((c) => c.command === '/usr/bin/security')).toBe(false);
   });
 
+  it('ghi ~/.crew/jev/settings.json (0644, không secret) với hook PreToolUse Bash gọi launcher jev gate', async () => {
+    const { home, ctx } = fakeMac();
+    const paths = macPaths(home);
+    const report = await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    expect(JSON.parse(readFileSync(paths.jevSettings, 'utf8'))).toEqual({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: 'Bash',
+            hooks: [{ type: 'command', command: `${paths.launcher} jev gate`, timeout: 5 }],
+          },
+        ],
+      },
+    });
+    expect(statSync(paths.jevSettings).mode & 0o777).toBe(0o644);
+    expect(report.changed).toContain(paths.jevSettings);
+    expect((await setup(ctx)).changed).not.toContain(paths.jevSettings);
+  });
+
   it('key Paperclip chỉ vào được từ dải Tailscale, không forwarding; thay dòng cũ không options', async () => {
     const { home, ctx } = fakeMac();
     const paths = macPaths(home);

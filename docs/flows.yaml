@@ -214,6 +214,21 @@ flows:
       - apps/crew-mac/test/runtimes-command.test.ts
       - apps/crew-mac/test/status-runtimes.test.ts
       - apps/crew-mac/test/workflow-check-runtime.test.ts
+  mac-jev:
+    title: Crew Jev trên Mac (gate lệnh Bash, log, đồng bộ cấu hình với server)
+    doc: docs/flows/mac-jev.md
+    entrypoints:
+      - apps/crew-mac/src/jev/gate-entry.ts
+    files:
+      - apps/crew-mac/src/jev/gate.ts
+      - apps/crew-mac/src/jev/classify.ts
+      - apps/crew-mac/src/jev/config.ts
+      - apps/crew-mac/src/jev/log.ts
+      - apps/crew-mac/src/jev/sync.ts
+    tests:
+      - apps/crew-mac/test/jev-classify.test.ts
+      - apps/crew-mac/test/jev-gate.test.ts
+      - apps/crew-mac/test/jev-sync.test.ts
   mac-workflows:
     title: Ghim Superpowers và BMAD, chặn nạp chéo trên Mac
     doc: docs/flows/mac-workflows.md

@@ -265,4 +265,44 @@ describe('crew-mac status', () => {
     ).toBe(1);
     expect(lines).toHaveLength(1);
   });
+
+  describe('đồng bộ Crew Jev trong status send', () => {
+    const CID = '22222222-2222-4222-8222-222222222222';
+
+    it('sau bản tin máy kéo cấu hình Jev ký HMAC; Jev lỗi chỉ in một dòng mã lỗi, lượt gửi vẫn thành công', async () => {
+      const { ctx, runner, home, out } = fakeMac();
+      configureStatus(ctx, 'https://paperclip.example', CID);
+      runner.on('security', () => ({ stdout: 'secret-private\n' }));
+      const urls: string[] = [];
+      await sendStatus(ctx, async (url, init) => {
+        urls.push(String(url));
+        if (String(url).includes('/jev/')) {
+          expect(new Headers(init?.headers).get('X-Crew-Signature')).toMatch(/^sha256=[0-9a-f]{64}$/);
+          return new Response('{"error":"unknown_company"}', { status: 404 });
+        }
+        return new Response('', { status: 200 });
+      });
+      expect(urls).toEqual([
+        'https://paperclip.example/api/plugins/crew.core/webhooks/machine-status',
+        `https://paperclip.example/api/crew/companies/${CID}/jev/machine/pull`,
+      ]);
+      expect(out).toEqual(['crew-mac jev: kéo cấu hình lỗi (http_404)']);
+      expect(out.join('\n')).not.toContain('secret-private');
+      expect(JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8')).ok).toBe(true);
+    });
+
+    it('bản tin máy thất bại thì không gọi Jev', async () => {
+      const { ctx, runner } = fakeMac();
+      configureStatus(ctx, 'https://paperclip.example', CID);
+      runner.on('security', () => ({ stdout: 'secret-private\n' }));
+      const urls: string[] = [];
+      await expect(
+        sendStatus(ctx, async (url) => {
+          urls.push(String(url));
+          return new Response('', { status: 502 });
+        }),
+      ).rejects.toThrow();
+      expect(urls.some((url) => url.includes('/jev/'))).toBe(false);
+    });
+  });
 });

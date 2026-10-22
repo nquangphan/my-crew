@@ -1,7 +1,9 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { main, sshServerPort, USAGE } from '../src/cli.js';
+import { writeJevConfig } from '../src/jev/config.js';
+import { macPaths } from '../src/paths.js';
 import { fakeMac, LIVE_PS, LIVE_RUN_ID, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
 function io(mac: ReturnType<typeof fakeMac>, env: NodeJS.ProcessEnv = {}) {
@@ -179,6 +181,84 @@ describe('crew-mac CLI', () => {
       const t = io(mac);
       expect(await main(['files', '--gc-only'], t.io)).toBe(0);
       expect(t.out).toEqual(['Đã dọn: 0 run, 0 blob']);
+    });
+  });
+
+  describe('jev', () => {
+    const CID = '22222222-2222-4222-8222-222222222222';
+    const EVENT = '{"tool_name":"Bash","tool_input":{"command":"ls"},"cwd":"/tmp"}';
+    const enable = (mac: ReturnType<typeof fakeMac>, enabled = true) =>
+      writeJevConfig(macPaths(mac.home).jevConfig, {
+        companies: {
+          [CID]: {
+            version: 2,
+            enabled,
+            gateMode: 'enforce',
+            model: 'typesafe/jev-1.14',
+            threshold: 0.5,
+            timeoutMs: 500,
+            keyFingerprint: null,
+            pulledAt: '2026-10-06T06:59:00.000Z',
+          },
+        },
+      });
+
+    it('USAGE có jev gate, gate-bg và status', () => {
+      expect(USAGE).toContain('crew-mac jev gate');
+      expect(USAGE).toContain('crew-mac jev gate-bg');
+      expect(USAGE).toContain('crew-mac jev status');
+    });
+
+    it('jev gate không có config thì thoát 0, không in gì', async () => {
+      const mac = fakeMac();
+      const t = io(mac);
+      expect(await main(['jev', 'gate'], { ...t.io, readStdin: () => EVENT })).toBe(0);
+      expect(t.out).toEqual([]);
+      expect(t.err).toEqual([]);
+    });
+
+    it('jev gate luôn thoát 0, kể cả stdin lỗi hay sự kiện hỏng', async () => {
+      const mac = fakeMac();
+      enable(mac);
+      const t = io(mac, { PAPERCLIP_COMPANY_ID: CID });
+      const broken = () => {
+        throw new Error('EAGAIN');
+      };
+      expect(await main(['jev', 'gate'], { ...t.io, readStdin: broken })).toBe(0);
+      expect(await main(['jev', 'gate'], { ...t.io, readStdin: () => '{hỏng' })).toBe(0);
+      expect(t.out).toEqual([]);
+      expect(t.err).toEqual([]);
+      expect(existsSync(macPaths(mac.home).jevLog)).toBe(true);
+    });
+
+    it('jev gate-bg Jev bật mà không có key thì thoát 0 và ghi error/no_key', async () => {
+      const mac = fakeMac();
+      enable(mac);
+      mac.runner.on('/usr/bin/security', () => ({ code: 44 }));
+      const t = io(mac, { PAPERCLIP_COMPANY_ID: CID });
+      expect(await main(['jev', 'gate-bg'], { ...t.io, readStdin: () => EVENT })).toBe(0);
+      expect(t.out).toEqual([]);
+    });
+
+    it('jev status in cấu hình và vân tay key, không in key', async () => {
+      const mac = fakeMac();
+      enable(mac, false);
+      const key = 'sk-or-test-0123456789abcdefABCDEF';
+      mac.runner.on('/usr/bin/security', () => ({ stdout: `${key}\n` }));
+      const t = io(mac);
+      expect(await main(['jev', 'status'], t.io)).toBe(0);
+      expect(t.out).toHaveLength(1);
+      expect(t.out[0]).toContain(CID);
+      expect(t.out[0]).toContain('tắt');
+      expect(t.out[0]).toContain('kéo lúc 2026-10-06 13:59:00');
+      expect(t.out[0]).toContain('chưa đẩy 0 dòng');
+      expect(t.out[0]).toMatch(/key [0-9a-f]{12}/);
+      expect(t.out[0]).not.toContain(key);
+    });
+
+    it('jev lệnh con lạ thì mã 2', async () => {
+      const t = io(fakeMac());
+      expect(await main(['jev', 'lung-tung'], t.io)).toBe(2);
     });
   });
 });

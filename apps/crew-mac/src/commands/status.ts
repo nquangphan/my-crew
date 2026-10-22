@@ -18,6 +18,7 @@ import { hostname } from 'node:os';
 import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
 import { parsePublicKey } from '../authorized-keys.js';
 import type { MacContext } from '../context.js';
+import { pullJevConfig, pushJevEvents } from '../jev/sync.js';
 import { readManifest } from '../manifest.js';
 import { macPaths } from '../paths.js';
 import {
@@ -343,6 +344,16 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
           targets.length > 1 ? ` [company ${target.companyId}]` : '',
         ),
       );
+    // Crew Jev: đích nào nhận bản tin máy thì kéo cấu hình rồi đẩy gate.log. Lỗi chỉ in một dòng mã lỗi, không làm
+    // hỏng lượt gửi status (không đổi outcome, không ném).
+    for (const [index, target] of targets.entries()) {
+      if (!outcomes[index]?.ok) continue;
+      const label = targets.length > 1 ? ` [company ${target.companyId}]` : '';
+      const pulled = await pullJevConfig(ctx, target, fetcher);
+      if (!pulled.ok) ctx.out(`crew-mac jev: kéo cấu hình lỗi (${pulled.errorCode})${label}`);
+      const pushed = await pushJevEvents(ctx, target, fetcher);
+      if (!pushed.ok) ctx.out(`crew-mac jev: đẩy log lỗi (${pushed.errorCode})${label}`);
+    }
   }
   if (outcomes.length === 0)
     outcomes = [{ companyId: '', ok: false, httpStatus: null, failure: 'no-target' }];

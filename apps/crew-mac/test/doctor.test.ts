@@ -15,6 +15,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  checkJev,
   doctor,
   isAgentTccSubject,
   NODE_HINT,
@@ -26,6 +27,7 @@ import {
 } from '../src/commands/doctor.js';
 import { setup } from '../src/commands/setup.js';
 import { workflowCheck } from '../src/commands/workflow-check.js';
+import { type JevCompanyConfig, writeJevConfig } from '../src/jev/config.js';
 import { renderLauncher } from '../src/launcher.js';
 import { macPaths, SSHD_LABEL } from '../src/paths.js';
 import { runtimePaths } from '../src/runtimes/paths.js';
@@ -427,6 +429,7 @@ describe('crew-mac doctor', () => {
       ['wrapper-codex', 'ok'],
       ['opencode-key', 'ok'],
       ['wrapper-opencode', 'ok'],
+      ['jev', 'ok'],
       ['claude-print-git', 'ok'],
       ['tcc-pending', 'ok'],
       ['load', 'ok'],
@@ -1088,5 +1091,71 @@ describe('doctor runtime Codex/OpenCode (chỉ warn, không làm doctor thất b
     const r = await pick(mac);
     expect(r['opencode-key']?.status).toBe('warn');
     expect(JSON.stringify(r)).not.toContain('MOC-KEY');
+  });
+});
+
+describe('doctor jev', () => {
+  const CID = '22222222-2222-4222-8222-222222222222';
+  const entry = (overrides: Partial<JevCompanyConfig> = {}): JevCompanyConfig => ({
+    version: 4,
+    enabled: true,
+    gateMode: 'shadow',
+    model: 'typesafe/jev-1.14',
+    threshold: 0.5,
+    timeoutMs: 2500,
+    keyFingerprint: 'abcdefabcdef',
+    pulledAt: '2026-10-06T06:58:00.000Z',
+    ...overrides,
+  });
+
+  /** Mac giả có `dist/` thật (có hoặc không có jev-gate.cjs) và Keychain trả mã `keyCode` cho mục crew.jev. */
+  function jevMac(options: { bundle: boolean; keyCode: number; config?: JevCompanyConfig }) {
+    const dist = mkdtempSync(join(tmpdir(), 'crew-mac-dist-'));
+    if (options.bundle) writeFileSync(join(dist, 'jev-gate.cjs'), '');
+    const mac = fakeMac({ cliPath: join(dist, 'cli.js') });
+    if (options.config)
+      writeJevConfig(macPaths(mac.home).jevConfig, { companies: { [CID]: options.config } });
+    mac.runner.on('/usr/bin/security', () => ({ code: options.keyCode }));
+    return mac;
+  }
+
+  it('chưa có cấu hình thì đạt (Jev tắt), không hỏi Keychain', async () => {
+    const mac = jevMac({ bundle: false, keyCode: 44 });
+    expect((await checkJev(mac.ctx)).status).toBe('ok');
+    expect(mac.runner.calls).toHaveLength(0);
+  });
+
+  it('có cấu hình, key và bundle thì đạt; chỉ hỏi có key, không đọc key', async () => {
+    const mac = jevMac({ bundle: true, keyCode: 0, config: entry() });
+    const result = await checkJev(mac.ctx);
+    expect(result).toMatchObject({ id: 'jev', status: 'ok' });
+    expect(mac.runner.calls.every((c) => !c.args.includes('-w'))).toBe(true);
+    expect(mac.runner.calls[0]?.args).toEqual(['find-generic-password', '-s', `crew.jev.${CID}`]);
+  });
+
+  it('Jev bật mà thiếu key thì cảnh báo', async () => {
+    const result = await checkJev(jevMac({ bundle: true, keyCode: 44, config: entry() }).ctx);
+    expect(result.status).toBe('warn');
+    expect(result.detail).toContain('thiếu key');
+  });
+
+  it('cấu hình kéo cũ hơn 10 phút thì cảnh báo', async () => {
+    const config = entry({ pulledAt: '2026-10-06T06:45:00.000Z' });
+    const result = await checkJev(jevMac({ bundle: true, keyCode: 0, config }).ctx);
+    expect(result.status).toBe('warn');
+    expect(result.detail).toContain('10 phút');
+  });
+
+  it('Jev bật mà thiếu jev-gate.cjs thì cảnh báo', async () => {
+    const result = await checkJev(jevMac({ bundle: false, keyCode: 0, config: entry() }).ctx);
+    expect(result.status).toBe('warn');
+    expect(result.detail).toContain('jev-gate.cjs');
+  });
+
+  it('Jev tắt thì không cần key', async () => {
+    const result = await checkJev(
+      jevMac({ bundle: false, keyCode: 44, config: entry({ enabled: false }) }).ctx,
+    );
+    expect(result.status).toBe('ok');
   });
 });

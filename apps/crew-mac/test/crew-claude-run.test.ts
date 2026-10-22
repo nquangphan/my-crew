@@ -2,6 +2,7 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -321,6 +322,57 @@ describe('crew-claude-run', () => {
       expect(runWrapper(root, ['--print'], env)).toBe(0);
       expect(existsSync(mac.argsFile)).toBe(false);
       expect(existsSync(claude.marker)).toBe(true);
+    });
+  });
+
+  describe('hook Crew Jev', () => {
+    /** HOME tạm (có hoặc không có `~/.crew/jev/settings.json`) và claude giả ghi lại argv. */
+    function jevHome(withSettings: boolean) {
+      const home = newRoot();
+      const settings = join(home, '.crew', 'jev', 'settings.json');
+      if (withSettings) {
+        mkdirSync(join(home, '.crew', 'jev'), { recursive: true });
+        writeFileSync(settings, '{}\n');
+      }
+      const argsFile = join(home, 'claude.args');
+      const claude = join(home, 'claude');
+      writeFileSync(claude, `#!/bin/sh\nprintf '%s\\n' "$@" > '${argsFile}'\n`, { mode: 0o755 });
+      return { home, settings, argsFile, claude };
+    }
+
+    it('run Paperclip có settings.json thì thêm --settings <đường dẫn> vào argv của claude', () => {
+      const t = jevHome(true);
+      const env = {
+        ...process.env,
+        HOME: t.home,
+        PAPERCLIP_RUN_ID: RUN_A,
+        CREW_MAC_BIN: fakeCrewMac(0).bin,
+        CREW_CLAUDE_BIN: t.claude,
+      };
+      expect(runWrapper(newRoot(), ['--print', '--plugin-dir', '/pin'], env)).toBe(0);
+      expect(readFileSync(t.argsFile, 'utf8')).toBe(
+        `--print\n--plugin-dir\n/pin\n--settings\n${t.settings}\n`,
+      );
+    });
+
+    it('không có settings.json thì argv giữ nguyên', () => {
+      const t = jevHome(false);
+      const env = {
+        ...process.env,
+        HOME: t.home,
+        PAPERCLIP_RUN_ID: RUN_A,
+        CREW_MAC_BIN: fakeCrewMac(0).bin,
+        CREW_CLAUDE_BIN: t.claude,
+      };
+      expect(runWrapper(newRoot(), ['--print', '--plugin-dir', '/pin'], env)).toBe(0);
+      expect(readFileSync(t.argsFile, 'utf8')).toBe('--print\n--plugin-dir\n/pin\n');
+    });
+
+    it('ngoài run Paperclip thì không thêm --settings', () => {
+      const t = jevHome(true);
+      const env = envWithout('PAPERCLIP_RUN_ID', { HOME: t.home, CREW_CLAUDE_BIN: t.claude });
+      expect(runWrapper(newRoot(), ['--print'], env)).toBe(0);
+      expect(readFileSync(t.argsFile, 'utf8')).toBe('--print\n');
     });
   });
 });
