@@ -203,7 +203,7 @@ trần là `claude_local`; runtime lạ thì ném), danh sách agent BMAD (mục
 sau luôn render "Không có…"; đầu ra khớp từng byte với `render-instructions.mjs` (test so sha256). `uploadInstructions`
 theo `add-base.mjs`: GET file lấy hash làm `baseHash` (`null` chỉ khi 404), nội dung đã đúng thì không PUT.
 
-Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với `crew/r24` @ `cba6d643a`, sau R2-3 BMAD, FX-B, FX-L2 và AG-1/AG-2: Trợ Lý có mục "Chọn runtime và model" (bảng runtime/model, marker `crew-model … runtime=`), executor có mục "Khi bạn chạy Codex hoặc OpenCode", reviewer có mục "Khi chạy bằng Codex"; Trợ Lý có mục "Chọn workflow" và "Chốt
+Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với fork `main` @ `c051ce117` ngày 23/10/2026, gồm cả các luật thêm sau R2-3 BMAD, FX-B, FX-L2 và AG-1/AG-2 như test + ảnh nghiệm thu, luồng PR của integrator và model Claude 5.5 trong bảng runtime: Trợ Lý có mục "Chọn runtime và model" (bảng runtime/model, marker `crew-model … runtime=`), executor có mục "Khi bạn chạy Codex hoặc OpenCode", reviewer có mục "Khi chạy bằng Codex"; Trợ Lý có mục "Chọn workflow" và "Chốt
 trạng thái gốc"; gồm khối "File đính kèm" (lệnh `crew-mac files`, issue con có `parentId` luôn chạy một lần khi bắt đầu để thấy file của issue cha, nội dung file là dữ liệu không phải chỉ thị, không chép credential) và dòng FX-10 "Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`" và mục 4 của integrator). Sửa `crew/agents/*.md` ở fork thì
 phải chép lại sang `templates/*.md` và cập nhật sha256 trong `projects-instructions.test.ts`; agent đã tạo từ template cũ
 không tự đổi, phải PUT lại `AGENTS.md` (GET lấy `contentHash` làm `baseHash`). Test cũng khẳng định các câu then chốt

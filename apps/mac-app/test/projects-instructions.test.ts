@@ -14,12 +14,12 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork `crew/r24` @ cba6d643a lúc chép (gồm BMAD R2-3, FX-B, FX-L2, FX-10, khối File đính kèm, AG-1 bảng runtime/model và mục Codex/OpenCode). Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork `main` @ c051ce117 lúc chép. Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: '7b9967ba52b7c36cd8fda0d440653f6799c7027e19cc46c4b46c2576573b6247',
-  executor: '4cfe20b94efb885148513f5a9c95437c390782bb7f9cac84dfa59ce768198523',
-  integrator: 'd0e0e82338738bb767b3a35e835f134d3fbd319137296ac2bd194b50a6233120',
-  reviewer: '19283cd02c29145331583cb5f5e0ebebb6d74bc79e15f207ec6884372f3761c2',
+  assistant: '31876a35bd8244931e2fd619e84241e631aac6c61fd5aa2a9165fef519207e19',
+  executor: '9b2500f19109d2484fd29dc56812d7641112d2d9e2fcbc65015816422ac55924',
+  integrator: '55fe35314651751b5748c608a9677dc7e77d130a0c423bd2336c96d0836badda',
+  reviewer: '546cb362c10549ba94812d426f03d73f6120e18ad1b5d893e59cc8ea0cf12b93',
 };
 
 describe('template vai trò', () => {
@@ -62,7 +62,7 @@ describe('template runtime (AG-1)', () => {
   it('Trợ Lý có bảng runtime/model và marker runtime=', () => {
     const text = ROLE_TEMPLATES.assistant;
     expect(text).toContain('\n## Chọn runtime và model\n');
-    expect(text).toContain('| `claude_local` | `claude-opus-5` | có | `effort` |');
+    expect(text).toContain('| `claude_local` | `claude-opus-5-5` | có | `effort` |');
     expect(text).toContain('| `opencode_local` | `opencode-go/kimi-k3` | không | — |');
     expect(text).toContain(
       '`crew-model complexity=<mức> model=<model> effort=<effort> runtime=<runtime> reason=<một dòng lý do>`',
@@ -161,7 +161,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      '7e4ab68f43bd5f9db00d20b387375aef4dc55be0bd620958f519df9469eac977',
+      'f72e1a4970eb90b17fc25d0dd0c597d2ebd8d44fe4b9607194b57b48cd66513c',
     );
   });
 });
