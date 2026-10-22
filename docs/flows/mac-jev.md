@@ -33,7 +33,10 @@ Chế độ, model, ngưỡng và timeout do owner đặt trên web. Mac kéo c�
    (`decodeBackgroundInput`; sai dạng thì không làm gì) và xóa ô `~/.crew/jev/bg/<pid>` của nó khi xong.
 2. `apps/crew-mac/src/jev/config.ts` → `readJevConfig`, `selectCompany`: đọc `~/.crew/jev/config.json` (mục company sai
    dạng thì bỏ). Company là `PAPERCLIP_COMPANY_ID` của run. Không có biến thì lấy company duy nhất. Biến không khớp, hoặc
-   có nhiều company mà không có biến, thì không làm gì.
+   có nhiều company mà không có biến, thì không làm gì. `isJevActive`: company chỉ có hiệu lực khi `enabled` và
+   `pulledAt` không cũ hơn 30 phút (`CONFIG_MAX_AGE_MS`). Cấu hình cũ hơn thì coi như tắt: không gọi Jev, không chặn,
+   không ghi log (máy mất liên lạc có thể kéo dài nhiều ngày, ghi mỗi lệnh một dòng chỉ làm phình log; doctor đã cảnh
+   báo từ 10 phút).
 3. `apps/crew-mac/src/jev/gate.ts` → `runGate` (theo bảng fail-open bên dưới):
    - Sự kiện không phải `Bash`: không làm gì. JSON hỏng, hoặc `Bash` mà không có `command`: ghi `error/bad_event`.
    - `shadow`, tiến trình chính: tách nền ngay. Không phân nhóm, không chạy git, không đọc Keychain. Đo trên bản build:
@@ -108,6 +111,11 @@ Chế độ, model, ngưỡng và timeout do owner đặt trên web. Mac kéo c�
    `apiKey` thì ghi Keychain `crew.jev.<cid>` (`writeKeychainSecret`, qua stdin của `security -i`). `hasKey: false` mà
    máy còn key thì `security delete-generic-password`. Cuối cùng ghi mục company vào `config.json` (giữ company khác)
    kèm `keyFingerprint` và `pulledAt`.
+   Pull nhận 403 (máy bị gỡ) hay 404 (server chưa có route Jev, hoặc đã rollback) thì `disableJevCompany`: đặt
+   `enabled:false` và xóa key Keychain của company (đã tắt và không còn key thì lượt sau không gọi `security` nữa). Lỗi
+   khác (401, 5xx, mạng) giữ nguyên cấu hình; trần 30 phút lo phần còn lại.
+   Trong `status send` (flow `mac-setup`): bản tin máy của một đích trả 403 thì cũng `disableJevCompany` (khi đó không
+   pull). Cuối lượt, `pruneJevCompanies` xóa mục `config.json` và key của company không còn là đích bản tin.
 8. `apps/crew-mac/src/jev/sync.ts` → `pushJevEvents`: đọc `gate.log` từ con trỏ riêng của company trong `gate.cursor`
    (`{"v":1,"offsets":{"<cid>": <byte>}}`). Chỉ lấy dòng JSON hợp lệ có `companyId` của đích. Dòng chưa có xuống dòng
    để lượt sau. Mỗi lô ≤ 500 dòng và body ≤ 256 KiB:
@@ -148,9 +156,9 @@ Chế độ, model, ngưỡng và timeout do owner đặt trên web. Mac kéo c�
 | `apps/crew-mac/src/jev/gate-entry.ts` | Entry esbuild → `dist/jev-gate.cjs` (gom jev-use) | `runGate` |
 | `apps/crew-mac/src/jev/gate.ts` | Quyết định của hook, gọi Jev, tách tiến trình nền, state và câu chặn | `runGate`, `GateOptions`, `jevState`, `denyOutput`, `interpretGateResult`, `spawnGateBackground`, `BackgroundBusy`, `liveBackgroundSlots`, `MAX_BACKGROUND` |
 | `apps/crew-mac/src/jev/classify.ts` | Tách lệnh shell và phân nhóm nguy hiểm, đọc thông tin git | `dangerCategory`, `splitCommands`, `stripHeredocs`, `mktempDirVars`, `gitPushDir`, `needsGitFacts`, `readGitFacts`, `defaultBranches`, `Category`, `GitFacts` |
-| `apps/crew-mac/src/jev/config.ts` | `config.json` theo company, chọn company, Keychain `crew.jev.<cid>` | `readJevConfig`, `writeJevConfig`, `parseCompanyConfig`, `selectCompany`, `readJevKey`, `jevKeyPresent`, `deleteJevKey`, `keyFingerprint`, `jevKeychainService`, `encodeBackgroundInput`, `decodeBackgroundInput`, `backgroundEnv`, `acquireLock`, `releaseLock` |
+| `apps/crew-mac/src/jev/config.ts` | `config.json` theo company, chọn company, Keychain `crew.jev.<cid>` | `readJevConfig`, `writeJevConfig`, `parseCompanyConfig`, `selectCompany`, `readJevKey`, `jevKeyPresent`, `deleteJevKey`, `keyFingerprint`, `jevKeychainService`, `encodeBackgroundInput`, `decodeBackgroundInput`, `backgroundEnv`, `acquireLock`, `releaseLock`, `isJevActive`, `CONFIG_MAX_AGE_MS` |
 | `apps/crew-mac/src/jev/log.ts` | Dòng `gate.log` JSONL v1 | `appendGateLog`, `formatGateLine`, `redactCommand`, `GateLogEntry` |
-| `apps/crew-mac/src/jev/sync.ts` | Kéo cấu hình, đẩy log, đếm dòng chưa đẩy | `pullJevConfig`, `pushJevEvents`, `compactGateLog`, `maintainGateLog`, `pendingJevEvents`, `JevSyncError` |
+| `apps/crew-mac/src/jev/sync.ts` | Kéo cấu hình, đẩy log, đếm dòng chưa đẩy | `pullJevConfig`, `pushJevEvents`, `compactGateLog`, `maintainGateLog`, `disableJevCompany`, `pruneJevCompanies`, `pendingJevEvents`, `JevSyncError` |
 
 `gate.ts`, `log.ts` và `gate-entry.ts` import `jev-use` (devDependency ghim `0.8.0`). Chúng nằm ngoài `tsc` build
 (`tsconfig.build.json`) và chỉ tới máy qua bundle `jev-gate.cjs` (`build-files.mjs`). `cli.ts`, `status.ts` và
@@ -202,7 +210,7 @@ Chế độ, model, ngưỡng và timeout do owner đặt trên web. Mac kéo c�
     `readGitFacts` dùng `git -C` hạn 1 giây, git lỗi thì trả rỗng.
 - `apps/crew-mac/test/jev-gate.test.ts` (backend giả):
   - không config, Jev tắt, tool khác Bash hay company không khớp thì không làm gì; không có biến company thì dùng
-    company duy nhất;
+    company duy nhất; cấu hình cũ hơn 30 phút thì không tách nền, không gọi Jev, không log (đúng 30 phút vẫn hiệu lực);
   - `shadow` tách nền mà không gọi Jev hay Keychain; `gate-bg` ghi `deny` nhưng `applied` là `allow`;
   - `enforce` có nhóm và Jev `deny` thì in đúng JSON deny tiếng Việt; Jev `allow` hay `escalate` thì cho chạy;
   - `enforce` không có nhóm thì không chờ Jev; lệnh không có `git push` thì không chạy git; state chứa cwd, nhánh mặc
@@ -218,9 +226,10 @@ Chế độ, model, ngưỡng và timeout do owner đặt trên web. Mac kéo c�
 - `apps/crew-mac/test/jev-sync.test.ts` (fetch và Keychain giả):
   - pull: chữ ký đúng HMAC, body đúng; chỉ ghi Keychain khi có `apiKey`, qua stdin; config 0600 không có key; lần sau
     gửi vân tay và version; `hasKey:false` thì xóa key; không 2xx hay sai dạng thì không ghi gì; lỗi mạng, Keychain;
-    giữ company khác;
+    giữ company khác; 403/404 thì tắt company và xóa key (lượt sau không gọi `security` thêm), 401/500 thì giữ nguyên;
+    `pruneJevCompanies` chỉ dọn company không còn là đích;
   - push: chỉ dòng của company đích; con trỏ chỉ tiến khi 2xx; lô 500/500/200; lô theo 256 KiB; dòng ghi dở để lượt
     sau; > 5 MiB thì cắt về 0 (chỉ chờ company có cấu hình Jev); > 20 MiB vì một đích lỗi lâu thì giữ 10 MiB cuối, toàn
-    dòng nguyên vẹn, kèm dòng `dropped` đúng số dòng bị bỏ; khóa đồng bộ đang bị giữ thì bỏ qua; trả `rejected` của
+    dòng nguyên vẹn, kèm dòng `dropped` đúng số dòng bị bỏ (`mode` theo cấu hình của company); khóa đồng bộ đang bị giữ thì bỏ qua; trả `rejected` của
     server; không có log thì không gửi.
 - Test của `cli.ts`, `setup.ts`, `status.ts`, `doctor.ts` và wrapper liên quan tới Jev nằm ở flow `mac-setup`.

@@ -217,6 +217,15 @@ describe('crew-mac CLI', () => {
       expect(t.err).toEqual([]);
     });
 
+    it('jev gate với cấu hình kéo cũ hơn 30 phút thì không nạp gate, không log', async () => {
+      const mac = fakeMac();
+      enable(mac);
+      const t = io(mac, { PAPERCLIP_COMPANY_ID: CID });
+      const later = { ...mac.ctx, now: () => new Date('2026-10-06T07:30:00.001Z') };
+      expect(await main(['jev', 'gate'], { ...t.io, context: later, readStdin: () => '{hỏng' })).toBe(0);
+      expect(existsSync(macPaths(mac.home).jevLog)).toBe(false);
+    });
+
     it('jev gate luôn thoát 0, kể cả stdin lỗi hay sự kiện hỏng', async () => {
       const mac = fakeMac();
       enable(mac);

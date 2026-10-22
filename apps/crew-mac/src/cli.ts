@@ -30,6 +30,7 @@ import { createMacContext } from './context-factory.js';
 import { filesCommand } from './files/command.js';
 import {
   decodeBackgroundInput,
+  isJevActive,
   keyFingerprint,
   readJevConfig,
   readJevKey,
@@ -204,7 +205,7 @@ async function jevGateCommand(io: CliIo, background: boolean): Promise<number> {
     const decoded = background ? decodeBackgroundInput(input) : { eventJson: input, env: io.env };
     if (!decoded) return 0;
     const selected = selectCompany(readJevConfig(macPaths(ctx.home).jevConfig), decoded.env);
-    if (!selected?.entry.enabled) return 0;
+    if (!selected || !isJevActive(selected.entry, ctx.now())) return 0;
     const gate = await loadJevGate();
     const { stdout } = await gate.runGate(ctx, decoded.eventJson, { env: decoded.env, background });
     if (stdout) io.out(stdout);

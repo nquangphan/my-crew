@@ -10,6 +10,7 @@ import {
   EVENTS_MAX_LINES,
   LOG_KEEP_BYTES,
   LOG_MAX_BYTES,
+  pruneJevCompanies,
   pullJevConfig,
   pushJevEvents,
 } from '../src/jev/sync.js';
@@ -154,6 +155,46 @@ describe('pullJevConfig', () => {
     await pullJevConfig(t.ctx, target, t.respond(200, settings({ hasKey: false, keyFingerprint: null })));
     expect(t.keychain.has(`crew.jev.${CID}`)).toBe(false);
     expect(readJevConfig(t.paths.jevConfig)?.companies[CID]?.keyFingerprint).toBeNull();
+  });
+
+  it.each([403, 404])('pull nhận %i thì tắt Jev của company và xóa key trong Keychain', async (status) => {
+    const t = setupSync();
+    await pullJevConfig(t.ctx, target, t.respond(200, settings({ apiKey: KEY })));
+    expect(t.keychain.get(`crew.jev.${CID}`)).toBe(KEY);
+    expect(await pullJevConfig(t.ctx, target, t.respond(status, { error: 'x' }))).toEqual({
+      ok: false,
+      errorCode: `http_${status}`,
+    });
+    expect(t.keychain.has(`crew.jev.${CID}`)).toBe(false);
+    expect(readJevConfig(t.paths.jevConfig)?.companies[CID]).toMatchObject({
+      enabled: false,
+      keyFingerprint: null,
+      version: 7,
+    });
+    // Lượt sau vẫn 403/404: không gọi `security` thêm lần nào.
+    const before = t.runner.calls.filter((c) => c.args[0] === 'delete-generic-password').length;
+    await pullJevConfig(t.ctx, target, t.respond(status));
+    expect(t.runner.calls.filter((c) => c.args[0] === 'delete-generic-password').length).toBe(before);
+  });
+
+  it('pull lỗi khác (401, 500, mạng) thì giữ nguyên cấu hình và key', async () => {
+    const t = setupSync();
+    await pullJevConfig(t.ctx, target, t.respond(200, settings({ apiKey: KEY })));
+    for (const status of [401, 500]) await pullJevConfig(t.ctx, target, t.respond(status));
+    expect(t.keychain.get(`crew.jev.${CID}`)).toBe(KEY);
+    expect(readJevConfig(t.paths.jevConfig)?.companies[CID]?.enabled).toBe(true);
+  });
+
+  it('dọn company không còn là đích bản tin: xóa mục config và key, giữ company còn là đích', async () => {
+    const t = setupSync();
+    writeJevConfig(t.paths.jevConfig, { companies: { [CID]: jevEntry(), [OTHER]: jevEntry() } });
+    t.keychain.set(`crew.jev.${CID}`, KEY);
+    t.keychain.set(`crew.jev.${OTHER}`, KEY);
+    expect(await pruneJevCompanies(t.ctx, [target])).toEqual([OTHER]);
+    expect(Object.keys(readJevConfig(t.paths.jevConfig)?.companies ?? {})).toEqual([CID]);
+    expect(t.keychain.has(`crew.jev.${OTHER}`)).toBe(false);
+    expect(t.keychain.get(`crew.jev.${CID}`)).toBe(KEY);
+    expect(await pruneJevCompanies(t.ctx, [target])).toEqual([]);
   });
 
   it('server trả mã không 2xx thì không ghi config, trả mã lỗi', async () => {

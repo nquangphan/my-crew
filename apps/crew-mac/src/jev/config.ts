@@ -251,3 +251,15 @@ export const logLockPath = (logPath: string) => `${logPath}.lock`;
 /** Người ghi chờ khóa tối đa chừng này rồi ghi luôn (không bao giờ bỏ dòng). */
 export const LOG_LOCK_WAIT_MS = 300;
 export const LOG_LOCK_STALE_MS = 5000;
+
+/**
+ * Cấu hình kéo về cũ hơn mức này thì coi như Jev tắt: máy mất liên lạc với server (máy bị gỡ, server rollback, đích
+ * lỗi lâu) thì không gọi Jev bằng key cũ và không chặn theo cấu hình cũ. Doctor cảnh báo sớm hơn, ở 10 phút.
+ */
+export const CONFIG_MAX_AGE_MS = 30 * 60 * 1000;
+
+/** Jev có đang có hiệu lực cho company này không: bật và cấu hình còn mới (`pulledAt` trong 30 phút). */
+export function isJevActive(entry: JevCompanyConfig, now: Date): boolean {
+  const age = now.getTime() - Date.parse(entry.pulledAt);
+  return entry.enabled && Number.isFinite(age) && age <= CONFIG_MAX_AGE_MS;
+}

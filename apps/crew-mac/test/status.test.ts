@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { main } from '../src/cli.js';
 import { configureStatus, resolveClaudePath, sendStatus, setStatusSecret } from '../src/commands/status.js';
+import { readJevConfig, writeJevConfig } from '../src/jev/config.js';
+import { macPaths } from '../src/paths.js';
 import { buildMachineReport } from '../src/status/report.js';
 import { signCrewBody } from '../src/status/sign.js';
 import { fakeMac } from './helpers/fake-mac.js';
@@ -289,6 +291,63 @@ describe('crew-mac status', () => {
       expect(out).toEqual(['crew-mac jev: kéo cấu hình lỗi (http_404)']);
       expect(out.join('\n')).not.toContain('secret-private');
       expect(JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8')).ok).toBe(true);
+    });
+
+    const jevEntry = {
+      version: 3,
+      enabled: true,
+      gateMode: 'shadow' as const,
+      model: 'typesafe/jev-1.14',
+      threshold: 0.5,
+      timeoutMs: 2500,
+      keyFingerprint: 'abcdefabcdef',
+      pulledAt: '2026-10-06T06:59:00.000Z',
+    };
+    /** Keychain giả cho cả secret đích (`security`) lẫn key Jev (`/usr/bin/security`). */
+    function keychainOf(runner: ReturnType<typeof fakeMac>['runner'], items: Set<string>) {
+      runner.on('security', () => ({ stdout: 'secret-private\n' }));
+      runner.on('/usr/bin/security', (args) => {
+        const service = args[args.indexOf('-s') + 1] as string;
+        if (args[0] === 'delete-generic-password') return items.delete(service) ? {} : { code: 44 };
+        return items.has(service) ? { stdout: 'sk-or-test-0123456789abcdefABCDEF\n' } : { code: 44 };
+      });
+    }
+
+    it('đích đã bị gỡ khỏi status.json thì lượt gửi dọn cấu hình và key Jev của company đó', async () => {
+      const { ctx, runner, home, out } = fakeMac();
+      configureStatus(ctx, 'https://paperclip.example', CID);
+      const gone = '33333333-3333-4333-8333-333333333333';
+      writeJevConfig(macPaths(home).jevConfig, { companies: { [CID]: jevEntry, [gone]: jevEntry } });
+      const items = new Set([`crew.jev.${CID}`, `crew.jev.${gone}`]);
+      keychainOf(runner, items);
+      await sendStatus(ctx, async (url) =>
+        String(url).includes('/jev/machine/pull')
+          ? Response.json({ ...jevEntry, hasKey: true })
+          : new Response('', { status: 200 }),
+      );
+      expect(Object.keys(readJevConfig(macPaths(home).jevConfig)?.companies ?? {})).toEqual([CID]);
+      expect([...items]).toEqual([`crew.jev.${CID}`]);
+      expect(out).toContain(
+        `crew-mac jev: đã gỡ cấu hình và key của company ${gone} (không còn là đích bản tin)`,
+      );
+    });
+
+    it('bản tin máy bị 403 (máy bị gỡ) thì tắt Jev của company và xóa key, không pull', async () => {
+      const { ctx, runner, home } = fakeMac();
+      configureStatus(ctx, 'https://paperclip.example', CID);
+      writeJevConfig(macPaths(home).jevConfig, { companies: { [CID]: jevEntry } });
+      const items = new Set([`crew.jev.${CID}`]);
+      keychainOf(runner, items);
+      const urls: string[] = [];
+      await expect(
+        sendStatus(ctx, async (url) => {
+          urls.push(String(url));
+          return new Response('{"error":"machine_revoked"}', { status: 403 });
+        }),
+      ).rejects.toThrow();
+      expect(urls.some((url) => url.includes('/jev/'))).toBe(false);
+      expect(readJevConfig(macPaths(home).jevConfig)?.companies[CID]).toMatchObject({ enabled: false });
+      expect(items.size).toBe(0);
     });
 
     it('bản tin máy thất bại thì không gọi Jev', async () => {

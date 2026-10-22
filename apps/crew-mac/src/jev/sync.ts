@@ -176,7 +176,15 @@ export async function pullJevConfig(
       appliedVersion: current?.companies[companyId]?.version ?? 0,
       keyFingerprint: fingerprint,
     });
-    const response = await signedPost(ctx, target, secret, 'pull', body, fetcher);
+    let response: Response;
+    try {
+      response = await signedPost(ctx, target, secret, 'pull', body, fetcher);
+    } catch (error) {
+      // 403 (máy bị gỡ) hay 404 (server chưa có route Jev, hoặc đã rollback): tắt Jev của company và xóa key.
+      if (error instanceof SyncFailure && (error.code === 'http_403' || error.code === 'http_404'))
+        await disableJevCompany(ctx, companyId);
+      throw error;
+    }
     let parsed: PullResponse | null;
     try {
       parsed = parsePullResponse(await response.json());
@@ -378,7 +386,12 @@ export async function pushJevEvents(
 }
 
 /** Dòng tổng kết khi bỏ dòng chưa đẩy của một company (cùng định dạng JSONL v1 của gate). */
-function droppedLine(ctx: MacContext, companyId: string, count: number): string {
+function droppedLine(
+  ctx: MacContext,
+  companyId: string,
+  count: number,
+  mode: JevCompanyConfig['gateMode'],
+): string {
   return JSON.stringify({
     v: 1,
     eventId: randomUUID(),
@@ -387,7 +400,7 @@ function droppedLine(ctx: MacContext, companyId: string, count: number): string 
     runId: null,
     agentId: null,
     cwd: null,
-    mode: 'shadow',
+    mode,
     category: null,
     blocking: false,
     verdict: 'error',
@@ -409,7 +422,8 @@ function droppedLine(ctx: MacContext, companyId: string, count: number): string 
  * Phần giữ lại được chép sang file mới rồi `rename` đè; con trỏ trừ đi phần đã bỏ.
  */
 export function compactGateLog(ctx: MacContext, paths: ReturnType<typeof macPaths>, offsets: Offsets): void {
-  const companies = Object.keys(readJevConfig(paths.jevConfig)?.companies ?? {});
+  const jevCompanies = readJevConfig(paths.jevConfig)?.companies ?? {};
+  const companies = Object.keys(jevCompanies);
   if (companies.length === 0) {
     for (const target of listTargets(ctx)) companies.push(target.companyId.toLowerCase());
   }
@@ -442,7 +456,7 @@ export function compactGateLog(ctx: MacContext, paths: ReturnType<typeof macPath
       if (from >= cut) continue;
       let count = 0;
       for (const { text } of logLines(paths.jevLog, from, cut)) if (lineFor(text, id)) count++;
-      if (count > 0) dropped.push(droppedLine(ctx, id, count));
+      if (count > 0) dropped.push(droppedLine(ctx, id, count, jevCompanies[id]?.gateMode ?? 'shadow'));
     }
     const fd = openSync(temp, 'w', 0o600);
     try {
@@ -511,4 +525,56 @@ export function maintainGateLog(ctx: MacContext): void {
   } finally {
     releaseLock(syncLock);
   }
+}
+
+/**
+ * Tắt Jev của company trên máy: `enabled:false` trong `config.json` (giữ các trường khác) và xóa key Keychain
+ * `crew.jev.<cid>`. Dùng khi server báo máy bị gỡ (403) hay không có route Jev (404). Không bao giờ ném.
+ */
+export async function disableJevCompany(ctx: MacContext, companyId: string): Promise<void> {
+  const paths = macPaths(ctx.home);
+  const id = companyId.toLowerCase();
+  try {
+    const config = readJevConfig(paths.jevConfig);
+    const entry = config?.companies[id];
+    // Đã tắt và đã xóa key ở lượt trước thì thôi, không gọi `security` mỗi phút.
+    if (!config || !entry || (!entry.enabled && entry.keyFingerprint === null)) return;
+    config.companies[id] = { ...entry, enabled: false };
+    writeJevConfig(paths.jevConfig, config);
+    await deleteJevKey(ctx, id);
+    config.companies[id] = { ...entry, enabled: false, keyFingerprint: null };
+    writeJevConfig(paths.jevConfig, config);
+  } catch {
+    // Keychain hay file lỗi: lượt sau thử lại; cấu hình cũ vẫn bị trần 30 phút chặn.
+  }
+}
+
+/**
+ * Dọn company không còn là đích bản tin của máy (đích đã bị gỡ khỏi `status.json`): xóa mục trong `config.json` và key
+ * Keychain của nó. Trả các company đã dọn. Không bao giờ ném.
+ */
+export async function pruneJevCompanies(
+  ctx: MacContext,
+  targets: readonly StatusTarget[],
+): Promise<string[]> {
+  const paths = macPaths(ctx.home);
+  const keep = new Set(targets.map((t) => t.companyId.toLowerCase()));
+  const config = readJevConfig(paths.jevConfig);
+  if (!config) return [];
+  const removed = Object.keys(config.companies).filter((id) => !keep.has(id));
+  if (removed.length === 0) return [];
+  for (const id of removed) {
+    delete config.companies[id];
+    try {
+      await deleteJevKey(ctx, id);
+    } catch {
+      // Keychain lỗi: mục config đã gỡ nên gate không dùng key này nữa; uninstall vẫn dọn được.
+    }
+  }
+  try {
+    writeJevConfig(paths.jevConfig, config);
+  } catch {
+    return [];
+  }
+  return removed;
 }

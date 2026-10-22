@@ -36,6 +36,7 @@ const CID = '22222222-2222-4222-8222-222222222222';
 const OTHER = '33333333-3333-4333-8333-333333333333';
 const RUN = '44444444-4444-4444-8444-444444444444';
 const KEY = 'sk-or-test-0123456789abcdefABCDEF';
+const EMPTY_OUTCOME = { stdout: '', logLine: null };
 
 function entry(overrides: Partial<JevCompanyConfig> = {}): JevCompanyConfig {
   return {
@@ -155,6 +156,24 @@ describe('runGate: không làm gì', () => {
     const t = setupGate({ [CID]: entry() });
     await runGate(t.ctx, event('ls'), t.options({ env: { PAPERCLIP_COMPANY_ID: OTHER } }));
     expect(t.spawned).toEqual([]);
+  });
+
+  it('cấu hình kéo cũ hơn 30 phút thì coi như tắt: không tách nền, không gọi Jev, không log, không chặn', async () => {
+    const t = setupGate(
+      { [CID]: entry({ gateMode: 'enforce', pulledAt: '2026-10-06T06:29:59.000Z' }) },
+      'deny',
+    );
+    expect(await runGate(t.ctx, event('git push --force origin crew/x'), t.options())).toEqual(EMPTY_OUTCOME);
+    expect(await runGate(t.ctx, event('ls'), t.options({ background: true }))).toEqual(EMPTY_OUTCOME);
+    expect(t.spawned).toEqual([]);
+    expect(t.stub.requests).toHaveLength(0);
+    expect(existsSync(t.paths.jevLog)).toBe(false);
+  });
+
+  it('cấu hình đúng 30 phút tuổi vẫn còn hiệu lực', async () => {
+    const t = setupGate({ [CID]: entry({ pulledAt: '2026-10-06T06:30:00.000Z' }) });
+    await runGate(t.ctx, event('ls'), t.options());
+    expect(t.spawned).toHaveLength(1);
   });
 
   it('không có PAPERCLIP_COMPANY_ID thì dùng company duy nhất', async () => {

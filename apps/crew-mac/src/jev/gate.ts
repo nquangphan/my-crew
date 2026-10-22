@@ -10,6 +10,7 @@ import {
   backgroundEnv,
   COMPANY_ID,
   encodeBackgroundInput,
+  isJevActive,
   type JevCompanyConfig,
   readJevConfig,
   readJevKey,
@@ -285,7 +286,9 @@ export async function runGate(
   } catch {
     return EMPTY;
   }
-  if (!selected?.entry.enabled) return EMPTY;
+  // Tắt, hoặc cấu hình cũ hơn 30 phút: không gọi Jev, không chặn, không ghi log (máy mất liên lạc có thể kéo dài nhiều
+  // ngày, mỗi lệnh một dòng sẽ làm phình log mà không có gì để đẩy; doctor đã báo cấu hình cũ).
+  if (!selected || !isJevActive(selected.entry, ctx.now())) return EMPTY;
   const { companyId, entry } = selected;
   const blank: Omit<GateLogInput, 'verdict' | 'errorCode'> = {
     at: ctx.now(),
