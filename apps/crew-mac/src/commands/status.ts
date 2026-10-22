@@ -18,7 +18,7 @@ import { hostname } from 'node:os';
 import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
 import { parsePublicKey } from '../authorized-keys.js';
 import type { MacContext } from '../context.js';
-import { pullJevConfig, pushJevEvents } from '../jev/sync.js';
+import { maintainGateLog, pullJevConfig, pushJevEvents } from '../jev/sync.js';
 import { readManifest } from '../manifest.js';
 import { macPaths } from '../paths.js';
 import {
@@ -353,7 +353,9 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
       if (!pulled.ok) ctx.out(`crew-mac jev: kéo cấu hình lỗi (${pulled.errorCode})${label}`);
       const pushed = await pushJevEvents(ctx, target, fetcher);
       if (!pushed.ok) ctx.out(`crew-mac jev: đẩy log lỗi (${pushed.errorCode})${label}`);
+      if (pushed.rejected > 0) ctx.out(`crew-mac jev: server bỏ ${pushed.rejected} dòng${label}`);
     }
+    maintainGateLog(ctx);
   }
   if (outcomes.length === 0)
     outcomes = [{ companyId: '', ok: false, httpStatus: null, failure: 'no-target' }];

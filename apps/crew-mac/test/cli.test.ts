@@ -1,8 +1,8 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { main, sshServerPort, USAGE } from '../src/cli.js';
-import { writeJevConfig } from '../src/jev/config.js';
+import { encodeBackgroundInput, writeJevConfig } from '../src/jev/config.js';
 import { macPaths } from '../src/paths.js';
 import { fakeMac, LIVE_PS, LIVE_RUN_ID, PAPERCLIP_PUB } from './helpers/fake-mac.js';
 
@@ -235,9 +235,21 @@ describe('crew-mac CLI', () => {
       const mac = fakeMac();
       enable(mac);
       mac.runner.on('/usr/bin/security', () => ({ code: 44 }));
+      // gate-bg chạy với env tối thiểu: company và run id đến từ stdin.
+      const t = io(mac, {});
+      const input = encodeBackgroundInput(EVENT, { PAPERCLIP_COMPANY_ID: CID });
+      expect(await main(['jev', 'gate-bg'], { ...t.io, readStdin: () => input })).toBe(0);
+      expect(t.out).toEqual([]);
+      const log = readFileSync(macPaths(mac.home).jevLog, 'utf8');
+      expect(JSON.parse(log.trim())).toMatchObject({ companyId: CID, errorCode: 'no_key' });
+    });
+
+    it('jev gate-bg stdin không phải dạng của gate thì thoát 0, không làm gì', async () => {
+      const mac = fakeMac();
+      enable(mac);
       const t = io(mac, { PAPERCLIP_COMPANY_ID: CID });
       expect(await main(['jev', 'gate-bg'], { ...t.io, readStdin: () => EVENT })).toBe(0);
-      expect(t.out).toEqual([]);
+      expect(existsSync(macPaths(mac.home).jevLog)).toBe(false);
     });
 
     it('jev status in cấu hình và vân tay key, không in key', async () => {

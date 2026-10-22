@@ -8,8 +8,8 @@ import {
   renameSync,
   rmSync,
   statSync,
-  truncateSync,
   writeFileSync,
+  writeSync,
 } from 'node:fs';
 import { dirname } from 'node:path';
 import { readStatusConfig } from '../commands/status.js';
@@ -23,15 +23,20 @@ import {
   writeKeychainSecret,
 } from '../status/targets.js';
 import {
+  acquireLock,
   COMPANY_ID,
   deleteJevKey,
   FINGERPRINT_PATTERN,
   type JevCompanyConfig,
   jevKeychainService,
   keyFingerprint,
+  LOG_LOCK_STALE_MS,
+  LOG_LOCK_WAIT_MS,
+  logLockPath,
   parseCompanyConfig,
   readJevConfig,
   readJevKey,
+  releaseLock,
   writeJevConfig,
 } from './config.js';
 
@@ -53,6 +58,8 @@ export interface JevSyncResult {
 export interface JevPushResult extends JevSyncResult {
   /** Số dòng đã được server nhận (2xx) trong lượt này. */
   sent: number;
+  /** Số dòng server báo đã loại (`rejected` trong response). */
+  rejected: number;
 }
 
 export const EVENTS_MAX_LINES = 500;
@@ -61,6 +68,13 @@ export const EVENTS_MAX_BYTES = 256 * 1024;
 export const LOG_TRUNCATE_BYTES = 5 * 1024 * 1024;
 /** Mỗi lượt `status send` đẩy tối đa chừng này lô cho một đích; phần còn lại đợi lượt sau. */
 const MAX_BATCHES = 64;
+/** Trần cứng của `gate.log`: vượt thì giữ `LOG_KEEP_BYTES` cuối, bỏ dòng cũ nhất chưa đẩy của đích lỗi lâu. */
+export const LOG_MAX_BYTES = 20 * 1024 * 1024;
+export const LOG_KEEP_BYTES = 10 * 1024 * 1024;
+/** Đọc log theo cửa sổ này, không nạp cả file. */
+const READ_WINDOW_BYTES = 1024 * 1024;
+/** Khóa đồng bộ cũ hơn mức này coi như của `status send` đã chết (một lượt tối đa vài chục lô × 10 giây). */
+const SYNC_LOCK_STALE_MS = 15 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const API_KEY_MIN = 20;
 const API_KEY_MAX = 200;
@@ -230,18 +244,30 @@ function writeOffsets(path: string, offsets: Offsets): void {
   }
 }
 
-function readFrom(path: string, offset: number, size: number): Buffer {
-  const length = size - offset;
-  const buffer = Buffer.alloc(length);
+/** Đọc dòng hoàn chỉnh (kết thúc bằng `\n`) trong `[start, end)` theo cửa sổ 1 MiB, không nạp cả file vào RAM. */
+function* logLines(path: string, start: number, end: number): Generator<{ text: string; next: number }> {
   const fd = openSync(path, 'r');
   try {
-    let read = 0;
-    while (read < length) {
-      const n = readSync(fd, buffer, read, length - read, offset + read);
+    let pos = start;
+    let carry = Buffer.alloc(0);
+    let carryStart = start;
+    while (pos < end) {
+      const length = Math.min(READ_WINDOW_BYTES, end - pos);
+      const window = Buffer.alloc(length);
+      const n = readSync(fd, window, 0, length, pos);
       if (n === 0) break;
-      read += n;
+      pos += n;
+      const chunk = carry.length > 0 ? Buffer.concat([carry, window.subarray(0, n)]) : window.subarray(0, n);
+      let at = 0;
+      for (;;) {
+        const nl = chunk.indexOf(0x0a, at);
+        if (nl < 0) break;
+        yield { text: chunk.subarray(at, nl).toString('utf8'), next: carryStart + nl + 1 };
+        at = nl + 1;
+      }
+      carryStart += at;
+      carry = Buffer.from(chunk.subarray(at));
     }
-    return buffer.subarray(0, read);
   } finally {
     closeSync(fd);
   }
@@ -263,10 +289,22 @@ function lineFor(text: string, companyId: string): boolean {
   }
 }
 
+/** Số dòng server báo đã loại (sai schema), nếu response có trường `rejected`. */
+async function rejectedCount(response: Response): Promise<number> {
+  try {
+    const value = (await response.json()) as { rejected?: unknown };
+    return typeof value.rejected === 'number' && Number.isInteger(value.rejected) && value.rejected > 0
+      ? value.rejected
+      : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Đẩy `gate.log` của company đích lên `/jev/machine/events`, từ con trỏ riêng của company trong `gate.cursor`. Mỗi lô
- * ≤ 500 dòng và body ≤ 256 KiB; chỉ tiến con trỏ khi server trả 2xx. Đẩy hết mà file > 5 MiB và mọi đích đã đẩy hết
- * thì cắt file về 0. Không bao giờ ném.
+ * ≤ 500 dòng và body ≤ 256 KiB; chỉ tiến con trỏ khi server trả 2xx. Cả lượt giữ khóa đồng bộ (hai `status send`
+ * chồng nhau thì lượt sau bỏ qua). Cuối lượt nén log (`compactGateLog`). Không bao giờ ném.
  */
 export async function pushJevEvents(
   ctx: MacContext,
@@ -276,75 +314,164 @@ export async function pushJevEvents(
   const paths = macPaths(ctx.home);
   const companyId = target.companyId.toLowerCase();
   let sent = 0;
+  let rejected = 0;
+  let size: number;
   try {
-    let size: number;
-    try {
-      size = statSync(paths.jevLog).size;
-    } catch {
-      return { ok: true, errorCode: null, sent };
-    }
+    size = statSync(paths.jevLog).size;
+  } catch {
+    return { ok: true, errorCode: null, sent, rejected };
+  }
+  const syncLock = `${paths.jevLog}.sync.lock`;
+  if (!acquireLock(syncLock, 0, SYNC_LOCK_STALE_MS)) return { ok: true, errorCode: null, sent, rejected };
+  try {
     const offsets = readOffsets(paths.jevCursor);
     let pos = offsets[companyId] ?? 0;
     if (pos > size) pos = 0;
-    if (pos === size) {
-      truncateIfDrained(ctx, paths, size, offsets);
-      return { ok: true, errorCode: null, sent };
-    }
-    const { secret, machineId } = await targetSecret(ctx, target);
-    const chunk = readFrom(paths.jevLog, pos, size);
-    let at = 0;
-    for (let batch = 0; batch < MAX_BATCHES && at < chunk.length; batch++) {
-      const prefix = JSON.stringify({
-        version: 1,
-        companyId: target.companyId,
-        machineId,
-        sentAt: ctx.now().toISOString(),
-      }).slice(0, -1);
-      const lines: string[] = [];
-      let bytes = Buffer.byteLength(`${prefix},"events":[]}`);
-      let next = at;
-      while (next < chunk.length) {
-        const end = chunk.indexOf(0x0a, next);
-        if (end < 0) break; // dòng đang ghi dở: để lượt sau
-        const text = chunk.subarray(next, end).toString('utf8');
-        if (lineFor(text, companyId)) {
-          const extra = Buffer.byteLength(text) + (lines.length > 0 ? 1 : 0);
-          if (lines.length >= EVENTS_MAX_LINES || bytes + extra > EVENTS_MAX_BYTES) break;
-          lines.push(text);
-          bytes += extra;
+    if (pos < size) {
+      const { secret, machineId } = await targetSecret(ctx, target);
+      const lines = logLines(paths.jevLog, pos, size);
+      let pending = lines.next();
+      for (let batch = 0; batch < MAX_BATCHES && !pending.done; batch++) {
+        const prefix = JSON.stringify({
+          version: 1,
+          companyId: target.companyId,
+          machineId,
+          sentAt: ctx.now().toISOString(),
+        }).slice(0, -1);
+        const events: string[] = [];
+        let bytes = Buffer.byteLength(`${prefix},"events":[]}`);
+        let next = pos;
+        while (!pending.done) {
+          const { text, next: after } = pending.value;
+          if (lineFor(text, companyId)) {
+            const extra = Buffer.byteLength(text) + (events.length > 0 ? 1 : 0);
+            if (events.length >= EVENTS_MAX_LINES || bytes + extra > EVENTS_MAX_BYTES) break;
+            events.push(text);
+            bytes += extra;
+          }
+          next = after;
+          pending = lines.next();
         }
-        next = end + 1;
+        if (events.length > 0) {
+          const body = `${prefix},"events":[${events.join(',')}]}`;
+          rejected += await rejectedCount(await signedPost(ctx, target, secret, 'events', body, fetcher));
+          sent += events.length;
+        }
+        pos = next;
+        offsets[companyId] = pos;
+        writeOffsets(paths.jevCursor, offsets);
       }
-      if (next === at) break;
-      if (lines.length > 0) {
-        const body = `${prefix},"events":[${lines.join(',')}]}`;
-        await signedPost(ctx, target, secret, 'events', body, fetcher);
-        sent += lines.length;
-      }
-      at = next;
-      offsets[companyId] = pos + at;
-      writeOffsets(paths.jevCursor, offsets);
+      lines.return(undefined);
     }
-    if (pos + at === size) truncateIfDrained(ctx, paths, size, offsets);
-    return { ok: true, errorCode: null, sent };
+    compactGateLog(ctx, paths, offsets);
+    return { ok: true, errorCode: null, sent, rejected };
   } catch (error) {
-    return { ok: false, errorCode: error instanceof SyncFailure ? error.code : 'local_io', sent };
+    return {
+      ok: false,
+      errorCode: error instanceof SyncFailure ? error.code : 'local_io',
+      sent,
+      rejected,
+    };
+  } finally {
+    releaseLock(syncLock);
   }
 }
 
-/** Cắt `gate.log` khi > 5 MiB và con trỏ của mọi đích đã tới cuối file (file không lớn thêm từ lúc đọc). */
-function truncateIfDrained(
-  ctx: MacContext,
-  paths: ReturnType<typeof macPaths>,
-  size: number,
-  offsets: Offsets,
-): void {
+/** Dòng tổng kết khi bỏ dòng chưa đẩy của một company (cùng định dạng JSONL v1 của gate). */
+function droppedLine(ctx: MacContext, companyId: string, count: number): string {
+  return JSON.stringify({
+    v: 1,
+    eventId: randomUUID(),
+    ts: ctx.now().toISOString(),
+    companyId,
+    runId: null,
+    agentId: null,
+    cwd: null,
+    mode: 'shadow',
+    category: null,
+    blocking: false,
+    verdict: 'error',
+    applied: 'allow',
+    confidence: null,
+    reason: `dropped:${count}`,
+    errorCode: 'dropped',
+    latencyMs: null,
+    model: null,
+    command: '',
+  });
+}
+
+/**
+ * Nén `gate.log`, trong khóa ghi của log (người ghi chờ, không ghi vào file cũ):
+ * - con trỏ của mọi company có cấu hình Jev đã tới cuối và file > 5 MiB: cắt về 0;
+ * - file > 20 MiB (một đích lỗi lâu): giữ 10 MiB cuối (hoặc từ con trỏ chậm nhất nếu gần hơn); company nào mất dòng
+ *   chưa đẩy thì thêm một dòng `error/dropped` có `reason` = `dropped:<số dòng>`.
+ * Phần giữ lại được chép sang file mới rồi `rename` đè; con trỏ trừ đi phần đã bỏ.
+ */
+export function compactGateLog(ctx: MacContext, paths: ReturnType<typeof macPaths>, offsets: Offsets): void {
+  const companies = Object.keys(readJevConfig(paths.jevConfig)?.companies ?? {});
+  if (companies.length === 0) {
+    for (const target of listTargets(ctx)) companies.push(target.companyId.toLowerCase());
+  }
+  let size: number;
+  try {
+    size = statSync(paths.jevLog).size;
+  } catch {
+    return;
+  }
   if (size <= LOG_TRUNCATE_BYTES) return;
-  const companies = listTargets(ctx).map((t) => t.companyId.toLowerCase());
-  if (!companies.every((id) => (offsets[id] ?? 0) >= size)) return;
-  if (statSync(paths.jevLog).size !== size) return;
-  truncateSync(paths.jevLog, 0);
-  writeOffsets(paths.jevCursor, {});
+  const lock = logLockPath(paths.jevLog);
+  if (!acquireLock(lock, LOG_LOCK_WAIT_MS, LOG_LOCK_STALE_MS)) return;
+  const temp = `${paths.jevLog}.${randomUUID()}.tmp`;
+  try {
+    size = statSync(paths.jevLog).size;
+    const slowest = Math.min(size, ...companies.map((id) => Math.min(offsets[id] ?? 0, size)));
+    let cut: number;
+    if (slowest >= size) cut = size;
+    else if (size > LOG_MAX_BYTES) {
+      cut = Math.max(slowest, size - LOG_KEEP_BYTES);
+      if (cut > slowest) {
+        // Cắt ở đầu dòng: bỏ tới hết dòng đang dở tại `cut`.
+        const first = logLines(paths.jevLog, cut - 1, size).next();
+        cut = first.done ? size : first.value.next;
+      }
+    } else return;
+    const dropped: string[] = [];
+    for (const id of companies) {
+      const from = Math.min(offsets[id] ?? 0, size);
+      if (from >= cut) continue;
+      let count = 0;
+      for (const { text } of logLines(paths.jevLog, from, cut)) if (lineFor(text, id)) count++;
+      if (count > 0) dropped.push(droppedLine(ctx, id, count));
+    }
+    const fd = openSync(temp, 'w', 0o600);
+    try {
+      const read = openSync(paths.jevLog, 'r');
+      try {
+        const buffer = Buffer.alloc(READ_WINDOW_BYTES);
+        for (let pos = cut; pos < size; ) {
+          const n = readSync(read, buffer, 0, Math.min(buffer.length, size - pos), pos);
+          if (n === 0) break;
+          writeSync(fd, buffer, 0, n);
+          pos += n;
+        }
+      } finally {
+        closeSync(read);
+      }
+      if (dropped.length > 0) writeSync(fd, `${dropped.join('\n')}\n`);
+    } finally {
+      closeSync(fd);
+    }
+    renameSync(temp, paths.jevLog);
+    const next: Offsets = {};
+    for (const [id, value] of Object.entries(offsets)) next[id] = Math.max(0, Math.min(value, size) - cut);
+    for (const key of Object.keys(offsets)) delete offsets[key];
+    Object.assign(offsets, next);
+    writeOffsets(paths.jevCursor, offsets);
+  } finally {
+    rmSync(temp, { force: true });
+    releaseLock(lock);
+  }
 }
 
 /** Số dòng của company còn nằm sau con trỏ (chưa đẩy lên server), cho `crew-mac jev status`. */
@@ -359,8 +486,29 @@ export function pendingJevEvents(ctx: MacContext, companyId: string): number {
   }
   let pos = readOffsets(paths.jevCursor)[wanted] ?? 0;
   if (pos > size) pos = 0;
-  return readFrom(paths.jevLog, pos, size)
-    .toString('utf8')
-    .split('\n')
-    .filter((line, i, all) => i < all.length - 1 && lineFor(line, wanted)).length;
+  let count = 0;
+  for (const { text } of logLines(paths.jevLog, pos, size)) if (lineFor(text, wanted)) count++;
+  return count;
+}
+
+/**
+ * Nén `gate.log` một lần mỗi lượt `status send`, kể cả khi mọi đích đều lỗi (máy mất mạng lâu), để log không phình quá
+ * trần. Lấy khóa đồng bộ; đang có lượt khác giữ thì bỏ qua. Không bao giờ ném.
+ */
+export function maintainGateLog(ctx: MacContext): void {
+  const paths = macPaths(ctx.home);
+  const syncLock = `${paths.jevLog}.sync.lock`;
+  try {
+    statSync(paths.jevLog);
+  } catch {
+    return;
+  }
+  if (!acquireLock(syncLock, 0, SYNC_LOCK_STALE_MS)) return;
+  try {
+    compactGateLog(ctx, paths, readOffsets(paths.jevCursor));
+  } catch {
+    // Lượt sau thử lại.
+  } finally {
+    releaseLock(syncLock);
+  }
 }

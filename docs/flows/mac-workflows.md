@@ -540,7 +540,9 @@ cấp lại cho process khác chỉ giữ bản cũ tối đa 7 ngày kể từ 
   tool, chính lệnh và `ps` con không bị tính; MCP con trực tiếp của claude cùng Chrome cháu của nó không bị chặn;
   dev server dưới shell con khác của claude hay lệnh nền trong shell đang chạy check bị chặn; dev server đã về launchd
   bị chặn dù có MCP chạy cạnh; thiếu `PAPERCLIP_RUN_ID` thì cảnh báo, ok, không gọi `ps`; run id sai dạng
-  hay `ps` lỗi thì chặn; CLI dạng `--runtime` (0/78/cảnh báo) và `--plugin-dir` (không có cờ thì không quét process).
+  hay `ps` lỗi thì chặn; CLI dạng `--runtime` (0/78/cảnh báo) và `--plugin-dir` (không có cờ thì không quét process);
+  tiến trình nền `jev gate-bg` của hook Crew Jev đã về launchd không bị chặn (cả hình dạng cũ cwd trong worktree có run
+  id, lẫn hình dạng hiện tại), còn process chỉ giả dạng (argv khác) vẫn bị chặn.
 - `apps/crew-mac/test/workflows-gc.test.ts`: bản hiện hành luôn giữ; dấu pid sống giữ; pid chết và 25 giờ thì xóa dấu rồi
   thư mục; pid chết nhưng mới đổi thì giữ (`recent`); dấu hỏng sống tới 7 ngày; dấu hợp lệ cũ hơn 7 ngày bị xóa dù pid
   sống; dấu ghi 2 giờ trước trên thư mục ghim 48 giờ thì giữ (`recent`); `*.tmp-*`, tên lạ và symlink không bị

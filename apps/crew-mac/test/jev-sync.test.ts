@@ -1,10 +1,18 @@
 import { createHmac } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { configureStatus } from '../src/commands/status.js';
-import { keyFingerprint, readJevConfig, writeJevConfig } from '../src/jev/config.js';
+import { type JevCompanyConfig, keyFingerprint, readJevConfig, writeJevConfig } from '../src/jev/config.js';
 import { formatGateLine } from '../src/jev/log.js';
-import { EVENTS_MAX_BYTES, EVENTS_MAX_LINES, pullJevConfig, pushJevEvents } from '../src/jev/sync.js';
+import {
+  EVENTS_MAX_BYTES,
+  EVENTS_MAX_LINES,
+  LOG_KEEP_BYTES,
+  LOG_MAX_BYTES,
+  pullJevConfig,
+  pushJevEvents,
+} from '../src/jev/sync.js';
 import { macPaths } from '../src/paths.js';
 import { LEGACY_KEYCHAIN_SERVICE, type StatusTarget } from '../src/status/targets.js';
 import { fakeMac } from './helpers/fake-mac.js';
@@ -18,6 +26,17 @@ const target: StatusTarget = {
   companyId: CID,
   keychainService: LEGACY_KEYCHAIN_SERVICE,
 };
+
+const jevEntry = (): JevCompanyConfig => ({
+  version: 1,
+  enabled: true,
+  gateMode: 'shadow',
+  model: 'typesafe/jev-1.14',
+  threshold: 0.5,
+  timeoutMs: 2500,
+  keyFingerprint: null,
+  pulledAt: '2026-10-06T06:59:00.000Z',
+});
 
 interface Sent {
   url: string;
@@ -229,7 +248,7 @@ describe('pushJevEvents', () => {
     const t = setupSync();
     writeLog(t.paths.jevLog, [CID, OTHER, CID]);
     const result = await pushJevEvents(t.ctx, target, t.respond(200, { accepted: 2, duplicates: 0 }));
-    expect(result).toEqual({ ok: true, errorCode: null, sent: 2 });
+    expect(result).toEqual({ ok: true, errorCode: null, sent: 2, rejected: 0 });
     expect(t.sent).toHaveLength(1);
     const [request] = t.sent;
     expect(request?.url).toBe(`https://paperclip.example/api/crew/companies/${CID}/jev/machine/events`);
@@ -248,6 +267,7 @@ describe('pushJevEvents', () => {
       ok: false,
       errorCode: 'http_503',
       sent: 0,
+      rejected: 0,
     });
     await pushJevEvents(t.ctx, target, t.respond(200));
     expect(t.sent.map((s) => events(s).length)).toEqual([2, 2]);
@@ -306,7 +326,76 @@ describe('pushJevEvents', () => {
       ok: true,
       errorCode: null,
       sent: 0,
+      rejected: 0,
     });
     expect(t.sent).toHaveLength(0);
+  });
+
+  it('server báo rejected thì trả số dòng bị loại', async () => {
+    const t = setupSync();
+    writeLog(t.paths.jevLog, [CID, CID, CID]);
+    const result = await pushJevEvents(
+      t.ctx,
+      target,
+      t.respond(200, { accepted: 1, duplicates: 0, rejected: 2 }),
+    );
+    expect(result).toMatchObject({ ok: true, sent: 3, rejected: 2 });
+  });
+
+  it('lượt khác đang giữ khóa đồng bộ thì bỏ qua, không gửi gì', async () => {
+    const t = setupSync();
+    writeLog(t.paths.jevLog, [CID]);
+    mkdirSync(`${t.paths.jevLog}.sync.lock`);
+    expect(await pushJevEvents(t.ctx, target, t.respond(200))).toMatchObject({ ok: true, sent: 0 });
+    expect(t.sent).toHaveLength(0);
+  });
+
+  it('cắt file chỉ chờ company có cấu hình Jev, không chờ đích chưa từng có Jev', async () => {
+    const t = setupSync();
+    writeJevConfig(t.paths.jevConfig, { companies: { [CID]: jevEntry() } });
+    // Đích thứ hai (OTHER) có trong status.json nhưng chưa từng kéo cấu hình Jev.
+    const statusPath = join(t.home, '.crew', 'status.json');
+    const status = JSON.parse(readFileSync(statusPath, 'utf8'));
+    status.targets = [
+      { url: 'https://paperclip.example', companyId: CID, keychainService: LEGACY_KEYCHAIN_SERVICE },
+      { url: 'https://other.example', companyId: OTHER, keychainService: 'crew-mac-status-33333333' },
+    ];
+    writeFileSync(statusPath, JSON.stringify(status));
+    writeLog(
+      t.paths.jevLog,
+      Array.from({ length: 2300 }, () => CID),
+      `echo ${'x'.repeat(1990)}`,
+    );
+    await pushJevEvents(t.ctx, target, t.respond(200));
+    expect(statSync(t.paths.jevLog).size).toBe(0);
+  });
+
+  it('file vượt 20 MiB vì một đích lỗi lâu: giữ 10 MiB cuối, ghi một dòng dropped cho company bị mất dòng', async () => {
+    const t = setupSync();
+    writeJevConfig(t.paths.jevConfig, { companies: { [CID]: jevEntry(), [OTHER]: jevEntry() } });
+    writeLog(
+      t.paths.jevLog,
+      Array.from({ length: 9300 }, () => OTHER),
+      `echo ${'x'.repeat(1990)}`,
+    );
+    writeLog(t.paths.jevLog, [CID, CID]);
+    const before = statSync(t.paths.jevLog).size;
+    expect(before).toBeGreaterThan(LOG_MAX_BYTES);
+    const result = await pushJevEvents(t.ctx, target, t.respond(200));
+    expect(result).toMatchObject({ ok: true, sent: 2 });
+    const after = readFileSync(t.paths.jevLog, 'utf8');
+    expect(Buffer.byteLength(after)).toBeLessThanOrEqual(LOG_KEEP_BYTES + 4096);
+    const lines = after.trim().split('\n');
+    // Mọi dòng còn lại là dòng nguyên vẹn; dòng cuối là tổng kết dropped của OTHER.
+    expect(lines.every((line) => JSON.parse(line).v === 1)).toBe(true);
+    const last = JSON.parse(lines.at(-1) as string);
+    expect(last).toMatchObject({ companyId: OTHER, verdict: 'error', errorCode: 'dropped', command: '' });
+    const keptOther = lines.filter(
+      (l) => JSON.parse(l).companyId === OTHER && !l.includes('"dropped"'),
+    ).length;
+    expect(Number(last.reason.replace('dropped:', ''))).toBe(9300 - keptOther);
+    // Con trỏ của CID vẫn trỏ cuối phần đã đẩy; dòng dropped (của OTHER) nằm sau và không gửi cho CID.
+    await pushJevEvents(t.ctx, target, t.respond(200));
+    expect(t.sent).toHaveLength(1);
   });
 });

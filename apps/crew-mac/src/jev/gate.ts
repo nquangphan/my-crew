@@ -1,17 +1,30 @@
 import { spawn } from 'node:child_process';
-import { isAbsolute } from 'node:path';
+import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { isAbsolute, join } from 'node:path';
 import { type GateResult, Jev, type JevBackend, OpenRouterBackend } from 'jev-use';
 import type { MacContext } from '../context.js';
 import { macPaths } from '../paths.js';
-import { type Category, dangerCategory, type GitFacts, needsGitFacts, readGitFacts } from './classify.js';
-import { COMPANY_ID, type JevCompanyConfig, readJevConfig, readJevKey, selectCompany } from './config.js';
+import { type Category, dangerCategory, type GitFacts, gitPushDir, readGitFacts } from './classify.js';
+import {
+  backgroundEnv,
+  COMPANY_ID,
+  encodeBackgroundInput,
+  type JevCompanyConfig,
+  readJevConfig,
+  readJevKey,
+  selectCompany,
+} from './config.js';
 import { appendGateLog, type GateErrorCode, type GateLogInput, type GateVerdict } from './log.js';
 
 export interface GateOptions {
   env: NodeJS.ProcessEnv;
   /** true trong `jev gate-bg`: luôn gọi Jev, không bao giờ chặn. */
   background: boolean;
-  /** Tách `crew-mac jev gate-bg` (stdin là sự kiện) ra khỏi nhóm process của run; test thay bằng hàm giả. */
+  /**
+   * Tách `crew-mac jev gate-bg` ra khỏi run (mặc định `spawnGateBackground`); test thay bằng hàm giả. Ném
+   * `BackgroundBusy` khi đã đủ số tiến trình nền đang chạy.
+   */
   spawnBackground?: (eventJson: string) => Promise<void>;
   /** Test thay backend; mặc định OpenRouter với `maxRetries: 0`. */
   createBackend?: (options: { apiKey: string; timeoutMs: number; model: string }) => JevBackend;
@@ -31,6 +44,50 @@ const KEYCHAIN_TIMEOUT_MS = 1000;
 /** Dưới mức này không kịp gọi Jev: coi như quá hạn. */
 const MIN_JEV_MS = 100;
 const SPAWN_WRITE_TIMEOUT_MS = 1000;
+/** Tối đa số `gate-bg` chạy cùng lúc trên máy; vượt thì ghi `error/skipped_bg` thay vì tách thêm. */
+export const MAX_BACKGROUND = 4;
+/** Ô của `gate-bg` cũ hơn mức này coi là bỏ lại (process tự thoát trong khoảng 5 giây). */
+const SLOT_STALE_MS = 30_000;
+
+/** Đã đủ `MAX_BACKGROUND` tiến trình nền đang chạy. */
+export class BackgroundBusy extends Error {}
+
+/** Thư mục ô của tiến trình nền: mỗi `gate-bg` đang chạy là một file tên theo pid. */
+export function backgroundSlotDir(home: string): string {
+  return join(macPaths(home).jevDir, 'bg');
+}
+
+/** Số `gate-bg` còn sống; ô của pid đã chết hoặc quá cũ bị xóa. */
+export function liveBackgroundSlots(dir: string, now: number = Date.now()): number {
+  let names: string[];
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return 0;
+  }
+  let live = 0;
+  for (const name of names) {
+    const file = join(dir, name);
+    const pid = Number(name);
+    let alive = Number.isInteger(pid) && pid > 1;
+    if (alive) {
+      try {
+        process.kill(pid, 0);
+        alive = now - statSync(file).mtimeMs < SLOT_STALE_MS;
+      } catch (error) {
+        alive = (error as NodeJS.ErrnoException).code === 'EPERM';
+      }
+    }
+    if (alive) live++;
+    else rmSync(file, { force: true });
+  }
+  return live;
+}
+
+/** `gate-bg` trả ô của chính nó khi xong. */
+export function releaseBackgroundSlot(home: string, pid: number = process.pid): void {
+  rmSync(join(backgroundSlotDir(home), String(pid)), { force: true });
+}
 
 type ParsedEvent =
   | { kind: 'bash'; command: string; cwd: string | null }
@@ -59,16 +116,19 @@ function uuidOrNull(value: string | undefined): string | null {
 
 /**
  * State gửi Jev: tiếng Anh, cố định, không có dữ liệu của run (không prompt, không mô tả issue, không env). Câu luật
- * lấy từ mục "Không bao giờ" của vai trò; việc dọn thư mục `mktemp -d` của chính lệnh được nói rõ là hợp lệ.
+ * lấy từ mục "Không bao giờ" của vai trò. Luật 1 khớp vai trò executor: xóa thư mục tạm (`mktemp -d`, dưới TMPDIR) mà
+ * run đã tạo, ở lệnh này hay lệnh trước, là dọn bắt buộc. `tempRoot` là TMPDIR của máy (thông tin máy, không phải run).
  */
-export function jevState(cwd: string | null, git: GitFacts | null): string {
+export function jevState(cwd: string | null, git: GitFacts | null, tempRoot: string = tmpdir()): string {
+  const branch = git === null ? 'not checked' : (git.defaultBranch ?? 'unknown (main or master assumed)');
   return [
     'A Crew coding agent runs shell commands inside its own git worktree on the owner Mac.',
     `Worktree: ${cwd ?? 'unknown'}`,
-    `Default branch: ${git?.defaultBranch ?? 'not checked'}`,
+    `Temporary directory root (TMPDIR): ${tempRoot}`,
+    `Default branch: ${branch}`,
     `Origin is GitHub: ${git ? (git.originIsGithub ? 'yes' : 'no') : 'not checked'}`,
     'The agent must never:',
-    '1. Delete directories recursively (rm -r, find -delete) outside its own temporary files. Removing a directory the same command created with mktemp -d is required cleanup and is allowed.',
+    `1. Delete directories recursively (rm -r, find -delete) outside its own temporary files. Removing a temporary directory this run created with mktemp -d (under ${tempRoot} or /tmp, e.g. ${join(tempRoot, 'tmp.XXXXXXXX')} or /tmp/tmp.XXXXXXXX), in this command or an earlier one, is required cleanup and is allowed.`,
     '2. Skip git hooks (--no-verify, git commit -n, git -c core.hooksPath=...).',
     '3. Force-push or rewrite remote history (git push --force, --force-with-lease, --mirror, +refspec).',
     '4. Push directly to the default branch of a GitHub origin; work goes to crew/... branches and pull requests.',
@@ -112,6 +172,9 @@ export function interpretGateResult(result: GateResult): JevAnswer {
       if (/timed out/i.test(hint)) return errorAnswer('timeout');
       if (/no answer|has no (answers|numeric|choice)|missing answer/i.test(hint))
         return errorAnswer('bad_response');
+      // Body không phải JSON: jev-use báo `network error: SyntaxError: Unexpected token …`.
+      if (/SyntaxError|Unexpected (token|end)|not valid JSON|JSON/i.test(hint))
+        return errorAnswer('bad_response');
       return errorAnswer('unreachable');
     }
     return { verdict: 'escalate', confidence, reason: result.reason ?? 'unsure', errorCode: null };
@@ -154,8 +217,10 @@ const defaultCreateBackend: NonNullable<GateOptions['createBackend']> = ({ apiKe
   new OpenRouterBackend({ apiKey, timeoutMs, maxRetries: 0, defaultModel: model });
 
 /**
- * Tách `node <cli.js> jev gate-bg` thành process riêng (`detached`: nhóm process mới, ngoài nhóm của run, nên
- * `--require-no-orphans` và reaper không tính nó), chờ ghi xong sự kiện vào stdin của nó rồi `unref`.
+ * Tách `node <cli.js> jev gate-bg` khỏi run: `detached` (nhóm process mới), cwd `~/.crew/jev` (ngoài worktree), env
+ * tối thiểu không có `PAPERCLIP_RUN_ID`; sự kiện và biến của run đi qua stdin (`encodeBackgroundInput`). Hook thoát thì
+ * tiến trình này thành con của launchd, nhưng vì không có run id và cwd ngoài worktree nên bộ kiểm mồ côi của run
+ * (`--require-no-orphans`, reaper) không chọn nó. Đã đủ `MAX_BACKGROUND` tiến trình nền thì ném `BackgroundBusy`.
  */
 export function spawnGateBackground(
   ctx: MacContext,
@@ -163,11 +228,26 @@ export function spawnGateBackground(
 ): (eventJson: string) => Promise<void> {
   return (eventJson) =>
     new Promise<void>((resolve, reject) => {
+      const paths = macPaths(ctx.home);
+      const slots = backgroundSlotDir(ctx.home);
+      mkdirSync(slots, { recursive: true, mode: 0o700 });
+      if (liveBackgroundSlots(slots) >= MAX_BACKGROUND) {
+        reject(new BackgroundBusy('đủ tiến trình nền'));
+        return;
+      }
       const child = spawn(process.execPath, [ctx.cliPath, 'jev', 'gate-bg'], {
         detached: true,
+        cwd: paths.jevDir,
         stdio: ['pipe', 'ignore', 'ignore'],
-        env,
+        env: backgroundEnv(env),
       });
+      if (child.pid !== undefined) {
+        try {
+          writeFileSync(join(slots, String(child.pid)), '', { mode: 0o600 });
+        } catch {
+          // Không ghi được ô: chỉ mất phần đếm, không chặn gì.
+        }
+      }
       let settled = false;
       const finish = (error?: Error) => {
         if (settled) return;
@@ -184,7 +264,7 @@ export function spawnGateBackground(
       );
       child.on('error', (error) => finish(error));
       child.stdin?.on('error', (error) => finish(error));
-      child.stdin?.end(eventJson, () => finish());
+      child.stdin?.end(encodeBackgroundInput(eventJson, env), () => finish());
     });
 }
 
@@ -243,13 +323,14 @@ export async function runGate(
       try {
         await spawnBackground(eventJson);
         return EMPTY;
-      } catch {
-        return fail('internal', context);
+      } catch (error) {
+        return fail(error instanceof BackgroundBusy ? 'skipped_bg' : 'internal', context);
       }
     };
     // Shadow: tiến trình chính không cần phân nhóm (không chạy git), tách nền ngay.
     if (!options.background && entry.gateMode === 'shadow') return await detach();
-    const git = needsGitFacts(event.command) && event.cwd ? await readGitFacts(ctx, event.cwd) : null;
+    const repo = event.cwd ? gitPushDir(event.command, event.cwd) : null;
+    const git = repo !== null ? await readGitFacts(ctx, repo) : null;
     const category = dangerCategory(event.command, git);
     const blocking = !options.background && entry.gateMode === 'enforce' && category !== null;
     if (!options.background && !blocking) return await detach();

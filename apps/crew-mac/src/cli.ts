@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { isAbsolute } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BMAD_USAGE, bmadCommand } from './commands/bmad.js';
 import { type CheckStatus, doctor } from './commands/doctor.js';
@@ -28,7 +28,13 @@ import { WORKFLOWS_USAGE, workflowsCommand } from './commands/workflows.js';
 import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
 import { filesCommand } from './files/command.js';
-import { keyFingerprint, readJevConfig, readJevKey, selectCompany } from './jev/config.js';
+import {
+  decodeBackgroundInput,
+  keyFingerprint,
+  readJevConfig,
+  readJevKey,
+  selectCompany,
+} from './jev/config.js';
 import { pendingJevEvents } from './jev/sync.js';
 import { type Manifest, readManifest } from './manifest.js';
 import { downloadNode, NODE_SOURCE_LABEL, resolveNode } from './node-runtime.js';
@@ -178,12 +184,14 @@ async function loadJevGate(): Promise<JevGateModule> {
 
 /**
  * `jev gate` / `jev gate-bg`: không bao giờ làm hỏng lệnh của agent. Mọi lỗi (kể cả không dựng được context) đều thoát
- * 0 và không in gì; chỉ in JSON deny khi gate quyết chặn. Jev tắt hay chưa cấu hình thì không nạp bundle.
+ * 0 và không in gì; chỉ in JSON deny khi gate quyết chặn. Jev tắt hay chưa cấu hình thì không nạp bundle. `gate-bg`
+ * đọc sự kiện và biến của run từ stdin (env của nó không có biến của run) và trả ô tiến trình nền khi xong.
  */
 async function jevGateCommand(io: CliIo, background: boolean): Promise<number> {
+  let home: string | undefined;
   try {
     const readStdin = io.readStdin ?? (() => readFileSync(0, 'utf8'));
-    const eventJson = readStdin();
+    const input = readStdin();
     const ctx: MacContext = {
       ...createMacContext({
         env: io.env,
@@ -192,13 +200,19 @@ async function jevGateCommand(io: CliIo, background: boolean): Promise<number> {
       }),
       ...io.context,
     };
-    const selected = selectCompany(readJevConfig(macPaths(ctx.home).jevConfig), io.env);
+    home = ctx.home;
+    const decoded = background ? decodeBackgroundInput(input) : { eventJson: input, env: io.env };
+    if (!decoded) return 0;
+    const selected = selectCompany(readJevConfig(macPaths(ctx.home).jevConfig), decoded.env);
     if (!selected?.entry.enabled) return 0;
     const gate = await loadJevGate();
-    const { stdout } = await gate.runGate(ctx, eventJson, { env: io.env, background });
+    const { stdout } = await gate.runGate(ctx, decoded.eventJson, { env: decoded.env, background });
     if (stdout) io.out(stdout);
   } catch {
     // Fail-open: lệnh vẫn chạy.
+  } finally {
+    if (background && home !== undefined)
+      rmSync(join(macPaths(home).jevDir, 'bg', String(process.pid)), { force: true });
   }
   return 0;
 }

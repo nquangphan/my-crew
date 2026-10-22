@@ -3,6 +3,7 @@ import {
   type Category,
   dangerCategory,
   type GitFacts,
+  gitPushDir,
   needsGitFacts,
   readGitFacts,
 } from '../src/jev/classify.js';
@@ -24,7 +25,28 @@ const dangerous: Array<[string, Category, GitFacts?]> = [
   ['env FOO=1 rm -rf x', 'rm_recursive'],
   ['cd /tmp && rm -rf x', 'rm_recursive'],
   ['ls; rm -Rf y', 'rm_recursive'],
-  ['D=$(mktemp -d)\nrm -rf "$D"', 'rm_recursive'],
+  ['rm -rf "$D"', 'rm_recursive'],
+  ['D=$(mktemp -d); D=/; rm -rf "$D"', 'rm_recursive'],
+  ['D=$(mktemp); rm -rf "$D"', 'rm_recursive'],
+  ['D=$(mktemp -d); rm -rf "$D/../x"', 'rm_recursive'],
+  ['D=$(mktemp -d); rm -rf "$D" /etc', 'rm_recursive'],
+  // tiền tố và từ khóa shell
+  ['sudo -u root rm -rf /x', 'rm_recursive'],
+  ['/usr/bin/sudo rm -rf /x', 'rm_recursive'],
+  ['/usr/bin/env git push --force origin crew/x', 'force_push'],
+  ['nice git push --force origin crew/x', 'force_push'],
+  ['nice -n 5 rm -rf x', 'rm_recursive'],
+  ['timeout 10 git push --force origin crew/x', 'force_push'],
+  ['timeout -s KILL 10 rm -rf x', 'rm_recursive'],
+  ['caffeinate -i rm -rf x', 'rm_recursive'],
+  ['command rm -rf x', 'rm_recursive'],
+  ['exec git push -f origin crew/x', 'force_push'],
+  ['if true; then git push --force origin crew/x; fi', 'force_push'],
+  ['for d in a b; do rm -rf "$d"; done', 'rm_recursive'],
+  ['while true; do rm -rf x; done', 'rm_recursive'],
+  ['{ git push --force origin crew/x; }', 'force_push'],
+  ['( rm -rf x )', 'rm_recursive'],
+  ['! rm -rf x', 'rm_recursive'],
   ['find . -name "*.log" -delete', 'rm_recursive'],
   ['find . -type d -exec rm -rf {} \\;', 'rm_recursive'],
   ['bash -c "rm -rf node_cache"', 'rm_recursive'],
@@ -52,9 +74,22 @@ const dangerous: Array<[string, Category, GitFacts?]> = [
   ['git push', 'push_default', GITHUB_ON_MAIN],
   ['git push origin', 'push_default', GITHUB_ON_MAIN],
   ['git push -u origin HEAD', 'push_default', GITHUB_ON_MAIN],
+  [
+    'git push origin master',
+    'push_default',
+    { defaultBranch: null, currentBranch: 'crew/x', originIsGithub: true },
+  ],
   // pr_merge
   ['gh pr merge 12 --squash', 'pr_merge'],
   ['gh api -X PUT repos/o/r/pulls/12/merge', 'pr_merge'],
+  ['gh pr --repo o/r merge 12', 'pr_merge'],
+  ['gh -R o/r pr merge 12', 'pr_merge'],
+  ['gh pr merge --repo o/r 12', 'pr_merge'],
+  ['curl -X PUT -H "Authorization: Bearer $GH" https://api.github.com/repos/o/r/pulls/5/merge', 'pr_merge'],
+  [
+    'gh api graphql -f query=\'mutation{mergePullRequest(input:{pullRequestId:"x"}){clientMutationId}}\'',
+    'pr_merge',
+  ],
   // credential
   ['security find-generic-password -s crew.jev.x -w', 'credential'],
   ['security find-internet-password -s github.com', 'credential'],
@@ -76,6 +111,19 @@ const dangerous: Array<[string, Category, GitFacts?]> = [
   // biome-ignore lint/suspicious/noTemplateCurlyInString: lệnh shell có ${VAR}, không phải template của JS
   ['printf "%s" "${GITHUB_TOKEN}"', 'credential'],
   ['echo $db_password', 'credential'],
+  ['printenv PAPERCLIP_API_KEY', 'credential'],
+  ['tar czf /tmp/k.tgz ~/.ssh', 'credential'],
+  ['zip -r /tmp/k.zip ~/.ssh/', 'credential'],
+  ['cp -r ~/.ssh /tmp/x', 'credential'],
+  ['cat ~/.ssh/id*', 'credential'],
+  ['cat ~/.ssh/*', 'credential'],
+  ['cat .env*', 'credential'],
+  ['export -p', 'credential'],
+  ['export', 'credential'],
+  ['set', 'credential'],
+  ['declare -x', 'credential'],
+  ['sudo cat /root/.ssh/id_rsa', 'credential'],
+  ['/usr/bin/env', 'credential'],
 ];
 
 const safe: Array<[string, GitFacts?]> = [
@@ -104,6 +152,27 @@ const safe: Array<[string, GitFacts?]> = [
   ['ls ~/.ssh'],
   ['git log --oneline -n 5'],
   [''],
+  ['D=$(mktemp -d)\nrm -rf "$D"'],
+  ['D=$(mktemp -d -t crew); trap \'rm -rf "$D"\' EXIT; rm -rf "$D"'],
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: lệnh shell có ${D}, không phải template của JS
+  ['D="$(mktemp -d)"; rm -rf "${D}/out"'],
+  ['git push origin crew/req/TPS-9 && git push origin crew/req/TPS-9:crew/req/TPS-9', GITHUB_ON_MAIN],
+  [
+    'curl -sf -H "Authorization: Bearer $PAPERCLIP_API_KEY" -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID" https://p/api/issues',
+  ],
+  ['cp .env.example .env && cat .env.example'],
+  ["echo '$X_TOKEN là tên biến'"],
+  ['cat > notes.md <<EOF\nrm -rf build\ngit push --force\nEOF'],
+  ["cat <<'EOF' > a.sh\nrm -rf /\nEOF\nls"],
+  ['printenv HOME'],
+  ['set -euo pipefail'],
+  ['export FOO=1'],
+  ['declare -a xs'],
+  ['gh pr view 12 --repo o/r'],
+  ['nice -n 5 pnpm test'],
+  ['timeout 30 pnpm test'],
+  ['if [ -f x ]; then cat x; fi'],
+  ['tar czf out.tgz src'],
 ];
 
 describe('dangerCategory', () => {
@@ -125,11 +194,23 @@ describe('dangerCategory', () => {
 });
 
 describe('needsGitFacts', () => {
-  it('chỉ đúng khi lệnh có git push', () => {
+  it('chỉ đúng khi lệnh có git push thật', () => {
     expect(needsGitFacts('git push origin main')).toBe(true);
     expect(needsGitFacts('cd x && git -C y push')).toBe(true);
+    expect(needsGitFacts('bash -c "git push"')).toBe(true);
     expect(needsGitFacts('git status')).toBe(false);
     expect(needsGitFacts('rm -rf x')).toBe(false);
+    expect(needsGitFacts('echo "use git push --force"')).toBe(false);
+    expect(needsGitFacts('git commit -m "push"')).toBe(false);
+  });
+
+  it('gitPushDir theo cd đứng trước và git -C', () => {
+    expect(gitPushDir('git push', '/w')).toBe('/w');
+    expect(gitPushDir('cd /r && git push', '/w')).toBe('/r');
+    expect(gitPushDir('cd sub; git push', '/w')).toBe('/w/sub');
+    expect(gitPushDir('git -C ../o push', '/w/a')).toBe('/w/o');
+    expect(gitPushDir('cd ~/x && git push', '/w')).toBe('/w');
+    expect(gitPushDir('ls', '/w')).toBeNull();
   });
 });
 

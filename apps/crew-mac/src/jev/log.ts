@@ -3,9 +3,20 @@ import { appendFileSync, chmodSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { redactSecrets } from 'jev-use';
 import type { Category } from './classify.js';
+import { acquireLock, LOG_LOCK_STALE_MS, LOG_LOCK_WAIT_MS, logLockPath, releaseLock } from './config.js';
 
 export type GateVerdict = 'allow' | 'deny' | 'escalate' | 'error';
-export type GateErrorCode = 'no_key' | 'timeout' | 'unreachable' | 'bad_response' | 'bad_event' | 'internal';
+export type GateErrorCode =
+  | 'no_key'
+  | 'timeout'
+  | 'unreachable'
+  | 'bad_response'
+  | 'bad_event'
+  | 'internal'
+  /** Đã đủ tiến trình nền đang chạy: lệnh không được gửi Jev. */
+  | 'skipped_bg'
+  /** Dòng tổng kết khi `gate.log` vượt trần và các dòng cũ nhất chưa đẩy bị bỏ (`reason` = `dropped:<số dòng>`). */
+  | 'dropped';
 
 /** Một dòng `gate.log` (JSONL v1, một dòng một lệnh). Không bao giờ chứa key, env hay đầu ra của lệnh. */
 export interface GateLogEntry {
@@ -38,7 +49,13 @@ const LINE_MAX_BYTES = 4000;
 
 /** Che credential bằng `redactSecrets` của jev-use (giống phần Jev nhận), rồi cắt 2000 ký tự. */
 export function redactCommand(command: string): string {
-  return redactSecrets(command).slice(0, COMMAND_MAX_CHARS);
+  // `redactSecrets` không che mật khẩu dính liền cờ của client MySQL (`mysql -pPASS`), và với mật khẩu có chữ "pass"
+  // nó che nhầm đối số kế tiếp: che phần này trước.
+  const mysql = command.replace(
+    /(\b(?:mysql|mysqldump|mysqladmin|mariadb|mariadb-dump)\b[^\n;|&]*?\s-p)(?!\s)([^\s'"]+)/g,
+    '$1[redacted]',
+  );
+  return redactSecrets(mysql).slice(0, COMMAND_MAX_CHARS);
 }
 
 /** Dựng dòng JSONL; lệnh dài (nhiều byte UTF-8 hay ký tự phải thoát) bị cắt tiếp cho tới khi cả dòng < 4000 byte. */
@@ -73,11 +90,20 @@ export function formatGateLine(input: GateLogInput, eventId: string = randomUUID
   return line;
 }
 
-/** Ghi một dòng vào `gate.log` (0600, thư mục 0700) bằng một lần append; trả dòng đã ghi (không có `\n`). */
+/**
+ * Ghi một dòng vào `gate.log` (0600, thư mục 0700) bằng một lần append, trong khóa ghi để không rơi vào giữa bước nén
+ * log; chờ khóa quá `LOG_LOCK_WAIT_MS` thì ghi luôn. Trả dòng đã ghi (không có `\n`).
+ */
 export function appendGateLog(path: string, input: GateLogInput): string {
   const line = formatGateLine(input);
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  appendFileSync(path, `${line}\n`, { mode: 0o600 });
-  chmodSync(path, 0o600);
+  const lock = logLockPath(path);
+  const locked = acquireLock(lock, LOG_LOCK_WAIT_MS, LOG_LOCK_STALE_MS);
+  try {
+    appendFileSync(path, `${line}\n`, { mode: 0o600 });
+    chmodSync(path, 0o600);
+  } finally {
+    if (locked) releaseLock(lock);
+  }
   return line;
 }

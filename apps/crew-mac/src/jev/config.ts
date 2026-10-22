@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { MacContext } from '../context.js';
 
@@ -163,3 +163,91 @@ export async function deleteJevKey(ctx: MacContext, companyId: string): Promise<
   );
   if (result.code !== 0 && result.code !== 44) throw new Error('Không xóa được key Jev khỏi Keychain');
 }
+
+/** Biến của run mà `gate-bg` cần; chúng đi qua stdin, không qua env của tiến trình nền. */
+export const RUN_ENV_KEYS = ['PAPERCLIP_COMPANY_ID', 'PAPERCLIP_RUN_ID', 'PAPERCLIP_AGENT_ID'] as const;
+
+/**
+ * Stdin của `jev gate-bg`: sự kiện hook nguyên văn cùng ba biến của run. Tiến trình nền chạy với env tối thiểu và cwd
+ * `~/.crew/jev`, nên không mang dấu hiệu nào của run (`PAPERCLIP_RUN_ID`, cwd trong worktree) mà bộ kiểm process mồ
+ * côi dựa vào.
+ */
+export function encodeBackgroundInput(eventJson: string, env: NodeJS.ProcessEnv): string {
+  const runEnv: Record<string, string> = {};
+  for (const key of RUN_ENV_KEYS) {
+    const value = env[key];
+    if (typeof value === 'string') runEnv[key] = value;
+  }
+  return JSON.stringify({ v: 1, event: eventJson, env: runEnv });
+}
+
+/** Đọc lại stdin của `gate-bg`; sai dạng thì null (tiến trình nền thoát, không làm gì). */
+export function decodeBackgroundInput(input: string): { eventJson: string; env: NodeJS.ProcessEnv } | null {
+  try {
+    const value = JSON.parse(input) as { v?: unknown; event?: unknown; env?: unknown };
+    if (value.v !== 1 || typeof value.event !== 'string') return null;
+    const env: NodeJS.ProcessEnv = {};
+    if (typeof value.env === 'object' && value.env !== null)
+      for (const key of RUN_ENV_KEYS) {
+        const v = (value.env as Record<string, unknown>)[key];
+        if (typeof v === 'string') env[key] = v;
+      }
+    return { eventJson: value.event, env };
+  } catch {
+    return null;
+  }
+}
+
+/** Env tối thiểu của `gate-bg`: đủ để chạy `security`, `git` và gọi mạng; không có biến nào của run hay secret. */
+export function backgroundEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const key of [
+    'HOME',
+    'PATH',
+    'USER',
+    'LOGNAME',
+    'TMPDIR',
+    'LANG',
+    'LC_ALL',
+    'SSL_CERT_FILE',
+    'NODE_EXTRA_CA_CERTS',
+  ])
+    if (typeof env[key] === 'string') out[key] = env[key];
+  return out;
+}
+
+/**
+ * Khóa liên tiến trình bằng `mkdir` (atomic). Chờ tối đa `waitMs`; khóa cũ hơn `staleMs` (tiến trình giữ khóa đã chết)
+ * thì gỡ. Trả false khi không lấy được (người gọi tự quyết bỏ qua hay làm tiếp không khóa).
+ */
+export function acquireLock(path: string, waitMs: number, staleMs: number): boolean {
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    try {
+      mkdirSync(path, { mode: 0o700 });
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') return false;
+    }
+    try {
+      if (Date.now() - statSync(path).mtimeMs > staleMs) {
+        rmSync(path, { recursive: true, force: true });
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    if (Date.now() >= deadline) return false;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+  }
+}
+
+export function releaseLock(path: string): void {
+  rmSync(path, { recursive: true, force: true });
+}
+
+/** Khóa ghi `gate.log`: người ghi giữ trong một lần append; bước nén log giữ trong lúc chép và đổi file. */
+export const logLockPath = (logPath: string) => `${logPath}.lock`;
+/** Người ghi chờ khóa tối đa chừng này rồi ghi luôn (không bao giờ bỏ dòng). */
+export const LOG_LOCK_WAIT_MS = 300;
+export const LOG_LOCK_STALE_MS = 5000;

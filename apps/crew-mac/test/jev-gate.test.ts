@@ -1,10 +1,35 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { BackendError, type BackendRequest, type BackendResponse, type JevBackend } from 'jev-use';
-import { describe, expect, it } from 'vitest';
-import { type JevCompanyConfig, writeJevConfig } from '../src/jev/config.js';
-import { type GateOptions, runGate } from '../src/jev/gate.js';
-import type { GateLogEntry } from '../src/jev/log.js';
+import { afterEach, describe, expect, it } from 'vitest';
+import { orphanCheck } from '../src/commands/workflow-check.js';
+import { decodeBackgroundInput, type JevCompanyConfig, writeJevConfig } from '../src/jev/config.js';
+import {
+  BackgroundBusy,
+  backgroundSlotDir,
+  type GateOptions,
+  interpretGateResult,
+  jevState,
+  liveBackgroundSlots,
+  MAX_BACKGROUND,
+  runGate,
+} from '../src/jev/gate.js';
+import { type GateLogEntry, redactCommand } from '../src/jev/log.js';
 import { macPaths } from '../src/paths.js';
+import { createRunner } from '../src/system.js';
 import { fakeMac } from './helpers/fake-mac.js';
 
 const CID = '22222222-2222-4222-8222-222222222222';
@@ -212,7 +237,7 @@ describe('runGate: enforce', () => {
 
   it('lệnh thuộc nhóm mà Jev allow thì cho chạy', async () => {
     const t = setupGate({ [CID]: entry({ gateMode: 'enforce' }) }, 'allow');
-    const result = await runGate(t.ctx, event('D=$(mktemp -d)\nrm -rf "$D"'), t.options());
+    const result = await runGate(t.ctx, event('rm -rf /tmp/tmp.AbC123'), t.options());
     expect(result.stdout).toBe('');
     expect(t.logLines()[0]).toMatchObject({ category: 'rm_recursive', blocking: true, verdict: 'allow' });
   });
@@ -309,6 +334,24 @@ describe('runGate: fail-open', () => {
 });
 
 describe('dòng log', () => {
+  it('che mật khẩu dính liền cờ -p của client MySQL, giữ các cờ khác', () => {
+    expect(redactCommand('mysql -u root -pS3cretPass -h db orders')).toBe(
+      'mysql -u root -p[redacted] -h db orders',
+    );
+    expect(redactCommand('mysqldump -pabc123 db > x.sql')).toBe('mysqldump -p[redacted] db > x.sql');
+    expect(redactCommand('mysql -u root -p db')).toBe('mysql -u root -p db');
+  });
+
+  it('người ghi đợi khóa của bước nén log; khóa bị giữ quá lâu thì vẫn ghi', async () => {
+    const t = setupGate({ [CID]: entry() }, 'allow');
+    mkdirSync(t.paths.jevDir, { recursive: true });
+    mkdirSync(`${t.paths.jevLog}.lock`);
+    const started = Date.now();
+    await runGate(t.ctx, event('ls'), t.options({ background: true }));
+    expect(Date.now() - started).toBeGreaterThanOrEqual(250);
+    expect(t.logLines()).toHaveLength(1);
+  });
+
   it('che credential trong lệnh và cắt 2000 ký tự, dòng nhỏ hơn 4 KiB', async () => {
     const t = setupGate({ [CID]: entry() }, 'allow');
     const long = `curl -H "Authorization: Bearer ${KEY}" https://x/${'é'.repeat(3000)}`;
@@ -318,5 +361,154 @@ describe('dòng log', () => {
     expect(raw).toContain('[redacted]');
     expect(Buffer.byteLength(raw.trim(), 'utf8')).toBeLessThan(4096);
     expect((t.logLines()[0]?.command.length ?? 0) <= 2000).toBe(true);
+  });
+});
+
+describe('state, kết quả Jev và giới hạn tiến trình nền', () => {
+  it('luật thư mục tạm khớp vai trò: thư mục mktemp của run, ở lệnh này hay lệnh trước', () => {
+    const state = jevState('/w', null, '/var/folders/ab/T');
+    expect(state).toContain('Temporary directory root (TMPDIR): /var/folders/ab/T');
+    expect(state).toContain('this run created with mktemp -d');
+    expect(state).toContain('in this command or an earlier one');
+    expect(state).toContain('/var/folders/ab/T/tmp.XXXXXXXX');
+    expect(jevState('/w', { defaultBranch: null, currentBranch: 'x', originIsGithub: true })).toContain(
+      'Default branch: unknown (main or master assumed)',
+    );
+  });
+
+  it('body không phải JSON là bad_response, không phải unreachable', () => {
+    expect(
+      interpretGateResult({
+        decision: 'escalate',
+        confidence: 0,
+        reason: 'unreachable',
+        hint: 'Jev backend failed (network error: SyntaxError: Unexpected token < in JSON at position 0); answer this yourself.',
+        backend: 'openrouter',
+      }),
+    ).toMatchObject({ verdict: 'error', errorCode: 'bad_response' });
+  });
+
+  it('đủ tiến trình nền thì ghi error/skipped_bg thay vì tách thêm', async () => {
+    const t = setupGate({ [CID]: entry() });
+    await runGate(
+      t.ctx,
+      event('ls'),
+      t.options({
+        spawnBackground: async () => {
+          throw new BackgroundBusy('đủ');
+        },
+      }),
+    );
+    expect(t.logLines()[0]).toMatchObject({ verdict: 'error', errorCode: 'skipped_bg', command: 'ls' });
+  });
+
+  it('đếm ô tiến trình nền: pid còn sống thì tính, pid chết thì xóa ô', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crew-jev-slots-'));
+    writeFileSync(join(dir, String(process.pid)), '');
+    writeFileSync(join(dir, '999999'), '');
+    writeFileSync(join(dir, 'rác'), '');
+    expect(liveBackgroundSlots(dir)).toBe(1);
+    expect(readdirSync(dir)).toEqual([String(process.pid)]);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe.skipIf(process.platform !== 'darwin')('tiến trình nền thật', () => {
+  const RUN_REAL = '55555555-2222-4333-8444-555555555555';
+  const cleanup: Array<() => void> = [];
+  afterEach(() => {
+    for (const fn of cleanup.splice(0)) fn();
+  });
+
+  it('hook tách gate-bg với cwd ~/.crew/jev, env không có biến run, dữ liệu run qua stdin; check mồ côi của run vẫn ok', async () => {
+    const t = setupGate({ [CID]: entry() });
+    cleanup.push(() => rmSync(t.home, { recursive: true, force: true }));
+    // cli.js giả: ghi lại cwd, env, argv, stdin rồi "gọi Jev" 3 giây như gate-bg thật.
+    const bin = mkdtempSync(join(tmpdir(), 'crew-jev-bin-'));
+    cleanup.push(() => rmSync(bin, { recursive: true, force: true }));
+    const record = join(bin, 'record.json');
+    const cli = join(bin, 'cli.js');
+    writeFileSync(
+      cli,
+      `const fs = require('node:fs');
+const input = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(${JSON.stringify(record)}, JSON.stringify({ pid: process.pid, cwd: process.cwd(), env: process.env, argv: process.argv.slice(2), input }));
+setTimeout(() => {}, 3000);
+`,
+    );
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'crew-jev-worktree-')));
+    cleanup.push(() => rmSync(root, { recursive: true, force: true }));
+    const runDir = join(root, '.paperclip-runtime', 'runs', RUN_REAL);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, 'started'), `${Math.floor(Date.now() / 1000) - 2}\n`);
+    const env = {
+      ...process.env,
+      PAPERCLIP_COMPANY_ID: CID,
+      PAPERCLIP_RUN_ID: RUN_REAL,
+      PAPERCLIP_AGENT_ID: RUN,
+      PAPERCLIP_API_KEY: 'pcp-secret-không-được-lộ',
+    };
+    const { spawnBackground: _fake, ...real } = t.options({ env });
+    const hookEvent = JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'ls' }, cwd: root });
+    expect(await runGate({ ...t.ctx, cliPath: cli }, hookEvent, real)).toEqual({ stdout: '', logLine: null });
+
+    for (let i = 0; i < 50 && !existsSync(record); i++) await sleep(100);
+    const seen = JSON.parse(readFileSync(record, 'utf8')) as {
+      pid: number;
+      cwd: string;
+      env: Record<string, string>;
+      argv: string[];
+      input: string;
+    };
+    cleanup.push(() => {
+      try {
+        process.kill(seen.pid, 'SIGKILL');
+      } catch {}
+    });
+    expect(seen.argv).toEqual(['jev', 'gate-bg']);
+    expect(realpathSync(seen.cwd)).toBe(realpathSync(t.paths.jevDir));
+    for (const key of ['PAPERCLIP_RUN_ID', 'PAPERCLIP_COMPANY_ID', 'PAPERCLIP_AGENT_ID', 'PAPERCLIP_API_KEY'])
+      expect(seen.env[key]).toBeUndefined();
+    expect(seen.env.HOME).toBe(process.env.HOME);
+    expect(decodeBackgroundInput(seen.input)).toEqual({
+      eventJson: hookEvent,
+      env: { PAPERCLIP_COMPANY_ID: CID, PAPERCLIP_RUN_ID: RUN_REAL, PAPERCLIP_AGENT_ID: RUN },
+    });
+    expect(seen.input).not.toContain('pcp-secret');
+    // Nhóm process mới (detached) và có ô đếm tiến trình nền.
+    const pgid = execFileSync('/bin/ps', ['-o', 'pgid=', '-p', String(seen.pid)], {
+      encoding: 'utf8',
+    }).trim();
+    expect(pgid).toBe(String(seen.pid));
+    expect(existsSync(join(backgroundSlotDir(t.home), String(seen.pid)))).toBe(true);
+
+    // Lệnh báo xong của agent chạy ngay sau hook, khi gate-bg còn sống.
+    const check = await orphanCheck(
+      { runner: createRunner(), now: () => new Date(), selfPid: process.pid },
+      { root, runId: RUN_REAL },
+    );
+    expect(check).toEqual({
+      ok: true,
+      lines: [`crew-workflow ok không còn process nào của run ${RUN_REAL}`],
+    });
+  }, 20_000);
+
+  it('đủ MAX_BACKGROUND gate-bg đang sống thì spawnGateBackground không tách thêm, hook ghi error/skipped_bg', async () => {
+    const t = setupGate({ [CID]: entry() });
+    const dir = backgroundSlotDir(t.home);
+    mkdirSync(dir, { recursive: true });
+    const sleepers = Array.from({ length: MAX_BACKGROUND }, () =>
+      spawn('/bin/sleep', ['5'], { stdio: 'ignore' }),
+    );
+    for (const child of sleepers) writeFileSync(join(dir, String(child.pid)), '');
+    try {
+      const { spawnBackground: _fake, ...real } = t.options();
+      await runGate({ ...t.ctx, cliPath: '/không/có/cli.js' }, event('ls'), real);
+      expect(t.logLines()[0]).toMatchObject({ verdict: 'error', errorCode: 'skipped_bg' });
+      expect(readdirSync(dir)).toHaveLength(MAX_BACKGROUND);
+    } finally {
+      for (const child of sleepers) child.kill('SIGKILL');
+      rmSync(t.home, { recursive: true, force: true });
+    }
   });
 });
