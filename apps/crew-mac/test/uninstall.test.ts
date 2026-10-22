@@ -12,8 +12,10 @@ import {
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { setup } from '../src/commands/setup.js';
+import { configureStatus } from '../src/commands/status.js';
 import { uninstall } from '../src/commands/uninstall.js';
 import { SetupError } from '../src/context.js';
+import { writeJevConfig } from '../src/jev/config.js';
 import { macPaths, SPIKE_LABEL, SSHD_LABEL } from '../src/paths.js';
 import { runtimePaths } from '../src/runtimes/paths.js';
 import { PATH_BLOCK_BEGIN, PATH_BLOCK_BODY, SPIKE_PATH_COMMENT } from '../src/zshenv.js';
@@ -329,6 +331,62 @@ describe('crew-mac uninstall', () => {
         expect(existsSync(t.rt.codexWrapper)).toBe(false);
       },
     );
+  });
+
+  it('gỡ ~/.crew/jev và key Crew Jev trong Keychain của mọi company (config Jev và đích bản tin)', async () => {
+    const { home, ctx, runner } = fakeMac();
+    const paths = macPaths(home);
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    const fromConfig = '22222222-2222-4222-8222-222222222222';
+    const fromTarget = '33333333-3333-4333-8333-333333333333';
+    const missing = '44444444-4444-4444-8444-444444444444';
+    configureStatus(ctx, 'https://paperclip.example', fromTarget);
+    const entry = {
+      version: 1,
+      enabled: true,
+      gateMode: 'shadow' as const,
+      model: 'typesafe/jev-1.14',
+      threshold: 0.5,
+      timeoutMs: 2500,
+      keyFingerprint: null,
+      pulledAt: '2026-10-06T06:00:00.000Z',
+    };
+    writeJevConfig(paths.jevConfig, { companies: { [fromConfig]: entry, [missing]: entry } });
+    writeFileSync(paths.jevLog, '{}\n');
+    const keychain = new Set([`crew.jev.${fromConfig}`, `crew.jev.${fromTarget}`, 'crew-mac-status']);
+    runner.on('/usr/bin/security', (args) => {
+      const service = args[args.indexOf('-s') + 1] as string;
+      return args[0] === 'delete-generic-password' && keychain.delete(service) ? {} : { code: 44 };
+    });
+
+    const report = await uninstall(ctx);
+
+    expect(existsSync(paths.jevDir)).toBe(false);
+    expect(report.removed).toEqual(
+      expect.arrayContaining([
+        paths.jevDir,
+        `Keychain crew.jev.${fromConfig}`,
+        `Keychain crew.jev.${fromTarget}`,
+      ]),
+    );
+    expect(report.removed).not.toContain(`Keychain crew.jev.${missing}`);
+    // Chỉ xóa mục crew.jev.*, không đụng secret bản tin máy; không đọc key.
+    expect([...keychain]).toEqual(['crew-mac-status']);
+    expect(
+      runner.calls.filter((c) => c.command.includes('security')).every((c) => !c.args.includes('-w')),
+    ).toBe(true);
+    expect(report.notes).toBeUndefined();
+  });
+
+  it('Keychain lỗi khi xóa key Crew Jev thì vẫn gỡ phần còn lại và báo trong notes', async () => {
+    const { home, ctx, runner } = fakeMac();
+    const paths = macPaths(home);
+    await setup(ctx, { paperclipKey: PAPERCLIP_PUB });
+    configureStatus(ctx, 'https://paperclip.example', '33333333-3333-4333-8333-333333333333');
+    runner.on('/usr/bin/security', () => ({ code: 51 }));
+    const report = await uninstall(ctx);
+    expect(existsSync(paths.jevDir)).toBe(false);
+    expect(report.notes?.join('\n')).toContain('crew.jev.33333333-3333-4333-8333-333333333333');
   });
 
   it('chạy lại khi đã gỡ hết thì không lỗi và không gỡ gì', async () => {

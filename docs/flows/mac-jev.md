@@ -147,7 +147,8 @@ Chế độ, model, ngưỡng và timeout do owner đặt trên web. Mac kéo c�
 ## Flow liên quan
 
 - `mac-setup`: `setup` ghi `settings.json`; wrapper thêm `--settings`; `status send` gọi đồng bộ; `doctor` có mục
-  `jev`; `cli.ts` có ba lệnh `jev`; `paths.ts` có các đường dẫn `jev*`.
+  `jev`; `cli.ts` có ba lệnh `jev`; `paths.ts` có các đường dẫn `jev*`; `uninstall` xóa mục Keychain `crew.jev.*` và
+  thư mục `~/.crew/jev/`.
 - `mac-orphan-reaper`: tiến trình nền của gate sống ≤ 3 giây, ở nhóm process riêng, nên reaper và
   `--require-no-orphans` không tính nó.
 

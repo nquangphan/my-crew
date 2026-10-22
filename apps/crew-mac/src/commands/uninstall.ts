@@ -4,6 +4,7 @@ import { basename, join } from 'node:path';
 import { removeKeysByComment } from '../authorized-keys.js';
 import { type MacContext, SetupError } from '../context.js';
 import { readText, writeIfChanged } from '../fs-util.js';
+import { jevKeychainService, readJevConfig } from '../jev/config.js';
 import { bootout, serviceState } from '../launchctl.js';
 import { type Manifest, readManifest } from '../manifest.js';
 import {
@@ -20,6 +21,7 @@ import { listProcesses, type ProcInfo } from '../reaper/process-table.js';
 import { descendants, isClaudeExe } from '../reaper/run-members.js';
 import { runtimePaths } from '../runtimes/paths.js';
 import { currentSshdOwner, isCrewListener, readSshdPid } from '../sshd-owner.js';
+import { listTargets } from '../status/targets.js';
 import { RUN_MARK_SOURCE } from '../wrapper.js';
 import { removePathBlock, removeSpikePathLines } from '../zshenv.js';
 
@@ -164,6 +166,32 @@ export function reconcileCodexAuth(home: string): string[] {
   return unsure;
 }
 
+/**
+ * Xóa key OpenRouter của Crew Jev (`crew.jev.<cid>`) cho mọi company trong `~/.crew/jev/config.json` và mọi đích bản
+ * tin. Mục không có (44) thì bỏ qua; lỗi khác không chặn uninstall mà chỉ thành một dòng `notes`.
+ */
+async function removeJevKeys(ctx: MacContext, removed: string[], notes: string[]): Promise<void> {
+  const companies = new Set<string>(
+    Object.keys(readJevConfig(macPaths(ctx.home).jevConfig)?.companies ?? {}),
+  );
+  try {
+    for (const target of listTargets(ctx)) companies.add(target.companyId.toLowerCase());
+  } catch {
+    // status.json hỏng: chỉ dựa vào config Jev.
+  }
+  for (const companyId of companies) {
+    const service = jevKeychainService(companyId);
+    const result = await ctx.runner.run('/usr/bin/security', ['delete-generic-password', '-s', service], {
+      timeoutMs: 10_000,
+    });
+    if (result.code === 0) removed.push(`Keychain ${service}`);
+    else if (result.code !== 44)
+      notes.push(
+        `không xóa được key Crew Jev ${service} khỏi Keychain (mã ${result.code}); xóa tay bằng Keychain Access`,
+      );
+  }
+}
+
 export async function uninstall(
   ctx: MacContext,
   options: { force?: boolean } = {},
@@ -225,7 +253,9 @@ export async function uninstall(
     notes.push(
       `giữ ${rt.runtimesRoot}: không chắc auth.json Codex nào mới hơn (${unsureAuth.join('; ')}); so với ~/.codex/auth.json, giữ bản đúng rồi xóa file riêng của agent và chạy lại uninstall`,
     );
-  for (const dir of [paths.root, paths.spikeDir, rt.runtimesRoot]) {
+  // Crew Jev: key trong Keychain trước (cần config để biết company), rồi cả ~/.crew/jev (settings, config, log, con trỏ).
+  await removeJevKeys(ctx, removed, notes);
+  for (const dir of [paths.root, paths.spikeDir, rt.runtimesRoot, paths.jevDir]) {
     if (keptRuntimes && dir === rt.runtimesRoot) continue;
     if (existsSync(dir)) {
       rmSync(dir, { recursive: true, force: true });
