@@ -78,7 +78,7 @@ export type JobPayload =
       kind: 'remove-checkouts';
       projectId: string;
       projectKey: string;
-      roles: CrewRoleSlot[];
+      roles: string[];
       removeStatusRepo: boolean;
     }
   | { kind: 'skill-remove'; skillId: string; slug: string }
@@ -113,9 +113,9 @@ export type JobResult =
   | { kind: 'check'; items: CheckItem[] }
   | {
       kind: 'remove-checkouts';
-      removed: { role: CrewRoleSlot; path: string }[];
+      removed: { role: string; path: string }[];
       kept: KeptCheckout[];
-      absent: CrewRoleSlot[];
+      absent: string[];
     }
   | { kind: 'skill-remove'; removed: boolean }
   | {
@@ -137,7 +137,7 @@ export type JobResult =
  * worktree phụ nằm đúng chỗ (`not_worktree`), hoặc git từ chối (`git_failed`). Không bao giờ xóa cưỡng bức.
  */
 export interface KeptCheckout {
-  role: CrewRoleSlot;
+  role: string;
   path: string;
   reason: 'dirty' | 'busy' | 'not_worktree' | 'git_failed';
   detail?: string;

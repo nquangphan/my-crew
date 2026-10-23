@@ -5,7 +5,6 @@ import type { AppStateStore } from '../app-state.js';
 import { type GitRunner, runGit } from '../projects/folder.js';
 import { sanitizeJobError } from './sanitize.js';
 import {
-  type CrewRoleSlot,
   JobError,
   type JobOutcome,
   type JobPayload,
@@ -63,10 +62,7 @@ function lstatOrNull(path: string) {
 
 const lastLine = (text: string) => text.trim().split('\n').at(-1) ?? '';
 
-type RoleOutcome =
-  | { removed: { role: CrewRoleSlot; path: string } }
-  | { kept: KeptCheckout }
-  | { absent: CrewRoleSlot };
+type RoleOutcome = { removed: { role: string; path: string } } | { kept: KeptCheckout } | { absent: string };
 
 /**
  * Gỡ checkout của các vai trò ở `~/crew-agents/<khóa>/<vai>`. Chỉ gỡ khi đường thật (`realpath`) đúng chỗ đó, là
@@ -99,7 +95,7 @@ export async function removeCheckouts(
 
 async function removeOne(
   projectKey: string,
-  role: CrewRoleSlot,
+  role: string,
   realHome: string,
   deps: RemoveDeps,
 ): Promise<RoleOutcome> {

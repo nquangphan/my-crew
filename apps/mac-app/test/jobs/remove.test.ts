@@ -96,6 +96,33 @@ function branches(ctx: ReturnType<typeof setup>): string[] {
 }
 
 describe('remove-checkouts', () => {
+  it('gỡ worktree có tên thư mục của app (executor-1) như ô bình thường', async () => {
+    const ctx = setup();
+    const checkout = ctx.checkout('executor-1');
+    ctx.s.git(['-C', ctx.s.folder, 'worktree', 'add', '-q', '-b', 'agent/demo-executor-1', checkout]);
+    const outcome = await runJob(
+      job({
+        kind: 'remove-checkouts',
+        projectId: PROJECT,
+        projectKey: 'demo',
+        roles: ['executor-1'],
+        removeStatusRepo: false,
+      }),
+      { projectId: null },
+      ctx.deps,
+    );
+    expect(outcome).toMatchObject({
+      status: 'done',
+      result: {
+        kind: 'remove-checkouts',
+        removed: [{ role: 'executor-1', path: checkout }],
+        kept: [],
+        absent: [],
+      },
+    });
+    expect(existsSync(checkout)).toBe(false);
+  });
+
   it('checkout sạch (có tệp runtime bị ignore) → removed; nhánh và folder gốc còn nguyên; worktree hết trong danh sách', async () => {
     const ctx = setup();
     await prepare(ctx);

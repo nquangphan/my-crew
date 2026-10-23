@@ -80,17 +80,20 @@ function rolesError(roles: unknown): string | null {
   return missing ? `roles thiếu ${missing}` : null;
 }
 
-/** Vai trò cần gỡ checkout: 1–8 tên vai trò, không trùng. */
+/** Tên thư mục checkout hợp lệ: khớp CHECKOUT_NAME, khác `repo`. */
+const checkoutNameOk = (value: unknown): value is string =>
+  typeof value === 'string' && CHECKOUT_NAME.test(value) && value !== 'repo';
+
+/** Thư mục checkout cần gỡ: 1–8 tên không trùng (tám ô của wizard hay tên thư mục của app như `executor-1`), khác `repo`. */
 function removeRolesError(roles: unknown): string | null {
   if (!Array.isArray(roles)) return 'roles phải là mảng';
   for (const role of roles) {
-    const error = roleError(role);
-    if (error) return error;
+    if (!checkoutNameOk(role)) return 'role không hợp lệ';
   }
   if (roles.length < 1 || roles.length > CREW_ROLE_SLOTS.length)
     return `roles phải có 1 đến ${CREW_ROLE_SLOTS.length} vai trò`;
   const seen = new Set<string>();
-  for (const role of roles as CrewRoleSlot[]) {
+  for (const role of roles as string[]) {
     if (seen.has(role)) return `role ${role} bị trùng`;
     seen.add(role);
   }
@@ -101,8 +104,6 @@ const originError = (value: unknown) =>
   typeof value === 'string' && value.length <= 500 && !CONTROL.test(value) && ORIGIN.test(value)
     ? null
     : 'originUrl không hợp lệ';
-const checkoutNameOk = (value: unknown): value is string =>
-  typeof value === 'string' && CHECKOUT_NAME.test(value) && value !== 'repo';
 
 function ensureRolesError(roles: unknown): string | null {
   if (!Array.isArray(roles)) return 'roles phải là mảng';
@@ -209,7 +210,7 @@ export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobP
           kind,
           projectId: p.projectId.toLowerCase(),
           projectKey: p.projectKey as string,
-          roles: [...(p.roles as CrewRoleSlot[])],
+          roles: [...(p.roles as string[])],
           removeStatusRepo: p.removeStatusRepo,
         }
       );

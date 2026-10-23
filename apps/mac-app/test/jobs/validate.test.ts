@@ -290,7 +290,8 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
       'roles phải có 1 đến 8 vai trò',
     ],
     ['remove-checkouts', { ...ok, roles: ['executor', 'executor'] }, 'role executor bị trùng'],
-    ['remove-checkouts', { ...ok, roles: ['boss'] }, 'role không hợp lệ'],
+    ['remove-checkouts', { ...ok, roles: ['Boss'] }, 'role không hợp lệ'],
+    ['remove-checkouts', { ...ok, roles: ['repo'] }, 'role không hợp lệ'],
     ['remove-checkouts', { ...ok, roles: ['../executor'] }, 'role không hợp lệ'],
     ['remove-checkouts', { ...ok, roles: [{ role: 'executor' }] }, 'role không hợp lệ'],
     ['remove-checkouts', { ...ok, roles: 'executor' }, 'roles phải là mảng'],
@@ -345,6 +346,16 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
 });
 
 describe('ô vai trò runtime và việc runtimes-setup', () => {
+  it('remove-checkouts nhận tên thư mục checkout của app (executor-1)', () => {
+    const payload = {
+      projectId: '30000000-0000-4000-8000-000000000001',
+      projectKey: 'demo',
+      roles: ['executor-1', 'assistant'],
+      removeStatusRepo: false,
+    };
+    expect(validateJobPayload('remove-checkouts', payload)).toEqual({ kind: 'remove-checkouts', ...payload });
+  });
+
   it('nhận ba ô mới ở agent-workspace và remove-checkouts', () => {
     for (const role of ['executor-codex', 'executor-opencode', 'reviewer-codex']) {
       expect(
