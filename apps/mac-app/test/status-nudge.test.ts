@@ -103,6 +103,12 @@ describe('jobCreatedCheckouts', () => {
     expect(jobCreatedCheckouts('prepare-checkouts', done('prepare-checkouts'))).toBe(true);
     expect(jobCreatedCheckouts('agent-workspace', done('agent-workspace'))).toBe(true);
     expect(jobCreatedCheckouts('inspect-folder', done('inspect-folder'))).toBe(false);
+    const ensured: JobOutcome = {
+      status: 'done',
+      result: { kind: 'ensure-project', repoPath: '/r', cloned: true, checkouts: [], companions: [] },
+    };
+    expect(jobCreatedCheckouts('ensure-project', ensured)).toBe(true);
+    expect(jobCreatedCheckouts('ensure-project', failed)).toBe(false);
     expect(jobCreatedCheckouts('prepare-checkouts', failed)).toBe(false);
     expect(jobCreatedCheckouts('agent-workspace', failed)).toBe(false);
   });

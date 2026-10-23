@@ -19,6 +19,13 @@ const VERSION = /^[A-Za-z0-9._+-]{1,64}$/;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: ký tự điều khiển chính là thứ bị từ chối
 const CONTROL = /[\x00-\x1f\x7f]/;
 const REQUIRED_ROLES: readonly CrewRoleSlot[] = ['assistant', 'executor', 'reviewer', 'integrator'];
+/** Origin repo cho `ensure-project`: https/ssh/file URL hoặc dạng `user@host:path`. */
+const ORIGIN = /^(?:(?:https|ssh|file):\/\/\S+|[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:\S+)$/;
+/** Tên thư mục checkout trên máy; `repo` để dành cho bản clone. */
+const CHECKOUT_NAME = /^[a-z][a-z0-9-]{0,30}$/;
+const COMPANION_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const MAX_ENSURE_ROLES = 8;
+const MAX_COMPANIONS = 5;
 
 const KEYS: Record<MachineJobKind, readonly string[]> = {
   'inspect-folder': ['folder'],
@@ -29,6 +36,7 @@ const KEYS: Record<MachineJobKind, readonly string[]> = {
   'remove-checkouts': ['projectId', 'projectKey', 'roles', 'removeStatusRepo'],
   'skill-remove': ['skillId', 'slug'],
   'runtimes-setup': [],
+  'ensure-project': ['projectKey', 'projectId', 'originUrl', 'branch', 'roles', 'companions'],
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -85,6 +93,53 @@ function removeRolesError(roles: unknown): string | null {
   for (const role of roles as CrewRoleSlot[]) {
     if (seen.has(role)) return `role ${role} bị trùng`;
     seen.add(role);
+  }
+  return null;
+}
+
+const originError = (value: unknown) =>
+  typeof value === 'string' && value.length <= 500 && !CONTROL.test(value) && ORIGIN.test(value)
+    ? null
+    : 'originUrl không hợp lệ';
+const checkoutNameOk = (value: unknown): value is string =>
+  typeof value === 'string' && CHECKOUT_NAME.test(value) && value !== 'repo';
+
+function ensureRolesError(roles: unknown): string | null {
+  if (!Array.isArray(roles)) return 'roles phải là mảng';
+  for (const item of roles) {
+    if (!isObject(item)) return 'mỗi phần tử roles phải là object';
+    const error =
+      unknownKeyError(item, ['role', 'branch']) ??
+      (checkoutNameOk(item.role) ? null : 'role không hợp lệ') ??
+      branchError(item.branch);
+    if (error) return error;
+  }
+  if (roles.length < 1 || roles.length > MAX_ENSURE_ROLES)
+    return `roles phải có 1 đến ${MAX_ENSURE_ROLES} vai trò`;
+  const seen = new Set<string>();
+  for (const { role } of roles as { role: string }[]) {
+    if (seen.has(role)) return `role ${role} bị trùng`;
+    seen.add(role);
+  }
+  return null;
+}
+
+function companionsError(list: unknown, roles: readonly { role: string }[]): string | null {
+  if (!Array.isArray(list)) return 'companions phải là mảng';
+  if (list.length > MAX_COMPANIONS) return `companions có tối đa ${MAX_COMPANIONS} repo`;
+  const taken = new Set(roles.map((item) => item.role));
+  for (const item of list) {
+    if (!isObject(item)) return 'mỗi phần tử companions phải là object';
+    const error =
+      unknownKeyError(item, ['name', 'originUrl']) ??
+      (typeof item.name === 'string' && COMPANION_NAME.test(item.name) && item.name !== 'repo'
+        ? null
+        : 'tên repo đi kèm không hợp lệ') ??
+      originError(item.originUrl);
+    if (error) return error;
+    const name = item.name as string;
+    if (taken.has(name)) return `tên repo đi kèm ${name} bị trùng`;
+    taken.add(name);
   }
   return null;
 }
@@ -160,6 +215,28 @@ export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobP
       );
     case 'runtimes-setup':
       return { kind };
+    case 'ensure-project': {
+      const error =
+        projectKeyError(p.projectKey) ??
+        (typeof p.projectId === 'string' && UUID_RE.test(p.projectId) ? null : 'projectId phải là uuid') ??
+        originError(p.originUrl) ??
+        branchError(p.branch) ??
+        ensureRolesError(p.roles) ??
+        companionsError(p.companions, p.roles as { role: string }[]);
+      if (error) return error;
+      return {
+        kind,
+        projectKey: p.projectKey as string,
+        projectId: (p.projectId as string).toLowerCase(),
+        originUrl: p.originUrl as string,
+        branch: p.branch as string,
+        roles: (p.roles as { role: string; branch: string }[]).map(({ role, branch }) => ({ role, branch })),
+        companions: (p.companions as { name: string; originUrl: string }[]).map(({ name, originUrl }) => ({
+          name,
+          originUrl,
+        })),
+      };
+    }
     case 'skill-remove':
       return (
         skillIdError(p.skillId) ??
@@ -187,6 +264,12 @@ export function machineGuardReason(home: string, payload: JobPayload): string | 
     return null;
   if (payload.kind === 'remove-checkouts')
     return checkoutsGuardReason(home, payload.projectKey, payload.roles);
+  if (payload.kind === 'ensure-project')
+    return checkoutsGuardReason(home, payload.projectKey, [
+      ...payload.roles.map((item) => item.role),
+      'repo',
+      ...payload.companions.map((item) => item.name),
+    ]);
   const folderReason = folderGuardReason(home, payload.folder);
   if (folderReason) return folderReason;
   if (payload.kind === 'inspect-folder') return null;
@@ -194,11 +277,7 @@ export function machineGuardReason(home: string, payload: JobPayload): string | 
   return checkoutsGuardReason(home, payload.projectKey, roles);
 }
 
-function checkoutsGuardReason(
-  home: string,
-  projectKey: string,
-  roles: readonly CrewRoleSlot[],
-): string | null {
+function checkoutsGuardReason(home: string, projectKey: string, roles: readonly string[]): string | null {
   for (const role of roles) {
     const dir = checkoutPath(home, projectKey, role);
     const reason = forbiddenRootReason(home, dir);

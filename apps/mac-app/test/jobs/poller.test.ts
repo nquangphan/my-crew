@@ -174,7 +174,7 @@ describe('JobsPoller', () => {
     expect(f.claims.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('việc quá 8 phút → hủy, báo app_error "quá thời gian"', async () => {
+  it('việc quá 15 phút → hủy, báo app_error "quá thời gian"', async () => {
     let given = false;
     const f = fakes({
       loadTargets: async () => ({ machineId: MACHINE, targets: [A] }),
@@ -186,7 +186,7 @@ describe('JobsPoller', () => {
       return makeJob(A);
     };
     start(f.deps);
-    await vi.advanceTimersByTimeAsync(8 * 60_000 - 1);
+    await vi.advanceTimersByTimeAsync(15 * 60_000 - 1);
     expect(f.submits).toEqual([]);
     await vi.advanceTimersByTimeAsync(1);
     expect(f.deps.cancelRunning).toHaveBeenCalledTimes(1);
@@ -212,7 +212,7 @@ describe('JobsPoller', () => {
       return makeJob(A);
     };
     start(f.deps);
-    await vi.advanceTimersByTimeAsync(8 * 60_000 - 1);
+    await vi.advanceTimersByTimeAsync(15 * 60_000 - 1);
     expect(seen?.aborted).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
     expect(seen?.aborted).toBe(true);

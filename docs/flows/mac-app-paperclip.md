@@ -237,6 +237,9 @@ và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ 
 `remove-checkouts`, `skill-remove` thêm ở R3X, hợp đồng ở plan R3X mục IX1; `runtimes-setup` thêm ở R2-4, hợp đồng I9).
 Ô vai trò (`CrewRoleSlot`) có thêm `executor-codex`, `executor-opencode`, `reviewer-codex` (I11): `agent-workspace` và
 `remove-checkouts` nhận cả 8 ô, còn `prepare-checkouts` vẫn đúng 4 hoặc 5 ô như plugin.
+Việc `ensure-project` (kiểu, kiểm payload và hạn đã có; phần làm trên máy chưa nối) có `roles` là tên thư mục checkout
+tự do (1–8, chữ thường, khác `repo`) và tối đa 5 repo đi kèm; kiểm payload chặn `~/crew-agents/<khóa>/{vai trò, repo, repo đi kèm}`
+nằm dưới thư mục cấm. Mã lỗi `clone_auth_failed` thêm cho việc này.
 
 **Vòng hỏi** (`poller.ts` → `createJobsPoller`):
 
@@ -257,12 +260,12 @@ và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ 
 - Có việc thì làm xong và báo kết quả rồi mới hỏi tiếp, nên máy chỉ làm **một việc một lúc**.
 - Đích lỗi (mạng, HTTP) thì lùi dần riêng đích đó: 2, 4, 8… lần chu kỳ, tối đa 60 giây; không ném, đích khác vẫn chạy.
 - Việc trả về phải có `id` uuid, đúng `companyId` của đích và đúng `machineId`; sai thì báo `app_error`, không làm.
-- Việc vượt **8 phút** (lease của plugin là 10 phút) thì app báo `app_error` "quá thời gian", bật `AbortSignal` (phần ở Main đang tải skill không được bắt đầu ghi file nữa), giết nhóm tiến trình của mọi `git` đang chạy (op `cancelMachineJob` → `killActiveGit`) rồi giết tiến trình phụ.
+- Việc vượt **15 phút** (lease của plugin là 17 phút; áp cho mọi loại việc) thì app báo `app_error` "quá thời gian", bật `AbortSignal` (phần ở Main đang tải skill không được bắt đầu ghi file nữa), giết nhóm tiến trình của mọi `git` đang chạy (op `cancelMachineJob` → `killActiveGit`) rồi giết tiến trình phụ.
 - Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>}` vào `app.json`, tối đa
   30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). Bản tin máy của crew-mac đọc key này
   (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
   không ghi.
-- Việc `prepare-checkouts` hay `agent-workspace` (web thêm project hay thêm agent) làm xong thì Main
+- Việc `prepare-checkouts`, `agent-workspace` hay `ensure-project` (web thêm project, thêm agent, hay server dựng project trên máy) làm xong thì Main
   (`register.ts`, `jobCreatedCheckouts`) gọi `ctx.sendStatusSoon('job:<loại>')`: bản tin máy được gửi sau khoảng 2 giây
   (gộp nếu nhiều việc liền nhau), chạy nền, lỗi chỉ ghi log, không đổi kết quả việc.
 - Báo kết quả hỏng (mạng) thì chỉ ghi log: việc vẫn `claimed`, hết lease plugin trả về hàng đợi và máy làm lại (mọi việc
@@ -357,7 +360,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   tự cài lại rồi đạt, bundle mất hẳn hay chưa có worktree integrator thì `error`).
 - `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
-  riêng đích lỗi, một việc một lúc, quá 8 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
+  riêng đích lỗi, một việc một lúc, quá 15 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
   `machineId`, `stop`; trạng thái nhận việc: ổn, chưa có key, 401, 403 (không bảo đăng nhập lại), company bị bỏ qua,
   không có đích, chỉ báo khi đổi.
 - `apps/mac-app/test/jobs/targets.test.ts`: đích Tailscale vẫn hỏi ở origin board, company không có quyền bị bỏ qua,

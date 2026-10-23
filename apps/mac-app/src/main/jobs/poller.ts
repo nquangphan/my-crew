@@ -80,7 +80,7 @@ const needsLoginError = (error: unknown) =>
 /**
  * Vòng hỏi hàng đợi việc trên máy: mỗi chu kỳ (5 giây khi cửa sổ hiện, 15 giây khi ẩn) `claim` lần lượt từng đích, có
  * việc thì làm xong rồi báo kết quả mới hỏi tiếp, nên máy chỉ làm một việc một lúc. Đích lỗi thì lùi dần riêng đích đó
- * tới 60 giây. Việc quá 8 phút thì hủy và báo `app_error` (lease của plugin là 10 phút). Không bao giờ ném.
+ * tới 60 giây. Việc quá 15 phút thì hủy và báo `app_error` (lease của plugin là 17 phút). Không bao giờ ném.
  */
 export function createJobsPoller(deps: PollerDeps) {
   const backoff = new Map<string, { failures: number; nextAt: number }>();

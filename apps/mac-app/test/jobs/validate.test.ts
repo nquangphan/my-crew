@@ -11,6 +11,20 @@ const fullRoles = [
   { role: 'integrator', branch: 'crew/demo/integrator' },
 ];
 
+const ensureProject = {
+  projectKey: 'kidy-school',
+  projectId: '30000000-0000-4000-8000-000000000001',
+  originUrl: 'git@github.com:nquangphan/kidy_school.git',
+  branch: 'main',
+  roles: [
+    { role: 'assistant', branch: 'agent/kidy-school-assistant' },
+    { role: 'executor-1', branch: 'agent/kidy-school-executor-1' },
+  ],
+  companions: [
+    { name: 'kidy_school_2.0_docs', originUrl: 'https://github.com/nquangphan/kidy_school_2.0_docs.git' },
+  ],
+};
+
 describe('validateJobPayload', () => {
   it.each([
     ['inspect-folder', { folder: 'relative/path' }, 'folder phải là đường tuyệt đối'],
@@ -87,8 +101,62 @@ describe('validateJobPayload', () => {
     ['check', { projectKey: 'd' }, 'projectKey không hợp lệ'],
     ['check', { projectKey: 'demo', kind: 'inspect-folder' }, 'kind trong payload không khớp'],
     ['reboot', { projectKey: 'demo' }, 'kind không hợp lệ'],
+    ['ensure-project', { ...ensureProject, projectId: 'x' }, 'projectId phải là uuid'],
+    ['ensure-project', { ...ensureProject, projectKey: 'Kidy' }, 'projectKey không hợp lệ'],
+    ['ensure-project', { ...ensureProject, originUrl: 'ftp://github.com/a/b' }, 'originUrl không hợp lệ'],
+    ['ensure-project', { ...ensureProject, originUrl: 'git@github.com:a/b c' }, 'originUrl không hợp lệ'],
+    [
+      'ensure-project',
+      { ...ensureProject, originUrl: `https://github.com/${'a'.repeat(500)}` },
+      'originUrl không hợp lệ',
+    ],
+    ['ensure-project', { ...ensureProject, branch: '-main' }, 'branch không hợp lệ'],
+    ['ensure-project', { ...ensureProject, roles: [] }, 'roles phải có 1 đến 8 vai trò'],
+    ['ensure-project', { ...ensureProject, roles: [{ role: 'repo', branch: 'x' }] }, 'role không hợp lệ'],
+    ['ensure-project', { ...ensureProject, roles: [{ role: 'Executor', branch: 'x' }] }, 'role không hợp lệ'],
+    [
+      'ensure-project',
+      {
+        ...ensureProject,
+        roles: [
+          { role: 'assistant', branch: 'x' },
+          { role: 'assistant', branch: 'y' },
+        ],
+      },
+      'role assistant bị trùng',
+    ],
+    [
+      'ensure-project',
+      { ...ensureProject, companions: [{ name: '../x', originUrl: 'git@github.com:a/b.git' }] },
+      'tên repo đi kèm không hợp lệ',
+    ],
+    [
+      'ensure-project',
+      { ...ensureProject, companions: [{ name: 'assistant', originUrl: 'git@github.com:a/b.git' }] },
+      'tên repo đi kèm assistant bị trùng',
+    ],
+    ['ensure-project', { ...ensureProject, companions: 'docs' }, 'companions phải là mảng'],
+    ['ensure-project', { ...ensureProject, folder: '/x' }, 'trường folder không được hỗ trợ'],
   ])('%s từ chối %j', (kind, payload, error) => {
     expect(validateJobPayload(kind as MachineJobKind, payload)).toBe(error);
+  });
+
+  it('ensure-project hợp lệ: gắn kind, projectId chữ thường', () => {
+    expect(
+      validateJobPayload('ensure-project', {
+        ...ensureProject,
+        projectId: ensureProject.projectId.toUpperCase(),
+      }),
+    ).toEqual({ kind: 'ensure-project', ...ensureProject });
+  });
+
+  it('ensure-project: chặn checkout, bản clone và repo đi kèm nằm dưới thư mục cấm', () => {
+    const payload = validateJobPayload('ensure-project', ensureProject);
+    if (typeof payload === 'string') throw new Error(payload);
+    expect(machineGuardReason('/Users/a', payload)).toBeNull();
+    expect(machineGuardReason('/Volumes/x', payload)).toContain(
+      '/Volumes/x/crew-agents/kidy-school/assistant',
+    );
   });
 
   it('nhận payload hợp lệ và gắn kind', () => {

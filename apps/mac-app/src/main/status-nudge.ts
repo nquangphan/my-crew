@@ -60,5 +60,8 @@ export function createStatusNudge(deps: StatusNudgeDeps): StatusNudge {
 
 /** Việc máy vừa tạo (hay xác nhận) checkout agent trên máy: cần báo bản tin máy ngay. */
 export function jobCreatedCheckouts(kind: MachineJobKind, outcome: JobOutcome): boolean {
-  return outcome.status === 'done' && (kind === 'prepare-checkouts' || kind === 'agent-workspace');
+  return (
+    outcome.status === 'done' &&
+    (kind === 'prepare-checkouts' || kind === 'agent-workspace' || kind === 'ensure-project')
+  );
 }

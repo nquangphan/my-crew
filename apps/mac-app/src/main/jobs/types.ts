@@ -10,7 +10,8 @@ export type MachineJobKind =
   | 'check'
   | 'remove-checkouts'
   | 'skill-remove'
-  | 'runtimes-setup';
+  | 'runtimes-setup'
+  | 'ensure-project';
 export type MachineJobStatus = 'queued' | 'claimed' | 'done' | 'failed' | 'cancelled';
 /** `executor-codex`, `executor-opencode`, `reviewer-codex`: agent chạy runtime ngoài Claude, mỗi ô một agent. */
 export type CrewRoleSlot =
@@ -32,6 +33,7 @@ export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
   'remove-checkouts',
   'skill-remove',
   'runtimes-setup',
+  'ensure-project',
 ];
 export const CREW_ROLE_SLOTS: readonly CrewRoleSlot[] = [
   'assistant',
@@ -81,7 +83,20 @@ export type JobPayload =
     }
   | { kind: 'skill-remove'; skillId: string; slug: string }
   /** Cài/cập nhật wrapper runtime rồi báo trạng thái. Key OpenCode không bao giờ đi qua hàng đợi. */
-  | { kind: 'runtimes-setup' };
+  | { kind: 'runtimes-setup' }
+  /**
+   * Dựng project trên máy (server Crew xếp khi chọn máy cho cây yêu cầu): tìm repo cùng origin hoặc clone về
+   * `~/crew-agents/<projectKey>/repo`, cài crew-docs, worktree `~/crew-agents/<projectKey>/<role>`, repo đi kèm cạnh đó.
+   */
+  | {
+      kind: 'ensure-project';
+      projectKey: string;
+      projectId: string;
+      originUrl: string;
+      branch: string;
+      roles: { role: string; branch: string }[];
+      companions: { name: string; originUrl: string }[];
+    };
 
 export type JobResult =
   | {
@@ -108,6 +123,13 @@ export type JobResult =
       wrappers: { codex: boolean; opencode: boolean };
       codex: { version: string | null; loggedIn: boolean | null };
       opencode: { version: string | null; keyPresent: boolean | null };
+    }
+  | {
+      kind: 'ensure-project';
+      repoPath: string;
+      cloned: boolean;
+      checkouts: { role: string; path: string; head: string }[];
+      companions: { name: string; path: string }[];
     };
 
 /**
@@ -133,6 +155,7 @@ export type JobErrorCode =
   | 'folder_missing'
   | 'checkout_exists'
   | 'git_failed'
+  | 'clone_auth_failed'
   | 'skill_fetch_failed'
   | 'check_failed'
   | 'lease_expired'
@@ -170,5 +193,5 @@ export class JobError extends Error {
 }
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** Việc vượt thời gian này thì app hủy và báo lỗi (dưới lease 10 phút của plugin). */
-export const JOB_TIMEOUT_MS = 8 * 60_000;
+/** Việc vượt thời gian này thì app hủy và báo lỗi (dưới lease 17 phút của plugin). Áp cho mọi loại việc. */
+export const JOB_TIMEOUT_MS = 15 * 60_000;
