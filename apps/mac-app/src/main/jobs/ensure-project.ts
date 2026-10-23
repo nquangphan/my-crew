@@ -20,6 +20,13 @@ type EnsureProjectResult = Extract<JobResult, { kind: 'ensure-project' }>;
 /** Clone repo lớn có thể lâu, nhưng phải xong trong hạn 15 phút của việc máy. */
 export const CLONE_TIMEOUT_MS = 10 * 60_000;
 const LOCAL_TIMEOUT_MS = 30_000;
+/** Lệnh hỏi remote nhanh (`remote set-head -a`): không cần hạn của clone. */
+const REMOTE_QUERY_TIMEOUT_MS = 60_000;
+/** stderr khi máy không tới được remote (mất mạng, DNS): không phải lỗi key, dù git vẫn in thêm "Could not read from remote". */
+const NETWORK_FAILURE =
+  /Could not resolve hostname|Could not resolve host|Connection timed out|Operation timed out|Network is unreachable|Connection refused|No route to host/i;
+/** `git rev-parse HEAD` lỗi vì HEAD trỏ tới nhánh chưa có commit (clone bị ngắt giữa chừng), không vì lý do khác. */
+const UNBORN_HEAD = /unknown revision|ambiguous argument 'HEAD'|bad revision 'HEAD'/i;
 /** stderr của git/ssh khi máy không có quyền đọc repo (key SSH chưa thêm vào GitHub, cần nhập mật khẩu...). */
 const AUTH_FAILURE =
   /Permission denied \(publickey|Host key verification failed|Could not read from remote repository|Authentication failed|could not read Username|terminal prompts disabled/i;
@@ -154,8 +161,43 @@ export async function findRepo(originUrl: string, deps: EnsureProjectDeps): Prom
 }
 
 /**
+ * Lý do `dest` (có `.git`, `rev-parse HEAD` lỗi với kết quả `head`) KHÔNG chắc là bản clone dở, hoặc null khi chắc. Chỉ
+ * chắc khi: HEAD lỗi vì chưa có commit (không phải quá giờ, `safe.directory`, khóa...), `.git` là của chính `dest`, không
+ * có nhánh local nào và không có worktree nào khác. Repo chính của các worktree agent không bao giờ qua được.
+ */
+async function halfCloneProblem(
+  dest: string,
+  head: { code: number; stderr: string },
+  deps: EnsureProjectDeps,
+): Promise<string | null> {
+  if (!UNBORN_HEAD.test(head.stderr))
+    return `lỗi không phải "chưa có commit" (mã ${head.code}: ${lastLine(head.stderr)})`;
+  const gitDir = await git(deps, ['-C', dest, 'rev-parse', '--path-format=absolute', '--git-dir']);
+  if (gitDir.code !== 0 || realOrNull(gitDir.stdout.trim()) !== realOrNull(join(dest, '.git'))) {
+    return 'không đọc được thư mục .git của chính nó';
+  }
+  const branches = await git(deps, [
+    '-C',
+    dest,
+    'for-each-ref',
+    '--count=1',
+    '--format=%(refname)',
+    'refs/heads',
+  ]);
+  if (branches.code !== 0) return 'không liệt kê được nhánh';
+  if (branches.stdout.trim() !== '') return 'repo đã có nhánh local';
+  const worktrees = await git(deps, ['-C', dest, 'worktree', 'list', '--porcelain']);
+  if (worktrees.code !== 0) return 'không liệt kê được worktree';
+  if (worktrees.stdout.split('\n').filter((line) => line.startsWith('worktree ')).length !== 1) {
+    return 'repo đang có worktree khác';
+  }
+  return null;
+}
+
+/**
  * Clone `originUrl` vào `dest` rồi đặt `origin/HEAD` theo remote. `dest` đã là repo đọc được thì không làm gì (trả
- * `false`, bên gọi so origin). Bản clone dở (có `.git` mà `git rev-parse HEAD` lỗi) bị xóa rồi clone lại; thư mục không
+ * `false`, bên gọi so origin). Bản clone dở (có `.git`, HEAD chưa có commit, không nhánh, không worktree khác:
+ * `halfCloneProblem`) bị xóa rồi clone lại; `.git` đọc HEAD lỗi kiểu khác thì `git_failed`, không xóa; thư mục không
  * có `.git` chỉ bị xóa khi `reclaimPlain` (chỗ `repo` để dành cho bản clone) hoặc khi rỗng. Symlink, file hay thư mục lạ
  * khác thì báo `checkout_exists`, không đè.
  */
@@ -176,6 +218,13 @@ async function cloneRepo(
     if (existsSync(join(dest, '.git'))) {
       const head = await git(deps, ['-C', dest, 'rev-parse', 'HEAD']);
       if (head.code === 0) return false;
+      const why = await halfCloneProblem(dest, head, deps);
+      if (why) {
+        throw new JobError(
+          'git_failed',
+          `${dest} có .git nhưng đọc HEAD lỗi và ${why}: app không xóa, tự kiểm repo đó rồi chạy lại`,
+        );
+      }
     } else if (!reclaimPlain && readdirSync(dest).length > 0) {
       throw new JobError(
         'checkout_exists',
@@ -188,7 +237,7 @@ async function cloneRepo(
   const r = await git(deps, ['clone', '--', originUrl, dest], CLONE_TIMEOUT_MS);
   if (r.code !== 0) {
     rmSync(dest, { recursive: true, force: true });
-    if (AUTH_FAILURE.test(r.stderr)) {
+    if (!NETWORK_FAILURE.test(r.stderr) && AUTH_FAILURE.test(r.stderr)) {
       throw new JobError(
         'clone_auth_failed',
         `Máy không clone được ${shown(originUrl)}: GitHub từ chối key SSH của máy. Thêm key (~/.ssh/*.pub) vào GitHub → ` +
@@ -200,7 +249,7 @@ async function cloneRepo(
       `git clone ${shown(originUrl)} thất bại (mã ${r.code}): ${lastLine(r.stderr)}`,
     );
   }
-  const head = await git(deps, ['-C', dest, 'remote', 'set-head', 'origin', '-a'], CLONE_TIMEOUT_MS);
+  const head = await git(deps, ['-C', dest, 'remote', 'set-head', 'origin', '-a'], REMOTE_QUERY_TIMEOUT_MS);
   if (head.code !== 0)
     throw new JobError('git_failed', `Không đặt được origin/HEAD của ${dest}: ${lastLine(head.stderr)}`);
   return true;

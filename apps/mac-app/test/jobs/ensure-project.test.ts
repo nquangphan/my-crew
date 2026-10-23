@@ -11,9 +11,10 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { originKey } from '../../src/main/jobs/ensure-project.js';
+import { defaultProjectRoots, originKey } from '../../src/main/jobs/ensure-project.js';
 import { type ExecutorDeps, runJob } from '../../src/main/jobs/executors.js';
 import type { JobPayload } from '../../src/main/jobs/types.js';
+import { runGit } from '../../src/main/projects/folder.js';
 import { makeSandbox } from '../projects-fixture.js';
 
 const COMPANY = '22222222-2222-4222-8222-222222222222';
@@ -95,6 +96,23 @@ describe('originKey', () => {
   });
 });
 
+describe('defaultProjectRoots', () => {
+  it('chỉ giữ thư mục có thật trong HOME (và /Volumes/<ổ>/Projects có thật)', () => {
+    const s = makeSandbox();
+    cleanups.push(s.cleanup);
+    mkdirSync(join(s.home, 'Projects'));
+    const roots = defaultProjectRoots(s.home);
+    expect(roots).toContain(join(s.home, 'Projects'));
+    expect(roots).not.toContain(join(s.home, 'Documents', 'projects'));
+    expect(roots.every((root) => existsSync(root))).toBe(true);
+    expect(
+      roots
+        .filter((root) => !root.startsWith(s.home))
+        .every((root) => /^\/Volumes\/[^/]+\/Projects$/.test(root)),
+    ).toBe(true);
+  });
+});
+
 describe('ensure-project', () => {
   it('dùng lại repo có sẵn trong bản tin docs dù origin viết khác dạng; không clone', async () => {
     const { s, deps } = setup({ statusRepos: (x) => [x.folder] });
@@ -140,7 +158,7 @@ describe('ensure-project', () => {
     expect(existsSync(join(repo, 'rac.txt'))).toBe(false);
   });
 
-  it('bản clone dở (có .git nhưng git rev-parse HEAD lỗi) bị xóa rồi clone lại', async () => {
+  it('bản clone dở thật (có .git, HEAD chưa có commit, không nhánh, không worktree) bị xóa rồi clone lại', async () => {
     const { s, deps } = setup();
     const repo = join(s.home, 'crew-agents', 'landing', 'repo');
     mkdirSync(repo, { recursive: true });
@@ -167,6 +185,65 @@ describe('ensure-project', () => {
     expect(await run(deps, p)).toMatchObject({ status: 'failed', errorCode: 'checkout_exists' });
     expect(lstatSync(target).isSymbolicLink()).toBe(true);
     expect(readlinkSync(target)).toBe(join(s.root, 'khong-co'));
+  });
+
+  it('repo có nhánh và worktree mà HEAD hỏng: git_failed, không xóa gì', async () => {
+    const { s, deps } = setup();
+    const repo = join(s.home, 'crew-agents', 'landing', 'repo');
+    const wt = join(s.home, 'crew-agents', 'landing', 'assistant');
+    s.git(['clone', '-q', s.origin, repo]);
+    s.git(['-C', repo, 'worktree', 'add', '-q', '-b', 'agent/landing-assistant', wt]);
+    writeFileSync(join(wt, 'chua-push.txt'), 'việc agent\n');
+    // HEAD trỏ nhánh chưa có; bỏ origin để không tìm thấy repo này theo origin, buộc đi đường clone.
+    s.git(['-C', repo, 'symbolic-ref', 'HEAD', 'refs/heads/khong-co']);
+    s.git(['-C', repo, 'remote', 'remove', 'origin']);
+    const outcome = await run(deps, payload(s));
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'git_failed' });
+    expect(outcome.status === 'failed' && outcome.errorText).toContain('không xóa');
+    expect(existsSync(join(repo, 'README.md'))).toBe(true);
+    expect(existsSync(join(wt, 'chua-push.txt'))).toBe(true);
+    expect(s.git(['-C', repo, 'branch', '--list', 'main'])).not.toBe('');
+  });
+
+  it('repo chỉ có nhánh local mà HEAD hỏng: git_failed, không xóa', async () => {
+    const { s, deps } = setup();
+    const repo = join(s.home, 'crew-agents', 'landing', 'repo');
+    s.git(['clone', '-q', s.origin, repo]);
+    s.git(['-C', repo, 'symbolic-ref', 'HEAD', 'refs/heads/khong-co']);
+    s.git(['-C', repo, 'remote', 'remove', 'origin']);
+    expect(await run(deps, payload(s))).toMatchObject({ status: 'failed', errorCode: 'git_failed' });
+    expect(existsSync(join(repo, 'README.md'))).toBe(true);
+  });
+
+  it('rev-parse HEAD lỗi vì lý do khác (quá giờ, safe.directory): git_failed, không xóa', async () => {
+    for (const failure of [
+      { code: -1, stdout: '', stderr: '' },
+      { code: 128, stdout: '', stderr: "fatal: detected dubious ownership in repository at '/x'" },
+    ]) {
+      const { s, deps } = setup();
+      const repo = join(s.home, 'crew-agents', 'landing', 'repo');
+      mkdirSync(repo, { recursive: true });
+      s.git(['init', '-q', '-b', 'main', repo]);
+      writeFileSync(join(repo, 'cua-owner.txt'), 'giữ\n');
+      deps.git = async (args, opts) =>
+        args[1] === repo && args[2] === 'rev-parse' && args[3] === 'HEAD' ? failure : runGit(args, opts);
+      expect(await run(deps, payload(s))).toMatchObject({ status: 'failed', errorCode: 'git_failed' });
+      expect(existsSync(join(repo, 'cua-owner.txt'))).toBe(true);
+    }
+  });
+
+  it('mất mạng khi clone: git_failed, không bảo thêm key SSH', async () => {
+    const { s, deps } = setup();
+    const fakeSsh = join(s.root, 'fake-ssh.sh');
+    writeFileSync(
+      fakeSsh,
+      '#!/bin/sh\necho "ssh: Could not resolve hostname github.com: nodename nor servname provided" >&2\nexit 255\n',
+    );
+    chmodSync(fakeSsh, 0o755);
+    deps.env = { ...deps.env, GIT_SSH_COMMAND: fakeSsh };
+    const outcome = await run(deps, payload(s, { originUrl: 'git@github.com:nquangphan/khong-co.git' }));
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'git_failed' });
+    expect(existsSync(join(s.home, 'crew-agents', 'landing', 'repo'))).toBe(false);
   });
 
   it('GitHub từ chối key SSH: clone_auth_failed kèm hướng dẫn thêm key, không để lại thư mục', async () => {
