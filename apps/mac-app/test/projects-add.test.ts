@@ -534,6 +534,22 @@ describe('addProject', () => {
     });
   });
 
+  it('origin ssh:// gửi server giữ user git, chỉ bỏ mật khẩu (máy khác clone bằng user đó)', async () => {
+    const { sandbox, paperclip, deps, input } = await world();
+    sandbox.git([
+      '-C',
+      sandbox.folder,
+      'remote',
+      'set-url',
+      'origin',
+      'ssh://git:pw@github.com/x/landing.git',
+    ]);
+    const progress = await addProject(deps, input);
+    expect(progress.error).toBeNull();
+    const call = paperclip.requests.find((r) => r.path.endsWith('/machines/provision'));
+    expect(call?.body).toMatchObject({ repo: { originUrl: 'ssh://git@github.com/x/landing.git' } });
+  });
+
   it('chạy lại khi đã xong → không gọi ghi gì thêm', async () => {
     const { paperclip, deps, input } = await world();
     await addProject(deps, input);

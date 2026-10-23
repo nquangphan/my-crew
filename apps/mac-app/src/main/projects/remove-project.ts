@@ -1,6 +1,13 @@
+import type { ProjectRoles } from '../paperclip/types.js';
 import { findByProjectId, manualRemoveCommand, type ProjectDeps, recordName } from './progress.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Agent của bốn vai trò app quản lý (cũng là mọi agent app ghi trong tiến độ), chữ thường. */
+const roleAgentIds = (roles: ProjectRoles): string[] =>
+  [roles.assistantAgentId, ...roles.executorAgentIds, roles.reviewerAgentId, roles.integratorAgentId]
+    .filter((id): id is string => typeof id === 'string')
+    .map((id) => id.toLowerCase());
 
 /**
  * Gỡ project khỏi Mac: pause agent của project (chỉ agent app đã tạo, theo tiến độ trong `app.json`), archive
@@ -52,11 +59,16 @@ export async function removeProject(
     }
   }
 
-  if (agentIds.length > 0) {
+  const roles = await client.getRoles(companyId, projectId);
+  // Server chỉ nhận agent đang trong dòng vai trò: tiến độ có thể còn agent owner đã thay ở ô (wizard web), hay dòng vai
+  // trò đã bị xóa ở lần chạy trước.
+  const inRoles = new Set(roles ? roleAgentIds(roles) : []);
+  const releaseIds = agentIds.filter((id) => inRoles.has(id.toLowerCase()));
+  if (releaseIds.length > 0) {
     // Máy khác đã dựng project: server archive environment `@máy` và xếp việc gỡ checkout; máy này giữ cách cũ (lệnh tay).
     const { machineId } = await deps.ops.call('jobTargets');
     const released = await client.releaseProjectMachines(companyId, projectId, {
-      agentIds,
+      agentIds: releaseIds,
       wholeProject: true,
       primaryMachineId: machineId,
     });
@@ -70,7 +82,7 @@ export async function removeProject(
   await deps.ops.call('removeStatusRepo', projectId);
   removed.push('repo docs khỏi bản tin máy');
 
-  if (await client.getRoles(companyId, projectId)) {
+  if (roles) {
     await client.deleteRoles(companyId, projectId);
     removed.push('vai trò của project');
   }

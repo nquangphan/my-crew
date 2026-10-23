@@ -36,7 +36,16 @@ export function sanitizeJobError(text: string): string {
   return chars.length > JOB_ERROR_MAX ? chars.slice(0, JOB_ERROR_MAX).join('') : chars.join('');
 }
 
-/** URL remote báo lên web không mang `user:pass@` (URL kiểu scp `git@host:x` giữ nguyên). */
+/** Userinfo của `http(s)://` (cả `token@`): bỏ hết. */
+const HTTP_USERINFO = /\b(https?:\/\/)[^/\s'"]*@/gi;
+/** Mật khẩu của mọi scheme khác (`ssh://user:pass@`): bỏ mật khẩu, giữ user. */
+const URL_PASSWORD = /\b([a-z][a-z0-9+.-]*:\/\/[^/:@\s'"]*):[^/\s'"]*@/gi;
+
+/**
+ * URL remote báo lên web hay gửi server không mang credential, cùng luật `repoOf` của web: `http(s)://` bỏ cả userinfo,
+ * scheme khác chỉ bỏ mật khẩu nên `ssh://git@host/x` giữ user (máy khác clone cần user đó); URL kiểu scp `git@host:x`
+ * giữ nguyên.
+ */
 export function stripUrlCredentials(remote: string): string {
-  return remote.replace(URL_USERINFO, '$1');
+  return remote.replace(HTTP_USERINFO, '$1').replace(URL_PASSWORD, '$1@');
 }

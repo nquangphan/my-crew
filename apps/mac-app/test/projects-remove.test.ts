@@ -116,6 +116,31 @@ describe('removeProject', () => {
     expect(release?.body).toMatchObject({ wholeProject: true, primaryMachineId: 'machine-test' });
   });
 
+  it('tiến độ còn agent owner đã thay ở ô: chỉ gửi server agent đang trong dòng vai trò', async () => {
+    const { paperclip, deps, progress, projectId } = await added();
+    const ids = (role: string) => progress.agents[role]?.agentId as string;
+    const replacement = randomUUID();
+    paperclip.roles.set(projectId, {
+      assistantAgentId: ids('assistant'),
+      executorAgentIds: [replacement],
+      reviewerAgentId: ids('reviewer'),
+      integratorAgentId: ids('integrator'),
+    });
+    await removeProject(deps, projectId);
+    const release = paperclip.requests.find((r) => r.path.endsWith('/machines/release'));
+    const sent = (release?.body as { agentIds?: string[] } | undefined)?.agentIds ?? [];
+    expect([...sent].sort()).toEqual([ids('assistant'), ids('reviewer'), ids('integrator')].sort());
+  });
+
+  it('dòng vai trò đã bị xóa ở lần trước (tiến độ còn): không gọi dọn máy khác, làm nốt phần còn lại', async () => {
+    const { paperclip, store, deps, projectId } = await added();
+    paperclip.roles.delete(projectId);
+    const result = await removeProject(deps, projectId);
+    expect(paperclip.requests.some((r) => r.path.endsWith('/machines/release'))).toBe(false);
+    expect(result.removed).toContain('repo docs khỏi bản tin máy');
+    expect(store.get().projects.landing).toBeUndefined();
+  });
+
   it('chạy lại khi đã gỡ → không lỗi, không pause/archive gì thêm', async () => {
     const { paperclip, deps, projectId } = await added();
     await removeProject(deps, projectId);

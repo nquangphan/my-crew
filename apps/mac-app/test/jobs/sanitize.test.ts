@@ -40,4 +40,13 @@ describe('stripUrlCredentials', () => {
     expect(stripUrlCredentials('git@github.com:a/b.git')).toBe('git@github.com:a/b.git');
     expect(stripUrlCredentials('/srv/origin.git')).toBe('/srv/origin.git');
   });
+
+  it('ssh:// giữ user, chỉ bỏ mật khẩu; https bỏ cả token đứng một mình (như repoOf của web)', () => {
+    expect(stripUrlCredentials('ssh://git@github.com/a/b.git')).toBe('ssh://git@github.com/a/b.git');
+    expect(stripUrlCredentials('ssh://git@github.com:22/a/b.git')).toBe('ssh://git@github.com:22/a/b.git');
+    expect(stripUrlCredentials('ssh://git:pw@github.com/a/b.git')).toBe('ssh://git@github.com/a/b.git');
+    expect(stripUrlCredentials('ssh://u:p@ss@host/x.git')).toBe('ssh://u@host/x.git');
+    expect(stripUrlCredentials('https://ghp_token@github.com/a/b.git')).toBe('https://github.com/a/b.git');
+    expect(stripUrlCredentials('http://u:p@host/x.git')).toBe('http://host/x.git');
+  });
 });
