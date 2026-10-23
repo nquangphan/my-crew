@@ -105,6 +105,9 @@ path không query, status.
 | `getRoles` / `setRoles` / `deleteRoles` | `GET`/`POST`/`DELETE /api/plugins/crew.core/api/projects/:projectId/roles` | `companyId` ở query (GET/DELETE) hoặc body (POST); `setRoles` 400 → message kèm lời từ chối của plugin (bỏ key, ≤ 300 ký tự), ví dụ agent đang giữ vai trò ở project nào; `getRoles` chỉ giữ bốn vai trò app quản lý (bỏ các ô runtime `codexExecutorAgentId`, `opencodeExecutorAgentId`, `codexReviewerAgentId` server trả thêm) để bước `check` so khớp được |
 | `pairInfo` | `GET /api/plugins/crew.core/api/machines/pair-info?companyId=` (routeKey `machines.pair-info`) | Trả `{paperclipSshPublicKey}`, chỉ nhận `ssh-ed25519 …` (sai dạng thì ném). Server chưa có key thì `409` → `PaperclipHttpError` 409 (bước Máy mở phần nhập tay, flow `mac-app`) |
 | `pairMachine` | `POST /api/plugins/crew.core/api/machines/pair` | Body đúng các key `{companyId, machineId, hostname, environmentId, tailscaleIp, port, hostKeyFingerprint}`, thêm `allowRepair: true` chỉ khi được yêu cầu (owner bấm "Ghép lại máy này"). Trả `{machineKey, pairedAt}`; `machineKey` phải là base64url 43 ký tự, không thì ném. `409` giữ `code` của plugin: `machine_revoked` (máy đã bị gỡ trên web) hay `machine_uses_company_secret` (máy đang gửi bản tin bằng secret company, chưa từng ghép). `400` kèm lời từ chối của plugin. Key máy không vào log (log chỉ có method, path, status) |
+| `machineBlockers` | `GET /api/crew/companies/:id/projects/:projectId/machines/blockers` (`?agentIds=` nối bằng dấu phẩy khi có) | Trả danh sách run chờ/đang chạy trên cây đã ghim máy (`blockers`); 404 (server cũ) → `null` |
+| `releaseProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/release` | Body `{agentIds, wholeProject, primaryMachineId}`; server archive environment `@máy` và xếp `remove-checkouts` trên máy khác; trả `{archivedEnvironmentIds, jobs}`; 404 → `null` |
+| `provisionProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/provision` | Body `{exceptMachineId, includeReady, repo:{originUrl, branch}}`; server xếp `ensure-project` cho máy đã ghép khác; 404 → `null` |
 
 ## Thêm project
 
@@ -152,6 +155,11 @@ song.
 | `roles` | `setRoles(companyId, projectId, { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId })`. Plugin kiểm luật (reviewer ≠ integrator, 1–2 executor, không vai trò chéo giữa project, không agent `terminated`) |
 | (đặt quyền) | Không phải bước trong `done`: mỗi lần chạy mà `check` chưa xong thì `setAgentPermissions` cho mọi agent của project (tạo mới hay dùng lại) ngay trước `check`, lúc agent còn `paused`. Quyền agent Crew như wizard web và `agent-permissions.sh`: `canCreateAgents: false`, `canCreateSkills: false`, `canAssignTasks` chỉ `true` cho Trợ Lý. Paperclip mặc định cho agent mới cả ba (tạo agent, tạo skill, grant `tasks:assign`); bản app trước không đặt lại (8 agent `visinote-*`, `business-app-*` trên prod 11/10 phải sửa tay). Vì không ghi vào `done`, tiến độ của bản cũ đã qua mọi `role:*` vẫn được đặt quyền khi Chạy tiếp; PATCH lặp lại không đổi gì |
 | `check` | `doctor({ probe: false, skipTcc: true })` không có `fail` ở `worktree-workflows`, `worktree-root`; `workflowCheck` sạch cho từng checkout; `getRoles` đọc lại khớp; `getAgent` từng agent đọc lại có `engine` = `cli` (agent dùng lại do bản app cũ tạo thiếu `engine` bị chặn ở đây, phải PATCH `adapterConfig.engine` rồi Chạy tiếp); `getAgentPermissions` từng agent đọc lại đúng quyền agent Crew, lệch thì lỗi "Quyền của agent `<key>-<vai>` chưa bị giới hạn (còn được tạo agent, còn được tạo skill, còn được giao việc / Trợ Lý thiếu quyền giao việc): bấm Chạy tiếp để đặt lại". Đạt hết thì mới `resumeAgent` các agent đang `paused` |
+
+Lần `check` vừa xong (không phải chạy lại sau khi `check` đã có trong `done`) thì app nhờ server dựng sẵn project trên các máy
+đã ghép khác (`provisionProjectMachines`, `exceptMachineId` = máy này từ `jobTargets`, `includeReady: false`, `repo` = origin
+đã bỏ credential và nhánh gốc); máy offline thì việc chờ trong hàng đợi. Lỗi chỉ ghi log `project-provision-others-failed`,
+lần thêm vẫn xong.
 
 Thêm xong không lỗi (`progress.error` là `null`) thì `projects:add` (`ipc.ts` → `onAdded`, nối ở `register.ts`) gọi
 `ctx.sendStatusSoon('project-added:<key>')` (flow `mac-app`): bản tin máy mang các checkout `~/crew-agents/<key>/*` mới
@@ -214,9 +222,14 @@ của FX-10 có trong template integrator, mục "Chọn workflow" và "Chốt t
 
 `removeProject(deps, projectId)`:
 
+0. Có agent trong tiến độ thì hỏi `machineBlockers` trước hết: cây ghim máy còn run chờ/đang chạy thì từ chối, không pause
+   hay archive gì, thông báo kèm danh sách `<mã issue> (<hostname>)`; server cũ (404) thì bỏ qua.
 1. Pause agent của project (chỉ agent trong tiến độ của app; agent đang `paused`/`terminated`/`pending_approval` bỏ
    qua). Pause hủy run đang chạy của agent đó.
-2. Archive environment riêng của chúng (`PATCH { status: "archived" }`; không bao giờ `DELETE`).
+2. Archive environment riêng của chúng (`PATCH { status: "archived" }`; không bao giờ `DELETE`). Rồi `releaseProjectMachines`
+   (`wholeProject: true`, `primaryMachineId` = `jobTargets().machineId`): server archive environment `@máy` và xếp
+   `remove-checkouts` trên các máy khác (máy này loại ra); có kết quả thì `removed` ghi số environment đã archive và số
+   máy gỡ checkout. Máy này vẫn gỡ bằng lệnh tay `manualCommand`.
 3. `ops.removeStatusRepo(projectId)`.
 4. Có dòng vai trò thì `deleteRoles`.
 5. Xóa `projects[key]` khỏi `app.json` khi mọi bước xong (lỗi giữa chừng thì giữ để chạy lại).
@@ -368,6 +381,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   `defaultProjectRoots` chỉ giữ thư mục có thật; repo đi kèm có sẵn → symlink, chạy lại giữ, thư
   mục lạ chắn chỗ → `checkout_exists` không đè; repo đi kèm không tìm thấy → clone thẳng, `check` bỏ qua bản clone;
   thư mục lạ hay symlink hỏng ở chỗ repo đi kèm khi phải clone → `checkout_exists`, còn nguyên.
+- `apps/mac-app/test/jobs/validate.test.ts` còn kiểm `ensure-project` (khóa, nhánh, `roles` 1–8 tên thư mục, repo đi kèm, đường dẫn cấm) và `remove-checkouts` nhận tên thư mục checkout; `remove.test.ts` thêm ca gỡ worktree `executor-1`.
 - `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
   riêng đích lỗi, một việc một lúc, quá 15 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
@@ -388,6 +402,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   và query, key sai dạng thì ném, 409 thành `PaperclipHttpError` 409; `pairMachine` gửi đúng các key, `allowRepair`
   chỉ khi được yêu cầu, log không có key máy, 409 giữ `code` (`machine_revoked`, `machine_uses_company_secret`), key
   máy sai dạng thì ném.
+  `machineBlockers`/`releaseProjectMachines`/`provisionProjectMachines`: đúng đường, body và Bearer; 404 (server cũ) thành `null`.
 - `apps/mac-app/test/paperclip-cli-auth.test.ts`: body thử thách, `approvalUrl`, poll `pending/approved/expired/cancelled/404`,
   lưu key đúng một lần (kể cả hai poll song song), log không có token.
 - `apps/mac-app/test/paperclip-keychain.test.ts`: lệnh `security`, giá trị lưu là bản mã, mã 44, mục cũ không mã hóa,
@@ -409,6 +424,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   mọi `role:*` với agent còn quyền mặc định thì Chạy tiếp đặt quyền rồi resume; Paperclip không áp quyền hay Trợ Lý
   mất `tasks:assign` thì `check` lỗi tiếng Việt và không resume. Paperclip giả cho agent mới quyền mặc định như server
   và có route `PATCH /agents/:id/permissions`.
+  Thêm xong thì nhờ server dựng sẵn máy khác; server lỗi không làm hỏng lần thêm.
 - `apps/mac-app/test/projects-folder.test.ts`: `inspectFolder` (gốc, `.git` chung, origin, nhánh mặc định và thứ tự
   dự phòng; từng ca từ chối), `folderGuardReason` không chặn `/Volumes`, `suggestKey`.
 - `apps/mac-app/test/projects-docs-runtime.test.ts` (HOME giả, repo git thật, binary `.app` giả): `runtimeProblem` từng
@@ -422,6 +438,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   ghi log từng sửa chữa, lỗi chỉ thành `warn`.
 - `apps/mac-app/test/projects-remove.test.ts`: thứ tự gỡ, lệnh `git -C … worktree remove …`, không xóa project/worktree,
   folder owner sạch, chạy lại, lỗi giữa chừng, project không do app thêm, quote đường dẫn, tiến độ kiểu cũ.
+  Cây ghim máy còn run thì từ chối, không pause hay archive; máy khác được dọn thì `removed` ghi số environment và số máy.
 - `apps/mac-app/test/projects-instructions.test.ts`: sha256 template, render Trợ Lý, `extraArgs` ghim, `baseHash`.
 - `apps/mac-app/test/projects-ipc.test.ts`: `projects:list` ghép project với tiến độ, checkout (thứ tự vai trò, `head`),
   repo docs và commit gửi cuối; project R1 không có vai trò; thêm dở chưa có project; chưa chọn company; thêm → liệt kê

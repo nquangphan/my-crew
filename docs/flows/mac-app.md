@@ -49,7 +49,7 @@ cắm vào các điểm đã chừa.
    máy sớm bằng đúng op `sendStatus` (cùng đường với `crew-mac status send` của launchd `com.2p.crew-mac-status`):
    chờ 2 giây rồi gửi một lần, các lần nhờ trong lúc chờ gộp vào lần đó, nhờ trong lúc đang gửi thì gửi thêm đúng một
    lần sau khi xong. Không chờ, không ném: gửi lỗi chỉ ghi `status-nudge-failed` (warn) vào `app.log`, gửi được ghi
-   `status-nudge-sent` kèm lý do. Thêm project xong và việc máy tạo checkout xong (flow `mac-app-paperclip`) gọi nó, để
+   `status-nudge-sent` kèm lý do. Thêm project xong và việc máy tạo checkout xong (`prepare-checkouts`, `agent-workspace`, `ensure-project`; flow `mac-app-paperclip`) gọi nó, để
    kiểm tra "Sẵn sàng" của web thấy checkout mới ngay thay vì chờ lượt gửi định kỳ.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
@@ -358,7 +358,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/notifications.test.ts`, `apps/mac-app/test/tray-state.test.ts`: thông báo và nhãn/màu tray.
 - `apps/mac-app/test/status-nudge.test.ts`: gửi sau thời gian chờ, nhiều lần nhờ gộp một lần gửi, nhờ lúc đang gửi thì
   gửi thêm đúng một lần, gửi lỗi (cả giá trị không phải `Error`) bị nuốt và ghi log warn, lần nhờ sau vẫn gửi;
-  `jobCreatedCheckouts` chỉ đúng với `prepare-checkouts`/`agent-workspace` làm xong.
+  `jobCreatedCheckouts` chỉ đúng với `prepare-checkouts`/`agent-workspace`/`ensure-project` làm xong.
 - `apps/mac-app/test/window-controller.test.ts`: mở/đóng cửa sổ, nguồn mở trong nhật ký, gửi sự kiện không ném lỗi.
 - `apps/mac-app/test/renderer/health.test.tsx`: dòng LỖI/gợi ý, nút hành động, khung nhận việc và nút Đăng nhập lại, màn Run và Log, giờ Việt Nam.
 - `apps/mac-app/test/setup-wizard.test.ts`: `check` (bốn dòng, dòng `node` hiện nhãn nguồn, tải lỗi thì không đạt kèm
