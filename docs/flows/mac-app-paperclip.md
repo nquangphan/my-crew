@@ -158,7 +158,8 @@ song.
 
 Lần `check` vừa xong (không phải chạy lại sau khi `check` đã có trong `done`) thì app nhờ server dựng sẵn project trên các máy
 đã ghép khác (`provisionProjectMachines`, `exceptMachineId` = máy này từ `jobTargets`, `includeReady: false`, `repo` = origin
-đã bỏ credential và nhánh gốc); máy offline thì việc chờ trong hàng đợi. Lỗi chỉ ghi log `project-provision-others-failed`,
+đã bỏ credential (`stripUrlCredentials`, cùng luật `repoOf` của web: `http(s)://` bỏ cả userinfo, scheme khác chỉ bỏ mật khẩu
+nên `ssh://git@…` giữ user máy khác cần để clone) và nhánh gốc); máy offline thì việc chờ trong hàng đợi. Lỗi chỉ ghi log `project-provision-others-failed`,
 lần thêm vẫn xong.
 
 Thêm xong không lỗi (`progress.error` là `null`) thì `projects:add` (`ipc.ts` → `onAdded`, nối ở `register.ts`) gọi
@@ -227,7 +228,9 @@ của FX-10 có trong template integrator, mục "Chọn workflow" và "Chốt t
 1. Pause agent của project (chỉ agent trong tiến độ của app; agent đang `paused`/`terminated`/`pending_approval` bỏ
    qua). Pause hủy run đang chạy của agent đó.
 2. Archive environment riêng của chúng (`PATCH { status: "archived" }`; không bao giờ `DELETE`). Rồi `releaseProjectMachines`
-   (`wholeProject: true`, `primaryMachineId` = `jobTargets().machineId`): server archive environment `@máy` và xếp
+   (`wholeProject: true`, `primaryMachineId` = `jobTargets().machineId`) với agent trong tiến độ còn nằm trong dòng vai trò
+   (`getRoles`; server từ chối id ngoài dòng, nên agent owner đã thay ở ô bị bỏ, dòng vai trò đã xóa ở lần trước thì không
+   gọi): server archive environment `@máy` và xếp
    `remove-checkouts` trên các máy khác (máy này loại ra); có kết quả thì `removed` ghi số environment đã archive và số
    máy gỡ checkout. Máy này vẫn gỡ bằng lệnh tay `manualCommand`.
 3. `ops.removeStatusRepo(projectId)`.
@@ -304,7 +307,7 @@ Vi phạm thì `folder_forbidden`.
 
 | Việc | Làm | Kết quả `done` | Mã lỗi |
 |------|-----|----------------|--------|
-| `inspect-folder {folder}` | `inspectFolder` (như thêm project), `git status --porcelain`, nhánh hiện tại, `crew-docs.bundle` | `{root, branch, remote, docsBundle, clean}`; `remote` bỏ `user:pass@` | `folder_missing`, `folder_not_git` (mọi ca từ chối của `inspectFolder`, kèm lời của nó), `folder_forbidden` |
+| `inspect-folder {folder}` | `inspectFolder` (như thêm project), `git status --porcelain`, nhánh hiện tại, `crew-docs.bundle` | `{root, branch, remote, docsBundle, clean}`; `remote` bỏ userinfo của `http(s)://` và mật khẩu của scheme khác (`ssh://git@…` giữ user) | `folder_missing`, `folder_not_git` (mọi ca từ chối của `inspectFolder`, kèm lời của nó), `folder_forbidden` |
 | `prepare-checkouts {projectKey, folder, roles}` | `configureDocsBundle` (bundle, runtime, hook crew-docs; lỗi thành `git_failed` "Không cài được crew-docs cho <folder>: …"); mỗi vai trò: worktree `~/crew-agents/<khóa>/<vai>` trên nhánh `branch` của payload (`ensureWorktree`, có rồi thì dùng lại), `.paperclip-runtime/` vào `info/exclude`; có `projectId` thì `addStatusRepo(projectId, <folder>, companyId)` một lần | `{checkouts:[{role, path, head}]}` | `checkout_exists` (thư mục có sẵn không phải worktree của repo này, không đè), `git_failed` |
 | `agent-workspace {projectKey, folder, role, branch}` | như trên cho một vai trò (executor thứ 2 thêm sau), không đụng worktree khác | `{role, path, head}` | như trên |
 | `ensure-project {projectKey, projectId, originUrl, branch, roles, companions}` | `ensure-project.ts` → `ensureProject`. Tìm repo có sẵn theo khóa origin (`originKey`: bỏ credential, `.git`, `/` cuối; `git@host:a/b`, `ssh://…`, `https://…` cùng khóa `host/a/b`, host không phân biệt hoa thường; `file://` và đường tuyệt đối thành đường dẫn), theo thứ tự: repo trong bản tin docs (`statusRepoPaths`), repo chính của mọi thư mục trong `~/crew-agents/*/*`, thư mục con cấp một của thư mục project quen thuộc (`projectRoots`, mặc định `~/Documents/projects`, `~/Projects`, `/Volumes/<ổ>/Projects` có thật); ứng viên phải qua `inspectFolder`. Có một bản thì không bao giờ clone thêm. Không có thì `git clone` vào `~/crew-agents/<khóa>/repo` (hạn 10 phút, `GIT_SSH_COMMAND` mặc định `ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new`) rồi `remote set-head origin -a` (hạn 60 giây); chỗ đó đã là repo đọc được thì dùng lại. Chỉ xóa rồi clone lại khi chắc là bản clone dở: thư mục không có `.git`, hoặc có `.git` của chính nó mà `rev-parse HEAD` lỗi kiểu "unknown revision" (chưa có commit), không có nhánh local nào và `git worktree list` chỉ có chính nó. HEAD lỗi kiểu khác (quá giờ, `safe.directory`...), hay repo đã có nhánh/worktree agent thì `git_failed`, không xóa gì (repo chính chứa nhánh và commit chưa push của mọi worktree agent). Symlink hay file thì không đè. Clone lỗi thì xóa thư mục dở. Sau đó `origin/HEAD` trỏ về `origin/<branch>` nếu nhánh có ở remote (chỉ đổi ref local), `configureDocsBundle`, worktree từng vai trò như `prepare-checkouts`. Repo đi kèm: tìm như trên, có thì symlink `~/crew-agents/<khóa>/<tên>` → repo (symlink đúng rồi thì giữ), không có thì clone thẳng vào chỗ đó; chỗ đó có thứ khác (thư mục lạ không rỗng, symlink trỏ chỗ khác hay hỏng, repo khác origin) thì báo, không đè. Chạy lại cho cùng kết quả | `{repoPath, cloned, checkouts:[{role, path, head}], companions:[{name, path}]}` | `clone_auth_failed` (stderr git/ssh báo từ chối key, host key, hỏi mật khẩu, mà không phải mất mạng/DNS (đó là `git_failed`): câu hướng dẫn thêm key `~/.ssh/*.pub` vào GitHub, kiểm `ssh -T git@github.com`, rồi Thêm máy lại), `checkout_exists`, `git_failed` |
@@ -344,7 +347,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/projects/templates/*.md` | `AGENTS.md` theo vai trò (chép từ fork `crew/agents/*.md`) | |
 | `apps/mac-app/src/main/jobs/types.ts` | Kiểu hàng đợi máy (chép từ plugin), `JobOutcome`, `JobExtras`, `JobError` | `MachineJob`, `JobPayload`, `JobResult`, `JobErrorCode`, `JOB_TIMEOUT_MS` |
 | `apps/mac-app/src/main/jobs/validate.ts` | Kiểm payload như plugin, chặn đường dẫn trên máy | `validateJobPayload`, `machineGuardReason`, `checkoutPath` |
-| `apps/mac-app/src/main/jobs/sanitize.ts` | Làm sạch lỗi gửi lên, bỏ credential trong URL remote | `sanitizeJobError`, `stripUrlCredentials` |
+| `apps/mac-app/src/main/jobs/sanitize.ts` | Làm sạch lỗi gửi lên, bỏ credential trong URL remote (giữ user `ssh://`) | `sanitizeJobError`, `stripUrlCredentials` |
 | `apps/mac-app/src/main/jobs/executors.ts` | 9 loại việc trên máy (chạy trong utilityProcess) | `runJob`, `ExecutorDeps` |
 | `apps/mac-app/src/main/jobs/ensure-project.ts` | Dựng project trên máy: tìm repo theo origin hoặc clone, worktree, repo đi kèm | `ensureProject`, `findRepo`, `originKey`, `defaultProjectRoots` |
 | `apps/mac-app/src/main/jobs/remove.ts` | Gỡ checkout (giữ checkout bẩn/bận/lạ), xóa bản chép skill, bỏ tiến độ project đã gỡ | `removeCheckouts`, `removeSkill`, `forgetRemovedProject`, `runLsof` |
@@ -382,7 +385,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   mục lạ chắn chỗ → `checkout_exists` không đè; repo đi kèm không tìm thấy → clone thẳng, `check` bỏ qua bản clone;
   thư mục lạ hay symlink hỏng ở chỗ repo đi kèm khi phải clone → `checkout_exists`, còn nguyên.
 - `apps/mac-app/test/jobs/validate.test.ts` còn kiểm `ensure-project` (khóa, nhánh, `roles` 1–8 tên thư mục, repo đi kèm, đường dẫn cấm) và `remove-checkouts` nhận tên thư mục checkout; `remove.test.ts` thêm ca gỡ worktree `executor-1`.
-- `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự.
+- `apps/mac-app/test/jobs/sanitize.test.ts`: stderr git có `https://user:token@…` và mã màu, mẫu secret, 300 ký tự;
+  `stripUrlCredentials` giữ `ssh://git@…`, bỏ mật khẩu `ssh://user:…@`, bỏ cả token `https://token@…`.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
   riêng đích lỗi, một việc một lúc, quá 15 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
   `machineId`, `stop`; trạng thái nhận việc: ổn, chưa có key, 401, 403 (không bảo đăng nhập lại), company bị bỏ qua,
@@ -424,7 +428,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   mọi `role:*` với agent còn quyền mặc định thì Chạy tiếp đặt quyền rồi resume; Paperclip không áp quyền hay Trợ Lý
   mất `tasks:assign` thì `check` lỗi tiếng Việt và không resume. Paperclip giả cho agent mới quyền mặc định như server
   và có route `PATCH /agents/:id/permissions`.
-  Thêm xong thì nhờ server dựng sẵn máy khác; server lỗi không làm hỏng lần thêm.
+  Thêm xong thì nhờ server dựng sẵn máy khác; server lỗi không làm hỏng lần thêm; origin `ssh://git:…@` gửi server thành
+  `ssh://git@…`.
 - `apps/mac-app/test/projects-folder.test.ts`: `inspectFolder` (gốc, `.git` chung, origin, nhánh mặc định và thứ tự
   dự phòng; từng ca từ chối), `folderGuardReason` không chặn `/Volumes`, `suggestKey`.
 - `apps/mac-app/test/projects-docs-runtime.test.ts` (HOME giả, repo git thật, binary `.app` giả): `runtimeProblem` từng
@@ -438,7 +443,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   ghi log từng sửa chữa, lỗi chỉ thành `warn`.
 - `apps/mac-app/test/projects-remove.test.ts`: thứ tự gỡ, lệnh `git -C … worktree remove …`, không xóa project/worktree,
   folder owner sạch, chạy lại, lỗi giữa chừng, project không do app thêm, quote đường dẫn, tiến độ kiểu cũ.
-  Cây ghim máy còn run thì từ chối, không pause hay archive; máy khác được dọn thì `removed` ghi số environment và số máy.
+  Cây ghim máy còn run thì từ chối, không pause hay archive; máy khác được dọn thì `removed` ghi số environment và số máy;
+  agent trong tiến độ mà owner đã thay ở ô không gửi server, dòng vai trò đã xóa thì không gọi dọn máy khác.
 - `apps/mac-app/test/projects-instructions.test.ts`: sha256 template, render Trợ Lý, `extraArgs` ghim, `baseHash`.
 - `apps/mac-app/test/projects-ipc.test.ts`: `projects:list` ghép project với tiến độ, checkout (thứ tự vai trò, `head`),
   repo docs và commit gửi cuối; project R1 không có vai trò; thêm dở chưa có project; chưa chọn company; thêm → liệt kê
