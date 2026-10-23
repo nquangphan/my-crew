@@ -66,7 +66,10 @@ function lastPath(ctx: MacContext): string {
 function reposPath(ctx: MacContext): string {
   return join(ctx.home, '.crew', 'status-repos.json');
 }
-const DOCS_BODY_MAX_BYTES = 5 * 1024 * 1024;
+/** Trần body ảnh chụp docs, khớp `maxBytes` của webhook `docs-snapshot` trên server. */
+export const DOCS_BODY_MAX_BYTES = 16 * 1024 * 1024;
+/** Body tới 16 MB qua mạng nhà cần lâu hơn bản tin máy. */
+const DOCS_SEND_TIMEOUT_MS = 60_000;
 
 export interface StatusRepo {
   projectId: string;
@@ -548,7 +551,9 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
         });
       }
       if (Buffer.byteLength(body, 'utf8') > DOCS_BODY_MAX_BYTES) {
-        ctx.out(`crew-mac status: ảnh chụp docs của ${repo.projectId} vượt 5 MB; sẽ thử lại.`);
+        ctx.out(
+          `crew-mac status: ảnh chụp docs của ${repo.projectId} vượt ${DOCS_BODY_MAX_BYTES / 1024 / 1024} MB; sẽ thử lại.`,
+        );
         success = false;
         continue;
       }
@@ -559,7 +564,7 @@ export async function sendDocsSnapshots(ctx: MacContext, fetcher: typeof fetch =
           ...signCrewBody(body, secret.secret, Math.floor(ctx.now().getTime() / 1000)),
         },
         body,
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(DOCS_SEND_TIMEOUT_MS),
       });
       if (response.status < 200 || response.status >= 300) throw new Error(`HTTP ${response.status}`);
       mutateRepos(ctx, (current) =>

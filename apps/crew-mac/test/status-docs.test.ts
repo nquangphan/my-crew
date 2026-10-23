@@ -320,12 +320,13 @@ describe('status docs snapshots', () => {
         return new Response('', { status: String(url).endsWith('docs-snapshot') ? 502 : 200 });
       }),
     ).rejects.toThrow();
-    expect(sent).toHaveLength(2);
+    // Lần gửi còn kéo cấu hình Jev; test này chỉ đếm bản tin máy và ảnh chụp docs.
+    expect(sent.filter((url) => !url.includes('/jev/'))).toHaveLength(2);
     expect(JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8')).ok).toBe(true);
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBeNull();
   });
 
-  it('HTTP 502 và body quá 5 MB giữ lastCommit', async () => {
+  it('HTTP 502 và body quá 16 MB giữ lastCommit', async () => {
     const { ctx, runner, out } = fakeMac();
     const repo = fixture();
     configureStatus(ctx, 'https://paperclip.example', COMPANY);
@@ -337,7 +338,7 @@ describe('status docs snapshots', () => {
       return new Response('', { status: 502 });
     });
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBeNull();
-    writeFileSync(join(repo, 'docs', 'large.md'), `# Large\n${'x'.repeat(5 * 1024 * 1024)}\n`);
+    writeFileSync(join(repo, 'docs', 'large.md'), `# Large\n${'x'.repeat(16 * 1024 * 1024)}\n`);
     git(repo, 'add', '-A');
     git(repo, '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'docs: large');
     await sendDocsSnapshots(ctx, async () => {
@@ -346,7 +347,7 @@ describe('status docs snapshots', () => {
     });
     expect(calls).toBe(1);
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBeNull();
-    expect(out.join('\n')).toMatch(/5 MB/);
+    expect(out.join('\n')).toMatch(/16 MB/);
   });
 
   it('không gửi Markdown dạng binary mà git diff bỏ qua khi rà secret', async () => {
@@ -601,9 +602,9 @@ describe('docs snapshot format 2', () => {
     expect(JSON.parse(bodies[1] ?? '{}').commits.base).toBeNull();
   });
 
-  it('drops commit paths when the full body exceeds 5 MB', async () => {
+  it('drops commit paths when the full body exceeds 16 MB', async () => {
     const { ctx, repo, bodies, fetcher } = setup();
-    writeFileSync(join(repo, 'docs', 'large.md'), `# Large\n${'x'.repeat(Math.floor(4.9 * 1024 * 1024))}\n`);
+    writeFileSync(join(repo, 'docs', 'large.md'), `# Large\n${'x'.repeat(Math.floor(15.9 * 1024 * 1024))}\n`);
     const deep = join(repo, ...['a', 'b', 'c', 'd'].map((c) => c.repeat(200)));
     mkdirSync(deep, { recursive: true });
     for (let i = 0; i < 500; i++)
@@ -615,7 +616,7 @@ describe('docs snapshot format 2', () => {
     const body = JSON.parse(bodies[0] ?? '{}');
     expect(body.commits.truncated).toBe(true);
     expect(body.commits.items.every((c: { paths: string[] }) => c.paths.length === 0)).toBe(true);
-    expect(Buffer.byteLength(bodies[0] ?? '', 'utf8')).toBeLessThanOrEqual(5 * 1024 * 1024);
+    expect(Buffer.byteLength(bodies[0] ?? '', 'utf8')).toBeLessThanOrEqual(16 * 1024 * 1024);
   }, 60_000);
 
   it('rejects an unknown format in status-repos.json', () => {

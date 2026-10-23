@@ -412,7 +412,7 @@ Plugin R2-5 phải lên prod trước khi cài `crew-mac` mới. Webhook docs c�
 `format/manifest/commits` mà vẫn trả 200, nên Mac ghi `format: 2` và không gửi lại, làm mất manifest và danh sách commit
 của commit đó cho tới commit sau. Bản tin máy thì khác: plugin cũ từ chối cả bản tin có key `attachmentCache`.
 
-Body JSON tối đa 5 MB. Nếu body đầy đủ vượt, lệnh gửi lại với mọi `paths` rỗng và `commits.truncated: true`. Nếu vẫn vượt, hoặc HTTP khác 2xx, hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau
+Body JSON tối đa 16 MB (khớp trần của webhook `docs-snapshot` trên server), chờ tối đa 60 giây. Nếu body đầy đủ vượt, lệnh gửi lại với mọi `paths` rỗng và `commits.truncated: true`. Nếu vẫn vượt, hoặc HTTP khác 2xx, hoặc xử lý thất bại, lệnh giữ `lastCommit` cũ để lần sau
 thử lại. Khi POST `docs-snapshot` thành công, nó mới cập nhật commit đã gửi. Bản tin dùng cùng secret Keychain và
 cùng quy tắc HMAC với bản tin máy. Lệnh chỉ cảnh báo số trang bị bỏ, không ghi nội dung hay chuỗi bí mật ra log.
 
