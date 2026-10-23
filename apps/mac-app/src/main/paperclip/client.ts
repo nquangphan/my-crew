@@ -1,6 +1,9 @@
 import type {
   ClaudeLocalAgentInput,
   MachinePairing,
+  MachineProvisionResult,
+  MachineReleaseBlocker,
+  MachineReleaseResult,
   PaperclipAgent,
   PaperclipClient,
   PaperclipCompany,
@@ -162,6 +165,8 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
   const base = normalizeOrigin(origin);
   const prefixes = new Map<string, string>();
   const id = (value: string) => encodeURIComponent(value);
+  const projectMachinesPath = (companyId: string, projectId: string) =>
+    `/api/crew/companies/${id(companyId)}/projects/${id(projectId)}/machines`;
 
   async function call<T>(
     method: string,
@@ -477,6 +482,37 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
         pairedAt: typeof paired.pairedAt === 'string' ? paired.pairedAt : '',
       };
       return result;
+    },
+
+    async machineBlockers(companyId, projectId, agentIds) {
+      const query = agentIds && agentIds.length > 0 ? `?agentIds=${agentIds.map(id).join(',')}` : '';
+      const res = await call<{ blockers?: MachineReleaseBlocker[] } | null>(
+        'GET',
+        `${projectMachinesPath(companyId, projectId)}/blockers${query}`,
+        undefined,
+        true,
+      );
+      return res ? (res.blockers ?? []) : null;
+    },
+
+    async releaseProjectMachines(companyId, projectId, body) {
+      return call<MachineReleaseResult | null>(
+        'POST',
+        `${projectMachinesPath(companyId, projectId)}/release`,
+        body,
+        true,
+        true,
+      );
+    },
+
+    async provisionProjectMachines(companyId, projectId, body) {
+      return call<MachineProvisionResult | null>(
+        'POST',
+        `${projectMachinesPath(companyId, projectId)}/provision`,
+        body,
+        true,
+        true,
+      );
     },
   };
 }

@@ -6,6 +6,7 @@ import { addProject } from '../src/main/projects/add-project.js';
 import { removeProject } from '../src/main/projects/remove-project.js';
 import {
   baseDeps,
+  COMPANY,
   fakeOps,
   makeSandbox,
   makeStore,
@@ -58,11 +59,15 @@ describe('removeProject', () => {
     expect(writes.map((r) => `${r.method} ${r.path}`)).toEqual([
       ...agentIds.map((id) => `POST /api/agents/${id}/pause`),
       ...envIds.map((id) => `PATCH /api/environments/${id}`),
+      `POST /api/crew/companies/${COMPANY}/projects/${projectId}/machines/release`,
       `DELETE /api/plugins/crew.core/api/projects/${projectId}/roles`,
     ]);
     for (const r of writes.filter((w) => w.method === 'PATCH'))
       expect(r.body).toEqual({ status: 'archived' });
-    expect(fake.calls.slice(opsBefore)).toEqual([{ op: 'removeStatusRepo', args: [projectId] }]);
+    expect(fake.calls.slice(opsBefore)).toEqual([
+      { op: 'jobTargets', args: [] },
+      { op: 'removeStatusRepo', args: [projectId] },
+    ]);
     expect(result.removed).toEqual([
       ...Object.keys(progress.agents).map((role) => `agent landing-${role} đã pause`),
       ...Object.keys(progress.agents).map((role) => `environment landing-${role} đã archive`),
@@ -82,6 +87,33 @@ describe('removeProject', () => {
     expect(sandbox.git(['-C', folder, 'status', '--porcelain'])).toBe('');
     expect(paperclip.requests.some((r) => r.method === 'DELETE' && !r.path.endsWith('/roles'))).toBe(false);
     expect(store.get().projects.landing).toBeUndefined();
+  });
+
+  it('cây ghim máy còn run chạy: từ chối gỡ, không pause hay archive gì', async () => {
+    const { paperclip, deps, projectId } = await added();
+    paperclip.rules.push({
+      match: (r) => r.method === 'GET' && r.path.endsWith('/machines/blockers'),
+      status: 200,
+      body: {
+        blockers: [{ issueId: 'i1', identifier: 'TPS-9', hostname: 'Phans-Mac-mini', runStatus: 'running' }],
+      },
+    });
+    const before = paperclip.requests.length;
+    await expect(removeProject(deps, projectId)).rejects.toThrow('TPS-9 (Phans-Mac-mini)');
+    expect(paperclip.requests.slice(before).filter((r) => r.method !== 'GET')).toEqual([]);
+  });
+
+  it('server dọn máy khác: báo số environment đã archive và số máy gỡ checkout', async () => {
+    const { paperclip, deps, projectId } = await added();
+    paperclip.rules.push({
+      match: (r) => r.method === 'POST' && r.path.endsWith('/machines/release'),
+      status: 200,
+      body: { archivedEnvironmentIds: ['e1', 'e2'], jobs: [{ machineId: 'm2', jobId: 'j1' }] },
+    });
+    const result = await removeProject(deps, projectId);
+    expect(result.removed).toContain('2 environment trên máy khác đã archive, gỡ checkout trên 1 máy khác');
+    const release = paperclip.requests.find((r) => r.path.endsWith('/machines/release'));
+    expect(release?.body).toMatchObject({ wholeProject: true, primaryMachineId: 'machine-test' });
   });
 
   it('chạy lại khi đã gỡ → không lỗi, không pause/archive gì thêm', async () => {

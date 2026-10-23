@@ -521,6 +521,19 @@ describe('addProject', () => {
     for (const agent of paperclip.agents.values()) expect(agent.status).toBe('paused');
   });
 
+  it('thêm xong thì nhờ server dựng sẵn project trên máy khác; server lỗi không làm hỏng lần thêm', async () => {
+    const { sandbox, paperclip, deps, input } = await world();
+    paperclip.rules.push({ match: (r) => r.path.endsWith('/machines/provision'), status: 500 });
+    const progress = await addProject(deps, input);
+    expect(progress.error).toBeNull();
+    const call = paperclip.requests.find((r) => r.path.endsWith('/machines/provision'));
+    expect(call?.body).toEqual({
+      exceptMachineId: 'machine-test',
+      includeReady: false,
+      repo: { originUrl: sandbox.origin, branch: 'main' },
+    });
+  });
+
   it('chạy lại khi đã xong → không gọi ghi gì thêm', async () => {
     const { paperclip, deps, input } = await world();
     await addProject(deps, input);

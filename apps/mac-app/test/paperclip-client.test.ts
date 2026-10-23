@@ -642,3 +642,52 @@ describe('ghép máy (route plugin crew.core)', () => {
     await expect(client.pairMachine(PAIR)).rejects.toThrow('key máy không hợp lệ');
   });
 });
+
+describe('máy khác của project', () => {
+  const P = '33333333-3333-4333-8333-333333333333';
+  const C = '11111111-1111-4111-8111-111111111111';
+  const A = '44444444-4444-4444-8444-444444444444';
+  const base = `/api/crew/companies/${C}/projects/${P}/machines`;
+
+  it('đúng đường, body và Bearer; 404 (server cũ) thành null', async () => {
+    const { server, client } = await setup((req) =>
+      req.path === `${base}/blockers`
+        ? {
+            status: 200,
+            body: {
+              blockers: [
+                { issueId: 'i1', identifier: 'TPS-9', hostname: 'Phans-Mac-mini', runStatus: 'running' },
+              ],
+            },
+          }
+        : req.path === `${base}/release`
+          ? {
+              status: 200,
+              body: { archivedEnvironmentIds: ['e1'], jobs: [{ machineId: 'm2', jobId: 'j1' }] },
+            }
+          : { status: 404, body: { error: 'không có' } },
+    );
+    expect(await client.machineBlockers(C, P, [A])).toEqual([
+      { issueId: 'i1', identifier: 'TPS-9', hostname: 'Phans-Mac-mini', runStatus: 'running' },
+    ]);
+    expect(server.requests[0]).toMatchObject({ method: 'GET', query: { agentIds: A } });
+    expect(
+      await client.releaseProjectMachines(C, P, {
+        agentIds: [A],
+        wholeProject: true,
+        primaryMachineId: null,
+      }),
+    ).toEqual({
+      archivedEnvironmentIds: ['e1'],
+      jobs: [{ machineId: 'm2', jobId: 'j1' }],
+    });
+    expect(server.requests[1]).toMatchObject({
+      method: 'POST',
+      body: { agentIds: [A], wholeProject: true, primaryMachineId: null },
+    });
+    expect(
+      await client.provisionProjectMachines(C, P, { exceptMachineId: null, includeReady: false, repo: null }),
+    ).toBeNull();
+    for (const r of server.requests) expect(r.authorization).toBe(`Bearer ${KEY}`);
+  });
+});

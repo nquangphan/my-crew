@@ -250,6 +250,7 @@ export function fakeOps(
       { id: 'claude-auth', title: 'Claude', status: 'fail', detail: 'không liên quan' },
     ],
     workflowCheck: () => ({ ok: true, lines: [] }),
+    jobTargets: () => ({ machineId: 'machine-test', targets: [] }),
   };
   const ops: OpsBridge = {
     call: vi.fn(async (op: OpsName, ...args: unknown[]) => {

@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { forbiddenRootReason } from '@crew/mac';
 import type { AddProjectInput } from '../../shared/ipc-contract.js';
 import type { ProjectProgress } from '../app-state.js';
+import { stripUrlCredentials } from '../jobs/sanitize.js';
 import type {
   AgentPermissions,
   PaperclipClient,
@@ -231,7 +232,33 @@ class AddRun {
     // Không ghi vào `done`: chạy lại mỗi lần trước `check` (PATCH idempotent), nên tiến độ của bản app cũ đã qua mọi
     // bước `role:*` mà chưa đặt quyền, hay quyền bị đổi lại sau lần chạy trước, vẫn được đặt đúng trước khi resume.
     if (!this.rec.get().done.includes('check')) await this.restrictPermissions();
+    const fresh = !this.rec.get().done.includes('check');
     await this.step('check', () => this.check());
+    if (fresh) await this.provisionOthers();
+  }
+
+  /**
+   * Máy chính xong thì nhờ server xếp `ensure-project` cho mọi máy đã ghép khác (máy offline thì việc chờ trong hàng
+   * đợi). Lỗi chỉ ghi log: lần thêm vẫn xong, lỗi từng máy hiện ở tab Máy của project trên web.
+   */
+  private async provisionOthers(): Promise<void> {
+    try {
+      const { machineId } = await this.deps.ops.call('jobTargets');
+      const branch = this.info.baseRef
+        .replace(/^refs\/remotes\/origin\//, '')
+        .replace(/^origin\//, '')
+        .replace(/^refs\/heads\//, '');
+      await this.deps.client.provisionProjectMachines(this.companyId, this.projectId(), {
+        exceptMachineId: machineId,
+        includeReady: false,
+        repo: { originUrl: stripUrlCredentials(this.info.origin), branch },
+      });
+    } catch (error) {
+      this.deps.log?.('project-provision-others-failed', {
+        key: this.input.key,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /** Đặt lại quyền của mọi agent của project (tạo mới hay dùng lại) trong lúc agent còn `paused`. */

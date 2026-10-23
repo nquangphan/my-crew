@@ -169,4 +169,42 @@ export interface PaperclipClient {
    * bản tin bằng secret company và chưa từng ghép.
    */
   pairMachine(input: MachinePairInput, options?: { allowRepair?: boolean }): Promise<MachinePairing>;
+  /** `null`: server chưa có route (bản cũ). */
+  machineBlockers(
+    companyId: string,
+    projectId: string,
+    agentIds: string[] | null,
+  ): Promise<MachineReleaseBlocker[] | null>;
+  releaseProjectMachines(
+    companyId: string,
+    projectId: string,
+    body: { agentIds: string[]; wholeProject: boolean; primaryMachineId: string | null },
+  ): Promise<MachineReleaseResult | null>;
+  provisionProjectMachines(
+    companyId: string,
+    projectId: string,
+    body: {
+      exceptMachineId: string | null;
+      includeReady: boolean;
+      repo: { originUrl: string; branch: string } | null;
+    },
+  ): Promise<MachineProvisionResult | null>;
+}
+
+/** Cây ghim máy của project còn run chờ hay đang chạy (route Crew `…/machines/blockers`). */
+export interface MachineReleaseBlocker {
+  issueId: string;
+  identifier: string | null;
+  hostname: string;
+  runStatus: string;
+}
+
+export interface MachineReleaseResult {
+  archivedEnvironmentIds: string[];
+  jobs: { machineId: string; jobId: string }[];
+}
+
+export interface MachineProvisionResult {
+  queued: { machineId: string; jobId: string }[];
+  skipped: { machineId: string; reason: string }[];
 }
