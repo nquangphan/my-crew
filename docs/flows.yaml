@@ -365,6 +365,7 @@ flows:
       - apps/mac-app/src/main/jobs/remote.ts
       - apps/mac-app/src/main/jobs/validate.ts
       - apps/mac-app/src/main/jobs/executors.ts
+      - apps/mac-app/src/main/jobs/ensure-project.ts
       - apps/mac-app/src/main/jobs/sanitize.ts
       - apps/mac-app/src/main/jobs/remove.ts
     tests:
@@ -386,6 +387,7 @@ flows:
       - apps/mac-app/test/jobs/remote.test.ts
       - apps/mac-app/test/jobs/validate.test.ts
       - apps/mac-app/test/jobs/executors.test.ts
+      - apps/mac-app/test/jobs/ensure-project.test.ts
       - apps/mac-app/test/jobs/sanitize.test.ts
       - apps/mac-app/test/jobs/remove.test.ts
   mac-app-sshd:

@@ -1,5 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { type RuntimesStatus, treeChecksum } from '@crew/mac';
 import { isFile } from '../projects/docs-runtime.js';
@@ -14,11 +23,11 @@ import {
   type ProcessRunner,
   runGit,
 } from '../projects/folder.js';
+import { defaultProjectRoots, ensureProject } from './ensure-project.js';
 import { type LsofRunner, removeCheckouts, removeSkill } from './remove.js';
 import { sanitizeJobError, stripUrlCredentials } from './sanitize.js';
 import {
   type CheckItem,
-  type CrewRoleSlot,
   JobError,
   type JobErrorCode,
   type JobExtras,
@@ -57,6 +66,8 @@ export interface ExecutorDeps {
   addStatusRepo(projectId: string, path: string, companyId: string): Promise<void>;
   /** Đường dẫn các repo đã có trong bản tin docs (nguồn bundle crew-docs). */
   statusRepoPaths(): Promise<string[]>;
+  /** Thư mục project quen thuộc cho `ensure-project`; thiếu thì `~/Documents/projects`, `~/Projects`, `/Volumes/<ổ>/Projects`. */
+  projectRoots?(): string[];
   /** Node thật cho `crew-docs.runtime` (dò, không có thì tải); null khi không có. */
   docsNodePath(): Promise<string | null>;
   /** Bỏ repo docs của project khỏi bản tin máy (gỡ project). */
@@ -78,7 +89,7 @@ const failed = (errorCode: JobErrorCode, text: string, result?: JobResult): JobO
 
 /**
  * Làm một việc của hàng đợi máy. Kiểm lại payload (như plugin) và đường dẫn trước khi đụng tới máy. Không ném: mọi lỗi
- * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 8 loại việc; không chạy lệnh nào khác.
+ * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 9 loại việc; không chạy lệnh nào khác.
  */
 export async function runJob(
   job: Pick<MachineJob, 'companyId' | 'kind' | 'payload'>,
@@ -133,6 +144,20 @@ async function execute(
       return { status: 'done', result: await removeCheckouts(payload, deps) };
     case 'runtimes-setup':
       return { status: 'done', result: runtimesResult(await deps.runtimesSetup()) };
+    case 'ensure-project':
+      return {
+        status: 'done',
+        result: await ensureProject(payload, {
+          home: deps.home,
+          env: deps.env,
+          git: deps.git,
+          statusRepoPaths: () => deps.statusRepoPaths(),
+          projectRoots: deps.projectRoots ?? (() => defaultProjectRoots(deps.home)),
+          configureDocs: (info) => configureDocs(info, deps),
+          ensureCheckout: (info, projectKey, role, branch) =>
+            ensureCheckout(info, projectKey, role, branch, deps),
+        }),
+      };
     case 'skill-remove':
       return { status: 'done', result: removeSkill(deps.home, companyId, payload.slug) };
   }
@@ -201,13 +226,13 @@ async function configureDocs(info: FolderInfo, deps: ExecutorDeps): Promise<void
   }
 }
 
-async function ensureCheckout(
+async function ensureCheckout<R extends string>(
   info: FolderInfo,
   projectKey: string,
-  role: CrewRoleSlot,
+  role: R,
   branch: string,
   deps: ExecutorDeps,
-): Promise<{ role: CrewRoleSlot; path: string; head: string }> {
+): Promise<{ role: R; path: string; head: string }> {
   const path = checkoutPath(deps.home, projectKey, role);
   const gitDeps = { home: deps.home, env: deps.env, git: deps.git };
   if (existsSync(path) && !(await isWorktreeOf(path, info.commonDir, gitDeps))) {
@@ -337,12 +362,21 @@ async function projectDocsItem(projectKey: string, deps: ExecutorDeps): Promise<
   return { id, status: 'ok', title: cut(`${title}: worktree integrator chạy được crew-docs`) };
 }
 
+function isMainClone(dir: string): boolean {
+  try {
+    return statSync(join(dir, '.git')).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 async function checkJob(projectKey: string, deps: ExecutorDeps): Promise<JobOutcome> {
   const root = join(deps.home, 'crew-agents', projectKey);
   let roles: string[] = [];
   try {
     roles = readdirSync(root, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
+      // Bản clone chính (`repo`, repo đi kèm clone thẳng) có `.git` là thư mục; chỉ worktree agent mới kiểm workflow.
+      .filter((entry) => entry.isDirectory() && !isMainClone(join(root, entry.name)))
       .map((entry) => entry.name)
       .sort();
   } catch {

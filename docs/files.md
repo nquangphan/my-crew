@@ -183,6 +183,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/health.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/index.ts` | [mac-app](flows/mac-app.md) (điểm vào), [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/ipc.ts` | [mac-app](flows/mac-app.md) (file) |
+| `apps/mac-app/src/main/jobs/ensure-project.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/jobs/executors.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/jobs/poller.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/jobs/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
@@ -265,6 +266,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/app-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/health.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |
+| `apps/mac-app/test/jobs/ensure-project.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/jobs/executors.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/jobs/poller.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
 | `apps/mac-app/test/jobs/remote.test.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (test) |
