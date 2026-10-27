@@ -155,11 +155,9 @@ describe('crew-mac status: nhiều đích', () => {
     expect(new Set(machine.map((r) => r.body.machineId))).toEqual(new Set([config.machineId]));
     // Mỗi đích ký bằng secret của nó.
     expect(machine[0]?.signature).not.toBe(machine[1]?.signature);
-    // Lần gửi còn kéo cấu hình Jev cho từng đích; các dòng của Jev không thuộc test này.
-    const statusOut = out.filter((line) => !line.startsWith('crew-mac jev:'));
-    expect(statusOut).toHaveLength(1);
-    expect(statusOut[0]).toContain(COMPANY_A);
-    expect(statusOut[0]).toContain('HTTP 500');
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain(COMPANY_A);
+    expect(out[0]).toContain('HTTP 500');
     expect(out.join('\n')).not.toContain('secret-');
     const last = JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8'));
     expect(last).toMatchObject({
@@ -180,14 +178,10 @@ describe('crew-mac status: nhiều đích', () => {
     store.delete('crew-mac-status-33333333');
     const { requests, fetcher } = recordingFetch();
     await expect(sendStatus(ctx, fetcher)).rejects.toThrow();
-    expect(requests.filter((r) => !r.url.includes('/jev/')).map((r) => r.body.companyId)).toEqual([
-      COMPANY_A,
-    ]);
-    // Lần gửi còn kéo cấu hình Jev cho từng đích; các dòng của Jev không thuộc test này.
-    const statusOut = out.filter((line) => !line.startsWith('crew-mac jev:'));
-    expect(statusOut).toHaveLength(1);
-    expect(statusOut[0]).toContain('Keychain');
-    expect(statusOut[0]).toContain(COMPANY_B);
+    expect(requests.map((r) => r.body.companyId)).toEqual([COMPANY_A]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain('Keychain');
+    expect(out[0]).toContain(COMPANY_B);
   });
 
   it('ảnh chụp docs: repo có companyId chỉ đi tới đích của company đó, repo không có thì đi đích đầu', async () => {

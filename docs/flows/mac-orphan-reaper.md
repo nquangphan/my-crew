@@ -65,10 +65,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 
      Không bao giờ chọn launchd, `sshd`/`sshd-session` hay chính process đang chạy. So thời điểm sinh có sai số 1
      giây vì `etime` làm tròn. Callback bridge Paperclip (`bridgeRoot` nhận ra) không bao giờ được chọn theo (b') hay
-     (c), vì nó sinh trước wrapper và cửa sổ thời gian không nhận diện được nó. Bước 7 xử lý bridge. Tiến trình nền
-     của hook Crew Jev (`isJevGateBackground`: argv đúng dạng `node …/cli.js jev gate-bg`) cũng không bao giờ được chọn
-     theo (b') hay (c): nó tự thoát sau vài giây và vốn đã chạy ngoài run (cwd `~/.crew/jev`, không có run id; flow
-     `mac-jev`), argv chỉ là lớp phòng hờ.
+     (c), vì nó sinh trước wrapper và cửa sổ thời gian không nhận diện được nó. Bước 7 xử lý bridge.
    - `collectRunMembers` ghép các bước trên cho một run.
 3. `apps/crew-mac/src/reaper/stop.ts` → `stopMembers`:
    - Gửi `SIGTERM` theo group cho group chỉ gồm process đã chọn (và không phải group của chính mình), còn lại theo
@@ -107,7 +104,7 @@ Với `PAPERCLIP_RUN_ID` hợp lệ, wrapper ghi vào `<worktree>/.paperclip-run
 |-----------|---------|--------------|
 | `apps/crew-mac/src/commands/stop-run.ts` | Lệnh `stop-run` | `stopRun`, `formatStopLine`, `RUN_ID_UUID` |
 | `apps/crew-mac/src/reaper/reap.ts` | Một vòng dọn của reaper | `reapOnce`, `sweepBridges`, `BRIDGE_GRACE_MS`, `readReaperState`, `vnTime`, `ReapDeps.gcWorkflowPins` |
-| `apps/crew-mac/src/reaper/run-members.ts` | Chọn process của một run | `selectRunMembers`, `orphanCandidates`, `collectRunMembers`, `bridgeRoot`, `isJevGateBackground`, `readRunStarts`, `runWindow` |
+| `apps/crew-mac/src/reaper/run-members.ts` | Chọn process của một run | `selectRunMembers`, `orphanCandidates`, `collectRunMembers`, `bridgeRoot`, `readRunStarts`, `runWindow` |
 | `apps/crew-mac/src/reaper/stop.ts` | TERM, chờ, KILL | `stopMembers` |
 | `apps/crew-mac/src/reaper/process-table.ts` | Đọc bảng process, env và cwd | `listProcesses`, `readCwds`, `extractRunId`, `isEnvReadable`, `parseEtime` |
 | `apps/crew-mac/src/reaper/select.ts` | Chọn claude mồ côi cho reaper | `selectTargets`, `isOrphaned` |

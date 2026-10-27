@@ -93,16 +93,6 @@ export function bridgeRoot(p: ProcInfo): string | null {
   return BRIDGE_RE.exec(p.command)?.[1] ?? null;
 }
 
-/**
- * Tiến trình nền của hook Crew Jev (`node …/cli.js jev gate-bg`): tự thoát trong vài giây và chạy ngoài run (cwd
- * `~/.crew/jev`, không có run id). Loại thêm theo argv để bộ kiểm mồ côi không bao giờ chặn agent vì nó.
- */
-const JEV_GATE_BG_RE = /^(?:\S*\/)?node\s+\S*\/cli\.js\s+jev\s+gate-bg$/;
-
-export function isJevGateBackground(p: ProcInfo): boolean {
-  return JEV_GATE_BG_RE.test(p.command);
-}
-
 export function descendants(rootPid: number, procs: readonly ProcInfo[]): number[] {
   const children = new Map<number, number[]>();
   for (const p of procs) children.set(p.ppid, [...(children.get(p.ppid) ?? []), p.pid]);
@@ -153,7 +143,6 @@ export function orphanCandidates(procs: readonly ProcInfo[], spec: RunSpec, self
         !neverTouch(p, selfPid) &&
         !branch.has(p.pid) &&
         bridgeRoot(p) === null &&
-        !isJevGateBackground(p) &&
         p.tty === '??' &&
         inWindow(p, spec) &&
         (p.runId === null || p.runId === spec.runId),
@@ -200,13 +189,7 @@ export function selectRunMembers(
     const hasClaudeBranch = procs.some((p) => p.pgid === pgid && selected.has(p.pid));
     if (leaderIsRun || hasClaudeBranch) {
       for (const p of procs)
-        if (
-          p.pgid === pgid &&
-          p.tty === '??' &&
-          bridgeRoot(p) === null &&
-          !isJevGateBackground(p) &&
-          inWindow(p, spec)
-        )
+        if (p.pgid === pgid && p.tty === '??' && bridgeRoot(p) === null && inWindow(p, spec))
           selected.add(p.pid);
     }
   }

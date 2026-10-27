@@ -29,7 +29,6 @@ import {
   type SshdOwner,
   takeBackToLaunchd,
 } from '../sshd-owner.js';
-import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
 import { installBmadPin } from '../workflows/bmad-install.js';
 import { installSuperpowersPin } from '../workflows/install.js';
@@ -111,18 +110,6 @@ export function statusPlistSpec(ctx: MacContext, paths: MacPaths): PlistSpec {
     stdoutPath: paths.statusLog,
     stderrPath: paths.statusLog,
   };
-}
-
-/**
- * `~/.crew/jev/settings.json`: wrapper thêm `--settings <file>` cho run Paperclip để mọi lệnh Bash đi qua hook
- * `crew-mac jev gate`. Không có secret; Claude giết hook sau 5 giây (lưới cuối, gate tự dừng trước 3 giây).
- */
-export function renderJevSettings(launcher: string): string {
-  const command = `${/^[\w./-]+$/.test(launcher) ? launcher : shQuote(launcher)} jev gate`;
-  const settings = {
-    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command, timeout: 5 }] }] },
-  };
-  return `${JSON.stringify(settings, null, 2)}\n`;
 }
 
 async function ensureKeyPair(
@@ -251,7 +238,6 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
   track(paths.zshenv, writeIfChanged(paths.zshenv, zshenvNext, 0o644, { keepExistingMode: true }));
   track(paths.wrapper, writeIfChanged(paths.wrapper, readFileSync(WRAPPER_SOURCE, 'utf8'), 0o755));
   track(paths.launcher, writeIfChanged(paths.launcher, renderLauncher(ctx.nodePath, ctx.cliPath), 0o755));
-  track(paths.jevSettings, writeIfChanged(paths.jevSettings, renderJevSettings(paths.launcher), 0o644));
   // Runtime Codex/OpenCode: hai wrapper và file hàm chung chúng nạp bằng `.`, cùng thư mục ghim Superpowers mà
   // wrapper export thành CREW_SUPERPOWERS_DIR. Không đụng Keychain: owner tự nạp key bằng "crew-mac runtimes key".
   const rt = runtimePaths(ctx.home);

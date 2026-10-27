@@ -57,12 +57,6 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/fs-util.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/index.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/install-cli.ts` | [mac-setup](flows/mac-setup.md) (file) |
-| `apps/crew-mac/src/jev/classify.ts` | [mac-jev](flows/mac-jev.md) (file) |
-| `apps/crew-mac/src/jev/config.ts` | [mac-jev](flows/mac-jev.md) (file) |
-| `apps/crew-mac/src/jev/gate-entry.ts` | [mac-jev](flows/mac-jev.md) (điểm vào) |
-| `apps/crew-mac/src/jev/gate.ts` | [mac-jev](flows/mac-jev.md) (file) |
-| `apps/crew-mac/src/jev/log.ts` | [mac-jev](flows/mac-jev.md) (file) |
-| `apps/crew-mac/src/jev/sync.ts` | [mac-jev](flows/mac-jev.md) (file) |
 | `apps/crew-mac/src/launchctl.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/launcher.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/manifest.ts` | [mac-setup](flows/mac-setup.md) (file) |
@@ -136,9 +130,6 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/fixtures/claude-local-parse.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/index.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/install-cli.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
-| `apps/crew-mac/test/jev-classify.test.ts` | [mac-jev](flows/mac-jev.md) (test) |
-| `apps/crew-mac/test/jev-gate.test.ts` | [mac-jev](flows/mac-jev.md) (test) |
-| `apps/crew-mac/test/jev-sync.test.ts` | [mac-jev](flows/mac-jev.md) (test) |
 | `apps/crew-mac/test/launcher.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/node-runtime.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/reaper-reap.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |

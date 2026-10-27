@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, realpathSync, rmSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { isAbsolute, join } from 'node:path';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BMAD_USAGE, bmadCommand } from './commands/bmad.js';
 import { type CheckStatus, doctor } from './commands/doctor.js';
@@ -28,15 +27,6 @@ import { WORKFLOWS_USAGE, workflowsCommand } from './commands/workflows.js';
 import type { MacContext } from './context.js';
 import { createMacContext } from './context-factory.js';
 import { filesCommand } from './files/command.js';
-import {
-  decodeBackgroundInput,
-  isJevActive,
-  keyFingerprint,
-  readJevConfig,
-  readJevKey,
-  selectCompany,
-} from './jev/config.js';
-import { pendingJevEvents } from './jev/sync.js';
 import { type Manifest, readManifest } from './manifest.js';
 import { downloadNode, NODE_SOURCE_LABEL, resolveNode } from './node-runtime.js';
 import { DEFAULT_PORT, macPaths, SSHD_LABEL } from './paths.js';
@@ -85,9 +75,6 @@ Cách dùng:
                  (agent BMAD và Trợ Lý gọi: đọc file epic/story, dựng _bmad cho repo dự án)
   ${RUNTIMES_USAGE}
                  (runtime Codex/OpenCode Go; "key opencode" chạy trong Terminal của owner, security hỏi key gõ ẩn)
-  crew-mac jev gate      (hook PreToolUse của Claude gọi; đọc sự kiện từ stdin, luôn thoát 0)
-  crew-mac jev gate-bg   (tiến trình nền do "jev gate" tách ra để gọi Jev và ghi log)
-  crew-mac jev status    (cấu hình Jev theo company, vân tay key trong Keychain, số dòng log chưa đẩy; không in key)
 
 Chạy setup và uninstall trong Terminal trên màn hình Mac (phiên desktop), không chạy qua sshd agent.`;
 
@@ -166,90 +153,8 @@ export function sshServerPort(env: NodeJS.ProcessEnv): number | null {
 
 const STATUS_LABEL: Record<CheckStatus, string> = { ok: 'ĐẠT', warn: 'CẢNH BÁO', fail: 'LỖI' };
 
-/** Phần của `dist/jev-gate.cjs` mà CLI dùng (khai riêng để bản build không kéo jev-use vào `dist/cli.js`). */
-interface JevGateModule {
-  runGate(
-    ctx: MacContext,
-    eventJson: string,
-    options: { env: NodeJS.ProcessEnv; background: boolean },
-  ): Promise<{ stdout: string }>;
-}
-
-/** Bản build dùng bundle `jev-gate.cjs` cạnh `cli.js`; chạy từ `src` (test) thì nạp thẳng entry TypeScript. */
-async function loadJevGate(): Promise<JevGateModule> {
-  const bundled = new URL('./jev-gate.cjs', import.meta.url);
-  if (existsSync(bundled)) return createRequire(import.meta.url)(fileURLToPath(bundled)) as JevGateModule;
-  const entry = './jev/gate-entry.js';
-  return (await import(entry)) as JevGateModule;
-}
-
-/**
- * `jev gate` / `jev gate-bg`: không bao giờ làm hỏng lệnh của agent. Mọi lỗi (kể cả không dựng được context) đều thoát
- * 0 và không in gì; chỉ in JSON deny khi gate quyết chặn. Jev tắt hay chưa cấu hình thì không nạp bundle. `gate-bg`
- * đọc sự kiện và biến của run từ stdin (env của nó không có biến của run) và trả ô tiến trình nền khi xong.
- */
-async function jevGateCommand(io: CliIo, background: boolean): Promise<number> {
-  let home: string | undefined;
-  try {
-    const readStdin = io.readStdin ?? (() => readFileSync(0, 'utf8'));
-    const input = readStdin();
-    const ctx: MacContext = {
-      ...createMacContext({
-        env: io.env,
-        out: io.out,
-        cliPath: realpathSync(fileURLToPath(import.meta.url)),
-      }),
-      ...io.context,
-    };
-    home = ctx.home;
-    const decoded = background ? decodeBackgroundInput(input) : { eventJson: input, env: io.env };
-    if (!decoded) return 0;
-    const selected = selectCompany(readJevConfig(macPaths(ctx.home).jevConfig), decoded.env);
-    if (!selected || !isJevActive(selected.entry, ctx.now())) return 0;
-    const gate = await loadJevGate();
-    const { stdout } = await gate.runGate(ctx, decoded.eventJson, { env: decoded.env, background });
-    if (stdout) io.out(stdout);
-  } catch {
-    // Fail-open: lệnh vẫn chạy.
-  } finally {
-    if (background && home !== undefined)
-      rmSync(join(macPaths(home).jevDir, 'bg', String(process.pid)), { force: true });
-  }
-  return 0;
-}
-
-const VN_TIME = (iso: string) => new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
-
-async function jevStatus(ctx: MacContext, out: (line: string) => void): Promise<void> {
-  const config = readJevConfig(macPaths(ctx.home).jevConfig);
-  const companies = Object.entries(config?.companies ?? {});
-  if (companies.length === 0) {
-    out('Chưa có cấu hình Jev (chưa kéo được từ server hoặc chưa bật trên web).');
-    return;
-  }
-  for (const [companyId, entry] of companies) {
-    const key = await readJevKey(ctx, companyId, 10_000);
-    out(
-      [
-        companyId,
-        entry.enabled ? 'bật' : 'tắt',
-        entry.gateMode,
-        `version ${entry.version}`,
-        entry.model,
-        `ngưỡng ${entry.threshold}`,
-        `timeout ${entry.timeoutMs} ms`,
-        `key ${key === null ? 'chưa có trong Keychain' : keyFingerprint(key)}`,
-        `kéo lúc ${VN_TIME(entry.pulledAt)}`,
-        `chưa đẩy ${pendingJevEvents(ctx, companyId)} dòng`,
-      ].join('\t'),
-    );
-  }
-}
-
 export async function main(argv: readonly string[], io: CliIo): Promise<number> {
   const [command, ...args] = argv;
-  if (command === 'jev' && args.length === 1 && (args[0] === 'gate' || args[0] === 'gate-bg'))
-    return await jevGateCommand(io, args[0] === 'gate-bg');
   const readStdin = io.readStdin ?? (() => readFileSync(0, 'utf8'));
   try {
     const ctx: MacContext = {
@@ -570,12 +475,6 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         });
       case 'files':
         return await filesCommand(ctx, args, io.env, { out: io.out, err: io.err });
-      case 'jev': {
-        if (args.length !== 1 || args[0] !== 'status')
-          throw new UsageError('jev cần gate, gate-bg hoặc status');
-        await jevStatus(ctx, io.out);
-        return 0;
-      }
       default:
         throw new UsageError(command === undefined ? 'thiếu lệnh' : `không có lệnh ${command}`);
     }

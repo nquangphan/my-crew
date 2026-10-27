@@ -241,46 +241,6 @@ describe('orphanCheck', () => {
     expect(pidsIn(r.lines)).toEqual([700]);
   });
 
-  it('(i) tiến trình nền của hook Crew Jev (jev gate-bg) đã reparent về launchd không bị chặn', async () => {
-    const root = runRoot();
-    const gateBg = '/opt/homebrew/bin/node /h/.crew/app/crew-mac/dist/cli.js jev gate-bg';
-    const rows = [
-      ...chain(root, SELF),
-      // Hình dạng cũ (cwd trong worktree, có run id): chỉ argv loại được nó.
-      { pid: 800, ppid: 1, pgid: 800, command: gateBg, runId: RUN, startedAt: NOW_SEC - 1, cwd: root },
-      // Hình dạng hiện tại: cwd ~/.crew/jev, env không có run id.
-      { pid: 801, ppid: 1, pgid: 801, command: gateBg, startedAt: NOW_SEC - 1, cwd: '/h/.crew/jev' },
-    ];
-    const r = await orphanCheck(deps(rows), { root, runId: RUN });
-    expect(r).toEqual({ ok: true, lines: [`crew-workflow ok không còn process nào của run ${RUN}`] });
-  });
-
-  it('(j) process giả dạng gate-bg nhưng argv khác vẫn bị chặn', async () => {
-    const root = runRoot();
-    const rows = [
-      ...chain(root, SELF),
-      {
-        pid: 810,
-        ppid: 1,
-        pgid: 810,
-        command: 'node server.js jev gate-bg',
-        startedAt: START + 20,
-        cwd: root,
-      },
-      {
-        pid: 811,
-        ppid: 1,
-        pgid: 811,
-        command: '/opt/homebrew/bin/node /h/cli.js jev gate-bg --port 3000',
-        startedAt: START + 20,
-        cwd: root,
-      },
-    ];
-    const r = await orphanCheck(deps(rows), { root, runId: RUN });
-    expect(r.ok).toBe(false);
-    expect(pidsIn(r.lines)).toEqual([810, 811]);
-  });
-
   it('(e) thiếu PAPERCLIP_RUN_ID thì cảnh báo, ok, không quét process', async () => {
     const root = runRoot();
     for (const runId of [undefined, '', '  ']) {

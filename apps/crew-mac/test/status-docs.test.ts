@@ -326,8 +326,7 @@ describe('status docs snapshots', () => {
         return new Response('', { status: String(url).endsWith('docs-snapshot') ? 502 : 200 });
       }),
     ).rejects.toThrow();
-    // Lần gửi còn kéo cấu hình Jev; test này chỉ đếm bản tin máy và ảnh chụp docs.
-    expect(sent.filter((url) => !url.includes('/jev/'))).toHaveLength(2);
+    expect(sent).toHaveLength(2);
     expect(JSON.parse(readFileSync(join(home, '.crew', 'status-last.json'), 'utf8')).ok).toBe(true);
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBeNull();
   });

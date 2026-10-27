@@ -2,7 +2,6 @@ import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from 'node
 import { basename, dirname, join } from 'node:path';
 import type { MacContext } from '../context.js';
 import { readText } from '../fs-util.js';
-import { jevKeyPresent, readJevConfig } from '../jev/config.js';
 import { serviceState } from '../launchctl.js';
 import { parseLauncher, renderLauncher } from '../launcher.js';
 import { type Manifest, readManifest } from '../manifest.js';
@@ -875,50 +874,6 @@ async function checkOpencodeKey(ctx: MacContext): Promise<CheckResult> {
   return { ...base, status: 'warn', detail: 'không đọc được Keychain (có thể đang khóa)', hint };
 }
 
-/** Cấu hình Jev kéo về quá lâu (status send chạy mỗi 60 giây) thì đổi chế độ trên web chưa tới máy này. */
-const JEV_STALE_MS = 10 * 60 * 1000;
-
-/**
- * Crew Jev trên máy: có cấu hình kéo từ server, key trong Keychain (chỉ hỏi có hay không, không đọc key) và bundle
- * `jev-gate.cjs` cạnh cli.js. Không gọi mạng.
- */
-export async function checkJev(ctx: MacContext): Promise<CheckResult> {
-  const base = { id: 'jev', title: 'Crew Jev (gate lệnh Bash)' };
-  const config = readJevConfig(macPaths(ctx.home).jevConfig);
-  const companies = Object.entries(config?.companies ?? {});
-  if (companies.length === 0)
-    return { ...base, status: 'ok', detail: 'chưa có cấu hình Jev từ server (Jev tắt trên máy này)' };
-  const bundle = join(dirname(ctx.cliPath), 'jev-gate.cjs');
-  const problems: string[] = [];
-  const details: string[] = [];
-  for (const [companyId, entry] of companies) {
-    const short = companyId.slice(0, 8);
-    if (!entry.enabled) {
-      details.push(`${short}: tắt`);
-      continue;
-    }
-    const key = await jevKeyPresent(ctx, companyId);
-    if (key !== true)
-      problems.push(
-        `${short}: Jev bật mà ${key === false ? 'thiếu key trong Keychain' : 'không đọc được Keychain'}`,
-      );
-    const pulled = Date.parse(entry.pulledAt);
-    if (ctx.now().getTime() - pulled > JEV_STALE_MS)
-      problems.push(`${short}: cấu hình (version ${entry.version}) kéo lần cuối hơn 10 phút trước`);
-    details.push(`${short}: ${entry.gateMode}, version ${entry.version}${key === true ? ', có key' : ''}`);
-  }
-  const anyEnabled = companies.some(([, entry]) => entry.enabled);
-  if (anyEnabled && !existsSync(bundle)) problems.push(`thiếu ${bundle}`);
-  if (problems.length > 0)
-    return {
-      ...base,
-      status: 'warn',
-      detail: problems.join('; '),
-      hint: 'Kiểm "crew-mac status send" (log ~/.crew/logs/status.log) và key OpenRouter trên trang Jev; thiếu bundle thì build lại crew-mac rồi chạy "crew-mac setup".',
-    };
-  return { ...base, status: 'ok', detail: details.join('; ') };
-}
-
 async function checkClaudePrint(
   ctx: MacContext,
   paths: MacPaths,
@@ -1257,7 +1212,6 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkRuntimeWrapper(ctx, paths, manifest, 'codex'));
   results.push(await checkOpencodeKey(ctx));
   results.push(await checkRuntimeWrapper(ctx, paths, manifest, 'opencode'));
-  results.push(await checkJev(ctx));
   if (options.probe) results.push(await checkClaudePrint(ctx, paths, manifest, options.probeTimeoutSec));
   if (!options.skipTcc) results.push(await checkTccPending(ctx, options.tccWindow));
   results.push(await checkLoad(ctx));

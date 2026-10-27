@@ -18,7 +18,7 @@ docs trước khi đọc code.
 
 | Thư mục | Vai trò |
 |---------|---------|
-| `apps/crew-mac/src` | CLI `crew-mac` cho Crew v3: cài sshd phiên desktop, key Paperclip, PATH, kiểm sức khỏe Mac (kể cả hộp thoại quyền macOS), dọn process `claude` mồ côi và gate lệnh Bash của agent (Crew Jev) |
+| `apps/crew-mac/src` | CLI `crew-mac` cho Crew v3: cài sshd phiên desktop, key Paperclip, PATH, kiểm sức khỏe Mac (kể cả hộp thoại quyền macOS), dọn process `claude` mồ côi |
 | `packages/docs-kit/src` | Lệnh CLI, luật kiểm tra R1–R7, sinh block tự động, cài hook |
 | `packages/docs-kit/templates` | Template `AGENTS.md`, `index.md`, `architecture.md`, `flow.md`, `flows.yaml` |
 
@@ -34,7 +34,6 @@ docs trước khi đọc code.
 | [App 2P Crew giữ sshd agent và thoát an toàn](flows/mac-app-sshd.md) | `mac-app-sshd` | `apps/mac-app/src/main/sshd/register.ts` |
 | [Phát hành và cập nhật app 2P Crew](flows/mac-app-update.md) | `mac-app-update` | `apps/mac-app/scripts/release.mjs`, `apps/mac-app/src/main/update/register.ts` |
 | [Đọc file đính kèm trên Mac (crew-mac files)](flows/mac-attachments.md) | `mac-attachments` | `apps/crew-mac/src/files/command.ts` |
-| [Crew Jev trên Mac (gate lệnh Bash, log, đồng bộ cấu hình với server)](flows/mac-jev.md) | `mac-jev` | `apps/crew-mac/src/jev/gate-entry.ts` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |
 | [Runtime Codex và OpenCode Go trên Mac (wrapper, key Keychain, crew-mac runtimes)](flows/mac-runtimes.md) | `mac-runtimes` | `apps/crew-mac/src/runtimes/command.ts` |
 | [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |

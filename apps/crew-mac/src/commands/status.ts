@@ -18,13 +18,6 @@ import { hostname } from 'node:os';
 import { basename, delimiter, dirname, isAbsolute, join } from 'node:path';
 import { parsePublicKey } from '../authorized-keys.js';
 import type { MacContext } from '../context.js';
-import {
-  disableJevCompany,
-  maintainGateLog,
-  pruneJevCompanies,
-  pullJevConfig,
-  pushJevEvents,
-} from '../jev/sync.js';
 import { readManifest } from '../manifest.js';
 import { macPaths } from '../paths.js';
 import {
@@ -353,25 +346,6 @@ export async function sendStatus(ctx: MacContext, fetcher: typeof fetch = fetch)
           targets.length > 1 ? ` [company ${target.companyId}]` : '',
         ),
       );
-    // Crew Jev: đích nào nhận bản tin máy thì kéo cấu hình rồi đẩy gate.log. Lỗi chỉ in một dòng mã lỗi, không làm
-    // hỏng lượt gửi status (không đổi outcome, không ném).
-    for (const [index, target] of targets.entries()) {
-      // Máy bị gỡ khỏi company (bản tin máy trả 403): không pull được nữa, tắt Jev và xóa key ngay.
-      if (outcomes[index]?.httpStatus === 403) await disableJevCompany(ctx, target.companyId);
-      if (!outcomes[index]?.ok) continue;
-      const label = targets.length > 1 ? ` [company ${target.companyId}]` : '';
-      const pulled = await pullJevConfig(ctx, target, fetcher);
-      if (!pulled.ok) ctx.out(`crew-mac jev: kéo cấu hình lỗi (${pulled.errorCode})${label}`);
-      const pushed = await pushJevEvents(ctx, target, fetcher);
-      if (!pushed.ok) ctx.out(`crew-mac jev: đẩy log lỗi (${pushed.errorCode})${label}`);
-      if (pushed.rejected > 0) ctx.out(`crew-mac jev: server bỏ ${pushed.rejected} dòng${label}`);
-    }
-    maintainGateLog(ctx);
-  }
-  // Đích đã bị gỡ khỏi status.json: dọn cấu hình và key Jev của company đó.
-  if (config) {
-    for (const companyId of await pruneJevCompanies(ctx, targets))
-      ctx.out(`crew-mac jev: đã gỡ cấu hình và key của company ${companyId} (không còn là đích bản tin)`);
   }
   if (outcomes.length === 0)
     outcomes = [{ companyId: '', ok: false, httpStatus: null, failure: 'no-target' }];

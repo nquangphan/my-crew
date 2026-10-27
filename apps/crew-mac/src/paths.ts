@@ -58,12 +58,6 @@ export function macPaths(home: string) {
     /** File trạng thái của app 2P Crew; crew-mac chỉ đọc. */
     appState: join(home, 'Library', 'Application Support', '2P Crew', 'app.json'),
     defaultWorktreeRoot: join(home, 'crew-agents'),
-    /** Crew Jev: cấu hình kéo từ server, settings hook PreToolUse, log JSONL của gate và con trỏ đẩy log. */
-    jevDir: join(home, '.crew', 'jev'),
-    jevConfig: join(home, '.crew', 'jev', 'config.json'),
-    jevSettings: join(home, '.crew', 'jev', 'settings.json'),
-    jevLog: join(home, '.crew', 'jev', 'gate.log'),
-    jevCursor: join(home, '.crew', 'jev', 'gate.cursor'),
   };
 }
 
