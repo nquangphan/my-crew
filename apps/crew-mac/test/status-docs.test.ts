@@ -48,7 +48,7 @@ function fixture() {
   mkdirSync(join(repo, 'docs', 'guide'), { recursive: true });
   writeFileSync(
     join(repo, 'docs', 'index.md'),
-    '# Home\n[Good](guide/ok.md) [Bad](missing.md) [Web](https://example.com)\n',
+    '# Home\n[Good](guide/ok.md) [Bad](missing.md) [Web](https://example.com) [Dir](guide/)\n',
   );
   writeFileSync(join(repo, 'docs', 'guide', 'ok.md'), '# Good\n');
   writeFileSync(join(repo, 'docs', 'private.md'), `# Private\n${['ghp_', 'a'.repeat(36)].join('')}\n`);
@@ -220,7 +220,13 @@ describe('status docs snapshots', () => {
     expect(body.pages.map((p: { parentPath: string }) => p.parentPath)).toEqual(['docs/guide', 'docs']);
     expect(body.dropped).toEqual([{ path: 'docs/private.md', reason: 'secret-scan' }]);
     expect(requests[0]?.body).not.toContain('ghp_');
-    expect(body.links.map((l: { status: string }) => l.status)).toEqual(['ok', 'missing', 'external']);
+    expect(body.links.map((l: { status: string }) => l.status)).toEqual([
+      'ok',
+      'missing',
+      'external',
+      'unverified',
+    ]);
+    expect(body.links[3]?.toPath).toBe('docs/guide');
     expect(listStatusRepos(ctx)[0]?.lastCommit).toBe(body.commit);
     await sendDocsSnapshots(ctx, fetcher);
     expect(requests).toHaveLength(1);

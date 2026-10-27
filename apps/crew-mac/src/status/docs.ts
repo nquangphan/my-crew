@@ -182,7 +182,10 @@ function linksOf(page: Page, pagePaths: ReadonlySet<string>, allDocs: ReadonlySe
     }
     let target: string;
     try {
-      target = posix.normalize(posix.join(posix.dirname(page.path), decodeURIComponent(relative ?? '')));
+      // Link tới thư mục (`mockups/`) để lại `/` cuối; server từ chối cả ảnh chụp nếu đường dẫn có đoạn rỗng.
+      target = posix
+        .normalize(posix.join(posix.dirname(page.path), decodeURIComponent(relative ?? '')))
+        .replace(/\/+$/, '');
     } catch {
       target = '';
     }
