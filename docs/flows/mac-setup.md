@@ -387,7 +387,8 @@ Repo secret-scan dùng `SCAN_MANIFEST` (`docs/flows.yaml` mẫu có `source` the
 Chỉ Git blob file thường mode `100644`/`100755` được đưa vào ảnh chụp; symlink và submodule bị bỏ. Mỗi trang được rà secret bằng luật R7 của `crew-docs`, gồm nội dung và metadata sẽ gửi (đường dẫn, title, tên repo). Nếu tên repo bị phát hiện, không gửi ảnh chụp và chỉ log lỗi theo project ID. Trang có metadata bị phát hiện được bỏ khỏi `pages`, ghi `{"path":"<đã che>","reason":"secret-scan-metadata"}` trong `dropped`. Trang chỉ có nội dung bị phát hiện được bỏ khỏi `pages`, ghi đường dẫn
 và lý do `secret-scan` vào `dropped`. File Markdown có byte NUL cũng bị bỏ vì Git coi là binary và R7 không quét
 được các dòng của nó. Bản tin chứa title, nội dung, SHA-256, `parentPath` là thư mục cha (kể cả `docs` cho file ngay dưới `docs/`) và trạng thái link Markdown
-tương đối (`ok`, `missing`, `external`, `unverified`).
+tương đối (`ok`, `missing`, `external`, `unverified`). `toPath` bỏ `/` cuối, nên link tới thư mục (`mockups/`) thành
+`docs/.../mockups` với trạng thái `unverified`; giữ `/` thì server coi đoạn rỗng là sai và từ chối cả ảnh chụp.
 
 Body mang `format: 2` và thêm hai trường tùy chọn (`version` vẫn là `1`, server cũ coi như Mac cũ):
 
@@ -475,6 +476,6 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/status-targets.test.ts`: cấu hình cũ là một đích service `crew-mac-status`; `add-target` ghi secret qua stdin vào service riêng (không argv nào chứa secret), không nhân đôi đích, giữ service cũ của company đã có, `config` lại không mất đích phụ; URL/company/secret sai thì từ chối; `send` hai đích cùng `machineId`, đích 1 HTTP 500 vẫn gửi đích 2, chỉ in company id; thiếu secret một đích; ảnh chụp docs đi đúng company của repo; CLI `add-target` bắt buộc `--secret-stdin`, `list-targets`.
 - `apps/crew-mac/test/status-checkouts.test.ts`: chỉ thư mục git ở đúng độ sâu, worktree (`.git` là file), `clean` false khi có file chưa track, tối đa 64 sắp theo path, `.git` hỏng thì null, không có `~/crew-agents` thì rỗng.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.
-- `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link, retry HTTP 502 và giới hạn body.
+- `apps/crew-mac/test/status-docs.test.ts`: repo git tạm, secret-scan, link (kể cả link thư mục), retry HTTP 502 và giới hạn body.
 - `apps/crew-mac/test/status.test.ts`: `set-secret` đi qua stdin của `security -i` (không argv nào chứa secret), thoát nháy kép và gạch chéo ngược, mã khác 0 thì lỗi; báo rõ bước thất bại của `status send` (Keychain, kết nối) mà không lộ secret; sau bản tin máy thì kéo cấu hình Jev ký HMAC, Jev lỗi chỉ in một dòng mã lỗi mà lượt gửi vẫn thành công, bản tin thất bại thì không gọi Jev; đích bị gỡ khỏi `status.json` thì dọn cấu hình và key Jev của company đó; bản tin máy 403 thì tắt Jev và xóa key, không pull; `system-wrappers.test.ts` có ca Tailscale dưới PATH tối thiểu.
 - Các test còn lại kiểm từng module thuần (`zshenv`, `authorized-keys`, `render`, `system-wrappers`, `system`).
