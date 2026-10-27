@@ -57,9 +57,25 @@ export interface ClaudeLocalAgentInput {
   /** Đường dẫn tuyệt đối `<home>/.crew/bin/crew-claude-run`. */
   command: string;
   extraArgs: string[];
-  /** Bắt buộc, như agent R1 (vd. `claude-sonnet-5`); không đặt thì Claude chạy model mặc định của máy. */
+  /** Bắt buộc, như agent R1 (vd. `claude-sonnet-5-5`); không đặt thì Claude chạy model mặc định của máy. */
   model: string;
+  /** Mức effort của bảng cài đặt model; `null`/không đặt thì không ghi `adapterConfig.effort`. */
+  effort?: string | null;
   defaultEnvironmentId: string;
+}
+
+/** Một ô của bảng cài đặt model: model và effort mặc định của một vai. */
+export interface ModelSettingsCell {
+  model: string;
+  effort: string | null;
+}
+
+/** Phần `GET /api/crew/model-settings` mà app dùng: model mặc định theo vai (bảng đầy đủ còn catalog và order). */
+export interface ModelSettingsRoles {
+  assistant: ModelSettingsCell;
+  executor: ModelSettingsCell;
+  reviewer: ModelSettingsCell;
+  integrator: ModelSettingsCell;
 }
 
 export interface PaperclipAgent {
@@ -158,6 +174,11 @@ export interface PaperclipClient {
   /** Link mở run trên web: `<origin>/<issuePrefix>/agents/<agentId>/runs/<runId>`. */
   runWebUrl(runId: string): Promise<string>;
   getRoles(companyId: string, projectId: string): Promise<ProjectRoles | null>;
+  /**
+   * Model mặc định của các vai app tạo (`GET /api/crew/model-settings`, `settings.roles`). `null`: server chưa có route
+   * (bản cũ, 404). Phản hồi sai dạng thì ném.
+   */
+  modelSettingsRoles(): Promise<ModelSettingsRoles | null>;
   /** 400 của plugin (luật vai trò) thành `PaperclipHttpError` có lời từ chối của server trong message. */
   setRoles(companyId: string, projectId: string, roles: ProjectRoles): Promise<void>;
   deleteRoles(companyId: string, projectId: string): Promise<void>;

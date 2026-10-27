@@ -54,6 +54,51 @@ function execShell(command: string, env: NodeJS.ProcessEnv): void {
 const posts = (requests: { method: string; path: string }[], suffix: string) =>
   requests.filter((r) => r.method === 'POST' && r.path.endsWith(suffix)).length;
 
+describe('addProject model theo cài đặt model', () => {
+  const cell = (model: string, effort: string | null) => ({ model, effort });
+  const table = (overrides: Record<string, unknown> = {}) => ({
+    revision: 3,
+    updatedAt: '2026-10-27T08:00:00.000Z',
+    updatedByUserId: 'u',
+    canEdit: false,
+    settings: {
+      catalog: {},
+      order: {},
+      roles: {
+        assistant: cell('claude-opus-6', 'high'),
+        executor: cell('claude-sonnet-6', null),
+        reviewer: cell('claude-sonnet-6', 'medium'),
+        integrator: cell('claude-haiku-6', null),
+        bmad: cell('claude-opus-6', null),
+        ...overrides,
+      },
+    },
+  });
+
+  it('lấy model và effort từng vai từ server, một lần GET cho cả lần chạy', async () => {
+    const w = await world({ modelSettings: table() });
+    const progress = await addProject(w.deps, w.input);
+
+    expect(progress.error).toBeNull();
+    const seen = (role: string) =>
+      w.paperclip.agents.get(progress.agents[role]?.agentId as string)?.adapterConfig;
+    expect(seen('assistant')).toMatchObject({ model: 'claude-opus-6', effort: 'high' });
+    expect(seen('executor-1')).toMatchObject({ model: 'claude-sonnet-6' });
+    expect(seen('executor-1')).not.toHaveProperty('effort');
+    expect(seen('reviewer')).toMatchObject({ model: 'claude-sonnet-6', effort: 'medium' });
+    expect(seen('integrator')).toMatchObject({ model: 'claude-haiku-6' });
+    expect(w.paperclip.requests.filter((r) => r.path === '/api/crew/model-settings')).toHaveLength(1);
+  });
+
+  it('bảng sai dạng thì dừng ở bước vai, không tạo agent sai model', async () => {
+    const w = await world({ modelSettings: table({ reviewer: { effort: null } }) });
+    const progress = await addProject(w.deps, w.input);
+
+    expect(progress.error).toContain('reviewer');
+    expect(w.paperclip.agents.size).toBe(0);
+  });
+});
+
 describe('addProject', () => {
   it('chạy đủ: 4 agent + 4 environment, vai trò ghi đúng, agent pause tới khi vai trò ghi xong', async () => {
     const { sandbox, paperclip, fake, deps, input } = await world();
@@ -112,7 +157,9 @@ describe('addProject', () => {
       // Trợ Lý chạy opus, executor/reviewer/integrator chạy sonnet.
       expect(agent?.adapterConfig.engine).toBe('cli');
       expect(agent?.adapterConfig.env).toEqual({});
-      expect(agent?.adapterConfig.model).toBe(role === 'assistant' ? 'claude-opus-5' : 'claude-sonnet-5');
+      // Server giả chưa có route model-settings (404) nên dùng mặc định của server khi chưa có bản ghi.
+      expect(agent?.adapterConfig.model).toBe(role === 'assistant' ? 'claude-opus-5-5' : 'claude-sonnet-5-5');
+      expect(agent?.adapterConfig).not.toHaveProperty('effort');
       expect(agent?.runtimeConfig).toEqual({ heartbeat: { enabled: false, maxConcurrentRuns: 1 } });
       expect(agent?.defaultEnvironmentId).toBe(entry.environmentId);
       expect(agent?.status).toBe('idle');

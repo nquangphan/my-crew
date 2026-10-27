@@ -14,12 +14,12 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork `main` @ c051ce117 lúc chép. Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork nhánh `crew/model-settings` @ 73c12db3f (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: '31876a35bd8244931e2fd619e84241e631aac6c61fd5aa2a9165fef519207e19',
-  executor: '9b2500f19109d2484fd29dc56812d7641112d2d9e2fcbc65015816422ac55924',
-  integrator: '55fe35314651751b5748c608a9677dc7e77d130a0c423bd2336c96d0836badda',
-  reviewer: '546cb362c10549ba94812d426f03d73f6120e18ad1b5d893e59cc8ea0cf12b93',
+  assistant: '196fc4f2800eeb05d823eb61d9c22cf8b22434d78f819050c08175dc854079c3',
+  executor: '80e78f3cc19379858f257bcc7d4ac5ea4a23520f2d1aa5a058a2a52fca01b0db',
+  integrator: '53dd07664eeacc3637400c6ed11e400f9a9819710014a02c93c10e9c68472fdd',
+  reviewer: '4ccdbf5228fd441d12d936098530a14f920ade6d38b2c284c859a8fe3b1c9c9b',
 };
 
 describe('template vai trò', () => {
@@ -58,12 +58,13 @@ describe('template assistant (BMAD, FX-B, FX-L2)', () => {
   });
 });
 
-describe('template runtime (AG-1)', () => {
+describe('template runtime', () => {
   it('Trợ Lý có bảng runtime/model và marker runtime=', () => {
     const text = ROLE_TEMPLATES.assistant;
     expect(text).toContain('\n## Chọn runtime và model\n');
-    expect(text).toContain('| `claude_local` | `claude-opus-5-5` | có | `effort` |');
-    expect(text).toContain('| `opencode_local` | `opencode-go/kimi-k3` | không | — |');
+    // Bảng model không còn ghi cứng trong template: Trợ Lý đọc GET /api/crew/model-settings lúc chạy.
+    expect(text).toContain('"$PAPERCLIP_API_URL/api/crew/model-settings"');
+    expect(text).not.toContain('| `claude_local` | `claude-opus-5-5`');
     expect(text).toContain(
       '`crew-model complexity=<mức> model=<model> effort=<effort> runtime=<runtime> reason=<một dòng lý do>`',
     );
@@ -161,7 +162,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      'f72e1a4970eb90b17fc25d0dd0c597d2ebd8d44fe4b9607194b57b48cd66513c',
+      'd19c332a0787ac116e31b014e6f8ade2f0c268f75d111cabc59491a9fe9a439e',
     );
   });
 });

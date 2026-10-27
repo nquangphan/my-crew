@@ -53,7 +53,12 @@ const sha = (text: string) => createHash('sha256').update(text).digest('hex');
 
 /** Paperclip giả có trạng thái (project, environment, agent, AGENTS.md, vai trò), chạy trên `127.0.0.1`. */
 export async function startStatefulPaperclip(
-  opts: { requireApproval?: boolean; approveAfterGets?: number } = {},
+  opts: {
+    requireApproval?: boolean;
+    approveAfterGets?: number;
+    /** Body của `GET /api/crew/model-settings`; không đặt thì route trả 404 như server cũ. */
+    modelSettings?: unknown;
+  } = {},
 ) {
   const projects = new Map<string, { id: string; name: string; urlKey: string }>();
   const envs = new Map<string, FakeEnv>([
@@ -107,6 +112,8 @@ export async function startStatefulPaperclip(
       projects.set(project.id, project);
       return { status: 201, body: project };
     }
+    if (req.method === 'GET' && p === '/api/crew/model-settings' && opts.modelSettings !== undefined)
+      return { status: 200, body: opts.modelSettings };
     if (req.method === 'GET' && p === `/api/companies/${COMPANY}/secrets`)
       return { status: 200, body: [{ id: SECRET, name: 'crew-ssh', key: 'crew-ssh', status: 'active' }] };
     if (req.method === 'GET' && p === `/api/companies/${COMPANY}/environments`)

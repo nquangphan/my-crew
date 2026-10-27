@@ -5,6 +5,7 @@ import type { ProjectProgress } from '../app-state.js';
 import { stripUrlCredentials } from '../jobs/sanitize.js';
 import type {
   AgentPermissions,
+  ModelSettingsRoles,
   PaperclipClient,
   PaperclipEnvironment,
   ProjectRoles,
@@ -33,12 +34,15 @@ import {
   templateOf,
 } from './progress.js';
 
-/** Model theo vai trò như agent R1: Trợ Lý chạy opus, executor/reviewer/integrator chạy sonnet. */
-const AGENT_MODELS: Record<ReturnType<typeof templateOf>, string> = {
-  assistant: 'claude-opus-5',
-  executor: 'claude-sonnet-5',
-  reviewer: 'claude-sonnet-5',
-  integrator: 'claude-sonnet-5',
+/**
+ * Model mặc định của 4 vai app tạo khi server Paperclip chưa có `GET /api/crew/model-settings` (bản cũ, 404): đúng giá
+ * trị `CREW_MODEL_SETTINGS_DEFAULT.roles` mà server trả khi chưa ai lưu bảng, nên agent tạo ra giống như khi server mới.
+ */
+export const DEFAULT_ROLE_MODELS: ModelSettingsRoles = {
+  assistant: { model: 'claude-opus-5-5', effort: null },
+  executor: { model: 'claude-sonnet-5-5', effort: null },
+  reviewer: { model: 'claude-sonnet-5-5', effort: null },
+  integrator: { model: 'claude-sonnet-5-5', effort: null },
 };
 
 /**
@@ -198,6 +202,7 @@ class AddRun {
   private readonly paths: ReturnType<typeof projectPaths>;
   private setupInfo: Promise<{ pinDir: string; extraArgs: string[]; port: number }> | null = null;
   private template: Promise<PaperclipEnvironment> | null = null;
+  private roleModels: Promise<ModelSettingsRoles> | null = null;
   private readonly git: GitRunner = runGit;
 
   constructor(
@@ -320,6 +325,21 @@ class AddRun {
   }
 
   /**
+   * Model mặc định theo vai, đọc một lần mỗi lần chạy từ bảng cài đặt model của server. Server cũ chưa có route thì
+   * dùng `DEFAULT_ROLE_MODELS`; lỗi khác (mạng, 5xx, sai dạng) ném để bước tạo agent dừng và chạy tiếp được, không
+   * lặng lẽ tạo agent sai model.
+   */
+  private getRoleModels() {
+    this.roleModels ??= (async () => {
+      const roles = await this.deps.client.modelSettingsRoles();
+      if (roles) return roles;
+      this.deps.log?.('project-model-settings-missing', { key: this.input.key });
+      return DEFAULT_ROLE_MODELS;
+    })();
+    return this.roleModels;
+  }
+
+  /**
    * Environment SSH `in_place` của máy này: nguồn host, user, known_hosts, secret SSH. Máy đã ghép (app state có
    * `pairedEnvironmentId`) dùng đúng environment đã ghép, vì nhiều máy cùng cổng sshd mặc định; environment đó phải còn
    * active và đúng cổng. Máy chưa ghép (Mac mini) giữ cách cũ: environment đầu tiên theo tên có cùng cổng sshd. Cả hai chỉ nhận environment có secret SSH thuộc company (`GET …/secrets`).
@@ -379,17 +399,20 @@ class AddRun {
           agent.defaultEnvironmentId === environmentId &&
           agent.status !== 'terminated',
       );
-      agentId =
-        lost?.id ??
-        (
+      if (lost) agentId = lost.id;
+      else {
+        const cell = (await this.getRoleModels())[templateOf(role)];
+        agentId = (
           await client.createAgent(this.companyId, {
             name,
             command: join(this.deps.home, '.crew', 'bin', 'crew-claude-run'),
             extraArgs: setup.extraArgs,
-            model: AGENT_MODELS[templateOf(role)],
+            model: cell.model,
+            effort: cell.effort,
             defaultEnvironmentId: environmentId,
           })
         ).id;
+      }
       await this.rec.setAgent(role, { agentId });
     }
     await this.holdPaused(agentId, name);

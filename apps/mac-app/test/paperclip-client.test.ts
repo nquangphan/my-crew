@@ -579,6 +579,43 @@ describe('ghép máy (route plugin crew.core)', () => {
   };
   const MACHINE_KEY = 'm'.repeat(43);
 
+  it('modelSettingsRoles: lấy 4 vai app tạo từ settings.roles, 404 (server cũ) thành null', async () => {
+    const cell = (model: string, effort: string | null) => ({ model, effort });
+    let reply: { status: number; body: unknown } = {
+      status: 200,
+      body: {
+        revision: 1,
+        settings: {
+          roles: {
+            assistant: cell('claude-opus-5-5', 'high'),
+            executor: cell('claude-sonnet-5-5', null),
+            reviewer: cell('claude-sonnet-5-5', null),
+            integrator: cell('claude-sonnet-5-5', null),
+            bmad: cell('claude-opus-5-5', null),
+          },
+        },
+      },
+    };
+    const { server, client } = await setup(() => reply);
+    await expect(client.modelSettingsRoles()).resolves.toEqual({
+      assistant: cell('claude-opus-5-5', 'high'),
+      executor: cell('claude-sonnet-5-5', null),
+      reviewer: cell('claude-sonnet-5-5', null),
+      integrator: cell('claude-sonnet-5-5', null),
+    });
+    expect(server.requests[0]).toMatchObject({ method: 'GET', path: '/api/crew/model-settings' });
+
+    reply = { status: 404, body: { error: 'not found' } };
+    await expect(client.modelSettingsRoles()).resolves.toBeNull();
+
+    reply = { status: 200, body: { settings: { roles: { assistant: cell('', null) } } } };
+    await expect(client.modelSettingsRoles()).rejects.toThrow('vai assistant');
+    reply = { status: 200, body: {} };
+    await expect(client.modelSettingsRoles()).rejects.toThrow('vai assistant');
+    reply = { status: 500, body: { error: 'hỏng' } };
+    await expect(client.modelSettingsRoles()).rejects.toThrow();
+  });
+
   it('pairInfo: GET /machines/pair-info?companyId=, nhận đúng key ssh-ed25519', async () => {
     let reply = { paperclipSshPublicKey: 'ssh-ed25519 AAAAkey crew-mac-paperclip' } as Record<
       string,

@@ -4,6 +4,7 @@ import type {
   MachineProvisionResult,
   MachineReleaseBlocker,
   MachineReleaseResult,
+  ModelSettingsRoles,
   PaperclipAgent,
   PaperclipClient,
   PaperclipCompany,
@@ -158,6 +159,27 @@ export async function paperclipRequest<T>(
 export interface ClientDeps extends HttpDeps {
   /** Đọc board key từ Keychain cho mỗi lời gọi; `null` = chưa đăng nhập. */
   readKey: () => Promise<string | null>;
+}
+
+const APP_MODEL_ROLES = ['assistant', 'executor', 'reviewer', 'integrator'] as const;
+
+/** Lấy 4 vai app tạo từ `settings.roles`; ô thiếu hay sai dạng thì ném (không đoán model). */
+function parseModelSettingsRoles(roles: unknown): ModelSettingsRoles {
+  const out = {} as ModelSettingsRoles;
+  for (const role of APP_MODEL_ROLES) {
+    const cell = (roles as Record<string, unknown> | null | undefined)?.[role] as
+      | { model?: unknown; effort?: unknown }
+      | null
+      | undefined;
+    if (typeof cell?.model !== 'string' || cell.model === '') {
+      throw new Error(`Paperclip trả cài đặt model thiếu model của vai ${role}`);
+    }
+    if (cell.effort !== null && typeof cell.effort !== 'string') {
+      throw new Error(`Paperclip trả cài đặt model có effort sai của vai ${role}`);
+    }
+    out[role] = { model: cell.model, effort: cell.effort };
+  }
+  return out;
 }
 
 /** Client REST mỏng của Paperclip. Key không được giữ lại sau mỗi request. */
@@ -315,6 +337,7 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
           command: input.command,
           extraArgs: input.extraArgs,
           model: input.model,
+          ...(input.effort ? { effort: input.effort } : {}),
           env: {},
         },
         runtimeConfig: { heartbeat: { enabled: false, maxConcurrentRuns: 1 } },
@@ -426,6 +449,16 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       // Server còn trả thêm các ô runtime (Codex, OpenCode) mà app không ghi: chỉ giữ bốn vai trò app quản lý.
       const { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId } = roles;
       return { assistantAgentId, executorAgentIds, reviewerAgentId, integratorAgentId };
+    },
+
+    async modelSettingsRoles() {
+      const res = await call<{ settings?: { roles?: unknown } } | null>(
+        'GET',
+        '/api/crew/model-settings',
+        undefined,
+        true,
+      );
+      return res ? parseModelSettingsRoles(res.settings?.roles) : null;
     },
 
     async setRoles(companyId, projectId, roles) {
