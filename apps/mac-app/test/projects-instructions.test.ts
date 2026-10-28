@@ -14,12 +14,12 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork nhánh `crew/model-settings` @ 73c12db3f (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork nhánh `crew/uiux-agent` @ 5e82c134f (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: '196fc4f2800eeb05d823eb61d9c22cf8b22434d78f819050c08175dc854079c3',
-  executor: '80e78f3cc19379858f257bcc7d4ac5ea4a23520f2d1aa5a058a2a52fca01b0db',
+  assistant: '2183c35295126aec199e0437169dc12f8c1bbe751d40af0461025b62fc950f0b',
+  executor: '41298103316846cf90b88c9a04d5ca93b192e0007f1a1bab4a4710f7ba3f9c8f',
   integrator: '53dd07664eeacc3637400c6ed11e400f9a9819710014a02c93c10e9c68472fdd',
-  reviewer: '4ccdbf5228fd441d12d936098530a14f920ade6d38b2c284c859a8fe3b1c9c9b',
+  reviewer: 'd7c54c8656664ed38daa416e6f741f2da20b8da91fe31317a346ac2c3f37255b',
 };
 
 describe('template vai trò', () => {
@@ -107,7 +107,7 @@ describe('renderInstructions', () => {
 
   it('assistant cần ≥ 1 executor uuid, không trùng, không chứa chính nó; thêm mục danh sách', () => {
     expect(renderInstructions('assistant', 'Đầu\n\n\n', A, [X1, X2])).toBe(
-      `Đầu\n\n## Executor của company\n\n- \`${X1}\` — runtime \`claude_local\`\n- \`${X2}\` — runtime \`claude_local\`\n\n## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n\n## Reviewer Codex của company\n\nKhông có. Server tự chọn reviewer, bạn không giao việc cho reviewer.\n`,
+      `Đầu\n\n## Executor của company\n\n- \`${X1}\` — runtime \`claude_local\`\n- \`${X2}\` — runtime \`claude_local\`\n\n## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n\n## Agent UIUX của company\n\nKhông có. Không tạo con thiết kế; làm như cũ.\n\n## Reviewer Codex của company\n\nKhông có. Server tự chọn reviewer, bạn không giao việc cho reviewer.\n`,
     );
     expect(() => renderInstructions('assistant', 'x', A, [])).toThrow('ít nhất một executor');
     expect(() => renderInstructions('assistant', 'x', 'khong-uuid', [X1])).toThrow('uuid');
@@ -121,7 +121,7 @@ describe('renderInstructions', () => {
     const B2 = '77777777-7777-4777-8777-777777777777';
     expect(
       renderInstructions('assistant', '# T\n', A, [X1], [B1, B2]).includes(
-        `- \`${X1}\` — runtime \`claude_local\`\n\n## Agent BMAD của company\n\n- \`${B1}\`\n- \`${B2}\`\n\n## Reviewer Codex`,
+        `- \`${X1}\` — runtime \`claude_local\`\n\n## Agent BMAD của company\n\n- \`${B1}\`\n- \`${B2}\`\n\n## Agent UIUX của company`,
       ),
     ).toBe(true);
     expect(() => renderInstructions('executor', 'x', A, [], [B1])).toThrow('agent BMAD chỉ assistant nhận');
@@ -146,7 +146,7 @@ describe('renderInstructions runtime và reviewer Codex (AG-2)', () => {
   it('mục Reviewer Codex liệt kê reviewer, nằm cuối', () => {
     expect(
       renderInstructions('assistant', '# T\n', A, [X1], [], R).endsWith(
-        `## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n\n## Reviewer Codex của company\n\n- \`${R}\` — runtime \`codex_local\`\n`,
+        `## Agent BMAD của company\n\nKhông có. Luôn dùng Superpowers.\n\n## Agent UIUX của company\n\nKhông có. Không tạo con thiết kế; làm như cũ.\n\n## Reviewer Codex của company\n\n- \`${R}\` — runtime \`codex_local\`\n`,
       ),
     ).toBe(true);
     expect(() => renderInstructions('assistant', 'x', A, [X1], [], 'abc')).toThrow('uuid');
@@ -162,7 +162,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      'd19c332a0787ac116e31b014e6f8ade2f0c268f75d111cabc59491a9fe9a439e',
+      '66037a1d8634d41ba989a6b3d49889aa53cefe4a892c71b7d5eb1dc9e0e71fd3',
     );
   });
 });

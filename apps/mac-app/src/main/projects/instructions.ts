@@ -41,7 +41,7 @@ function parseExecutor(entry: string): { id: string; runtime: string } {
 
 /**
  * Như `renderInstructions` của fork: chỉ Trợ Lý nhận danh sách executor và agent BMAD (của project), thêm vào cuối
- * file. Project app tạo không có agent BMAD hay reviewer Codex nên hai mục này ghi "Không có…".
+ * file. Project app tạo không có agent BMAD, agent UIUX hay reviewer Codex nên ba mục này ghi "Không có…".
  */
 export function renderInstructions(
   role: RoleTemplate,
@@ -77,7 +77,8 @@ export function renderInstructions(
     reviewerCodexId === ''
       ? 'Không có. Server tự chọn reviewer, bạn không giao việc cho reviewer.'
       : `- \`${reviewerCodexId}\` — runtime \`codex_local\``;
-  return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n\n## Agent BMAD của company\n\n${bmad}\n\n## Reviewer Codex của company\n\n${reviewer}\n`;
+  const designer = 'Không có. Không tạo con thiết kế; làm như cũ.';
+  return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n\n## Agent BMAD của company\n\n${bmad}\n\n## Agent UIUX của company\n\n${designer}\n\n## Reviewer Codex của company\n\n${reviewer}\n`;
 }
 
 /** `extraArgs` ghim Superpowers như `merge-agent-config.mjs`; thư mục phải là bản ghim `~/.crew/workflows/superpowers/<bản>`. */
