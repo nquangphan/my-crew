@@ -14,10 +14,10 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork nhánh `crew/uiux-agent` @ 5e82c134f (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
+/** sha256 của `crew/agents/*.md` trong fork nhánh `crew/uiux-agent` @ 7f341c66d (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
 const FORK_SHA256: Record<string, string> = {
-  assistant: '2183c35295126aec199e0437169dc12f8c1bbe751d40af0461025b62fc950f0b',
-  executor: '41298103316846cf90b88c9a04d5ca93b192e0007f1a1bab4a4710f7ba3f9c8f',
+  assistant: 'ecf7c3eb05efcd0158488e5cd590df853d09c77422798e7e52c2e8ee65183986',
+  executor: '252d71f62b5cb05d52eac7778ab2b0b95042de06e634f81cd21689b30edd60ad',
   integrator: '53dd07664eeacc3637400c6ed11e400f9a9819710014a02c93c10e9c68472fdd',
   reviewer: 'd7c54c8656664ed38daa416e6f741f2da20b8da91fe31317a346ac2c3f37255b',
 };
@@ -162,7 +162,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      '66037a1d8634d41ba989a6b3d49889aa53cefe4a892c71b7d5eb1dc9e0e71fd3',
+      'd3f18e974590e3c9af589c46369bb0277f757481968dfc647505700246a77ae0',
     );
   });
 });
