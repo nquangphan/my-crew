@@ -25,6 +25,7 @@ import {
 } from '../sshd-owner.js';
 import { shQuote } from '../system.js';
 import { tailscaleIpv4 } from '../tailscale.js';
+import { checkTmux } from '../tmux.js';
 import { missingExecutables, readInstalledPlugins } from '../workflows/install.js';
 import { discoverSources, GIT_TIMEOUT, lastRunWorkflow } from '../workflows/inventory.js';
 import { pinDir, SUPERPOWERS_PLUGIN_KEY, superpowersPinDir } from '../workflows/pin.js';
@@ -1202,6 +1203,7 @@ export async function doctor(ctx: MacContext, options: DoctorOptions): Promise<C
   results.push(await checkAgentNode(ctx, paths, manifest));
   results.push(await checkAgentUv(ctx, paths, manifest));
   results.push(checkLauncher(ctx, paths));
+  results.push(await checkTmux(ctx, paths));
   results.push(checkSuperpowersPin(ctx));
   results.push(checkBmadPin(ctx));
   results.push(checkWorktreeRoot(ctx, manifest));

@@ -89,6 +89,8 @@ flows:
       - apps/crew-mac/src/commands/setup.ts
       - apps/crew-mac/src/commands/doctor.ts
       - apps/crew-mac/src/commands/uninstall.ts
+      - apps/crew-mac/src/commands/term.ts
+      - apps/crew-mac/src/tmux.ts
       - apps/crew-mac/src/commands/status.ts
       - apps/crew-mac/src/status/sign.ts
       - apps/crew-mac/src/status/report.ts
@@ -100,6 +102,8 @@ flows:
     tests:
       - apps/crew-mac/test/system.test.ts
       - apps/crew-mac/test/zshenv.test.ts
+      - apps/crew-mac/test/tmux.test.ts
+      - apps/crew-mac/test/term.test.ts
       - apps/crew-mac/test/authorized-keys.test.ts
       - apps/crew-mac/test/render.test.ts
       - apps/crew-mac/test/system-wrappers.test.ts

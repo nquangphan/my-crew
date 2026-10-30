@@ -30,6 +30,7 @@ import {
   takeBackToLaunchd,
 } from '../sshd-owner.js';
 import { tailscaleIpv4 } from '../tailscale.js';
+import { ensureTmux, TMUX_CONF, tmuxConfPath } from '../tmux.js';
 import { installBmadPin } from '../workflows/bmad-install.js';
 import { installSuperpowersPin } from '../workflows/install.js';
 import { agentExtraArgs } from '../workflows/pin.js';
@@ -62,6 +63,8 @@ export interface SetupReport {
   superpowers: { dir: string; extraArgs: string[] };
   /** Thư mục BMAD đã ghim và `extraArgs` cho agent vai bmad. */
   bmad: { dir: string; extraArgs: string[] };
+  /** tmux cho terminal web: đường dẫn (null khi thiếu), vừa cài bằng brew, và gợi ý khi không cài được. */
+  tmux: { path: string | null; installed: boolean; hint?: string };
   /** Lần chạy này chuyển sshd agent sang app, về LaunchAgent, hay giữ nguyên chủ. */
   sshdHandoff: 'app' | 'launchd' | 'unchanged';
 }
@@ -249,6 +252,10 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
     writeIfChanged(rt.opencodeWrapper, readFileSync(OPENCODE_WRAPPER_SOURCE, 'utf8'), 0o755),
   );
   track(rt.superpowersDirFile, writeIfChanged(rt.superpowersDirFile, `${pin.dir}\n`, 0o600));
+  // Thiếu tmux không làm setup hỏng (chỉ terminal web không dùng được): báo qua `tmux.hint` và `doctor`.
+  const tmux = await ensureTmux(ctx);
+  track(tmux.path ?? 'tmux', tmux.installed);
+  track(tmuxConfPath(ctx.home), writeIfChanged(tmuxConfPath(ctx.home), TMUX_CONF, 0o644));
   if (!existsSync(worktreeRoot)) {
     mkdirSync(worktreeRoot, { recursive: true, mode: 0o700 });
     changed.push(worktreeRoot);
@@ -318,6 +325,7 @@ export async function setup(ctx: MacContext, options: SetupOptions = {}): Promis
     manifest,
     superpowers: { dir: pin.dir, extraArgs: agentExtraArgs(pin.dir) },
     bmad: { dir: bmad.dir, extraArgs: agentExtraArgs(bmad.dir) },
+    tmux,
     sshdHandoff,
   };
 }

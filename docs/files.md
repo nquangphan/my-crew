@@ -20,6 +20,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/commands/setup.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/status.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/stop-run.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (điểm vào) |
+| `apps/crew-mac/src/commands/term.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/uninstall.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/commands/workflow-check.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
 | `apps/crew-mac/src/commands/workflows.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
@@ -83,6 +84,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/src/status/tcc.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/system.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/tailscale.ts` | [mac-setup](flows/mac-setup.md) (file) |
+| `apps/crew-mac/src/tmux.ts` | [mac-setup](flows/mac-setup.md) (file) |
 | `apps/crew-mac/src/workflows/bmad-install.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/bmad-pin.ts` | [mac-workflows](flows/mac-workflows.md) (file) |
 | `apps/crew-mac/src/workflows/install.ts` | [mac-workflows](flows/mac-workflows.md) (điểm vào) |
@@ -152,6 +154,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/stop.test.ts` | [mac-orphan-reaper](flows/mac-orphan-reaper.md) (test) |
 | `apps/crew-mac/test/system-wrappers.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/system.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/term.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/crew-mac/test/tmux.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/uninstall.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
 | `apps/crew-mac/test/workflow-check-orphans.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/workflow-check-runtime.test.ts` | [mac-runtimes](flows/mac-runtimes.md) (test) |

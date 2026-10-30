@@ -15,6 +15,7 @@ import {
   setStatusSecret,
 } from './commands/status.js';
 import { formatStopLine, RUN_ID_UUID, StopRunInputError, stopRun } from './commands/stop-run.js';
+import { term } from './commands/term.js';
 import { uninstall } from './commands/uninstall.js';
 import {
   orphanCheck,
@@ -24,7 +25,7 @@ import {
   workflowCheckRuntime,
 } from './commands/workflow-check.js';
 import { WORKFLOWS_USAGE, workflowsCommand } from './commands/workflows.js';
-import type { MacContext } from './context.js';
+import { type MacContext, UsageError } from './context.js';
 import { createMacContext } from './context-factory.js';
 import { filesCommand } from './files/command.js';
 import { type Manifest, readManifest } from './manifest.js';
@@ -55,6 +56,7 @@ Cách dùng:
   crew-mac status add-repo <projectId> <đường dẫn repo tuyệt đối> [--company <UUID>]
   crew-mac status remove-repo <projectId>
   crew-mac status list-repos
+  crew-mac term <key dự án>   (gắn vào phiên tmux của terminal web: tmux -L crew attach -t crew-owner-<key>)
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
@@ -89,8 +91,6 @@ export interface CliIo {
   /** Test hook: stdin có phải Terminal không (mặc định `process.stdin.isTTY`). */
   stdinIsTTY?: boolean;
 }
-
-class UsageError extends Error {}
 
 /**
  * Thời gian chờ sau TERM của stop-run: mặc định và tối đa. Phía server truyền 3 giây và chờ cả lệnh khoảng 12 giây.
@@ -289,6 +289,8 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
             ? 'Không có file nào thay đổi.'
             : `Đã ghi: ${report.changed.join(', ')}`,
         );
+        if (report.tmux.path === null && report.tmux.hint)
+          io.out(`Chưa có tmux cho terminal web: ${report.tmux.hint}`);
         if (report.restarted.length > 0) io.out(`Đã nạp lại: ${report.restarted.join(', ')}`);
         io.out(`Agent claude_local: đặt adapterConfig.command = ${macPaths(ctx.home).wrapper}`);
         io.out(
@@ -314,6 +316,11 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
           if (r.hint && r.status !== 'ok') io.out(`    → ${r.hint}`);
         }
         return results.some((r) => r.status === 'fail') ? 1 : 0;
+      }
+      case 'term': {
+        const [key, ...extra] = args;
+        if (key === undefined || extra.length > 0) throw new UsageError('term cần đúng một key dự án');
+        return await term(ctx, key);
       }
       case 'uninstall': {
         const flags = parseFlags(args, [], ['--force']);

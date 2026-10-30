@@ -43,6 +43,9 @@ không cần token và không login lại.
   nghiệm thu qua SSH và là cách sửa mà doctor gợi ý. `--prefix` (mặc định `~/.crew`) đổi chỗ chứa `node/`;
   `--skip-system` bỏ Homebrew và shell đăng nhập để thử đường tải trên máy đã có node. Khi phải tải, dòng
   `Đang tải Node LTS…` in ra stderr để stdout chỉ còn JSON.
+- `crew-mac term <key dự án>`: gắn vào phiên tmux của terminal web khi ngồi ở Mac (`tmux -L crew attach -t
+  crew-owner-<key>`, `stdio: inherit`). Key phải khớp `/^[a-z][a-z0-9-]{1,30}$/` (sai thì `UsageError`, mã 2); chưa có phiên
+  thì in `Chưa có phiên terminal của <key>. Mở terminal dự án trên web Crew trước.` và thoát 1. `commands/term.ts`.
 - `crew-mac uninstall [--force]`: chạy trong Terminal trên màn hình Mac (qua sshd agent thì bị từ chối, trừ khi có `--force`).
 
 ## Các bước
@@ -62,6 +65,11 @@ không cần token và không login lại.
    ghi hai wrapper runtime `~/.crew/bin/crew-codex-run`, `crew-opencode-run` (755), file hàm chung
    `~/.crew/bin/crew-run-mark.sh` (644) và `~/.crew/runtimes/superpowers-dir` (600, thư mục Superpowers ghim) (flow
    `mac-runtimes`; setup không đụng Keychain);
+   `ensureTmux` (`tmux.ts`): tmux có ở `/opt/homebrew/bin` hoặc `/usr/local/bin` (hay `command -v tmux`) thì dùng, thiếu mà
+   có Homebrew thì `brew install tmux` (timeout 10 phút), không có Homebrew thì chỉ in gợi ý (`SetupReport.tmux`), setup
+   không hỏng; ghi `~/.crew-mac/tmux.conf` (`TMUX_CONF`: extended-keys, escape-time 0, mouse, tmux-256color, truecolor,
+   history 10000, `window-size latest`) cho tmux server riêng của Crew (socket `-L crew`, nạp bằng `-f`; không đụng
+   `~/.tmux.conf` của owner);
    ghi plist `com.2p.crew-mac-reaper` (`reaperPlistSpec`, chạy `crew-mac reap` mỗi 60 giây) và nạp bằng
    `ensureService`; ghi `~/.crew-mac/manifest.json`. Chế độ app (`sshdOwner: 'app'`) bỏ bước plist sshd, xem
    "Chủ sshd agent". Mọi file ghi qua `writeIfChanged`, nên chạy lại không đổi gì;
@@ -82,7 +90,7 @@ không cần token và không login lại.
    `crew-mac node`, rồi chạy lại `crew-mac setup` và doctor), uv trong PATH của sshd agent (`checkAgentUv`, id `agent-uv`: `command -v uv` qua chính sshd agent, agent
    BMAD chạy `setup.py` bằng `uv run`; thiếu uv thì `fail` khi máy đã có agent BMAD (`hasBmadAgent`: worktree cấp 1 nào
    đó có `_bmad`, hoặc thư mục ghim BMAD nào đó còn dấu `.in_use`), `warn` khi chưa có (`setup` không cài uv; cài trước
-   khi dựng agent BMAD), cả hai kèm lệnh `cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh`), launcher (`checkLauncher`: có, chạy được, node không nằm trong `.app` (nằm trong thì `fail` với
+   khi dựng agent BMAD), cả hai kèm lệnh `cài uv: curl -LsSf https://astral.sh/uv/install.sh | sh`), tmux (`checkTmux`, id `tmux`: `fail` khi không thấy tmux, `warn` khi `~/.crew-mac/tmux.conf` thiếu hoặc khác `TMUX_CONF`, hint `crew-mac setup`), launcher (`checkLauncher`: có, chạy được, node không nằm trong `.app` (nằm trong thì `fail` với
    `Launcher trỏ vào app 2P Crew, không phải node` và `NODE_HINT`), còn trỏ tới node và `cli.js` tồn tại), Superpowers ghim
    (`checkSuperpowersPin`, id `superpowers-pin`: thư mục ghim có, không phải symlink, đúng checksum, file trong
    `executables` có bit thực thi, không thì `fail`; bản owner đang cài trong `installed_plugins.json` khác bản ghim

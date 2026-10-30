@@ -25,3 +25,6 @@ export class SetupError extends Error {
     this.name = 'SetupError';
   }
 }
+
+/** Cách dùng sai: CLI in USAGE và thoát mã 2. */
+export class UsageError extends Error {}

@@ -62,6 +62,7 @@ async function installed(
   await setup(mac.ctx, { paperclipKey: PAPERCLIP_PUB });
   mac.runner
     .on('/usr/bin/nc', () => ({}))
+    .on('/opt/homebrew/bin/tmux', () => ({}))
     .on('ssh', (args) => sshHandler(args.at(-1) as string))
     .on('/usr/bin/log', () => ({ stdout: 'Timestamp               Ty Process[PID:TID]\n' }))
     .on('/usr/sbin/sysctl', (args) => ({
@@ -417,6 +418,7 @@ describe('crew-mac doctor', () => {
       ['agent-node', 'ok'],
       ['agent-uv', 'ok'],
       ['launcher', 'ok'],
+      ['tmux', 'ok'],
       ['superpowers-pin', 'ok'],
       ['bmad-pin', 'ok'],
       ['worktree-root', 'ok'],
