@@ -56,7 +56,15 @@ function section(raw: unknown, key: string): string {
 /** R6: outside the docs-init commit, protected paths and manifest sections need the owner-approved trailer. */
 export function checkProtected(input: ProtectedInput): Violation[] {
   if (isOwnerApproved(input.message)) return [];
-  const isProtected = picomatch([...PROTECTED_PATTERNS, ...(input.extraPatterns ?? [])], { dot: true });
+  // nocase: on a case-insensitive disk (macOS APFS) checking out `.GitHooks/x` or `Claude.md` overwrites the real file.
+  const matchesPattern = picomatch([...PROTECTED_PATTERNS, ...(input.extraPatterns ?? [])], {
+    dot: true,
+    nocase: true,
+  });
+  // The manifest itself is checked by section below; only a case variant of its path counts as a protected path.
+  const manifestLower = FLOWS_MANIFEST_PATH.toLowerCase();
+  const isProtected = (path: string) =>
+    matchesPattern(path) || (path !== FLOWS_MANIFEST_PATH && path.toLowerCase() === manifestLower);
   const hint = `needs the owner's approval: add the trailer "${OWNER_APPROVED_TRAILER}: <ticket-key>" (set only for tickets marked "config change allowed")`;
   const violations: Violation[] = [];
   const seen = new Set<string>();

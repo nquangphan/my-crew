@@ -1,6 +1,7 @@
 import { chmodSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { cleanMessage } from '../src/commands/check.js';
+import { checkProtected } from '../src/rules/r6-protected.js';
 import { addedLines, scanBuiltIn, scanPatch } from '../src/secret-scan.js';
 import {
   DOCS_INIT_TRAILER,
@@ -445,6 +446,28 @@ describe('R6 protected paths', () => {
     repo.git('commit', '--no-verify', '-q', '--amend', '-m', `docs: sửa hướng dẫn agent\n\n${APPROVED}`);
     expect(await range(repo, base)).toMatchObject({ code: 0 });
   });
+
+  // Ổ macOS (APFS) không phân biệt hoa thường: checkout `.GitHooks/pre-commit` là ghi đè `.githooks/pre-commit`.
+  it.each(['.GitHooks/pre-commit', 'Claude.md', '.CLAUDE/settings.json', 'Docs/Flows.yaml'])(
+    'protects %s regardless of letter case',
+    (path) => {
+      const violations = checkProtected({
+        changes: [{ status: 'A', path }],
+        beforeRaw: null,
+        afterRaw: null,
+        message: 'chore: x',
+      });
+      expect(violations).toEqual([expect.objectContaining({ rule: 'R6', path })]);
+      expect(
+        checkProtected({
+          changes: [{ status: 'A', path }],
+          beforeRaw: null,
+          afterRaw: null,
+          message: APPROVED,
+        }),
+      ).toEqual([]);
+    },
+  );
 
   it('does not protect an AGENTS.md below the repo root', async () => {
     const repo = await fixtureRepo();

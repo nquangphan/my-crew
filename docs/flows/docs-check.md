@@ -80,7 +80,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 | `packages/docs-kit/src/rules/r3-freshness.ts` | R3: đổi file nguồn phải đổi doc flow | `checkFreshness` |
 | `packages/docs-kit/src/rules/r4-generated.ts` | R4: block tự động đã cập nhật | `checkGenerated` |
 | `packages/docs-kit/src/rules/r5-initialized.ts` | R5: chưa có `flows.yaml` | `notInitialized` |
-| `packages/docs-kit/src/rules/r6-protected.ts` | R6: đường dẫn/mục bảo vệ cần trailer duyệt | `checkProtected`, `isDocsInitMessage`, `PROTECTED_PATTERNS` |
+| `packages/docs-kit/src/rules/r6-protected.ts` | R6: đường dẫn/mục bảo vệ cần trailer duyệt; khớp không phân biệt hoa thường (APFS: `.GitHooks/x` ghi đè `.githooks/x`), `Docs/Flows.yaml` và các biến thể hoa thường khác của manifest tính là đường dẫn bảo vệ | `checkProtected`, `isDocsInitMessage`, `PROTECTED_PATTERNS` |
 | `packages/docs-kit/src/rules/r7-secrets.ts` | R7: không commit credential | `checkSecrets` |
 | `packages/docs-kit/src/templates.ts` | Nội dung template inline vào bundle | `TEMPLATES`, `renderFlowTemplate` |
 | `packages/docs-kit/src/version.ts` | Phiên bản bundle | `VERSION` |
@@ -111,5 +111,6 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
   (exit 3) khi một commit hay một push xoá manifest khỏi repo đã khởi tạo docs; R6 với `AGENTS.md` ở gốc repo:
   thất bại khi thiếu trailer, đạt với trailer, một `AGENTS.md` lồng trong thư mục con (ví dụ
   `src/checkout/AGENTS.md`) không bị coi là đường dẫn được bảo vệ, và commit docs-init vẫn được miễn như
-  `CLAUDE.md`.
+  `CLAUDE.md`; `checkProtected` bắt `.GitHooks/pre-commit`, `Claude.md`, `.CLAUDE/settings.json`, `Docs/Flows.yaml`
+  (khác hoa thường) và cho qua khi có trailer.
 - `packages/docs-kit/test/flows-schema.test.ts`: `flowsForPath()` trả đúng các flow sở hữu một path cùng vai trò, lý do `unassigned` và path lạ.
