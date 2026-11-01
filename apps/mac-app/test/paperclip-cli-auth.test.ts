@@ -75,6 +75,26 @@ describe('startLogin', () => {
     });
   });
 
+  it.each([
+    'file:///Applications/Calculator.app',
+    'smb://attacker/share',
+    '//evil.example/phish',
+    '/\\evil.example/phish',
+    'vscode://x/y',
+  ])('approvalPath trỏ ra ngoài origin (%s) thì từ chối, không mở gì', async (approvalPath) => {
+    const server = await startFakePaperclip((req) =>
+      req.method === 'POST'
+        ? { status: 201, body: { ...challenge('', null), approvalPath, approvalUrl: null } }
+        : { status: 200, body: { id: ID, status: 'approved' } },
+    );
+    close = server.close;
+    const saveKey = vi.fn(async () => undefined);
+    const flow = createLoginFlow({ fetch: globalThis.fetch, saveKey, hostname: 'mac-mini' });
+    await expect(flow.start(server.origin)).rejects.toThrow('đường duyệt ngoài server');
+    await expect(flow.poll()).resolves.toBe('expired');
+    expect(saveKey).not.toHaveBeenCalled();
+  });
+
   it('companyId đi vào requestedCompanyId', async () => {
     const { server, flow } = await setup([]);
     await flow.start(server.origin, '11111111-1111-4111-8111-111111111111');

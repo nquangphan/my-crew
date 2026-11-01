@@ -34,7 +34,9 @@ wizard trên web Crew xếp việc, app làm trên Mac rồi báo kết quả.
    `{ command: "2P Crew app", clientName: "2P Crew trên <hostname>", requestedAccess: "board" }`. Server trả `id`,
    `token` (bí mật của thử thách), `boardApiToken` (key chờ duyệt), `approvalPath`, `approvalUrl`.
 2. App mở `approvalUrl` bằng trình duyệt (`shell.openExternal`). `approvalUrl` chỉ dùng khi cùng origin owner đã
-   nhập, không thì dựng `origin + approvalPath`. `token` và `boardApiToken` chỉ nằm trong bộ nhớ Main.
+   nhập, không thì dựng `origin + approvalPath`. `approvalPath` phải bắt đầu bằng một `/` (không `//`, không `/\`) và
+   URL dựng ra phải cùng origin; sai thì `start` báo lỗi "Paperclip trả đường duyệt ngoài server, không mở" và không
+   giữ thử thách, vì URL này đi vào `shell.openExternal` (`file:`, `smb:`, URL handler của app khác). `token` và `boardApiToken` chỉ nằm trong bộ nhớ Main.
 3. Renderer gọi `paperclip:loginStatus` mỗi giây → `poll`: `GET /api/cli-auth/challenges/<id>?token=<token>` (không
    cần đăng nhập). `pending` giữ nguyên; `approved` → lưu key vào Keychain đúng một lần, quên key trong bộ nhớ, ghi
    `setup.paperclipOrigin` (đổi origin thì xóa `setup.companyId`); `expired`, `cancelled` hoặc 404 → kết thúc, không
@@ -410,7 +412,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   máy sai dạng thì ném.
   `modelSettingsRoles`: lấy đúng 4 vai từ `settings.roles`, 404 thành `null`, ô thiếu model hay 5xx thì ném.
   `machineBlockers`/`releaseProjectMachines`/`provisionProjectMachines`: đúng đường, body và Bearer; 404 (server cũ) thành `null`.
-- `apps/mac-app/test/paperclip-cli-auth.test.ts`: body thử thách, `approvalUrl`, poll `pending/approved/expired/cancelled/404`,
+- `apps/mac-app/test/paperclip-cli-auth.test.ts`: body thử thách, `approvalUrl`, `approvalPath` tuyệt đối hay `//host` (`file:`, `smb:`,
+  URL handler) bị từ chối và không giữ thử thách, poll `pending/approved/expired/cancelled/404`,
   lưu key đúng một lần (kể cả hai poll song song), log không có token.
 - `apps/mac-app/test/paperclip-keychain.test.ts`: lệnh `security`, giá trị lưu là bản mã, mã 44, mục cũ không mã hóa,
   giải mã hỏng, lỗi Keychain không lộ key.

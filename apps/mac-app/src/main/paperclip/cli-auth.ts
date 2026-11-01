@@ -51,10 +51,11 @@ export function createLoginFlow(deps: LoginDeps) {
       if (!answer?.id || !answer.token || !answer.boardApiToken || typeof answer.approvalPath !== 'string') {
         throw new Error('Paperclip trả thử thách đăng nhập thiếu trường');
       }
+      const approvalUrl = approvalUrlFor(origin, answer);
       pending = { origin, id: answer.id, token: answer.token, boardApiToken: answer.boardApiToken };
       last = 'pending';
       deps.log?.('paperclip-login-started', { origin });
-      return { approvalUrl: approvalUrlFor(origin, answer) };
+      return { approvalUrl };
     },
 
     async poll(): Promise<LoginStatus> {
@@ -92,7 +93,10 @@ export function createLoginFlow(deps: LoginDeps) {
 
 export type LoginFlow = ReturnType<typeof createLoginFlow>;
 
-/** Mở đúng server owner đã nhập: `approvalUrl` của server chỉ dùng khi cùng origin. */
+/**
+ * Mở đúng server owner đã nhập: `approvalUrl` của server chỉ dùng khi cùng origin. URL này đi vào
+ * `shell.openExternal`, nên `approvalPath` tuyệt đối (`file:`, `smb:`, `//host`, URL handler của app khác) bị từ chối.
+ */
 function approvalUrlFor(origin: string, answer: ChallengeAnswer): string {
   if (answer.approvalUrl) {
     try {
@@ -101,5 +105,14 @@ function approvalUrlFor(origin: string, answer: ChallengeAnswer): string {
       // rơi xuống dựng từ approvalPath
     }
   }
-  return new URL(answer.approvalPath, origin).toString();
+  let url: URL | null = null;
+  if (/^\/(?![/\\])/.test(answer.approvalPath)) {
+    try {
+      url = new URL(answer.approvalPath, origin);
+    } catch {
+      url = null;
+    }
+  }
+  if (!url || url.origin !== origin) throw new Error('Paperclip trả đường duyệt ngoài server, không mở');
+  return url.toString();
 }
