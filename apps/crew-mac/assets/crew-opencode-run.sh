@@ -1,7 +1,7 @@
 #!/bin/sh
 # Crew wrapper for opencode_local on the Mac (adapterConfig.command). The OpenCode Go key lives only in the owner's
-# Keychain (service crew.opencode-go, account crew): it is read here into the environment of the opencode process and
-# never goes on argv, into a file, or to stdout/stderr.
+# Keychain (service crew.opencode-go, account crew): it is read here into a 0600 file of the agent's slot (outside the
+# worktree) and never goes into the environment, on argv, or to stdout/stderr.
 # Exits 78 with a "crew-runtime blocked:" / "crew-workflow blocked:" line on stderr; never prints env values.
 # CREW_OPENCODE_BIN, CREW_SECURITY_BIN and CREW_MAC_BIN exist for tests only.
 here=$(cd "$(dirname "$0")" && pwd)
@@ -12,14 +12,23 @@ if [ -z "$key" ]; then
   echo 'crew-runtime blocked: thiếu key OpenCode Go trong Keychain (service crew.opencode-go); owner chạy "crew-mac runtimes key opencode" trong Terminal của Mac' >&2
   exit 78
 fi
-# The config below reads {env:CREW_OPENCODE_GO_KEY}; the opencode-go provider also reads OPENCODE_API_KEY itself.
-CREW_OPENCODE_GO_KEY=$key
-OPENCODE_API_KEY=$key
-unset key
-export CREW_OPENCODE_GO_KEY OPENCODE_API_KEY
 base="$HOME/.crew/runtimes/opencode/$slot"
 umask 077
 mkdir -p "$base/data" "$base/state" "$base/cache" "$base/config" || exit 78
+# The key goes into a 0600 file that the config reads with {file:...}, never into the environment: every bash command
+# the agent runs inherits opencode's environment, so `env` would put the key into the run transcript.
+keyfile="$base/go-key"
+case $keyfile in
+  *'"'* | *'\'*)
+    echo 'crew-runtime blocked: đường dẫn HOME có ký tự " hoặc \' >&2
+    exit 78
+    ;;
+esac
+printf '%s' "$key" >"$keyfile.tmp.$$" && mv -f "$keyfile.tmp.$$" "$keyfile" || {
+  rm -f "$keyfile.tmp.$$"
+  exit 78
+}
+unset key CREW_OPENCODE_GO_KEY OPENCODE_API_KEY
 XDG_DATA_HOME="$base/data"
 XDG_STATE_HOME="$base/state"
 XDG_CACHE_HOME="$base/cache"
@@ -28,7 +37,7 @@ if [ -z "${XDG_CONFIG_HOME:-}" ]; then
   XDG_CONFIG_HOME="$base/config"
   export XDG_CONFIG_HOME
 fi
-OPENCODE_CONFIG_CONTENT='{"provider":{"opencode-go":{"options":{"apiKey":"{env:CREW_OPENCODE_GO_KEY}"}}},"permission":{"edit":"allow","bash":"allow","external_directory":"allow"}}'
+OPENCODE_CONFIG_CONTENT='{"provider":{"opencode-go":{"options":{"apiKey":"{file:'"$keyfile"'}"}}},"permission":{"edit":"allow","bash":"allow","external_directory":"allow"}}'
 export OPENCODE_CONFIG_CONTENT
 [ -n "${PAPERCLIP_RUN_ID:-}" ] && crew_run_mark
 # OpenCode retries a 429 silently (up to 5 times, honouring retry-after); --print-logs puts the ERROR line

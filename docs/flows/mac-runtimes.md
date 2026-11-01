@@ -61,10 +61,11 @@ Lệnh `crew-mac runtimes` cho owner nạp key OpenCode Go vào Keychain và cho
 3. `apps/crew-mac/assets/crew-opencode-run.sh`:
    - đọc key bằng `${CREW_SECURITY_BIN:-/usr/bin/security} find-generic-password -s crew.opencode-go -a crew -w`
      vào biến shell, lỗi của security bị bỏ;
-   - export `CREW_OPENCODE_GO_KEY` và `OPENCODE_API_KEY` (provider `opencode-go` tự đọc biến này) cho process
-     opencode, rồi `unset` biến tạm;
+   - ghi key vào `~/.crew/runtimes/opencode/<agentId>/go-key` (umask 077, file 0600, ghi qua file tạm rồi `mv`), rồi
+     `unset` biến tạm cùng `CREW_OPENCODE_GO_KEY`, `OPENCODE_API_KEY`. Key không vào env: mọi lệnh bash của agent thừa
+     hưởng env của opencode, `env` là key vào transcript của run. HOME có `"` hay `\` thì 78 (đường dẫn nằm trong JSON);
    - `OPENCODE_CONFIG_CONTENT` =
-     `{"provider":{"opencode-go":{"options":{"apiKey":"{env:CREW_OPENCODE_GO_KEY}"}}},"permission":{"edit":"allow","bash":"allow","external_directory":"allow"}}`;
+     `{"provider":{"opencode-go":{"options":{"apiKey":"{file:<go-key>}"}}},"permission":{"edit":"allow","bash":"allow","external_directory":"allow"}}`;
    - `XDG_DATA_HOME`/`XDG_STATE_HOME`/`XDG_CACHE_HOME` = `~/.crew/runtimes/opencode/<agentId>/{data,state,cache}`;
      `XDG_CONFIG_HOME` giữ giá trị adapter đưa vào, không có thì `…/config`;
    - lệnh `run` thêm `--print-logs` (nếu chưa có): OpenCode tự retry 429 tối đa 5 lần im lặng theo `retry-after`,
@@ -185,8 +186,9 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
   `opencode models opencode-go` (một `opencode-go/<id>` mỗi dòng) theo mẫu của plan, chưa chụp từ máy có key; chưa có
   key thì `stats` có thể lỗi và ba số chi phí là `null`.
 
-- Biến key: `{env:CREW_OPENCODE_GO_KEY}` trong `OPENCODE_CONFIG_CONTENT` và `OPENCODE_API_KEY` (đọc mã OpenCode
-  1.18.35); kiểm bằng một run thật.
+- Key: `{file:<go-key>}` trong `OPENCODE_CONFIG_CONTENT`, không cần `OPENCODE_API_KEY` (OpenCode 1.18.35, 01/11: key giả
+  chỉ qua file thì server trả `Invalid credential`, tức provider `opencode-go` được nạp và gửi key; không key thì
+  provider không được nạp; `{file:}` trỏ file không có thì báo `bad file reference`). Chưa chạy với key thật.
 - `permission.external_directory=allow` đủ cho `git commit` với gitdir ngoài worktree.
 - `opencode run --print-logs` đưa dòng lỗi quota/auth ra stderr như đọc mã.
 - `codex login status` thoát 0 khi đã đăng nhập, kể cả khi chạy qua sshd agent.
@@ -213,8 +215,8 @@ Không dòng nào in giá trị env. Không tạo được thư mục trạng th
   thường (HOME giả, token giả): bản agent mới hơn được chép về `~/.codex/auth.json` 0600 không để lại file tạm và
   không in mốc token; owner mới hơn hoặc nội dung giống thì chỉ khôi phục symlink; cùng mtime, nội dung lạ,
   `~/.codex/auth.json` là symlink, hay `auth.json` là thư mục thì 78 và không đụng file nào.
-- `apps/crew-mac/test/crew-opencode-run.test.ts`: chuỗi mốc key chỉ có trong env của opencode (không argv, stdout,
-  stderr, file dưới `~/.crew` hay worktree), security gọi đúng service/account, `OPENCODE_CONFIG_CONTENT`,
+- `apps/crew-mac/test/crew-opencode-run.test.ts`: chuỗi mốc key chỉ có trong `go-key` 0600 của slot (không env, kể cả
+  khi gọi đã có `OPENCODE_API_KEY`; không argv, stdout, stderr, worktree), security gọi đúng service/account, `OPENCODE_CONFIG_CONTENT`,
   `--print-logs` cho `run`, XDG riêng theo agent và giữ `XDG_CONFIG_HOME` của adapter, thiếu key thì 78 với câu cố
   định, agent id sai hay workflow-check từ chối thì không đọc Keychain.
 - `apps/crew-mac/test/workflow-check-runtime.test.ts`: `findRuntimeSources` theo runtime (Codex chỉ `.codex/`,

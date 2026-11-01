@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -85,16 +85,18 @@ function grepTree(dir: string, needle: string): string {
 }
 
 describe('crew-opencode-run', () => {
-  it('key chỉ vào env của opencode; không có trong argv, stderr, stdout, file dưới HOME', () => {
+  it('key chỉ nằm trong file 0600 của slot; không có trong env (lệnh con của agent thấy env), argv, stdout, stderr, worktree', () => {
     const t = setup();
-    const r = run(t, IN_RUN);
+    const r = run(t, { ...IN_RUN, OPENCODE_API_KEY: 'cu', CREW_OPENCODE_GO_KEY: 'cu' });
     expect(r.code).toBe(0);
     const seen = readFileSync(t.seen, 'utf8');
-    expect(seen).toMatch(new RegExp(`^CREW_OPENCODE_GO_KEY=${KEY}$`, 'm'));
-    expect(seen).toMatch(new RegExp(`^OPENCODE_API_KEY=${KEY}$`, 'm'));
-    expect(seen.split('--argv--\n')[1]).not.toContain('MOC-KEY');
+    expect(seen).not.toContain('MOC-KEY');
+    expect(seen).not.toMatch(/^(OPENCODE_API_KEY|CREW_OPENCODE_GO_KEY)=/m);
     expect(r.stdout + r.stderr).not.toContain('MOC-KEY');
-    expect(grepTree(join(t.home, '.crew'), 'MOC-KEY')).toBe('');
+    const keyFile = join(t.home, '.crew', 'runtimes', 'opencode', AGENT, 'go-key');
+    expect(grepTree(join(t.home, '.crew'), 'MOC-KEY')).toBe(keyFile);
+    expect(readFileSync(keyFile, 'utf8')).toBe(KEY);
+    expect(statSync(keyFile).mode & 0o777).toBe(0o600);
     expect(grepTree(t.root, 'MOC-KEY')).toBe('');
     // Keychain đọc đúng service/account, key không bao giờ là đối số của security.
     expect(readFileSync(t.securityArgs, 'utf8').trim().split('\n')).toEqual([
@@ -107,14 +109,16 @@ describe('crew-opencode-run', () => {
     ]);
   });
 
-  it('OPENCODE_CONFIG_CONTENT trỏ {env:CREW_OPENCODE_GO_KEY} và cho phép external_directory', () => {
+  it('OPENCODE_CONFIG_CONTENT trỏ {file:<go-key của slot>} và cho phép external_directory', () => {
     const t = setup();
     run(t, IN_RUN);
     const line = readFileSync(t.seen, 'utf8')
       .split('\n')
       .find((l) => l.startsWith('OPENCODE_CONFIG_CONTENT=')) as string;
     const cfg = JSON.parse(line.slice('OPENCODE_CONFIG_CONTENT='.length));
-    expect(cfg.provider['opencode-go'].options.apiKey).toBe('{env:CREW_OPENCODE_GO_KEY}');
+    expect(cfg.provider['opencode-go'].options.apiKey).toBe(
+      `{file:${join(t.home, '.crew', 'runtimes', 'opencode', AGENT, 'go-key')}}`,
+    );
     expect(cfg.permission).toEqual({ edit: 'allow', bash: 'allow', external_directory: 'allow' });
   });
 
