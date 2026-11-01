@@ -7,6 +7,7 @@ import { STATE_CHANGED_EVENT } from '../shared/ipc-contract.js';
 import type { AppContext } from './app-context.js';
 import { AppLog } from './app-log.js';
 import { AppStateStore, chromiumUserDataDir } from './app-state.js';
+import { forbiddenDebugSwitch } from './debug-switch.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
 import { registerJobs } from './jobs/register.js';
 import { electronLoginItem } from './login-item.js';
@@ -22,6 +23,13 @@ import { registerUpdate } from './update/register.js';
 import { createMainWindow } from './window.js';
 import { createWindowController, type ShowTrigger } from './window-controller.js';
 
+// 0. Cờ mở DevTools cho process bên ngoài: thoát ngay, trước mọi việc khác.
+const debugSwitch = forbiddenDebugSwitch(app.commandLine);
+if (debugSwitch) {
+  console.error(`2P Crew từ chối chạy với --${debugSwitch}`);
+  app.exit(1);
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 
 const home = process.env.HOME ?? homedir();
@@ -30,8 +38,10 @@ const paths = macPaths(home);
 // mặc định trùng với app 2P Crew cũ (cùng tên), nên xin khóa trước thì app mới tự thoát khi app cũ còn mở.
 app.setPath('userData', chromiumUserDataDir(paths.appState));
 
-// 1. Một instance: lần mở thứ hai chỉ đưa cửa sổ lên.
-if (!app.requestSingleInstanceLock()) {
+// 1. Một instance: lần mở thứ hai chỉ đưa cửa sổ lên. Có cờ debug thì không chạy tiếp (app.exit không dừng mã đồng bộ).
+if (debugSwitch) {
+  // đang thoát
+} else if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   void start();

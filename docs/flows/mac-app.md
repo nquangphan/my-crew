@@ -25,7 +25,9 @@ cắm vào các điểm đã chừa.
 
 ## Các bước
 
-1. `src/main/index.ts`: đặt `userData` của Chromium = `~/Library/Application Support/2P Crew/chromium` TRƯỚC khi gọi
+1. `src/main/index.ts`: trước mọi việc khác, `forbiddenDebugSwitch(app.commandLine)` (`src/main/debug-switch.ts`) thấy
+   `--remote-debugging-port`, `--remote-debugging-pipe` hay `--remote-allow-origins` thì in lý do ra stderr, `app.exit(1)` và
+   không gọi `start` (lý do ở mục fuse dưới "Lưu ý quyền macOS"). Rồi đặt `userData` của Chromium = `~/Library/Application Support/2P Crew/chromium` TRƯỚC khi gọi
    `requestSingleInstanceLock` (`chromiumUserDataDir`: thư mục con cạnh `app.json`/`app.log`, để không đụng Local State, Preferences,
    Local Storage của app v2 nằm ngay trong thư mục cha; HOME lấy từ biến `HOME`). Khóa một instance nằm trong `userData`: xin khóa
    trước khi đổi thư mục thì app mới đụng khóa của app v2 đang mở và tự thoát im lặng. Rồi `start` dựng `AppStateStore` và `AppLog`, chờ `app.whenReady()`.
@@ -257,6 +259,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/mac-app/src/main/index.ts` | Khởi động, thứ tự đăng ký module | `start` |
+| `apps/mac-app/src/main/debug-switch.ts` | Nhận ra cờ Chromium mở DevTools cho process ngoài | `forbiddenDebugSwitch` |
 | `apps/mac-app/src/main/app-context.ts` | Những gì mỗi `registerX` nhận | `AppContext` |
 | `apps/mac-app/src/main/app-state.ts` | `app.json` (kiểu và kho ghi atomic, nối tiếp) | `AppStateStore`, `AppState` |
 | `apps/mac-app/src/main/app-log.ts` | `app.log`: ẩn secret, xoay 10 MB, giờ `Asia/Ho_Chi_Minh` | `AppLog`, `redactFields` |
@@ -321,6 +324,8 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   (`ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS`, `--inspect`) là chạy mã dưới danh tính app và giải mã được key. App chỉ dùng
   `utilityProcess` (không fork vào chính binary) nên tắt `runAsNode` an toàn. Không đặt `grantFileProtocolExtraPrivileges`
   (renderer nạp bằng `file://`), `enableCookieEncryption` và `loadBrowserProcessSpecificV8Snapshot` (không cần).
+  Fuse không phủ cờ Chromium mở DevTools cho process ngoài: agent mở lại app với `--remote-debugging-port` là chạy được mã
+  trong renderer hợp lệ (qua `isTrustedSender`) và gọi mọi kênh IPC bằng board key, nên Main tự thoát khi thấy các cờ đó.
   Đọc fuse: `node node_modules/.pnpm/@electron+fuses@*/node_modules/@electron/fuses/dist/bin.js read --app "<.app>"`.
   Lật fuse làm hỏng chữ ký ad-hoc của binary: bản không ký (`CSC_IDENTITY_AUTO_DISCOVERY=false`) bị kernel giết (mã 137);
   muốn chạy thử phải ký ad-hoc lại (`codesign --force --deep --sign -`) trên bản chép đã bỏ xattr (`ditto --noextattr`).
@@ -340,6 +345,8 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 
 ## Tests
 
+- `apps/mac-app/test/debug-switch.test.ts`: ba cờ DevTools bị từ chối, cờ khác cho qua; `index.ts` kiểm cờ trước khi
+  đổi `userData`, gọi `app.exit(1)` và không xin khóa một instance hay gọi `start` khi có cờ.
 - `apps/mac-app/test/app-state.test.ts`: tạo file mode 600, ghi nối tiếp, file hỏng, `appVersion`, bản sao; `jobsAgent`
   ghi qua store thì `readJobsAgent` của crew-mac đọc được.
 - `apps/mac-app/test/app-log.test.ts`: ẩn secret, giờ Việt Nam, xoay file, ghi lỗi không ném.

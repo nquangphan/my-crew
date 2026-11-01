@@ -261,6 +261,7 @@ flows:
       - apps/mac-app/src/main/index.ts
     files:
       - apps/mac-app/src/main/index.ts
+      - apps/mac-app/src/main/debug-switch.ts
       - apps/mac-app/src/main/app-context.ts
       - apps/mac-app/src/main/app-state.ts
       - apps/mac-app/src/main/app-log.ts
@@ -304,6 +305,7 @@ flows:
       - apps/mac-app/src/renderer/components/relogin.tsx
     tests:
       - apps/mac-app/test/main-startup-order.test.ts
+      - apps/mac-app/test/debug-switch.test.ts
       - apps/mac-app/test/health.test.ts
       - apps/mac-app/test/runs.test.ts
       - apps/mac-app/test/logs.test.ts
