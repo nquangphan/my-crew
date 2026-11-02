@@ -56,7 +56,7 @@ Cách dùng:
   crew-mac status add-repo <projectId> <đường dẫn repo tuyệt đối> [--company <UUID>]
   crew-mac status remove-repo <projectId>
   crew-mac status list-repos
-  crew-mac term <key dự án>   (gắn vào phiên tmux của terminal web: tmux -L crew attach -t crew-owner-<key>)
+  crew-mac term <key dự án> [số phiên 1–9]   (gắn vào phiên tmux của terminal web: tmux -L crew attach -t crew-owner-<key>[_<số>])
   crew-mac uninstall [--force]      --force: bỏ qua kiểm phiên sshd agent và run Paperclip đang chạy
   crew-mac reap [--grace-seconds 60] [--dry-run]
   crew-mac stop-run --run-id <uuid> --root <worktree tuyệt đối> [--term-wait-seconds 5]
@@ -318,9 +318,10 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
         return results.some((r) => r.status === 'fail') ? 1 : 0;
       }
       case 'term': {
-        const [key, ...extra] = args;
-        if (key === undefined || extra.length > 0) throw new UsageError('term cần đúng một key dự án');
-        return await term(ctx, key);
+        const [key, slot, ...extra] = args;
+        if (key === undefined || extra.length > 0)
+          throw new UsageError('term cần một key dự án, có thể kèm số phiên');
+        return await term(ctx, key, slot);
       }
       case 'uninstall': {
         const flags = parseFlags(args, [], ['--force']);

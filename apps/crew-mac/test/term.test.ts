@@ -17,6 +17,44 @@ describe('crew-mac term', () => {
     expect(attach?.options.stdio).toBe('inherit');
   });
 
+  it('phiên thứ n (n ≥ 2) là crew-owner-<key>_<n>; n = 1 giữ tên cũ', async () => {
+    const mac = fakeMac();
+    mac.runner.on(TMUX, () => ({}));
+    expect(await term(mac.ctx, 'kidy-school', '2')).toBe(0);
+    expect(mac.runner.calls.find((c) => c.args.includes('attach'))?.args).toEqual([
+      '-L',
+      'crew',
+      'attach',
+      '-t',
+      'crew-owner-kidy-school_2',
+    ]);
+    const one = fakeMac();
+    one.runner.on(TMUX, () => ({}));
+    await term(one.ctx, 'kidy-school', '1');
+    expect(one.runner.calls.find((c) => c.args.includes('attach'))?.args.at(-1)).toBe(
+      'crew-owner-kidy-school',
+    );
+  });
+
+  it('số phiên ngoài 1–9 thì UsageError', async () => {
+    const mac = fakeMac();
+    for (const n of ['0', '10', 'x', '2a']) {
+      await expect(term(mac.ctx, 'kidy-school', n)).rejects.toBeInstanceOf(UsageError);
+    }
+    expect(mac.runner.calls).toEqual([]);
+  });
+
+  it('main term <key> <n> chuyển số phiên; thừa tham số thì USAGE', async () => {
+    const mac = fakeMac();
+    mac.runner.on(TMUX, () => ({}));
+    const io = { out: () => {}, err: () => {}, env: {}, context: mac.ctx };
+    expect(await main(['term', 'kidy-school', '3'], io)).toBe(0);
+    expect(mac.runner.calls.find((c) => c.args.includes('attach'))?.args.at(-1)).toBe(
+      'crew-owner-kidy-school_3',
+    );
+    expect(await main(['term', 'kidy-school', '3', 'x'], io)).toBe(2);
+  });
+
   it('chưa có phiên thì báo, không attach', async () => {
     const mac = fakeMac();
     mac.runner.on(TMUX, (args) => (args.includes('has-session') ? { code: 1 } : {}));

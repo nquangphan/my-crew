@@ -43,9 +43,11 @@ không cần token và không login lại.
   nghiệm thu qua SSH và là cách sửa mà doctor gợi ý. `--prefix` (mặc định `~/.crew`) đổi chỗ chứa `node/`;
   `--skip-system` bỏ Homebrew và shell đăng nhập để thử đường tải trên máy đã có node. Khi phải tải, dòng
   `Đang tải Node LTS…` in ra stderr để stdout chỉ còn JSON.
-- `crew-mac term <key dự án>`: gắn vào phiên tmux của terminal web khi ngồi ở Mac (`tmux -L crew attach -t
-  crew-owner-<key>`, `stdio: inherit`). Key phải khớp `/^[a-z][a-z0-9-]{1,30}$/` (sai thì `UsageError`, mã 2); chưa có phiên
-  thì in `Chưa có phiên terminal của <key>. Mở terminal dự án trên web Crew trước.` và thoát 1. `commands/term.ts`.
+- `crew-mac term <key dự án> [số phiên]`: gắn vào phiên tmux của terminal web khi ngồi ở Mac (`tmux -L crew attach -t
+  crew-owner-<key>`, `stdio: inherit`). Terminal web mở được 1–9 phiên mỗi dự án: phiên 1 (mặc định) là
+  `crew-owner-<key>`, phiên n ≥ 2 là `crew-owner-<key>_<n>`. Key phải khớp `/^[a-z][a-z0-9-]{1,30}$/`, số phiên khớp
+  `/^[1-9]$/` (sai thì `UsageError`, mã 2); chưa có phiên thì in `Chưa có phiên terminal [số <n> ]của <key>. Mở terminal
+  dự án trên web Crew trước.` và thoát 1. `commands/term.ts`.
 - `crew-mac uninstall [--force]`: chạy trong Terminal trên màn hình Mac (qua sshd agent thì bị từ chối, trừ khi có `--force`).
 
 ## Các bước
