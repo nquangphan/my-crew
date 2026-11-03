@@ -111,7 +111,7 @@ describe('validateJobPayload', () => {
       'originUrl không hợp lệ',
     ],
     ['ensure-project', { ...ensureProject, branch: '-main' }, 'branch không hợp lệ'],
-    ['ensure-project', { ...ensureProject, roles: [] }, 'roles phải có 1 đến 11 vai trò'],
+    ['ensure-project', { ...ensureProject, roles: [] }, 'roles phải có 1 đến 12 vai trò'],
     ['ensure-project', { ...ensureProject, roles: [{ role: 'repo', branch: 'x' }] }, 'role không hợp lệ'],
     ['ensure-project', { ...ensureProject, roles: [{ role: 'Executor', branch: 'x' }] }, 'role không hợp lệ'],
     [
@@ -270,7 +270,7 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
     ['remove-checkouts', { ...ok, projectId: 'x' }, 'projectId phải là uuid'],
     ['remove-checkouts', { ...ok, projectKey: '../x' }, 'projectKey không hợp lệ'],
     ['remove-checkouts', { ...ok, projectKey: 'demo/..' }, 'projectKey không hợp lệ'],
-    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 11 vai trò'],
+    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 12 vai trò'],
     [
       'remove-checkouts',
       {
@@ -287,10 +287,11 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
           'executor-codex',
           'executor-opencode',
           'reviewer-codex',
+          'designer',
           'executor',
         ],
       },
-      'roles phải có 1 đến 11 vai trò',
+      'roles phải có 1 đến 12 vai trò',
     ],
     ['remove-checkouts', { ...ok, roles: ['executor', 'executor'] }, 'role executor bị trùng'],
     ['remove-checkouts', { ...ok, roles: ['Boss'] }, 'role không hợp lệ'],
