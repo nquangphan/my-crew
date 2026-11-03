@@ -49,7 +49,8 @@ export interface AddProjectInput {
   folder: string;
   name: string;
   key: string;
-  executors: 1 | 2;
+  /** 1–5 executor. */
+  executors: number;
 }
 
 /** Folder owner vừa chọn trong hộp thoại: tên/khóa gợi ý từ tên folder; `problem` khác null thì không dùng được. */

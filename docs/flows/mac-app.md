@@ -300,8 +300,9 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   (flow `mac-setup`). `jobsAgent: {version, lastPollAt}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một lần; flow
   `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc.
   `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
-  chọn); tiến độ bản cũ có `origin` thay cho `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)
-  khai trong `src/shared/ipc-contract.ts` cùng kiểu `FolderChoice`; `AddProjectInput` nhận `folder` thay cho `origin`.
+  chọn) và `executors` (số executor đã chọn, 1–5; tiến độ trước đó không có); tiến độ bản cũ có `origin` thay cho
+  `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)
+  khai trong `src/shared/ipc-contract.ts` cùng kiểu `FolderChoice`; `AddProjectInput` nhận `folder` thay cho `origin`, `executors` là số 1–5.
 - `~/Library/Application Support/2P Crew/app.log`: JSON lines, mode 600, xoay một bản `app.log.1` khi vượt 10 MB. Field
   tên nhạy cảm (`token`, `secret`, `authorization`...) ghi `[đã ẩn]`, chuỗi `Bearer ...` và các dạng token quen thuộc
   trong cả dòng bị ẩn.

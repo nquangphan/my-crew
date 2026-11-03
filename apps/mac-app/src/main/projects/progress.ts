@@ -26,9 +26,12 @@ export interface ProjectDeps {
 
 export const KEY_RE = /^[a-z][a-z0-9-]{1,30}$/;
 
+/** Số executor tối đa của một project (cùng `MAX_EXECUTORS` của plugin `crew.core`). */
+export const MAX_EXECUTORS = 5;
+
 /** Executor trước để Trợ Lý nhận được danh sách id executor khi tải `AGENTS.md`. */
-export function roleNames(executors: 1 | 2): string[] {
-  const list = executors === 2 ? ['executor-1', 'executor-2'] : ['executor-1'];
+export function roleNames(executors: number): string[] {
+  const list = Array.from({ length: executors }, (_, i) => `executor-${i + 1}`);
   return [...list, 'assistant', 'reviewer', 'integrator'];
 }
 

@@ -25,6 +25,7 @@ import { pinnedExtraArgs, ROLE_TEMPLATES, renderInstructions, uploadInstructions
 import {
   isLegacyProgress,
   KEY_RE,
+  MAX_EXECUTORS,
   ProgressRecorder,
   type ProgressStep,
   type ProjectDeps,
@@ -111,7 +112,9 @@ function validateInput(input: AddProjectInput): void {
   if (typeof input.key !== 'string' || !KEY_RE.test(input.key)) {
     throw new Error('Khóa project chỉ gồm chữ thường, số, dấu gạch ngang, bắt đầu bằng chữ, dài 2–31 ký tự');
   }
-  if (input.executors !== 1 && input.executors !== 2) throw new Error('Số executor phải là 1 hoặc 2');
+  if (!Number.isInteger(input.executors) || input.executors < 1 || input.executors > MAX_EXECUTORS) {
+    throw new Error(`Số executor phải từ 1 đến ${MAX_EXECUTORS}`);
+  }
   if (typeof input.name !== 'string' || input.name.trim() === '' || input.name.length > 120) {
     throw new Error('Tên project không được trống (tối đa 120 ký tự)');
   }
@@ -176,11 +179,15 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
       projectId: null,
       done: [],
       agents: {},
+      executors: input.executors,
       error: null,
     };
     await deps.store.update((s) => ({
       ...s,
-      projects: { ...s.projects, [input.key]: existing ? { ...existing, error: null } : fresh },
+      projects: {
+        ...s.projects,
+        [input.key]: existing ? { ...existing, executors: input.executors, error: null } : fresh,
+      },
     }));
     const rec = new ProgressRecorder(deps.store, input.key);
     const run = new AddRun(deps, input, companyId, rec, roles, info);

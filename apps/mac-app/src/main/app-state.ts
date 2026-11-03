@@ -31,6 +31,8 @@ export interface ProjectProgress {
     'folder' | 'project' | 'status-repo' | `role:${string}` | 'roles' | 'check' | 'ls-remote' | 'mirror'
   >;
   agents: Record<string, { agentId: string | null; environmentId: string | null; checkout: string }>;
+  /** Số executor owner chọn (1–5); tiến độ bản trước không có trường này thì đếm agent `executor-*` đã tạo. */
+  executors?: number;
   error: string | null;
 }
 

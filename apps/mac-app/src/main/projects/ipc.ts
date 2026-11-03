@@ -3,7 +3,7 @@ import type { AddProjectInput, FolderChoice, ProjectRow } from '../../shared/ipc
 import type { ProjectProgress } from '../app-state.js';
 import { addProject } from './add-project.js';
 import { inspectFolder, runGit, suggestKey } from './folder.js';
-import { type ProjectDeps, roleNames } from './progress.js';
+import { MAX_EXECUTORS, type ProjectDeps, roleNames } from './progress.js';
 import { removeProject } from './remove-project.js';
 
 export interface ProjectsIpcOptions {
@@ -17,7 +17,7 @@ export interface ProjectsIpcOptions {
   pickDirectory?: () => Promise<string | null>;
 }
 
-const ROLE_ORDER = roleNames(2);
+const ROLE_ORDER = roleNames(MAX_EXECUTORS);
 
 async function gitHead(path: string, env: NodeJS.ProcessEnv): Promise<string | null> {
   const r = await runGit(['-C', path, 'rev-parse', '--short', 'HEAD'], { env, timeoutMs: 10_000 });

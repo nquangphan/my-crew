@@ -13,11 +13,13 @@ export type MachineJobKind =
   | 'runtimes-setup'
   | 'ensure-project';
 export type MachineJobStatus = 'queued' | 'claimed' | 'done' | 'failed' | 'cancelled';
+/** Ô executor Claude: `executor`, `executor-2` … `executor-5` (tối đa 5, cùng `MAX_EXECUTORS` của plugin). */
+export const EXECUTOR_SLOTS = ['executor', 'executor-2', 'executor-3', 'executor-4', 'executor-5'] as const;
+export type ExecutorSlot = (typeof EXECUTOR_SLOTS)[number];
 /** `executor-codex`, `executor-opencode`, `reviewer-codex`: agent chạy runtime ngoài Claude, mỗi ô một agent. */
 export type CrewRoleSlot =
   | 'assistant'
-  | 'executor'
-  | 'executor-2'
+  | ExecutorSlot
   | 'reviewer'
   | 'integrator'
   | 'executor-codex'
@@ -37,8 +39,7 @@ export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
 ];
 export const CREW_ROLE_SLOTS: readonly CrewRoleSlot[] = [
   'assistant',
-  'executor',
-  'executor-2',
+  ...EXECUTOR_SLOTS,
   'reviewer',
   'integrator',
   'executor-codex',

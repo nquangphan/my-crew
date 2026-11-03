@@ -325,11 +325,12 @@ describe('addProject', () => {
     expect(second.agents['executor-1']?.agentId).toBe(lost?.id);
   });
 
-  it('khóa sai dạng, executor ngoài 1–2, folder hỏng hay ~/crew-agents/<key> có nội dung mà không có tiến độ → từ chối trước mọi lời gọi', async () => {
+  it('khóa sai dạng, executor ngoài 1–5, folder hỏng hay ~/crew-agents/<key> có nội dung mà không có tiến độ → từ chối trước mọi lời gọi', async () => {
     const { sandbox, paperclip, fake, deps, input } = await world();
     await expect(addProject(deps, { ...input, key: 'Landing' })).rejects.toThrow('Khóa project');
     await expect(addProject(deps, { ...input, key: 'a' })).rejects.toThrow('Khóa project');
-    await expect(addProject(deps, { ...input, executors: 3 as 1 })).rejects.toThrow('executor');
+    await expect(addProject(deps, { ...input, executors: 6 })).rejects.toThrow('Số executor phải từ 1 đến 5');
+    await expect(addProject(deps, { ...input, executors: 0 })).rejects.toThrow('Số executor phải từ 1 đến 5');
     await expect(addProject(deps, { ...input, folder: 'relative/path' })).rejects.toThrow(
       'đường dẫn tuyệt đối',
     );
@@ -495,6 +496,20 @@ describe('addProject', () => {
       progress.agents['executor-1']?.agentId,
       progress.agents['executor-2']?.agentId,
     ]);
+    const assistant = paperclip.files.get(progress.agents.assistant?.agentId as string) ?? '';
+    for (const id of roles?.executorAgentIds ?? []) expect(assistant).toContain(id);
+  });
+
+  it('năm executor → 8 agent, executorAgentIds dài 5 theo thứ tự, tiến độ nhớ số executor', async () => {
+    const { paperclip, deps, input } = await world();
+    const progress = await addProject(deps, { ...input, executors: 5 });
+    expect(progress.error).toBeNull();
+    expect(progress.executors).toBe(5);
+    expect(paperclip.agents.size).toBe(8);
+    const roles = paperclip.roles.get(progress.projectId as string);
+    expect(roles?.executorAgentIds).toEqual(
+      [1, 2, 3, 4, 5].map((n) => progress.agents[`executor-${n}`]?.agentId),
+    );
     const assistant = paperclip.files.get(progress.agents.assistant?.agentId as string) ?? '';
     for (const id of roles?.executorAgentIds ?? []) expect(assistant).toContain(id);
   });

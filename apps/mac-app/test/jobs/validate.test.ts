@@ -59,7 +59,7 @@ describe('validateJobPayload', () => {
     [
       'prepare-checkouts',
       { projectKey: 'demo', folder: '/x', roles: fullRoles.slice(0, 3) },
-      'roles phải có 4 hoặc 5 vai trò',
+      'roles phải có 4 đến 8 vai trò',
     ],
     [
       'prepare-checkouts',
@@ -111,7 +111,7 @@ describe('validateJobPayload', () => {
       'originUrl không hợp lệ',
     ],
     ['ensure-project', { ...ensureProject, branch: '-main' }, 'branch không hợp lệ'],
-    ['ensure-project', { ...ensureProject, roles: [] }, 'roles phải có 1 đến 8 vai trò'],
+    ['ensure-project', { ...ensureProject, roles: [] }, 'roles phải có 1 đến 11 vai trò'],
     ['ensure-project', { ...ensureProject, roles: [{ role: 'repo', branch: 'x' }] }, 'role không hợp lệ'],
     ['ensure-project', { ...ensureProject, roles: [{ role: 'Executor', branch: 'x' }] }, 'role không hợp lệ'],
     [
@@ -270,7 +270,7 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
     ['remove-checkouts', { ...ok, projectId: 'x' }, 'projectId phải là uuid'],
     ['remove-checkouts', { ...ok, projectKey: '../x' }, 'projectKey không hợp lệ'],
     ['remove-checkouts', { ...ok, projectKey: 'demo/..' }, 'projectKey không hợp lệ'],
-    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 8 vai trò'],
+    ['remove-checkouts', { ...ok, roles: [] }, 'roles phải có 1 đến 11 vai trò'],
     [
       'remove-checkouts',
       {
@@ -279,6 +279,9 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
           'assistant',
           'executor',
           'executor-2',
+          'executor-3',
+          'executor-4',
+          'executor-5',
           'reviewer',
           'integrator',
           'executor-codex',
@@ -287,7 +290,7 @@ describe('validateJobPayload: gỡ checkout và xóa skill', () => {
           'executor',
         ],
       },
-      'roles phải có 1 đến 8 vai trò',
+      'roles phải có 1 đến 11 vai trò',
     ],
     ['remove-checkouts', { ...ok, roles: ['executor', 'executor'] }, 'role executor bị trùng'],
     ['remove-checkouts', { ...ok, roles: ['Boss'] }, 'role không hợp lệ'],
@@ -377,10 +380,23 @@ describe('ô vai trò runtime và việc runtimes-setup', () => {
     ).toMatchObject({ roles: ['executor-codex', 'executor-opencode', 'reviewer-codex'] });
   });
 
-  it('prepare-checkouts vẫn 4 hoặc 5 ô, thiếu ô bắt buộc thì lỗi', () => {
-    const six = [...fullRoles, { role: 'executor-2', branch: 'x' }, { role: 'executor-codex', branch: 'y' }];
-    expect(validateJobPayload('prepare-checkouts', { projectKey: 'demo', folder: '/x', roles: six })).toBe(
-      'roles phải có 4 hoặc 5 vai trò',
+  it('prepare-checkouts nhận 4 đến 8 ô (tối đa 5 executor), thừa ô thì lỗi', () => {
+    const extra = ['executor-2', 'executor-3', 'executor-4', 'executor-5'].map((role) => ({
+      role,
+      branch: `crew/demo/${role}`,
+    }));
+    const eight = [...fullRoles, ...extra];
+    expect(
+      validateJobPayload('prepare-checkouts', { projectKey: 'demo', folder: '/x', roles: eight }),
+    ).toEqual({
+      kind: 'prepare-checkouts',
+      projectKey: 'demo',
+      folder: '/x',
+      roles: eight,
+    });
+    const nine = [...eight, { role: 'executor-codex', branch: 'y' }];
+    expect(validateJobPayload('prepare-checkouts', { projectKey: 'demo', folder: '/x', roles: nine })).toBe(
+      'roles phải có 4 đến 8 vai trò',
     );
   });
 

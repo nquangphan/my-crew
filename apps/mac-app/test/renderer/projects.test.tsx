@@ -153,6 +153,37 @@ it('tiến độ lỗi hiện bước hiện tại, message và Chạy tiếp g�
   );
 });
 
+it('Chạy tiếp giữ số executor đã chọn dù mới tạo một executor', async () => {
+  rows = [
+    row({
+      projectId: 'p1',
+      onMac: false,
+      checkouts: [],
+      progress: {
+        key: 'landing',
+        folder: '/Volumes/CORSAIR/Projects/landing',
+        projectId: 'p1',
+        done: ['folder', 'project', 'status-repo'],
+        agents: { 'executor-1': { agentId: 'a1', environmentId: 'e1', checkout: '/c' } },
+        executors: 5,
+        error: 'mạng hỏng',
+      },
+    }),
+  ];
+  handlers['projects:add'] = () => rows[0]?.progress;
+  render(<ProjectsScreen />);
+  expect(await screen.findByText('mạng hỏng')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Chạy tiếp' }));
+  await waitFor(() =>
+    expect(invoke).toHaveBeenCalledWith('projects:add', {
+      folder: '/Volumes/CORSAIR/Projects/landing',
+      name: 'Landing',
+      key: 'landing',
+      executors: 5,
+    }),
+  );
+});
+
 it('tiến độ kiểu cũ (URL git) không có Chạy tiếp, báo cần gỡ rồi thêm lại; vẫn gỡ được', async () => {
   rows = [
     row({

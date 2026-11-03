@@ -6,6 +6,9 @@ import { invoke, useStateChanged } from '../lib/ipc';
 type Progress = NonNullable<ProjectRow['progress']>;
 
 const KEY_RE = /^[a-z][a-z0-9-]{1,30}$/;
+/** Cùng `MAX_EXECUTORS` của Main (`main/projects/progress.ts`). */
+const MAX_EXECUTORS = 5;
+const EXECUTOR_CHOICES = Array.from({ length: MAX_EXECUTORS }, (_, i) => i + 1);
 const KEY_HINT = 'Khóa chỉ gồm chữ thường, số, dấu gạch ngang, bắt đầu bằng chữ, dài 2–31 ký tự.';
 const FIXED_LABELS: Record<string, string> = {
   folder: 'Kiểm folder và đặt crew-docs',
@@ -21,14 +24,16 @@ export function stepLabel(step: string): string {
   return FIXED_LABELS[step] ?? step;
 }
 
-function executorsOf(progress: Progress): 1 | 2 {
-  return Object.keys(progress.agents).filter((r) => r.startsWith('executor-')).length >= 2 ? 2 : 1;
+/** Số executor của lần thêm: trường `executors` đã lưu, tiến độ bản trước thì đếm agent `executor-*` đã tạo. */
+function executorsOf(progress: Progress): number {
+  const created = Object.keys(progress.agents).filter((r) => r.startsWith('executor-')).length;
+  return progress.executors ?? Math.min(Math.max(created, 1), MAX_EXECUTORS);
 }
 
 /** Thứ tự các bước của một lần thêm, khớp `AddRun.all()` của Main. */
 function expectedSteps(progress: Progress): string[] {
   const roles = [
-    ...(executorsOf(progress) === 2 ? ['executor-1', 'executor-2'] : ['executor-1']),
+    ...Array.from({ length: executorsOf(progress) }, (_, i) => `executor-${i + 1}`),
     'assistant',
     'reviewer',
     'integrator',
@@ -106,7 +111,7 @@ function AddForm({
   const [pickError, setPickError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
-  const [executors, setExecutors] = useState<1 | 2>(1);
+  const [executors, setExecutors] = useState(1);
   const keyOk = KEY_RE.test(key);
   const ready = !!choice && choice.problem === null && name.trim() !== '' && keyOk && !busy;
 
@@ -155,14 +160,12 @@ function AddForm({
       {key !== '' && !keyOk && <Notice tone="warn">{KEY_HINT}</Notice>}
       <fieldset>
         <legend>Số executor</legend>
-        <label>
-          <input type="radio" name="executors" checked={executors === 1} onChange={() => setExecutors(1)} />1
-          executor
-        </label>{' '}
-        <label>
-          <input type="radio" name="executors" checked={executors === 2} onChange={() => setExecutors(2)} />2
-          executor
-        </label>
+        {EXECUTOR_CHOICES.map((n) => (
+          <label key={n}>
+            <input type="radio" name="executors" checked={executors === n} onChange={() => setExecutors(n)} />
+            {n} executor{' '}
+          </label>
+        ))}
       </fieldset>
       <div className="actions">
         <button
