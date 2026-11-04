@@ -381,6 +381,7 @@ flows:
       - apps/mac-app/test/jobs/ensure-project.test.ts
       - apps/mac-app/test/jobs/sanitize.test.ts
       - apps/mac-app/test/jobs/remove.test.ts
+      - apps/mac-app/test/jobs/bug-finding-review.test.ts
   mac-app-sshd:
     title: App 2P Crew giữ sshd agent và thoát an toàn
     doc: docs/flows/mac-app-sshd.md
@@ -427,7 +428,7 @@ flows:
       - apps/mac-app/test/update-updater.test.ts
       - apps/mac-app/test/renderer/update.test.tsx
   mac-bug-finding:
-    title: App Bug Finding đi kèm 2P Crew (mục Bug Finding, trạng thái, mở app, gỡ bản cài riêng, đồng bộ project)
+    title: App Bug Finding đi kèm 2P Crew (mục Bug Finding, trạng thái, mở app, gỡ bản cài riêng, đồng bộ project, chuyển kết quả review)
     doc: docs/flows/mac-bug-finding.md
     entrypoints:
       - apps/mac-app/src/main/bug-finding/register.ts
@@ -437,6 +438,7 @@ flows:
       - apps/mac-app/src/main/bug-finding/state.ts
       - apps/mac-app/src/main/bug-finding/launch.ts
       - apps/mac-app/src/main/bug-finding/sync-projects.ts
+      - apps/mac-app/src/main/bug-finding/results.ts
       - apps/mac-app/src/main/bug-finding/register.ts
       - apps/mac-app/src/renderer/routes/bug-finding.tsx
     tests:
@@ -444,6 +446,8 @@ flows:
       - apps/mac-app/test/bug-finding-state.test.ts
       - apps/mac-app/test/bug-finding-sync.test.ts
       - apps/mac-app/test/bug-finding-sync-wiring.test.ts
+      - apps/mac-app/test/bug-finding-results.test.ts
+      - apps/mac-app/test/bug-finding-review-wiring.test.ts
       - apps/mac-app/test/renderer/bug-finding.test.tsx
 shared: {}
 unassigned: []

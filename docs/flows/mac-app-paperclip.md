@@ -111,6 +111,7 @@ path không query, status.
 | `machineBlockers` | `GET /api/crew/companies/:id/projects/:projectId/machines/blockers` (`?agentIds=` nối bằng dấu phẩy khi có) | Trả danh sách run chờ/đang chạy trên cây đã ghim máy (`blockers`); 404 (server cũ) → `null` |
 | `releaseProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/release` | Body `{agentIds, wholeProject, primaryMachineId}`; server archive environment `@máy` và xếp `remove-checkouts` trên máy khác; trả `{archivedEnvironmentIds, jobs}`; 404 → `null` |
 | `provisionProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/provision` | Body `{exceptMachineId, includeReady, repo:{originUrl, branch}}`; server xếp `ensure-project` cho máy đã ghép khác; 404 → `null` |
+| `postBugFindingResult` | `POST /api/plugins/crew.core/api/bug-finding/results` (routeKey `bug-finding.results`, board key của máy được giao) | Body `{companyId, machineId, requestId, state, round?, headSha, lanesDone?, lanesTotal?, verdict?, costUsd?, error?, findings?, reportMarkdown?}` gửi nguyên văn; relay của flow `mac-bug-finding` gọi. 409 (lượt đã kết thúc), 404, 422 `head_mismatch` thành `PaperclipHttpError` |
 
 ## Thêm project
 
@@ -260,8 +261,10 @@ dòng vai trò, không agent nào bị pause.
 
 Hàng đợi `crew_machine_jobs` của plugin `crew.core` (route board `/api/plugins/crew.core/api/machine-jobs/*`, hợp đồng
 ở plan R3 mục I1): web Crew xếp việc cho một máy (`machineId` của bản tin crew-mac), app trên máy đó nhận bằng board key
-và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ làm đúng 9 loại việc dưới đây (hai việc gỡ
-`remove-checkouts`, `skill-remove` thêm ở R3X, hợp đồng ở plan R3X mục IX1; `runtimes-setup` thêm ở R2-4, hợp đồng I9).
+và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ làm đúng 10 loại việc dưới đây (hai việc gỡ
+`remove-checkouts`, `skill-remove` thêm ở R3X, hợp đồng ở plan R3X mục IX1; `runtimes-setup` thêm ở R2-4, hợp đồng I9;
+`bug-finding-review` thêm ở TPS-657, hợp đồng ở `plans/261104-tps-643-bug-finding-in-crew/spec.md` mục 8.2, chạy ở
+Main, mục "Việc `bug-finding-review`" dưới đây).
 Ô vai trò (`CrewRoleSlot`, 11 ô): `assistant`, `executor`, `executor-2` … `executor-5` (`EXECUTOR_SLOTS`, tối đa 5
 executor như plugin), `reviewer`, `integrator` và `executor-codex`, `executor-opencode`, `reviewer-codex` (I11):
 `agent-workspace` nhận cả 11 ô, `remove-checkouts` nhận 1–12 tên (`MAX_CHECKOUTS`: 11 ô cộng `designer` của agent UIUX) lẫn tên thư mục checkout của app (như `executor-1`; khớp
@@ -290,9 +293,11 @@ nằm dưới thư mục cấm. Mã lỗi `clone_auth_failed` thêm cho việc n
 - Đích lỗi (mạng, HTTP) thì lùi dần riêng đích đó: 2, 4, 8… lần chu kỳ, tối đa 60 giây; không ném, đích khác vẫn chạy.
 - Việc trả về phải có `id` uuid, đúng `companyId` của đích và đúng `machineId`; sai thì báo `app_error`, không làm.
 - Việc vượt **15 phút** (lease của plugin là 17 phút; áp cho mọi loại việc) thì app báo `app_error` "quá thời gian", bật `AbortSignal` (phần ở Main đang tải skill không được bắt đầu ghi file nữa), giết nhóm tiến trình của mọi `git` đang chạy (op `cancelMachineJob` → `killActiveGit`) rồi giết tiến trình phụ.
-- Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>}` vào `app.json`, tối đa
-  30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). Bản tin máy của crew-mac đọc key này
-  (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
+- Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>, capabilities}` vào
+  `app.json`, tối đa 30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). `capabilities` =
+  `JOBS_CAPABILITIES` của `poller.ts` (`['bug-finding-review']`): loại việc ngoài bộ gốc app làm được; plugin chỉ xếp
+  `bug-finding-review` cho máy báo có mục này. Bản tin máy của crew-mac đọc key này (`readJobsAgent`, giữ
+  `capabilities` khi đúng dạng `^[a-z][a-z0-9-]{0,63}$`, tối đa 32 mục) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
   không ghi.
 - Việc `prepare-checkouts`, `agent-workspace` hay `ensure-project` (web thêm project, thêm agent, hay server dựng project trên máy) làm xong thì Main
   (`register.ts`, `jobCreatedCheckouts`) gọi `ctx.sendStatusSoon('job:<loại>')`: bản tin máy được gửi sau khoảng 2 giây
@@ -303,6 +308,28 @@ nằm dưới thư mục cấm. Mã lỗi `clone_auth_failed` thêm cho việc n
   nền, không đổi kết quả việc.
 - Báo kết quả hỏng (mạng) thì chỉ ghi log: việc vẫn `claimed`, hết lease plugin trả về hàng đợi và máy làm lại (mọi việc
   đều chạy lại được).
+
+**Việc `bug-finding-review`** (`register.ts` chuyển cho `ctx.runBugFindingReview` → `registerBugFinding().runReview`
+của flow `mac-bug-finding`, không qua utilityProcess vì cần app nhúng, `app.json` và đồng bộ project của Main; `runJob`
+trong tiến trình phụ trả `app_error` nếu nhận kind này). `executors.ts` → `runBugFindingReview(job, deps)`:
+
+1. Kiểm như mọi việc (`guarded`): payload `BugFindingReviewPayload {requestId, issueId, identifier, run, projectId,
+   projectKey, repoPath, provider: 'github', prNumber, prUrl, headSha, baseBranch, reviewerInputText?}` đúng luật và câu
+   lỗi của plugin (`requestId`, `issueId`, `projectId` uuid; `identifier` dạng `TPS-123`; `run` nguyên 1–3; `repoPath`
+   tuyệt đối, không `..`; `provider` chỉ `github`; `prNumber` nguyên dương và khớp số trong `prUrl` GitHub; `headSha`
+   40 hex thường; `baseBranch` như nhánh; `reviewerInputText` ≤ 20 000 ký tự, `BUG_FINDING_INPUT_MAX`); `repoPath` theo
+   luật thêm project (`folderGuardReason`).
+2. `repoPath` không có trên máy → `project_missing`.
+3. Đồng bộ project sang Bug Finding (`syncProjects`, lỗi bỏ qua: Bug Finding tự đồng bộ lại khi chưa thấy project), ghi
+   lượt vào sổ `bugFindingRequests` của `app.json` (`requestId` → `{companyId, machineId, at}`, `rememberRequest`, giữ
+   200 lượt mới nhất) để relay biết gửi kết quả về đâu.
+4. Chưa có `requests/<requestId>.json` hay `<requestId>.json.done` thì ghi atomic (file tạm rồi `rename`, mode 600)
+   `crewReviewRequest(payload)` = `{schema: 'crew-review-request/1', requestId, crewProjectId, identifier, run,
+   prNumber, headSha, baseBranch, reviewerInputText?}` (đúng `CrewReviewRequest` của repo `bug-finding`). Đã có thì
+   không ghi lại (việc chạy lại sau lease).
+5. `launchBugFinding({background: true})` (`open -g`). `missing` → `bug_finding_missing`, `standalone_running` →
+   `standalone_running`, `open` lỗi → `app_error`; cả ba bỏ file request vừa ghi ở bước 4.
+6. Kết quả `{accepted: true}` ngay; tiến độ và kết quả đi qua relay (flow `mac-bug-finding`, `results.ts`).
 
 **Chuẩn bị ở Main** (`remote.ts` → `createJobsRemote().prepare`, có board key): kiểm payload; `prepare-checkouts` có
 `setupRunId` thì đọc `GET …/setup-runs/:id?companyId` lấy `projectId` (đọc không được thì `null`: vẫn dựng checkout,
@@ -362,16 +389,16 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/projects/remove-project.ts` | Gỡ project khỏi Mac | `removeProject` |
 | `apps/mac-app/src/main/projects/instructions.ts` | Template, render, `baseHash`, `extraArgs` ghim | `ROLE_TEMPLATES`, `renderInstructions`, `uploadInstructions`, `pinnedExtraArgs` |
 | `apps/mac-app/src/main/projects/templates/*.md` | `AGENTS.md` theo vai trò (chép từ fork `crew/agents/*.md`) | |
-| `apps/mac-app/src/main/jobs/types.ts` | Kiểu hàng đợi máy (chép từ plugin), `JobOutcome`, `JobExtras`, `JobError` | `MachineJob`, `JobPayload`, `JobResult`, `JobErrorCode`, `JOB_TIMEOUT_MS` |
+| `apps/mac-app/src/main/jobs/types.ts` | Kiểu hàng đợi máy (chép từ plugin), `JobOutcome`, `JobExtras`, `JobError` | `MachineJob`, `JobPayload`, `JobResult`, `JobErrorCode`, `JOB_TIMEOUT_MS`, `BugFindingReviewPayload`, `BUG_FINDING_INPUT_MAX` |
 | `apps/mac-app/src/main/jobs/validate.ts` | Kiểm payload như plugin, chặn đường dẫn trên máy | `validateJobPayload`, `machineGuardReason`, `checkoutPath` |
 | `apps/mac-app/src/main/jobs/sanitize.ts` | Làm sạch lỗi gửi lên, bỏ credential trong URL remote (giữ user `ssh://`) | `sanitizeJobError`, `stripUrlCredentials` |
-| `apps/mac-app/src/main/jobs/executors.ts` | 9 loại việc trên máy (chạy trong utilityProcess) | `runJob`, `ExecutorDeps` |
+| `apps/mac-app/src/main/jobs/executors.ts` | 9 loại việc trên máy (chạy trong utilityProcess) và `bug-finding-review` (chạy ở Main) | `runJob`, `ExecutorDeps`, `runBugFindingReview`, `BugFindingReviewDeps`, `crewReviewRequest` |
 | `apps/mac-app/src/main/jobs/ensure-project.ts` | Dựng project trên máy: tìm repo theo origin hoặc clone, worktree, repo đi kèm | `ensureProject`, `findRepo`, `originKey`, `defaultProjectRoots` |
 | `apps/mac-app/src/main/jobs/remove.ts` | Gỡ checkout (giữ checkout bẩn/bận/lạ), xóa bản chép skill, bỏ tiến độ project đã gỡ | `removeCheckouts`, `removeSkill`, `forgetRemovedProject`, `runLsof` |
-| `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent`, trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus` |
+| `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent` (kèm `capabilities`), trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus`, `JOBS_CAPABILITIES` |
 | `apps/mac-app/src/main/jobs/targets.ts` | Hỏi việc ở origin board đã đăng nhập, chỉ company tài khoản thấy được | `createTargetResolver` |
 | `apps/mac-app/src/main/jobs/remote.ts` | REST của hàng đợi (claim, result), lấy trước `projectId` và file skill | `createJobsRemote` |
-| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm; việc tạo/gỡ checkout xong thì nhờ đồng bộ project sang Bug Finding | `registerJobs` |
+| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm; việc tạo/gỡ checkout xong thì nhờ đồng bộ project sang Bug Finding; việc `bug-finding-review` chuyển cho Main (`ctx.runBugFindingReview`); ghi `jobsAgent.capabilities` | `registerJobs` |
 
 ## Tests
 
@@ -406,8 +433,14 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   `stripUrlCredentials` giữ `ssh://git@…`, bỏ mật khẩu `ssh://user:…@`, bỏ cả token `https://token@…`.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
   riêng đích lỗi, một việc một lúc, quá 15 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
-  `machineId`, `stop`; trạng thái nhận việc: ổn, chưa có key, 401, 403 (không bảo đăng nhập lại), company bị bỏ qua,
-  không có đích, chỉ báo khi đổi.
+  `machineId`, `stop`; ghi kèm `capabilities` `['bug-finding-review']`; trạng thái nhận việc: ổn, chưa có key, 401, 403
+  (không bảo đăng nhập lại), company bị bỏ qua, không có đích, chỉ báo khi đổi.
+- `apps/mac-app/test/jobs/bug-finding-review.test.ts` (thư mục tạm): payload hợp lệ (uuid chữ thường, giữ
+  `reviewerInputText`), ca sai từng trường đúng câu lỗi của plugin, `reviewerInputText` đúng 20 000 ký tự vẫn nhận,
+  `repoPath` là HOME bị chặn; `runBugFindingReview` ghi đúng `requests/<requestId>.json` (`crew-review-request/1`) rồi
+  mở nền, ghi sổ lượt; chạy lại cùng `requestId` (kể cả khi đã thành `.json.done`) không ghi lần hai; không có repo →
+  `project_missing`; không có app → `bug_finding_missing`, bản cài riêng chạy → `standalone_running`, cả hai bỏ
+  request vừa ghi; payload sai → `app_error`; đồng bộ project lỗi vẫn ghi; `runJob` ở tiến trình phụ trả `app_error`.
 - `apps/mac-app/test/jobs/targets.test.ts`: đích Tailscale vẫn hỏi ở origin board, company không có quyền bị bỏ qua,
   gộp đích trùng company, chưa có origin, không đích, nhớ 60 giây/`invalidate`/lỗi không nhớ, đổi origin.
 - `apps/mac-app/test/jobs/remote.test.ts` (Paperclip giả): đường dẫn/body/Bearer của claim và result, 204, chưa có key
@@ -415,7 +448,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   skill, skill không có hoặc slug khác.
 
 - `apps/mac-app/test/paperclip-client.test.ts`: Paperclip giả trên `127.0.0.1` (`paperclip-fake-server.ts`); Bearer,
-  đọc key mỗi lời gọi, timeout, 401/403/422, log không có key, đường dẫn và body từng route, không có `DELETE`
+  đọc key mỗi lời gọi, timeout, 401/403/422, log không có key, đường dẫn và body từng route (kể cả
+  `postBugFindingResult` và 409 của nó), không có `DELETE`
   environment; `createAgent` gửi đúng `adapterConfig` (`engine: "cli"`, `model`, `env: {}`) và từ chối khi thiếu
   `model`; `agents`/`getAgent` trả `engine`, không trả `env`; `setAgentPermissions` gửi đủ ba quyền, từ chối giá trị
   không boolean; `getAgentPermissions` đọc grant `tasks:assign` (không tin `access.canAssignTasks`), thiếu

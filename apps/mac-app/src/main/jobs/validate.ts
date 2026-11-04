@@ -3,6 +3,7 @@ import { forbiddenRootReason } from '@crew/mac';
 import { folderGuardReason } from '../projects/folder.js';
 import { KEY_RE } from '../projects/progress.js';
 import {
+  BUG_FINDING_INPUT_MAX,
   CREW_ROLE_SLOTS,
   type CrewRoleSlot,
   EXECUTOR_SLOTS,
@@ -39,7 +40,26 @@ const KEYS: Record<MachineJobKind, readonly string[]> = {
   'skill-remove': ['skillId', 'slug'],
   'runtimes-setup': [],
   'ensure-project': ['projectKey', 'projectId', 'originUrl', 'branch', 'roles', 'companions'],
+  'bug-finding-review': [
+    'requestId',
+    'issueId',
+    'identifier',
+    'run',
+    'projectId',
+    'projectKey',
+    'repoPath',
+    'provider',
+    'prNumber',
+    'prUrl',
+    'headSha',
+    'baseBranch',
+    'reviewerInputText',
+  ],
 };
+const IDENTIFIER = /^[A-Z][A-Z0-9]{0,9}-[1-9][0-9]{0,8}$/;
+const HEAD_SHA = /^[0-9a-f]{40}$/;
+/** URL pull request GitHub, như `GITHUB_PR_URL` của plugin. */
+const GITHUB_PR_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/([1-9][0-9]*)$/;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
@@ -147,6 +167,55 @@ function companionsError(list: unknown, roles: readonly { role: string }[]): str
   return null;
 }
 
+const uuidError = (value: unknown, name: string) =>
+  typeof value === 'string' && UUID_RE.test(value) ? null : `${name} phải là uuid`;
+
+function reviewerInputError(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (typeof value !== 'string') return 'reviewerInputText phải là chuỗi';
+  return value.length > BUG_FINDING_INPUT_MAX ? `reviewerInputText quá ${BUG_FINDING_INPUT_MAX} ký tự` : null;
+}
+
+/** Payload `bug-finding-review`, cùng thứ tự kiểm và câu lỗi với plugin. */
+function bugFindingReviewPayload(p: Record<string, unknown>): JobPayload | string {
+  const pr = typeof p.prUrl === 'string' ? GITHUB_PR_URL.exec(p.prUrl) : null;
+  const run = p.run as number;
+  const error =
+    uuidError(p.requestId, 'requestId') ??
+    uuidError(p.issueId, 'issueId') ??
+    (typeof p.identifier === 'string' && IDENTIFIER.test(p.identifier) ? null : 'identifier không hợp lệ') ??
+    (Number.isInteger(run) && run >= 1 && run <= 3 ? null : 'run phải là số nguyên 1 đến 3') ??
+    uuidError(p.projectId, 'projectId') ??
+    projectKeyError(p.projectKey) ??
+    (folderError(p.repoPath)?.replace('folder', 'repoPath') || null) ??
+    (p.provider === 'github' ? null : 'provider chỉ nhận github') ??
+    (Number.isInteger(p.prNumber) && (p.prNumber as number) > 0
+      ? null
+      : 'prNumber phải là số nguyên dương') ??
+    (pr ? null : 'prUrl không hợp lệ') ??
+    (Number(pr?.[1]) === p.prNumber ? null : 'prUrl không khớp prNumber') ??
+    (typeof p.headSha === 'string' && HEAD_SHA.test(p.headSha) ? null : 'headSha phải là 40 ký tự hex') ??
+    (branchError(p.baseBranch) ? 'baseBranch không hợp lệ' : null) ??
+    reviewerInputError(p.reviewerInputText);
+  if (error) return error;
+  return {
+    kind: 'bug-finding-review',
+    requestId: (p.requestId as string).toLowerCase(),
+    issueId: (p.issueId as string).toLowerCase(),
+    identifier: p.identifier as string,
+    run,
+    projectId: (p.projectId as string).toLowerCase(),
+    projectKey: p.projectKey as string,
+    repoPath: p.repoPath as string,
+    provider: 'github',
+    prNumber: p.prNumber as number,
+    prUrl: p.prUrl as string,
+    headSha: p.headSha as string,
+    baseBranch: p.baseBranch as string,
+    ...(typeof p.reviewerInputText === 'string' ? { reviewerInputText: p.reviewerInputText } : {}),
+  };
+}
+
 const skillIdError = (id: unknown) =>
   typeof id === 'string' && UUID_RE.test(id) ? null : 'skillId phải là uuid';
 const slugError = (slug: unknown) =>
@@ -240,6 +309,8 @@ export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobP
         })),
       };
     }
+    case 'bug-finding-review':
+      return bugFindingReviewPayload(p);
     case 'skill-remove':
       return (
         skillIdError(p.skillId) ??
@@ -267,6 +338,8 @@ export function machineGuardReason(home: string, payload: JobPayload): string | 
     return null;
   if (payload.kind === 'remove-checkouts')
     return checkoutsGuardReason(home, payload.projectKey, payload.roles);
+  // Repo của owner chỉ đọc (Bug Finding tạo worktree review riêng cạnh nó): theo luật của thêm project.
+  if (payload.kind === 'bug-finding-review') return folderGuardReason(home, payload.repoPath);
   if (payload.kind === 'ensure-project')
     return checkoutsGuardReason(home, payload.projectKey, [
       ...payload.roles.map((item) => item.role),

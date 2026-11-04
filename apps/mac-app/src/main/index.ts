@@ -115,6 +115,7 @@ async function start(): Promise<void> {
     sendStatusSoon: (reason) => statusNudge.request(reason),
     // `bugFinding` có ngay dưới đây (cùng lượt khởi động); chỉ được gọi khi IPC hay việc máy chạy, tức là sau đó.
     syncBugFindingSoon: (reason) => bugFinding.requestSync(reason),
+    runBugFindingReview: (job) => bugFinding.runReview(job),
     ipc,
     loginItem,
     tray,

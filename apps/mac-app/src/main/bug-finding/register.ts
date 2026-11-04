@@ -1,13 +1,26 @@
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRunner } from '@crew/mac';
 import { app, shell } from 'electron';
 import type { AppContext } from '../app-context.js';
+import { runBugFindingReview } from '../jobs/executors.js';
+import type { JobOutcome, MachineJob } from '../jobs/types.js';
+import { createPaperclipClient, PaperclipAuthError } from '../paperclip/client.js';
+import { boardKeys } from '../paperclip/register.js';
 import { runGit } from '../projects/folder.js';
 import { createProjectsIpc } from '../projects/ipc.js';
 import { projectDeps } from '../projects/register.js';
 import { launchBugFinding, runningBugFindingApps, trashStandalone } from './launch.js';
 import { bugFindingPaths, resolveAppPath, STANDALONE_APP_PATH } from './paths.js';
+import {
+  createRelayMemory,
+  mergeDelivered,
+  readResponsesDir,
+  relayResponses,
+  rememberRequest,
+  startResultsRelay,
+} from './results.js';
 import { readBugFindingState } from './state.js';
 import { createRepoResolver, createSyncRunner, syncProjects } from './sync-projects.js';
 
@@ -17,6 +30,8 @@ export const PROJECT_SYNC_INTERVAL_MS = 10 * 60_000;
 export interface BugFindingModule {
   /** Nhờ đồng bộ project sang Bug Finding; chưa đăng nhập hay chưa chọn company thì bỏ qua. Không ném. */
   requestSync(reason: string): void;
+  /** Việc máy `bug-finding-review` (`runBugFindingReview` với app nhúng, sổ lượt trong `app.json`). Không ném. */
+  runReview(job: MachineJob): Promise<JobOutcome>;
 }
 
 /**
@@ -121,5 +136,79 @@ export function registerBugFinding(ctx: AppContext): BugFindingModule {
   timer.unref();
   app.on('will-quit', () => clearInterval(timer));
 
-  return { requestSync };
+  const runReview = (job: MachineJob) =>
+    runBugFindingReview(job, {
+      home: ctx.home,
+      requestsDir: paths.requestsDir,
+      repoExists: existsSync,
+      syncProjects: async () => {
+        if (signedIn()) await sync.runNow('bug-finding-review');
+      },
+      launch: (opts) =>
+        launchBugFinding(
+          {
+            embedded: appPath,
+            exists: existsSync,
+            runningAppPaths,
+            run: (argv) => runner.run(argv[0] as string, argv.slice(1)),
+          },
+          opts,
+        ),
+      recordRequest: async (ref) => {
+        await ctx.store.update((state) => ({
+          ...state,
+          bugFindingRequests: rememberRequest(state.bugFindingRequests, ref, new Date().toISOString()),
+        }));
+        relay.request();
+      },
+    }).then((outcome) => {
+      ctx.log(outcome.status === 'done' ? 'info' : 'warn', 'bug-finding-review-job', {
+        status: outcome.status,
+        ...(outcome.status === 'failed' ? { errorCode: outcome.errorCode } : {}),
+      });
+      return outcome;
+    });
+
+  // Tiến độ và kết quả Bug Finding về server bằng board key của origin đã đăng nhập (như hàng đợi việc máy).
+  const memory = createRelayMemory();
+  const relay = startResultsRelay({
+    responsesDir: paths.responsesDir,
+    log: (level, event, fields) => ctx.log(level, event, fields),
+    relay: async () => {
+      const state = ctx.store.get();
+      // Chưa có lượt nào do 2P Crew xếp: không đọc thư mục responses.
+      if (Object.keys(state.bugFindingRequests ?? {}).length === 0 && !state.bugFindingOutbox?.length) return;
+      await relayResponses({
+        listResponses: () => readResponsesDir(paths.responsesDir),
+        readFile: (path) => readFile(path, 'utf8'),
+        load: () => {
+          const current = ctx.store.get();
+          return { outbox: current.bugFindingOutbox ?? [], requests: current.bugFindingRequests ?? {} };
+        },
+        save: async (next) => {
+          await ctx.store.update((current) => ({
+            ...current,
+            bugFindingOutbox: next.outbox,
+            bugFindingRequests: mergeDelivered(current.bugFindingRequests, next.requests),
+          }));
+        },
+        post: async (body) => {
+          const origin = ctx.store.get().setup.paperclipOrigin;
+          if (!origin) throw new PaperclipAuthError();
+          const client = createPaperclipClient(origin, {
+            fetch: globalThis.fetch,
+            readKey: () => boardKeys.read(origin),
+            log: (event, fields) => ctx.log('debug', event, fields),
+          });
+          await client.postBugFindingResult(body);
+        },
+        now: () => Date.now(),
+        memory,
+        log: (level, event, fields) => ctx.log(level, event, fields),
+      });
+    },
+  });
+  app.on('will-quit', () => relay.stop());
+
+  return { requestSync, runReview };
 }
