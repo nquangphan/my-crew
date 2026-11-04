@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Mockup 5 — App Bug Finding hiện project và MR từ Crew</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .bf-side { width: 230px; background: #f0f1f4; border-right: 1px solid var(--line); padding: 12px 8px; font-size: 13px; }
+  .bf-side .sec { font-size: 11px; color: var(--muted); font-weight: 600; margin: 10px 8px 4px; }
+  .bf-item { padding: 6px 8px; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
+  .bf-item.sel { background: var(--accent); color: #fff; }
+  .bf-item.sel .badge { background: rgba(255,255,255,.25); color: #fff; }
+  .bf-list { width: 360px; border-right: 1px solid var(--line); background: var(--panel); }
+  .mr { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .mr.sel { background: var(--accent-bg); }
+  .bf-detail { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
+  .toolbar { height: 40px; border-bottom: 1px solid var(--line); background: #f7f7f9; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px; }
+  .lane { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; background: var(--panel); }
+  .lane.run { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .lane.ok { background: var(--ok-bg); }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span style="margin-left:8px">Bug Finding</span></div>
+  <div class="toolbar"><span class="btn">Fetch MR</span><span class="btn">Mở GitHub</span><span style="flex:1"></span><span class="badge ok">Có internet</span><span class="btn">Hàng đợi (2)</span></div>
+  <div class="shell" style="min-height:640px">
+    <div class="bf-side">
+      <div class="sec">PROJECT</div>
+      <div class="bf-item sel">my-crew <span class="badge">Crew</span></div>
+      <div class="bf-item">paperclip <span class="badge info">Crew</span></div>
+      <div class="bf-item">kidy_school <span class="badge info">Crew</span></div>
+      <div class="bf-item">aqua-farm <span class="badge info">Crew</span></div>
+      <div class="bf-item">mobile-banking</div>
+      <div class="bf-item muted">old-shop <span class="badge gray">Crew đã gỡ</span></div>
+      <div class="sec">THÊM</div>
+      <div class="bf-item muted">+ Thêm project</div>
+    </div>
+    <div class="bf-list">
+      <div class="mr sel">
+        <div class="row between"><b>#87 Thêm lọc theo ngày</b><span class="badge info">Đang review</span></div>
+        <div class="muted small">crew/req/TPS-650 → main · <span class="badge info">Crew TPS-650 · lần 1</span></div>
+      </div>
+      <div class="mr">
+        <div class="row between"><b>#86 Sửa đăng nhập Google</b><span class="badge gray">Trong hàng đợi</span></div>
+        <div class="muted small">crew/req/TPS-648 → main · <span class="badge info">Crew TPS-648 · lần 2</span></div>
+      </div>
+      <div class="mr">
+        <div class="row between"><b>#84 Báo cáo tuần</b><span class="badge ok">Review xong</span></div>
+        <div class="muted small">crew/req/TPS-640 → main · APPROVE · <span class="badge info">Crew TPS-640</span></div>
+      </div>
+      <div class="mr">
+        <div class="row between"><b>#80 Refactor theme</b><span class="badge gray">Chưa review</span></div>
+        <div class="muted small">feature/theme → main · do người mở, không qua Crew</div>
+      </div>
+    </div>
+    <div class="bf-detail">
+      <div class="row between"><h2 style="margin:0">#87 Thêm lọc theo ngày</h2><div class="row"><span class="btn">Dừng</span><span class="btn">Mở trên GitHub</span></div></div>
+      <div class="note">Lượt này do <b>2P Crew</b> xếp cho ticket tổng <b>TPS-650</b> (lần 1). Xong thì app gửi báo cáo về Crew; Trợ Lý đọc báo cáo và xử lý finding. Bạn vẫn dừng, resume, hủy được như lượt thường.</div>
+      <div class="card">
+        <h3>Sơ đồ lane</h3>
+        <div class="lane ok" style="margin-bottom:6px">Phiên chính · claude-opus · chia 7 lane · 18 phút</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <div class="lane ok">security · xong · $0.42</div>
+          <div class="lane ok">correctness · xong</div>
+          <div class="lane ok">tests · xong</div>
+          <div class="lane ok">api-contract · xong</div>
+          <div class="lane run">ui-state · đang chạy</div>
+          <div class="lane run">perf · đang chạy</div>
+          <div class="lane run">spec · đang chạy</div>
+        </div>
+        <div class="lane" style="margin-top:6px;color:var(--muted)">Gộp kết quả · chờ</div>
+      </div>
+      <div class="card">
+        <h3>Lịch sử review</h3>
+        <table>
+          <thead><tr><th>Lần</th><th>Bắt đầu</th><th>Thời gian</th><th>Token</th><th>Giá</th><th>Kết quả</th></tr></thead>
+          <tbody><tr><td>1</td><td>09:22</td><td>18 phút…</td><td>1.2M</td><td>–</td><td><span class="badge info">Đang chạy</span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<ul class="legend">
+  <li>Giao diện app Bug Finding giữ nguyên; chỉ thêm nhãn <b>Crew</b> trên project do Crew đồng bộ và trên MR/lượt do Crew xếp.</li>
+  <li>Project Crew đã gỡ không bị xóa (giữ lịch sử review), chỉ gắn nhãn “Crew đã gỡ”.</li>
+  <li>Dải ghi chú ở màn chi tiết cho biết lượt đến từ ticket tổng nào và lần chạy thứ mấy.</li>
+</ul>
+</body>
+</html>
