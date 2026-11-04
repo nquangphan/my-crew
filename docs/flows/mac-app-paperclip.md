@@ -172,6 +172,11 @@ Thêm xong không lỗi (`progress.error` là `null`) thì `projects:add` (`ipc.
 được gửi ngay, nên kiểm tra A5 "checkout máy đã báo" của web đạt mà không chờ lượt gửi định kỳ. Thêm dở hay ném lỗi thì
 không gửi; gửi lỗi không làm hỏng kết quả thêm.
 
+`projects:add` và `projects:remove` (`register.ts`) xong, kể cả khi lỗi hay thêm dở, gọi
+`ctx.syncBugFindingSoon('project-added' | 'project-removed')` để ghi lại danh sách project sang Bug Finding (flow
+`mac-bug-finding`, mục "Đồng bộ project"). `register.ts` export `projectDeps(ctx)` (deps của mọi thao tác project
+dựng từ `AppContext`) để phần đồng bộ đó đọc `projects:list` bằng đúng deps này.
+
 Những gì app ghi vào folder của owner, tất cả nằm trong `.git`: metadata worktree (`.git/worktrees/<tên>`), nhánh
 `agent/<key>-<vai>`, git config `crew-docs.*` (khi chưa có hoặc hỏng), `core.hooksPath` (qua `install-hooks`, `.githooks` thành
 đường dẫn tuyệt đối), một dòng `.paperclip-runtime/` trong `info/exclude`. Ngoài `.git`: hook crew-docs do `install-hooks` ghi
@@ -292,6 +297,10 @@ nằm dưới thư mục cấm. Mã lỗi `clone_auth_failed` thêm cho việc n
 - Việc `prepare-checkouts`, `agent-workspace` hay `ensure-project` (web thêm project, thêm agent, hay server dựng project trên máy) làm xong thì Main
   (`register.ts`, `jobCreatedCheckouts`) gọi `ctx.sendStatusSoon('job:<loại>')`: bản tin máy được gửi sau khoảng 2 giây
   (gộp nếu nhiều việc liền nhau), chạy nền, lỗi chỉ ghi log, không đổi kết quả việc.
+- Việc `prepare-checkouts`, `agent-workspace`, `ensure-project` hay `remove-checkouts` làm xong (`status: 'done'`) thì Main
+  (`register.ts`, `jobChangesProjects` của `src/main/bug-finding/sync-projects.ts`) gọi
+  `ctx.syncBugFindingSoon('job:<loại>')`: ghi lại danh sách project sang Bug Finding (flow `mac-bug-finding`), chạy
+  nền, không đổi kết quả việc.
 - Báo kết quả hỏng (mạng) thì chỉ ghi log: việc vẫn `claimed`, hết lease plugin trả về hàng đợi và máy làm lại (mọi việc
   đều chạy lại được).
 
@@ -347,7 +356,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/projects/folder.ts` | Kiểm folder owner chọn, worktree agent, `info/exclude`, bundle crew-docs, `git` của owner | `inspectFolder`, `folderGuardReason`, `suggestKey`, `ensureWorktree`, `isWorktreeOf`, `agentBranch`, `ensureRuntimeExcluded`, `configureDocsBundle`, `runProcess`, `runGit`, `killActiveGit`, `shellQuote` |
 | `apps/mac-app/src/main/projects/docs-runtime.ts` | Runtime/bundle crew-docs: kiểm runtime, cài bundle mang theo, tự sửa git config lúc app mở | `runtimeProblem`, `installDocsBundle`, `installedDocsBundle`, `repairDocsConfig`, `repairDocsOnStart`, `DocsRepairReport` |
 | `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; chọn folder; thêm/gỡ; thêm xong không lỗi thì gọi `onAdded` | `createProjectsIpc` |
-| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở, gửi bản tin máy sớm sau khi thêm xong | `registerProjects` |
+| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở, gửi bản tin máy sớm sau khi thêm xong, nhờ đồng bộ project sang Bug Finding sau thêm/gỡ | `registerProjects`, `projectDeps` |
 | `apps/mac-app/src/renderer/routes/projects.tsx` | Màn hình Project: danh sách, wizard thêm (Chọn folder), Chạy tiếp, Gỡ khỏi Mac | `ProjectsScreen`, `stepLabel` |
 | `apps/mac-app/src/main/projects/add-project.ts` | Các bước thêm project; bộ lọc environment khuôn (kèm điều kiện secret thuộc company) dùng chung với bước Máy | `addProject`, `isInPlaceSshTemplate`, `isCompanyTemplate`, `inPlaceSshTemplates`, `companySecretIds` |
 | `apps/mac-app/src/main/projects/remove-project.ts` | Gỡ project khỏi Mac | `removeProject` |
@@ -362,7 +371,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent`, trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus` |
 | `apps/mac-app/src/main/jobs/targets.ts` | Hỏi việc ở origin board đã đăng nhập, chỉ company tài khoản thấy được | `createTargetResolver` |
 | `apps/mac-app/src/main/jobs/remote.ts` | REST của hàng đợi (claim, result), lấy trước `projectId` và file skill | `createJobsRemote` |
-| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm | `registerJobs` |
+| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm; việc tạo/gỡ checkout xong thì nhờ đồng bộ project sang Bug Finding | `registerJobs` |
 
 ## Tests
 

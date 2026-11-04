@@ -157,4 +157,27 @@ describe('readBugFindingState', () => {
     expect(s.requests[1]).toMatchObject({ identifier: 'TPS-648', run: 2, state: 'pending', verdict: null });
     expect(s.requests[2]).toMatchObject({ identifier: 'TPS-640', state: 'succeeded', verdict: 'BLOCK' });
   });
+
+  it('đọc danh sách project đã đồng bộ từ crew/projects.json; lần đồng bộ cuối ưu tiên giờ Main báo', async () => {
+    const projects = [{ crewProjectId: 'p-1', key: 'my-crew', name: 'my-crew', repoPath: '/r/my-crew' }];
+    writeFileSync(
+      paths.projectsFile,
+      JSON.stringify({
+        schema: 'crew-projects/1',
+        writtenAt: '2026-11-04T02:41:00.000Z',
+        companyId: 'c-1',
+        projects,
+      }),
+    );
+    expect((await readBugFindingState(deps())).sync).toEqual({
+      lastSyncAt: '2026-11-04T02:41:00.000Z',
+      projects,
+    });
+    const s = await readBugFindingState(deps({ lastSyncAt: () => '2026-11-04T02:59:00.000Z' }));
+    expect(s.sync.lastSyncAt).toBe('2026-11-04T02:59:00.000Z');
+  });
+
+  it('chưa đồng bộ lần nào thì sync rỗng', async () => {
+    expect((await readBugFindingState(deps())).sync).toEqual({ lastSyncAt: null, projects: [] });
+  });
 });

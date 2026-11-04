@@ -179,6 +179,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/bug-finding/paths.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (file) |
 | `apps/mac-app/src/main/bug-finding/register.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (điểm vào), [mac-bug-finding](flows/mac-bug-finding.md) (file) |
 | `apps/mac-app/src/main/bug-finding/state.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (file) |
+| `apps/mac-app/src/main/bug-finding/sync-projects.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (file) |
 | `apps/mac-app/src/main/debug-switch.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/health.ts` | [mac-app](flows/mac-app.md) (file) |
 | `apps/mac-app/src/main/index.ts` | [mac-app](flows/mac-app.md) (điểm vào), [mac-app](flows/mac-app.md) (file) |
@@ -267,6 +268,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/app-state.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/bug-finding-launch.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/bug-finding-state.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
+| `apps/mac-app/test/bug-finding-sync-wiring.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
+| `apps/mac-app/test/bug-finding-sync.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/debug-switch.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/health.test.ts` | [mac-app](flows/mac-app.md) (test) |
 | `apps/mac-app/test/ipc-contract.test.ts` | [mac-app](flows/mac-app.md) (test) |

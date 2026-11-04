@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, utilityProcess } from 'electron';
 import { STATE_CHANGED_EVENT } from '../../shared/ipc-contract.js';
 import type { AppContext } from '../app-context.js';
+import { jobChangesProjects } from '../bug-finding/sync-projects.js';
 import { type UtilityLike, UtilityOpsBridge } from '../ops-bridge.js';
 import { createPaperclipClient } from '../paperclip/client.js';
 import { boardKeys } from '../paperclip/register.js';
@@ -68,6 +69,8 @@ export function registerJobs(ctx: AppContext): void {
       );
       // Checkout agent mới có trên máy: báo bản tin máy ngay để web thấy checkout mà không chờ lượt định kỳ.
       if (jobCreatedCheckouts(job.kind, outcome)) ctx.sendStatusSoon(`job:${job.kind}`);
+      // Checkout agent vừa tạo hay gỡ: repo của project trên máy có thể đổi, ghi lại danh sách sang Bug Finding.
+      if (jobChangesProjects(job.kind, outcome)) ctx.syncBugFindingSoon(`job:${job.kind}`);
       return outcome;
     },
     cancelRunning: async () => {
