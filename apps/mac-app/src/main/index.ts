@@ -7,6 +7,7 @@ import { STATE_CHANGED_EVENT } from '../shared/ipc-contract.js';
 import type { AppContext } from './app-context.js';
 import { AppLog } from './app-log.js';
 import { AppStateStore, chromiumUserDataDir } from './app-state.js';
+import { registerBugFinding } from './bug-finding/register.js';
 import { forbiddenDebugSwitch } from './debug-switch.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
 import { registerJobs } from './jobs/register.js';
@@ -132,6 +133,7 @@ async function start(): Promise<void> {
   registerProjects(ctx);
   registerSetup(ctx, sshd, health);
   registerUpdate(ctx, sshd);
+  registerBugFinding(ctx);
 
   app.on('second-instance', () => showWindow('second-instance'));
   app.on('activate', (_event, hasVisibleWindows) => windows.activate(hasVisibleWindows));

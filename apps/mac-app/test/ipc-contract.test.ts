@@ -31,6 +31,10 @@ describe('IPC_CHANNELS', () => {
       'update:check',
       'update:installWhenIdle',
       'update:rollback',
+      'bugFinding:state',
+      'bugFinding:open',
+      'bugFinding:syncNow',
+      'bugFinding:trashStandalone',
     ]) {
       expect(IPC_CHANNELS, channel).toContain(channel);
     }
