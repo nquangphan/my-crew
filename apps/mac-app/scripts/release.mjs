@@ -10,28 +10,37 @@
  *   node apps/mac-app/scripts/release.mjs --dry-run
  *     Không ký, không notarize, không đăng: chỉ thử build và đóng gói.
  *
+ * Mọi chế độ build Bug Finding (Swift) từ đúng commit trong apps/mac-app/bug-finding.pin.json rồi nhúng vào
+ * Contents/Resources/Bug Finding.app. Biến CREW_BUG_FINDING_REPO (đường dẫn hay URL git) thay repo của file ghim khi
+ * commit ghim chưa có trên remote; commit vẫn phải đúng SHA ghim.
+ *
  * Mọi lệnh chạy bằng mảng đối số (không shell). Không đọc, in hay đưa vào argv mật khẩu/API key: notarize chỉ qua
  * `--keychain-profile`, danh tính ký chỉ qua biến CSC_NAME. Log của công cụ được che hash SHA-1.
  * Mã thoát: xem EXIT trong release-lib.mjs (2 cây bẩn, 3 tag, 4 danh tính/notary profile, 5 build, 6 notarize,
- * 7 tự kiểm, 8 đăng).
+ * 7 tự kiểm, 8 đăng, 9 thiếu Swift 6).
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, X509Certificate } from 'node:crypto';
-import { createReadStream, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   artifactNames,
+  BUG_FINDING_APP,
+  BUG_FINDING_BUILD_DIR,
   BUNDLE_ID,
+  bugFindingBuildCommands,
   buildCommands,
   checkAppUpdateYml,
   checkInfoPlist,
   checkLatestMacYml,
   checkSignature,
   checkTag,
+  cscName,
   EXIT,
   findDeveloperId,
+  hasSwift6,
   IDENTITY_KIND,
   isCleanTree,
   maskHashes,
@@ -45,6 +54,7 @@ import {
   parseIdentities,
   parseNotarySubmit,
   pickIdentity,
+  readBugFindingPin,
   releaseOutDir,
   TEAM_ID,
   teamIdFromSubject,
@@ -180,6 +190,72 @@ function verifySigned(appPath, { kind, teamId }, label) {
   return problems;
 }
 
+function plistVersion(app) {
+  const r = capture('plutil', [
+    '-extract',
+    'CFBundleShortVersionString',
+    'raw',
+    join(app, 'Contents/Info.plist'),
+  ]);
+  return r.status === 0 ? r.stdout.trim() : null;
+}
+
+/**
+ * Build Bug Finding từ đúng commit ghim trong thư mục tạm, kiểm version, rồi đặt vào build/bug-finding/ để
+ * electron-builder chép vào Contents/Resources. Có danh tính thì ký hardened runtime bằng chính danh tính phát hành.
+ */
+async function buildBugFinding({ appDir, identity }) {
+  say('\n▶ build-bug-finding');
+  const pin = readBugFindingPin(appDir);
+  const repo = process.env.CREW_BUG_FINDING_REPO || pin.repo;
+  say(`  repo ${repo}, commit ${pin.commit.slice(0, 12)}, version ${pin.version}`);
+  const work = mkdtempSync(join(tmpdir(), 'crew-bug-finding-'));
+  try {
+    const checkout = join(work, 'bf');
+    const outDir = join(work, 'out');
+    await runStep({
+      id: 'clone-bug-finding',
+      cmd: 'git',
+      args: ['clone', '--no-checkout', repo, checkout],
+      cwd: work,
+      env: {},
+      exit: EXIT.build,
+    });
+    await runStep({
+      id: 'checkout-bug-finding',
+      cmd: 'git',
+      args: ['-C', checkout, 'checkout', '--detach', pin.commit],
+      cwd: work,
+      env: {},
+      exit: EXIT.build,
+    });
+    const head = capture('git', ['-C', checkout, 'rev-parse', 'HEAD']).stdout.trim();
+    if (head !== pin.commit)
+      throw new Stop(EXIT.build, `Bug Finding checkout ra ${head || 'không rõ'}, cần đúng commit ghim.`);
+    const env = identity ? { CSC_NAME: cscName(identity.name) } : {};
+    const cmds = bugFindingBuildCommands({ checkout, outDir, identity: identity?.name ?? null });
+    for (const [cmd, ...args] of cmds)
+      await runStep({ id: 'build-bug-finding', cmd, args, cwd: checkout, env, exit: EXIT.build });
+    const built = join(outDir, BUG_FINDING_APP);
+    const version = plistVersion(built);
+    if (version !== pin.version)
+      throw new Stop(
+        EXIT.verify,
+        `Bug Finding build ra CFBundleShortVersionString ${version ?? 'không đọc được'}, file ghim ghi ${pin.version}.`,
+      );
+    say(`  ✓ Bug Finding ${version} build từ commit ghim`);
+    const dest = join(appDir, BUG_FINDING_BUILD_DIR);
+    rmSync(dest, { recursive: true, force: true });
+    mkdirSync(dest, { recursive: true });
+    // ditto giữ nguyên chữ ký và symlink của bundle.
+    const copy = capture('ditto', [built, join(dest, BUG_FINDING_APP)]);
+    if (copy.status !== 0) throw new Stop(EXIT.build, `Không chép được Bug Finding vào ${dest}.`);
+    say(`  ✓ đặt vào ${join(BUG_FINDING_BUILD_DIR, BUG_FINDING_APP)}`);
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+}
+
 async function verify({ mode, version, identity, paths }) {
   say('\n▶ tự kiểm');
   const { appPath, dist, tmp } = paths;
@@ -208,6 +284,12 @@ async function verify({ mode, version, identity, paths }) {
   if (!existsSync(join(appPath, 'Contents/Resources/crew-docs.cjs')))
     problems.push('Thiếu Contents/Resources/crew-docs.cjs (bundle crew-docs mang theo).');
   else say('  ✓ có bundle crew-docs mang theo');
+
+  // Mục Bug Finding mở bản nhúng này; chữ ký của nó đã nằm trong codesign --verify --deep của .app ở trên.
+  const bugFinding = join(appPath, 'Contents/Resources', BUG_FINDING_APP);
+  if (!existsSync(bugFinding))
+    problems.push(`Thiếu Contents/Resources/${BUG_FINDING_APP} (Bug Finding nhúng).`);
+  else say(`  ✓ có Contents/Resources/${BUG_FINDING_APP} ${plistVersion(bugFinding) ?? '?'}`);
 
   for (const f of [names.zip, names.dmg, names.zipBlockmap, names.dmgBlockmap])
     if (!existsSync(join(dist, f))) problems.push(`Thiếu ${f} trong ${dist}.`);
@@ -292,6 +374,15 @@ async function main() {
   if (identity) say(`✓ danh tính ký: ${identity.name} (team ${identity.teamId})`);
   if (mode === 'release') say(`✓ notary profile ${NOTARY_PROFILE} có trong Keychain`);
 
+  let swift;
+  try {
+    swift = capture('swift', ['--version']);
+  } catch {
+    swift = { status: -1, stdout: '' };
+  }
+  if (!hasSwift6(swift)) throw new Stop(EXIT.swift, 'Cần Swift 6 (Command Line Tools) để build Bug Finding');
+  say('✓ có Swift 6');
+
   const tmp = mkdtempSync(join(tmpdir(), 'crew-mac-release-'));
   const paths = {
     root,
@@ -301,6 +392,7 @@ async function main() {
     tmp,
   };
   try {
+    await buildBugFinding({ appDir, identity });
     const steps = buildCommands({ mode, publish, version, identityName: identity?.name ?? null, paths });
     const publishStep = steps.find((s) => s.id === 'publish');
     for (const step of steps) if (step !== publishStep) await runStep(step);
