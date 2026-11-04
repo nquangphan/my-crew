@@ -1,8 +1,10 @@
 /**
  * Hàm thuần của script phát hành app macOS 2P Crew (`release.mjs`): đọc đối số, kiểm cây git và tag, chọn danh tính
  * ký, dựng lệnh build/ký/notarize/đăng, đọc kết quả tự kiểm. Không gọi process nào, không đọc env, để test bằng
- * `node --test`.
+ * `node --test`. Chỉ `readBugFindingPin` đọc file (file ghim trong repo).
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export const BUNDLE_ID = 'com.2p-solutions.crew.mac';
 export const PRODUCT_NAME = '2P Crew';
@@ -24,6 +26,7 @@ export const EXIT = {
   notarize: 6,
   verify: 7,
   publish: 8,
+  swift: 9,
 };
 
 /** Loại chứng chỉ theo chế độ: phát hành cần Developer ID, `--dev-sign` dùng Apple Development. */
@@ -83,6 +86,43 @@ export function parseArgs(argv) {
     return { error: `--publish chỉ dùng cho bản phát hành, không dùng với --${mode}.` };
   if (mode === 'dry-run' && identity) return { error: '--dry-run không ký nên không nhận --identity.' };
   return { mode, publish: publish === true, identity };
+}
+
+/** Đường dẫn bản Bug Finding đã build, tính từ `apps/mac-app` (electron-builder chép vào Contents/Resources). */
+export const BUG_FINDING_APP = 'Bug Finding.app';
+export const BUG_FINDING_BUILD_DIR = 'build/bug-finding';
+export const BUG_FINDING_PIN = 'bug-finding.pin.json';
+
+/**
+ * Đọc `bug-finding.pin.json` trong `dir`: repo Bug Finding, commit (40 hex) và CFBundleShortVersionString của bản
+ * đó. Ném lỗi khi file sai, để bản phát hành không bao giờ build từ một nhánh trôi.
+ */
+export function readBugFindingPin(dir) {
+  const file = join(dir, BUG_FINDING_PIN);
+  const pin = JSON.parse(readFileSync(file, 'utf8'));
+  if (typeof pin.repo !== 'string' || pin.repo.trim() === '')
+    throw new Error(`${BUG_FINDING_PIN}: repo rỗng.`);
+  if (typeof pin.commit !== 'string' || !/^[0-9a-f]{40}$/.test(pin.commit))
+    throw new Error(`${BUG_FINDING_PIN}: commit phải là SHA đủ 40 ký tự hex.`);
+  if (typeof pin.version !== 'string' || pin.version.trim() === '')
+    throw new Error(`${BUG_FINDING_PIN}: version rỗng.`);
+  return { repo: pin.repo, commit: pin.commit, version: pin.version };
+}
+
+/**
+ * Lệnh build Bug Finding từ bản đã checkout đúng commit ghim, ra `<outDir>/Bug Finding.app`. Có danh tính thì ký
+ * hardened runtime để notarize cùng 2P Crew; không có (`--dry-run`) thì ký ad-hoc, không chạm keychain.
+ */
+export function bugFindingBuildCommands({ checkout, outDir, identity }) {
+  const sign = identity ? ['--sign', identity, '--hardened-runtime'] : ['--sign', '-'];
+  return [['bash', `${checkout}/apps/mr-review-queue/scripts/build-app.sh`, '--out', outDir, ...sign]];
+}
+
+/** `swift --version` có Swift 6 trở lên (Command Line Tools). */
+export function hasSwift6({ status, stdout }) {
+  if (status !== 0) return false;
+  const major = Number(stdout.match(/Swift version (\d+)/)?.[1] ?? 0);
+  return major >= 6;
 }
 
 export function isCleanTree(porcelain) {

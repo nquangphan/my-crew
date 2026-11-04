@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import {
   artifactNames,
+  bugFindingBuildCommands,
   buildCommands,
   checkAppUpdateYml,
   checkInfoPlist,
@@ -11,6 +15,7 @@ import {
   cscName,
   EXIT,
   findDeveloperId,
+  hasSwift6,
   isCleanTree,
   maskHashes,
   missingCredentials,
@@ -21,6 +26,7 @@ import {
   parseIdentities,
   parseNotarySubmit,
   pickIdentity,
+  readBugFindingPin,
   releaseOutDir,
   teamIdFromSubject,
   teamIdOf,
@@ -451,4 +457,61 @@ test('dev-sign hay dry-run không bao giờ có bước đăng dù gọi sai', (
       mode,
     );
   }
+});
+
+function pinDir(pin) {
+  const dir = mkdtempSync(join(tmpdir(), 'pin-'));
+  writeFileSync(join(dir, 'bug-finding.pin.json'), JSON.stringify(pin));
+  return dir;
+}
+
+test('readBugFindingPin đọc file ghim hợp lệ', (t) => {
+  const pin = { repo: 'git@github.com:nquangphan/bug-finding.git', commit: 'a'.repeat(40), version: '0.2.0' };
+  const dir = pinDir(pin);
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  assert.deepEqual(readBugFindingPin(dir), pin);
+});
+
+test('readBugFindingPin từ chối commit không đủ 40 hex hay repo rỗng', (t) => {
+  const short = pinDir({ repo: 'x', commit: 'abc', version: '0.2.0' });
+  const noRepo = pinDir({ repo: '', commit: 'a'.repeat(40), version: '0.2.0' });
+  t.after(() => {
+    for (const dir of [short, noRepo]) rmSync(dir, { recursive: true, force: true });
+  });
+  assert.throws(() => readBugFindingPin(short), /commit/);
+  assert.throws(() => readBugFindingPin(noRepo), /repo/);
+});
+
+test('bugFindingBuildCommands build đúng commit và ký bằng danh tính phát hành', () => {
+  const cmds = bugFindingBuildCommands({
+    checkout: '/t/bf',
+    outDir: '/o',
+    identity: 'Developer ID Application: 2P',
+  });
+  assert.deepEqual(cmds.at(-1), [
+    'bash',
+    '/t/bf/apps/mr-review-queue/scripts/build-app.sh',
+    '--out',
+    '/o',
+    '--sign',
+    'Developer ID Application: 2P',
+    '--hardened-runtime',
+  ]);
+  // --dry-run không có danh tính: ký ad-hoc, không hardened runtime, không chạm keychain.
+  assert.deepEqual(bugFindingBuildCommands({ checkout: '/t/bf', outDir: '/o', identity: null }).at(-1), [
+    'bash',
+    '/t/bf/apps/mr-review-queue/scripts/build-app.sh',
+    '--out',
+    '/o',
+    '--sign',
+    '-',
+  ]);
+});
+
+test('cần Swift 6 để build Bug Finding', () => {
+  const v6 = 'swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1)';
+  assert.equal(hasSwift6({ status: 0, stdout: v6 }), true);
+  assert.equal(hasSwift6({ status: 0, stdout: 'Apple Swift version 5.10' }), false);
+  assert.equal(hasSwift6({ status: 1, stdout: '' }), false);
+  assert.equal(EXIT.swift, 9);
 });

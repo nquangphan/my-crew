@@ -434,6 +434,7 @@ flows:
       - apps/mac-app/src/main/bug-finding/register.ts
       - apps/mac-app/src/renderer/routes/bug-finding.tsx
     files:
+      - apps/mac-app/bug-finding.pin.json
       - apps/mac-app/src/main/bug-finding/paths.ts
       - apps/mac-app/src/main/bug-finding/state.ts
       - apps/mac-app/src/main/bug-finding/launch.ts
