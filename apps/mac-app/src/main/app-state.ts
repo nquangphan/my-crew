@@ -91,6 +91,8 @@ export interface AppState {
   bugFindingRequests?: Record<string, BugFindingRequestEntry>;
   /** Tiến độ/kết quả Bug Finding gửi về server chưa được (lỗi mạng), gửi lại lượt sau; tối đa 200 mục. */
   bugFindingOutbox?: BugFindingOutboxItem[];
+  /** Updater đã thoát Bug Finding (đang mở) để cài bản mới: bản mới mở lại nó chạy nền khi khởi động rồi xóa cờ. */
+  reopenBugFinding?: boolean;
 }
 
 /**
