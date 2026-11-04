@@ -13,6 +13,7 @@ const invoke = vi.fn(async (channel: string, ..._args: unknown[]) => {
   if (channel === 'bugFinding:state') return { ok: true, result: view };
   if (channel === 'bugFinding:open') return { ok: true, result: openAnswer };
   if (channel === 'bugFinding:trashStandalone') return { ok: true, result: trashAnswer };
+  if (channel === 'bugFinding:syncNow') return { ok: true, result: { written: true, count: 2 } };
   return { ok: true, result: undefined };
 });
 
@@ -54,6 +55,13 @@ beforeEach(() => {
         error: null,
       },
     ],
+    sync: {
+      lastSyncAt: '2026-11-04T02:41:00.000Z',
+      projects: [
+        { crewProjectId: 'p-1', key: 'my-crew', name: 'my-crew', repoPath: '/Volumes/P/my-crew' },
+        { crewProjectId: 'p-2', key: 'shop', name: 'Shop', repoPath: '/Volumes/P/shop' },
+      ],
+    },
   };
   openAnswer = { ok: true };
   trashAnswer = { ok: true, message: 'Đã chuyển bản cài riêng vào Thùng rác (khôi phục được)' };
@@ -155,4 +163,22 @@ it('nghe state:changed và gọi lại state mỗi 10 giây khi đang mở', asy
     vi.advanceTimersByTime(30_000);
   });
   expect(calls()).toBe(3);
+});
+
+it('đồng bộ project: số project, giờ lần cuối theo giờ Việt Nam và bảng project Crew ↔ repo trên máy', async () => {
+  render(<BugFindingScreen />);
+  await waitFor(() => expect(screen.getByText('Đã đồng bộ 2 project')).toBeTruthy());
+  expect(screen.getByText(/lần cuối 09:41:00 04\/11/)).toBeTruthy();
+  const table = screen.getByRole('table', { name: 'Project Crew ↔ Bug Finding' });
+  expect(table.textContent).toContain('my-crew');
+  expect(table.textContent).toContain('/Volumes/P/shop');
+});
+
+it('chưa đồng bộ thì báo chưa có project; "Đồng bộ lại" gọi bugFinding:syncNow', async () => {
+  view = { ...view, sync: { lastSyncAt: null, projects: [] } };
+  render(<BugFindingScreen />);
+  await waitFor(() => expect(screen.getByText('Chưa đồng bộ')).toBeTruthy());
+  fireEvent.click(screen.getByRole('button', { name: 'Đồng bộ lại' }));
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('bugFinding:syncNow'));
+  await waitFor(() => expect(screen.getByText('Đã đồng bộ 2 project')).toBeTruthy());
 });

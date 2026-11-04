@@ -113,6 +113,8 @@ async function start(): Promise<void> {
     log,
     ops,
     sendStatusSoon: (reason) => statusNudge.request(reason),
+    // `bugFinding` có ngay dưới đây (cùng lượt khởi động); chỉ được gọi khi IPC hay việc máy chạy, tức là sau đó.
+    syncBugFindingSoon: (reason) => bugFinding.requestSync(reason),
     ipc,
     loginItem,
     tray,
@@ -133,7 +135,7 @@ async function start(): Promise<void> {
   registerProjects(ctx);
   registerSetup(ctx, sshd, health);
   registerUpdate(ctx, sshd);
-  registerBugFinding(ctx);
+  const bugFinding = registerBugFinding(ctx);
 
   app.on('second-instance', () => showWindow('second-instance'));
   app.on('activate', (_event, hasVisibleWindows) => windows.activate(hasVisibleWindows));

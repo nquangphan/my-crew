@@ -1,10 +1,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BugFindingPaths } from './paths.js';
+import type { CrewProject } from './sync-projects.js';
 
 /**
  * Trạng thái app Bug Finding cho màn hình Bug Finding, chỉ đọc file cầu nối (`heartbeat.json`, `requests/`,
- * `responses/`) và hỏi tiến trình đang chạy; không ghi gì.
+ * `responses/`, `projects.json`) và hỏi tiến trình đang chạy; không ghi gì.
  */
 
 /** Heartbeat cũ hơn ngưỡng này (Bug Finding ghi mỗi 15 giây) thì coi như app không chạy. */
@@ -42,6 +43,14 @@ export interface BugFindingView {
   standaloneApp: { path: string; running: boolean } | null;
   /** Mới nhất lên đầu. */
   requests: BugFindingRequestRow[];
+  /** Danh sách project 2P Crew đã ghi sang Bug Finding (`crew/projects.json`). */
+  sync: BugFindingSyncView;
+}
+
+export interface BugFindingSyncView {
+  /** Lần đồng bộ thành công cuối (ISO 8601), kể cả lần không phải ghi lại vì không đổi; `null` khi chưa có. */
+  lastSyncAt: string | null;
+  projects: CrewProject[];
 }
 
 export interface BugFindingStateDeps {
@@ -53,6 +62,8 @@ export interface BugFindingStateDeps {
   readVersion(appPath: string): Promise<string | null>;
   runningAppPaths(): Promise<string[]>;
   now(): number;
+  /** Giờ lần đồng bộ thành công cuối của phiên app này; không có thì lấy `writtenAt` của `projects.json`. */
+  lastSyncAt?: () => string | null;
 }
 
 const RESPONSE_STATES = new Set<BugFindingRequestState>([
@@ -168,6 +179,21 @@ function readRequests(paths: BugFindingPaths): BugFindingRequestRow[] {
     .map((entry) => entry.row);
 }
 
+function readSync(deps: BugFindingStateDeps): BugFindingSyncView {
+  const saved = readJson(deps.paths.projectsFile);
+  const projects = Array.isArray(saved?.projects)
+    ? (saved.projects as unknown[]).flatMap((item) => {
+        const p = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+        const crewProjectId = str(p.crewProjectId);
+        const key = str(p.key);
+        const name = str(p.name);
+        const repoPath = str(p.repoPath);
+        return crewProjectId && key && name && repoPath ? [{ crewProjectId, key, name, repoPath }] : [];
+      })
+    : [];
+  return { lastSyncAt: deps.lastSyncAt?.() ?? str(saved?.writtenAt), projects };
+}
+
 export async function readBugFindingState(deps: BugFindingStateDeps): Promise<BugFindingView> {
   const installed = deps.appPath !== null && existsSync(deps.appPath);
   const [runningPaths, appVersion] = await Promise.all([
@@ -194,5 +220,6 @@ export async function readBugFindingState(deps: BugFindingStateDeps): Promise<Bu
     waitingReviews: running ? (num(heartbeat?.waiting) ?? 0) : 0,
     standaloneApp,
     requests: readRequests(deps.paths),
+    sync: readSync(deps),
   };
 }
