@@ -34,6 +34,7 @@ docs trước khi đọc code.
 | [App 2P Crew giữ sshd agent và thoát an toàn](flows/mac-app-sshd.md) | `mac-app-sshd` | `apps/mac-app/src/main/sshd/register.ts` |
 | [Phát hành và cập nhật app 2P Crew](flows/mac-app-update.md) | `mac-app-update` | `apps/mac-app/scripts/release.mjs`, `apps/mac-app/src/main/update/register.ts` |
 | [Đọc file đính kèm trên Mac (crew-mac files)](flows/mac-attachments.md) | `mac-attachments` | `apps/crew-mac/src/files/command.ts` |
+| [App Bug Finding đi kèm 2P Crew (mục Bug Finding, trạng thái, mở app, gỡ bản cài riêng)](flows/mac-bug-finding.md) | `mac-bug-finding` | `apps/mac-app/src/main/bug-finding/register.ts`, `apps/mac-app/src/renderer/routes/bug-finding.tsx` |
 | [Dừng process của run và dọn process mồ côi trên Mac (crew-mac stop-run, reap)](flows/mac-orphan-reaper.md) | `mac-orphan-reaper` | `apps/crew-mac/src/commands/stop-run.ts`, `apps/crew-mac/src/reaper/reap.ts` |
 | [Runtime Codex và OpenCode Go trên Mac (wrapper, key Keychain, crew-mac runtimes)](flows/mac-runtimes.md) | `mac-runtimes` | `apps/crew-mac/src/runtimes/command.ts` |
 | [Cài và kiểm Mac chạy agent (crew-mac)](flows/mac-setup.md) | `mac-setup` | `apps/crew-mac/src/cli.ts` |
