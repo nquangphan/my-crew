@@ -5,9 +5,11 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import {
   artifactNames,
+  BUG_FINDING_BUNDLE_ID,
   bugFindingBuildCommands,
   buildCommands,
   checkAppUpdateYml,
+  checkBugFindingSignature,
   checkInfoPlist,
   checkLatestMacYml,
   checkSignature,
@@ -26,8 +28,12 @@ import {
   parseIdentities,
   parseNotarySubmit,
   pickIdentity,
+  publishCommands,
   readBugFindingPin,
+  redactUrlCredentials,
   releaseOutDir,
+  releaseState,
+  scrubLog,
   teamIdFromSubject,
   teamIdOf,
 } from './release-lib.mjs';
@@ -249,6 +255,7 @@ test('đọc codesign -dv và kiểm chữ ký theo loại, Team ID, bundle id, 
     teamId: 'J7Y2DL6HZV',
     authority: 'Apple Development: Nhật Quang Phan (29CVPDJ2XX)',
     runtime: true,
+    timestamp: null,
   });
   const want = { kind: 'Apple Development', teamId: 'J7Y2DL6HZV', bundleId: 'com.2p-solutions.crew.mac' };
   assert.deepEqual(checkSignature(d, want), []);
@@ -259,6 +266,62 @@ test('đọc codesign -dv và kiểm chữ ký theo loại, Team ID, bundle id, 
     'Identifier=com.2p-solutions.crew.mac\nSignature=adhoc\nTeamIdentifier=not set',
   );
   assert.ok(checkSignature(adhoc, want).length >= 2);
+});
+
+const BF_DV = [
+  'Executable=/a/2P Crew.app/Contents/Resources/Bug Finding.app/Contents/MacOS/MRReviewQueue',
+  'Identifier=local.mrreviewqueue',
+  'CodeDirectory v=20500 size=900 flags=0x10000(runtime) hashes=20+7 location=embedded',
+  'Authority=Developer ID Application: 2P SOLUTIONS JOINT STOCK COMPANY (J7Y2DL6HZV)',
+  'Authority=Developer ID Certification Authority',
+  'Authority=Apple Root CA',
+  'Timestamp=4 Nov 2026 at 15:00:00',
+  'TeamIdentifier=J7Y2DL6HZV',
+].join('\n');
+
+test('Bug Finding nhúng giữ chữ ký riêng: bundle id, Team ID, runtime, timestamp, entitlements của nó', () => {
+  const want = { kind: 'Developer ID Application', teamId: 'J7Y2DL6HZV' };
+  const d = parseCodesignDetails(BF_DV);
+  assert.equal(d.identifier, BUG_FINDING_BUNDLE_ID);
+  assert.equal(d.timestamp, '4 Nov 2026 at 15:00:00');
+  const own = { 'com.apple.security.network.client': true };
+  assert.deepEqual(checkBugFindingSignature(d, own, want), []);
+  // Bị electron-builder ký lại bằng entitlements Electron.
+  const electron = {
+    ...own,
+    'com.apple.security.cs.allow-jit': true,
+    'com.apple.security.cs.disable-library-validation': true,
+  };
+  assert.match(checkBugFindingSignature(d, electron, want).join('\n'), /allow-jit/);
+  assert.match(checkBugFindingSignature(d, {}, want).join('\n'), /Entitlements/);
+  assert.match(checkBugFindingSignature(d, null, want).join('\n'), /Không đọc được entitlements/);
+  // Sai bundle id (ký lại thành identifier khác), thiếu runtime, thiếu timestamp, khác team: mỗi lỗi một dòng.
+  assert.equal(
+    checkBugFindingSignature({ ...d, identifier: 'com.2p-solutions.crew.mac' }, own, want).length,
+    1,
+  );
+  assert.equal(checkBugFindingSignature({ ...d, runtime: false }, own, want).length, 1);
+  assert.match(checkBugFindingSignature({ ...d, timestamp: null }, own, want).join('\n'), /timestamp/);
+  assert.equal(checkBugFindingSignature(d, own, { ...want, teamId: 'AAAAAAAAAA' }).length, 1);
+  assert.equal(checkBugFindingSignature(d, own, { ...want, kind: 'Apple Development' }).length, 1);
+  // codesign không timestamp in "Signed Time=", không phải "Timestamp=".
+  const noTs = parseCodesignDetails(BF_DV.replace(/^Timestamp=.*$/m, 'Signed Time=4 Nov 2026 at 15:00:00'));
+  assert.equal(noTs.timestamp, null);
+});
+
+test('che userinfo của URL trong log, giữ phần còn lại', () => {
+  assert.equal(
+    redactUrlCredentials('git clone https://bot:ghp_secret123@github.com/nquangphan/bug-finding.git /t/bf'),
+    'git clone https://***@github.com/nquangphan/bug-finding.git /t/bf',
+  );
+  assert.equal(redactUrlCredentials('https://x-access-token:abc@h/r'), 'https://***@h/r');
+  assert.equal(
+    redactUrlCredentials('git@github.com:nquangphan/bug-finding.git'),
+    'git@github.com:nquangphan/bug-finding.git',
+  );
+  assert.equal(redactUrlCredentials('https://github.com/a/b'), 'https://github.com/a/b');
+  const line = scrubLog(`repo https://u:tok@github.com/a/b, commit ${'a'.repeat(40)}`);
+  assert.ok(!line.includes('tok') && !line.includes('a'.repeat(40)), line);
 });
 
 test('Info.plist đúng bundle id, tên, phiên bản và lời xin quyền tiếng Việt', () => {
@@ -333,7 +396,6 @@ function flat(steps) {
 test('dựng lệnh bản phát hành: ký bằng CSC_NAME, notarize app và dmg bằng keychain profile, staple', () => {
   const steps = buildCommands({
     mode: 'release',
-    publish: false,
     version: '0.1.0',
     identityName: 'Developer ID Application: 2P SOLUTIONS (J7Y2DL6HZV)',
     paths: PATHS,
@@ -386,35 +448,61 @@ test('dựng lệnh bản phát hành: ký bằng CSC_NAME, notarize app và dmg
   assert.ok(flat(steps).every((line) => !/gh |password|--apple-id|--key /.test(line)));
 });
 
-test('dựng lệnh có --publish: thêm gh release create đúng repo và đủ file', () => {
-  const steps = buildCommands({
-    mode: 'release',
-    publish: true,
-    version: '0.1.0',
-    identityName: 'Developer ID Application: 2P SOLUTIONS (J7Y2DL6HZV)',
-    paths: PATHS,
-  });
-  const gh = steps.at(-1);
-  assert.equal(gh.id, 'publish');
-  assert.equal(gh.cmd, 'gh');
-  assert.equal(gh.exit, EXIT.publish);
-  assert.deepEqual(gh.args.slice(0, 8), [
+test('đăng lần đầu: tạo release nháp không file, tải file (latest-mac.yml sau cùng), rồi mới công khai', () => {
+  const steps = publishCommands({ version: '0.1.0', state: 'missing', paths: PATHS });
+  assert.deepEqual(
+    steps.map((s) => s.id),
+    ['publish-create', 'publish-upload', 'publish-latest', 'publish-release'],
+  );
+  for (const s of steps) {
+    assert.equal(s.cmd, 'gh');
+    assert.equal(s.exit, EXIT.publish);
+    assert.deepEqual(s.args.slice(2, 5), ['v0.1.0', '--repo', 'nquangphan/crew-mac-releases']);
+  }
+  const [create, upload, latest, release] = steps;
+  assert.deepEqual(create.args.slice(0, 2), ['release', 'create']);
+  assert.ok(create.args.includes('--draft'));
+  assert.ok(!create.args.some((a) => a.startsWith(PATHS.dist)), 'create không kèm file');
+  const names = artifactNames('0.1.0');
+  assert.ok(upload.args.includes('--clobber') && latest.args.includes('--clobber'));
+  assert.deepEqual(
+    upload.args.filter((a) => a.startsWith(PATHS.dist)),
+    [names.zip, names.dmg, names.zipBlockmap, names.dmgBlockmap].map((f) => `${PATHS.dist}/${f}`),
+  );
+  assert.deepEqual(
+    latest.args.filter((a) => a.startsWith(PATHS.dist)),
+    [`${PATHS.dist}/${names.latest}`],
+  );
+  assert.deepEqual(release.args, [
     'release',
-    'create',
+    'edit',
     'v0.1.0',
     '--repo',
     'nquangphan/crew-mac-releases',
-    '--title',
-    '2P Crew 0.1.0',
-    '--notes',
+    '--draft=false',
+    '--latest',
   ]);
-  for (const f of Object.values(artifactNames('0.1.0'))) assert.ok(gh.args.includes(`${PATHS.dist}/${f}`), f);
+});
+
+test('chạy lại sau lỗi giữa chừng: dùng lại release đã có, thay file, không tạo lại', () => {
+  for (const state of ['draft', 'published']) {
+    const ids = publishCommands({ version: '0.1.0', state, paths: PATHS }).map((s) => s.id);
+    assert.deepEqual(ids, ['publish-upload', 'publish-latest', 'publish-release'], state);
+  }
+  assert.throws(() => publishCommands({ version: '0.1.0', state: 'error', paths: PATHS }), /không rõ/);
+});
+
+test('trạng thái release trên GitHub: chưa có, nháp, đã công khai, hay lỗi', () => {
+  assert.equal(releaseState({ status: 0, stdout: '{"isDraft":true}', stderr: '' }), 'draft');
+  assert.equal(releaseState({ status: 0, stdout: '{"isDraft":false}', stderr: '' }), 'published');
+  assert.equal(releaseState({ status: 1, stdout: '', stderr: 'release not found\n' }), 'missing');
+  assert.equal(releaseState({ status: 1, stdout: '', stderr: 'HTTP 401: Bad credentials' }), 'error');
+  assert.equal(releaseState({ status: 0, stdout: 'not json', stderr: '' }), 'error');
 });
 
 test('dựng lệnh --dev-sign: ký Apple Development, không notarize, không đăng', () => {
   const steps = buildCommands({
     mode: 'dev-sign',
-    publish: false,
     version: '0.1.0',
     identityName: 'Apple Development: Nhật Quang Phan (29CVPDJ2XX)',
     paths: PATHS,
@@ -432,7 +520,6 @@ test('dựng lệnh --dev-sign: ký Apple Development, không notarize, không �
 test('dựng lệnh --dry-run: không ký (tắt tự tìm danh tính), không notarize, không đăng', () => {
   const steps = buildCommands({
     mode: 'dry-run',
-    publish: false,
     version: '0.1.0',
     identityName: null,
     paths: PATHS,
@@ -442,11 +529,10 @@ test('dựng lệnh --dry-run: không ký (tắt tự tìm danh tính), không n
   assert.ok(flat(steps).every((line) => !/notarytool|stapler|^gh /.test(line)));
 });
 
-test('dev-sign hay dry-run không bao giờ có bước đăng dù gọi sai', () => {
-  for (const mode of ['dev-sign', 'dry-run']) {
+test('bước build/ký không bao giờ có lệnh gh (đăng chỉ ở publishCommands)', () => {
+  for (const mode of ['release', 'dev-sign', 'dry-run']) {
     const steps = buildCommands({
       mode,
-      publish: true,
       version: '0.1.0',
       identityName: 'x: y',
       paths: PATHS,

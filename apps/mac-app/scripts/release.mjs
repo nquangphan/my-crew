@@ -15,7 +15,8 @@
  * commit ghim chưa có trên remote; commit vẫn phải đúng SHA ghim.
  *
  * Mọi lệnh chạy bằng mảng đối số (không shell). Không đọc, in hay đưa vào argv mật khẩu/API key: notarize chỉ qua
- * `--keychain-profile`, danh tính ký chỉ qua biến CSC_NAME. Log của công cụ được che hash SHA-1.
+ * `--keychain-profile`, danh tính ký chỉ qua biến CSC_NAME. Log và lỗi được che hash SHA-1 và userinfo của URL
+ * (token trong CREW_BUG_FINDING_REPO không bao giờ ra log).
  * Mã thoát: xem EXIT trong release-lib.mjs (2 cây bẩn, 3 tag, 4 danh tính/notary profile, 5 build, 6 notarize,
  * 7 tự kiểm, 8 đăng, 9 thiếu Swift 6).
  */
@@ -33,6 +34,7 @@ import {
   bugFindingBuildCommands,
   buildCommands,
   checkAppUpdateYml,
+  checkBugFindingSignature,
   checkInfoPlist,
   checkLatestMacYml,
   checkSignature,
@@ -43,7 +45,6 @@ import {
   hasSwift6,
   IDENTITY_KIND,
   isCleanTree,
-  maskHashes,
   missingCredentials,
   NOTARY_PROFILE,
   notarizedBySpctl,
@@ -54,8 +55,12 @@ import {
   parseIdentities,
   parseNotarySubmit,
   pickIdentity,
+  publishCommands,
+  RELEASE_REPO,
   readBugFindingPin,
   releaseOutDir,
+  releaseState,
+  scrubLog,
   TEAM_ID,
   teamIdFromSubject,
   teamIdOf,
@@ -68,9 +73,9 @@ class Stop extends Error {
   }
 }
 
-const say = (line) => process.stdout.write(`${maskHashes(line)}\n`);
+const say = (line) => process.stdout.write(`${scrubLog(line)}\n`);
 
-/** Chạy lệnh lấy đầu ra (không in). */
+/** Chạy lệnh lấy đầu ra (không in). `opts.input` đưa vào stdin. */
 function capture(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...opts });
   if (r.error) throw r.error;
@@ -88,9 +93,9 @@ function stream(cmd, args, { cwd, env }) {
         buf += chunk;
         const lines = buf.split('\n');
         buf = lines.pop();
-        for (const line of lines) dst.write(`${maskHashes(line)}\n`);
+        for (const line of lines) dst.write(`${scrubLog(line)}\n`);
       });
-      src.on('end', () => buf && dst.write(`${maskHashes(buf)}\n`));
+      src.on('end', () => buf && dst.write(`${scrubLog(buf)}\n`));
     };
     pipe(child.stdout, process.stdout);
     pipe(child.stderr, process.stderr);
@@ -177,7 +182,7 @@ function verifySigned(appPath, { kind, teamId }, label) {
   const problems = [];
   const v = capture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
   if (v.status !== 0)
-    problems.push(`${label}: codesign --verify --deep --strict lỗi: ${maskHashes(v.stderr.trim())}`);
+    problems.push(`${label}: codesign --verify --deep --strict lỗi: ${scrubLog(v.stderr.trim())}`);
   else say(`  ✓ ${label}: codesign --verify --deep --strict đạt`);
   const d = capture('codesign', ['-dv', '--verbose=2', appPath]);
   const details = parseCodesignDetails(`${d.stdout}\n${d.stderr}`);
@@ -188,6 +193,31 @@ function verifySigned(appPath, { kind, teamId }, label) {
       `  ✓ ${label}: ${details.authority}, TeamIdentifier=${details.teamId}, ${details.identifier}, hardened runtime`,
     );
   return problems;
+}
+
+/**
+ * Chữ ký riêng của Bug Finding nhúng: electron-builder không ký lại nó (signIgnore), nên nó phải giữ đúng bundle id,
+ * danh tính, hardened runtime, timestamp và entitlements mà build-app.sh đã ký.
+ */
+function verifyBugFinding(appPath, want, label) {
+  const d = capture('codesign', ['-dv', '--verbose=2', appPath]);
+  const details = parseCodesignDetails(`${d.stdout}\n${d.stderr}`);
+  const xml = capture('codesign', ['-d', '--entitlements', '-', '--xml', appPath]);
+  let entitlements = null;
+  if (xml.status === 0) {
+    // Không có entitlements thì codesign không in gì: coi là bộ rỗng.
+    if (xml.stdout.trim() === '') entitlements = {};
+    else {
+      const json = capture('plutil', ['-convert', 'json', '-o', '-', '-'], { input: xml.stdout });
+      if (json.status === 0) entitlements = JSON.parse(json.stdout);
+    }
+  }
+  const problems = checkBugFindingSignature(details, entitlements, want);
+  if (problems.length === 0)
+    say(
+      `  ✓ ${label}: ${details.identifier}, ${details.authority}, TeamIdentifier=${details.teamId}, hardened runtime, timestamp, entitlements riêng`,
+    );
+  return problems.map((p) => `${label}: ${p}`);
 }
 
 function plistVersion(app) {
@@ -285,11 +315,15 @@ async function verify({ mode, version, identity, paths }) {
     problems.push('Thiếu Contents/Resources/crew-docs.cjs (bundle crew-docs mang theo).');
   else say('  ✓ có bundle crew-docs mang theo');
 
-  // Mục Bug Finding mở bản nhúng này; chữ ký của nó đã nằm trong codesign --verify --deep của .app ở trên.
+  // Mục Bug Finding mở bản nhúng này. --verify --deep của .app ở trên chỉ biết chữ ký hợp lệ; chữ ký riêng của nó
+  // (bundle id, entitlements…) kiểm ở verifyBugFinding.
   const bugFinding = join(appPath, 'Contents/Resources', BUG_FINDING_APP);
   if (!existsSync(bugFinding))
     problems.push(`Thiếu Contents/Resources/${BUG_FINDING_APP} (Bug Finding nhúng).`);
-  else say(`  ✓ có Contents/Resources/${BUG_FINDING_APP} ${plistVersion(bugFinding) ?? '?'}`);
+  else {
+    say(`  ✓ có Contents/Resources/${BUG_FINDING_APP} ${plistVersion(bugFinding) ?? '?'}`);
+    if (signed) problems.push(...verifyBugFinding(bugFinding, want, BUG_FINDING_APP));
+  }
 
   for (const f of [names.zip, names.dmg, names.zipBlockmap, names.dmgBlockmap])
     if (!existsSync(join(dist, f))) problems.push(`Thiếu ${f} trong ${dist}.`);
@@ -302,7 +336,13 @@ async function verify({ mode, version, identity, paths }) {
     const out = join(tmp, 'unzip');
     const x = capture('ditto', ['-x', '-k', join(dist, names.zip), out]);
     if (x.status !== 0) problems.push(`Không giải nén được ${names.zip}.`);
-    else problems.push(...verifySigned(join(out, `${PRODUCT_NAME}.app`), want, `app trong ${names.zip}`));
+    else {
+      const unzipped = join(out, `${PRODUCT_NAME}.app`);
+      problems.push(...verifySigned(unzipped, want, `app trong ${names.zip}`));
+      const nested = join(unzipped, 'Contents/Resources', BUG_FINDING_APP);
+      if (existsSync(nested))
+        problems.push(...verifyBugFinding(nested, want, `${BUG_FINDING_APP} trong ${names.zip}`));
+    }
   }
 
   if (mode === 'release') {
@@ -323,6 +363,19 @@ async function verify({ mode, version, identity, paths }) {
   }
 
   if (problems.length > 0) throw new Stop(EXIT.verify, `Tự kiểm lỗi:\n  - ${problems.join('\n  - ')}`);
+}
+
+/** Đăng GitHub Release; chạy lại sau lỗi giữa chừng thì dùng lại release (nháp) đã có và thay file. */
+async function publishRelease({ version, paths }) {
+  const tag = `v${version}`;
+  const view = capture('gh', ['release', 'view', tag, '--repo', RELEASE_REPO, '--json', 'isDraft']);
+  const state = releaseState(view);
+  if (state === 'error')
+    throw new Stop(EXIT.publish, `Không đọc được release ${tag} trên ${RELEASE_REPO}: ${view.stderr.trim()}`);
+  say(
+    `\n▶ đăng ${tag}: ${state === 'missing' ? 'tạo release nháp mới' : `dùng lại release đã có (${state})`}`,
+  );
+  for (const step of publishCommands({ version, state, paths })) await runStep(step);
 }
 
 async function main() {
@@ -393,11 +446,11 @@ async function main() {
   };
   try {
     await buildBugFinding({ appDir, identity });
-    const steps = buildCommands({ mode, publish, version, identityName: identity?.name ?? null, paths });
-    const publishStep = steps.find((s) => s.id === 'publish');
-    for (const step of steps) if (step !== publishStep) await runStep(step);
+    const willPublish = mode === 'release' && publish;
+    for (const step of buildCommands({ mode, version, identityName: identity?.name ?? null, paths }))
+      await runStep(step);
     await verify({ mode, version, identity, paths });
-    if (publishStep) await runStep(publishStep);
+    if (willPublish) await publishRelease({ version, paths });
 
     say('\nKết quả:');
     say(`  app: ${paths.appPath}`);
@@ -406,7 +459,7 @@ async function main() {
     for (const f of [names.zip, names.dmg, names.latest])
       say(`  ${await sha256(join(paths.dist, f))}  ${join(paths.dist, f)}`);
     say(
-      publishStep
+      willPublish
         ? `  đã đăng: https://github.com/nquangphan/crew-mac-releases/releases/tag/v${version}`
         : '  không đăng GitHub',
     );
@@ -419,10 +472,10 @@ main().then(
   () => process.exit(EXIT.ok),
   (err) => {
     if (err instanceof Stop) {
-      process.stderr.write(`${maskHashes(err.message)}\n`);
+      process.stderr.write(`${scrubLog(err.message)}\n`);
       process.exit(err.code);
     }
-    process.stderr.write(`${maskHashes(String(err?.stack ?? err))}\n`);
+    process.stderr.write(`${scrubLog(String(err?.stack ?? err))}\n`);
     process.exit(EXIT.build);
   },
 );

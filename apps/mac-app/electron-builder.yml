@@ -48,6 +48,11 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # Bug Finding nhúng giữ chữ ký riêng do build-app.sh ký (cùng danh tính, hardened runtime, timestamp, entitlements
+  # riêng chỉ có mạng đi ra): không để electron-builder ký lại nó bằng entitlements Electron. Chữ ký của 2P Crew vẫn
+  # niêm phong bundle này; scripts/release.mjs tự kiểm bundle id, Team ID, runtime, timestamp và entitlements của nó.
+  signIgnore:
+    - '/Contents/Resources/Bug Finding\.app(/|$)'
   notarize: false
   extendInfo:
     LSUIElement: false
