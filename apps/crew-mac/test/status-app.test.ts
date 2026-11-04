@@ -101,6 +101,24 @@ describe('readJobsAgent', () => {
     expect(readJobsAgent(broken)).toEqual({ version: '0.3.0', lastPollAt: '2026-10-10T03:00:00Z' });
   });
 
+  it('đọc kèm capabilities hợp lệ; capabilities sai dạng thì bỏ riêng trường đó', () => {
+    const at = '2026-10-10T03:00:00.000Z';
+    const ok = file(
+      'cap.json',
+      state({ jobsAgent: { version: '0.3.0', lastPollAt: at, capabilities: ['bug-finding-review'] } }),
+    );
+    expect(readJobsAgent(ok)).toEqual({
+      version: '0.3.0',
+      lastPollAt: at,
+      capabilities: ['bug-finding-review'],
+    });
+    const bad = file(
+      'cap-bad.json',
+      state({ jobsAgent: { version: '0.3.0', lastPollAt: at, capabilities: ['Bad Cap', 3] } }),
+    );
+    expect(readJobsAgent(bad)).toEqual({ version: '0.3.0', lastPollAt: at });
+  });
+
   it('thiếu hoặc sai dạng thì null', () => {
     expect(readJobsAgent(join(dir, 'none.json'))).toBeNull();
     expect(readJobsAgent(file('j0.json', state({})))).toBeNull();

@@ -1,6 +1,9 @@
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { describe, expect, it, vi } from 'vitest';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PaperclipClient } from '../src/main/paperclip/types.js';
 import {
   pinnedExtraArgs,
@@ -15,14 +18,16 @@ const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
 /**
- * sha256 của `crew/agents/*.md` trong fork nhánh `crew/uiux-agent` @ 7f341c66d (commit cuối đổi crew/agents) lúc chép;
+ * sha256 của `crew/agents/*.md` trong fork nhánh `feat/bug-finding-root-bf` @ 2aea68377 (commit cuối đổi crew/agents) lúc chép;
  * `designer.md` chép từ nhánh `crew/uiux-wizard` @ 08f540666 (file đổi lần cuối ở e49c52625). Lệch nghĩa là fork đã đổi.
  */
 const FORK_SHA256: Record<string, string> = {
-  assistant: 'ecf7c3eb05efcd0158488e5cd590df853d09c77422798e7e52c2e8ee65183986',
-  executor: '252d71f62b5cb05d52eac7778ab2b0b95042de06e634f81cd21689b30edd60ad',
-  integrator: '53dd07664eeacc3637400c6ed11e400f9a9819710014a02c93c10e9c68472fdd',
-  reviewer: 'd7c54c8656664ed38daa416e6f741f2da20b8da91fe31317a346ac2c3f37255b',
+  assistant: 'ab36fb9470d4458819582f578ac1735b5fef9403e12bb65a458d7d5d97cd0e21',
+  executor: '1c43acd549fd36a0ed2108d62eec48ec38bfa8416a014ed9e77f606ad136e6c2',
+  // Integrator đi trước fork: crew-pr.sh MODE=merge kiểm T..HEAD_OK chỉ là merge nhánh mặc định. Fork phải chép lại
+  // đúng bản này vào crew/agents/integrator.md rồi hash mới khớp lại với fork.
+  integrator: '29bb9f18b32b82e45f573e5c5d757fcb54d88ad5799cef27a25ba9b7783e2dad',
+  reviewer: '0d0040cf3b5921ce6aa601e88e3a0c75b097836555fe24834e493ba5df58a61d',
   designer: '2ebbff78108269cf950f031b1c720c5608b9f3a9af54ed147a2c3722556fde38',
 };
 
@@ -49,6 +54,149 @@ describe('template integrator (FX-10)', () => {
     expect(text).toContain('`GET /api/issues/<id>/comments` đọc lại comment vừa đăng');
     expect(text).toContain('dòng đầu phải kết thúc đúng ở `exit=<DOCS_EXIT>`');
     expect(text).toContain('Xuống dòng và đọc lại như mục "Ghi bằng chứng rồi quyết định" bước 1.');
+  });
+});
+
+/**
+ * Chạy crew-pr.sh (chép nguyên văn từ template) MODE=merge trên repo git tạm có origin là repo bare cục bộ. `gh` là bản
+ * giả (ghi lại lệnh merge); `git remote get-url origin` trả URL GitHub giả để script nhận ra repo GitHub, mọi lệnh git
+ * khác chạy thật.
+ */
+describe('crew-pr.sh MODE=merge với HEAD_OK', () => {
+  const GIT_ENV = {
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_AUTHOR_NAME: 'T',
+    GIT_AUTHOR_EMAIL: 't@example.com',
+    GIT_COMMITTER_NAME: 'T',
+    GIT_COMMITTER_EMAIL: 't@example.com',
+  };
+  let root = '';
+  let work = '';
+  let bin = '';
+  let T = '';
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { cwd: work, env: { ...process.env, ...GIT_ENV }, encoding: 'utf8' }).trim();
+  const commit = (file: string) => {
+    writeFileSync(join(work, file), `${file}\n`);
+    git('add', file);
+    git('commit', '-q', '-m', file);
+    return git('rev-parse', 'HEAD');
+  };
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'crew-pr-'));
+    work = join(root, 'work');
+    bin = join(root, 'bin');
+    mkdirSync(work);
+    mkdirSync(bin);
+    execFileSync('git', ['init', '-q', '--bare', '-b', 'main', join(root, 'origin.git')], {
+      env: { ...process.env, ...GIT_ENV },
+    });
+    git('init', '-q', '-b', 'main');
+    git('remote', 'add', 'origin', join(root, 'origin.git'));
+    commit('base.txt');
+    git('push', '-q', 'origin', 'main');
+    git('checkout', '-q', '-b', 'crew/req/TPS-1');
+    T = commit('feature.txt');
+    git('push', '-q', 'origin', 'crew/req/TPS-1');
+    const realGit = execFileSync('/bin/sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim();
+    writeFileSync(
+      join(bin, 'git'),
+      `#!/bin/bash\nif [ "$1 $2 $3" = "remote get-url origin" ]; then echo https://github.com/acme/app.git; exit 0; fi\nexec "${realGit}" "$@"\n`,
+    );
+    // gh giả: PR #7 của nhánh, head = $FAKE_HEAD; `pr merge` ghi đối số vào $FAKE_DIR/merge.log và chuyển PR sang MERGED.
+    writeFileSync(
+      join(bin, 'gh'),
+      `#!/bin/bash
+u=https://github.com/acme/app/pull/7
+st=OPEN; mc=null
+[ -f "$FAKE_DIR/merge.log" ] && { st=MERGED; mc='{"oid":"${'c'.repeat(40)}"}'; }
+case "$1 $2" in
+  "api user") echo bot ;;
+  "pr list") echo "[{\\"url\\":\\"$u\\",\\"state\\":\\"$st\\",\\"headRefOid\\":\\"$FAKE_HEAD\\"}]" ;;
+  "pr view") echo "{\\"url\\":\\"$u\\",\\"state\\":\\"$st\\",\\"mergeable\\":\\"MERGEABLE\\",\\"headRefOid\\":\\"$FAKE_HEAD\\",\\"mergeCommit\\":$mc}" ;;
+  "repo view") echo '{"mergeCommitAllowed":true,"squashMergeAllowed":true}' ;;
+  "pr merge") echo "$@" > "$FAKE_DIR/merge.log" ;;
+  *) echo "gh giả không biết lệnh: $*" >&2; exit 1 ;;
+esac
+`,
+    );
+    chmodSync(join(bin, 'git'), 0o755);
+    chmodSync(join(bin, 'gh'), 0o755);
+  });
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+  function runMerge(headOk: string) {
+    const D = mkdtempSync(join(root, 'D-'));
+    const script = /```bash\n(#!\/bin\/bash\n# crew-pr:[\s\S]*?)\n```/.exec(ROLE_TEMPLATES.integrator)?.[1];
+    if (!script) throw new Error('template integrator thiếu khối crew-pr.sh');
+    writeFileSync(join(D, 'crew-pr.sh'), `${script}\n`);
+    writeFileSync(
+      join(D, 'issue.json'),
+      JSON.stringify({ identifier: 'TPS-1', title: 'Gộp', description: '' }),
+    );
+    const r = spawnSync('bash', [join(D, 'crew-pr.sh'), D], {
+      cwd: work,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        ...GIT_ENV,
+        PATH: `${bin}:${process.env.PATH ?? ''}`,
+        MODE: 'merge',
+        T,
+        DEFAULT: 'main',
+        HEAD_OK: headOk,
+        FAKE_HEAD: headOk,
+        FAKE_DIR: D,
+      },
+    });
+    const log = join(D, 'merge.log');
+    return {
+      status: r.status,
+      out: `${r.stdout}${r.stderr}`,
+      merged: existsSync(log) ? readFileSync(log, 'utf8') : null,
+    };
+  }
+
+  it('head = T + commit thường (chưa owner duyệt): thoát 9, không gọi gh pr merge', () => {
+    git('checkout', '-q', '--detach', T);
+    const head = commit('foreign.txt');
+    const r = runMerge(head);
+    expect(r.out).toContain('không phải merge nhánh main');
+    expect(r.status).toBe(9);
+    expect(r.merged).toBeNull();
+  });
+
+  it('head = T + merge commit gộp nhánh mặc định: merge đúng head đó', () => {
+    git('checkout', '-q', 'main');
+    commit('main-next.txt');
+    git('push', '-q', 'origin', 'main');
+    git('checkout', '-q', '--detach', T);
+    git('merge', '-q', '--no-ff', '-m', 'gộp main', 'main');
+    const head = git('rev-parse', 'HEAD');
+    const r = runMerge(head);
+    expect(r.status, r.out).toBe(0);
+    expect(r.merged).toContain(`--match-head-commit ${head}`);
+  });
+
+  it('head = T + merge nhánh khác (mang commit thường lạ): thoát 9', () => {
+    git('checkout', '-q', '-b', 'side', 'main');
+    commit('side.txt');
+    git('checkout', '-q', '--detach', T);
+    git('merge', '-q', '--no-ff', '-m', 'gộp side', 'side');
+    const r = runMerge(git('rev-parse', 'HEAD'));
+    expect(r.status, r.out).toBe(9);
+    expect(r.merged).toBeNull();
+  });
+
+  it('head = merge nhánh mặc định rồi thêm commit thường: thoát 9', () => {
+    git('checkout', '-q', '--detach', T);
+    git('merge', '-q', '--no-ff', '-m', 'gộp main', 'main');
+    commit('after-merge.txt');
+    const r = runMerge(git('rev-parse', 'HEAD'));
+    expect(r.status, r.out).toBe(9);
+    expect(r.merged).toBeNull();
   });
 });
 
@@ -195,7 +343,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      'd3f18e974590e3c9af589c46369bb0277f757481968dfc647505700246a77ae0',
+      '64b70e68c613856cd0c4c0bf6d918fcbab71572df7bff44d122ff06469141207',
     );
   });
 
@@ -203,7 +351,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
     const D = '66666666-6666-4666-8666-666666666666';
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2], [], '', [D]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      '0feac26f06dbda9a21e403f503ffd353b5bbab28b0abcb0ea7eb22890a69f4e4',
+      '99a427568a73c41c0b5568631d36a7ea677cae58263bfd471a1774c9bf74f927',
     );
   });
 });

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  BUG_FINDING_CAPABILITY,
   createJobsPoller,
   MissingKeyError,
   type PollerDeps,
@@ -39,6 +40,7 @@ function fakes(over: Partial<PollerDeps> = {}) {
   const submits: Array<{ target: PollTarget; jobId: string; outcome: JobOutcome; claimedAt: string | null }> =
     [];
   const polls: number[] = [];
+  const recordedCapabilities: string[][] = [];
   let visible = true;
   const deps: PollerDeps = {
     loadTargets: async () => ({ machineId: MACHINE, targets: [A, B] }),
@@ -52,8 +54,10 @@ function fakes(over: Partial<PollerDeps> = {}) {
     run: async () => DONE,
     cancelRunning: vi.fn(),
     isVisible: () => visible,
-    recordPoll: async (at) => {
+    capabilities: () => [BUG_FINDING_CAPABILITY],
+    recordPoll: async (at, capabilities) => {
       polls.push(at.getTime());
+      recordedCapabilities.push(capabilities);
     },
     log: () => undefined,
     ...over,
@@ -63,6 +67,7 @@ function fakes(over: Partial<PollerDeps> = {}) {
     claims,
     submits,
     polls,
+    recordedCapabilities,
     setVisible: (v: boolean) => {
       visible = v;
     },
@@ -244,6 +249,21 @@ describe('JobsPoller', () => {
     expect(f.polls).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(5_000);
     expect(f.polls).toEqual([Date.parse('2026-10-10T04:00:00.000Z'), Date.parse('2026-10-10T04:00:30.000Z')]);
+  });
+
+  it('ghi kèm capabilities bug-finding-review để server biết máy làm được việc Bug Finding', async () => {
+    const f = fakes();
+    start(f.deps);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(f.recordedCapabilities).toEqual([['bug-finding-review']]);
+    expect(BUG_FINDING_CAPABILITY).toBe('bug-finding-review');
+  });
+
+  it('máy không có Bug Finding chạy được: không báo capability bug-finding-review', async () => {
+    const f = fakes({ capabilities: () => [] });
+    start(f.deps);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(f.recordedCapabilities).toEqual([[]]);
   });
 
   it('chưa có board key → không poll, không ghi jobsAgent', async () => {

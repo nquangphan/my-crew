@@ -74,7 +74,8 @@ sổ R2-1.
 
 ## REST dùng
 
-Mọi request: `Authorization: Bearer <board key>` đọc lại từ Keychain mỗi lời gọi, timeout 15 giây
+Mọi request: `Authorization: Bearer <board key>` đọc lại từ Keychain mỗi lời gọi, timeout 15 giây (riêng
+`postBugFindingResult` 120 giây, `BUG_FINDING_POST_TIMEOUT_MS`, vì body có thể tới 2 MB báo cáo)
 (`AbortSignal.timeout`). 401 → `PaperclipAuthError` "Cần đăng nhập lại Paperclip"; 403 → `PaperclipForbiddenError`
 (con của `PaperclipHttpError`, status 403): "tài khoản không có quyền" (vd. không thuộc company), không bảo đăng nhập
 lại và không xóa key (app không bao giờ tự xóa board key); lỗi khác →
@@ -113,6 +114,7 @@ path không query, status.
 | `machineBlockers` | `GET /api/crew/companies/:id/projects/:projectId/machines/blockers` (`?agentIds=` nối bằng dấu phẩy khi có) | Trả danh sách run chờ/đang chạy trên cây đã ghim máy (`blockers`); 404 (server cũ) → `null` |
 | `releaseProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/release` | Body `{agentIds, wholeProject, primaryMachineId}`; server archive environment `@máy` và xếp `remove-checkouts` trên máy khác; trả `{archivedEnvironmentIds, jobs}`; 404 → `null` |
 | `provisionProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/provision` | Body `{exceptMachineId, includeReady, repo:{originUrl, branch}}`; server xếp `ensure-project` cho máy đã ghép khác; 404 → `null` |
+| `postBugFindingResult` | `POST /api/plugins/crew.core/api/bug-finding/results` (routeKey `bug-finding.results`, board key của máy được giao) | Body `{companyId, machineId, requestId, state, round?, headSha, lanesDone?, lanesTotal?, verdict?, costUsd?, error?, findings?, reportMarkdown?}` gửi nguyên văn, hạn 120 giây; relay của flow `mac-bug-finding` gọi. 409 (lượt đã kết thúc), 404, 422 `head_mismatch` thành `PaperclipHttpError` |
 
 ## Thêm project
 
@@ -175,6 +177,11 @@ Thêm xong không lỗi (`progress.error` là `null`) thì `projects:add` (`ipc.
 được gửi ngay, nên kiểm tra A5 "checkout máy đã báo" của web đạt mà không chờ lượt gửi định kỳ. Thêm dở hay ném lỗi thì
 không gửi; gửi lỗi không làm hỏng kết quả thêm.
 
+`projects:add` và `projects:remove` (`register.ts`) xong, kể cả khi lỗi hay thêm dở, gọi
+`ctx.syncBugFindingSoon('project-added' | 'project-removed')` để ghi lại danh sách project sang Bug Finding (flow
+`mac-bug-finding`, mục "Đồng bộ project"). `register.ts` export `projectDeps(ctx)` (deps của mọi thao tác project
+dựng từ `AppContext`) để phần đồng bộ đó đọc `projects:list` bằng đúng deps này.
+
 Những gì app ghi vào folder của owner, tất cả nằm trong `.git`: metadata worktree (`.git/worktrees/<tên>`), nhánh
 `agent/<key>-<vai>`, git config `crew-docs.*` (khi chưa có hoặc hỏng), `core.hooksPath` (qua `install-hooks`, `.githooks` thành
 đường dẫn tuyệt đối), một dòng `.paperclip-runtime/` trong `info/exclude`. Ngoài `.git`: hook crew-docs do `install-hooks` ghi
@@ -224,12 +231,23 @@ skill `ui-ux-pro-max` thì "Không có…". Đầu ra khớp từng byte với `
 có agent UIUX). `uploadInstructions`
 theo `add-base.mjs`: GET file lấy hash làm `baseHash` (`null` chỉ khi 404), nội dung đã đúng thì không PUT.
 
-Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với fork nhánh `crew/uiux-agent` @ `7f341c66d` (commit cuối đổi `crew/agents`) ngày 28/10/2026, gồm agent UIUX làm mockup trước con code giao diện và Trợ Lý được gọi bằng tag (kiểm khóa ghi trên gốc trước khi làm, con `in_progress` thì trả lời trên gốc; executor kiểm sha mockup bằng `git cat-file -e` và `git fetch origin` trước khi đọc), cùng tổng kết 27/10 của Trợ Lý và việc Trợ Lý đọc bảng model qua `GET /api/crew/model-settings` (không còn bảng model ghi cứng trong template), cùng các luật thêm sau R2-3 BMAD, FX-B, FX-L2 và AG-1/AG-2 như test + ảnh nghiệm thu, luồng PR của integrator và luồng chọn model (`designer.md` chép từ fork nhánh `crew/uiux-wizard` @ `08f540666` ngày 04/11/2026, file đổi lần cuối ở `e49c52625`): Trợ Lý có mục "Chọn runtime và model" (đọc bảng model lúc chạy, marker `crew-model … runtime=`), executor có mục "Khi bạn chạy Codex hoặc OpenCode", reviewer có mục "Khi chạy bằng Codex"; Trợ Lý có mục "Chọn workflow" và "Chốt
+Template app là bản sao có chủ đích của `crew/agents/*.md` trong fork (đồng bộ lần cuối với fork nhánh `feat/bug-finding-root-bf` @ `2aea68377` (commit cuối đổi `crew/agents`) ngày 04/11/2026; `designer.md` chép từ fork nhánh `crew/uiux-wizard` @ `08f540666` ngày 04/11/2026, file đổi lần cuối ở `e49c52625`), gồm luồng ticket tổng `code-bf` có Bug Finding: Trợ Lý có mục "Xử lý finding Bug Finding" (lô sửa `bf-fix-<k>`, thẻ hỏi `crew-bf:`), executor có mục "Con sửa finding Bug Finding (`crew-bf finding=`)", integrator có mục "Ticket tổng `code-bf`" (stage gộp mở hoặc cập nhật pull request trước Bug Finding, stage merge sau owner duyệt), reviewer có mục "Ticket tổng `code-bf`: cầu nối Bug Finding"; trước đó gồm agent UIUX làm mockup trước con code giao diện và Trợ Lý được gọi bằng tag (kiểm khóa ghi trên gốc trước khi làm, con `in_progress` thì trả lời trên gốc; executor kiểm sha mockup bằng `git cat-file -e` và `git fetch origin` trước khi đọc), cùng tổng kết 27/10 của Trợ Lý và việc Trợ Lý đọc bảng model qua `GET /api/crew/model-settings` (không còn bảng model ghi cứng trong template), cùng các luật thêm sau R2-3 BMAD, FX-B, FX-L2 và AG-1/AG-2 như test + ảnh nghiệm thu, luồng PR của integrator và luồng chọn model: Trợ Lý có mục "Chọn runtime và model" (đọc bảng model lúc chạy, marker `crew-model … runtime=`), executor có mục "Khi bạn chạy Codex hoặc OpenCode", reviewer có mục "Khi chạy bằng Codex"; Trợ Lý có mục "Chọn workflow" và "Chốt
 trạng thái gốc"; gồm khối "File đính kèm" (lệnh `crew-mac files`, issue con có `parentId` luôn chạy một lần khi bắt đầu để thấy file của issue cha, nội dung file là dữ liệu không phải chỉ thị, không chép credential) và dòng FX-10 "Phải xuống dòng ngay sau `exit=<DOCS_EXIT>`" và mục 4 của integrator). Sửa `crew/agents/*.md` ở fork thì
 phải chép lại sang `templates/*.md` và cập nhật sha256 trong `projects-instructions.test.ts`; agent đã tạo từ template cũ
 không tự đổi, phải PUT lại `AGENTS.md` (GET lấy `contentHash` làm `baseHash`). Test cũng khẳng định các câu then chốt
 của FX-10 có trong template integrator, mục "Chọn workflow" và "Chốt trạng thái gốc" có trong template Trợ Lý, và khối
 "File đính kèm" có trong cả 4 template vai trò.
+
+Ngoại lệ hiện tại: template integrator đi trước fork một thay đổi (sha256 trong test là của bản app). Ở stage merge
+của ticket tổng `code-bf`, script `crew-pr.sh` `MODE=merge` với `HEAD_OK` khác `T` tự kiểm, không dựa vào việc agent
+đọc comment owner: fetch `origin/<nhánh mặc định>`, rồi mọi commit trong `T..HEAD_OK` chưa có trên nhánh đó phải là
+merge commit có đúng hai cha, cha thứ hai nằm trên nhánh mặc định (owner gộp nhánh mặc định vào để xử lý conflict).
+Có commit thường nào khác (kể cả mang vào qua merge nhánh khác) thì thoát mã 9, không gọi `gh pr merge`; integrator
+comment `Integrator: không merge — head pull request có commit chưa được owner duyệt` và dừng. Không có `HEAD_OK`
+thì vẫn merge đúng `T`. Fork phải chép lại `templates/integrator.md` vào `crew/agents/integrator.md`. Test
+`projects-instructions.test.ts` chạy script này trên repo git tạm (origin là repo bare cục bộ, `gh` giả): head = `T` +
+commit thường, `T` + merge nhánh khác, hay merge nhánh mặc định rồi thêm commit đều thoát 9; `T` + merge nhánh mặc
+định thì merge đúng head đó.
 
 ## Gỡ khỏi Mac
 
@@ -261,8 +279,10 @@ dòng vai trò, không agent nào bị pause.
 
 Hàng đợi `crew_machine_jobs` của plugin `crew.core` (route board `/api/plugins/crew.core/api/machine-jobs/*`, hợp đồng
 ở plan R3 mục I1): web Crew xếp việc cho một máy (`machineId` của bản tin crew-mac), app trên máy đó nhận bằng board key
-và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ làm đúng 9 loại việc dưới đây (hai việc gỡ
-`remove-checkouts`, `skill-remove` thêm ở R3X, hợp đồng ở plan R3X mục IX1; `runtimes-setup` thêm ở R2-4, hợp đồng I9).
+và báo kết quả. Server không SSH vào Mac để chạy lệnh; app chỉ làm đúng 10 loại việc dưới đây (hai việc gỡ
+`remove-checkouts`, `skill-remove` thêm ở R3X, hợp đồng ở plan R3X mục IX1; `runtimes-setup` thêm ở R2-4, hợp đồng I9;
+`bug-finding-review` thêm ở TPS-657, hợp đồng ở `plans/261104-tps-643-bug-finding-in-crew/spec.md` mục 8.2, chạy ở
+Main, mục "Việc `bug-finding-review`" dưới đây).
 Ô vai trò (`CrewRoleSlot`, 11 ô): `assistant`, `executor`, `executor-2` … `executor-5` (`EXECUTOR_SLOTS`, tối đa 5
 executor như plugin), `reviewer`, `integrator` và `executor-codex`, `executor-opencode`, `reviewer-codex` (I11):
 `agent-workspace` nhận cả 11 ô cùng `designer` (`DESIGNER_CHECKOUT`, kiểu `WorkspaceRole`: checkout của agent UIUX mà wizard web thêm project xếp, không phải ô vai trò), `remove-checkouts` nhận 1–12 tên (`MAX_CHECKOUTS`: 11 ô cộng `designer` của agent UIUX) lẫn tên thư mục checkout của app (như `executor-1`; khớp
@@ -291,15 +311,58 @@ nằm dưới thư mục cấm. Mã lỗi `clone_auth_failed` thêm cho việc n
 - Đích lỗi (mạng, HTTP) thì lùi dần riêng đích đó: 2, 4, 8… lần chu kỳ, tối đa 60 giây; không ném, đích khác vẫn chạy.
 - Việc trả về phải có `id` uuid, đúng `companyId` của đích và đúng `machineId`; sai thì báo `app_error`, không làm.
 - Việc vượt **15 phút** (lease của plugin là 17 phút; áp cho mọi loại việc) thì app báo `app_error` "quá thời gian", bật `AbortSignal` (phần ở Main đang tải skill không được bắt đầu ghi file nữa), giết nhóm tiến trình của mọi `git` đang chạy (op `cancelMachineJob` → `killActiveGit`) rồi giết tiến trình phụ.
-- Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>}` vào `app.json`, tối đa
-  30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). Bản tin máy của crew-mac đọc key này
-  (`readJobsAgent`) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
+- Sau chu kỳ hỏi được ít nhất một đích, ghi `jobsAgent: {version: <bản app>, lastPollAt: <ISO>, capabilities}` vào
+  `app.json`, tối đa 30 giây một lần (mỗi lần ghi `app.json` làm cửa sổ đọc lại trạng thái). `capabilities` =
+  `deps.capabilities()` lúc ghi: loại việc ngoài bộ gốc app làm được. `register.ts` trả `[BUG_FINDING_CAPABILITY]`
+  (`'bug-finding-review'`) chỉ khi máy có app Bug Finding nhúng (`ctx.bugFindingAvailable()`: `resolveAppPath` có và
+  thư mục tồn tại; bản dev không đặt `CREW_BUG_FINDING_APP` hay bản đóng gói thiếu app thì `[]`); plugin chỉ xếp
+  `bug-finding-review` cho máy báo có mục này (spec mục 5.6: thiếu thì server cho lượt `failed`). Bản tin máy của crew-mac đọc key này (`readJobsAgent`, giữ
+  `capabilities` khi đúng dạng `^[a-z][a-z0-9-]{0,63}$`, tối đa 32 mục) để web biết app đang nhận việc. Chưa đăng nhập Paperclip, hay mọi company đều lỗi (vd. 403), thì
   không ghi.
 - Việc `prepare-checkouts`, `agent-workspace` hay `ensure-project` (web thêm project, thêm agent, hay server dựng project trên máy) làm xong thì Main
   (`register.ts`, `jobCreatedCheckouts`) gọi `ctx.sendStatusSoon('job:<loại>')`: bản tin máy được gửi sau khoảng 2 giây
   (gộp nếu nhiều việc liền nhau), chạy nền, lỗi chỉ ghi log, không đổi kết quả việc.
+- Việc `prepare-checkouts`, `agent-workspace`, `ensure-project` hay `remove-checkouts` làm xong (`status: 'done'`) thì Main
+  (`register.ts`, `jobChangesProjects` của `src/main/bug-finding/sync-projects.ts`) gọi
+  `ctx.syncBugFindingSoon('job:<loại>')`: ghi lại danh sách project sang Bug Finding (flow `mac-bug-finding`), chạy
+  nền, không đổi kết quả việc.
 - Báo kết quả hỏng (mạng) thì chỉ ghi log: việc vẫn `claimed`, hết lease plugin trả về hàng đợi và máy làm lại (mọi việc
   đều chạy lại được).
+
+**Việc `bug-finding-review`** (`register.ts` chuyển cho `ctx.runBugFindingReview` → `registerBugFinding().runReview`
+của flow `mac-bug-finding`, không qua utilityProcess vì cần app nhúng, `app.json` và đồng bộ project của Main; `runJob`
+trong tiến trình phụ trả `app_error` nếu nhận kind này; `register.ts` truyền `{origin: target.url, signal}`).
+`executors.ts` → `runBugFindingReview(job, deps, {origin, signal})`:
+
+1. Kiểm như mọi việc (`guarded`): payload `BugFindingReviewPayload {requestId, issueId, identifier, run, projectId,
+   projectKey, repoPath, provider: 'github', prNumber, prUrl, headSha, baseBranch, reviewerInputText?}` đúng luật và câu
+   lỗi của plugin (`requestId`, `issueId`, `projectId` uuid; `identifier` dạng `TPS-123`; `run` nguyên 1–3; `repoPath`
+   tuyệt đối, không `..`; `provider` chỉ `github`; `prNumber` nguyên dương và khớp số trong `prUrl` GitHub; `headSha`
+   40 hex thường; `baseBranch` như nhánh; `reviewerInputText` ≤ 20 000 ký tự, `BUG_FINDING_INPUT_MAX`); `repoPath` theo
+   luật thêm project (`folderGuardReason`).
+2. `repoPath` không có trên máy → `project_missing`.
+3. Đồng bộ project sang Bug Finding ngay (`syncProjects`; lỗi đồng bộ chưa chặn), rồi `projectKnown(companyId,
+   projectId)`: `crew/projects.json` phải ghi cho đúng company của việc và có project của lượt; không thì
+   `project_missing` ("Bug Finding trên máy này chưa có project … của company này"), không ghi gì, không mở app (việc
+   của company khác company đang chọn, hay project chưa dò được repo).
+4. Phần còn lại chạy trong cổng mở Bug Finding (`deps.gate.run`, flow `mac-bug-finding`): cổng đóng (2P Crew đang chờ
+   cài bản mới, flow `mac-app-update`) → `app_error` `BUG_FINDING_UPDATING_TEXT` ("2P Crew đang chờ cài bản mới nên
+   chưa nhận lượt Bug Finding; xếp lại sau khi máy cài xong"), không ghi, không mở.
+5. `checkLaunch()` trước khi ghi gì: `missing` → `bug_finding_missing`, bản Bug Finding khác đang chạy →
+   `standalone_running` (lời lỗi nêu đường dẫn đang chạy), nên bản khác không bao giờ thấy file yêu cầu của lượt bị từ
+   chối. Ghi lượt vào sổ `bugFindingRequests` của `app.json` (`requestId` → `{companyId, machineId, origin, at}`,
+   `rememberRequest`, giữ 200 lượt mới nhất) để relay biết gửi kết quả về đâu (chỉ về `origin` đã giao việc).
+6. Chưa có `requests/<requestId>.json` hay `<requestId>.json.done` thì ghi atomic (file tạm rồi `rename`, mode 600)
+   `crewReviewRequest(payload)` = `{schema: 'crew-review-request/1', requestId, crewProjectId, identifier, run,
+   prNumber, headSha, baseBranch, reviewerInputText?}` (đúng `CrewReviewRequest` của repo `bug-finding`). Đã có thì
+   không ghi lại (việc chạy lại sau lease).
+7. `launchBugFinding({background: true})` (`open -g`, hạn 30 giây). `missing` → `bug_finding_missing`,
+   `standalone_running` → `standalone_running`, `open` lỗi hay quá hạn → `app_error`; cả ba gỡ file
+   `requests/<requestId>.json` còn tên cũ (Bug Finding chưa nhận), kể cả file của lần nhận trước.
+8. `signal` (việc quá 15 phút, poller đã báo `failed`): kiểm trước khi kiểm project, trước khi kiểm/ghi, trước khi mở
+   và sau khi mở; đã hủy thì `app_error` "Việc đã bị hủy vì quá thời gian", không ghi hay mở thêm, gỡ file yêu cầu Bug
+   Finding chưa nhận.
+9. Kết quả `{accepted: true}` ngay; tiến độ và kết quả đi qua relay (flow `mac-bug-finding`, `results.ts`).
 
 **Chuẩn bị ở Main** (`remote.ts` → `createJobsRemote().prepare`, có board key): kiểm payload; `prepare-checkouts` có
 `setupRunId` thì đọc `GET …/setup-runs/:id?companyId` lấy `projectId` (đọc không được thì `null`: vẫn dựng checkout,
@@ -353,22 +416,22 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
 | `apps/mac-app/src/main/projects/folder.ts` | Kiểm folder owner chọn, worktree agent, `info/exclude`, bundle crew-docs, `git` của owner | `inspectFolder`, `folderGuardReason`, `suggestKey`, `ensureWorktree`, `isWorktreeOf`, `agentBranch`, `ensureRuntimeExcluded`, `configureDocsBundle`, `runProcess`, `runGit`, `killActiveGit`, `shellQuote` |
 | `apps/mac-app/src/main/projects/docs-runtime.ts` | Runtime/bundle crew-docs: kiểm runtime, cài bundle mang theo, tự sửa git config lúc app mở | `runtimeProblem`, `installDocsBundle`, `installedDocsBundle`, `repairDocsConfig`, `repairDocsOnStart`, `DocsRepairReport` |
 | `apps/mac-app/src/main/projects/ipc.ts` | Ghép danh sách project REST với trạng thái Mac; chọn folder; thêm/gỡ; thêm xong không lỗi thì gọi `onAdded` | `createProjectsIpc` |
-| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở, gửi bản tin máy sớm sau khi thêm xong | `registerProjects` |
+| `apps/mac-app/src/main/projects/register.ts` | Đăng ký kênh `projects:*` với deps thật, hộp thoại chọn thư mục, tự sửa hook crew-docs lúc app mở, gửi bản tin máy sớm sau khi thêm xong, nhờ đồng bộ project sang Bug Finding sau thêm/gỡ | `registerProjects`, `projectDeps` |
 | `apps/mac-app/src/renderer/routes/projects.tsx` | Màn hình Project: danh sách, wizard thêm (Chọn folder), Chạy tiếp, Gỡ khỏi Mac | `ProjectsScreen`, `stepLabel` |
 | `apps/mac-app/src/main/projects/add-project.ts` | Các bước thêm project; bộ lọc environment khuôn (kèm điều kiện secret thuộc company) dùng chung với bước Máy | `addProject`, `isInPlaceSshTemplate`, `isCompanyTemplate`, `inPlaceSshTemplates`, `companySecretIds` |
 | `apps/mac-app/src/main/projects/remove-project.ts` | Gỡ project khỏi Mac | `removeProject` |
 | `apps/mac-app/src/main/projects/instructions.ts` | Template, render, `baseHash`, `extraArgs` ghim | `ROLE_TEMPLATES`, `renderInstructions`, `uploadInstructions`, `pinnedExtraArgs` |
 | `apps/mac-app/src/main/projects/templates/*.md` | `AGENTS.md` theo vai trò và của agent UIUX (`designer.md`), chép từ fork `crew/agents/*.md` | |
-| `apps/mac-app/src/main/jobs/types.ts` | Kiểu hàng đợi máy (chép từ plugin), `JobOutcome`, `JobExtras`, `JobError` | `MachineJob`, `JobPayload`, `JobResult`, `JobErrorCode`, `JOB_TIMEOUT_MS`, `DESIGNER_CHECKOUT`, `WorkspaceRole` |
+| `apps/mac-app/src/main/jobs/types.ts` | Kiểu hàng đợi máy (chép từ plugin), `JobOutcome`, `JobExtras`, `JobError` | `MachineJob`, `JobPayload`, `JobResult`, `JobErrorCode`, `JOB_TIMEOUT_MS`, `BugFindingReviewPayload`, `BUG_FINDING_INPUT_MAX`, `DESIGNER_CHECKOUT`, `WorkspaceRole` |
 | `apps/mac-app/src/main/jobs/validate.ts` | Kiểm payload như plugin, chặn đường dẫn trên máy | `validateJobPayload`, `machineGuardReason`, `checkoutPath` |
 | `apps/mac-app/src/main/jobs/sanitize.ts` | Làm sạch lỗi gửi lên, bỏ credential trong URL remote (giữ user `ssh://`) | `sanitizeJobError`, `stripUrlCredentials` |
-| `apps/mac-app/src/main/jobs/executors.ts` | 9 loại việc trên máy (chạy trong utilityProcess) | `runJob`, `ExecutorDeps` |
+| `apps/mac-app/src/main/jobs/executors.ts` | 9 loại việc trên máy (chạy trong utilityProcess) và `bug-finding-review` (chạy ở Main: kiểm project, cổng, bản khác đang chạy trước khi ghi; nhận hủy) | `runJob`, `ExecutorDeps`, `runBugFindingReview`, `BugFindingReviewDeps`, `BugFindingRequestRef`, `crewReviewRequest`, `BUG_FINDING_UPDATING_TEXT` |
 | `apps/mac-app/src/main/jobs/ensure-project.ts` | Dựng project trên máy: tìm repo theo origin hoặc clone, worktree, repo đi kèm | `ensureProject`, `findRepo`, `originKey`, `defaultProjectRoots` |
 | `apps/mac-app/src/main/jobs/remove.ts` | Gỡ checkout (giữ checkout bẩn/bận/lạ), xóa bản chép skill, bỏ tiến độ project đã gỡ | `removeCheckouts`, `removeSkill`, `forgetRemovedProject`, `runLsof` |
-| `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent`, trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus` |
+| `apps/mac-app/src/main/jobs/poller.ts` | Vòng hỏi, lùi dần, một việc một lúc, quá giờ, `jobsAgent` (kèm `capabilities`), trạng thái nhận việc | `createJobsPoller`, `MissingKeyError`, `JobsStatus`, `BUG_FINDING_CAPABILITY` |
 | `apps/mac-app/src/main/jobs/targets.ts` | Hỏi việc ở origin board đã đăng nhập, chỉ company tài khoản thấy được | `createTargetResolver` |
 | `apps/mac-app/src/main/jobs/remote.ts` | REST của hàng đợi (claim, result), lấy trước `projectId` và file skill | `createJobsRemote` |
-| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm | `registerJobs` |
+| `apps/mac-app/src/main/jobs/register.ts` | Nối vòng hỏi với Keychain, utilityProcess "2P Crew jobs", `app.json` (`jobsAgent`, bỏ tiến độ sau gỡ project), kênh `jobs:status`; báo đổi trạng thái chỉ gửi vào cửa sổ và `webContents` còn sống; việc tạo checkout xong thì gửi bản tin máy sớm; việc tạo/gỡ checkout xong thì nhờ đồng bộ project sang Bug Finding; việc `bug-finding-review` chuyển cho Main (`ctx.runBugFindingReview`, kèm origin của đích và `AbortSignal`); ghi `jobsAgent.capabilities` (`bug-finding-review` chỉ khi có app nhúng) | `registerJobs` |
 
 ## Tests
 
@@ -403,8 +466,18 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   `stripUrlCredentials` giữ `ssh://git@…`, bỏ mật khẩu `ssh://user:…@`, bỏ cả token `https://token@…`.
 - `apps/mac-app/test/jobs/poller.test.ts` (fake timers): claim từng đích, 204, chạy rồi báo, 5/15 giây, lùi tới 60 giây
   riêng đích lỗi, một việc một lúc, quá 15 phút, việc sai company, `lastPollAt` 30 giây một lần, chưa có key, chưa có
-  `machineId`, `stop`; trạng thái nhận việc: ổn, chưa có key, 401, 403 (không bảo đăng nhập lại), company bị bỏ qua,
-  không có đích, chỉ báo khi đổi.
+  `machineId`, `stop`; ghi kèm `capabilities` `['bug-finding-review']`, máy không có Bug Finding chạy được thì `[]`; trạng thái nhận việc: ổn, chưa có key, 401, 403
+  (không bảo đăng nhập lại), company bị bỏ qua, không có đích, chỉ báo khi đổi.
+- `apps/mac-app/test/jobs/bug-finding-review.test.ts` (thư mục tạm): payload hợp lệ (uuid chữ thường, giữ
+  `reviewerInputText`), ca sai từng trường đúng câu lỗi của plugin, `reviewerInputText` đúng 20 000 ký tự vẫn nhận,
+  `repoPath` là HOME bị chặn; `runBugFindingReview` ghi đúng `requests/<requestId>.json` (`crew-review-request/1`) rồi
+  mở nền, ghi sổ lượt; chạy lại cùng `requestId` (kể cả khi đã thành `.json.done`) không ghi lần hai; không có repo →
+  `project_missing`; không có app → `bug_finding_missing` và bỏ request vừa ghi; bản Bug Finding khác chạy →
+  `standalone_running` nêu đường dẫn, chưa từng ghi file, không ghi sổ; launch lỗi gỡ cả file của lần nhận trước; Bug
+  Finding chưa có project của lượt → `project_missing`, không ghi, không mở; cổng đóng → `app_error`
+  `BUG_FINDING_UPDATING_TEXT`; hủy vì quá giờ trong lúc đồng bộ thì không ghi, không mở, hủy trong lúc mở thì gỡ file;
+  sổ lượt kèm `origin`; payload sai → `app_error`; đồng bộ project lỗi mà `projects.json` đã có project thì vẫn nhận;
+  `runJob` ở tiến trình phụ trả `app_error`.
 - `apps/mac-app/test/jobs/targets.test.ts`: đích Tailscale vẫn hỏi ở origin board, company không có quyền bị bỏ qua,
   gộp đích trùng company, chưa có origin, không đích, nhớ 60 giây/`invalidate`/lỗi không nhớ, đổi origin.
 - `apps/mac-app/test/jobs/remote.test.ts` (Paperclip giả): đường dẫn/body/Bearer của claim và result, 204, chưa có key
@@ -412,7 +485,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   skill, skill không có hoặc slug khác.
 
 - `apps/mac-app/test/paperclip-client.test.ts`: Paperclip giả trên `127.0.0.1` (`paperclip-fake-server.ts`); Bearer,
-  đọc key mỗi lời gọi, timeout, 401/403/422, log không có key, đường dẫn và body từng route, không có `DELETE`
+  đọc key mỗi lời gọi, timeout, 401/403/422, log không có key, đường dẫn và body từng route (kể cả
+  `postBugFindingResult` và 409 của nó), không có `DELETE`
   environment; `createAgent` gửi đúng `adapterConfig` (`engine: "cli"`, `model`, `env: {}`) và từ chối khi thiếu
   `model`; `agents`/`getAgent` trả `engine`, không trả `env`; `setAgentPermissions` gửi đủ ba quyền, từ chối giá trị
   không boolean; `getAgentPermissions` đọc grant `tasks:assign` (không tin `access.canAssignTasks`), thiếu
@@ -469,7 +543,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   Cây ghim máy còn run thì từ chối, không pause hay archive; máy khác được dọn thì `removed` ghi số environment và số máy;
   agent trong tiến độ mà owner đã thay ở ô không gửi server, dòng vai trò đã xóa thì không gọi dọn máy khác.
 - `apps/mac-app/test/projects-instructions.test.ts`: sha256 template (cả `designer.md`), render Trợ Lý (kèm danh sách
-  agent UIUX), `extraArgs` ghim, `baseHash`.
+  agent UIUX), `extraArgs` ghim, `baseHash`, `crew-pr.sh` `MODE=merge` với `HEAD_OK` (chỉ cho thêm merge nhánh mặc định).
 - `apps/mac-app/test/projects-ipc.test.ts`: `projects:list` ghép project với tiến độ, checkout (thứ tự vai trò, `head`),
   repo docs và commit gửi cuối; project R1 không có vai trò; thêm dở chưa có project; chưa chọn company; thêm → liệt kê
   → gỡ với Paperclip giả và HOME giả; `pickFolder` (Hủy, gợi ý tên/khóa, folder hỏng trả `problem`).

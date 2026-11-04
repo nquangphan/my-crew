@@ -3,7 +3,14 @@ import type { UpdateView } from '../../shared/ipc-contract.js';
 import type { AppContext } from '../app-context.js';
 import type { AppStateStore, UpdateState } from '../app-state.js';
 import type { SshdRuntime } from '../sshd/register.js';
-import { type DrainAnswer, drainForUpdate } from './drain.js';
+import {
+  BUG_FINDING_QUIT_REASON,
+  BUG_FINDING_WAIT_REASON,
+  type BugFindingDrain,
+  type DrainAnswer,
+  drainForUpdate,
+  quitBugFindingForRollback,
+} from './drain.js';
 import { SEND_STATUS_BASELINE_ID } from './probation.js';
 import type { ProbationMarkers, RollbackMode } from './rollback.js';
 import { judgeCandidate } from './versions.js';
@@ -48,6 +55,8 @@ export interface UpdaterDeps {
   doctor(): Promise<CheckResult[]>;
   sendStatus(): Promise<void>;
   askDrain(activeRuns: number | null): Promise<DrainAnswer>;
+  /** App Bug Finding nhúng: chờ hết lượt review và thoát nó trước khi cài. Không có thì bỏ qua. */
+  bugFinding?: BugFindingDrain;
   /** Có run đang chạy: hỏi owner trước khi quay về bản trước. */
   confirmRollback(activeRuns: number | null): Promise<boolean>;
   snapshotPrevious(): Promise<void>;
@@ -90,6 +99,19 @@ function isUnpublished(error: unknown): boolean {
   );
 }
 
+/** Hết 30 phút chờ mà Bug Finding vẫn review (hay không thoát): không cài, owner bấm lại khi rảnh. */
+export const BUG_FINDING_DEFERRED_REASON =
+  'Bug Finding còn review sau 30 phút chờ, chưa cài. Bấm "Cài khi rảnh" để thử lại.';
+
+/** Bug Finding nhúng còn chạy ngay trước `quitAndInstall`; không kiểm được thì coi như còn chạy. */
+async function bugFindingStillRunning(bf: BugFindingDrain): Promise<boolean> {
+  try {
+    return await bf.isRunning();
+  } catch {
+    return true;
+  }
+}
+
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 /** Đang có việc của chính updater: không kiểm chồng. */
 const BUSY: readonly UpdateState[] = ['downloading', 'installing', 'probation'];
@@ -128,6 +150,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     current.cancelTimer();
     deps.markers.writeCancelled(current.version);
     await current.revoke();
+    deps.bugFinding?.release();
     deferred = current.version;
     reason = `Cài bản mới lỗi: ${cause}. Bấm "Cài khi rảnh" để thử lại.`;
     await setState('waiting-idle');
@@ -162,6 +185,46 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     return ids;
   };
 
+  /** Sau drain `'install'`: chép bản hiện tại, watchdog, `installing`, kiểm lại Bug Finding, `quitAndInstall`. */
+  const proceed = async (version: string): Promise<void> => {
+    try {
+      await deps.snapshotPrevious();
+    } catch (error) {
+      deps.log('error', 'update-install-aborted', { version, error: errorText(error) });
+      await deps.supervisor.resume().catch(() => undefined);
+      deps.bugFinding?.release();
+      deferred = version;
+      return;
+    }
+    deps.markers.writePending(version);
+    deps.spawnRollback('watchdog', version);
+    await deps.store.update((s) => ({
+      ...s,
+      updateState: 'installing',
+      update: { ...s.update, from: deps.appVersion, to: version, installedAt: deps.now().toISOString() },
+    }));
+    deps.log('info', 'update-installing', { from: deps.appVersion, to: version });
+    // Owner đã đồng ý ở bước drain: `before-quit` của Squirrel đi qua quit guard không hỏi lại.
+    const revoke = deps.supervisor.allowQuitForUpdate();
+    attempt = { version, revoke, cancelTimer: () => undefined };
+    await deps.supervisor.stopForQuit().catch(() => undefined);
+    const mine = attempt;
+    mine.cancelTimer = deps.after(INSTALL_QUIT_TIMEOUT_MS, () => {
+      if (attempt === mine)
+        track(abortInstall(`app không thoát sau ${INSTALL_QUIT_TIMEOUT_MS / 60_000} phút`));
+    });
+    // Cổng mở Bug Finding đã đóng từ đầu drain, nhưng owner vẫn có thể mở tay: còn chạy (hay không biết) thì không cài.
+    if (deps.bugFinding && (await bugFindingStillRunning(deps.bugFinding))) {
+      await abortInstall('Bug Finding đang chạy lại trong lúc cài');
+      return;
+    }
+    try {
+      deps.autoUpdater().quitAndInstall(false, true);
+    } catch (error) {
+      await abortInstall(errorText(error));
+    }
+  };
+
   const install = async (version: string): Promise<void> => {
     if (installing) return;
     installing = true;
@@ -179,41 +242,35 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         ask: (n) => deps.askDrain(n),
         sleep: (ms) => deps.sleep(ms),
         now: () => deps.now().getTime(),
+        ...(deps.bugFinding ? { bugFinding: deps.bugFinding } : {}),
+        onWait: (wait) => {
+          if (wait) reason = wait;
+          else if (
+            reason === BUG_FINDING_WAIT_REASON ||
+            reason === BUG_FINDING_QUIT_REASON ||
+            reason === BUG_FINDING_DEFERRED_REASON
+          )
+            reason = null;
+        },
       });
       if (answer === 'later') {
+        if (reason === BUG_FINDING_WAIT_REASON || reason === BUG_FINDING_QUIT_REASON)
+          reason = BUG_FINDING_DEFERRED_REASON;
         deferred = version;
         deps.log('info', 'update-deferred', { version });
         return;
       }
       try {
-        await deps.snapshotPrevious();
+        await proceed(version);
       } catch (error) {
-        deps.log('error', 'update-install-aborted', { version, error: errorText(error) });
-        await deps.supervisor.resume().catch(() => undefined);
-        deferred = version;
-        return;
-      }
-      deps.markers.writePending(version);
-      deps.spawnRollback('watchdog', version);
-      await deps.store.update((s) => ({
-        ...s,
-        updateState: 'installing',
-        update: { ...s.update, from: deps.appVersion, to: version, installedAt: deps.now().toISOString() },
-      }));
-      deps.log('info', 'update-installing', { from: deps.appVersion, to: version });
-      // Owner đã đồng ý ở bước drain: `before-quit` của Squirrel đi qua quit guard không hỏi lại.
-      const revoke = deps.supervisor.allowQuitForUpdate();
-      attempt = { version, revoke, cancelTimer: () => undefined };
-      await deps.supervisor.stopForQuit().catch(() => undefined);
-      const mine = attempt;
-      mine.cancelTimer = deps.after(INSTALL_QUIT_TIMEOUT_MS, () => {
-        if (attempt === mine)
-          track(abortInstall(`app không thoát sau ${INSTALL_QUIT_TIMEOUT_MS / 60_000} phút`));
-      });
-      try {
-        deps.autoUpdater().quitAndInstall(false, true);
-      } catch (error) {
-        await abortInstall(errorText(error));
+        // Lỗi bất ngờ sau drain: không để listener và cổng mở Bug Finding đóng mãi.
+        if (attempt) await abortInstall(errorText(error));
+        else {
+          await deps.supervisor.resume().catch(() => undefined);
+          deps.bugFinding?.release();
+          deferred = version;
+        }
+        throw error;
       }
     } finally {
       installing = false;
@@ -321,6 +378,14 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         },
       }));
       deps.log('warn', 'update-rollback-requested', { from: deps.appVersion, to: previous });
+      // Helper thay cả bundle gồm Bug Finding nhúng: thoát nó trước (tối đa 30 giây), không thoát kịp vẫn quay lui.
+      if (deps.bugFinding) {
+        const quit = await quitBugFindingForRollback(deps.bugFinding, {
+          sleep: (ms) => deps.sleep(ms),
+          now: () => deps.now().getTime(),
+        });
+        if (!quit) deps.log('warn', 'bug-finding-not-quit-before-rollback');
+      }
       deps.spawnRollback('now', deps.appVersion);
       await deps.supervisor.stopForQuit().catch(() => undefined);
       deps.exit(0);

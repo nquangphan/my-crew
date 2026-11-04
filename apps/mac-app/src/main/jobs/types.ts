@@ -11,7 +11,8 @@ export type MachineJobKind =
   | 'remove-checkouts'
   | 'skill-remove'
   | 'runtimes-setup'
-  | 'ensure-project';
+  | 'ensure-project'
+  | 'bug-finding-review';
 export type MachineJobStatus = 'queued' | 'claimed' | 'done' | 'failed' | 'cancelled';
 /** Ô executor Claude: `executor`, `executor-2` … `executor-5` (tối đa 5, cùng `MAX_EXECUTORS` của plugin). */
 export const EXECUTOR_SLOTS = ['executor', 'executor-2', 'executor-3', 'executor-4', 'executor-5'] as const;
@@ -40,6 +41,7 @@ export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
   'skill-remove',
   'runtimes-setup',
   'ensure-project',
+  'bug-finding-review',
 ];
 export const CREW_ROLE_SLOTS: readonly CrewRoleSlot[] = [
   'assistant',
@@ -101,7 +103,30 @@ export type JobPayload =
       branch: string;
       roles: { role: string; branch: string }[];
       companions: { name: string; originUrl: string }[];
-    };
+    }
+  /**
+   * Xếp một lượt review PR vào hàng đợi app Bug Finding trên Mac (plugin xếp khi ticket tổng vào stage cầu nối). App ghi
+   * yêu cầu vào thư mục cầu nối rồi trả `accepted` ngay; tiến độ và kết quả đi qua `POST /bug-finding/results`.
+   */
+  | ({ kind: 'bug-finding-review' } & BugFindingReviewPayload);
+
+export interface BugFindingReviewPayload {
+  requestId: string;
+  issueId: string;
+  identifier: string;
+  run: number;
+  projectId: string;
+  projectKey: string;
+  repoPath: string;
+  provider: 'github';
+  prNumber: number;
+  prUrl: string;
+  headSha: string;
+  baseBranch: string;
+  reviewerInputText?: string;
+}
+/** Phản hồi người review gửi kèm lượt chạy lại (khối `crew-bf-feedback` của Trợ Lý), tối đa chừng này ký tự. */
+export const BUG_FINDING_INPUT_MAX = 20_000;
 
 export type JobResult =
   | {
@@ -135,7 +160,8 @@ export type JobResult =
       cloned: boolean;
       checkouts: { role: string; path: string; head: string }[];
       companions: { name: string; path: string }[];
-    };
+    }
+  | { kind: 'bug-finding-review'; accepted: true };
 
 /**
  * Checkout gỡ không được nên giữ nguyên: còn việc chưa commit (`dirty`), có process đang dùng (`busy`), không phải
@@ -164,7 +190,11 @@ export type JobErrorCode =
   | 'skill_fetch_failed'
   | 'check_failed'
   | 'lease_expired'
-  | 'app_error';
+  | 'app_error'
+  /** `bug-finding-review`: máy không có repo của project, không thấy app Bug Finding nhúng, bản cài riêng cũ đang chạy. */
+  | 'project_missing'
+  | 'bug_finding_missing'
+  | 'standalone_running';
 
 /** Kết quả app gửi lên `POST /machine-jobs/:id/result`. `check` thất bại vẫn kèm `result` (danh sách mục kiểm). */
 export type JobOutcome =

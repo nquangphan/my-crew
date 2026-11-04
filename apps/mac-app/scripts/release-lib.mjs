@@ -1,8 +1,10 @@
 /**
  * Hàm thuần của script phát hành app macOS 2P Crew (`release.mjs`): đọc đối số, kiểm cây git và tag, chọn danh tính
  * ký, dựng lệnh build/ký/notarize/đăng, đọc kết quả tự kiểm. Không gọi process nào, không đọc env, để test bằng
- * `node --test`.
+ * `node --test`. Chỉ `readBugFindingPin` đọc file (file ghim trong repo).
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export const BUNDLE_ID = 'com.2p-solutions.crew.mac';
 export const PRODUCT_NAME = '2P Crew';
@@ -24,6 +26,7 @@ export const EXIT = {
   notarize: 6,
   verify: 7,
   publish: 8,
+  swift: 9,
 };
 
 /** Loại chứng chỉ theo chế độ: phát hành cần Developer ID, `--dev-sign` dùng Apple Development. */
@@ -83,6 +86,51 @@ export function parseArgs(argv) {
     return { error: `--publish chỉ dùng cho bản phát hành, không dùng với --${mode}.` };
   if (mode === 'dry-run' && identity) return { error: '--dry-run không ký nên không nhận --identity.' };
   return { mode, publish: publish === true, identity };
+}
+
+/** Đường dẫn bản Bug Finding đã build, tính từ `apps/mac-app` (electron-builder chép vào Contents/Resources). */
+export const BUG_FINDING_APP = 'Bug Finding.app';
+export const BUG_FINDING_BUILD_DIR = 'build/bug-finding';
+export const BUG_FINDING_PIN = 'bug-finding.pin.json';
+/** Bundle id của Bug Finding (Info.plist của repo bug-finding). */
+export const BUG_FINDING_BUNDLE_ID = 'local.mrreviewqueue';
+/**
+ * Entitlements Bug Finding tự ký (apps/mr-review-queue/scripts/entitlements.plist ở commit ghim): chỉ mạng đi ra.
+ * Bản nhúng phải mang đúng bộ này, không mang entitlements Electron của 2P Crew (allow-jit, tắt library validation…).
+ * Bug Finding đổi entitlements thì sửa hằng này cùng lúc với bug-finding.pin.json.
+ */
+export const BUG_FINDING_ENTITLEMENTS = Object.freeze({ 'com.apple.security.network.client': true });
+
+/**
+ * Đọc `bug-finding.pin.json` trong `dir`: repo Bug Finding, commit (40 hex) và CFBundleShortVersionString của bản
+ * đó. Ném lỗi khi file sai, để bản phát hành không bao giờ build từ một nhánh trôi.
+ */
+export function readBugFindingPin(dir) {
+  const file = join(dir, BUG_FINDING_PIN);
+  const pin = JSON.parse(readFileSync(file, 'utf8'));
+  if (typeof pin.repo !== 'string' || pin.repo.trim() === '')
+    throw new Error(`${BUG_FINDING_PIN}: repo rỗng.`);
+  if (typeof pin.commit !== 'string' || !/^[0-9a-f]{40}$/.test(pin.commit))
+    throw new Error(`${BUG_FINDING_PIN}: commit phải là SHA đủ 40 ký tự hex.`);
+  if (typeof pin.version !== 'string' || pin.version.trim() === '')
+    throw new Error(`${BUG_FINDING_PIN}: version rỗng.`);
+  return { repo: pin.repo, commit: pin.commit, version: pin.version };
+}
+
+/**
+ * Lệnh build Bug Finding từ bản đã checkout đúng commit ghim, ra `<outDir>/Bug Finding.app`. Có danh tính thì ký
+ * hardened runtime để notarize cùng 2P Crew; không có (`--dry-run`) thì ký ad-hoc, không chạm keychain.
+ */
+export function bugFindingBuildCommands({ checkout, outDir, identity }) {
+  const sign = identity ? ['--sign', identity, '--hardened-runtime'] : ['--sign', '-'];
+  return [['bash', `${checkout}/apps/mr-review-queue/scripts/build-app.sh`, '--out', outDir, ...sign]];
+}
+
+/** `swift --version` có Swift 6 trở lên (Command Line Tools). */
+export function hasSwift6({ status, stdout }) {
+  if (status !== 0) return false;
+  const major = Number(stdout.match(/Swift version (\d+)/)?.[1] ?? 0);
+  return major >= 6;
 }
 
 export function isCleanTree(porcelain) {
@@ -216,6 +264,8 @@ export function parseCodesignDetails(text) {
     teamId: team && team !== 'not set' ? team : null,
     authority: field('Authority'),
     runtime: flags.split(',').includes('runtime'),
+    // `Timestamp=` chỉ có khi ký kèm secure timestamp (notarize đòi); ký không timestamp thì codesign in `Signed Time=`.
+    timestamp: field('Timestamp'),
   };
 }
 
@@ -228,6 +278,31 @@ export function checkSignature(details, { kind, teamId, bundleId = BUNDLE_ID }) 
     problems.push(`TeamIdentifier là ${details.teamId ?? 'không có'}, cần ${teamId}.`);
   if (!details.runtime) problems.push('Thiếu hardened runtime (flags không có runtime).');
   return problems;
+}
+
+/**
+ * Chữ ký riêng của Bug Finding nhúng trong Contents/Resources: đúng bundle id local.mrreviewqueue, cùng loại danh tính
+ * và Team ID với 2P Crew, hardened runtime, secure timestamp, và đúng entitlements của nó (`entitlements` là JSON của
+ * `codesign -d --entitlements - --xml`, null khi không đọc được).
+ */
+export function checkBugFindingSignature(details, entitlements, { kind, teamId }) {
+  const problems = checkSignature(details, { kind, teamId, bundleId: BUG_FINDING_BUNDLE_ID });
+  if (!details.timestamp) problems.push('Thiếu secure timestamp (notarize đòi codesign --timestamp).');
+  if (entitlements == null) problems.push('Không đọc được entitlements.');
+  else {
+    const want = JSON.stringify(sortKeys(BUG_FINDING_ENTITLEMENTS));
+    const got = JSON.stringify(sortKeys(entitlements));
+    if (got !== want) problems.push(`Entitlements là ${got}, cần đúng ${want} (bản Bug Finding tự ký).`);
+  }
+  return problems;
+}
+
+function sortKeys(obj) {
+  return Object.fromEntries(
+    Object.keys(obj)
+      .sort()
+      .map((k) => [k, obj[k]]),
+  );
 }
 
 export function checkInfoPlist(plist, { version }) {
@@ -278,6 +353,16 @@ export function maskHashes(text) {
   return text.replace(/(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])/g, '<đã che>');
 }
 
+/** Che userinfo (user, token) của mọi URL dạng `scheme://user:token@host` (vd. CREW_BUG_FINDING_REPO). */
+export function redactUrlCredentials(text) {
+  return text.replace(/([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^@/\s]+@/g, '$1***@');
+}
+
+/** Mọi dòng log và thông báo lỗi của script phát hành đi qua đây: che hash SHA-1 và credential trong URL. */
+export function scrubLog(text) {
+  return maskHashes(redactUrlCredentials(text));
+}
+
 /**
  * Thư mục ra của bản build. Phải nằm ngoài thư mục do File Provider quản (repo trên Mac mini ở ~/Documents, nơi
  * iCloud gắn com.apple.FinderInfo vào mọi bundle mới tạo, làm codesign báo "resource fork, Finder information, or
@@ -288,11 +373,11 @@ export function releaseOutDir(home) {
 }
 
 /**
- * Các lệnh build/ký/notarize/đóng gói/đăng theo thứ tự. Mỗi bước: `id`, `cmd`, `args` (mảng, không qua shell),
+ * Các lệnh build/ký/notarize/đóng gói theo thứ tự (bước đăng ở `publishCommands`). Mỗi bước: `id`, `cmd`, `args` (mảng, không qua shell),
  * `cwd`, `env` thêm (danh tính chỉ đi qua `CSC_NAME`), `exit` khi lỗi, `parse: 'notary'` khi phải đọc JSON.
  * Không bước nào nhận secret: notarize chỉ qua keychain profile.
  */
-export function buildCommands({ mode, publish, version, identityName, paths }) {
+export function buildCommands({ mode, version, identityName, paths }) {
   const { root, appDir, appPath, dist, tmp } = paths;
   const names = artifactNames(version);
   const dmgPath = `${dist}/${names.dmg}`;
@@ -394,28 +479,66 @@ export function buildCommands({ mode, publish, version, identityName, paths }) {
     exit: EXIT.build,
   });
   if (mode === 'release') steps.push(notarize('notarize-dmg', dmgPath), staple('staple-dmg', dmgPath));
-  if (mode === 'release' && publish) {
-    steps.push({
-      id: 'publish',
-      cmd: 'gh',
-      args: [
+  return steps;
+}
+
+/**
+ * Trạng thái release `v<version>` theo `gh release view v<version> --repo … --json isDraft`: `missing` (chưa có),
+ * `draft`, `published`, hay `error` (mạng, chưa đăng nhập…: không đoán là chưa có).
+ */
+export function releaseState({ status, stdout, stderr }) {
+  if (status === 0) {
+    try {
+      return JSON.parse(stdout).isDraft === true ? 'draft' : 'published';
+    } catch {
+      return 'error';
+    }
+  }
+  return /release not found/i.test(stderr ?? '') ? 'missing' : 'error';
+}
+
+/**
+ * Các lệnh đăng GitHub Release, chạy lại được sau khi lỗi giữa chừng: chưa có release thì tạo bản nháp không file;
+ * tải file với `--clobber` (thay file dở của lần trước), latest-mac.yml tải sau cùng để không bao giờ trỏ zip chưa có;
+ * cuối cùng mới công khai release (`--draft=false --latest`). `state` lấy từ `releaseState`.
+ */
+export function publishCommands({ version, state, paths }) {
+  if (!['missing', 'draft', 'published'].includes(state))
+    throw new Error(`Trạng thái release v${version} không rõ (${state}).`);
+  const { root, dist } = paths;
+  const names = artifactNames(version);
+  const tag = `v${version}`;
+  const gh = (id, args) => ({ id, cmd: 'gh', args, cwd: root, env: {}, exit: EXIT.publish });
+  const steps = [];
+  if (state === 'missing')
+    steps.push(
+      gh('publish-create', [
         'release',
         'create',
-        `v${version}`,
+        tag,
         '--repo',
         RELEASE_REPO,
+        '--draft',
         '--title',
         `${PRODUCT_NAME} ${version}`,
         '--notes',
         `Bản ${version} của app macOS ${PRODUCT_NAME}.`,
-        ...[names.zip, names.dmg, names.zipBlockmap, names.dmgBlockmap, names.latest].map(
-          (f) => `${dist}/${f}`,
-        ),
-      ],
-      cwd: root,
-      env: {},
-      exit: EXIT.publish,
-    });
-  }
+      ]),
+    );
+  const upload = (id, files) =>
+    gh(id, [
+      'release',
+      'upload',
+      tag,
+      '--repo',
+      RELEASE_REPO,
+      '--clobber',
+      ...files.map((f) => `${dist}/${f}`),
+    ]);
+  steps.push(
+    upload('publish-upload', [names.zip, names.dmg, names.zipBlockmap, names.dmgBlockmap]),
+    upload('publish-latest', [names.latest]),
+    gh('publish-release', ['release', 'edit', tag, '--repo', RELEASE_REPO, '--draft=false', '--latest']),
+  );
   return steps;
 }

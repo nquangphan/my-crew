@@ -2,6 +2,7 @@ import type { CheckResult, InstallCrewMacResult } from '@crew/mac';
 import type { AppContext } from '../app-context.js';
 import type { AppStateStore } from '../app-state.js';
 import type { SshdSupervisor } from '../sshd/supervisor.js';
+import { type BugFindingDrain, quitBugFindingForRollback } from './drain.js';
 import type { ProbationMarkers } from './rollback.js';
 
 /**
@@ -40,6 +41,8 @@ export interface ProbationDeps {
   now(): Date;
   /** Hẹn giờ một lần (hạn của doctor); trả hàm hủy. */
   after(ms: number, fn: () => void): () => void;
+  /** App Bug Finding nhúng: hỏng mà quay lui thì thoát nó trước khi helper thay bundle. Không có thì bỏ qua. */
+  bugFinding?: BugFindingDrain;
   log: AppContext['log'];
 }
 
@@ -102,7 +105,8 @@ async function examine(deps: ProbationDeps, baseline: readonly string[]): Promis
  * - app vừa được cài (`updateState: installing`, `update.to` = bản đang chạy), hoặc marker `pending` = bản đang chạy
  *   (lần cài trước báo lỗi nhưng ShipIt vẫn cài lúc app thoát): ghi `.started`, tự kiểm theo hạn từng bước. Khỏe thì
  *   ghi `.ok` (watchdog thôi) và về `idle`. Hỏng thì đưa bản này vào `badVersions`, sinh helper `now`, dừng listener
- *   (phiên đang chạy vẫn sống) và thoát để helper thay app bằng `previous/`.
+ *   (phiên đang chạy vẫn sống) và thoát để helper thay app bằng `previous/`. Trước khi sinh helper, thoát Bug Finding
+ *   nhúng (tối đa 30 giây) vì helper thay cả bundle chứa nó.
  */
 export async function runProbation(deps: ProbationDeps): Promise<ProbationOutcome> {
   const rolledBack = deps.markers.readRolledBack();
@@ -167,10 +171,34 @@ export async function runProbation(deps: ProbationDeps): Promise<ProbationOutcom
     deps.markers.writeFailed(deps.appVersion);
     return 'failed';
   }
+  // Helper thay cả bundle gồm Bug Finding nhúng: thoát nó trước (tối đa 30 giây), không thoát kịp vẫn quay lui.
+  if (deps.bugFinding) {
+    const quit = await quitBugFindingForRollback(deps.bugFinding, {
+      sleep: (ms) => deps.sleep(ms),
+      now: () => deps.now().getTime(),
+    });
+    if (!quit) deps.log('warn', 'bug-finding-not-quit-before-rollback');
+  }
   deps.spawnRollbackNow(deps.appVersion);
   await deps.supervisor.stopForQuit().catch(() => undefined);
   deps.exit(0);
   return 'failed';
+}
+
+/**
+ * Thử bản vừa cài rồi mới mở lại Bug Finding (cờ `reopenBugFinding` do bản trước đặt khi thoát nó để cài): probation
+ * hỏng mà quay lui thì app đang thoát, không mở (helper sẽ thay bundle chứa Bug Finding); mọi kết quả khác thì mở lại.
+ * Trả kết quả probation.
+ */
+export async function probationThenReopen(deps: {
+  probation(): Promise<ProbationOutcome>;
+  hasPrevious(): boolean;
+  reopen(): Promise<unknown>;
+}): Promise<ProbationOutcome> {
+  const outcome = await deps.probation();
+  if (outcome === 'failed' && deps.hasPrevious()) return outcome;
+  await deps.reopen();
+  return outcome;
 }
 
 export interface CrewMacInstallDeps {

@@ -1,3 +1,4 @@
+import type { BugFindingResultBody } from '../bug-finding/results.js';
 /**
  * Kiểu của Paperclip client. Hình dạng theo API thật của fork `v2026.1005.0`: project có `urlKey`
  * (không có `key`), environment chỉ archive (không bao giờ xóa, vì xóa kéo theo secret SSH dùng chung), agent tạo
@@ -226,6 +227,8 @@ export interface PaperclipClient {
       repo: { originUrl: string; branch: string } | null;
     },
   ): Promise<MachineProvisionResult | null>;
+  /** Tiến độ hay kết quả một lượt Bug Finding của máy này (`POST /bug-finding/results` của plugin `crew.core`). */
+  postBugFindingResult(body: BugFindingResultBody): Promise<void>;
 }
 
 /** Cây ghim máy của project còn run chờ hay đang chạy (route Crew `…/machines/blockers`). */

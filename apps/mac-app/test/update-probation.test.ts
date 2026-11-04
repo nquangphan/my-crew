@@ -9,6 +9,7 @@ import {
   PROBATION_MAX_MS,
   PROBATION_SEND_MS,
   type ProbationDeps,
+  probationThenReopen,
   runProbation,
 } from '../src/main/update/probation.js';
 
@@ -333,5 +334,85 @@ describe('installCrewMacWhenIdle', () => {
     });
     expect(tries).toBe(2);
     expect(clock).toBe(CREW_MAC_IDLE_POLL_MS);
+  });
+});
+
+describe('Bug Finding khi probation', () => {
+  it('hỏng mà quay lui: thoát Bug Finding (gửi quit, chờ thoát) trước khi sinh helper', async () => {
+    const h = harness({ listenerUpAt: null });
+    let running = true;
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => running,
+      quit: async () => {
+        h.calls.push('bf-quit');
+        running = false;
+      },
+      setReopen: async () => undefined,
+      hold: async () => {
+        h.calls.push('bf-hold');
+      },
+      release: () => undefined,
+    };
+    expect(await runProbation(h.deps)).toBe('failed');
+    expect(h.calls).toEqual(['bf-hold', 'bf-quit', 'rollback-now:0.1.1', 'stopForQuit', 'exit:0']);
+  });
+
+  it('Bug Finding không thoát trong 30 giây: vẫn quay lui', async () => {
+    const h = harness({ listenerUpAt: null });
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => true,
+      quit: async () => undefined,
+      setReopen: async () => undefined,
+      hold: async () => undefined,
+      release: () => undefined,
+    };
+    expect(await runProbation(h.deps)).toBe('failed');
+    expect(h.calls).toContain('rollback-now:0.1.1');
+    expect(h.events.map((e) => e.event)).toContain('bug-finding-not-quit-before-rollback');
+  });
+
+  it('probation hỏng (quay lui) khi cờ mở lại đang bật: không mở Bug Finding', async () => {
+    const order: string[] = [];
+    const outcome = await probationThenReopen({
+      probation: async () => {
+        order.push('probation');
+        return 'failed';
+      },
+      hasPrevious: () => true,
+      reopen: async () => {
+        order.push('reopen');
+      },
+    });
+    expect(outcome).toBe('failed');
+    expect(order).toEqual(['probation']);
+  });
+
+  it('probation đạt (hay không phải thử): mở lại Bug Finding sau khi probation xong, không song song', async () => {
+    for (const result of ['passed', 'skipped'] as const) {
+      const order: string[] = [];
+      await probationThenReopen({
+        probation: async () => {
+          await Promise.resolve();
+          order.push('probation');
+          return result;
+        },
+        hasPrevious: () => true,
+        reopen: async () => {
+          order.push('reopen');
+        },
+      });
+      expect(order).toEqual(['probation', 'reopen']);
+    }
+    const kept: string[] = [];
+    await probationThenReopen({
+      probation: async () => 'failed',
+      hasPrevious: () => false,
+      reopen: async () => {
+        kept.push('reopen');
+      },
+    });
+    expect(kept).toEqual(['reopen']);
   });
 });

@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { invoke } from './lib/ipc';
+import { BugFindingScreen } from './routes/bug-finding';
 import { HealthScreen } from './routes/health';
 import { LogsScreen } from './routes/logs';
 import { ProjectsScreen } from './routes/projects';
@@ -13,12 +14,13 @@ export interface RouteDef {
   render: () => ReactNode;
 }
 
-/** Danh sách màn hình của thanh bên: Sức khỏe, Run, Log, Project, Cập nhật, Cài đặt. */
+/** Danh sách màn hình của thanh bên: Sức khỏe, Run, Log, Project, Bug Finding, Cập nhật, Cài đặt. */
 export const ROUTES: RouteDef[] = [
   { id: 'health', label: 'Sức khỏe', render: () => <HealthScreen /> },
   { id: 'runs', label: 'Run đang chạy', render: () => <RunsScreen /> },
   { id: 'logs', label: 'Log', render: () => <LogsScreen /> },
   { id: 'projects', label: 'Project', render: () => <ProjectsScreen /> },
+  { id: 'bug-finding', label: 'Bug Finding', render: () => <BugFindingScreen /> },
   { id: 'update', label: 'Cập nhật', render: () => <UpdateScreen /> },
   { id: 'setup', label: 'Cài đặt', render: () => <SetupScreen /> },
 ];

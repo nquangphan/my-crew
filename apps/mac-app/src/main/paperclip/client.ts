@@ -16,11 +16,14 @@ import type {
 } from './types.js';
 
 export const REQUEST_TIMEOUT_MS = 15_000;
+/** Hạn gửi kết quả Bug Finding (body lớn). */
+export const BUG_FINDING_POST_TIMEOUT_MS = 120_000;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const CODE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const WRAPPER_RE = /^\/.+\/\.crew\/bin\/crew-claude-run$/;
 const ROLES_PATH = '/api/plugins/crew.core/api/projects';
 const MACHINES_PATH = '/api/plugins/crew.core/api/machines';
+const BUG_FINDING_RESULTS_PATH = '/api/plugins/crew.core/api/bug-finding/results';
 const SSH_KEY_RE = /^ssh-ed25519 [A-Za-z0-9+/=]+( .*)?$/;
 const MACHINE_KEY_RE = /^[A-Za-z0-9_-]{43}$/;
 
@@ -570,6 +573,17 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
         body,
         true,
         true,
+      );
+    },
+
+    async postBugFindingResult(body) {
+      // Body có thể tới 2 MB báo cáo cộng 500 finding: hạn riêng đủ cho đường lên chậm (~512 kbps).
+      const key = await deps.readKey();
+      if (!key) throw new PaperclipAuthError();
+      await paperclipRequest(
+        base,
+        { ...deps, timeoutMs: BUG_FINDING_POST_TIMEOUT_MS },
+        { method: 'POST', path: BUG_FINDING_RESULTS_PATH, body, key },
       );
     },
 

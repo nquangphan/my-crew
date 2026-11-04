@@ -311,3 +311,13 @@ h1 {
 .relogin code {
   word-break: break-all;
 }
+.bf-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bf-sync-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
