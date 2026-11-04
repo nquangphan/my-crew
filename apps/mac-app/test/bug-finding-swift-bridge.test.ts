@@ -44,11 +44,7 @@ const sys = vi.hoisted(() => ({ pgrepStdout: '' }));
 vi.mock('@crew/mac', () => ({
   createRunner: () => ({
     run: async (command: string) => {
-      if (command === '/usr/bin/pgrep') {
-        return sys.pgrepStdout
-          ? { code: 0, stdout: sys.pgrepStdout, stderr: '' }
-          : { code: 1, stdout: '', stderr: '' };
-      }
+      if (command === '/bin/ps') return { code: 0, stdout: sys.pgrepStdout, stderr: '' };
       if (command === '/usr/libexec/PlistBuddy') return { code: 0, stdout: '0.2.0-e2e\n', stderr: '' };
       return { code: 0, stdout: '', stderr: '' };
     },
@@ -61,6 +57,7 @@ vi.mock('../src/main/projects/ipc', () => ({
 }));
 
 const { registerBugFinding } = await import('../src/main/bug-finding/register');
+const { createLaunchGate } = await import('../src/main/bug-finding/launch');
 
 const COMPANY = '11111111-1111-4111-8111-111111111111';
 const MACHINE = '22222222-2222-4222-8222-222222222222';
@@ -170,9 +167,9 @@ const job = (repoPath: string): MachineJob => ({
 describe.skipIf(!runnable)('E2E cầu nối thật với Bug Finding (Swift, nhánh feat/crew-bridge)', () => {
   it('Swift đọc projects.json + request do mac-app ghi, trả heartbeat/response; mac-app hiện trạng thái và relay kết quả', async () => {
     mkdirSync(join(home, 'repo'));
-    const module = registerBugFinding(ctx());
+    const module = registerBugFinding(ctx(), createLaunchGate());
     await vi.waitFor(() => expect(existsSync(join(dataDir(), 'crew', 'projects.json'))).toBe(true));
-    expect(await module.runReview(job(join(home, 'repo')))).toEqual({
+    expect(await module.runReview(job(join(home, 'repo')), { origin: server.origin })).toEqual({
       status: 'done',
       result: { kind: 'bug-finding-review', accepted: true },
     });

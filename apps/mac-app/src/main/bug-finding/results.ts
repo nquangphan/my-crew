@@ -1,6 +1,6 @@
 import { type FSWatcher, mkdirSync, watch } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readdir, readFile, realpath } from 'node:fs/promises';
+import { join, sep } from 'node:path';
 import type { BugFindingOutboxItem, BugFindingRequestEntry } from '../app-state.js';
 import { UUID_RE } from '../jobs/types.js';
 import { PaperclipAuthError, PaperclipHttpError } from '../paperclip/client.js';
@@ -8,8 +8,9 @@ import { PaperclipAuthError, PaperclipHttpError } from '../paperclip/client.js';
 /**
  * Chuyển tiến độ và kết quả Bug Finding về server: app Bug Finding ghi `crew/responses/<requestId>.json`
  * (`CrewReviewResponse` của repo `bug-finding`), 2P Crew đọc rồi gửi `POST /bug-finding/results` của plugin `crew.core`
- * bằng board key. Kết quả `succeeded` kèm finding rút gọn (12 trường) và báo cáo `.md` (tối đa 2 MB). Gửi lỗi mạng thì
- * giữ trong hàng đợi `bugFindingOutbox` của `app.json` và gửi lại lượt sau.
+ * bằng board key, chỉ tới origin đã giao việc. Kết quả `succeeded` kèm finding rút gọn (12 trường) và báo cáo `.md`
+ * (tối đa 2 MB, chỉ đọc trong thư mục dữ liệu Bug Finding). Gửi lỗi thì giữ trong hàng đợi `bugFindingOutbox` của
+ * `app.json`: mỗi mục lùi thời gian riêng, quá số lần thì bỏ kèm cảnh báo.
  */
 
 export const CREW_REVIEW_RESPONSE_SCHEMA = 'crew-review-response/1';
@@ -23,6 +24,15 @@ export const REQUESTS_MAX = 200;
 export const RUNNING_EVERY_MS = 60_000;
 /** Quét lại thư mục responses định kỳ (ngoài `fs.watch`). */
 export const RELAY_INTERVAL_MS = 30_000;
+/** Mục gửi lỗi tạm thời (5xx, 408, 429, quá hạn) thử lại sau 30 giây, gấp đôi mỗi lần, tối đa 30 phút. */
+export const RETRY_BASE_MS = 30_000;
+export const RETRY_MAX_MS = 30 * 60_000;
+/** 403 (tài khoản không thuộc company): giữ mục, hỏi lại sau chừng này. */
+export const FORBIDDEN_RETRY_MS = 5 * 60_000;
+/** Quá chừng này lần lỗi tạm thời thì bỏ mục, ghi cảnh báo (khoảng 3,5 giờ, dưới hạn 8 giờ của server). */
+export const MAX_ATTEMPTS = 10;
+/** `review-result.json` chưa đọc được (Bug Finding đang ghi dở...) thì chờ chừng này rồi mới báo `failed`. */
+export const RESULT_READ_GRACE_MS = 5 * 60_000;
 /** Route nhận tối đa chừng này finding. */
 const MAX_FINDINGS = 500;
 const ERROR_MAX = 1000;
@@ -73,22 +83,30 @@ export interface RelayState {
   requests: Record<string, BugFindingRequestEntry>;
 }
 
-/** Lần gửi gần nhất của từng lượt (trong bộ nhớ): bỏ bản tin trùng, giãn `running`. */
+/** Trong bộ nhớ: bản tin đã xếp của từng lượt (bỏ trùng, giãn `running`), lần đầu chưa đọc được kết quả, mục đã báo giữ. */
 export interface RelayMemory {
   last: Map<string, { state: BugFindingResultState; sig: string; at: number }>;
+  unreadableSince: Map<string, number>;
+  heldLogged: Set<string>;
 }
 
-export const createRelayMemory = (): RelayMemory => ({ last: new Map() });
+export const createRelayMemory = (): RelayMemory => ({
+  last: new Map(),
+  unreadableSince: new Map(),
+  heldLogged: new Set(),
+});
 
 export interface ResultsDeps {
   /** Nội dung đã parse của mọi `responses/*.json`. */
   listResponses(): Promise<unknown[]>;
-  /** Ném khi không đọc được. */
+  /** Ném khi không đọc được (gồm file ngoài thư mục dữ liệu Bug Finding, xem `createBridgeFileReader`). */
   readFile(path: string): Promise<string>;
   load(): RelayState;
   save(next: RelayState): Promise<void>;
-  /** Ném `PaperclipHttpError`/`PaperclipAuthError` hay lỗi mạng. */
-  post(body: BugFindingResultBody): Promise<void>;
+  /** Origin board đang đăng nhập; `null` khi chưa đăng nhập. Mục của origin khác chỉ được giữ, không gửi. */
+  currentOrigin(): string | null;
+  /** Gửi tới `origin` (luôn là origin đang đăng nhập). Ném `PaperclipHttpError`/`PaperclipAuthError` hay lỗi mạng. */
+  post(origin: string, body: BugFindingResultBody): Promise<void>;
   now(): number;
   memory: RelayMemory;
   log(level: 'info' | 'warn', event: string, fields?: Record<string, unknown>): void;
@@ -140,7 +158,7 @@ function parseResponse(raw: unknown): CrewReviewResponse | null {
       : {}),
     ...(typeof raw.error === 'string' && raw.error !== '' ? { error: raw.error.slice(0, ERROR_MAX) } : {}),
     ...(absolute(raw.resultDir) ? { resultDir: raw.resultDir } : {}),
-    ...(absolute(raw.reportPath) ? { reportPath: raw.reportPath } : {}),
+    ...(absolute(raw.reportPath) && raw.reportPath.endsWith('.md') ? { reportPath: raw.reportPath } : {}),
   };
 }
 
@@ -193,12 +211,15 @@ export function cutReport(text: string, max = REPORT_MAX_BYTES): string {
 const progressSig = (r: CrewReviewResponse) =>
   JSON.stringify([r.state, r.round, r.lanesDone, r.lanesTotal, r.verdict, r.error]);
 
-/** Mục hàng đợi cho một response; `succeeded` đọc `review-result.json`, đọc không được thì báo `failed` kèm lý do. */
+/**
+ * Mục hàng đợi cho một response; `succeeded` đọc `review-result.json`. Chưa đọc được thì `null` (đọc lại lượt sau);
+ * quá `RESULT_READ_GRACE_MS` vẫn không đọc được thì báo `failed` kèm lý do.
+ */
 async function buildItem(
   r: CrewReviewResponse,
   ref: BugFindingRequestEntry,
   deps: ResultsDeps,
-): Promise<BugFindingOutboxItem> {
+): Promise<BugFindingOutboxItem | null> {
   const body: BugFindingResultBody = {
     companyId: ref.companyId,
     machineId: ref.machineId,
@@ -213,10 +234,11 @@ async function buildItem(
     ...(r.error !== undefined ? { error: r.error } : {}),
   };
   const queuedAt = new Date(deps.now()).toISOString();
-  if (r.state !== 'succeeded') return { requestId: r.requestId, body, queuedAt };
+  const base = { requestId: r.requestId, origin: ref.origin, queuedAt };
+  if (r.state !== 'succeeded') return { ...base, body };
   const failedItem = (error: string): BugFindingOutboxItem => {
     const { verdict: _verdict, ...rest } = body;
-    return { requestId: r.requestId, body: { ...rest, state: 'failed', error }, queuedAt };
+    return { ...base, body: { ...rest, state: 'failed', error } };
   };
   if (!r.verdict) return failedItem('Bug Finding báo xong nhưng không có verdict');
   if (!r.resultDir)
@@ -230,33 +252,48 @@ async function buildItem(
       .filter((item): item is BugFindingFinding => item !== null)
       .slice(0, MAX_FINDINGS);
   } catch (error) {
+    const since = deps.memory.unreadableSince.get(r.requestId) ?? deps.now();
+    deps.memory.unreadableSince.set(r.requestId, since);
+    if (deps.now() - since < RESULT_READ_GRACE_MS) {
+      deps.log('warn', 'bug-finding-relay-result-unreadable', {
+        requestId: r.requestId,
+        error: errText(error),
+      });
+      return null;
+    }
+    deps.memory.unreadableSince.delete(r.requestId);
     return failedItem(
       `Không đọc được review-result.json của Bug Finding: ${errText(error)}`.slice(0, ERROR_MAX),
     );
   }
-  return {
-    requestId: r.requestId,
-    body: { ...body, findings },
-    ...(r.reportPath ? { reportPath: r.reportPath } : {}),
-    queuedAt,
-  };
-}
-
-/** Lỗi gửi đáng thử lại: mạng, timeout, server 5xx/429, chưa đăng nhập. Lỗi 4xx khác là server từ chối hẳn. */
-function retryable(error: unknown): boolean {
-  if (error instanceof PaperclipAuthError) return true;
-  if (error instanceof PaperclipHttpError) {
-    return error.status === 0 || error.status === 429 || error.status >= 500;
-  }
-  return true;
+  deps.memory.unreadableSince.delete(r.requestId);
+  return { ...base, body: { ...body, findings }, ...(r.reportPath ? { reportPath: r.reportPath } : {}) };
 }
 
 const isFinal = (state: BugFindingResultState) => FINAL_STATES.includes(state);
 
 /**
+ * Phân loại lỗi gửi. `offline`: không tới được server hay chưa đăng nhập (401), dừng gửi tới origin đó lượt này, không
+ * đếm lần thử. `hold`: 403 (tài khoản đang đăng nhập không thuộc company), giữ mục, không đếm. `retry`: lỗi tạm thời
+ * của riêng mục (quá hạn, 408, 413, 429, 5xx), đếm lần thử và lùi thời gian. `reject`: server từ chối hẳn (4xx khác).
+ */
+function classify(error: unknown): 'offline' | 'hold' | 'retry' | 'reject' {
+  if (error instanceof PaperclipAuthError) return 'offline';
+  if (!(error instanceof PaperclipHttpError)) return 'offline';
+  if (error.status === 0) return error.code === 'timeout' ? 'retry' : 'offline';
+  if (error.status === 403) return 'hold';
+  if ([408, 413, 429].includes(error.status) || error.status >= 500) return 'retry';
+  return 'reject';
+}
+
+const tooLarge = (error: unknown) => error instanceof PaperclipHttpError && error.status === 413;
+
+/**
  * Một lượt chuyển: đọc mọi response, xếp bản tin mới vào hàng đợi (mỗi lượt Bug Finding giữ một mục, bản mới thay bản
- * cũ), rồi gửi lần lượt. Bỏ response của lượt không có trong sổ (không do 2P Crew xếp) hay đã gửi xong kết quả cuối.
- * `running` gửi tối đa 1 lần/phút mỗi lượt. Lỗi mạng: dừng gửi, giữ phần còn lại cho lượt sau. Không ném.
+ * cũ), rồi gửi từng mục tới origin đã giao việc. Bỏ response của lượt không có trong sổ (không do 2P Crew xếp) hay đã
+ * gửi xong kết quả cuối. `running` gửi tối đa 1 lần/phút mỗi lượt. Mục của origin khác origin đang đăng nhập chỉ giữ
+ * (không gửi, không đánh dấu đã gửi). Body quá lớn (413) thì gửi lại ngay một lần không kèm báo cáo. Một mục lỗi không
+ * chặn mục khác: mỗi mục lùi thời gian riêng, quá `MAX_ATTEMPTS` lần thì bỏ và ghi `gaveUp` vào sổ. Không ném.
  */
 export async function relayResponses(deps: ResultsDeps): Promise<{ sent: number; pending: number }> {
   const state = deps.load();
@@ -264,6 +301,8 @@ export async function relayResponses(deps: ResultsDeps): Promise<{ sent: number;
   const requests = { ...state.requests };
   let changed = false;
   const now = deps.now();
+  /** Chỉ ghi vào `memory.last` khi `app.json` đã lưu: lưu lỗi thì lượt sau xếp lại bản tin. */
+  const queuedNow = new Map<string, { state: BugFindingResultState; sig: string; at: number }>();
 
   let responses: unknown[] = [];
   try {
@@ -275,7 +314,7 @@ export async function relayResponses(deps: ResultsDeps): Promise<{ sent: number;
     const r = parseResponse(raw);
     if (!r) continue;
     const ref = requests[r.requestId];
-    if (!ref || ref.delivered) continue;
+    if (!ref || ref.delivered || !ref.origin) continue;
     const queued = outbox.find((item) => item.requestId === r.requestId);
     if (queued && isFinal(queued.body.state)) continue;
     const sig = progressSig(r);
@@ -283,8 +322,9 @@ export async function relayResponses(deps: ResultsDeps): Promise<{ sent: number;
     if (last?.sig === sig) continue;
     if (r.state === 'running' && last?.state === 'running' && now - last.at < RUNNING_EVERY_MS) continue;
     const item = await buildItem(r, ref, deps);
+    if (!item) continue;
     outbox = [...outbox.filter((entry) => entry.requestId !== r.requestId), item];
-    deps.memory.last.set(r.requestId, { state: r.state, sig, at: now });
+    queuedNow.set(r.requestId, { state: r.state, sig, at: now });
     changed = true;
   }
   if (outbox.length > OUTBOX_MAX) {
@@ -292,51 +332,112 @@ export async function relayResponses(deps: ResultsDeps): Promise<{ sent: number;
     changed = true;
   }
 
+  const current = deps.currentOrigin();
+  const offline = new Set<string>();
   let sent = 0;
   const pending: BugFindingOutboxItem[] = [];
-  let offline = false;
-  for (const item of outbox) {
-    if (offline) {
+  const done = (item: BugFindingOutboxItem, gaveUp?: string) => {
+    changed = true;
+    const ref = requests[item.requestId];
+    if (!ref || !isFinal(item.body.state)) return;
+    requests[item.requestId] = { ...ref, delivered: true, ...(gaveUp ? { gaveUp } : {}) };
+  };
+  for (const original of outbox) {
+    let item = original;
+    if (item.nextAttemptAt && Date.parse(item.nextAttemptAt) > now) {
       pending.push(item);
       continue;
     }
-    const final = isFinal(item.body.state);
-    try {
-      await deps.post(await withReport(item, deps));
-      sent += 1;
-    } catch (error) {
-      if (retryable(error)) {
-        offline = true;
-        pending.push(item);
-        deps.log('warn', 'bug-finding-relay-post-failed', {
+    if (!item.origin || item.origin !== current) {
+      pending.push(item);
+      if (!deps.memory.heldLogged.has(item.requestId)) {
+        deps.memory.heldLogged.add(item.requestId);
+        deps.log('warn', 'bug-finding-relay-held', {
           requestId: item.requestId,
-          error: errText(error),
+          origin: item.origin ?? null,
+          currentOrigin: current,
         });
-        continue;
       }
-      deps.log('warn', 'bug-finding-relay-rejected', {
-        requestId: item.requestId,
-        state: item.body.state,
-        error: errText(error),
-      });
+      continue;
     }
-    changed = true;
-    const ref = requests[item.requestId];
-    if (final && ref) requests[item.requestId] = { ...ref, delivered: true };
+    deps.memory.heldLogged.delete(item.requestId);
+    if (offline.has(item.origin)) {
+      pending.push(item);
+      continue;
+    }
+    let error: unknown = null;
+    try {
+      await deps.post(item.origin, await withReport(item, deps));
+    } catch (first) {
+      error = first;
+    }
+    if (error !== null && tooLarge(error) && item.reportPath && !item.withoutReport) {
+      // Proxy hay route chặn body lớn: gửi lại ngay bản không có báo cáo (vẫn đủ finding rút gọn).
+      deps.log('warn', 'bug-finding-relay-too-large', { requestId: item.requestId });
+      item = { ...item, withoutReport: true };
+      changed = true;
+      error = null;
+      try {
+        await deps.post(item.origin, item.body);
+      } catch (second) {
+        error = second;
+      }
+    }
+    if (error === null) {
+      sent += 1;
+      done(item);
+      continue;
+    }
+    const fields = { requestId: item.requestId, state: item.body.state, error: errText(error) };
+    switch (classify(error)) {
+      case 'offline':
+        offline.add(item.origin);
+        pending.push(item);
+        deps.log('warn', 'bug-finding-relay-post-failed', fields);
+        break;
+      case 'hold':
+        // Không đếm lần thử: đăng nhập lại đúng tài khoản thì gửi được; chỉ giãn lần hỏi lại.
+        pending.push({ ...item, nextAttemptAt: new Date(now + FORBIDDEN_RETRY_MS).toISOString() });
+        changed = true;
+        deps.log('warn', 'bug-finding-relay-forbidden', fields);
+        break;
+      case 'retry': {
+        const attempts = (item.attempts ?? 0) + 1;
+        if (attempts >= MAX_ATTEMPTS) {
+          deps.log('warn', 'bug-finding-relay-gave-up', { ...fields, attempts });
+          done(item, `Gửi lỗi ${attempts} lần: ${errText(error)}`.slice(0, ERROR_MAX));
+          break;
+        }
+        const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** (attempts - 1));
+        pending.push({ ...item, attempts, nextAttemptAt: new Date(now + delay).toISOString() });
+        changed = true;
+        deps.log('warn', 'bug-finding-relay-post-failed', { ...fields, attempts });
+        break;
+      }
+      case 'reject':
+        deps.log('warn', 'bug-finding-relay-rejected', fields);
+        done(item);
+        break;
+    }
   }
   if (changed) {
     try {
       await deps.save({ outbox: pending, requests });
     } catch (error) {
       deps.log('warn', 'bug-finding-relay-save-failed', { error: errText(error) });
+      return { sent, pending: pending.length };
     }
   }
+  for (const [id, entry] of queuedNow) deps.memory.last.set(id, entry);
   return { sent, pending: pending.length };
 }
 
-/** Body gửi đi: kèm báo cáo đọc lại từ `reportPath` (cắt nếu quá 2 MB); đọc không được thì gửi không có báo cáo. */
+/**
+ * Body gửi đi: kèm báo cáo đọc lại từ `reportPath` (cắt nếu quá 2 MB); đọc không được hay đã bị 413 thì gửi không có
+ * báo cáo.
+ */
 async function withReport(item: BugFindingOutboxItem, deps: ResultsDeps): Promise<BugFindingResultBody> {
-  if (!item.reportPath) return item.body;
+  if (!item.reportPath || item.withoutReport) return item.body;
   try {
     return { ...item.body, reportMarkdown: cutReport(await deps.readFile(item.reportPath)) };
   } catch (error) {
@@ -351,29 +452,46 @@ async function withReport(item: BugFindingOutboxItem, deps: ResultsDeps): Promis
 /** Ghi lượt mới vào sổ (giữ tối đa `REQUESTS_MAX` lượt mới nhất). Lượt đã có thì giữ nguyên. */
 export function rememberRequest(
   requests: Record<string, BugFindingRequestEntry> | undefined,
-  ref: { requestId: string; companyId: string; machineId: string },
+  ref: { requestId: string; companyId: string; machineId: string; origin: string },
   at: string,
 ): Record<string, BugFindingRequestEntry> {
   const current = requests ?? {};
   if (current[ref.requestId]) return current;
   const entries = Object.entries({
     ...current,
-    [ref.requestId]: { companyId: ref.companyId, machineId: ref.machineId, at },
+    [ref.requestId]: { companyId: ref.companyId, machineId: ref.machineId, origin: ref.origin, at },
   });
   entries.sort((a, b) => a[1].at.localeCompare(b[1].at));
   return Object.fromEntries(entries.slice(Math.max(0, entries.length - REQUESTS_MAX)));
 }
 
-/** Gộp cờ `delivered` relay vừa đặt vào sổ hiện có (sổ có thể vừa thêm lượt mới trong lúc relay chạy). */
+/** Gộp cờ `delivered`/`gaveUp` relay vừa đặt vào sổ hiện có (sổ có thể vừa thêm lượt mới trong lúc relay chạy). */
 export function mergeDelivered(
   current: Record<string, BugFindingRequestEntry> | undefined,
   next: Record<string, BugFindingRequestEntry>,
 ): Record<string, BugFindingRequestEntry> {
   const out: Record<string, BugFindingRequestEntry> = {};
   for (const [id, entry] of Object.entries(current ?? {})) {
-    out[id] = next[id]?.delivered ? { ...entry, delivered: true } : entry;
+    const marked = next[id];
+    out[id] = marked?.delivered
+      ? { ...entry, delivered: true, ...(marked.gaveUp ? { gaveUp: marked.gaveUp } : {}) }
+      : entry;
   }
   return out;
+}
+
+/**
+ * `readFile` của relay: chỉ đọc file nằm trong `root` (thư mục dữ liệu Bug Finding) sau khi giải symlink, để response
+ * không trỏ relay tới file bất kỳ trên máy rồi gửi lên server.
+ */
+export function createBridgeFileReader(root: string): (path: string) => Promise<string> {
+  return async (path) => {
+    const [real, realRoot] = await Promise.all([realpath(path), realpath(root)]);
+    if (!real.startsWith(`${realRoot}${sep}`)) {
+      throw new Error('File nằm ngoài thư mục dữ liệu Bug Finding');
+    }
+    return readFile(real, 'utf8');
+  };
 }
 
 /** Đọc mọi `*.json` trong thư mục responses (bỏ file tạm và file hỏng). */
@@ -462,4 +580,30 @@ export function startResultsRelay(opts: {
       watcher?.close();
     },
   };
+}
+
+/** Phần relay hiện ở mục Bug Finding: kết quả đang bị giữ và kết quả đã bỏ. */
+export interface BugFindingRelayView {
+  /** Kết quả chờ gửi về origin đã giao việc nhưng app đang đăng nhập origin khác (hay chưa đăng nhập). */
+  held: Array<{ origin: string; count: number }>;
+  /** Kết quả cuối đã bỏ vì gửi lỗi quá số lần (mới nhất trước, tối đa 10). */
+  gaveUp: Array<{ requestId: string; at: string; error: string }>;
+}
+
+export function relayView(
+  outbox: readonly BugFindingOutboxItem[],
+  requests: Record<string, BugFindingRequestEntry>,
+  currentOrigin: string | null,
+): BugFindingRelayView {
+  const held = new Map<string, number>();
+  for (const item of outbox) {
+    if (item.origin === currentOrigin) continue;
+    const origin = item.origin ?? '(không rõ)';
+    held.set(origin, (held.get(origin) ?? 0) + 1);
+  }
+  const gaveUp = Object.entries(requests)
+    .flatMap(([requestId, entry]) => (entry.gaveUp ? [{ requestId, at: entry.at, error: entry.gaveUp }] : []))
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 10);
+  return { held: [...held].map(([origin, count]) => ({ origin, count })), gaveUp };
 }

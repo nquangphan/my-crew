@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  checkLaunch,
+  createLaunchGate,
   launchBugFinding,
+  OPEN_TIMEOUT_MS,
+  PROBE_TIMEOUT_MS,
   parseRunningAppPaths,
   runningBugFindingApps,
   trashStandalone,
@@ -18,7 +22,32 @@ describe('launchBugFinding', () => {
       { ...base, runningAppPaths: async () => ['/Applications/Bug Finding.app'] },
       { background: false },
     );
-    expect(r).toEqual({ ok: false, reason: 'standalone_running' });
+    expect(r).toEqual({ ok: false, reason: 'standalone_running', paths: ['/Applications/Bug Finding.app'] });
+  });
+  it('kiểm trước (checkLaunch) không chạy open', async () => {
+    const calls: string[][] = [];
+    const deps = {
+      ...base,
+      runningAppPaths: async () => ['/Volumes/DMG/2P Crew.app/Contents/Resources/Bug Finding.app'],
+      run: async (a: string[]) => {
+        calls.push(a);
+        return { code: 0 };
+      },
+    };
+    expect(await checkLaunch(deps)).toEqual({
+      ok: false,
+      reason: 'standalone_running',
+      paths: ['/Volumes/DMG/2P Crew.app/Contents/Resources/Bug Finding.app'],
+    });
+    expect(calls).toEqual([]);
+  });
+  it('open quá hạn thì ném lỗi rõ ràng', async () => {
+    await expect(
+      launchBugFinding(
+        { ...base, runningAppPaths: async () => [], run: async () => ({ code: 137, timedOut: true }) },
+        { background: true },
+      ),
+    ).rejects.toThrow(`open quá ${OPEN_TIMEOUT_MS / 1000} giây`);
   });
   it('mở nền bằng open -g', async () => {
     const calls: string[][] = [];
@@ -77,10 +106,11 @@ describe('launchBugFinding', () => {
 });
 
 describe('parseRunningAppPaths', () => {
-  it('lấy đường dẫn bundle từ đầu ra pgrep -fl', () => {
+  it('lấy đường dẫn bundle từ cột comm của ps', () => {
     const out = [
       '48211 /Applications/Bug Finding.app/Contents/MacOS/MRReviewQueue',
-      '5120 /A/2P Crew.app/Contents/Resources/Bug Finding.app/Contents/MacOS/MRReviewQueue -psn_0',
+      ' 5120 /A/2P Crew.app/Contents/Resources/Bug Finding.app/Contents/MacOS/MRReviewQueue',
+      '  437 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow',
       '',
     ].join('\n');
     expect(parseRunningAppPaths(out)).toEqual([
@@ -88,24 +118,70 @@ describe('parseRunningAppPaths', () => {
       '/A/2P Crew.app/Contents/Resources/Bug Finding.app',
     ]);
   });
+  it('lệnh khác nhận đường dẫn binary Bug Finding làm tham số không bị tính (comm chỉ là chương trình)', () => {
+    // `codesign -v '/A/Bug Finding.app/Contents/MacOS/MRReviewQueue'` hiện trong comm của ps chỉ là /usr/bin/codesign.
+    expect(parseRunningAppPaths('9 /usr/bin/codesign\n10 /usr/bin/lldb\n')).toEqual([]);
+  });
 });
 
 describe('runningBugFindingApps', () => {
-  it('hỏi pgrep -fl đúng mẫu tiến trình; không khớp (mã 1) thì rỗng', async () => {
-    const calls: Array<[string, readonly string[]]> = [];
-    const runner = (code: number, stdout: string) => ({
-      run: async (command: string, args: readonly string[]) => {
-        calls.push([command, args]);
-        return { code, stdout, stderr: '', timedOut: false };
-      },
-    });
+  const runner = (out: { code: number; stdout?: string; timedOut?: boolean }, calls: unknown[] = []) => ({
+    run: async (command: string, args: readonly string[], options?: { timeoutMs?: number }) => {
+      calls.push([command, args, options]);
+      return { code: out.code, stdout: out.stdout ?? '', stderr: '', timedOut: out.timedOut ?? false };
+    },
+  });
+  it('hỏi ps (có hạn) và lấy bundle Bug Finding', async () => {
+    const calls: unknown[] = [];
     expect(
       await runningBugFindingApps(
-        runner(0, '7 /Applications/Bug Finding.app/Contents/MacOS/MRReviewQueue\n'),
+        runner({ code: 0, stdout: '7 /Applications/Bug Finding.app/Contents/MacOS/MRReviewQueue\n' }, calls),
       ),
     ).toEqual(['/Applications/Bug Finding.app']);
-    expect(calls[0]).toEqual(['/usr/bin/pgrep', ['-fl', 'Bug Finding.app/Contents/MacOS/MRReviewQueue']]);
-    expect(await runningBugFindingApps(runner(1, ''))).toEqual([]);
+    expect(calls[0]).toEqual(['/bin/ps', ['-axo', 'pid=,comm='], { timeoutMs: PROBE_TIMEOUT_MS }]);
+  });
+  it('ps lỗi hay quá hạn thì ném, không coi là không chạy', async () => {
+    await expect(runningBugFindingApps(runner({ code: 2 }))).rejects.toThrow('ps lỗi (mã 2)');
+    await expect(runningBugFindingApps(runner({ code: 137, timedOut: true }))).rejects.toThrow('quá');
+  });
+});
+
+describe('createLaunchGate', () => {
+  it('cổng đóng thì không chạy việc mới; close chờ việc đang chạy xong', async () => {
+    const gate = createLaunchGate();
+    let release: () => void = () => undefined;
+    const events: string[] = [];
+    const running = gate.run(
+      () =>
+        new Promise<string>((resolve) => {
+          release = () => resolve('xong');
+        }),
+      () => 'đóng',
+    );
+    let closed = false;
+    const closing = gate.close().then(() => {
+      closed = true;
+    });
+    expect(
+      await gate.run(
+        async () => 'chạy',
+        () => 'đóng',
+      ),
+    ).toBe('đóng');
+    await Promise.resolve();
+    expect(closed).toBe(false);
+    release();
+    expect(await running).toBe('xong');
+    await closing;
+    expect(closed).toBe(true);
+    gate.open();
+    expect(
+      await gate.run(
+        async () => 'chạy',
+        () => 'đóng',
+      ),
+    ).toBe('chạy');
+    expect(events).toEqual([]);
   });
 });
 

@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { type RuntimesStatus, treeChecksum } from '@crew/mac';
-import type { LaunchResult } from '../bug-finding/launch.js';
+import type { LaunchGate, LaunchResult } from '../bug-finding/launch.js';
 import { isFile } from '../projects/docs-runtime.js';
 import {
   configureDocsBundle,
@@ -125,11 +125,16 @@ async function guarded(
 /** Schema file yêu cầu review mà app Bug Finding đọc (`CrewReviewRequest` của repo `bug-finding`). */
 export const CREW_REVIEW_REQUEST_SCHEMA = 'crew-review-request/1';
 
-/** Lượt Bug Finding 2P Crew đã nhận: relay kết quả cần company và máy của việc để gửi về đúng chỗ. */
+/**
+ * Lượt Bug Finding 2P Crew đã nhận: relay kết quả cần company, máy và origin Paperclip đã giao việc để chỉ gửi về
+ * đúng nơi đó.
+ */
 export interface BugFindingRequestRef {
   requestId: string;
   companyId: string;
   machineId: string;
+  /** Origin board đã giao việc (đích hỏi việc của poller). */
+  origin: string;
 }
 
 /** Những gì `bug-finding-review` cần; chạy trong Main (mở app, đồng bộ project, ghi sổ lượt vào `app.json`). */
@@ -138,11 +143,17 @@ export interface BugFindingReviewDeps {
   /** `bugFindingPaths(home).requestsDir`. */
   requestsDir: string;
   repoExists(path: string): boolean;
-  /** Ghi lại `crew/projects.json` để Bug Finding thấy project của lượt; lỗi không chặn việc. */
+  /** Ghi lại `crew/projects.json` để Bug Finding thấy project của lượt; lỗi không chặn ngay, xem `projectKnown`. */
   syncProjects(): Promise<void>;
+  /** `crew/projects.json` hiện có ghi cho `companyId` và có project `projectId` (Bug Finding tra được project). */
+  projectKnown(companyId: string, projectId: string): Promise<boolean>;
+  /** `checkLaunch` với app nhúng: kiểm trước khi ghi yêu cầu, không mở gì. */
+  checkLaunch(): Promise<LaunchResult>;
   /** `launchBugFinding` với app nhúng. */
   launch(opts: { background: boolean }): Promise<LaunchResult>;
   recordRequest(ref: BugFindingRequestRef): Promise<void>;
+  /** Cổng mở Bug Finding: đóng trong lúc 2P Crew chờ cài bản mới. */
+  gate: Pick<LaunchGate, 'run'>;
 }
 
 /** Thân file `requests/<requestId>.json`: đúng trường của `CrewReviewRequest`. */
@@ -160,15 +171,42 @@ export function crewReviewRequest(payload: BugFindingReviewPayload) {
   };
 }
 
+export const BUG_FINDING_UPDATING_TEXT =
+  '2P Crew đang chờ cài bản mới nên chưa nhận lượt Bug Finding; xếp lại sau khi máy cài xong';
+const ABORTED_TEXT = 'Việc đã bị hủy vì quá thời gian';
+
+function launchError(result: Extract<LaunchResult, { ok: false }>): JobError {
+  switch (result.reason) {
+    case 'standalone_running':
+      return new JobError(
+        'standalone_running',
+        `Bug Finding khác bản đi kèm 2P Crew đang chạy (${result.paths.join(', ')}): thoát bản đó (hoặc gỡ bản cài riêng ở mục Bug Finding của 2P Crew) rồi chạy lại`,
+      );
+    case 'updating':
+      return new JobError('app_error', BUG_FINDING_UPDATING_TEXT);
+    default:
+      return new JobError(
+        'bug_finding_missing',
+        'Không tìm thấy app Bug Finding đi kèm 2P Crew trên máy này',
+      );
+  }
+}
+
 /**
- * Việc `bug-finding-review`: ghi yêu cầu vào hàng đợi file của app Bug Finding rồi mở app nền, trả `accepted` ngay
- * (không giữ việc suốt lượt review; tiến độ và kết quả đi qua relay `bug-finding/results.ts`). Cùng `requestId` không
- * ghi lần hai (Bug Finding đổi tên file đã xử lý thành `.json.done`). Không mở được app thì bỏ file vừa ghi.
+ * Việc `bug-finding-review`: kiểm Bug Finding tra được project của lượt (sau khi đồng bộ `projects.json`) và mở được
+ * bản nhúng, rồi mới ghi yêu cầu vào hàng đợi file của app và mở app nền, trả `accepted` ngay (không giữ việc suốt lượt
+ * review; tiến độ và kết quả đi qua relay `bug-finding/results.ts`, chỉ về `origin` đã giao việc). Cùng `requestId`
+ * không ghi lần hai (Bug Finding đổi tên file đã xử lý thành `.json.done`). Không mở được app, việc bị hủy vì quá giờ
+ * (`signal`) hay 2P Crew đang chờ cài bản mới thì không để lại file yêu cầu nào Bug Finding chưa nhận.
  */
 export async function runBugFindingReview(
   job: Pick<MachineJob, 'companyId' | 'machineId' | 'kind' | 'payload'>,
   deps: BugFindingReviewDeps,
+  opts: { origin: string; signal?: AbortSignal },
 ): Promise<JobOutcome> {
+  const stopIfAborted = () => {
+    if (opts.signal?.aborted) throw new JobError('app_error', ABORTED_TEXT);
+  };
   return guarded(job, deps.home, async (payload, companyId) => {
     if (payload.kind !== 'bug-finding-review') throw new Error('Việc không phải bug-finding-review');
     if (!deps.repoExists(payload.repoPath)) {
@@ -178,38 +216,56 @@ export async function runBugFindingReview(
       );
     }
     await deps.syncProjects().catch(() => undefined);
-    await deps.recordRequest({
-      requestId: payload.requestId,
-      companyId,
-      machineId: String(job.machineId).toLowerCase(),
-    });
-    const file = join(deps.requestsDir, `${payload.requestId}.json`);
-    let wrote = false;
-    if (!existsSync(file) && !existsSync(`${file}.done`)) {
-      mkdirSync(deps.requestsDir, { recursive: true, mode: 0o700 });
-      const tmp = `${file}.tmp-${randomUUID()}`;
-      writeFileSync(tmp, `${JSON.stringify(crewReviewRequest(payload), null, 2)}\n`, { mode: 0o600 });
-      renameSync(tmp, file);
-      wrote = true;
+    stopIfAborted();
+    if (!(await deps.projectKnown(companyId, payload.projectId).catch(() => false))) {
+      throw new JobError(
+        'project_missing',
+        `Bug Finding trên máy này chưa có project ${payload.projectKey} của company này (danh sách project đồng bộ sang Bug Finding không có project đó)`,
+      );
     }
-    let launched: LaunchResult;
-    try {
-      launched = await deps.launch({ background: true });
-    } catch (error) {
-      if (wrote) rmSync(file, { force: true });
-      throw error;
-    }
-    if (!launched.ok) {
-      if (wrote) rmSync(file, { force: true });
-      if (launched.reason === 'standalone_running') {
-        throw new JobError(
-          'standalone_running',
-          'Bug Finding bản cài riêng cũ đang chạy: thoát bản đó (hoặc gỡ ở mục Bug Finding của 2P Crew) rồi chạy lại',
-        );
-      }
-      throw new JobError('bug_finding_missing', 'Không tìm thấy app Bug Finding đi kèm 2P Crew trên máy này');
-    }
-    return { status: 'done', result: { kind: 'bug-finding-review', accepted: true } };
+    return deps.gate.run(
+      async (): Promise<JobOutcome> => {
+        stopIfAborted();
+        const checked = await deps.checkLaunch();
+        if (!checked.ok) throw launchError(checked);
+        stopIfAborted();
+        await deps.recordRequest({
+          requestId: payload.requestId,
+          companyId,
+          machineId: String(job.machineId).toLowerCase(),
+          origin: opts.origin,
+        });
+        const file = join(deps.requestsDir, `${payload.requestId}.json`);
+        // Bug Finding đổi tên file đã nhận thành `.json.done`: file còn tên cũ là chưa được nhận, gỡ được.
+        const dropUnclaimed = () => rmSync(file, { force: true });
+        if (!existsSync(file) && !existsSync(`${file}.done`)) {
+          mkdirSync(deps.requestsDir, { recursive: true, mode: 0o700 });
+          const tmp = `${file}.tmp-${randomUUID()}`;
+          writeFileSync(tmp, `${JSON.stringify(crewReviewRequest(payload), null, 2)}\n`, { mode: 0o600 });
+          renameSync(tmp, file);
+        }
+        let launched: LaunchResult;
+        try {
+          stopIfAborted();
+          launched = await deps.launch({ background: true });
+        } catch (error) {
+          dropUnclaimed();
+          throw error;
+        }
+        if (!launched.ok) {
+          dropUnclaimed();
+          throw launchError(launched);
+        }
+        if (opts.signal?.aborted) {
+          dropUnclaimed();
+          throw new JobError('app_error', ABORTED_TEXT);
+        }
+        return { status: 'done', result: { kind: 'bug-finding-review', accepted: true } };
+      },
+      () => {
+        throw launchError({ ok: false, reason: 'updating' });
+      },
+    );
   });
 }
 

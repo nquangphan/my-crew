@@ -11,8 +11,13 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { LaunchResult } from '../../src/main/bug-finding/launch.js';
-import { type BugFindingReviewDeps, runBugFindingReview, runJob } from '../../src/main/jobs/executors.js';
+import { createLaunchGate, type LaunchResult } from '../../src/main/bug-finding/launch.js';
+import {
+  BUG_FINDING_UPDATING_TEXT,
+  type BugFindingReviewDeps,
+  runJob,
+  runBugFindingReview as runReviewWith,
+} from '../../src/main/jobs/executors.js';
 import type { MachineJob } from '../../src/main/jobs/types.js';
 import { machineGuardReason, validateJobPayload } from '../../src/main/jobs/validate.js';
 
@@ -20,6 +25,7 @@ const REQUEST = '7a0c3f2e-1b4d-4c5e-8f60-0123456789ab';
 const COMPANY = '11111111-1111-4111-8111-111111111111';
 const MACHINE = '22222222-2222-4222-8222-222222222222';
 const HEAD = 'a'.repeat(40);
+const ORIGIN = 'https://crew.example';
 
 const payload = (over: Record<string, unknown> = {}) => ({
   requestId: REQUEST,
@@ -100,6 +106,9 @@ describe('runBugFindingReview', () => {
   let syncs: number;
   let recorded: unknown[];
   let launchResult: LaunchResult;
+  let checkResult: LaunchResult;
+  let known: boolean;
+  let gate: ReturnType<typeof createLaunchGate>;
 
   const deps = (over: Partial<BugFindingReviewDeps> = {}): BugFindingReviewDeps => ({
     home: '/Users/owner',
@@ -108,6 +117,8 @@ describe('runBugFindingReview', () => {
     syncProjects: async () => {
       syncs += 1;
     },
+    projectKnown: async () => known,
+    checkLaunch: async () => checkResult,
     launch: async (opts) => {
       launches.push(opts);
       return launchResult;
@@ -115,8 +126,14 @@ describe('runBugFindingReview', () => {
     recordRequest: async (ref) => {
       recorded.push(ref);
     },
+    gate,
     ...over,
   });
+  const runBugFindingReview = (
+    j: Parameters<typeof runReviewWith>[0],
+    d: BugFindingReviewDeps,
+    signal?: AbortSignal,
+  ) => runReviewWith(j, d, { origin: ORIGIN, ...(signal ? { signal } : {}) });
   const job = (
     over: Record<string, unknown> = {},
   ): Pick<MachineJob, 'companyId' | 'machineId' | 'kind' | 'payload'> => ({
@@ -135,6 +152,9 @@ describe('runBugFindingReview', () => {
     syncs = 0;
     recorded = [];
     launchResult = { ok: true };
+    checkResult = { ok: true };
+    known = true;
+    gate = createLaunchGate();
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -156,7 +176,9 @@ describe('runBugFindingReview', () => {
     expect(readdirSync(requestsDir)).toEqual([`${REQUEST}.json`]);
     expect(launches).toEqual([{ background: true }]);
     expect(syncs).toBe(1);
-    expect(recorded).toEqual([{ requestId: REQUEST, companyId: COMPANY, machineId: MACHINE }]);
+    expect(recorded).toEqual([
+      { requestId: REQUEST, companyId: COMPANY, machineId: MACHINE, origin: ORIGIN },
+    ]);
   });
 
   it('chạy lại cùng requestId không ghi lần hai (kể cả khi Bug Finding đã đổi tên thành .json.done)', async () => {
@@ -187,10 +209,76 @@ describe('runBugFindingReview', () => {
     expect(existsSync(join(requestsDir, `${REQUEST}.json`))).toBe(false);
   });
 
-  it('bản cài riêng cũ đang chạy → standalone_running', async () => {
-    launchResult = { ok: false, reason: 'standalone_running' };
+  it('bản Bug Finding khác đang chạy → standalone_running, chưa từng ghi file yêu cầu, nêu đường dẫn', async () => {
+    checkResult = { ok: false, reason: 'standalone_running', paths: ['/Applications/Bug Finding.app'] };
     const outcome = await runBugFindingReview(job(), deps());
     expect(outcome).toMatchObject({ status: 'failed', errorCode: 'standalone_running' });
+    expect(outcome.status === 'failed' && outcome.errorText).toContain('/Applications/Bug Finding.app');
+    expect(existsSync(requestsDir)).toBe(false);
+    expect(launches).toEqual([]);
+    expect(recorded).toEqual([]);
+  });
+
+  it('launch lỗi thì gỡ cả file yêu cầu còn lại từ lần nhận trước mà Bug Finding chưa nhận', async () => {
+    mkdirSync(requestsDir, { recursive: true });
+    const file = join(requestsDir, `${REQUEST}.json`);
+    writeFileSync(file, 'LẦN TRƯỚC');
+    launchResult = { ok: false, reason: 'standalone_running', paths: ['/X/Bug Finding.app'] };
+    const outcome = await runBugFindingReview(job(), deps());
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'standalone_running' });
+    expect(existsSync(file)).toBe(false);
+  });
+
+  it('Bug Finding chưa có project của lượt (company khác hay chưa đồng bộ) → project_missing, không ghi, không mở', async () => {
+    known = false;
+    const outcome = await runBugFindingReview(job(), deps());
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'project_missing' });
+    expect(existsSync(requestsDir)).toBe(false);
+    expect(launches).toEqual([]);
+    expect(syncs).toBe(1);
+  });
+
+  it('2P Crew đang chờ cài bản mới (cổng đóng) → từ chối, không ghi, không mở', async () => {
+    await gate.close();
+    const outcome = await runBugFindingReview(job(), deps());
+    expect(outcome).toEqual({
+      status: 'failed',
+      errorCode: 'app_error',
+      errorText: BUG_FINDING_UPDATING_TEXT,
+    });
+    expect(existsSync(requestsDir)).toBe(false);
+    expect(launches).toEqual([]);
+  });
+
+  it('việc bị hủy vì quá giờ trong lúc đồng bộ project: không ghi request, không mở app', async () => {
+    const abort = new AbortController();
+    const outcome = await runBugFindingReview(
+      job(),
+      deps({
+        syncProjects: async () => {
+          abort.abort();
+        },
+      }),
+      abort.signal,
+    );
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'app_error' });
+    expect(existsSync(requestsDir)).toBe(false);
+    expect(launches).toEqual([]);
+  });
+
+  it('việc bị hủy trong lúc mở app: gỡ file yêu cầu Bug Finding chưa nhận', async () => {
+    const abort = new AbortController();
+    const outcome = await runBugFindingReview(
+      job(),
+      deps({
+        launch: async () => {
+          abort.abort();
+          return { ok: true };
+        },
+      }),
+      abort.signal,
+    );
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'app_error' });
     expect(existsSync(join(requestsDir, `${REQUEST}.json`))).toBe(false);
   });
 
@@ -201,12 +289,12 @@ describe('runBugFindingReview', () => {
     expect(launches).toEqual([]);
   });
 
-  it('đồng bộ project lỗi vẫn ghi request (Bug Finding tự đồng bộ lại khi chưa thấy project)', async () => {
+  it('đồng bộ project lỗi mà projects.json đã có project của lượt: vẫn nhận việc', async () => {
     const outcome = await runBugFindingReview(
       job(),
       deps({
         syncProjects: async () => {
-          throw new Error('chưa chọn company');
+          throw new Error('Paperclip không trả lời');
         },
       }),
     );

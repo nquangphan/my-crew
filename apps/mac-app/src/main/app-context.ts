@@ -23,8 +23,16 @@ export interface AppContext {
   sendStatusSoon: (reason: string) => void;
   /** Nhờ ghi lại danh sách project Crew sang Bug Finding (gộp, chạy nền, không ném) sau khi project hay checkout đổi. */
   syncBugFindingSoon: (reason: string) => void;
-  /** Làm việc máy `bug-finding-review` trong Main (ghi yêu cầu vào hàng đợi Bug Finding, mở app nền). Không ném. */
-  runBugFindingReview: (job: MachineJob) => Promise<JobOutcome>;
+  /**
+   * Làm việc máy `bug-finding-review` trong Main (ghi yêu cầu vào hàng đợi Bug Finding, mở app nền). `origin`: origin
+   * board đã giao việc (kết quả chỉ về đó); `signal` bật khi việc quá giờ. Không ném.
+   */
+  runBugFindingReview: (
+    job: MachineJob,
+    opts: { origin: string; signal?: AbortSignal },
+  ) => Promise<JobOutcome>;
+  /** Máy có app Bug Finding nhúng chạy được: bản tin máy báo capability `bug-finding-review`. */
+  bugFindingAvailable: () => boolean;
   ipc: IpcRegistry;
   loginItem: LoginItem;
   tray: CrewTray;

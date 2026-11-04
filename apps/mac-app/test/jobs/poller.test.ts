@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  BUG_FINDING_CAPABILITY,
   createJobsPoller,
-  JOBS_CAPABILITIES,
   MissingKeyError,
   type PollerDeps,
   type PollTarget,
@@ -54,6 +54,7 @@ function fakes(over: Partial<PollerDeps> = {}) {
     run: async () => DONE,
     cancelRunning: vi.fn(),
     isVisible: () => visible,
+    capabilities: () => [BUG_FINDING_CAPABILITY],
     recordPoll: async (at, capabilities) => {
       polls.push(at.getTime());
       recordedCapabilities.push(capabilities);
@@ -255,7 +256,14 @@ describe('JobsPoller', () => {
     start(f.deps);
     await vi.advanceTimersByTimeAsync(0);
     expect(f.recordedCapabilities).toEqual([['bug-finding-review']]);
-    expect(JOBS_CAPABILITIES).toEqual(['bug-finding-review']);
+    expect(BUG_FINDING_CAPABILITY).toBe('bug-finding-review');
+  });
+
+  it('máy không có Bug Finding chạy được: không báo capability bug-finding-review', async () => {
+    const f = fakes({ capabilities: () => [] });
+    start(f.deps);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(f.recordedCapabilities).toEqual([[]]);
   });
 
   it('chưa có board key → không poll, không ghi jobsAgent', async () => {

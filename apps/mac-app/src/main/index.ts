@@ -7,6 +7,7 @@ import { STATE_CHANGED_EVENT } from '../shared/ipc-contract.js';
 import type { AppContext } from './app-context.js';
 import { AppLog } from './app-log.js';
 import { AppStateStore, chromiumUserDataDir } from './app-state.js';
+import { createLaunchGate } from './bug-finding/launch.js';
 import { registerBugFinding } from './bug-finding/register.js';
 import { forbiddenDebugSwitch } from './debug-switch.js';
 import { isTrustedSender, registerIpc } from './ipc.js';
@@ -115,7 +116,8 @@ async function start(): Promise<void> {
     sendStatusSoon: (reason) => statusNudge.request(reason),
     // `bugFinding` có ngay dưới đây (cùng lượt khởi động); chỉ được gọi khi IPC hay việc máy chạy, tức là sau đó.
     syncBugFindingSoon: (reason) => bugFinding.requestSync(reason),
-    runBugFindingReview: (job) => bugFinding.runReview(job),
+    runBugFindingReview: (job, opts) => bugFinding.runReview(job, opts),
+    bugFindingAvailable: () => bugFinding.available(),
     ipc,
     loginItem,
     tray,
@@ -135,8 +137,10 @@ async function start(): Promise<void> {
   registerPaperclip(ctx);
   registerProjects(ctx);
   registerSetup(ctx, sshd, health);
-  registerUpdate(ctx, sshd);
-  const bugFinding = registerBugFinding(ctx);
+  // Cổng mở Bug Finding: việc review và nút Mở đi qua đây; bước chờ cài bản mới đóng cổng tới khi cài xong hay hủy.
+  const bugFindingGate = createLaunchGate();
+  registerUpdate(ctx, sshd, bugFindingGate);
+  const bugFinding = registerBugFinding(ctx, bugFindingGate);
 
   app.on('second-instance', () => showWindow('second-instance'));
   app.on('activate', (_event, hasVisibleWindows) => windows.activate(hasVisibleWindows));

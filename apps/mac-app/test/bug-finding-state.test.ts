@@ -180,4 +180,38 @@ describe('readBugFindingState', () => {
   it('chưa đồng bộ lần nào thì sync rỗng', async () => {
     expect((await readBugFindingState(deps())).sync).toEqual({ lastSyncAt: null, projects: [] });
   });
+
+  it('chỉ parse các file mới nhất theo mtime của requests/ và responses/, không đọc cả lịch sử', async () => {
+    // 150 response cũ (mtime 2020) mà nội dung ghi startedAt rất mới: nếu bị parse thì sẽ đứng đầu bảng.
+    for (let i = 0; i < 150; i++) {
+      const id = `old-${i}`;
+      writeAt(
+        join(paths.responsesDir, `${id}.json`),
+        {
+          schema: 'crew-review-response/1',
+          requestId: id,
+          state: 'succeeded',
+          startedAt: '2030-01-01T00:00:00.000Z',
+        },
+        '2020-01-01T00:00:00.000Z',
+      );
+    }
+    for (let i = 0; i < 100; i++) {
+      const id = `new-${i}`;
+      writeAt(
+        join(paths.responsesDir, `${id}.json`),
+        { schema: 'crew-review-response/1', requestId: id, state: 'running' },
+        new Date(NOW - i * 1000).toISOString(),
+      );
+    }
+    const s = await readBugFindingState(deps());
+    expect(s.requests).toHaveLength(50);
+    expect(s.requests.every((row) => row.requestId.startsWith('new-'))).toBe(true);
+  });
+
+  it('nêu đường dẫn các bản Bug Finding khác bản nhúng đang chạy', async () => {
+    const other = '/Volumes/DMG/2P Crew.app/Contents/Resources/Bug Finding.app';
+    const s = await readBugFindingState(deps({ runningAppPaths: async () => [appPath, other] }));
+    expect(s.otherRunning).toEqual([other]);
+  });
 });

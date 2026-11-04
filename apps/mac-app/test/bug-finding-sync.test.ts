@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +8,7 @@ import {
   createRepoResolver,
   createSyncRunner,
   jobChangesProjects,
+  syncedProjectKnown,
   syncProjects,
 } from '../src/main/bug-finding/sync-projects';
 import type { ProjectRow } from '../src/shared/ipc-contract';
@@ -104,9 +105,74 @@ describe('createRepoResolver', () => {
   });
 
   it('trả null khi checkout không phải repo git và không có nguồn nào khác', async () => {
-    const resolve = createRepoResolver(async () => ({ code: 128, stdout: '' }));
+    const resolve = createRepoResolver(async () => ({
+      code: 128,
+      stdout: '',
+      stderr: 'fatal: not a git repository (or any of the parent directories): .git',
+    }));
     expect(await resolve({ ...row('p', 'shop', null), checkouts: [checkout] })).toBeNull();
     expect(await resolve(row('p', 'web-only', null, false))).toBeNull();
+  });
+
+  it('git lỗi tạm thời (quá hạn, thư mục chưa mount) thì ném RepoUnknownError, không coi là không có repo', async () => {
+    for (const out of [
+      { code: -1, stdout: '', stderr: '' },
+      { code: 128, stdout: '', stderr: "fatal: cannot change to '/Volumes/X': No such file or directory" },
+    ]) {
+      const resolve = createRepoResolver(async () => out);
+      await expect(resolve({ ...row('p', 'shop', null), checkouts: [checkout] })).rejects.toThrow(
+        'Chưa dò được repo',
+      );
+    }
+  });
+});
+
+describe('syncProjects khi dò repo lỗi tạm thời', () => {
+  it('giữ project với repoPath của lần ghi trước, không làm project biến mất', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bf-sync-unknown-'));
+    const file = join(dir, 'projects.json');
+    const checkout = { role: 'executor', path: '/Volumes/X/crew-agents/shop/executor', head: null };
+    const shop = { ...row('p-1', 'shop', null), checkouts: [checkout] };
+    try {
+      let git = { code: 0, stdout: '/Volumes/X/shop/.git\n', stderr: '' };
+      const deps = {
+        file,
+        companyId: 'c-1',
+        listRows: async () => [shop],
+        resolveRepo: createRepoResolver(async () => git),
+      };
+      await syncProjects(deps);
+      git = { code: -1, stdout: '', stderr: '' };
+      expect(await syncProjects(deps)).toEqual({ written: false, count: 1 });
+      expect(JSON.parse(readFileSync(file, 'utf8')).projects).toEqual([
+        { crewProjectId: 'p-1', key: 'shop', name: 'shop', repoPath: '/Volumes/X/shop' },
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('syncedProjectKnown', () => {
+  it('chỉ đúng khi projects.json ghi cho company của việc và có project của lượt', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bf-known-'));
+    const file = join(dir, 'projects.json');
+    try {
+      expect(await syncedProjectKnown(file, 'c-1', 'p-1')).toBe(false);
+      writeFileSync(
+        file,
+        JSON.stringify({
+          schema: 'crew-projects/1',
+          companyId: 'C-1',
+          projects: [{ crewProjectId: 'P-1', key: 'shop', name: 'shop', repoPath: '/r/shop' }],
+        }),
+      );
+      expect(await syncedProjectKnown(file, 'c-1', 'p-1')).toBe(true);
+      expect(await syncedProjectKnown(file, 'c-2', 'p-1')).toBe(false);
+      expect(await syncedProjectKnown(file, 'c-1', 'p-9')).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

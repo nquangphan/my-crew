@@ -277,6 +277,8 @@ describe('createUpdater', () => {
         h.order.push('bf-quit');
       },
       setReopen: async () => undefined,
+      hold: async () => undefined,
+      release: () => undefined,
     };
     h.fake.emit('update-downloaded', info('0.1.1'));
     await h.updater.idle();
@@ -302,13 +304,90 @@ describe('createUpdater', () => {
       setReopen: async (on) => {
         h.order.push(`bf-reopen:${on}`);
       },
+      hold: async () => {
+        h.order.push('bf-hold');
+      },
+      release: () => {
+        h.order.push('bf-release');
+      },
     };
     h.fake.emit('update-downloaded', info('0.1.1'));
     await h.updater.idle();
     expect(h.fake.calls).toEqual(['quitAndInstall:false:true']);
     const tail = h.order.slice(h.order.indexOf('pause'));
-    expect(tail.slice(0, 4)).toEqual(['pause', 'bf-reopen:true', 'bf-quit', 'snapshot']);
+    expect(tail.slice(0, 5)).toEqual(['pause', 'bf-hold', 'bf-reopen:true', 'bf-quit', 'snapshot']);
+    // Cài thành công: cổng mở Bug Finding giữ đóng tới khi app thoát.
+    expect(h.order).not.toContain('bf-release');
     expect(h.updater.view().reason).toBeNull();
+  });
+
+  it('Bug Finding mở lại (tay) sau khi drain đã thoát nó: không quitAndInstall, mở lại cổng, về waiting-idle', async () => {
+    const h = harness({});
+    let running = true;
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => running,
+      quit: async () => {
+        running = false;
+      },
+      setReopen: async () => undefined,
+      hold: async () => undefined,
+      release: () => {
+        h.order.push('bf-release');
+      },
+    };
+    h.deps.snapshotPrevious = async () => {
+      h.order.push('snapshot');
+      running = true; // owner mở Bug Finding trong lúc chép bản hiện tại
+    };
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.fake.calls).toEqual([]);
+    expect(h.order).toContain('cancelled:0.1.1');
+    expect(h.order).toContain('revoke');
+    expect(h.order).toContain('bf-release');
+    expect(h.state().updateState).toBe('waiting-idle');
+  });
+
+  it('không kiểm được Bug Finding còn chạy ngay trước khi cài: coi như còn chạy, không cài', async () => {
+    const h = harness({});
+    let calls = 0;
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => {
+        calls += 1;
+        if (calls > 1) throw new Error('ps lỗi');
+        return false;
+      },
+      quit: async () => undefined,
+      setReopen: async () => undefined,
+      hold: async () => undefined,
+      release: () => undefined,
+    };
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.fake.calls).toEqual([]);
+    expect(h.state().updateState).toBe('waiting-idle');
+  });
+
+  it('snapshot hỏng khi có Bug Finding: mở lại cổng mở Bug Finding', async () => {
+    const h = harness({});
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => false,
+      quit: async () => undefined,
+      setReopen: async () => undefined,
+      hold: async () => undefined,
+      release: () => {
+        h.order.push('bf-release');
+      },
+    };
+    h.deps.snapshotPrevious = async () => {
+      throw new Error('đầy đĩa');
+    };
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.order).toContain('bf-release');
   });
 
   it('"Cài khi rảnh" chạy drain lại cho bản đã tải', async () => {

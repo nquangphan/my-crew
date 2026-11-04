@@ -14,6 +14,8 @@ import type {
 } from './types.js';
 
 export const REQUEST_TIMEOUT_MS = 15_000;
+/** Hạn gửi kết quả Bug Finding (body lớn). */
+export const BUG_FINDING_POST_TIMEOUT_MS = 120_000;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const CODE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const WRAPPER_RE = /^\/.+\/\.crew\/bin\/crew-claude-run$/;
@@ -540,7 +542,14 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
     },
 
     async postBugFindingResult(body) {
-      await call('POST', BUG_FINDING_RESULTS_PATH, body);
+      // Body có thể tới 2 MB báo cáo cộng 500 finding: hạn riêng đủ cho đường lên chậm (~512 kbps).
+      const key = await deps.readKey();
+      if (!key) throw new PaperclipAuthError();
+      await paperclipRequest(
+        base,
+        { ...deps, timeoutMs: BUG_FINDING_POST_TIMEOUT_MS },
+        { method: 'POST', path: BUG_FINDING_RESULTS_PATH, body, key },
+      );
     },
 
     async provisionProjectMachines(companyId, projectId, body) {

@@ -35,7 +35,7 @@ export const BUG_FINDING_BUNDLE_ID = 'local.mrreviewqueue';
 /** Bản cài riêng cũ (cài tay trước khi Bug Finding đi kèm 2P Crew). Cùng bundle id với bản nhúng. */
 export const STANDALONE_APP_PATH = join('/Applications', BUG_FINDING_APP_NAME);
 
-/** Đuôi dòng lệnh của tiến trình Bug Finding, dùng cho `pgrep -fl`. */
+/** Đuôi đường dẫn binary của tiến trình Bug Finding (cột `comm` của `ps`). */
 export const BUG_FINDING_PROCESS_SUFFIX = '/Contents/MacOS/MRReviewQueue';
 
 /** Bản nhúng: `2P Crew.app/Contents/Resources/Bug Finding.app` (`extraResources` của `electron-builder.yml`). */

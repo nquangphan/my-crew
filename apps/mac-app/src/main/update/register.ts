@@ -1,16 +1,20 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createRunner, macPaths } from '@crew/mac';
 import { app, dialog } from 'electron';
 import electronUpdater from 'electron-updater';
 import type { AppContext } from '../app-context.js';
-import { launchBugFinding, runningBugFindingApps } from '../bug-finding/launch.js';
+import { createLaunchDeps, type LaunchGate, launchBugFinding } from '../bug-finding/launch.js';
 import { BUG_FINDING_BUNDLE_ID, bugFindingPaths, resolveAppPath } from '../bug-finding/paths.js';
 import { bugFindingRunningReviews } from '../bug-finding/state.js';
 import type { SshdRuntime } from '../sshd/register.js';
-import { BUG_FINDING_QUIT_MS, type BugFindingDrain, reopenBugFindingAfterUpdate } from './drain.js';
+import {
+  BUG_FINDING_QUIT_MS,
+  type BugFindingDrain,
+  reopenBugFindingAfterUpdate,
+  reviewsFromHeartbeat,
+} from './drain.js';
 import { installCrewMacWhenIdle, runProbation } from './probation.js';
 import {
   APP_BUNDLE_NAME,
@@ -46,9 +50,10 @@ function disabledReason(bundle: string | null): string | null {
 
 /**
  * App Bug Finding nhúng (`<resourcesPath>/Bug Finding.app`) cho bước chờ máy rảnh: lượt review theo `heartbeat.json`,
- * đang chạy theo `pgrep`, thoát bằng AppleScript theo bundle id, cờ `reopenBugFinding` trong `app.json`.
+ * đang chạy theo `ps`, thoát bằng AppleScript theo bundle id, cờ `reopenBugFinding` trong `app.json`, cổng mở Bug
+ * Finding (`gate`) đóng trong lúc chờ cài. Không đọc được heartbeat hay `ps` thì ném (drain coi là đang review).
  */
-function bugFindingForUpdate(ctx: AppContext) {
+function bugFindingForUpdate(ctx: AppContext, gate: LaunchGate) {
   const runner = createRunner();
   const paths = bugFindingPaths(ctx.home);
   const appPath = resolveAppPath({
@@ -56,7 +61,7 @@ function bugFindingForUpdate(ctx: AppContext) {
     resourcesPath: ctx.resourcesPath,
     env: process.env,
   });
-  const runningAppPaths = () => runningBugFindingApps(runner);
+  const launchDeps = createLaunchDeps(runner, appPath);
   const setReopen = (on: boolean) =>
     ctx.store
       .update((state) => {
@@ -64,9 +69,11 @@ function bugFindingForUpdate(ctx: AppContext) {
         return on ? { ...rest, reopenBugFinding: true } : rest;
       })
       .then(() => undefined);
+  const isRunning = async () => appPath !== null && (await launchDeps.runningAppPaths()).includes(appPath);
   const drain: BugFindingDrain = {
-    runningReviews: async () => bugFindingRunningReviews(paths.heartbeatFile, Date.now()),
-    isRunning: async () => appPath !== null && (await runningAppPaths()).includes(appPath),
+    runningReviews: () =>
+      reviewsFromHeartbeat(() => bugFindingRunningReviews(paths.heartbeatFile, Date.now()), isRunning),
+    isRunning,
     quit: async () => {
       ctx.log('info', 'bug-finding-quit-for-update');
       const out = await runner.run('/usr/bin/osascript', ['-e', `quit app id "${BUG_FINDING_BUNDLE_ID}"`], {
@@ -76,21 +83,21 @@ function bugFindingForUpdate(ctx: AppContext) {
         ctx.log('warn', 'bug-finding-quit-failed', { code: out.code, timedOut: out.timedOut });
     },
     setReopen,
+    hold: async () => {
+      await gate.close();
+      ctx.log('info', 'bug-finding-gate-closed');
+    },
+    release: () => {
+      if (gate.isOpen()) return;
+      gate.open();
+      ctx.log('info', 'bug-finding-gate-opened');
+    },
   };
   const reopen = () =>
     reopenBugFindingAfterUpdate({
       pending: () => ctx.store.get().reopenBugFinding === true,
       clear: () => setReopen(false),
-      launch: (opts) =>
-        launchBugFinding(
-          {
-            embedded: appPath,
-            exists: existsSync,
-            runningAppPaths,
-            run: (argv) => runner.run(argv[0] as string, argv.slice(1)),
-          },
-          opts,
-        ),
+      launch: (opts) => launchBugFinding(launchDeps, opts),
     });
   return { drain, reopen };
 }
@@ -99,7 +106,7 @@ function bugFindingForUpdate(ctx: AppContext) {
  * Updater trong app (kênh `update:*`): probation của bản vừa cài chạy trước, rồi mới kiểm bản mới. Chỉ Main ghi
  * `app.json` (`updateState`, `update.*`); `crew-mac status` đọc `updateState` gửi lên thẻ máy.
  */
-export function registerUpdate(ctx: AppContext, sshd: SshdRuntime): void {
+export function registerUpdate(ctx: AppContext, sshd: SshdRuntime, bugFindingGate: LaunchGate): void {
   const support = dirname(macPaths(ctx.home).appState);
   const bundle = bundleFromExe(app.getPath('exe'));
   const markers = fileMarkers(support);
@@ -115,7 +122,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdRuntime): void {
   const doctor = () => ctx.ops.call('doctor', { ...DOCTOR_OPTS });
   const sendStatus = () => ctx.ops.call('sendStatus');
   const exit = (code: number) => app.exit(code);
-  const bugFinding = bugFindingForUpdate(ctx);
+  const bugFinding = bugFindingForUpdate(ctx, bugFindingGate);
 
   const updater = createUpdater({
     autoUpdater: () => {

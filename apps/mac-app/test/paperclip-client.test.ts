@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  BUG_FINDING_POST_TIMEOUT_MS,
   createPaperclipClient,
   normalizeOrigin,
   PaperclipAuthError,
@@ -198,6 +199,29 @@ describe('route', () => {
       path: '/api/plugins/crew.core/api/bug-finding/results',
       body,
     });
+  });
+
+  it('postBugFindingResult: hạn riêng 120 giây cho body lớn (không dùng hạn chung 15 giây)', async () => {
+    const { client } = await setup(() => ({ status: 200, body: { run: {} } }));
+    const timeouts: number[] = [];
+    const original = AbortSignal.timeout.bind(AbortSignal);
+    const spy = vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
+      timeouts.push(ms);
+      return original(ms);
+    });
+    try {
+      await client.postBugFindingResult({
+        companyId: C,
+        machineId: E,
+        requestId: R,
+        state: 'failed',
+        headSha: 'c'.repeat(40),
+      });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(timeouts).toEqual([BUG_FINDING_POST_TIMEOUT_MS]);
+    expect(BUG_FINDING_POST_TIMEOUT_MS).toBe(120_000);
   });
 
   it('postBugFindingResult: 409 thành PaperclipHttpError 409', async () => {

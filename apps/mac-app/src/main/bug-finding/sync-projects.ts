@@ -30,7 +30,16 @@ export interface SyncResult {
   count: number;
 }
 
+/** Repo của project trên máy; `null` = chắc chắn không có. Ném `RepoUnknownError` khi chưa biết được (lỗi tạm thời). */
 export type RepoResolver = (row: ProjectRow) => Promise<string | null>;
+
+/** Không dò được repo lúc này (git quá hạn, ổ chưa mount...): giữ repo đã ghi lần trước cho project. */
+export class RepoUnknownError extends Error {
+  constructor() {
+    super('Chưa dò được repo của project lúc này');
+    this.name = 'RepoUnknownError';
+  }
+}
 
 /** Khóa project: tiến độ thêm project, không thì `<key>` của checkout `~/crew-agents/<key>/<vai>`, không thì tên. */
 function projectKey(row: ProjectRow): string {
@@ -42,33 +51,47 @@ function projectKey(row: ProjectRow): string {
   return row.name;
 }
 
+/**
+ * Danh sách project có repo trên máy. `previous`: project của lần ghi trước (cùng company); project dò repo lỗi tạm thời
+ * (`RepoUnknownError`) thì giữ `repoPath` cũ thay vì rớt khỏi danh sách (Bug Finding sẽ gắn "Crew đã gỡ").
+ */
 export async function buildCrewProjectList(
   rows: ProjectRow[],
   resolveRepo: RepoResolver,
   companyId: string,
   now: () => Date = () => new Date(),
+  previous: readonly CrewProject[] = [],
 ): Promise<CrewProjectList> {
   const projects: CrewProject[] = [];
   for (const row of rows) {
     // Tiến độ thêm dở chưa có project trên Paperclip: chưa có id Crew để Bug Finding gắn.
     if (!row.projectId) continue;
-    const repoPath = await resolveRepo(row);
+    let repoPath: string | null;
+    try {
+      repoPath = await resolveRepo(row);
+    } catch (error) {
+      if (!(error instanceof RepoUnknownError)) throw error;
+      repoPath = previous.find((p) => p.crewProjectId === row.projectId)?.repoPath ?? null;
+    }
     if (!repoPath) continue;
     projects.push({ crewProjectId: row.projectId, key: projectKey(row), name: row.name, repoPath });
   }
   return { schema: CREW_PROJECTS_SCHEMA, writtenAt: now().toISOString(), companyId, projects };
 }
 
-export type GitCall = (args: string[]) => Promise<{ code: number; stdout: string }>;
+export type GitCall = (args: string[]) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
 /**
  * Repo của project trên máy: repo docs đã đăng ký (`docsRepo`), không thì thư mục gốc owner chọn lúc thêm project,
- * không thì repo chính của một checkout agent (`git rev-parse --git-common-dir`, bỏ đuôi `.git`).
+ * không thì repo chính của một checkout agent (`git rev-parse --git-common-dir`, bỏ đuôi `.git`). Checkout mà git báo
+ * rõ "not a git repository" thì bỏ qua; lỗi khác (quá hạn, thư mục chưa mount, git không chạy được) mà không checkout
+ * nào dò được thì ném `RepoUnknownError`.
  */
 export function createRepoResolver(git: GitCall): RepoResolver {
   return async (row) => {
     if (row.docsRepo) return row.docsRepo;
     if (row.progress?.folder) return row.progress.folder;
+    let unknown = false;
     for (const checkout of row.checkouts) {
       const out = await git([
         '-C',
@@ -78,9 +101,10 @@ export function createRepoResolver(git: GitCall): RepoResolver {
         '--git-common-dir',
       ]).catch(() => null);
       const commonDir = out && out.code === 0 ? out.stdout.trim() : '';
-      if (!commonDir) continue;
-      return basename(commonDir) === '.git' ? dirname(commonDir) : commonDir;
+      if (commonDir) return basename(commonDir) === '.git' ? dirname(commonDir) : commonDir;
+      if (out?.code !== 128 || !/not a git repository/i.test(out?.stderr ?? '')) unknown = true;
     }
+    if (unknown) throw new RepoUnknownError();
     return null;
   };
 }
@@ -104,6 +128,31 @@ async function readSavedList(file: string): Promise<Partial<CrewProjectList> | n
   }
 }
 
+/** Project hợp lệ của `projects.json` đã ghi (bỏ mục sai dạng). */
+export function savedProjects(items: unknown[]): CrewProject[] {
+  return items.flatMap((item) => {
+    const p = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    const { crewProjectId, key, name, repoPath } = p;
+    const text = (v: unknown): v is string => typeof v === 'string' && v !== '';
+    return text(crewProjectId) && text(key) && text(name) && text(repoPath)
+      ? [{ crewProjectId, key, name, repoPath }]
+      : [];
+  });
+}
+
+/** `projects.json` hiện có ghi cho `companyId` và có project `projectId`: Bug Finding tra được project của lượt. */
+export async function syncedProjectKnown(
+  file: string,
+  companyId: string,
+  projectId: string,
+): Promise<boolean> {
+  const saved = await readSavedList(file);
+  if (!saved || saved.companyId?.toLowerCase() !== companyId.toLowerCase()) return false;
+  if (!Array.isArray(saved.projects)) return false;
+  const id = projectId.toLowerCase();
+  return savedProjects(saved.projects).some((p) => p.crewProjectId.toLowerCase() === id);
+}
+
 const sameContent = (a: Partial<CrewProjectList> | null, b: CrewProjectList) =>
   a !== null &&
   a.schema === b.schema &&
@@ -112,9 +161,18 @@ const sameContent = (a: Partial<CrewProjectList> | null, b: CrewProjectList) =>
 
 /** Ghi `projects.json` atomic (file tạm cùng thư mục rồi `rename`); nội dung không đổi (bỏ qua `writtenAt`) thì không ghi. */
 export async function syncProjects(deps: SyncProjectsDeps): Promise<SyncResult> {
-  const list = await buildCrewProjectList(await deps.listRows(), deps.resolveRepo, deps.companyId, deps.now);
+  const saved = await readSavedList(deps.file);
+  const previous =
+    saved?.companyId === deps.companyId && Array.isArray(saved.projects) ? savedProjects(saved.projects) : [];
+  const list = await buildCrewProjectList(
+    await deps.listRows(),
+    deps.resolveRepo,
+    deps.companyId,
+    deps.now,
+    previous,
+  );
   const count = list.projects.length;
-  if (sameContent(await readSavedList(deps.file), list)) return { written: false, count };
+  if (sameContent(saved, list)) return { written: false, count };
   await mkdir(dirname(deps.file), { recursive: true });
   const tmp = `${deps.file}.${process.pid}.${Date.now()}.tmp`;
   try {

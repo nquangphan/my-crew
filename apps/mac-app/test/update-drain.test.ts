@@ -12,6 +12,7 @@ import {
   type DrainDeps,
   drainForUpdate,
   reopenBugFindingAfterUpdate,
+  reviewsFromHeartbeat,
 } from '../src/main/update/drain.js';
 
 /** Đồng hồ giả: `sleep` chỉ cộng giờ. `runsAt(t)` trả số run tại thời điểm t (ms). */
@@ -108,6 +109,12 @@ function fakeBugFinding(
     setReopen: async (on) => {
       reopen.push(on);
     },
+    hold: async () => {
+      f.calls.push('hold');
+    },
+    release: () => {
+      f.calls.push('release');
+    },
   };
   f.deps.bugFinding = bugFinding;
   return { events, reopen, isRunning: () => running };
@@ -123,8 +130,8 @@ describe('drainForUpdate với Bug Finding', () => {
     expect(reasons).toContain(BUG_FINDING_WAIT_REASON);
     expect(BUG_FINDING_WAIT_REASON).toBe('Chờ Bug Finding review xong');
     expect(bf.events).toEqual([]);
-    // Quá 30 phút: mở lại listener nhưng không hỏi "Cài ngay" — cài lúc này sẽ thay binary đang review.
-    expect(f.calls).toEqual(['pause', 'resume']);
+    // Quá 30 phút: mở lại listener và cổng nhưng không hỏi "Cài ngay" — cài lúc này sẽ thay binary đang review.
+    expect(f.calls).toEqual(['pause', 'hold', 'resume', 'release']);
     expect(f.asked).toEqual([]);
     expect(bf.isRunning()).toBe(true);
   });
@@ -178,6 +185,68 @@ describe('drainForUpdate với Bug Finding', () => {
     expect(f.asked).toEqual([2]);
     expect(bf.events).toEqual([`quit@${DRAIN_MAX_MS}`]);
     expect(bf.isRunning()).toBe(false);
+  });
+
+  it('đóng cổng mở Bug Finding ngay sau khi dừng listener; cài thì giữ cổng đóng, không mở lại', async () => {
+    const f = fakeDeps(() => 0);
+    fakeBugFinding(f, { reviewsAt: () => 0 });
+    expect(await drainForUpdate(f.deps)).toBe('install');
+    expect(f.calls).toEqual(['pause', 'hold']);
+  });
+
+  it('"Để sau" sau 30 phút: mở lại cả listener lẫn cổng mở Bug Finding', async () => {
+    const f = fakeDeps(() => 1, 'later');
+    fakeBugFinding(f, { reviewsAt: () => 0 });
+    expect(await drainForUpdate(f.deps)).toBe('later');
+    expect(f.calls).toEqual(['pause', 'hold', 'resume', 'ask', 'release']);
+  });
+
+  it('ghi cờ mở lại lỗi trong lúc thoát Bug Finding: không ném, chờ tiếp rồi mở lại listener và cổng', async () => {
+    const f = fakeDeps(() => 0, 'now');
+    const bf = fakeBugFinding(f, { reviewsAt: () => 0 });
+    f.deps.bugFinding = {
+      ...(f.deps.bugFinding as BugFindingDrain),
+      setReopen: async () => {
+        throw new Error('ENOSPC');
+      },
+    };
+    expect(await drainForUpdate(f.deps)).toBe('later');
+    expect(bf.events).toEqual([]);
+    expect(f.calls).toContain('resume');
+    expect(f.calls.at(-1)).toBe('release');
+  });
+
+  it('ps lỗi khi kiểm Bug Finding còn chạy: không cài, mở lại listener', async () => {
+    const f = fakeDeps(() => 0, 'now');
+    fakeBugFinding(f, { reviewsAt: () => 0 });
+    f.deps.bugFinding = {
+      ...(f.deps.bugFinding as BugFindingDrain),
+      isRunning: async () => {
+        throw new Error('ps lỗi (mã 2)');
+      },
+    };
+    expect(await drainForUpdate(f.deps)).toBe('later');
+    expect(f.calls).toEqual(['pause', 'hold', 'resume', 'release']);
+  });
+
+  it('lỗi bất ngờ trong drain (hỏi owner ném): vẫn mở lại listener và cổng rồi ném', async () => {
+    const f = fakeDeps(() => 1);
+    fakeBugFinding(f, { reviewsAt: () => 0 });
+    f.deps.ask = async () => {
+      throw new Error('dialog lỗi');
+    };
+    await expect(drainForUpdate(f.deps)).rejects.toThrow('dialog lỗi');
+    expect(f.calls.filter((c) => c === 'resume')).toHaveLength(1);
+    expect(f.calls).toContain('release');
+  });
+
+  it('Bug Finding thoát trễ hơn 30 giây sau quit: lượt sau cài và giữ cờ mở lại', async () => {
+    const f = fakeDeps(() => 0);
+    const bf = fakeBugFinding(f, { reviewsAt: () => 0, quitAfterMs: 35_000 });
+    expect(await drainForUpdate(f.deps)).toBe('install');
+    expect(bf.isRunning()).toBe(false);
+    expect(bf.reopen).not.toContain(false);
+    expect(bf.reopen.at(-1)).toBe(true);
   });
 
   it('không đọc được số lượt review của Bug Finding: coi như đang review, không cài', async () => {
@@ -264,15 +333,65 @@ describe('bugFindingRunningReviews', () => {
     }
   });
 
-  it('không có heartbeat hoặc heartbeat cũ quá 60 giây (app không chạy) → 0', () => {
+  it('không có heartbeat hoặc heartbeat cũ quá 60 giây → null (không có tín hiệu mới)', () => {
     const missing = withHeartbeat(undefined);
     const stale = withHeartbeat({ at: '2026-11-04T05:50:00Z', pid: 9, running: 3 });
     try {
-      expect(bugFindingRunningReviews(missing.file, now)).toBe(0);
-      expect(bugFindingRunningReviews(stale.file, now)).toBe(0);
+      expect(bugFindingRunningReviews(missing.file, now)).toBeNull();
+      expect(bugFindingRunningReviews(stale.file, now)).toBeNull();
     } finally {
       missing.done();
       stale.done();
     }
+  });
+
+  it('heartbeat hỏng, ghi dở hay thiếu running thì ném (chưa rõ), không coi là rảnh', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bf-hb-'));
+    const file = join(dir, 'heartbeat.json');
+    try {
+      writeFileSync(file, '{"at":"2026-11-04T05:59:50Z","runn');
+      expect(() => bugFindingRunningReviews(file, now)).toThrow();
+      writeFileSync(file, JSON.stringify({ at: '2026-11-04T05:59:50Z', pid: 9 }));
+      expect(() => bugFindingRunningReviews(file, now)).toThrow('running');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('reviewsFromHeartbeat', () => {
+  it('heartbeat mới thì dùng running', async () => {
+    expect(
+      await reviewsFromHeartbeat(
+        () => 2,
+        async () => true,
+      ),
+    ).toBe(2);
+  });
+  it('không có heartbeat mới, app không chạy → 0', async () => {
+    expect(
+      await reviewsFromHeartbeat(
+        () => null,
+        async () => false,
+      ),
+    ).toBe(0);
+  });
+  it('không có heartbeat mới mà app vẫn chạy → ném (drain chờ, không thoát app)', async () => {
+    await expect(
+      reviewsFromHeartbeat(
+        () => null,
+        async () => true,
+      ),
+    ).rejects.toThrow();
+  });
+  it('heartbeat hỏng → ném', async () => {
+    await expect(
+      reviewsFromHeartbeat(
+        () => {
+          throw new Error('JSON hỏng');
+        },
+        async () => false,
+      ),
+    ).rejects.toThrow('JSON hỏng');
   });
 });

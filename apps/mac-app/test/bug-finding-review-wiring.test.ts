@@ -25,25 +25,31 @@ vi.mock('@crew/mac', async (importOriginal) => ({
   createRunner: () => ({
     run: async (command: string, args: readonly string[]) => {
       commands.push([command, ...args]);
-      return { code: command === '/usr/bin/pgrep' ? 1 : 0, stdout: '', stderr: '' };
+      return { code: 0, stdout: '', stderr: '', timedOut: false };
     },
   }),
 }));
 vi.mock('../src/main/paperclip/register', () => ({ boardKeys: { read: async () => 'pcp_board_khoa-gia' } }));
+const projectRows = vi.hoisted(() => ({ rows: [] as unknown[] }));
 vi.mock('../src/main/projects/ipc', () => ({
-  createProjectsIpc: () => ({ list: async () => [] }),
+  createProjectsIpc: () => ({ list: async () => projectRows.rows }),
 }));
 
 const { registerBugFinding } = await import('../src/main/bug-finding/register');
+const { createLaunchGate } = await import('../src/main/bug-finding/launch');
+const { RELAY_INTERVAL_MS } = await import('../src/main/bug-finding/results');
 
 const COMPANY = '11111111-1111-4111-8111-111111111111';
 const MACHINE = '22222222-2222-4222-8222-222222222222';
 const REQUEST = '7a0c3f2e-1b4d-4c5e-8f60-0123456789ab';
 const HEAD = 'd'.repeat(40);
+const PROJECT = '44444444-4444-4444-8444-444444444444';
+const ORIGIN = 'https://crew.example';
 
 let home: string;
 let store: AppStateStore;
 let posts: Array<{ url: string; body: unknown }>;
+const handlers = new Map<string, (...args: unknown[]) => unknown>();
 
 const ctx = (): AppContext =>
   ({
@@ -55,7 +61,11 @@ const ctx = (): AppContext =>
     ops: { call: async () => [] },
     sendStatusSoon: () => undefined,
     syncBugFindingSoon: () => undefined,
-    ipc: { handle: () => undefined },
+    ipc: {
+      handle: (channel: string, fn: (...args: unknown[]) => unknown) => {
+        handlers.set(channel, fn);
+      },
+    },
   }) as unknown as AppContext;
 
 const job = (repoPath: string): MachineJob => ({
@@ -90,6 +100,8 @@ const job = (repoPath: string): MachineJob => ({
 });
 
 beforeEach(async () => {
+  // fs.watch có thể trễ khi máy bận: test đẩy lượt quét định kỳ (30 giây) của relay bằng đồng hồ giả.
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   home = mkdtempSync(join(tmpdir(), 'bf-review-wiring-'));
   store = new AppStateStore(join(home, 'app.json'), '0.0.0-test');
   await store.update((s) => ({
@@ -101,6 +113,17 @@ beforeEach(async () => {
   vi.stubEnv('CREW_BUG_FINDING_APP', app);
   commands.length = 0;
   posts = [];
+  projectRows.rows = [
+    {
+      projectId: PROJECT,
+      name: 'my-crew',
+      onMac: true,
+      checkouts: [],
+      docsRepo: join(home, 'repo'),
+      lastSentCommit: null,
+      progress: null,
+    },
+  ];
   vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
     posts.push({ url, body: JSON.parse(String(init.body)) });
     return new Response('{"run":{}}', { status: 200, headers: { 'content-type': 'application/json' } });
@@ -109,6 +132,7 @@ beforeEach(async () => {
 });
 afterEach(() => {
   for (const fn of electron.quitHandlers) fn();
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   rmSync(home, { recursive: true, force: true });
@@ -118,8 +142,8 @@ describe('registerBugFinding: việc bug-finding-review và chuyển kết quả
   it('nhận việc → ghi request, mở Bug Finding nền, ghi sổ lượt; response xong → gửi kết quả về server', async () => {
     const repo = join(home, 'repo');
     mkdirSync(repo);
-    const module = registerBugFinding(ctx());
-    const outcome = await module.runReview(job(repo));
+    const module = registerBugFinding(ctx(), createLaunchGate());
+    const outcome = await module.runReview(job(repo), { origin: ORIGIN });
     expect(outcome).toEqual({ status: 'done', result: { kind: 'bug-finding-review', accepted: true } });
 
     const bridge = join(home, 'Library/Application Support/MRReviewQueue/crew');
@@ -129,11 +153,12 @@ describe('registerBugFinding: việc bug-finding-review và chuyển kết quả
     expect(store.get().bugFindingRequests?.[REQUEST]).toMatchObject({
       companyId: COMPANY,
       machineId: MACHINE,
+      origin: ORIGIN,
     });
 
     // Bug Finding ghi response kết quả cuối: relay gửi về route results của plugin.
-    const resultDir = join(home, 'result');
-    mkdirSync(resultDir);
+    const resultDir = join(bridge, '..', 'reviews', 'x', '87', 'round-1', 'result');
+    mkdirSync(resultDir, { recursive: true });
     writeFileSync(
       join(resultDir, 'review-result.json'),
       JSON.stringify({ findings: [{ id: 'F-01', rule: 'R', severity: 'LOW', fix: 'x' }] }),
@@ -151,6 +176,7 @@ describe('registerBugFinding: việc bug-finding-review và chuyển kết quả
         reportPath: join(resultDir, 'mr-87-r1.md'),
       }),
     );
+    vi.advanceTimersByTime(RELAY_INTERVAL_MS);
     await vi.waitFor(() => expect(posts).toHaveLength(1), { timeout: 5_000 });
     expect(posts[0]?.url).toBe('https://crew.example/api/plugins/crew.core/api/bug-finding/results');
     expect(posts[0]?.body).toMatchObject({
@@ -162,5 +188,49 @@ describe('registerBugFinding: việc bug-finding-review và chuyển kết quả
       reportMarkdown: '# Báo cáo',
     });
     await vi.waitFor(() => expect(store.get().bugFindingRequests?.[REQUEST]?.delivered).toBe(true));
+  });
+
+  it('đổi origin đăng nhập sau khi nhận việc: không POST kết quả sang origin mới, giữ chờ', async () => {
+    const repo = join(home, 'repo');
+    mkdirSync(repo);
+    const module = registerBugFinding(ctx(), createLaunchGate());
+    expect((await module.runReview(job(repo), { origin: ORIGIN })).status).toBe('done');
+    await store.update((s) => ({ ...s, setup: { ...s.setup, paperclipOrigin: 'https://other.example' } }));
+    const bridge = join(home, 'Library/Application Support/MRReviewQueue/crew');
+    writeFileSync(
+      join(bridge, 'responses', `${REQUEST}.json`),
+      JSON.stringify({
+        schema: 'crew-review-response/1',
+        requestId: REQUEST,
+        state: 'failed',
+        headSha: HEAD,
+      }),
+    );
+    vi.advanceTimersByTime(RELAY_INTERVAL_MS);
+    await vi.waitFor(() => expect(store.get().bugFindingOutbox).toHaveLength(1), { timeout: 5_000 });
+    expect(posts).toEqual([]);
+    expect(store.get().bugFindingRequests?.[REQUEST]?.delivered).toBeUndefined();
+  });
+
+  it('project của lượt không có trong danh sách đồng bộ sang Bug Finding: project_missing, không mở app', async () => {
+    projectRows.rows = [];
+    const repo = join(home, 'repo');
+    mkdirSync(repo);
+    const module = registerBugFinding(ctx(), createLaunchGate());
+    const outcome = await module.runReview(job(repo), { origin: ORIGIN });
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'project_missing' });
+    expect(commands.some((c) => c[0] === '/usr/bin/open')).toBe(false);
+  });
+
+  it('cổng mở Bug Finding đóng (chờ cài bản mới): từ chối việc và nút Mở', async () => {
+    const repo = join(home, 'repo');
+    mkdirSync(repo);
+    const gate = createLaunchGate();
+    await gate.close();
+    const module = registerBugFinding(ctx(), gate);
+    const outcome = await module.runReview(job(repo), { origin: ORIGIN });
+    expect(outcome).toMatchObject({ status: 'failed', errorCode: 'app_error' });
+    expect(await handlers.get('bugFinding:open')?.()).toEqual({ ok: false, reason: 'updating' });
+    expect(commands.some((c) => c[0] === '/usr/bin/open')).toBe(false);
   });
 });

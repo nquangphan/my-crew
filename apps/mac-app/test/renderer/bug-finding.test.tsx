@@ -9,8 +9,15 @@ let view: BugFindingView;
 let openAnswer: unknown;
 let trashAnswer: unknown;
 let listener: (() => void) | null;
+let stateFailures = 0;
 const invoke = vi.fn(async (channel: string, ..._args: unknown[]) => {
-  if (channel === 'bugFinding:state') return { ok: true, result: view };
+  if (channel === 'bugFinding:state') {
+    if (stateFailures > 0) {
+      stateFailures -= 1;
+      return { ok: false, error: 'Main bận' };
+    }
+    return { ok: true, result: view };
+  }
   if (channel === 'bugFinding:open') return { ok: true, result: openAnswer };
   if (channel === 'bugFinding:trashStandalone') return { ok: true, result: trashAnswer };
   if (channel === 'bugFinding:syncNow') return { ok: true, result: { written: true, count: 2 } };
@@ -27,6 +34,8 @@ beforeEach(() => {
     runningReviews: 1,
     waitingReviews: 1,
     standaloneApp: null,
+    otherRunning: [],
+    relay: { held: [], gaveUp: [] },
     requests: [
       {
         requestId: 'r-1',
@@ -66,6 +75,7 @@ beforeEach(() => {
   openAnswer = { ok: true };
   trashAnswer = { ok: true, message: 'Đã chuyển bản cài riêng vào Thùng rác (khôi phục được)' };
   listener = null;
+  stateFailures = 0;
   (window as unknown as { crew: unknown }).crew = {
     invoke,
     on: (l: () => void) => {
@@ -107,7 +117,7 @@ it('hiện trạng thái app, hàng đợi, tín hiệu và bảng MR do Crew x�
 });
 
 it('"Mở Bug Finding" gọi bugFinding:open; bản riêng đang chạy thì báo thoát trước', async () => {
-  openAnswer = { ok: false, reason: 'standalone_running' };
+  openAnswer = { ok: false, reason: 'standalone_running', paths: ['/Applications/Bug Finding.app'] };
   render(<BugFindingScreen />);
   await waitFor(() => expect(screen.getByText('pid 48211')).toBeTruthy());
   fireEvent.click(screen.getByRole('button', { name: 'Mở Bug Finding' }));
@@ -181,4 +191,30 @@ it('chưa đồng bộ thì báo chưa có project; "Đồng bộ lại" gọi b
   fireEvent.click(screen.getByRole('button', { name: 'Đồng bộ lại' }));
   await waitFor(() => expect(invoke).toHaveBeenCalledWith('bugFinding:syncNow'));
   await waitFor(() => expect(screen.getByText('Đã đồng bộ 2 project')).toBeTruthy());
+});
+
+it('lỗi đọc trạng thái một lần: hộp lỗi biến mất sau lần đọc thành công kế tiếp', async () => {
+  stateFailures = 1;
+  render(<BugFindingScreen />);
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Main bận'));
+  act(() => listener?.());
+  await waitFor(() => expect(screen.getByText('pid 48211')).toBeTruthy());
+  await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+});
+
+it('kết quả giữ vì đang đăng nhập origin khác và kết quả đã bỏ đều được báo', async () => {
+  view = {
+    ...view,
+    otherRunning: ['/Volumes/DMG/2P Crew.app/Contents/Resources/Bug Finding.app'],
+    relay: {
+      held: [{ origin: 'https://crew.example', count: 2 }],
+      gaveUp: [{ requestId: 'r-9', at: '2026-11-04T02:00:00.000Z', error: 'Gửi lỗi 10 lần: HTTP 500' }],
+    },
+  };
+  render(<BugFindingScreen />);
+  await waitFor(() =>
+    expect(screen.getByText(/Còn 2 kết quả Bug Finding chờ gửi về https:\/\/crew.example/)).toBeTruthy(),
+  );
+  expect(screen.getByText(/1 kết quả Bug Finding không gửi được/).textContent).toContain('HTTP 500');
+  expect(screen.getByText(/\/Volumes\/DMG\/2P Crew.app/)).toBeTruthy();
 });

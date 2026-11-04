@@ -18,6 +18,8 @@ const OPEN_MESSAGE: Record<Extract<LaunchResult, { ok: false }>['reason'], strin
   standalone_running:
     'Thoát Bug Finding (bản cài riêng) trước, rồi bấm Mở Bug Finding lại. Hai bản dùng chung dữ liệu nên không chạy cùng lúc.',
   missing: 'Không tìm thấy app Bug Finding đi kèm 2P Crew. Cài lại 2P Crew bản mới nhất.',
+  updating:
+    '2P Crew đang chờ cài bản mới nên tạm không mở Bug Finding. Cài xong (hoặc hủy ở màn Cập nhật) rồi mở lại.',
 };
 
 const STATE_LABEL: Record<BugFindingRequestState, string> = {
@@ -88,12 +90,17 @@ export function BugFindingScreen() {
   const [view, setView] = useState<BugFindingView | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Lỗi đọc trạng thái, tách khỏi lỗi thao tác: lần đọc thành công kế tiếp xóa nó. */
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(() => {
     invoke('bugFinding:state')
-      .then(setView)
-      .catch((e: unknown) => setError(messageOf(e)));
+      .then((next) => {
+        setView(next);
+        setLoadError(null);
+      })
+      .catch((e: unknown) => setLoadError(messageOf(e)));
   }, []);
   useEffect(() => {
     load();
@@ -117,7 +124,12 @@ export function BugFindingScreen() {
   const open = () =>
     act('open', async () => {
       const result = await invoke('bugFinding:open');
-      if (!result.ok) setError(OPEN_MESSAGE[result.reason]);
+      if (!result.ok)
+        setError(
+          result.reason === 'standalone_running'
+            ? `${OPEN_MESSAGE.standalone_running} Đang chạy: ${result.paths.join(', ')}.`
+            : OPEN_MESSAGE[result.reason],
+        );
     });
   const trash = () =>
     act('trash', async () => {
@@ -131,6 +143,8 @@ export function BugFindingScreen() {
     });
 
   const standalone = view?.standaloneApp ?? null;
+  // Bản khác bản nhúng đang chạy mà không phải bản cài riêng ở /Applications (đã có cảnh báo riêng).
+  const others = (view?.otherRunning ?? []).filter((path) => path !== standalone?.path);
 
   return (
     <>
@@ -148,13 +162,29 @@ export function BugFindingScreen() {
           </button>
         }
       />
-      <ErrorBox message={error} />
+      <ErrorBox message={error ?? loadError} />
       {message && <Notice tone={message.ok ? 'ok' : 'bad'}>{message.text}</Notice>}
       {view && !view.installed && <Notice tone="warn">{OPEN_MESSAGE.missing}</Notice>}
       {standalone?.running && (
         <Notice tone="warn">
           Bug Finding bản cài riêng ({standalone.path}) đang chạy. Thoát bản đó trước khi mở bản đi kèm 2P
           Crew: hai bản dùng chung dữ liệu nên không chạy cùng lúc.
+        </Notice>
+      )}
+      {others.length > 0 && (
+        <Notice tone="warn">
+          Bug Finding khác bản đi kèm 2P Crew đang chạy ({others.join(', ')}). Thoát bản đó trước khi mở bản
+          đi kèm: hai bản dùng chung dữ liệu nên không chạy cùng lúc.
+        </Notice>
+      )}
+      {view?.relay.held.map((held) => (
+        <Notice key={held.origin} tone="warn">
+          {`Còn ${held.count} kết quả Bug Finding chờ gửi về ${held.origin} (nơi đã giao việc). App đang đăng nhập nơi khác nên chưa gửi: đăng nhập lại ${held.origin} để gửi.`}
+        </Notice>
+      ))}
+      {view && view.relay.gaveUp.length > 0 && (
+        <Notice tone="bad">
+          {`${view.relay.gaveUp.length} kết quả Bug Finding không gửi được về server sau nhiều lần thử, đã bỏ (xem app.log). Lần gần nhất: ${view.relay.gaveUp[0]?.error ?? ''}`}
         </Notice>
       )}
 

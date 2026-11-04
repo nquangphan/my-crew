@@ -2,7 +2,7 @@
 /**
  * E2E luồng Bug Finding trong 2P Crew (spec TPS-643 mục 11, tiêu chí 1, 2, 5, 14): main thật (`registerBugFinding`,
  * handler IPC thật, file cầu nối thật trong thư mục tạm, relay thật gọi HTTP) nối với màn hình renderer thật
- * (`BugFindingScreen`). Chỉ giả: electron, tiến trình hệ thống (pgrep/open/PlistBuddy), danh sách project Paperclip và
+ * (`BugFindingScreen`). Chỉ giả: electron, tiến trình hệ thống (ps/open/PlistBuddy), danh sách project Paperclip và
  * server Paperclip (HTTP thật trên cổng ngẫu nhiên).
  */
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -29,17 +29,13 @@ vi.mock('electron', () => ({
   dialog: { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) },
 }));
 
-// Tiến trình hệ thống giả: `pgrep` trả các tiến trình Bug Finding đang chạy, `open` được ghi lại.
+// Tiến trình hệ thống giả: `ps` trả các tiến trình Bug Finding đang chạy, `open` được ghi lại.
 const sys = vi.hoisted(() => ({ pgrepStdout: '', commands: [] as string[][] }));
 vi.mock('@crew/mac', () => ({
   createRunner: () => ({
     run: async (command: string, args: readonly string[]) => {
       sys.commands.push([command, ...args]);
-      if (command === '/usr/bin/pgrep') {
-        return sys.pgrepStdout
-          ? { code: 0, stdout: sys.pgrepStdout, stderr: '' }
-          : { code: 1, stdout: '', stderr: '' };
-      }
+      if (command === '/bin/ps') return { code: 0, stdout: sys.pgrepStdout, stderr: '' };
       if (command === '/usr/libexec/PlistBuddy') return { code: 0, stdout: '0.2.0\n', stderr: '' };
       return { code: 0, stdout: '', stderr: '' };
     },
@@ -53,6 +49,7 @@ vi.mock('../src/main/projects/ipc', () => ({
 }));
 
 const { registerBugFinding } = await import('../src/main/bug-finding/register');
+const { createLaunchGate } = await import('../src/main/bug-finding/launch');
 const { BugFindingScreen } = await import('../src/renderer/routes/bug-finding');
 
 const COMPANY = '11111111-1111-4111-8111-111111111111';
@@ -174,7 +171,7 @@ afterEach(async () => {
 
 describe('E2E Bug Finding trong 2P Crew', () => {
   it('màn Bug Finding hiện trạng thái từ heartbeat và responses giả', async () => {
-    registerBugFinding(ctx());
+    registerBugFinding(ctx(), createLaunchGate());
     sys.pgrepStdout = `48211 ${appPath}/Contents/MacOS/MRReviewQueue\n`;
     writeBridge('heartbeat.json', {
       pid: 48211,
@@ -217,7 +214,7 @@ describe('E2E Bug Finding trong 2P Crew', () => {
   });
 
   it('bản cài riêng đang chạy: từ chối mở bản nhúng (không gọi open) và báo thoát trước', async () => {
-    registerBugFinding(ctx());
+    registerBugFinding(ctx(), createLaunchGate());
     sys.pgrepStdout = '777 /Applications/Bug Finding.app/Contents/MacOS/MRReviewQueue\n';
     render(<BugFindingScreen />);
     const button = await screen.findByRole('button', { name: 'Mở Bug Finding' });
@@ -231,14 +228,15 @@ describe('E2E Bug Finding trong 2P Crew', () => {
     // Cùng điều kiện đó thì việc bug-finding-review cũng bị từ chối và không để lại file yêu cầu.
     const repo = join(home, 'repo');
     mkdirSync(repo);
-    const module = registerBugFinding(ctx());
-    const outcome = await module.runReview(reviewJob(repo));
+    projectRows.rows = [...projectRows.rows, row('44444444-4444-4444-8444-444444444444', 'my-crew-bf', repo)];
+    const module = registerBugFinding(ctx(), createLaunchGate());
+    const outcome = await module.runReview(reviewJob(repo), { origin: server.origin });
     expect(outcome).toMatchObject({ status: 'failed', errorCode: 'standalone_running' });
     expect(() => readFileSync(join(bridge(), 'requests', `${REQUEST}.json`))).toThrow();
   });
 
   it('đồng bộ project (Đồng bộ lại) ghi đúng crew/projects.json và màn hiện bảng project', async () => {
-    registerBugFinding(ctx());
+    registerBugFinding(ctx(), createLaunchGate());
     render(<BugFindingScreen />);
     const file = join(bridge(), 'projects.json');
     await waitFor(() => expect(JSON.parse(readFileSync(file, 'utf8')).projects).toHaveLength(2));
@@ -256,15 +254,17 @@ describe('E2E Bug Finding trong 2P Crew', () => {
       { crewProjectId: 'p-2', key: 'shop', name: 'shop', repoPath: '/r/shop' },
       { crewProjectId: 'p-3', key: 'kidy', name: 'kidy', repoPath: '/r/kidy' },
     ]);
-    const table = screen.getByRole('table', { name: 'Project Crew ↔ Bug Finding' });
-    expect(within(table).getByText('/r/kidy')).toBeTruthy();
+    // Màn đọc lại trạng thái (bất đồng bộ) sau khi đồng bộ xong.
+    const table = await screen.findByRole('table', { name: 'Project Crew ↔ Bug Finding' });
+    await waitFor(() => expect(within(table).getByText('/r/kidy')).toBeTruthy());
   });
 
   it('job bug-finding-review ghi request file, mở app nền, rồi relay tiến độ và kết quả lên server giả', async () => {
     const repo = join(home, 'repo');
     mkdirSync(repo);
-    const module = registerBugFinding(ctx());
-    const outcome = await module.runReview(reviewJob(repo));
+    projectRows.rows = [...projectRows.rows, row('44444444-4444-4444-8444-444444444444', 'my-crew-bf', repo)];
+    const module = registerBugFinding(ctx(), createLaunchGate());
+    const outcome = await module.runReview(reviewJob(repo), { origin: server.origin });
     expect(outcome).toEqual({ status: 'done', result: { kind: 'bug-finding-review', accepted: true } });
 
     const request = JSON.parse(readFileSync(join(bridge(), 'requests', `${REQUEST}.json`), 'utf8'));
@@ -300,8 +300,8 @@ describe('E2E Bug Finding trong 2P Crew', () => {
     expect(running?.authorization).toBe('Bearer pcp_board_khoa-gia');
     expect(running?.body).toMatchObject({ companyId: COMPANY, machineId: MACHINE, requestId: REQUEST });
 
-    const resultDir = join(home, 'result');
-    mkdirSync(resultDir);
+    const resultDir = join(bridge(), '..', 'reviews', 'x', '87', 'round-1', 'result');
+    mkdirSync(resultDir, { recursive: true });
     writeFileSync(
       join(resultDir, 'review-result.json'),
       JSON.stringify({

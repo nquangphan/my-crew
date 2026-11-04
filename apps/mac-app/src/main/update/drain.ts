@@ -18,14 +18,21 @@ export type DrainAnswer = 'now' | 'later';
  * và thoát nó trước.
  */
 export interface BugFindingDrain {
-  /** `running` của `heartbeat.json` (0 khi app không chạy hay heartbeat cũ). Ném = không biết, coi như đang review. */
+  /** `running` của `heartbeat.json` (0 khi app không chạy). Ném = không biết, coi như đang review. */
   runningReviews(): Promise<number>;
-  /** Bản nhúng đang chạy (theo tiến trình, không theo heartbeat). */
+  /** Bản nhúng đang chạy (theo tiến trình, không theo heartbeat). Ném = không biết, coi như chưa thoát. */
   isRunning(): Promise<boolean>;
   /** `osascript -e 'quit app id "local.mrreviewqueue"'`; có thể không trả về cho tới khi app thoát. */
   quit(): Promise<void>;
   /** Cờ `reopenBugFinding` trong `app.json`: bản mới mở lại Bug Finding khi khởi động. */
   setReopen(on: boolean): Promise<void>;
+  /**
+   * Đóng cổng mở Bug Finding (việc `bug-finding-review`, nút Mở) và chờ các lần mở đang chạy xong: từ lúc drain bắt đầu
+   * tới khi cài hay hủy, không gì mở lại Bug Finding.
+   */
+  hold(): Promise<void>;
+  /** Mở lại cổng (drain trả `'later'`, cài bị hủy). */
+  release(): void;
 }
 
 export interface DrainDeps {
@@ -45,12 +52,18 @@ export interface DrainDeps {
 }
 
 /**
- * Thoát Bug Finding trước khi cài: không chạy thì thôi; đang chạy thì đặt cờ mở lại, gửi quit và chờ tối đa 30 giây.
- * Không thoát kịp thì bỏ cờ và trả `false` (không cài lúc này: thay bundle của app đang chạy).
+ * Thoát Bug Finding trước khi cài: không chạy thì thôi; đang chạy thì đặt cờ mở lại, gửi quit (`onSent`) và chờ tối đa
+ * 30 giây. Không thoát kịp thì `false` (không cài lúc này: thay bundle của app đang chạy); cờ mở lại giữ nguyên vì app
+ * đã nhận quit và có thể thoát ngay sau đó. Lỗi (`ps`, ghi `app.json`) lan ra cho người gọi.
  */
-async function quitBugFinding(bf: BugFindingDrain, deps: Pick<DrainDeps, 'sleep' | 'now'>): Promise<boolean> {
+async function quitBugFinding(
+  bf: BugFindingDrain,
+  deps: Pick<DrainDeps, 'sleep' | 'now'>,
+  onSent: () => void,
+): Promise<boolean> {
   if (!(await bf.isRunning())) return true;
   await bf.setReopen(true);
+  onSent();
   // Không chờ `osascript`: AppleScript đợi app trả lời, có thể lâu hơn hạn 30 giây.
   void bf.quit().catch(() => undefined);
   const deadline = deps.now() + BUG_FINDING_QUIT_MS;
@@ -58,8 +71,21 @@ async function quitBugFinding(bf: BugFindingDrain, deps: Pick<DrainDeps, 'sleep'
     await deps.sleep(BUG_FINDING_QUIT_POLL_MS);
     if (!(await bf.isRunning())) return true;
   }
-  await bf.setReopen(false);
   return false;
+}
+
+/**
+ * `runningReviews` của `BugFindingDrain` từ heartbeat: `read` trả `running` của heartbeat mới, `null` khi không có hay
+ * cũ (ném khi hỏng). Không có heartbeat mới mà bản nhúng vẫn chạy (vừa mở, bận, treo) thì chưa rõ: ném.
+ */
+export async function reviewsFromHeartbeat(
+  read: () => number | null,
+  isRunning: () => Promise<boolean>,
+): Promise<number> {
+  const running = read();
+  if (running !== null) return running;
+  if (await isRunning()) throw new Error('Bug Finding đang chạy mà heartbeat không mới');
+  return 0;
 }
 
 async function bugFindingReviews(bf: BugFindingDrain | undefined): Promise<number | null> {
@@ -72,41 +98,80 @@ async function bugFindingReviews(bf: BugFindingDrain | undefined): Promise<numbe
 }
 
 /**
- * Chờ máy rảnh trước khi cài: dừng listener (không nhận run mới), đếm run mỗi 10 giây. Hết run và Bug Finding không
- * còn lượt review (`running == 0` trong heartbeat) thì thoát Bug Finding rồi `'install'`; Bug Finding còn review thì
- * báo "Chờ Bug Finding review xong" và chờ tiếp. Không bao giờ gửi tín hiệu cho phiên SSH hay `claude`. Quá 30 phút:
- * mở lại listener; Bug Finding vẫn đang review (hay không thoát) thì `'later'` không hỏi (cài lúc đó sẽ thay binary
- * Bug Finding giữa lượt review), ngược lại hỏi owner (hộp thoại có thể chờ rất lâu, máy không được đứng im trong lúc
- * đó): "Cài ngay" thì thoát Bug Finding rồi `'install'`, "Để sau" thì `'later'`.
+ * Chờ máy rảnh trước khi cài: dừng listener (không nhận run mới) và đóng cổng mở Bug Finding (không nhận lượt review
+ * mới), đếm run mỗi 10 giây. Hết run và Bug Finding không còn lượt review (`running == 0` trong heartbeat) thì thoát
+ * Bug Finding rồi `'install'` (cổng vẫn đóng, updater mở lại nếu cài hỏng); Bug Finding còn review hay chưa rõ thì báo
+ * "Chờ Bug Finding review xong" và chờ tiếp. Không bao giờ gửi tín hiệu cho phiên SSH hay `claude`. Quá 30 phút: mở lại
+ * listener; Bug Finding vẫn đang review (hay không thoát) thì `'later'` không hỏi (cài lúc đó sẽ thay binary Bug Finding
+ * giữa lượt review), ngược lại hỏi owner (hộp thoại có thể chờ rất lâu, máy không được đứng im trong lúc đó): "Cài
+ * ngay" thì thoát Bug Finding rồi `'install'`, "Để sau" thì `'later'`. Mọi đường `'later'` và mọi lỗi đều mở lại
+ * listener và cổng.
  */
 export async function drainForUpdate(deps: DrainDeps): Promise<'install' | 'later'> {
-  await deps.pause();
-  const deadline = deps.now() + DRAIN_MAX_MS;
-  let runs: number | null = null;
-  let bugFindingBlocked = false;
-  for (;;) {
+  const bf = deps.bugFinding;
+  let resumed = false;
+  let quitSent = false;
+  const resume = async () => {
+    if (resumed) return;
+    resumed = true;
+    await deps.resume();
+  };
+  /** Thoát Bug Finding; lỗi giữa chừng = chưa thoát được, chờ tiếp. */
+  const quit = async (): Promise<boolean> => {
+    if (!bf) return true;
     try {
-      runs = await deps.activeRuns();
+      return await quitBugFinding(bf, deps, () => {
+        quitSent = true;
+      });
     } catch {
-      runs = null;
+      return false;
     }
-    const reviews = await bugFindingReviews(deps.bugFinding);
-    bugFindingBlocked = reviews !== 0;
-    deps.onWait?.(bugFindingBlocked ? BUG_FINDING_WAIT_REASON : null);
-    if (runs === 0 && !bugFindingBlocked) {
-      if (!deps.bugFinding || (await quitBugFinding(deps.bugFinding, deps))) return 'install';
-      bugFindingBlocked = true;
-      deps.onWait?.(BUG_FINDING_QUIT_REASON);
+  };
+  const later = async (): Promise<'later'> => {
+    try {
+      await resume();
+    } finally {
+      if (bf) {
+        bf.release();
+        if (quitSent) await bf.setReopen(false).catch(() => undefined);
+      }
     }
-    if (deps.now() >= deadline) break;
-    await deps.sleep(DRAIN_POLL_MS);
+    return 'later';
+  };
+
+  await deps.pause();
+  try {
+    await bf?.hold();
+    const deadline = deps.now() + DRAIN_MAX_MS;
+    let runs: number | null = null;
+    let bugFindingBlocked = false;
+    for (;;) {
+      try {
+        runs = await deps.activeRuns();
+      } catch {
+        runs = null;
+      }
+      const reviews = await bugFindingReviews(bf);
+      bugFindingBlocked = reviews !== 0;
+      deps.onWait?.(bugFindingBlocked ? BUG_FINDING_WAIT_REASON : null);
+      if (runs === 0 && !bugFindingBlocked) {
+        if (await quit()) return 'install';
+        bugFindingBlocked = true;
+        deps.onWait?.(BUG_FINDING_QUIT_REASON);
+      }
+      if (deps.now() >= deadline) break;
+      await deps.sleep(DRAIN_POLL_MS);
+    }
+    await resume();
+    if (bugFindingBlocked) return await later();
+    if ((await deps.ask(runs)) !== 'now') return await later();
+    if ((await bugFindingReviews(bf)) !== 0) return await later();
+    if (!(await quit())) return await later();
+    return 'install';
+  } catch (error) {
+    await later().catch(() => undefined);
+    throw error;
   }
-  await deps.resume();
-  if (bugFindingBlocked) return 'later';
-  if ((await deps.ask(runs)) !== 'now') return 'later';
-  if (deps.bugFinding && (await bugFindingReviews(deps.bugFinding)) !== 0) return 'later';
-  if (deps.bugFinding && !(await quitBugFinding(deps.bugFinding, deps))) return 'later';
-  return 'install';
 }
 
 export interface ReopenDeps {

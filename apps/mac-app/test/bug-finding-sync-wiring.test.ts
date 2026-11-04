@@ -41,6 +41,7 @@ vi.mock('../src/main/projects/docs-runtime', () => ({ repairDocsOnStart: async (
 
 const { PROJECT_SYNC_INTERVAL_MS, registerBugFinding } = await import('../src/main/bug-finding/register');
 const { registerProjects } = await import('../src/main/projects/register');
+const { createLaunchGate } = await import('../src/main/bug-finding/launch');
 
 type Handler = (...args: unknown[]) => unknown;
 let home: string;
@@ -102,7 +103,7 @@ afterEach(() => {
 
 describe('registerBugFinding: lịch đồng bộ project', () => {
   it('đồng bộ ngay khi mở app: ghi projects.json của company đang chọn', async () => {
-    registerBugFinding(ctx());
+    registerBugFinding(ctx(), createLaunchGate());
     await vi.waitFor(() => expect(existsSync(projectsFile())).toBe(true));
     const saved = JSON.parse(readFileSync(projectsFile(), 'utf8'));
     expect(saved.companyId).toBe('c-1');
@@ -113,7 +114,7 @@ describe('registerBugFinding: lịch đồng bộ project', () => {
 
   it('đồng bộ lại mỗi 10 phút', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    registerBugFinding(ctx());
+    registerBugFinding(ctx(), createLaunchGate());
     await vi.waitFor(() => expect(fakeProjects.list).toBe(1));
     expect(PROJECT_SYNC_INTERVAL_MS).toBe(600_000);
     fakeProjects.rows = [...fakeProjects.rows, row('p-2', 'shop', '/r/shop')];
@@ -123,7 +124,7 @@ describe('registerBugFinding: lịch đồng bộ project', () => {
   });
 
   it('requestSync (thêm/gỡ project, job checkout) và bugFinding:syncNow đều ghi lại danh sách', async () => {
-    const module = registerBugFinding(ctx());
+    const module = registerBugFinding(ctx(), createLaunchGate());
     await vi.waitFor(() => expect(fakeProjects.list).toBe(1));
     fakeProjects.rows = [...fakeProjects.rows, row('p-2', 'shop', '/r/shop')];
     module.requestSync('project-added');
@@ -133,7 +134,7 @@ describe('registerBugFinding: lịch đồng bộ project', () => {
 
   it('chưa đăng nhập thì không đồng bộ; chọn company xong thì đồng bộ ngay', async () => {
     setup = { paperclipOrigin: null, companyId: null };
-    registerBugFinding(ctx());
+    registerBugFinding(ctx(), createLaunchGate());
     await flush();
     expect(fakeProjects.list).toBe(0);
     setup = { paperclipOrigin: 'https://crew.example', companyId: 'c-2' };

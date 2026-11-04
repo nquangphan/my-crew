@@ -50,6 +50,11 @@ export interface PollerDeps {
   /** Hủy việc đang chạy (giết tiến trình git con rồi tiến trình phụ đang làm việc). */
   cancelRunning(): void | Promise<void>;
   isVisible(): boolean;
+  /**
+   * Loại việc máy app làm được ngoài bộ gốc lúc này, gửi cùng `jobsAgent` của bản tin máy: plugin chỉ xếp
+   * `bug-finding-review` cho máy báo có `BUG_FINDING_CAPABILITY` (app cũ và máy không có Bug Finding nhúng không báo).
+   */
+  capabilities(): string[];
   /** Ghi `jobsAgent.lastPollAt` và `capabilities` vào `app.json` (bản tin máy đọc). */
   recordPoll(at: Date, capabilities: string[]): Promise<void>;
   log(level: 'info' | 'warn' | 'error', event: string, fields?: Record<string, unknown>): void;
@@ -65,11 +70,8 @@ export const HIDDEN_INTERVAL_MS = 15_000;
 export const MAX_BACKOFF_MS = 60_000;
 /** `app.json` đổi là cửa sổ đọc lại trạng thái, nên `lastPollAt` chỉ ghi tối đa 30 giây một lần. */
 export const RECORD_EVERY_MS = 30_000;
-/**
- * Loại việc máy app làm được ngoài bộ gốc, gửi cùng `jobsAgent` của bản tin máy: plugin chỉ xếp `bug-finding-review`
- * cho máy báo có mục này (app cũ không báo).
- */
-export const JOBS_CAPABILITIES: readonly string[] = ['bug-finding-review'];
+/** Capability của việc `bug-finding-review` (máy có app Bug Finding nhúng). */
+export const BUG_FINDING_CAPABILITY = 'bug-finding-review';
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -268,7 +270,13 @@ export function createJobsPoller(deps: PollerDeps) {
     if (polled && (lastRecorded === null || Date.now() - lastRecorded >= RECORD_EVERY_MS)) {
       const at = new Date();
       lastRecorded = at.getTime();
-      await deps.recordPoll(at, [...JOBS_CAPABILITIES]).catch((error: unknown) => {
+      let capabilities: string[];
+      try {
+        capabilities = deps.capabilities();
+      } catch {
+        capabilities = [];
+      }
+      await deps.recordPoll(at, capabilities).catch((error: unknown) => {
         deps.log('warn', 'machine-jobs-record-failed', { message: errorText(error) });
       });
     }

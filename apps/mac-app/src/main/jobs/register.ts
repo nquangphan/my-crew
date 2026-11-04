@@ -9,7 +9,7 @@ import { createPaperclipClient } from '../paperclip/client.js';
 import { boardKeys } from '../paperclip/register.js';
 import { jobCreatedCheckouts } from '../status-nudge.js';
 import { sendIfAlive } from '../window-controller.js';
-import { createJobsPoller, MissingKeyError } from './poller.js';
+import { BUG_FINDING_CAPABILITY, createJobsPoller, MissingKeyError } from './poller.js';
 import { createJobsRemote } from './remote.js';
 import { forgetRemovedProject } from './remove.js';
 import { createTargetResolver } from './targets.js';
@@ -59,7 +59,8 @@ export function registerJobs(ctx: AppContext): void {
       remote.submit(target, machineId, jobId, outcome, claimedAt),
     run: async (job, target, signal) => {
       // Cần app nhúng, `app.json` và đồng bộ project của Main: không chạy trong tiến trình phụ.
-      if (job.kind === 'bug-finding-review') return ctx.runBugFindingReview(job);
+      if (job.kind === 'bug-finding-review')
+        return ctx.runBugFindingReview(job, { origin: target.url, signal });
       const prepared = await remote.prepare(target, job);
       if ('outcome' in prepared) return prepared.outcome;
       // Quá giờ giữa lúc tải skill: không bắt đầu ghi file sau khi đã báo lỗi.
@@ -83,6 +84,7 @@ export function registerJobs(ctx: AppContext): void {
       jobsOps.dispose();
     },
     isVisible: () => BrowserWindow.getAllWindows().some((win) => win.isVisible()),
+    capabilities: () => (ctx.bugFindingAvailable() ? [BUG_FINDING_CAPABILITY] : []),
     recordPoll: async (at, capabilities) => {
       await ctx.store.update((state) => ({
         ...state,

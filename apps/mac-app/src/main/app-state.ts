@@ -40,17 +40,29 @@ export interface ProjectProgress {
 export interface BugFindingRequestEntry {
   companyId: string;
   machineId: string;
+  /** Origin board đã giao việc: kết quả chỉ gửi về đây. Mục của bản trước (không có origin) không được gửi. */
+  origin: string;
   /** Lúc nhận việc (ISO 8601); bỏ lượt cũ nhất khi sổ đầy. */
   at: string;
-  /** Kết quả cuối đã gửi xong (hoặc server từ chối hẳn): không gửi lại. */
+  /** Kết quả cuối đã gửi xong (hoặc server từ chối hẳn, hoặc bỏ sau quá số lần thử): không gửi lại. */
   delivered?: boolean;
+  /** Bỏ kết quả cuối sau quá số lần gửi lỗi: lý do, hiện ở mục Bug Finding. */
+  gaveUp?: string;
 }
 
 /** Một lần gửi chờ lại. Báo cáo `.md` không nằm trong `app.json`: lúc gửi lại đọc lại `reportPath`. */
 export interface BugFindingOutboxItem {
   requestId: string;
   body: BugFindingResultBody;
+  /** Origin board đã giao việc; chỉ gửi khi đang đăng nhập đúng origin này. */
+  origin: string;
   reportPath?: string;
+  /** Server/proxy trả 413: gửi không kèm báo cáo. */
+  withoutReport?: boolean;
+  /** Số lần gửi lỗi tạm thời (5xx, 408, 413, 429, quá hạn). */
+  attempts?: number;
+  /** Chưa tới giờ này (ISO 8601) thì chưa gửi lại. */
+  nextAttemptAt?: string;
   queuedAt: string;
 }
 
