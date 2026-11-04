@@ -184,6 +184,27 @@ it('Chạy tiếp giữ số executor đã chọn dù mới tạo một executor
   );
 });
 
+it('bước UIUX nằm sau repo ảnh chụp docs và tính vào tổng số bước', async () => {
+  rows = [
+    row({
+      projectId: 'p1',
+      onMac: false,
+      checkouts: [],
+      progress: {
+        key: 'landing',
+        folder: '/Volumes/CORSAIR/Projects/landing',
+        projectId: 'p1',
+        done: ['folder', 'project', 'status-repo'],
+        agents: {},
+        executors: 1,
+        error: 'skill hỏng',
+      },
+    }),
+  ];
+  render(<ProjectsScreen />);
+  expect(await screen.findByText(/Đã xong 3\/10 bước\. Đang ở bước: Tạo agent UIUX/)).toBeTruthy();
+});
+
 it('tiến độ kiểu cũ (URL git) không có Chạy tiếp, báo cần gỡ rồi thêm lại; vẫn gỡ được', async () => {
   rows = [
     row({
@@ -229,6 +250,7 @@ it('Gỡ khỏi Mac hỏi xác nhận rồi hiện lệnh xóa thư mục', asyn
 
 it('stepLabel dịch tên bước', () => {
   expect(stepLabel('role:reviewer')).toBe('Tạo agent reviewer');
+  expect(stepLabel('role:designer')).toBe('Tạo agent UIUX (nếu company có skill ui-ux-pro-max)');
   expect(stepLabel('check')).toBe('Kiểm tra cuối');
   expect(stepLabel('folder')).toBe('Kiểm folder và đặt crew-docs');
 });

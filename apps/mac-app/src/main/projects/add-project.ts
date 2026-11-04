@@ -5,6 +5,7 @@ import type { ProjectProgress } from '../app-state.js';
 import { stripUrlCredentials } from '../jobs/sanitize.js';
 import type {
   AgentPermissions,
+  ModelSettingsCell,
   ModelSettingsRoles,
   PaperclipClient,
   PaperclipEnvironment,
@@ -23,6 +24,8 @@ import {
 } from './folder.js';
 import { pinnedExtraArgs, ROLE_TEMPLATES, renderInstructions, uploadInstructions } from './instructions.js';
 import {
+  agentName,
+  DESIGNER,
   isLegacyProgress,
   KEY_RE,
   MAX_EXECUTORS,
@@ -35,16 +38,23 @@ import {
   templateOf,
 } from './progress.js';
 
+/** Model mặc định của agent UIUX khi bảng model của server chưa có ô `designer` (như `CREW_MODEL_SETTINGS_DEFAULT`). */
+const DESIGNER_DEFAULT_MODEL: ModelSettingsCell = { model: 'claude-opus-5-5', effort: null };
+
 /**
- * Model mặc định của 4 vai app tạo khi server Paperclip chưa có `GET /api/crew/model-settings` (bản cũ, 404): đúng giá
+ * Model mặc định của các vai app tạo khi server Paperclip chưa có `GET /api/crew/model-settings` (bản cũ, 404): đúng giá
  * trị `CREW_MODEL_SETTINGS_DEFAULT.roles` mà server trả khi chưa ai lưu bảng, nên agent tạo ra giống như khi server mới.
  */
-export const DEFAULT_ROLE_MODELS: ModelSettingsRoles = {
+export const DEFAULT_ROLE_MODELS: Required<ModelSettingsRoles> = {
   assistant: { model: 'claude-opus-5-5', effort: null },
   executor: { model: 'claude-sonnet-5-5', effort: null },
   reviewer: { model: 'claude-sonnet-5-5', effort: null },
   integrator: { model: 'claude-sonnet-5-5', effort: null },
+  designer: DESIGNER_DEFAULT_MODEL,
 };
+
+/** Agent UIUX chỉ được tạo khi company có skill công ty có key kết thúc bằng hậu tố này. */
+const DESIGNER_SKILL_SUFFIX = '/ui-ux-pro-max';
 
 /**
  * Quyền agent Crew như wizard web và `crew/ops/agent-permissions.sh` của fork: không tạo agent, không tạo skill; chỉ
@@ -135,7 +145,7 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
   if (!companyId) throw new Error('Chưa chọn company Paperclip (mục Cài đặt)');
   const paths = projectPaths(deps.home, input.key);
   const roles = roleNames(input.executors);
-  for (const dir of roles.map(paths.checkout)) {
+  for (const dir of [...roles, DESIGNER].map(paths.checkout)) {
     const reason = forbiddenRootReason(deps.home, dir);
     if (reason) throw new Error(`${dir}: ${reason}`);
   }
@@ -163,7 +173,7 @@ export async function addProject(deps: ProjectDeps, input: AddProjectInput): Pro
     existing = undefined;
   }
   if (existing) {
-    const extra = Object.keys(existing.agents).filter((role) => !roles.includes(role));
+    const extra = Object.keys(existing.agents).filter((role) => role !== DESIGNER && !roles.includes(role));
     if (extra.length > 0) {
       throw new Error(`Lần trước đã tạo ${extra.join(', ')}: chọn lại đúng số executor như lần trước`);
     }
@@ -237,6 +247,11 @@ class AddRun {
     await this.step('status-repo', () =>
       this.deps.ops.call('addStatusRepo', this.projectId(), this.info.root, this.companyId),
     );
+    // Trước Trợ Lý, để AGENTS.md của Trợ Lý có id agent UIUX. Project đã xong ở bản app trước (chưa biết agent UIUX)
+    // thì không tự thêm.
+    if (!this.rec.get().done.includes('check')) {
+      await this.step(`role:${DESIGNER}`, () => this.ensureDesigner());
+    }
     for (const role of this.roles) await this.step(`role:${role}`, () => this.ensureRole(role));
     await this.step('roles', () =>
       this.deps.client.setRoles(this.companyId, this.projectId(), this.expectedRoles()),
@@ -273,10 +288,15 @@ class AddRun {
     }
   }
 
+  /** Mọi vai có agent của lần thêm: các vai trò, cùng agent UIUX khi đã tạo. */
+  private agentRoles(): string[] {
+    return this.rec.get().agents[DESIGNER]?.agentId ? [...this.roles, DESIGNER] : this.roles;
+  }
+
   /** Đặt lại quyền của mọi agent của project (tạo mới hay dùng lại) trong lúc agent còn `paused`. */
   private async restrictPermissions(): Promise<void> {
     this.deps.log?.('project-step', { key: this.input.key, step: 'permissions' });
-    for (const role of this.roles) {
+    for (const role of this.agentRoles()) {
       await this.deps.client.setAgentPermissions(this.agentId(role), crewPermissions(role));
     }
   }
@@ -331,6 +351,36 @@ class AddRun {
     return this.setupInfo;
   }
 
+  /** Key skill `ui-ux-pro-max` của company (`…/ui-ux-pro-max`, nhiều bản thì key nhỏ nhất), hoặc `null`. */
+  private async designerSkillKey(): Promise<string | null> {
+    const keys = (await this.deps.client.companySkills(this.companyId))
+      .map((skill) => skill.key)
+      .filter((key) => key.endsWith(DESIGNER_SKILL_SUFFIX))
+      .sort();
+    return keys[0] ?? null;
+  }
+
+  /**
+   * Agent UIUX như các vai khác (worktree, environment, agent giữ `paused`, AGENTS.md) rồi gắn đúng skill
+   * `ui-ux-pro-max`. Company không có skill đó thì bỏ qua. Trợ Lý đã tạo trước (tiến độ của bản app trước) thì tải lại
+   * AGENTS.md của Trợ Lý để có id agent UIUX.
+   */
+  private async ensureDesigner(): Promise<void> {
+    const skillKey = await this.designerSkillKey();
+    if (!skillKey) {
+      if (this.rec.get().agents[DESIGNER]) {
+        throw new Error(
+          'Lần trước đã bắt đầu tạo agent UIUX nhưng company không còn skill ui-ux-pro-max: thêm lại skill rồi bấm Chạy tiếp',
+        );
+      }
+      this.deps.log?.('project-designer-skipped', { key: this.input.key });
+      return;
+    }
+    await this.ensureRole(DESIGNER);
+    await this.deps.client.replaceAgentSkills(this.agentId(DESIGNER), [skillKey]);
+    if (this.rec.get().done.includes('role:assistant')) await this.uploadRoleInstructions('assistant');
+  }
+
   /**
    * Model mặc định theo vai, đọc một lần mỗi lần chạy từ bảng cài đặt model của server. Server cũ chưa có route thì
    * dùng `DEFAULT_ROLE_MODELS`; lỗi khác (mạng, 5xx, sai dạng) ném để bước tạo agent dừng và chạy tiếp được, không
@@ -381,7 +431,8 @@ class AddRun {
 
   private async ensureRole(role: string): Promise<void> {
     const checkout = this.paths.checkout(role);
-    const name = recordName(this.input.key, role);
+    const envName = recordName(this.input.key, role);
+    const name = agentName(this.input.key, role);
     await this.rec.setAgent(role, { checkout });
     const gitDeps = { home: this.deps.home, env: this.deps.env };
     await ensureWorktree(this.info, checkout, agentBranch(this.input.key, role), gitDeps);
@@ -392,9 +443,10 @@ class AddRun {
     let environmentId = this.rec.get().agents[role]?.environmentId ?? null;
     if (!environmentId) {
       const lost = (await client.environments(this.companyId)).find(
-        (env) => env.name === name && env.status === 'active' && env.config.remoteWorkspacePath === checkout,
+        (env) =>
+          env.name === envName && env.status === 'active' && env.config.remoteWorkspacePath === checkout,
       );
-      environmentId = lost?.id ?? (await this.createEnvironment(name, role, checkout, setup.port));
+      environmentId = lost?.id ?? (await this.createEnvironment(envName, role, checkout, setup.port));
       await this.rec.setAgent(role, { environmentId });
     }
 
@@ -408,7 +460,7 @@ class AddRun {
       );
       if (lost) agentId = lost.id;
       else {
-        const cell = (await this.getRoleModels())[templateOf(role)];
+        const cell = (await this.getRoleModels())[templateOf(role)] ?? DESIGNER_DEFAULT_MODEL;
         agentId = (
           await client.createAgent(this.companyId, {
             name,
@@ -423,14 +475,29 @@ class AddRun {
       await this.rec.setAgent(role, { agentId });
     }
     await this.holdPaused(agentId, name);
+    await this.uploadRoleInstructions(role);
+  }
 
+  /** AGENTS.md theo template của vai; Trợ Lý kèm danh sách executor và agent UIUX (nếu có) của project. */
+  private async uploadRoleInstructions(role: string): Promise<void> {
+    const agentId = this.agentId(role);
     const template = templateOf(role);
-    const executors =
-      template === 'assistant'
-        ? this.roles.filter((r) => r.startsWith('executor-')).map((r) => this.agentId(r))
-        : [];
-    const content = renderInstructions(template, ROLE_TEMPLATES[template], agentId, executors);
-    await uploadInstructions(client, agentId, content);
+    const assistant = template === 'assistant';
+    const executors = assistant
+      ? this.roles.filter((r) => r.startsWith('executor-')).map((r) => this.agentId(r))
+      : [];
+    const designerId = this.rec.get().agents[DESIGNER]?.agentId;
+    const designers = assistant && designerId ? [designerId] : [];
+    const content = renderInstructions(
+      template,
+      ROLE_TEMPLATES[template],
+      agentId,
+      executors,
+      [],
+      '',
+      designers,
+    );
+    await uploadInstructions(this.deps.client, agentId, content);
   }
 
   private async createEnvironment(
@@ -505,7 +572,8 @@ class AddRun {
       throw new Error(`Kiểm máy chưa đạt: ${bad.map((r) => `${r.title}: ${r.detail}`).join('; ')}`);
     }
     const { pinDir } = await this.getSetupInfo();
-    for (const role of this.roles) {
+    const agentRoles = this.agentRoles();
+    for (const role of agentRoles) {
       const report = await this.deps.ops.call('workflowCheck', {
         root: this.paths.checkout(role),
         pluginDir: pinDir,
@@ -518,14 +586,14 @@ class AddRun {
       throw new Error('Vai trò đọc lại từ Paperclip không khớp vai trò vừa ghi');
     }
     const agents = [];
-    for (const role of this.roles) {
+    for (const role of agentRoles) {
+      const name = agentName(this.input.key, role);
       const agent = await this.deps.client.getAgent(this.agentId(role));
       if (agent?.engine !== 'cli') {
         throw new Error(
-          `Agent ${recordName(this.input.key, role)} không có adapterConfig.engine=cli (đang là ${agent?.engine ?? 'trống'}): Paperclip sẽ chạy ACP và hỏng trên environment SSH`,
+          `Agent ${name} không có adapterConfig.engine=cli (đang là ${agent?.engine ?? 'trống'}): Paperclip sẽ chạy ACP và hỏng trên environment SSH`,
         );
       }
-      const name = recordName(this.input.key, role);
       const actual = await this.deps.client.getAgentPermissions(agent.id);
       if (!actual) throw new Error(`Agent ${name} không còn trên Paperclip`);
       const wrong = permissionMismatch(actual, crewPermissions(role));
@@ -550,7 +618,7 @@ class AddRun {
     const envIds = new Set(entries.map((e) => e.environmentId).filter((id): id is string => !!id));
     if (envIds.size === 0) return;
     const known = new Set(entries.map((e) => e.agentId).filter((id): id is string => !!id));
-    const names = new Set(this.roles.map((role) => recordName(this.input.key, role)));
+    const names = new Set([...this.roles, DESIGNER].map((role) => agentName(this.input.key, role)));
     try {
       for (const agent of await this.deps.client.agents(this.companyId)) {
         const ours =

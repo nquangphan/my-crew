@@ -14,12 +14,16 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork nhánh `crew/uiux-agent` @ 7f341c66d (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
+/**
+ * sha256 của `crew/agents/*.md` trong fork nhánh `crew/uiux-agent` @ 7f341c66d (commit cuối đổi crew/agents) lúc chép;
+ * `designer.md` chép từ nhánh `crew/uiux-wizard` @ 08f540666 (file đổi lần cuối ở e49c52625). Lệch nghĩa là fork đã đổi.
+ */
 const FORK_SHA256: Record<string, string> = {
   assistant: 'ecf7c3eb05efcd0158488e5cd590df853d09c77422798e7e52c2e8ee65183986',
   executor: '252d71f62b5cb05d52eac7778ab2b0b95042de06e634f81cd21689b30edd60ad',
   integrator: '53dd07664eeacc3637400c6ed11e400f9a9819710014a02c93c10e9c68472fdd',
   reviewer: 'd7c54c8656664ed38daa416e6f741f2da20b8da91fe31317a346ac2c3f37255b',
+  designer: '2ebbff78108269cf950f031b1c720c5608b9f3a9af54ed147a2c3722556fde38',
 };
 
 describe('template vai trò', () => {
@@ -158,11 +162,48 @@ describe('renderInstructions runtime và reviewer Codex (AG-2)', () => {
   });
 });
 
+describe('renderInstructions agent UIUX', () => {
+  const D1 = '66666666-6666-4666-8666-666666666666';
+  const D2 = '77777777-7777-4777-8777-777777777777';
+  it('designerIds: mỗi dòng một id, trước mục Reviewer Codex; rỗng thì giữ câu "Không có"', () => {
+    expect(renderInstructions('assistant', '# T\n', A, [X1], [], '', [D1, D2])).toContain(
+      `## Agent UIUX của company\n\n- \`${D1}\`\n- \`${D2}\`\n\n## Reviewer Codex của company`,
+    );
+    expect(renderInstructions('assistant', '# T\n', A, [X1], [], '', [])).toContain(
+      '## Agent UIUX của company\n\nKhông có. Không tạo con thiết kế; làm như cũ.\n\n',
+    );
+  });
+
+  it('chỉ assistant nhận; không uuid, trùng executor, BMAD, reviewer Codex hay chính Trợ Lý thì lỗi', () => {
+    expect(() => renderInstructions('executor', 'x', A, [], [], '', [D1])).toThrow(
+      'danh sách agent UIUX chỉ assistant nhận',
+    );
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', ['khong-uuid'])).toThrow('uuid');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', [X1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [D1], '', [D1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], D1, [D1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', [D1, D1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', [A])).toThrow('chính nó');
+  });
+
+  it('designer trả nguyên template', () => {
+    expect(renderInstructions('designer', ROLE_TEMPLATES.designer, A, [])).toBe(ROLE_TEMPLATES.designer);
+  });
+});
+
 describe('render khớp từng byte với render-instructions.mjs của fork', () => {
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
       'd3f18e974590e3c9af589c46369bb0277f757481968dfc647505700246a77ae0',
+    );
+  });
+
+  it('Trợ Lý + 2 executor Claude + 1 agent UIUX: sha256 của đầu ra fork', () => {
+    const D = '66666666-6666-4666-8666-666666666666';
+    const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2], [], '', [D]);
+    expect(createHash('sha256').update(out).digest('hex')).toBe(
+      '0feac26f06dbda9a21e403f503ffd353b5bbab28b0abcb0ea7eb22890a69f4e4',
     );
   });
 });

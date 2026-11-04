@@ -616,6 +616,49 @@ describe('ghép máy (route plugin crew.core)', () => {
     await expect(client.modelSettingsRoles()).rejects.toThrow();
   });
 
+  it('modelSettingsRoles: ô designer có thì lấy, sai dạng thì ném', async () => {
+    const cell = (model: string, effort: string | null) => ({ model, effort });
+    const four = {
+      assistant: cell('a', null),
+      executor: cell('e', null),
+      reviewer: cell('r', null),
+      integrator: cell('i', null),
+    };
+    let reply = { settings: { roles: { ...four, designer: cell('claude-opus-6', 'high') } } } as unknown;
+    const { client } = await setup(() => ({ status: 200, body: reply }));
+    await expect(client.modelSettingsRoles()).resolves.toEqual({
+      ...four,
+      designer: cell('claude-opus-6', 'high'),
+    });
+    reply = { settings: { roles: { ...four, designer: { effort: null } } } };
+    await expect(client.modelSettingsRoles()).rejects.toThrow('vai designer');
+  });
+
+  it('companySkills: GET /companies/:id/skills, chỉ giữ id/key/slug, bỏ mục sai dạng', async () => {
+    let reply: unknown = [
+      { id: 's1', key: 'local/264a2248bd/ui-ux-pro-max', slug: 'ui-ux-pro-max', name: 'UI', markdown: 'x' },
+      { id: 's2', key: 7, slug: 'hong' },
+    ];
+    const { server, client } = await setup(() => ({ status: 200, body: reply }));
+    await expect(client.companySkills(C)).resolves.toEqual([
+      { id: 's1', key: 'local/264a2248bd/ui-ux-pro-max', slug: 'ui-ux-pro-max' },
+    ]);
+    expect(server.requests[0]).toMatchObject({ method: 'GET', path: `/api/companies/${C}/skills` });
+    reply = { items: [] };
+    await expect(client.companySkills(C)).rejects.toThrow('không phải mảng');
+  });
+
+  it('replaceAgentSkills: POST /agents/:id/skills/sync mode replace', async () => {
+    const { server, client } = await setup(() => ({ status: 200, body: { desiredSkills: [] } }));
+    await client.replaceAgentSkills(A, ['local/264a2248bd/ui-ux-pro-max']);
+    expect(server.requests[0]).toMatchObject({
+      method: 'POST',
+      path: `/api/agents/${A}/skills/sync`,
+      body: { mode: 'replace', desiredSkills: ['local/264a2248bd/ui-ux-pro-max'] },
+    });
+    await expect(client.replaceAgentSkills(A, [' '])).rejects.toThrow('trống');
+  });
+
   it('pairInfo: GET /machines/pair-info?companyId=, nhận đúng key ssh-ed25519', async () => {
     let reply = { paperclipSshPublicKey: 'ssh-ed25519 AAAAkey crew-mac-paperclip' } as Record<
       string,

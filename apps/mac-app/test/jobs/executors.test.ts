@@ -250,6 +250,32 @@ describe('agent-workspace', () => {
     expect(readFileSync(marker, 'utf8')).toBe('việc dở');
     expect(prepared.status).toBe('done');
   });
+
+  it('checkout designer của agent UIUX → ~/crew-agents/<khóa>/designer, nhánh theo payload', async () => {
+    const { s, deps } = setup();
+    const outcome = await runJob(
+      job({
+        kind: 'agent-workspace',
+        projectKey: 'demo',
+        folder: s.folder,
+        role: 'designer',
+        branch: 'agent/demo-designer',
+      }),
+      { projectId: null },
+      deps,
+    );
+    const path = join(s.home, 'crew-agents', 'demo', 'designer');
+    expect(outcome).toEqual({
+      status: 'done',
+      result: {
+        kind: 'agent-workspace',
+        role: 'designer',
+        path,
+        head: expect.stringMatching(/^[0-9a-f]{40}$/),
+      },
+    });
+    expect(s.git(['-C', path, 'symbolic-ref', '--short', 'HEAD'])).toBe('agent/demo-designer');
+  });
 });
 
 describe('skill-sync', () => {

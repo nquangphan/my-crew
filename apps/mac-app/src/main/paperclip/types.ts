@@ -76,6 +76,15 @@ export interface ModelSettingsRoles {
   executor: ModelSettingsCell;
   reviewer: ModelSettingsCell;
   integrator: ModelSettingsCell;
+  /** Agent UIUX; server cũ (trước khi có vai `designer`) không trả ô này. */
+  designer?: ModelSettingsCell;
+}
+
+/** Skill công ty như `GET /api/companies/:id/skills` trả (chỉ phần app dùng). `key` vd. `local/264a2248bd/ui-ux-pro-max`. */
+export interface CompanySkillItem {
+  id: string;
+  key: string;
+  slug: string;
 }
 
 export interface PaperclipAgent {
@@ -170,6 +179,13 @@ export interface PaperclipClient {
     content: string,
     baseHash: string | null,
   ): Promise<void>;
+  /** Skill công ty của company (`GET /api/companies/:id/skills`); mục thiếu `id`/`key`/`slug` dạng chuỗi bị bỏ. */
+  companySkills(companyId: string): Promise<CompanySkillItem[]>;
+  /**
+   * Đặt đúng tập skill của agent (`POST /api/agents/:id/skills/sync`, `mode: "replace"`): ghi đè, chạy lại không đổi
+   * gì thêm.
+   */
+  replaceAgentSkills(agentId: string, skillKeys: string[]): Promise<void>;
   cancelRun(runId: string): Promise<void>;
   /** Link mở run trên web: `<origin>/<issuePrefix>/agents/<agentId>/runs/<runId>`. */
   runWebUrl(runId: string): Promise<string>;

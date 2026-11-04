@@ -50,6 +50,16 @@ export function projectPaths(home: string, key: string) {
 /** Tên agent và environment của một vai trò; dùng để tìm lại bản ghi đã tạo khi response bị mất. */
 export const recordName = (key: string, role: string) => `${key}-${role}`;
 
+/**
+ * Agent UIUX của project (vai `designer`): checkout `~/crew-agents/<khóa>/designer`, environment `<khóa>-designer`,
+ * agent `UIUX <khóa>`. Không nằm trong dòng vai trò của project.
+ */
+export const DESIGNER = 'designer';
+
+/** Tên agent của một vai: `UIUX <khóa>` cho agent UIUX, `<khóa>-<vai>` (như environment) cho các vai khác. */
+export const agentName = (key: string, role: string) =>
+  role === DESIGNER ? `UIUX ${key}` : recordName(key, role);
+
 /** Tiến độ của bản cũ (thêm bằng URL git, clone vào `~/crew-projects`): không có `folder`. */
 export function isLegacyProgress(progress: ProjectProgress): boolean {
   return typeof progress.folder !== 'string';
