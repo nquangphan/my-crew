@@ -20,6 +20,8 @@ export interface AppContext {
   ops: OpsBridge;
   /** Nhờ gửi bản tin máy sớm (gộp, chạy nền, không ném) sau khi checkout agent vừa được tạo. */
   sendStatusSoon: (reason: string) => void;
+  /** Nhờ ghi lại danh sách project Crew sang Bug Finding (gộp, chạy nền, không ném) sau khi project hay checkout đổi. */
+  syncBugFindingSoon: (reason: string) => void;
   ipc: IpcRegistry;
   loginItem: LoginItem;
   tray: CrewTray;

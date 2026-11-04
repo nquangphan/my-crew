@@ -7,6 +7,7 @@ import type {
 } from '../../main/bug-finding/state';
 import { ErrorBox, Lozenge, Notice, PageHeader, type Tone } from '../components/ui';
 import { invoke, useStateChanged } from '../lib/ipc';
+import { formatTime } from './health';
 
 /** Màn đang mở thì đọc lại trạng thái mỗi 10 giây (heartbeat của Bug Finding ghi mỗi 15 giây). */
 const REFRESH_MS = 10_000;
@@ -204,11 +205,43 @@ export function BugFindingScreen() {
               Mọi project Crew có repo trên máy này được tạo sẵn bên Bug Finding. Thêm project trong Crew thì
               bên kia tự có. Gỡ khỏi Crew thì Bug Finding giữ lịch sử và gắn nhãn “Crew đã gỡ”.
             </p>
-            <div>
+            <div className="bf-sync-row">
+              {view.sync.lastSyncAt ? (
+                <>
+                  <Lozenge tone="ok">{`Đã đồng bộ ${view.sync.projects.length} project`}</Lozenge>
+                  <span className="muted">lần cuối {formatTime(view.sync.lastSyncAt)}</span>
+                </>
+              ) : (
+                <Lozenge tone="gray">Chưa đồng bộ</Lozenge>
+              )}
               <button type="button" className="btn" disabled={busy !== null} onClick={sync}>
                 {busy === 'sync' ? 'Đang đồng bộ...' : 'Đồng bộ lại'}
               </button>
             </div>
+          </section>
+
+          <section className="wizard-card" aria-label="Project Crew ↔ Bug Finding">
+            <h2>Project Crew ↔ Bug Finding</h2>
+            {view.sync.projects.length === 0 ? (
+              <p className="muted">Chưa có project Crew nào có repo trên máy này.</p>
+            ) : (
+              <table className="table" aria-label="Project Crew ↔ Bug Finding">
+                <thead>
+                  <tr>
+                    <th>Project Crew</th>
+                    <th>Repo trên máy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {view.sync.projects.map((project) => (
+                    <tr key={project.crewProjectId}>
+                      <td>{project.name}</td>
+                      <td className="mono">{project.repoPath}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </section>
 
           <section className="wizard-card" aria-label="MR do Crew xếp">

@@ -316,3 +316,8 @@ h1 {
   flex-direction: column;
   gap: 16px;
 }
+.bf-sync-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
