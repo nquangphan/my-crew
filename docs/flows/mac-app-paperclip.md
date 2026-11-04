@@ -231,6 +231,17 @@ không tự đổi, phải PUT lại `AGENTS.md` (GET lấy `contentHash` làm `
 của FX-10 có trong template integrator, mục "Chọn workflow" và "Chốt trạng thái gốc" có trong template Trợ Lý, và khối
 "File đính kèm" có trong cả 4 template.
 
+Ngoại lệ hiện tại: template integrator đi trước fork một thay đổi (sha256 trong test là của bản app). Ở stage merge
+của ticket tổng `code-bf`, script `crew-pr.sh` `MODE=merge` với `HEAD_OK` khác `T` tự kiểm, không dựa vào việc agent
+đọc comment owner: fetch `origin/<nhánh mặc định>`, rồi mọi commit trong `T..HEAD_OK` chưa có trên nhánh đó phải là
+merge commit có đúng hai cha, cha thứ hai nằm trên nhánh mặc định (owner gộp nhánh mặc định vào để xử lý conflict).
+Có commit thường nào khác (kể cả mang vào qua merge nhánh khác) thì thoát mã 9, không gọi `gh pr merge`; integrator
+comment `Integrator: không merge — head pull request có commit chưa được owner duyệt` và dừng. Không có `HEAD_OK`
+thì vẫn merge đúng `T`. Fork phải chép lại `templates/integrator.md` vào `crew/agents/integrator.md`. Test
+`projects-instructions.test.ts` chạy script này trên repo git tạm (origin là repo bare cục bộ, `gh` giả): head = `T` +
+commit thường, `T` + merge nhánh khác, hay merge nhánh mặc định rồi thêm commit đều thoát 9; `T` + merge nhánh mặc
+định thì merge đúng head đó.
+
 ## Gỡ khỏi Mac
 
 `removeProject(deps, projectId)`:
@@ -500,7 +511,7 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   folder owner sạch, chạy lại, lỗi giữa chừng, project không do app thêm, quote đường dẫn, tiến độ kiểu cũ.
   Cây ghim máy còn run thì từ chối, không pause hay archive; máy khác được dọn thì `removed` ghi số environment và số máy;
   agent trong tiến độ mà owner đã thay ở ô không gửi server, dòng vai trò đã xóa thì không gọi dọn máy khác.
-- `apps/mac-app/test/projects-instructions.test.ts`: sha256 template, render Trợ Lý, `extraArgs` ghim, `baseHash`.
+- `apps/mac-app/test/projects-instructions.test.ts`: sha256 template, render Trợ Lý, `extraArgs` ghim, `baseHash`, `crew-pr.sh` `MODE=merge` với `HEAD_OK` (chỉ cho thêm merge nhánh mặc định).
 - `apps/mac-app/test/projects-ipc.test.ts`: `projects:list` ghép project với tiến độ, checkout (thứ tự vai trò, `head`),
   repo docs và commit gửi cuối; project R1 không có vai trò; thêm dở chưa có project; chưa chọn company; thêm → liệt kê
   → gỡ với Paperclip giả và HOME giả; `pickFolder` (Hủy, gợi ý tên/khóa, folder hỏng trả `problem`).
