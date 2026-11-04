@@ -106,6 +106,17 @@ function heartbeatTime(at: unknown): number | null {
   return null;
 }
 
+/**
+ * Số lượt review Bug Finding đang chạy theo `heartbeat.json` (`running`). Không có heartbeat, đọc lỗi hay heartbeat cũ
+ * hơn 60 giây (app không chạy) thì 0.
+ */
+export function bugFindingRunningReviews(heartbeatFile: string, now: number): number {
+  const heartbeat = readJson(heartbeatFile);
+  const at = heartbeatTime(heartbeat?.at);
+  if (at === null || (now - at) / 1000 > HEARTBEAT_STALE_SEC) return 0;
+  return num(heartbeat?.running) ?? 0;
+}
+
 function listJson(dir: string): string[] {
   try {
     return readdirSync(dir);

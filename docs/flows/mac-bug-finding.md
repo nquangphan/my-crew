@@ -31,6 +31,8 @@ Thiết kế: `plans/261104-tps-643-bug-finding-in-crew/spec.md` mục 6, 7 và 
   `projects.json`, `requests/`, `responses/`, `heartbeat.json`. Khớp `CrewBridgePaths` của repo `bug-finding`
   (`apps/mr-review-queue/Sources/MRQueueCore/CrewBridge.swift`).
 - `embeddedAppPath(resourcesPath)` = `<resourcesPath>/Bug Finding.app`.
+- `BUG_FINDING_BUNDLE_ID` = `local.mrreviewqueue` (cả bản nhúng lẫn bản cài riêng); updater thoát Bug Finding bằng
+  `quit app id` theo id này (flow `mac-app-update`).
 - `resolveAppPath({isPackaged, resourcesPath, env})`: bản đóng gói dùng app nhúng; bản dev (`!app.isPackaged`) lấy
   biến `CREW_BUG_FINDING_APP`, không có thì `null` (màn hình coi như chưa cài).
 - `STANDALONE_APP_PATH` = `/Applications/Bug Finding.app` (bản cài riêng cũ, cùng bundle id).
@@ -47,6 +49,8 @@ Thiết kế: `plans/261104-tps-643-bug-finding-in-crew/spec.md` mục 6, 7 và 
    8601, số thì hiểu là giây hoặc mili giây Unix). Tuổi heartbeat ≤ 60 giây (`HEARTBEAT_STALE_SEC`) thì `running:
    true` kèm `pid`, `runningReviews`, `waitingReviews` của heartbeat; cũ hơn hay không có thì coi như không chạy (pid
    `null`, số lượt 0). `heartbeatAgeSec` luôn trả (hoặc `null` khi chưa có heartbeat) để màn hình hiện "Mất tín hiệu".
+   `bugFindingRunningReviews(heartbeatFile, now)` chỉ đọc `running` theo đúng luật đó (cũ quá 60 giây, thiếu hay hỏng
+   thì 0), cho bước chờ máy rảnh của updater (flow `mac-app-update`).
 3. `standaloneApp`: còn `/Applications/Bug Finding.app` thì `{path, running}`, `running` theo danh sách tiến trình.
 4. `sync`: đọc `crew/projects.json` thành `{lastSyncAt, projects}` (mục dưới). `lastSyncAt` là giờ lần đồng bộ
    thành công cuối trong phiên app (kể cả lần không phải ghi lại vì không đổi), chưa có thì lấy `writtenAt` của file;
@@ -177,8 +181,8 @@ Bug Finding ghi `crew/responses/<requestId>.json` (`CrewReviewResponse`, schema 
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/mac-app/src/main/bug-finding/paths.ts` | Đường dẫn cầu nối, app nhúng, bản cài riêng, chọn app theo bản đóng gói/dev | `bugFindingPaths`, `embeddedAppPath`, `resolveAppPath`, `STANDALONE_APP_PATH` |
-| `apps/mac-app/src/main/bug-finding/state.ts` | Đọc heartbeat, bản cài riêng, yêu cầu/phản hồi thành trạng thái màn hình | `readBugFindingState`, `BugFindingView`, `BugFindingRequestRow`, `HEARTBEAT_STALE_SEC` |
+| `apps/mac-app/src/main/bug-finding/paths.ts` | Đường dẫn cầu nối, app nhúng, bản cài riêng, chọn app theo bản đóng gói/dev | `bugFindingPaths`, `embeddedAppPath`, `resolveAppPath`, `STANDALONE_APP_PATH`, `BUG_FINDING_BUNDLE_ID` |
+| `apps/mac-app/src/main/bug-finding/state.ts` | Đọc heartbeat, bản cài riêng, yêu cầu/phản hồi thành trạng thái màn hình | `readBugFindingState`, `bugFindingRunningReviews`, `BugFindingView`, `BugFindingRequestRow`, `HEARTBEAT_STALE_SEC` |
 | `apps/mac-app/src/main/bug-finding/launch.ts` | Mở app (chặn khi bản khác đang chạy), dò tiến trình, gỡ bản cài riêng | `launchBugFinding`, `runningBugFindingApps`, `parseRunningAppPaths`, `trashStandalone` |
 | `apps/mac-app/src/main/bug-finding/sync-projects.ts` | Dựng danh sách project Crew có repo trên máy, ghi atomic `projects.json` khi đổi, chạy đồng bộ lần lượt và gộp lần nhờ | `buildCrewProjectList`, `createRepoResolver`, `syncProjects`, `createSyncRunner`, `jobChangesProjects` |
 | `apps/mac-app/src/main/bug-finding/results.ts` | Đọc response của Bug Finding, rút gọn finding, cắt báo cáo, hàng đợi gửi, sổ lượt, chạy theo `fs.watch` + 30 giây | `relayResponses`, `startResultsRelay`, `summarizeFinding`, `cutReport`, `rememberRequest`, `mergeDelivered`, `readResponsesDir`, `BugFindingResultBody` |
@@ -199,7 +203,8 @@ Bug Finding ghi `crew/responses/<requestId>.json` (`CrewReviewResponse`, schema 
 ## Flow liên quan
 
 - `mac-app`: khung app, hợp đồng IPC, thanh bên.
-- `mac-app-update`: đóng gói app nhúng khi phát hành, updater.
+- `mac-app-update`: đóng gói app nhúng khi phát hành, updater (chờ Bug Finding hết lượt review, thoát rồi mới cài,
+  mở lại sau khi bản mới khởi động).
 - `mac-app-paperclip`: project và việc máy (job review của Bug Finding).
 
 ## Tests

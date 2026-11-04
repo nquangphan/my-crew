@@ -309,7 +309,8 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   (flow `mac-setup`). `jobsAgent: {version, lastPollAt, capabilities}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một
   lần; flow `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc. `bugFindingRequests` (sổ lượt Bug Finding máy đã
   nhận) và `bugFindingOutbox` (kết quả Bug Finding chưa gửi được về server) do flow `mac-bug-finding` ghi, mỗi thứ tối
-  đa 200 mục.
+  đa 200 mục. `reopenBugFinding: true` do updater ghi khi thoát Bug Finding (đang mở) để cài bản mới; bản mới mở lại
+  Bug Finding chạy nền rồi xóa khóa này (flow `mac-app-update`).
   `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
   chọn) và `executors` (số executor đã chọn, 1–5; tiến độ trước đó không có); tiến độ bản cũ có `origin` thay cho
   `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)
