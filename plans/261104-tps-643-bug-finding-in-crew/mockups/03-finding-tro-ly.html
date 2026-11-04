@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Mockup 3 — Finding Trợ Lý đã xử lý và cần owner chốt (web Crew)</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .web { padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+  .tab { padding: 8px 12px; font-size: 13px; color: var(--muted); }
+  .tab.on { color: var(--accent); border-bottom: 2px solid var(--accent); font-weight: 600; }
+  .group-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .q { border: 1px solid #f0c36d; background: #fffaf0; border-radius: 8px; padding: 12px 14px; }
+  .opt { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; font-size: 13px; }
+  .radio { width: 14px; height: 14px; border: 1.5px solid var(--muted); border-radius: 50%; margin-top: 3px; flex: none; }
+  .radio.on { border-color: var(--accent); box-shadow: inset 0 0 0 3px #fff; background: var(--accent); }
+  .loc { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="web-top"><span class="logo">2P Crew</span><span class="crumb">my-crew / Yêu cầu / <b style="color:var(--ink)">TPS-650</b></span><span style="flex:1"></span><span class="muted">Đại Ca</span></div>
+  <div class="web">
+    <div class="row between"><h1>TPS-650 Thêm lọc theo ngày cho báo cáo</h1><span class="badge warn">Trợ Lý đang xử lý finding · chờ owner 1 câu</span></div>
+    <div class="tabs"><span class="tab">Tổng kết</span><span class="tab">Việc con (3)</span><span class="tab on">Bug Finding (5)</span><span class="tab">Diễn biến</span></div>
+
+    <div class="card">
+      <div class="row between">
+        <div><b>Lần 1</b> · PR #87 · <span class="mono">a71d02c9e5f1</span> · <span class="badge bad">BLOCK</span> · 5 finding</div>
+        <div class="row"><span class="btn">Báo cáo đầy đủ (.md)</span><span class="btn">Mở trong Bug Finding</span></div>
+      </div>
+      <div class="row small" style="margin-top:8px;gap:16px">
+        <span><span class="badge info">3</span> Trợ Lý tự sửa</span>
+        <span><span class="badge warn">1</span> Cần owner chốt</span>
+        <span><span class="badge gray">1</span> Trợ Lý bỏ qua (có lý do)</span>
+        <span class="muted">Lô sửa bf-fix-1: 1/3 xong · Bug Finding chạy lại một lần khi cả 3 xong và câu hỏi đã trả lời</span>
+      </div>
+    </div>
+
+    <div class="card q">
+      <div class="group-h"><span class="badge warn">Cần owner chốt</span><b>F-04</b> <span class="sev LOW">LOW</span> <span class="muted small">Needs-Clarification · CONFIRM_CONTRACT</span></div>
+      <div><b>Bộ lọc ngày không giới hạn khoảng tối đa</b></div>
+      <div class="loc">apps/web/src/reports/date-filter.ts:42 · reportsApi.list</div>
+      <p style="margin:8px 0 4px;font-size:13px">Bug Finding hỏi: chọn khoảng 5 năm thì API trả rất nhiều dòng. Có cần giới hạn khoảng ngày không? Trợ Lý không tự quyết vì đây là quy tắc sản phẩm.</p>
+      <div class="opt"><span class="radio"></span><div><b>a) Sửa: giới hạn 12 tháng</b> — Trợ Lý tạo việc con sửa trong lô bf-fix-1; UI báo lỗi khi chọn quá.</div></div>
+      <div class="opt"><span class="radio on"></span><div><b>b) Không sửa</b> — ghi lý do; lần chạy lại gửi phản hồi cho Bug Finding để đóng finding (REVIEWER_DISMISSED).</div></div>
+      <div class="opt"><span class="radio"></span><div><b>c) Tách ticket riêng</b> — không chặn PR này; Trợ Lý ghi vào “Cần owner quyết định” để mở yêu cầu sau.</div></div>
+      <div style="margin-top:6px"><input style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:13px" value="Server đã chặn khoảng > 12 tháng ở reports-api, không cần sửa client."></div>
+      <div class="row" style="justify-content:flex-end;margin-top:8px"><span class="btn">Để sau</span><span class="btn primary">Gửi trả lời</span></div>
+      <p class="small muted" style="margin:6px 0 0">Đề xuất của Trợ Lý: b) — server đã chặn (<span class="mono">server/reports/limits.ts:18</span>).</p>
+    </div>
+
+    <div class="card">
+      <div class="group-h"><span class="badge info">Trợ Lý tự sửa</span><span class="muted small">Đủ bằng chứng, có cách sửa và điều kiện đóng rõ, nằm trong phạm vi yêu cầu</span></div>
+      <table>
+        <thead><tr><th>Finding</th><th>Mức</th><th>Vị trí</th><th>Việc con sửa</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+          <tr><td><b>F-01</b> Lọc ngày dùng giờ máy, lệch ngày với giờ Việt Nam<div class="small muted">Confirmed · CODE_FIX · introduced</div></td><td><span class="sev HIGH">HIGH</span></td><td class="loc">date-filter.ts:57</td><td><b>TPS-651</b> · executor-1</td><td><span class="badge ok">xong (đã qua reviewer)</span></td></tr>
+          <tr><td><b>F-02</b> Thiếu test cho ngày cuối tháng<div class="small muted">Confirmed · TEST_FIX · introduced</div></td><td><span class="sev MEDIUM">MEDIUM</span></td><td class="loc">date-filter.test.ts</td><td><b>TPS-652</b> · executor-2</td><td><span class="badge info">đang review</span></td></tr>
+          <tr><td><b>F-03</b> Không hủy request cũ khi đổi bộ lọc nhanh<div class="small muted">Potential · CODE_FIX · introduced</div></td><td><span class="sev MEDIUM">MEDIUM</span></td><td class="loc">use-report.ts:31</td><td><b>TPS-653</b> · executor-1</td><td><span class="badge gray">đang làm</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="group-h"><span class="badge gray">Trợ Lý bỏ qua</span><span class="muted small">Chỉ LOW/INFO có sẵn từ trước hoặc sai có bằng chứng; CRITICAL/HIGH luôn hỏi owner</span></div>
+      <table>
+        <thead><tr><th>Finding</th><th>Mức</th><th>Lý do (gửi kèm lần chạy lại)</th></tr></thead>
+        <tbody>
+          <tr><td><b>F-05</b> Tên biến viết tắt trong báo cáo cũ<div class="small muted">pre_existing</div></td><td><span class="sev LOW">LOW</span></td><td>Có từ trước PR này, ngoài phạm vi yêu cầu. Ghi vào “Cần owner quyết định” nếu owner muốn dọn.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<ul class="legend">
+  <li>Tab <b>Bug Finding</b> trên ticket tổng: mỗi lần chạy một khối; finding chia ba nhóm theo cách Trợ Lý xử lý.</li>
+  <li>Câu hỏi cho owner là thẻ hỏi (interaction <span class="mono">ask_user_questions</span>) hiện ngay trên tab, cùng đề xuất của Trợ Lý.</li>
+  <li>Việc con sửa thuộc lô <span class="mono">bf-fix-&lt;n&gt;</span>, mỗi con vẫn qua executor → reviewer như mọi việc con.</li>
+</ul>
+</body>
+</html>
