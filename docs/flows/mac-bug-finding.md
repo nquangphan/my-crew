@@ -262,3 +262,16 @@ Bug Finding ghi `crew/responses/<requestId>.json` (`CrewReviewResponse`, schema 
 - `apps/mac-app/test/bug-finding-review-wiring.test.ts` (mock Electron, runner `pgrep`/`open`, board key, `fetch`;
   `AppStateStore` thật, HOME tạm): `runReview` ghi request, mở nền, ghi sổ lượt; response `succeeded` làm relay gửi
   `POST …/bug-finding/results` kèm báo cáo và đánh `delivered`.
+- `apps/mac-app/test/bug-finding-e2e.test.tsx` (jsdom; `registerBugFinding` thật, handler IPC nối vào `window.crew`,
+  màn `BugFindingScreen` thật, file cầu nối trong HOME tạm, server Paperclip giả HTTP thật; chỉ giả Electron và
+  `pgrep`/`open`): màn hiện trạng thái từ `heartbeat.json` và `responses/` giả; bản cài riêng đang chạy thì nút Mở
+  không gọi `open` và job `bug-finding-review` trả `standalone_running` không để lại file; **Đồng bộ lại** ghi đúng
+  `crew/projects.json`; job `bug-finding-review` ghi `requests/<id>.json`, mở app nền, relay `running` rồi `succeeded`
+  (kèm finding và báo cáo) lên `POST …/bug-finding/results` với board key.
+- `apps/mac-app/test/bug-finding-swift-bridge.test.ts` + `test/fixtures/CrewBridgeLiveTests.swift` (chỉ chạy khi
+  `CREW_BUG_FINDING_REPO` trỏ tới checkout dùng một lần của repo `bug-finding` ở commit có cầu nối, ví dụ
+  `git worktree add --detach <thư mục tạm> <sha>`; spec chép fixture vào `Tests/MRQueueCoreTests/` rồi gỡ ra): code
+  Swift thật (`CrewBridge`, `swift test --filter CrewBridgeLiveTests`) đọc `projects.json` và `requests/*.json` do
+  mac-app ghi, quyết định `enqueue`, ghi `heartbeat.json` và `responses/*.json` (đang chạy 2/7 lane, rồi `succeeded`
+  APPROVE); mac-app đọc lại thành trạng thái màn hình và relay kết quả. Không khởi động app Bug Finding thật vì app
+  dùng thư mục dữ liệu cố định `~/Library/Application Support/MRReviewQueue`, trùng với bản đang chạy của owner.
