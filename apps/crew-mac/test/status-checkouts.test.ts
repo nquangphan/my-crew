@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { scanCheckouts } from '../src/status/checkouts.js';
+import { MAX_CHECKOUTS, scanCheckouts } from '../src/status/checkouts.js';
 import { gitIn } from './helpers/fake-mac.js';
 
 function gitRepo(dir: string): void {
@@ -56,18 +56,19 @@ describe('scanCheckouts', () => {
     ]);
   });
 
-  it('tối đa 64, sắp theo path', async () => {
+  it('tối đa MAX_CHECKOUTS (256), sắp theo path', async () => {
     const home = mkdtempSync(join(tmpdir(), 'crew-checkouts-'));
-    // Thư mục có `.git` hỏng: đủ để vào danh sách, git đọc lỗi thì head/clean null. Rẻ hơn 70 repo thật.
-    for (let i = 0; i < 70; i++) {
-      const dir = join(home, 'crew-agents', `p${String(i).padStart(2, '0')}`, 'executor');
+    // Thư mục có `.git` hỏng: đủ để vào danh sách, git đọc lỗi thì head/clean null. Rẻ hơn repo thật.
+    for (let i = 0; i < MAX_CHECKOUTS + 6; i++) {
+      const dir = join(home, 'crew-agents', `p${String(i).padStart(3, '0')}`, 'executor');
       mkdirSync(join(dir, '.git'), { recursive: true });
     }
     const checkouts = await scanCheckouts(home);
-    expect(checkouts).toHaveLength(64);
+    expect(MAX_CHECKOUTS).toBe(256);
+    expect(checkouts).toHaveLength(MAX_CHECKOUTS);
     const paths = checkouts.map((c) => c.path);
     expect(paths).toEqual([...paths].sort());
-    expect(paths[0]).toBe(join(home, 'crew-agents', 'p00', 'executor'));
+    expect(paths[0]).toBe(join(home, 'crew-agents', 'p000', 'executor'));
     expect(checkouts.every((c) => c.head === null && c.clean === null)).toBe(true);
   });
 
