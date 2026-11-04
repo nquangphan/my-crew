@@ -45,7 +45,8 @@ cắm vào các điểm đã chừa.
    `registerJobs(ctx)` ngay sau `registerSshd` (nhận việc từ hàng đợi máy, flow `mac-app-paperclip` mục "Nhận việc
    trên máy"; chạy utilityProcess riêng "2P Crew jobs", dừng ở `will-quit`).
    Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới, gồm gỡ app v2) và
-   `registerUpdate(ctx, sshd)` (updater và màn hình Cập nhật, flow `mac-app-update`).
+   `registerUpdate(ctx, sshd)` (updater và màn hình Cập nhật, flow `mac-app-update`), rồi `registerBugFinding(ctx)`
+   (mục Bug Finding: trạng thái, mở app đi kèm, gỡ bản cài riêng cũ; kênh `bugFinding:*`, flow `mac-bug-finding`).
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
    `ctx.sendStatusSoon(reason)` (`src/main/status-nudge.ts` → `createStatusNudge`, dựng trong `start`) nhờ gửi bản tin
    máy sớm bằng đúng op `sendStatus` (cùng đường với `crew-mac status send` của launchd `com.2p.crew-mac-status`):
@@ -56,7 +57,8 @@ cắm vào các điểm đã chừa.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
    bằng thông báo tiếng Việt của Main; `useStateChanged` nghe sự kiện `state:changed` (không payload, renderer gọi
-   lại kênh đọc).
+   lại kênh đọc). Thứ tự thanh bên: Sức khỏe, Run đang chạy, Log, Project, Bug Finding (`#/bug-finding`, flow
+   `mac-bug-finding`), Cập nhật, Cài đặt.
 
 ## Sức khỏe, Run đang chạy, Log
 
@@ -343,6 +345,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `mac-setup`: thư viện `@crew/mac` mà app gọi (setup, doctor, status, `installCrewMacFrom`).
 - `mac-app-sshd`: bộ giám sát sshd agent và quit guard.
 - `mac-app-paperclip`: đăng nhập Paperclip, project. `mac-app-update`: phát hành, updater, màn hình Cập nhật.
+- `mac-bug-finding`: mục Bug Finding (app Bug Finding đi kèm, trạng thái, mở, bản cài riêng cũ).
 
 ## Tests
 
@@ -351,7 +354,8 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 - `apps/mac-app/test/app-state.test.ts`: tạo file mode 600, ghi nối tiếp, file hỏng, `appVersion`, bản sao; `jobsAgent`
   ghi qua store thì `readJobsAgent` của crew-mac đọc được.
 - `apps/mac-app/test/app-log.test.ts`: ẩn secret, giờ Việt Nam, xoay file, ghi lỗi không ném.
-- `apps/mac-app/test/ipc-contract.test.ts`: danh sách kênh, preload chỉ nhận kênh hợp lệ, `registerIpc`.
+- `apps/mac-app/test/ipc-contract.test.ts`: danh sách kênh (kể cả bốn kênh `bugFinding:*`), preload chỉ nhận kênh hợp lệ,
+  `registerIpc`.
 - `apps/mac-app/test/ops-bridge.test.ts`: cầu nối với utility giả, và `createOpsHandlers` với HOME giả (kể cả
   `jobTargets` đọc `status.json`, `runMachineJob` từ chối payload sai). `nodePath`: `ensureNode` ghi đè giá trị nhớ
   và mọi context sau dùng nó; không có node đồng bộ thì dò shell đăng nhập đúng một lần, không thấy thì báo mở bước

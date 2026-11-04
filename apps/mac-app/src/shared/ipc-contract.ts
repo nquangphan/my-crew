@@ -1,5 +1,7 @@
 import type { CheckResult } from '@crew/mac';
 import type { AppState, ProjectProgress, SetupStep, UpdateState } from '../main/app-state.js';
+import type { LaunchResult } from '../main/bug-finding/launch.js';
+import type { BugFindingView } from '../main/bug-finding/state.js';
 import type { JobsStatus } from '../main/jobs/poller.js';
 import type { ExistingMachine } from '../main/setup/import-existing.js';
 import type { V2Detection } from '../main/setup/v2-removal.js';
@@ -118,6 +120,14 @@ export interface IpcApi {
   'update:check': { args: []; result: undefined };
   'update:installWhenIdle': { args: []; result: undefined };
   'update:rollback': { args: []; result: undefined };
+  /** Mục Bug Finding: trạng thái app đi kèm, hàng đợi, bản cài riêng cũ, các lượt review Crew đã xếp (chỉ đọc). */
+  'bugFinding:state': { args: []; result: BugFindingView };
+  /** Mở app Bug Finding đi kèm; không mở khi bản cài riêng đang chạy (`standalone_running`). */
+  'bugFinding:open': { args: []; result: LaunchResult };
+  /** Ghi lại danh sách project Crew cho Bug Finding ngay. */
+  'bugFinding:syncNow': { args: []; result: { written: boolean; count: number } };
+  /** Chuyển `/Applications/Bug Finding.app` vào Thùng rác; từ chối khi nó đang chạy. */
+  'bugFinding:trashStandalone': { args: []; result: { ok: boolean; message: string } };
 }
 
 export type IpcChannel = keyof IpcApi;
@@ -154,6 +164,10 @@ export const IPC_CHANNELS = [
   'update:check',
   'update:installWhenIdle',
   'update:rollback',
+  'bugFinding:state',
+  'bugFinding:open',
+  'bugFinding:syncNow',
+  'bugFinding:trashStandalone',
 ] as const satisfies readonly IpcChannel[];
 
 /** Sự kiện Main → renderer, không payload: renderer gọi lại kênh đọc. */
