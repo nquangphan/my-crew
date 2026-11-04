@@ -181,6 +181,37 @@ describe('route', () => {
     });
   });
 
+  it('postBugFindingResult: POST /api/plugins/crew.core/api/bug-finding/results với body nguyên văn', async () => {
+    const { server, client } = await setup(() => ({ status: 200, body: { run: {} } }));
+    const body = {
+      companyId: C,
+      machineId: E,
+      requestId: R,
+      state: 'running' as const,
+      headSha: 'c'.repeat(40),
+      lanesDone: 1,
+      lanesTotal: 4,
+    };
+    await expect(client.postBugFindingResult(body)).resolves.toBeUndefined();
+    expect(server.requests[0]).toMatchObject({
+      method: 'POST',
+      path: '/api/plugins/crew.core/api/bug-finding/results',
+      body,
+    });
+  });
+
+  it('postBugFindingResult: 409 thành PaperclipHttpError 409', async () => {
+    const { client } = await setup(() => ({ status: 409, body: { error: 'run_finished' } }));
+    const body = {
+      companyId: C,
+      machineId: E,
+      requestId: R,
+      state: 'failed' as const,
+      headSha: 'c'.repeat(40),
+    };
+    await expect(client.postBugFindingResult(body)).rejects.toMatchObject({ status: 409 });
+  });
+
   it('createEnvironment: SSH in_place, secret dùng lại bằng privateKeySecretRef', async () => {
     const { server, client } = await setup(() => ({ status: 201, body: { id: E } }));
     await client.createEnvironment(C, {

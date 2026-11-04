@@ -58,6 +58,8 @@ export function registerJobs(ctx: AppContext): void {
     submit: (target, machineId, jobId, outcome, claimedAt) =>
       remote.submit(target, machineId, jobId, outcome, claimedAt),
     run: async (job, target, signal) => {
+      // Cần app nhúng, `app.json` và đồng bộ project của Main: không chạy trong tiến trình phụ.
+      if (job.kind === 'bug-finding-review') return ctx.runBugFindingReview(job);
       const prepared = await remote.prepare(target, job);
       if ('outcome' in prepared) return prepared.outcome;
       // Quá giờ giữa lúc tải skill: không bắt đầu ghi file sau khi đã báo lỗi.
@@ -81,10 +83,10 @@ export function registerJobs(ctx: AppContext): void {
       jobsOps.dispose();
     },
     isVisible: () => BrowserWindow.getAllWindows().some((win) => win.isVisible()),
-    recordPoll: async (at) => {
+    recordPoll: async (at, capabilities) => {
       await ctx.store.update((state) => ({
         ...state,
-        jobsAgent: { version: ctx.appVersion, lastPollAt: at.toISOString() },
+        jobsAgent: { version: ctx.appVersion, lastPollAt: at.toISOString(), capabilities },
       }));
     },
     log: (level, event, fields) => ctx.log(level, event, fields),

@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { type RuntimesStatus, treeChecksum } from '@crew/mac';
+import type { LaunchResult } from '../bug-finding/launch.js';
 import { isFile } from '../projects/docs-runtime.js';
 import {
   configureDocsBundle,
@@ -27,6 +28,7 @@ import { defaultProjectRoots, ensureProject } from './ensure-project.js';
 import { type LsofRunner, removeCheckouts, removeSkill } from './remove.js';
 import { sanitizeJobError, stripUrlCredentials } from './sanitize.js';
 import {
+  type BugFindingReviewPayload,
   type CheckItem,
   JobError,
   type JobErrorCode,
@@ -89,26 +91,126 @@ const failed = (errorCode: JobErrorCode, text: string, result?: JobResult): JobO
 
 /**
  * Làm một việc của hàng đợi máy. Kiểm lại payload (như plugin) và đường dẫn trước khi đụng tới máy. Không ném: mọi lỗi
- * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 9 loại việc; không chạy lệnh nào khác.
+ * thành `failed` với mã cố định và câu đã làm sạch. Chỉ 10 loại việc (`bug-finding-review` chạy ở Main qua `runBugFindingReview`); không chạy lệnh nào khác.
  */
 export async function runJob(
   job: Pick<MachineJob, 'companyId' | 'kind' | 'payload'>,
   extras: JobExtras,
   deps: ExecutorDeps,
 ): Promise<JobOutcome> {
+  return guarded(job, deps.home, (payload, companyId) => execute(payload, companyId, extras, deps));
+}
+
+/** Kiểm payload, company và đường dẫn như plugin rồi mới làm; mọi lỗi thành `failed` với mã cố định. */
+async function guarded(
+  job: Pick<MachineJob, 'companyId' | 'kind' | 'payload'>,
+  home: string,
+  work: (payload: JobPayload, companyId: string) => Promise<JobOutcome>,
+): Promise<JobOutcome> {
   const payload = validateJobPayload(job.kind, job.payload);
   if (typeof payload === 'string') return failed('app_error', `Việc không hợp lệ: ${payload}`);
   if (typeof job.companyId !== 'string' || !UUID_RE.test(job.companyId)) {
     return failed('app_error', 'Việc không hợp lệ: companyId phải là uuid');
   }
-  const guard = machineGuardReason(deps.home, payload);
+  const guard = machineGuardReason(home, payload);
   if (guard) return failed('folder_forbidden', guard);
   try {
-    return await execute(payload, job.companyId.toLowerCase(), extras, deps);
+    return await work(payload, job.companyId.toLowerCase());
   } catch (error) {
     if (error instanceof JobError) return failed(error.code, error.message);
     return failed('app_error', error instanceof Error ? error.message : String(error));
   }
+}
+
+/** Schema file yêu cầu review mà app Bug Finding đọc (`CrewReviewRequest` của repo `bug-finding`). */
+export const CREW_REVIEW_REQUEST_SCHEMA = 'crew-review-request/1';
+
+/** Lượt Bug Finding 2P Crew đã nhận: relay kết quả cần company và máy của việc để gửi về đúng chỗ. */
+export interface BugFindingRequestRef {
+  requestId: string;
+  companyId: string;
+  machineId: string;
+}
+
+/** Những gì `bug-finding-review` cần; chạy trong Main (mở app, đồng bộ project, ghi sổ lượt vào `app.json`). */
+export interface BugFindingReviewDeps {
+  home: string;
+  /** `bugFindingPaths(home).requestsDir`. */
+  requestsDir: string;
+  repoExists(path: string): boolean;
+  /** Ghi lại `crew/projects.json` để Bug Finding thấy project của lượt; lỗi không chặn việc. */
+  syncProjects(): Promise<void>;
+  /** `launchBugFinding` với app nhúng. */
+  launch(opts: { background: boolean }): Promise<LaunchResult>;
+  recordRequest(ref: BugFindingRequestRef): Promise<void>;
+}
+
+/** Thân file `requests/<requestId>.json`: đúng trường của `CrewReviewRequest`. */
+export function crewReviewRequest(payload: BugFindingReviewPayload) {
+  return {
+    schema: CREW_REVIEW_REQUEST_SCHEMA,
+    requestId: payload.requestId,
+    crewProjectId: payload.projectId,
+    identifier: payload.identifier,
+    run: payload.run,
+    prNumber: payload.prNumber,
+    headSha: payload.headSha,
+    baseBranch: payload.baseBranch,
+    ...(payload.reviewerInputText !== undefined ? { reviewerInputText: payload.reviewerInputText } : {}),
+  };
+}
+
+/**
+ * Việc `bug-finding-review`: ghi yêu cầu vào hàng đợi file của app Bug Finding rồi mở app nền, trả `accepted` ngay
+ * (không giữ việc suốt lượt review; tiến độ và kết quả đi qua relay `bug-finding/results.ts`). Cùng `requestId` không
+ * ghi lần hai (Bug Finding đổi tên file đã xử lý thành `.json.done`). Không mở được app thì bỏ file vừa ghi.
+ */
+export async function runBugFindingReview(
+  job: Pick<MachineJob, 'companyId' | 'machineId' | 'kind' | 'payload'>,
+  deps: BugFindingReviewDeps,
+): Promise<JobOutcome> {
+  return guarded(job, deps.home, async (payload, companyId) => {
+    if (payload.kind !== 'bug-finding-review') throw new Error('Việc không phải bug-finding-review');
+    if (!deps.repoExists(payload.repoPath)) {
+      throw new JobError(
+        'project_missing',
+        `Máy này không có repo của project ${payload.projectKey} (${payload.repoPath})`,
+      );
+    }
+    await deps.syncProjects().catch(() => undefined);
+    await deps.recordRequest({
+      requestId: payload.requestId,
+      companyId,
+      machineId: String(job.machineId).toLowerCase(),
+    });
+    const file = join(deps.requestsDir, `${payload.requestId}.json`);
+    let wrote = false;
+    if (!existsSync(file) && !existsSync(`${file}.done`)) {
+      mkdirSync(deps.requestsDir, { recursive: true, mode: 0o700 });
+      const tmp = `${file}.tmp-${randomUUID()}`;
+      writeFileSync(tmp, `${JSON.stringify(crewReviewRequest(payload), null, 2)}\n`, { mode: 0o600 });
+      renameSync(tmp, file);
+      wrote = true;
+    }
+    let launched: LaunchResult;
+    try {
+      launched = await deps.launch({ background: true });
+    } catch (error) {
+      if (wrote) rmSync(file, { force: true });
+      throw error;
+    }
+    if (!launched.ok) {
+      if (wrote) rmSync(file, { force: true });
+      if (launched.reason === 'standalone_running') {
+        throw new JobError(
+          'standalone_running',
+          'Bug Finding bản cài riêng cũ đang chạy: thoát bản đó (hoặc gỡ ở mục Bug Finding của 2P Crew) rồi chạy lại',
+        );
+      }
+      throw new JobError('bug_finding_missing', 'Không tìm thấy app Bug Finding đi kèm 2P Crew trên máy này');
+    }
+    return { status: 'done', result: { kind: 'bug-finding-review', accepted: true } };
+  });
 }
 
 async function execute(
@@ -160,6 +262,9 @@ async function execute(
       };
     case 'skill-remove':
       return { status: 'done', result: removeSkill(deps.home, companyId, payload.slug) };
+    case 'bug-finding-review':
+      // Cần app nhúng, `app.json` và đồng bộ project của Main: `registerJobs` chuyển việc này cho `runBugFindingReview`.
+      throw new Error('Việc bug-finding-review chỉ chạy ở tiến trình chính của app');
   }
 }
 

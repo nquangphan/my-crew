@@ -318,9 +318,12 @@ Ba hàm thư viện (không có lệnh CLI) cho bước Máy của app 2P Crew (
 - `superpowers.pinDir`: đường tuyệt đối bản ghim Superpowers (giá trị `--plugin-dir` của agent), `null` khi chưa có bản
   ghim. `superpowers.skills`: tên thư mục `skills/<tên>/SKILL.md` trong bản ghim, sắp xếp, tối đa 100; chỉ có khi có
   bản ghim. Web dùng để chặn thêm skill trùng Superpowers.
-- `jobsAgent: {version, lastPollAt}` (`readJobsAgent`): app 2P Crew ghi vào `app.json` khi hỏi được hàng đợi việc trên
+- `jobsAgent: {version, lastPollAt, capabilities?}` (`readJobsAgent`): app 2P Crew ghi vào `app.json` khi hỏi được hàng đợi việc trên
   máy (tối đa 30 giây một lần, flow `mac-app-paperclip`); đọc độc lập với trường `app` (ba trường app hỏng vẫn có `jobsAgent`). `version` semver ≤ 32 ký tự, `lastPollAt`
-  ISO 8601. Thiếu hay sai dạng thì bản tin không có key này, nghĩa là app không nhận việc.
+  ISO 8601. Thiếu hay sai dạng thì bản tin không có key này, nghĩa là app không nhận việc. `capabilities` (loại việc
+  máy ngoài bộ gốc, vd. `bug-finding-review`; mỗi mục khớp `^[a-z][a-z0-9-]{0,63}$`, tối đa 32) giữ khi đúng dạng, sai
+  thì bỏ riêng trường đó. Plugin trước bản có lượt Bug Finding kiểm `jobsAgent` đúng hai khóa nên bỏ cả `jobsAgent`
+  khi có `capabilities` (web coi như app không nhận việc): plugin bản Bug Finding phải lên trước 2P Crew gửi khóa này.
 
 Plugin bản cũ (trước bản nhận key mới của hàng đợi máy) từ chối cả bản tin có các key này, nên plugin mới phải lên
 prod trước khi cài crew-mac này. `version` bản tin vẫn là 1.
@@ -461,7 +464,7 @@ R1 chỉ phát hiện (`doctor`, check `tcc-pending`) và chỉ chỗ bấm. `tc
 - `apps/crew-mac/test/index.test.ts`: thư viện export đủ hàm app cần (kể cả `runtimesCommand`, `runtimesStatus`, `keychainHasKey`, `runtimePaths`); `createMacContext` giữ `cliPath` được truyền.
 - `apps/crew-mac/test/cli.test.ts`: cách dùng, đọc key từ file, in `extraArgs` (vai thường và vai bmad), mã thoát của doctor, chặn uninstall qua sshd agent và khi còn run Paperclip, chặn `setup --sshd-owner` qua chính sshd agent (`--force` thì chạy), `--sshd-owner` giá trị lạ, câu in ở chế độ app (app nạp lại cấu hình; đổi cổng thì in cấu hình mới), lệnh `files` (thiếu cờ, UUID sai, thiếu env bridge, `--gc-only`), lệnh `node` (`--prefix --skip-system --json` in `{path, source, version}` của bản trong `<prefix>/node`, dòng thường có nhãn nguồn, `--prefix` tương đối thì mã 2).
 - `apps/crew-mac/test/install-cli.test.ts`: thay bản cũ và giữ một bản lui, cài lần đầu, gọi lại cùng nội dung thì không đổi gì, cùng version khác nội dung thì cài, còn run thì từ chối, thiếu `dist/cli.js` hoặc `version` thì `SetupError`, chỉ một bản lui, lỗi rename thứ hai thì khôi phục. Mọi ca dùng HOME giả.
-- `apps/crew-mac/test/status-app.test.ts`: `readAppState` (đủ ba trường, mọi `updateState`, file thiếu/hỏng/giá trị lạ/quá 32 ký tự thì null) và bản tin có hoặc không có key `app`; `readJobsAgent` (độc lập với `app`, sai dạng thì null), bản tin có `jobsAgent`, `superpowers.skills` sắp xếp chỉ gồm thư mục có `SKILL.md`, `pinDir` null khi chưa ghim, `checkouts` từ repo git thật.
+- `apps/crew-mac/test/status-app.test.ts`: `readAppState` (đủ ba trường, mọi `updateState`, file thiếu/hỏng/giá trị lạ/quá 32 ký tự thì null) và bản tin có hoặc không có key `app`; `readJobsAgent` (độc lập với `app`, sai dạng thì null, `capabilities` hợp lệ được giữ, sai dạng thì bỏ riêng trường đó), bản tin có `jobsAgent`, `superpowers.skills` sắp xếp chỉ gồm thư mục có `SKILL.md`, `pinDir` null khi chưa ghim, `checkouts` từ repo git thật.
 - `apps/crew-mac/test/status-targets.test.ts`: cấu hình cũ là một đích service `crew-mac-status`; `add-target` ghi secret qua stdin vào service riêng (không argv nào chứa secret), không nhân đôi đích, giữ service cũ của company đã có, `config` lại không mất đích phụ; URL/company/secret sai thì từ chối; `send` hai đích cùng `machineId`, đích 1 HTTP 500 vẫn gửi đích 2, chỉ in company id; thiếu secret một đích; ảnh chụp docs đi đúng company của repo; CLI `add-target` bắt buộc `--secret-stdin`, `list-targets`.
 - `apps/crew-mac/test/status-checkouts.test.ts`: chỉ thư mục git ở đúng độ sâu, worktree (`.git` là file), `clean` false khi có file chưa track, tối đa 64 sắp theo path, `.git` hỏng thì null, không có `~/crew-agents` thì rỗng.
 - `apps/crew-mac/test/status-tcc.test.ts`: parser thuần (prompt/result, prompt còn chờ, nhiều client), runner quét lần đầu 2 giờ rồi `--start` theo mốc trừ 5 giây, timeout lần đầu ghi checkpoint rỗng và phát cảnh báo bắt đầu theo dõi, timeout các lượt sau giữ state và phát cảnh báo.
