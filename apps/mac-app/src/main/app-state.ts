@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import type { BugFindingResultBody } from './bug-finding/results.js';
 
 export type UpdateState =
   | 'idle'
@@ -36,6 +37,23 @@ export interface ProjectProgress {
   error: string | null;
 }
 
+export interface BugFindingRequestEntry {
+  companyId: string;
+  machineId: string;
+  /** Lúc nhận việc (ISO 8601); bỏ lượt cũ nhất khi sổ đầy. */
+  at: string;
+  /** Kết quả cuối đã gửi xong (hoặc server từ chối hẳn): không gửi lại. */
+  delivered?: boolean;
+}
+
+/** Một lần gửi chờ lại. Báo cáo `.md` không nằm trong `app.json`: lúc gửi lại đọc lại `reportPath`. */
+export interface BugFindingOutboxItem {
+  requestId: string;
+  body: BugFindingResultBody;
+  reportPath?: string;
+  queuedAt: string;
+}
+
 /**
  * Nội dung `~/Library/Application Support/2P Crew/app.json`; crew-mac chỉ đọc `appVersion`, `sshdOwner`, `updateState`
  * và `jobsAgent`.
@@ -64,8 +82,15 @@ export interface AppState {
     pairedEnvironmentId: string | null;
   };
   projects: Record<string, ProjectProgress>;
-  /** App đang nhận việc từ hàng đợi máy: bản app và lần cuối hỏi được server (ISO 8601). Thiếu = không nhận việc. */
-  jobsAgent?: { version: string; lastPollAt: string };
+  /**
+   * App đang nhận việc từ hàng đợi máy: bản app, lần cuối hỏi được server (ISO 8601) và loại việc máy làm được ngoài bộ
+   * gốc (`capabilities`). Thiếu = không nhận việc.
+   */
+  jobsAgent?: { version: string; lastPollAt: string; capabilities?: string[] };
+  /** Lượt Bug Finding máy đã nhận (`bug-finding-review`): company và máy để gửi kết quả về; tối đa 200 lượt. */
+  bugFindingRequests?: Record<string, BugFindingRequestEntry>;
+  /** Tiến độ/kết quả Bug Finding gửi về server chưa được (lỗi mạng), gửi lại lượt sau; tối đa 200 mục. */
+  bugFindingOutbox?: BugFindingOutboxItem[];
 }
 
 /**

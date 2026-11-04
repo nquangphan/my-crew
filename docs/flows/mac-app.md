@@ -58,7 +58,9 @@ cắm vào các điểm đã chừa.
    kiểm tra "Sẵn sàng" của web thấy checkout mới ngay thay vì chờ lượt gửi định kỳ.
    `ctx.syncBugFindingSoon(reason)` nhờ ghi lại danh sách project Crew sang Bug Finding (`crew/projects.json`, flow
    `mac-bug-finding`): gộp, chạy nền, không ném; chưa đăng nhập hay chưa chọn company thì bỏ qua. Thêm/gỡ project và
-   việc máy tạo/gỡ checkout xong (flow `mac-app-paperclip`) gọi nó.
+   việc máy tạo/gỡ checkout xong (flow `mac-app-paperclip`) gọi nó. `ctx.runBugFindingReview(job)` làm việc máy
+   `bug-finding-review` trong Main (`registerBugFinding().runReview`, flow `mac-bug-finding`); `registerJobs` gọi nó thay
+   cho utilityProcess.
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
    bằng thông báo tiếng Việt của Main; `useStateChanged` nghe sự kiện `state:changed` (không payload, renderer gọi
@@ -267,7 +269,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 |-----------|---------|--------------|
 | `apps/mac-app/src/main/index.ts` | Khởi động, thứ tự đăng ký module | `start` |
 | `apps/mac-app/src/main/debug-switch.ts` | Nhận ra cờ Chromium mở DevTools cho process ngoài | `forbiddenDebugSwitch` |
-| `apps/mac-app/src/main/app-context.ts` | Những gì mỗi `registerX` nhận (kèm `sendStatusSoon`, `syncBugFindingSoon`) | `AppContext` |
+| `apps/mac-app/src/main/app-context.ts` | Những gì mỗi `registerX` nhận (kèm `sendStatusSoon`, `syncBugFindingSoon`, `runBugFindingReview`) | `AppContext` |
 | `apps/mac-app/src/main/app-state.ts` | `app.json` (kiểu và kho ghi atomic, nối tiếp) | `AppStateStore`, `AppState` |
 | `apps/mac-app/src/main/app-log.ts` | `app.log`: ẩn secret, xoay 10 MB, giờ `Asia/Ho_Chi_Minh` | `AppLog`, `redactFields` |
 | `apps/mac-app/src/main/ipc.ts` | Đăng ký IPC theo danh sách kênh | `registerIpc`, `isTrustedSender` |
@@ -304,8 +306,10 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   `appVersion` luôn là bản đang chạy. `setup.pairedEnvironmentId` là environment SSH của chính máy này, ghi khi bước
   Máy ghép xong (bản tin thử 2xx); thêm project lấy nó làm khuôn (flow `mac-app-paperclip`). `null` ở máy chưa ghép
   (Mac mini). Không có key hay secret nào trong `app.json`. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` và `jobsAgent`
-  (flow `mac-setup`). `jobsAgent: {version, lastPollAt}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một lần; flow
-  `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc.
+  (flow `mac-setup`). `jobsAgent: {version, lastPollAt, capabilities}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một
+  lần; flow `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc. `bugFindingRequests` (sổ lượt Bug Finding máy đã
+  nhận) và `bugFindingOutbox` (kết quả Bug Finding chưa gửi được về server) do flow `mac-bug-finding` ghi, mỗi thứ tối
+  đa 200 mục.
   `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
   chọn) và `executors` (số executor đã chọn, 1–5; tiến độ trước đó không có); tiến độ bản cũ có `origin` thay cho
   `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)

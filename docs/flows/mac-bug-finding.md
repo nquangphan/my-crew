@@ -16,8 +16,9 @@ Thiết kế: `plans/261104-tps-643-bug-finding-in-crew/spec.md` mục 6, 7 và 
 
 - `apps/mac-app/src/main/index.ts` → `registerBugFinding(ctx)` (`src/main/bug-finding/register.ts`), dòng cuối sau
   `registerUpdate`. Cài handler của bốn kênh `bugFinding:state`, `bugFinding:open`, `bugFinding:syncNow`,
-  `bugFinding:trashStandalone` (`src/shared/ipc-contract.ts`), dựng lịch đồng bộ project và trả
-  `{requestSync}`; `index.ts` nối hàm này vào `ctx.syncBugFindingSoon`.
+  `bugFinding:trashStandalone` (`src/shared/ipc-contract.ts`), dựng lịch đồng bộ project, chạy relay kết quả review và
+  trả `{requestSync, runReview}`; `index.ts` nối hai hàm này vào `ctx.syncBugFindingSoon` và `ctx.runBugFindingReview`.
+- Việc máy `bug-finding-review` (flow `mac-app-paperclip`): `jobs/register.ts` chuyển cho `ctx.runBugFindingReview`.
 - Màn hình: route `bug-finding` (`src/renderer/routes/bug-finding.tsx`, `BugFindingScreen`), ngay sau `projects` trong
   `ROUTES` của `src/renderer/app.tsx`.
 
@@ -113,6 +114,47 @@ Khi nào đồng bộ (`register.ts`, chỉ khi đã có `paperclipOrigin` và `
 Bug Finding áp danh sách khi mở app, khi file đổi và mỗi 60 giây (repo `bug-finding`, `CrewBridge.swift`), nên project
 mới trong Crew có bên Bug Finding sau tối đa khoảng một phút.
 
+### Nhận việc review (`runReview`)
+
+`register.ts` → `runReview(job)` gọi `runBugFindingReview` của `src/main/jobs/executors.ts` (các bước kiểm, ghi
+`requests/<requestId>.json`, mã lỗi ở flow `mac-app-paperclip`, mục "Việc `bug-finding-review`") với deps của Main:
+`requestsDir` của `bugFindingPaths`, `syncProjects` = `runNow('bug-finding-review')` khi đã đăng nhập, `launch` =
+`launchBugFinding` với app nhúng (mở nền `open -g`), `recordRequest` ghi sổ `bugFindingRequests` của `app.json`
+(`rememberRequest`) rồi nhờ relay chạy. Ghi `bug-finding-review-job` vào `app.log` (trạng thái, mã lỗi).
+
+### Chuyển kết quả về server (relay)
+
+Bug Finding ghi `crew/responses/<requestId>.json` (`CrewReviewResponse`, schema `crew-review-response/1`: `requestId`,
+`state` `queued|running|succeeded|failed|cancelled`, `round`, `headSha`, `lanesDone`, `lanesTotal`, `verdict`,
+`costUsd`, `tokens`, `resultDir`, `reportPath`, `error`). `src/main/bug-finding/results.ts`:
+
+1. `startResultsRelay({responsesDir, relay, log})` chạy trong Main (cần board key): tạo `responses/` khi chưa có,
+   `fs.watch` thư mục đó (gộp 1 giây) và quét mỗi 30 giây (`RELAY_INTERVAL_MS`); không bao giờ hai lượt cùng lúc,
+   nhờ trong lúc đang chạy thì chạy thêm đúng một lần; `fs.watch` lỗi thì vẫn còn lượt định kỳ. Dừng ở `will-quit`.
+   `register.ts` bỏ qua lượt khi sổ `bugFindingRequests` và hàng đợi gửi đều rỗng.
+2. `relayResponses(deps)` → `{sent, pending}`: đọc mọi `responses/*.json` (`readResponsesDir`, bỏ file hỏng). Bỏ
+   response sai dạng (schema, `requestId` uuid, `state`, `headSha` 40 hex), của lượt không có trong sổ (không do 2P
+   Crew xếp) hay đã gửi xong kết quả cuối (`delivered`). Bản tin không đổi so với lần gửi trước thì bỏ; `running` gửi
+   tối đa 1 lần/phút mỗi `requestId` (`RUNNING_EVERY_MS`), đổi trạng thái thì gửi ngay. Bộ nhớ lần gửi
+   (`createRelayMemory`) chỉ nằm trong phiên app.
+3. Body `BugFindingResultBody` = `{companyId, machineId}` của sổ lượt + `requestId, state, headSha` và các trường có
+   mặt `round, lanesDone, lanesTotal, verdict, costUsd, error` (`error` tối đa 1000 ký tự).
+4. `succeeded`: đọc `<resultDir>/review-result.json`, rút gọn mỗi finding về đúng 12 trường (`summarizeFinding`: `id,
+   rule, title, severity, certainty, status, action, mr_relation, location, fix, accept, question`; `location`
+   `{file, line, symbol}` thành `file:line (symbol)`; thiếu `title` thì lấy `rule` rồi `id`, thiếu `status` thì `OPEN`,
+   thiếu `severity` thì `INFO`; finding không có `id` bị bỏ; tối đa 500). Không có `verdict`, `resultDir`, hay không đọc
+   được `review-result.json` thì gửi `failed` kèm lý do thay vì để lượt treo tới hết giờ.
+5. Hàng đợi gửi `bugFindingOutbox` của `app.json` (`BugFindingOutboxItem {requestId, body, reportPath?, queuedAt}`):
+   mỗi lượt Bug Finding giữ một mục, bản mới thay bản cũ; tối đa 200 mục (`OUTBOX_MAX`), bỏ mục cũ nhất. Báo cáo `.md`
+   không nằm trong `app.json`: lúc gửi đọc lại `reportPath` (`withReport`), quá 2 MB thì `cutReport` cắt ở ranh giới
+   ký tự UTF-8 và thêm dòng "(báo cáo bị cắt, xem đầy đủ trong Bug Finding)", tổng ≤ 2 MB (`REPORT_MAX_BYTES`); đọc
+   không được thì gửi không có báo cáo.
+6. Gửi lần lượt bằng `postBugFindingResult` (flow `mac-app-paperclip`) tới `setup.paperclipOrigin` với board key của
+   origin đó. Lỗi mạng, timeout, 5xx, 429 hay chưa đăng nhập: dừng gửi, giữ mục đó và các mục sau cho lượt sau. 4xx
+   khác (409 lượt đã kết thúc, 404, 403, 422 `head_mismatch`, 400) là server từ chối hẳn: bỏ mục, ghi
+   `bug-finding-relay-rejected`. Kết quả cuối gửi xong hay bị từ chối hẳn thì đánh `delivered` trong sổ, không gửi lại.
+   Ghi lại `app.json` chỉ khi có đổi; cờ `delivered` gộp vào sổ hiện có (`mergeDelivered`) để không mất lượt vừa nhận.
+
 ### Màn hình
 
 `BugFindingScreen` (`src/renderer/routes/bug-finding.tsx`) theo mockup 1:
@@ -139,13 +181,18 @@ mới trong Crew có bên Bug Finding sau tối đa khoảng một phút.
 | `apps/mac-app/src/main/bug-finding/state.ts` | Đọc heartbeat, bản cài riêng, yêu cầu/phản hồi thành trạng thái màn hình | `readBugFindingState`, `BugFindingView`, `BugFindingRequestRow`, `HEARTBEAT_STALE_SEC` |
 | `apps/mac-app/src/main/bug-finding/launch.ts` | Mở app (chặn khi bản khác đang chạy), dò tiến trình, gỡ bản cài riêng | `launchBugFinding`, `runningBugFindingApps`, `parseRunningAppPaths`, `trashStandalone` |
 | `apps/mac-app/src/main/bug-finding/sync-projects.ts` | Dựng danh sách project Crew có repo trên máy, ghi atomic `projects.json` khi đổi, chạy đồng bộ lần lượt và gộp lần nhờ | `buildCrewProjectList`, `createRepoResolver`, `syncProjects`, `createSyncRunner`, `jobChangesProjects` |
-| `apps/mac-app/src/main/bug-finding/register.ts` | Nối bốn kênh `bugFinding:*` vào Electron, lịch đồng bộ project | `registerBugFinding`, `PROJECT_SYNC_INTERVAL_MS` |
+| `apps/mac-app/src/main/bug-finding/results.ts` | Đọc response của Bug Finding, rút gọn finding, cắt báo cáo, hàng đợi gửi, sổ lượt, chạy theo `fs.watch` + 30 giây | `relayResponses`, `startResultsRelay`, `summarizeFinding`, `cutReport`, `rememberRequest`, `mergeDelivered`, `readResponsesDir`, `BugFindingResultBody` |
+| `apps/mac-app/src/main/bug-finding/register.ts` | Nối bốn kênh `bugFinding:*` vào Electron, lịch đồng bộ project, việc máy review ở Main, relay kết quả bằng board key | `registerBugFinding`, `PROJECT_SYNC_INTERVAL_MS` |
 | `apps/mac-app/src/renderer/routes/bug-finding.tsx` | Màn hình Bug Finding | `BugFindingScreen` |
 
 ## Dữ liệu
 
 - Đọc trong `~/Library/Application Support/MRReviewQueue/crew/` (`heartbeat.json`, `requests/`, `responses/`,
-  `projects.json`). Chỉ ghi `projects.json` (schema `crew-projects/1`: id, khóa, tên, đường dẫn repo của project).
+  `projects.json`). Chỉ ghi `projects.json` (schema `crew-projects/1`: id, khóa, tên, đường dẫn repo của project) và
+  `requests/<requestId>.json` (schema `crew-review-request/1`), không đụng `responses/`.
+- `app.json` của 2P Crew: `bugFindingRequests` (sổ lượt: `companyId`, `machineId`, giờ nhận, `delivered`; tối đa 200)
+  và `bugFindingOutbox` (bản tin chưa gửi được, không chứa báo cáo; tối đa 200). Body gửi về server chỉ có trạng thái,
+  finding rút gọn và báo cáo review; board key đọc từ Keychain mỗi lần gửi, không ghi vào file.
 - `companyId` và id project Crew là uuid, không phải secret.
 - Không có secret nào đi qua kênh `bugFinding:*`; renderer chỉ nhận trạng thái và đường dẫn app.
 
@@ -179,3 +226,12 @@ mới trong Crew có bên Bug Finding sau tối đa khoảng một phút.
   app, mỗi 10 phút, qua `requestSync` và `bugFinding:syncNow`; chưa đăng nhập thì không, chọn company xong thì có;
   `projects:add`/`projects:remove` nhờ đồng bộ kể cả khi lỗi.
 - `apps/mac-app/test/ipc-contract.test.ts`: bốn kênh `bugFinding:*` có trong `IPC_CHANNELS`.
+- `apps/mac-app/test/bug-finding-results.test.ts` (deps giả trong file: response, file, `app.json`, Paperclip trong bộ
+  nhớ): rút gọn đúng 12 trường và giữ hàng đợi khi gửi lỗi rồi gửi lại lượt sau; kết quả cuối đã gửi thì không gửi lại;
+  hàng đợi không giữ báo cáo; báo cáo > 2 MB bị cắt kèm dòng ghi chú, ≤ 2 MB, không vỡ ký tự; báo cáo nhỏ nguyên văn;
+  `running` tối đa 1 lần/phút, không đổi thì không gửi, xong thì gửi ngay; `queued` một lần; không đọc được
+  `review-result.json` → `failed`; 409 bỏ hẳn, 5xx giữ; lượt lạ bỏ qua; hàng đợi tối đa 200 bỏ cũ nhất; bản mới thay
+  bản cũ cùng `requestId`.
+- `apps/mac-app/test/bug-finding-review-wiring.test.ts` (mock Electron, runner `pgrep`/`open`, board key, `fetch`;
+  `AppStateStore` thật, HOME tạm): `runReview` ghi request, mở nền, ghi sổ lượt; response `succeeded` làm relay gửi
+  `POST …/bug-finding/results` kèm báo cáo và đánh `delivered`.

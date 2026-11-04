@@ -1,6 +1,7 @@
 import type { AppLogEntry } from './app-log.js';
 import type { AppStateStore } from './app-state.js';
 import type { IpcRegistry } from './ipc.js';
+import type { JobOutcome, MachineJob } from './jobs/types.js';
 import type { LoginItem } from './login-item.js';
 import type { OpsBridge } from './ops-bridge.js';
 import type { CrewTray } from './tray.js';
@@ -22,6 +23,8 @@ export interface AppContext {
   sendStatusSoon: (reason: string) => void;
   /** Nhờ ghi lại danh sách project Crew sang Bug Finding (gộp, chạy nền, không ném) sau khi project hay checkout đổi. */
   syncBugFindingSoon: (reason: string) => void;
+  /** Làm việc máy `bug-finding-review` trong Main (ghi yêu cầu vào hàng đợi Bug Finding, mở app nền). Không ném. */
+  runBugFindingReview: (job: MachineJob) => Promise<JobOutcome>;
   ipc: IpcRegistry;
   loginItem: LoginItem;
   tray: CrewTray;

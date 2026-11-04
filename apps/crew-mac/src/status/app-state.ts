@@ -34,11 +34,18 @@ export function readAppState(path: string): AppReport | null {
   return { version: appVersion, sshdOwner, updateState: updateState as AppReport['updateState'] };
 }
 
-/** App 2P Crew ghi mỗi lần hỏi hàng đợi việc trên máy; thiếu nghĩa là app không nhận việc. */
+/**
+ * App 2P Crew ghi mỗi lần hỏi hàng đợi việc trên máy; thiếu nghĩa là app không nhận việc. `capabilities`: loại việc máy
+ * app làm được ngoài bộ gốc (vd. `bug-finding-review`); app cũ không ghi.
+ */
 export interface JobsAgentReport {
   version: string;
   lastPollAt: string;
+  capabilities?: string[];
 }
+
+const CAPABILITY = /^[a-z][a-z0-9-]{0,63}$/;
+const MAX_CAPABILITIES = 32;
 
 const ISO = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,3})?(Z|[+-]\d\d:\d\d)$/;
 
@@ -53,9 +60,16 @@ export function readJobsAgent(path: string): JobsAgentReport | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
   const value = (raw as Record<string, unknown>).jobsAgent;
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
-  const { version, lastPollAt } = value as Record<string, unknown>;
+  const { version, lastPollAt, capabilities } = value as Record<string, unknown>;
   if (typeof version !== 'string' || version.length > 32 || !SEMVER.test(version)) return null;
   if (typeof lastPollAt !== 'string' || !ISO.test(lastPollAt) || !Number.isFinite(Date.parse(lastPollAt)))
     return null;
-  return { version, lastPollAt };
+  // Sai dạng thì bỏ riêng `capabilities` (như plugin), phần còn lại vẫn báo.
+  const caps =
+    Array.isArray(capabilities) &&
+    capabilities.length <= MAX_CAPABILITIES &&
+    capabilities.every((item) => typeof item === 'string' && CAPABILITY.test(item))
+      ? { capabilities: [...(capabilities as string[])] }
+      : {};
+  return { version, lastPollAt, ...caps };
 }
