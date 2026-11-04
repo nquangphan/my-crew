@@ -58,6 +58,8 @@ export async function startStatefulPaperclip(
     approveAfterGets?: number;
     /** Body của `GET /api/crew/model-settings`; không đặt thì route trả 404 như server cũ. */
     modelSettings?: unknown;
+    /** Skill công ty `GET /api/companies/:id/skills` trả; mặc định không có skill nào. */
+    skills?: Array<{ id: string; key: string; slug: string }>;
   } = {},
 ) {
   const projects = new Map<string, { id: string; name: string; urlKey: string }>();
@@ -85,6 +87,8 @@ export async function startStatefulPaperclip(
   const agents = new Map<string, FakeAgent>();
   const files = new Map<string, string>();
   const roles = new Map<string, ProjectRoles>();
+  /** Tập skill của từng agent theo `POST /agents/:id/skills/sync`. */
+  const agentSkills = new Map<string, string[]>();
   const rules: FailRule[] = [];
   const pendingGets = new Map<string, number>();
 
@@ -114,6 +118,8 @@ export async function startStatefulPaperclip(
     }
     if (req.method === 'GET' && p === '/api/crew/model-settings' && opts.modelSettings !== undefined)
       return { status: 200, body: opts.modelSettings };
+    if (req.method === 'GET' && p === `/api/companies/${COMPANY}/skills`)
+      return { status: 200, body: (opts.skills ?? []).map((skill) => ({ ...skill, name: skill.slug })) };
     if (req.method === 'GET' && p === `/api/companies/${COMPANY}/secrets`)
       return { status: 200, body: [{ id: SECRET, name: 'crew-ssh', key: 'crew-ssh', status: 'active' }] };
     if (req.method === 'GET' && p === `/api/companies/${COMPANY}/environments`)
@@ -188,6 +194,16 @@ export async function startStatefulPaperclip(
         agent.access = { grants };
         return { status: 200, body: agent };
       }
+      if (req.method === 'POST' && tail === '/skills/sync') {
+        const body = req.body as { mode?: string; desiredSkills?: string[] };
+        if (body.mode !== 'replace' || !Array.isArray(body.desiredSkills))
+          return { status: 422, body: { error: 'Skill sync requires mode' } };
+        const known = new Set((opts.skills ?? []).map((skill) => skill.key));
+        if (!body.desiredSkills.every((key) => known.has(key)))
+          return { status: 422, body: { error: 'unknown skill' } };
+        agentSkills.set(agent.id, [...body.desiredSkills]);
+        return { status: 200, body: { desiredSkills: body.desiredSkills } };
+      }
       if (tail === '/instructions-bundle/file') {
         const current = files.get(agent.id);
         if (req.method === 'GET') {
@@ -219,7 +235,7 @@ export async function startStatefulPaperclip(
 
   const server = await startFakePaperclip(handler);
   const client = createPaperclipClient(server.origin, { fetch: globalThis.fetch, readKey: async () => KEY });
-  return { ...server, client, projects, envs, agents, files, roles, rules };
+  return { ...server, client, projects, envs, agents, files, roles, rules, agentSkills };
 }
 
 export type OpsCall = { op: OpsName; args: unknown[] };

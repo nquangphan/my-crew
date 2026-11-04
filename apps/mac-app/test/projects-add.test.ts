@@ -38,6 +38,7 @@ const ALL_ONE = [
   'folder',
   'project',
   'status-repo',
+  'role:designer',
   'role:executor-1',
   'role:assistant',
   'role:reviewer',
@@ -728,5 +729,187 @@ describe('addProject: khuôn environment theo máy đã ghép', () => {
     expect(progress.error).toContain('Environment đã ghép của máy này');
     expect(progress.error).toContain('bước Máy');
     expect(createdEnvs(w)).toHaveLength(0);
+  });
+});
+
+describe('addProject agent UIUX', () => {
+  const UIUX_KEY = 'local/264a2248bd/ui-ux-pro-max';
+  const skill = { id: 'skill-uiux', key: UIUX_KEY, slug: 'ui-ux-pro-max' };
+  const syncs = (w: Awaited<ReturnType<typeof world>>) =>
+    w.paperclip.requests.filter((r) => r.method === 'POST' && r.path.endsWith('/skills/sync'));
+
+  it('company có skill ui-ux-pro-max → tạo agent UIUX, gắn skill, Trợ Lý có id; không vào dòng vai trò', async () => {
+    const w = await world({ skills: [{ id: 'khac', key: 'local/x/khac', slug: 'khac' }, skill] });
+    const progress = await addProject(w.deps, w.input);
+
+    expect(progress.error).toBeNull();
+    expect(progress.done).toEqual(ALL_ONE);
+    expect(w.paperclip.agents.size).toBe(5);
+    const entry = progress.agents.designer;
+    const checkout = join(w.sandbox.home, 'crew-agents', 'landing', 'designer');
+    expect(entry?.checkout).toBe(checkout);
+    expect(w.sandbox.git(['-C', checkout, 'symbolic-ref', '--short', 'HEAD'])).toBe('agent/landing-designer');
+
+    const designerId = entry?.agentId as string;
+    const agent = w.paperclip.agents.get(designerId);
+    expect(agent?.name).toBe('UIUX landing');
+    expect(agent?.adapterType).toBe('claude_local');
+    expect(agent?.adapterConfig).toMatchObject({
+      engine: 'cli',
+      command: join(w.sandbox.home, '.crew', 'bin', 'crew-claude-run'),
+      extraArgs: ['--setting-sources', 'project,local', '--plugin-dir', w.fake.pinDir],
+      model: 'claude-opus-5-5',
+    });
+    expect(agent?.status).toBe('idle');
+    expect(agent?.permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
+    expect(agent?.access.grants).toEqual([]);
+
+    const env = w.paperclip.envs.get(entry?.environmentId as string);
+    expect(env?.name).toBe('landing-designer');
+    expect(env?.config).toMatchObject({
+      remoteWorkspacePath: checkout,
+      port: 2222,
+      privateKeySecretRef: { secretId: SECRET },
+    });
+    expect(agent?.defaultEnvironmentId).toBe(entry?.environmentId);
+
+    expect(w.paperclip.agentSkills.get(designerId)).toEqual([UIUX_KEY]);
+    expect(syncs(w)).toHaveLength(1);
+    expect(w.paperclip.files.get(designerId)).toBe(ROLE_TEMPLATES.designer);
+    const assistantId = progress.agents.assistant?.agentId as string;
+    expect(w.paperclip.files.get(assistantId)).toContain(
+      `## Agent UIUX của company\n\n- \`${designerId}\`\n\n## Reviewer Codex`,
+    );
+    const roles = w.paperclip.roles.get(progress.projectId as string);
+    expect(JSON.stringify(roles)).not.toContain(designerId);
+    expect(
+      w.fake.calls.some((c) => c.op === 'workflowCheck' && (c.args[0] as { root: string }).root === checkout),
+    ).toBe(true);
+  });
+
+  it('không có skill ui-ux-pro-max → bỏ qua, Trợ Lý ghi "Không có"', async () => {
+    const w = await world({ skills: [{ id: 'k', key: 'local/x/ui-ux-pro-max-2', slug: 'ui-ux-pro-max-2' }] });
+    const progress = await addProject(w.deps, w.input);
+
+    expect(progress.error).toBeNull();
+    expect(progress.done).toEqual(ALL_ONE);
+    expect(progress.agents.designer).toBeUndefined();
+    expect(w.paperclip.agents.size).toBe(4);
+    expect(existsSync(join(w.sandbox.home, 'crew-agents', 'landing', 'designer'))).toBe(false);
+    expect(syncs(w)).toHaveLength(0);
+    expect(w.paperclip.files.get(progress.agents.assistant?.agentId as string)).toContain(
+      '## Agent UIUX của company\n\nKhông có. Không tạo con thiết kế; làm như cũ.',
+    );
+  });
+
+  it('model theo ô designer của bảng model', async () => {
+    const cell = (model: string, effort: string | null) => ({ model, effort });
+    const w = await world({
+      skills: [skill],
+      modelSettings: {
+        settings: {
+          roles: {
+            assistant: cell('a', null),
+            executor: cell('e', null),
+            reviewer: cell('r', null),
+            integrator: cell('i', null),
+            designer: cell('claude-opus-6', 'high'),
+          },
+        },
+      },
+    });
+    const progress = await addProject(w.deps, w.input);
+    expect(progress.error).toBeNull();
+    expect(w.paperclip.agents.get(progress.agents.designer?.agentId as string)?.adapterConfig).toMatchObject({
+      model: 'claude-opus-6',
+      effort: 'high',
+    });
+  });
+
+  it('response tạo agent UIUX bị mất, rồi lỗi ở vai sau → chạy tiếp dùng lại, không tạo trùng', async () => {
+    const w = await world({ skills: [skill] });
+    w.paperclip.rules.push({
+      match: (r) =>
+        r.method === 'POST' &&
+        r.path.endsWith('/agents') &&
+        (r.body as { name?: string }).name === 'UIUX landing',
+      status: 502,
+      passThrough: true,
+    });
+    const first = await addProject(w.deps, w.input);
+    expect(first.error).toContain('502');
+    expect(first.done).not.toContain('role:designer');
+    const lost = [...w.paperclip.agents.values()].find((a) => a.name === 'UIUX landing');
+    expect(lost?.status).toBe('paused');
+
+    w.paperclip.rules.push({
+      match: (r) =>
+        r.method === 'POST' &&
+        r.path.endsWith('/agents') &&
+        /-reviewer$/.test(String((r.body as { name?: string }).name)),
+      status: 500,
+    });
+    const second = await addProject(w.deps, w.input);
+    expect(second.error).toContain('500');
+    expect(second.agents.designer?.agentId).toBe(lost?.id);
+
+    const third = await addProject(w.deps, w.input);
+    expect(third.error).toBeNull();
+    expect(third.done).toEqual(ALL_ONE);
+    expect(w.paperclip.agents.size).toBe(5);
+    expect([...w.paperclip.envs.values()].filter((e) => e.name === 'landing-designer')).toHaveLength(1);
+    expect(syncs(w)).toHaveLength(1);
+    expect(w.paperclip.agents.get(lost?.id as string)?.status).toBe('idle');
+  });
+
+  it('tiến độ bản trước đã tạo Trợ Lý mà chưa có bước UIUX → tạo UIUX rồi tải lại AGENTS.md của Trợ Lý', async () => {
+    const skills: Array<typeof skill> = [];
+    const w = await world({ skills });
+    w.paperclip.rules.push({
+      match: (r) =>
+        r.method === 'POST' &&
+        r.path.endsWith('/agents') &&
+        /-reviewer$/.test(String((r.body as { name?: string }).name)),
+      status: 500,
+    });
+    const first = await addProject(w.deps, w.input);
+    expect(first.done).toContain('role:assistant');
+    await w.store.update((s) => {
+      const p = s.projects.landing;
+      if (!p) return s;
+      return {
+        ...s,
+        projects: { ...s.projects, landing: { ...p, done: p.done.filter((d) => d !== 'role:designer') } },
+      };
+    });
+    skills.push(skill);
+
+    const second = await addProject(w.deps, w.input);
+    expect(second.error).toBeNull();
+    const designerId = second.agents.designer?.agentId as string;
+    expect(designerId).toBeTruthy();
+    expect(w.paperclip.files.get(second.agents.assistant?.agentId as string)).toContain(
+      `- \`${designerId}\``,
+    );
+  });
+
+  it('project đã xong ở bản app trước (không có bước UIUX) → chạy lại không tự thêm agent UIUX', async () => {
+    const skills: Array<typeof skill> = [];
+    const w = await world({ skills });
+    const first = await addProject(w.deps, w.input);
+    expect(first.error).toBeNull();
+    await w.store.update((s) => {
+      const p = s.projects.landing;
+      if (!p) return s;
+      return {
+        ...s,
+        projects: { ...s.projects, landing: { ...p, done: p.done.filter((d) => d !== 'role:designer') } },
+      };
+    });
+    skills.push(skill);
+    const again = await addProject(w.deps, w.input);
+    expect(again.error).toBeNull();
+    expect(again.agents.designer).toBeUndefined();
+    expect(w.paperclip.agents.size).toBe(4);
   });
 });

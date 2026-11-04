@@ -6,11 +6,13 @@ import {
   BUG_FINDING_INPUT_MAX,
   CREW_ROLE_SLOTS,
   type CrewRoleSlot,
+  DESIGNER_CHECKOUT,
   EXECUTOR_SLOTS,
   type JobPayload,
   MACHINE_JOB_KINDS,
   type MachineJobKind,
   UUID_RE,
+  type WorkspaceRole,
 } from './types.js';
 
 // Luật kiểm chép từ plugin crew.core (`packages/crew-plugin/src/jobs/validate.ts` của fork): app kiểm lại đúng như
@@ -81,6 +83,8 @@ const projectKeyError = (key: unknown) =>
   typeof key === 'string' && KEY_RE.test(key) ? null : 'projectKey không hợp lệ';
 const roleError = (role: unknown) =>
   CREW_ROLE_SLOTS.includes(role as CrewRoleSlot) ? null : 'role không hợp lệ';
+/** Role của `agent-workspace`: ô vai trò hay checkout `designer` của agent UIUX (như plugin). */
+const workspaceRoleError = (role: unknown) => (role === DESIGNER_CHECKOUT ? null : roleError(role));
 const branchError = (branch: unknown) =>
   typeof branch === 'string' && BRANCH.test(branch) && !branch.startsWith('-') ? null : 'branch không hợp lệ';
 
@@ -250,12 +254,12 @@ export function validateJobPayload(kind: MachineJobKind, payload: unknown): JobP
       return (
         projectKeyError(p.projectKey) ??
         folderError(p.folder) ??
-        roleError(p.role) ??
+        workspaceRoleError(p.role) ??
         branchError(p.branch) ?? {
           kind,
           projectKey: p.projectKey as string,
           folder: p.folder as string,
-          role: p.role as CrewRoleSlot,
+          role: p.role as WorkspaceRole,
           branch: p.branch as string,
         }
       );

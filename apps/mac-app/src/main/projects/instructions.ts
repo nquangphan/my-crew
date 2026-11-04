@@ -1,5 +1,6 @@
 import type { PaperclipClient } from '../paperclip/types.js';
 import assistant from './templates/assistant.md?raw';
+import designer from './templates/designer.md?raw';
 import executor from './templates/executor.md?raw';
 import integrator from './templates/integrator.md?raw';
 import reviewer from './templates/reviewer.md?raw';
@@ -9,9 +10,15 @@ import reviewer from './templates/reviewer.md?raw';
  * dưới là bản port của `render-instructions.mjs`, `add-base.mjs` và phần ghim Superpowers của
  * `merge-agent-config.mjs`, chạy trong app thay vì shell trên VPS.
  */
-export type RoleTemplate = 'assistant' | 'executor' | 'reviewer' | 'integrator';
+export type RoleTemplate = 'assistant' | 'executor' | 'reviewer' | 'integrator' | 'designer';
 
-export const ROLE_TEMPLATES: Record<RoleTemplate, string> = { assistant, executor, reviewer, integrator };
+export const ROLE_TEMPLATES: Record<RoleTemplate, string> = {
+  assistant,
+  executor,
+  reviewer,
+  integrator,
+  designer,
+};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RUNTIMES = new Set(['claude_local', 'codex_local', 'opencode_local']);
@@ -40,8 +47,9 @@ function parseExecutor(entry: string): { id: string; runtime: string } {
 }
 
 /**
- * Như `renderInstructions` của fork: chỉ Trợ Lý nhận danh sách executor và agent BMAD (của project), thêm vào cuối
- * file. Project app tạo không có agent BMAD, agent UIUX hay reviewer Codex nên ba mục này ghi "Không có…".
+ * Như `renderInstructions` của fork: chỉ Trợ Lý nhận danh sách executor, agent BMAD, reviewer Codex và agent UIUX (của
+ * project), thêm vào cuối file. Project app tạo không có agent BMAD hay reviewer Codex nên hai mục này ghi "Không có…";
+ * mục UIUX liệt kê agent UIUX app vừa tạo (company có skill `ui-ux-pro-max`), không có thì cũng ghi "Không có…".
  */
 export function renderInstructions(
   role: RoleTemplate,
@@ -50,12 +58,14 @@ export function renderInstructions(
   executorIds: string[],
   bmadIds: string[] = [],
   reviewerCodexId = '',
+  designerIds: string[] = [],
 ): string {
-  if (!(role in ROLE_TEMPLATES)) throw new Error(`unknown role: ${role}`);
+  if (!Object.hasOwn(ROLE_TEMPLATES, role)) throw new Error(`unknown role: ${role}`);
   if (role !== 'assistant') {
     if (executorIds.length > 0) throw new Error('danh sách executor chỉ assistant nhận');
     if (bmadIds.length > 0) throw new Error('danh sách agent BMAD chỉ assistant nhận');
     if (reviewerCodexId !== '') throw new Error('reviewer Codex chỉ assistant nhận');
+    if (designerIds.length > 0) throw new Error('danh sách agent UIUX chỉ assistant nhận');
     return text;
   }
   if (!UUID_RE.test(agentId)) throw new Error(`assistant phải là uuid: ${agentId}`);
@@ -68,8 +78,11 @@ export function renderInstructions(
     new Set(),
   );
   const bmads = checkIds(bmadIds, 'agent BMAD', agentId, executors);
-  if (reviewerCodexId !== '')
-    checkIds([reviewerCodexId], 'reviewer Codex', agentId, new Set([...executors, ...bmads]));
+  const reviewers =
+    reviewerCodexId === ''
+      ? new Set<string>()
+      : checkIds([reviewerCodexId], 'reviewer Codex', agentId, new Set([...executors, ...bmads]));
+  checkIds(designerIds, 'agent UIUX', agentId, new Set([...executors, ...bmads, ...reviewers]));
   const list = parsed.map((e) => `- \`${e.id}\` — runtime \`${e.runtime}\``).join('\n');
   const bmad =
     bmadIds.length > 0 ? bmadIds.map((id) => `- \`${id}\``).join('\n') : 'Không có. Luôn dùng Superpowers.';
@@ -77,7 +90,10 @@ export function renderInstructions(
     reviewerCodexId === ''
       ? 'Không có. Server tự chọn reviewer, bạn không giao việc cho reviewer.'
       : `- \`${reviewerCodexId}\` — runtime \`codex_local\``;
-  const designer = 'Không có. Không tạo con thiết kế; làm như cũ.';
+  const designer =
+    designerIds.length > 0
+      ? designerIds.map((id) => `- \`${id}\``).join('\n')
+      : 'Không có. Không tạo con thiết kế; làm như cũ.';
   return `${text.replace(/\n*$/, '\n')}\n## Executor của company\n\n${list}\n\n## Agent BMAD của company\n\n${bmad}\n\n## Agent UIUX của company\n\n${designer}\n\n## Reviewer Codex của company\n\n${reviewer}\n`;
 }
 

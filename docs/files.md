@@ -214,6 +214,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/src/main/projects/register.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/remove-project.ts` | [mac-app-paperclip](flows/mac-app-paperclip.md) (điểm vào) |
 | `apps/mac-app/src/main/projects/templates/assistant.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
+| `apps/mac-app/src/main/projects/templates/designer.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/templates/executor.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/templates/integrator.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |
 | `apps/mac-app/src/main/projects/templates/reviewer.md` | [mac-app-paperclip](flows/mac-app-paperclip.md) (file) |

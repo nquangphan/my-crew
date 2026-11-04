@@ -381,6 +381,38 @@ describe('ô vai trò runtime và việc runtimes-setup', () => {
     ).toMatchObject({ roles: ['executor-codex', 'executor-opencode', 'reviewer-codex'] });
   });
 
+  it('agent-workspace nhận checkout designer của agent UIUX; prepare-checkouts thì không', () => {
+    expect(
+      validateJobPayload('agent-workspace', {
+        projectKey: 'demo',
+        folder: '/x',
+        role: 'designer',
+        branch: 'agent/demo-designer',
+      }),
+    ).toEqual({
+      kind: 'agent-workspace',
+      projectKey: 'demo',
+      folder: '/x',
+      role: 'designer',
+      branch: 'agent/demo-designer',
+    });
+    expect(
+      validateJobPayload('agent-workspace', {
+        projectKey: 'demo',
+        folder: '/x',
+        role: 'designer-2',
+        branch: 'b',
+      }),
+    ).toBe('role không hợp lệ');
+    expect(
+      validateJobPayload('prepare-checkouts', {
+        projectKey: 'demo',
+        folder: '/x',
+        roles: [...fullRoles, { role: 'designer', branch: 'agent/demo-designer' }],
+      }),
+    ).toBe('role không hợp lệ');
+  });
+
   it('prepare-checkouts nhận 4 đến 8 ô (tối đa 5 executor), thừa ô thì lỗi', () => {
     const extra = ['executor-2', 'executor-3', 'executor-4', 'executor-5'].map((role) => ({
       role,

@@ -350,6 +350,7 @@ flows:
       - apps/mac-app/src/main/projects/templates/executor.md
       - apps/mac-app/src/main/projects/templates/reviewer.md
       - apps/mac-app/src/main/projects/templates/integrator.md
+      - apps/mac-app/src/main/projects/templates/designer.md
       - apps/mac-app/src/main/jobs/types.ts
       - apps/mac-app/src/main/jobs/poller.ts
       - apps/mac-app/src/main/jobs/targets.ts

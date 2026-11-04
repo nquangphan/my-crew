@@ -1,5 +1,5 @@
 import type { ProjectRoles } from '../paperclip/types.js';
-import { findByProjectId, manualRemoveCommand, type ProjectDeps, recordName } from './progress.js';
+import { agentName, findByProjectId, manualRemoveCommand, type ProjectDeps, recordName } from './progress.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -45,7 +45,7 @@ export async function removeProject(
     const agent = await client.getAgent(entry.agentId);
     if (!agent || ['paused', 'terminated', 'pending_approval'].includes(agent.status)) continue;
     await client.pauseAgent(entry.agentId);
-    removed.push(`agent ${recordName(progress?.key ?? '', role)} đã pause`);
+    removed.push(`agent ${agentName(progress?.key ?? '', role)} đã pause`);
   }
 
   const envIds = new Set(entries.map(([, e]) => e.environmentId).filter((id): id is string => !!id));

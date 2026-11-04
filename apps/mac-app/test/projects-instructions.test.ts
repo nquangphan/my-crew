@@ -17,7 +17,10 @@ const X1 = '44444444-4444-4444-8444-444444444444';
 const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
-/** sha256 của `crew/agents/*.md` trong fork nhánh `feat/bug-finding-root-bf` @ 2aea68377 (commit cuối đổi crew/agents) lúc chép. Lệch nghĩa là fork đã đổi. */
+/**
+ * sha256 của `crew/agents/*.md` trong fork nhánh `feat/bug-finding-root-bf` @ 2aea68377 (commit cuối đổi crew/agents) lúc chép;
+ * `designer.md` chép từ nhánh `crew/uiux-wizard` @ 08f540666 (file đổi lần cuối ở e49c52625). Lệch nghĩa là fork đã đổi.
+ */
 const FORK_SHA256: Record<string, string> = {
   assistant: 'ab36fb9470d4458819582f578ac1735b5fef9403e12bb65a458d7d5d97cd0e21',
   executor: '1c43acd549fd36a0ed2108d62eec48ec38bfa8416a014ed9e77f606ad136e6c2',
@@ -25,6 +28,7 @@ const FORK_SHA256: Record<string, string> = {
   // đúng bản này vào crew/agents/integrator.md rồi hash mới khớp lại với fork.
   integrator: '29bb9f18b32b82e45f573e5c5d757fcb54d88ad5799cef27a25ba9b7783e2dad',
   reviewer: '0d0040cf3b5921ce6aa601e88e3a0c75b097836555fe24834e493ba5df58a61d',
+  designer: '2ebbff78108269cf950f031b1c720c5608b9f3a9af54ed147a2c3722556fde38',
 };
 
 describe('template vai trò', () => {
@@ -306,11 +310,48 @@ describe('renderInstructions runtime và reviewer Codex (AG-2)', () => {
   });
 });
 
+describe('renderInstructions agent UIUX', () => {
+  const D1 = '66666666-6666-4666-8666-666666666666';
+  const D2 = '77777777-7777-4777-8777-777777777777';
+  it('designerIds: mỗi dòng một id, trước mục Reviewer Codex; rỗng thì giữ câu "Không có"', () => {
+    expect(renderInstructions('assistant', '# T\n', A, [X1], [], '', [D1, D2])).toContain(
+      `## Agent UIUX của company\n\n- \`${D1}\`\n- \`${D2}\`\n\n## Reviewer Codex của company`,
+    );
+    expect(renderInstructions('assistant', '# T\n', A, [X1], [], '', [])).toContain(
+      '## Agent UIUX của company\n\nKhông có. Không tạo con thiết kế; làm như cũ.\n\n',
+    );
+  });
+
+  it('chỉ assistant nhận; không uuid, trùng executor, BMAD, reviewer Codex hay chính Trợ Lý thì lỗi', () => {
+    expect(() => renderInstructions('executor', 'x', A, [], [], '', [D1])).toThrow(
+      'danh sách agent UIUX chỉ assistant nhận',
+    );
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', ['khong-uuid'])).toThrow('uuid');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', [X1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [D1], '', [D1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], D1, [D1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', [D1, D1])).toThrow('trùng');
+    expect(() => renderInstructions('assistant', 'x', A, [X1], [], '', [A])).toThrow('chính nó');
+  });
+
+  it('designer trả nguyên template', () => {
+    expect(renderInstructions('designer', ROLE_TEMPLATES.designer, A, [])).toBe(ROLE_TEMPLATES.designer);
+  });
+});
+
 describe('render khớp từng byte với render-instructions.mjs của fork', () => {
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
       '64b70e68c613856cd0c4c0bf6d918fcbab71572df7bff44d122ff06469141207',
+    );
+  });
+
+  it('Trợ Lý + 2 executor Claude + 1 agent UIUX: sha256 của đầu ra fork', () => {
+    const D = '66666666-6666-4666-8666-666666666666';
+    const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2], [], '', [D]);
+    expect(createHash('sha256').update(out).digest('hex')).toBe(
+      '99a427568a73c41c0b5568631d36a7ea677cae58263bfd471a1774c9bf74f927',
     );
   });
 });

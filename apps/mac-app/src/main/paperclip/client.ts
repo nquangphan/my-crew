@@ -1,9 +1,11 @@
 import type {
   ClaudeLocalAgentInput,
+  CompanySkillItem,
   MachinePairing,
   MachineProvisionResult,
   MachineReleaseBlocker,
   MachineReleaseResult,
+  ModelSettingsCell,
   ModelSettingsRoles,
   PaperclipAgent,
   PaperclipClient,
@@ -166,21 +168,30 @@ export interface ClientDeps extends HttpDeps {
 
 const APP_MODEL_ROLES = ['assistant', 'executor', 'reviewer', 'integrator'] as const;
 
-/** Lấy 4 vai app tạo từ `settings.roles`; ô thiếu hay sai dạng thì ném (không đoán model). */
+/** Một ô của `settings.roles`; sai dạng thì ném (không đoán model). */
+function parseModelCell(roles: unknown, role: string): ModelSettingsCell {
+  const cell = (roles as Record<string, unknown> | null | undefined)?.[role] as
+    | { model?: unknown; effort?: unknown }
+    | null
+    | undefined;
+  if (typeof cell?.model !== 'string' || cell.model === '') {
+    throw new Error(`Paperclip trả cài đặt model thiếu model của vai ${role}`);
+  }
+  if (cell.effort !== null && typeof cell.effort !== 'string') {
+    throw new Error(`Paperclip trả cài đặt model có effort sai của vai ${role}`);
+  }
+  return { model: cell.model, effort: cell.effort };
+}
+
+/**
+ * Lấy 4 vai app tạo từ `settings.roles` (ô thiếu thì ném), cùng ô `designer` của agent UIUX: server cũ chưa có vai này
+ * thì để trống (bên gọi dùng mặc định), có mà sai dạng thì ném.
+ */
 function parseModelSettingsRoles(roles: unknown): ModelSettingsRoles {
   const out = {} as ModelSettingsRoles;
-  for (const role of APP_MODEL_ROLES) {
-    const cell = (roles as Record<string, unknown> | null | undefined)?.[role] as
-      | { model?: unknown; effort?: unknown }
-      | null
-      | undefined;
-    if (typeof cell?.model !== 'string' || cell.model === '') {
-      throw new Error(`Paperclip trả cài đặt model thiếu model của vai ${role}`);
-    }
-    if (cell.effort !== null && typeof cell.effort !== 'string') {
-      throw new Error(`Paperclip trả cài đặt model có effort sai của vai ${role}`);
-    }
-    out[role] = { model: cell.model, effort: cell.effort };
+  for (const role of APP_MODEL_ROLES) out[role] = parseModelCell(roles, role);
+  if ((roles as Record<string, unknown> | null | undefined)?.designer !== undefined) {
+    out.designer = parseModelCell(roles, 'designer');
   }
   return out;
 }
@@ -424,6 +435,30 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       if (baseHash !== null && !HASH_RE.test(baseHash))
         throw new Error('baseHash phải là 64 ký tự hex hoặc null');
       await call('PUT', `/api/agents/${id(agentId)}/instructions-bundle/file`, { path, content, baseHash });
+    },
+
+    async companySkills(companyId) {
+      const list = await call<unknown>('GET', `/api/companies/${id(companyId)}/skills`);
+      if (!Array.isArray(list)) throw new Error('Paperclip trả danh sách skill không phải mảng');
+      return list
+        .filter(
+          (item): item is CompanySkillItem =>
+            isRecord(item) &&
+            typeof item.id === 'string' &&
+            typeof item.key === 'string' &&
+            typeof item.slug === 'string',
+        )
+        .map(({ id, key, slug }) => ({ id, key, slug }));
+    },
+
+    async replaceAgentSkills(agentId, skillKeys) {
+      if (!skillKeys.every((key) => typeof key === 'string' && key.trim() !== '')) {
+        throw new Error('Key skill không được trống');
+      }
+      await call('POST', `/api/agents/${id(agentId)}/skills/sync`, {
+        mode: 'replace',
+        desiredSkills: skillKeys,
+      });
     },
 
     async cancelRun(runId) {

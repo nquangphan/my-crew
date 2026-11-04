@@ -27,6 +27,10 @@ export type CrewRoleSlot =
   | 'executor-opencode'
   | 'reviewer-codex';
 
+/** Thư mục checkout của agent UIUX (vai `designer`): không phải ô vai trò, chỉ việc `agent-workspace` nhận. */
+export const DESIGNER_CHECKOUT = 'designer';
+export type WorkspaceRole = CrewRoleSlot | typeof DESIGNER_CHECKOUT;
+
 export const MACHINE_JOB_KINDS: readonly MachineJobKind[] = [
   'inspect-folder',
   'prepare-checkouts',
@@ -74,7 +78,7 @@ export type JobPayload =
       folder: string;
       roles: { role: CrewRoleSlot; branch: string }[];
     }
-  | { kind: 'agent-workspace'; projectKey: string; folder: string; role: CrewRoleSlot; branch: string }
+  | { kind: 'agent-workspace'; projectKey: string; folder: string; role: WorkspaceRole; branch: string }
   | { kind: 'skill-sync'; skillId: string; slug: string; version: string }
   | { kind: 'check'; projectKey: string }
   | {
@@ -134,7 +138,7 @@ export type JobResult =
       clean: boolean;
     }
   | { kind: 'prepare-checkouts'; checkouts: { role: CrewRoleSlot; path: string; head: string }[] }
-  | { kind: 'agent-workspace'; role: CrewRoleSlot; path: string; head: string }
+  | { kind: 'agent-workspace'; role: WorkspaceRole; path: string; head: string }
   | { kind: 'skill-sync'; sha256: string; files: number }
   | { kind: 'check'; items: CheckItem[] }
   | {

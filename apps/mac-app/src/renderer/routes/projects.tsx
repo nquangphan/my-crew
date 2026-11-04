@@ -18,8 +18,12 @@ const FIXED_LABELS: Record<string, string> = {
   check: 'Kiểm tra cuối',
 };
 
+/** Bước tạo agent UIUX (chỉ khi company có skill `ui-ux-pro-max`, không có thì bỏ qua và vẫn tính là xong). */
+const DESIGNER_STEP = 'role:designer';
+
 /** Tên bước tiếng Việt (`role:<vai>` là tạo worktree, environment và agent của vai đó). */
 export function stepLabel(step: string): string {
+  if (step === DESIGNER_STEP) return 'Tạo agent UIUX (nếu company có skill ui-ux-pro-max)';
   if (step.startsWith('role:')) return `Tạo agent ${step.slice(5)}`;
   return FIXED_LABELS[step] ?? step;
 }
@@ -30,15 +34,28 @@ function executorsOf(progress: Progress): number {
   return progress.executors ?? Math.min(Math.max(created, 1), MAX_EXECUTORS);
 }
 
-/** Thứ tự các bước của một lần thêm, khớp `AddRun.all()` của Main. */
+/**
+ * Thứ tự các bước của một lần thêm, khớp `AddRun.all()` của Main. Project đã xong ở bản app trước (chưa có bước UIUX)
+ * thì Main không chạy bước UIUX nên không tính.
+ */
 function expectedSteps(progress: Progress): string[] {
+  const done = progress.done as string[];
+  const designer = done.includes('check') && !done.includes(DESIGNER_STEP) ? [] : [DESIGNER_STEP];
   const roles = [
     ...Array.from({ length: executorsOf(progress) }, (_, i) => `executor-${i + 1}`),
     'assistant',
     'reviewer',
     'integrator',
   ];
-  return ['folder', 'project', 'status-repo', ...roles.map((r) => `role:${r}`), 'roles', 'check'];
+  return [
+    'folder',
+    'project',
+    'status-repo',
+    ...designer,
+    ...roles.map((r) => `role:${r}`),
+    'roles',
+    'check',
+  ];
 }
 
 function currentStep(progress: Progress): string | null {
