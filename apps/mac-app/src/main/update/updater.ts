@@ -9,6 +9,7 @@ import {
   type BugFindingDrain,
   type DrainAnswer,
   drainForUpdate,
+  quitBugFindingForRollback,
 } from './drain.js';
 import { SEND_STATUS_BASELINE_ID } from './probation.js';
 import type { ProbationMarkers, RollbackMode } from './rollback.js';
@@ -377,6 +378,14 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         },
       }));
       deps.log('warn', 'update-rollback-requested', { from: deps.appVersion, to: previous });
+      // Helper thay cả bundle gồm Bug Finding nhúng: thoát nó trước (tối đa 30 giây), không thoát kịp vẫn quay lui.
+      if (deps.bugFinding) {
+        const quit = await quitBugFindingForRollback(deps.bugFinding, {
+          sleep: (ms) => deps.sleep(ms),
+          now: () => deps.now().getTime(),
+        });
+        if (!quit) deps.log('warn', 'bug-finding-not-quit-before-rollback');
+      }
       deps.spawnRollback('now', deps.appVersion);
       await deps.supervisor.stopForQuit().catch(() => undefined);
       deps.exit(0);

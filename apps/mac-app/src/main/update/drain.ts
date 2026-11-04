@@ -75,6 +75,23 @@ async function quitBugFinding(
 }
 
 /**
+ * Trước khi helper quay lui thay bundle (quay lui tay hay probation hỏng): đóng cổng mở Bug Finding, đặt cờ mở lại (nếu
+ * đang chạy), gửi quit và chờ tối đa 30 giây như drain. Trả `true` khi Bug Finding đã thoát (hay không chạy); lỗi hay
+ * không thoát kịp thì `false`, người gọi vẫn quay lui (owner chấp nhận thay bundle khi Bug Finding không thoát).
+ */
+export async function quitBugFindingForRollback(
+  bf: BugFindingDrain,
+  deps: Pick<DrainDeps, 'sleep' | 'now'>,
+): Promise<boolean> {
+  try {
+    await bf.hold();
+    return await quitBugFinding(bf, deps, () => undefined);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * `runningReviews` của `BugFindingDrain` từ heartbeat: `read` trả `running` của heartbeat mới, `null` khi không có hay
  * cũ (ném khi hỏng). Không có heartbeat mới mà bản nhúng vẫn chạy (vừa mở, bận, treo) thì chưa rõ: ném.
  */

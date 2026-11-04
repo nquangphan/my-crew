@@ -15,7 +15,7 @@ import {
   reopenBugFindingAfterUpdate,
   reviewsFromHeartbeat,
 } from './drain.js';
-import { installCrewMacWhenIdle, runProbation } from './probation.js';
+import { installCrewMacWhenIdle, probationThenReopen, runProbation } from './probation.js';
 import {
   APP_BUNDLE_NAME,
   bundleFromExe,
@@ -198,36 +198,42 @@ export function registerUpdate(ctx: AppContext, sshd: SshdRuntime, bugFindingGat
   });
   app.on('will-quit', () => updater.stop());
 
-  // Bản trước đã thoát Bug Finding (đang mở) để cài bản này: mở lại chạy nền, xóa cờ.
-  void bugFinding
-    .reopen()
-    .then((result) => {
-      if (result !== 'none')
-        ctx.log(result === 'reopened' ? 'info' : 'warn', 'bug-finding-reopen', { result });
-    })
-    .catch((error) =>
-      ctx.log('error', 'bug-finding-reopen-failed', {
-        error: error instanceof Error ? error.message : String(error),
-      }),
-    );
-
   void (async () => {
-    const outcome = await runProbation({
-      appVersion: ctx.appVersion,
-      store: ctx.store,
-      supervisor: sshd,
-      doctor: () => ctx.ops.call('doctor', { ...PROBATION_DOCTOR_OPTS }),
-      sendStatus,
-      markers,
-      hasPrevious: () => readPreviousVersion(support) !== null,
-      spawnRollbackNow: (toVersion) => spawnHelper('now', toVersion),
-      exit,
-      sleep: (ms) => sleep(ms),
-      now: () => new Date(),
-      after,
-      log: ctx.log,
+    const hasPrevious = () => readPreviousVersion(support) !== null;
+    const outcome = await probationThenReopen({
+      probation: () =>
+        runProbation({
+          appVersion: ctx.appVersion,
+          store: ctx.store,
+          supervisor: sshd,
+          doctor: () => ctx.ops.call('doctor', { ...PROBATION_DOCTOR_OPTS }),
+          sendStatus,
+          markers,
+          hasPrevious,
+          spawnRollbackNow: (toVersion) => spawnHelper('now', toVersion),
+          exit,
+          sleep: (ms) => sleep(ms),
+          now: () => new Date(),
+          after,
+          bugFinding: bugFinding.drain,
+          log: ctx.log,
+        }),
+      hasPrevious,
+      // Bản trước đã thoát Bug Finding (đang mở) để cài bản này: mở lại chạy nền sau probation, xóa cờ.
+      reopen: () =>
+        bugFinding
+          .reopen()
+          .then((result) => {
+            if (result !== 'none')
+              ctx.log(result === 'reopened' ? 'info' : 'warn', 'bug-finding-reopen', { result });
+          })
+          .catch((error) =>
+            ctx.log('error', 'bug-finding-reopen-failed', {
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          ),
     });
-    if (outcome === 'failed' && readPreviousVersion(support) !== null) return; // app đang thoát để quay lui
+    if (outcome === 'failed' && hasPrevious()) return; // app đang thoát để quay lui
     if (outcome === 'passed') {
       void installCrewMacWhenIdle({
         activeRuns: async () => (await sshd.activeRuns()).length,

@@ -519,6 +519,48 @@ describe('createUpdater', () => {
     expect(h2.order[0]).toBe('state:rolled-back');
   });
 
+  it('quay lui tay: thoát Bug Finding nhúng (quit, chờ thoát) trước khi sinh helper', async () => {
+    const h = harness({ runs: 0 });
+    let running = true;
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => running,
+      quit: async () => {
+        h.order.push('bf-quit');
+        running = false;
+      },
+      setReopen: async () => undefined,
+      hold: async () => {
+        h.order.push('bf-hold');
+      },
+      release: () => undefined,
+    };
+    await h.updater.rollback();
+    expect(h.order).toEqual([
+      'state:rolled-back',
+      'bf-hold',
+      'bf-quit',
+      'helper:now:0.1.0',
+      'stopForQuit',
+      'exit:0',
+    ]);
+  });
+
+  it('quay lui tay: Bug Finding không thoát trong 30 giây vẫn quay lui', async () => {
+    const h = harness({ runs: 0 });
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => true,
+      quit: async () => undefined,
+      setReopen: async () => undefined,
+      hold: async () => undefined,
+      release: () => undefined,
+    };
+    await h.updater.rollback();
+    expect(h.order).toContain('helper:now:0.1.0');
+    expect(h.events.map((e) => e.event)).toContain('bug-finding-not-quit-before-rollback');
+  });
+
   it('quay lui tay khi chưa có previous/: lỗi "Chưa có bản trước"', async () => {
     const h = harness({ previous: null });
     await expect(h.updater.rollback()).rejects.toThrow('Chưa có bản trước');
