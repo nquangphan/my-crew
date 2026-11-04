@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Mockup 1 — Mục Bug Finding trong app 2P Crew</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="frame">
+  <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span style="margin-left:8px">2P Crew</span></div>
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="brand">2P Crew</div>
+      <div class="nav">Sức khỏe</div>
+      <div class="nav">Run đang chạy</div>
+      <div class="nav">Log</div>
+      <div class="nav">Project</div>
+      <div class="nav active">Bug Finding <span class="new">mới</span></div>
+      <div class="nav">Cập nhật</div>
+      <div class="nav">Cài đặt</div>
+      <div style="flex:1"></div>
+      <div class="muted small" style="padding:0 8px">2P Crew 0.9.0<br>Bug Finding 0.2.0 (đi kèm)</div>
+    </nav>
+    <main class="main">
+      <div class="row between">
+        <div>
+          <h1>Bug Finding</h1>
+          <p class="muted" style="margin:4px 0 0">App review MR/PR đi kèm 2P Crew. Crew xếp MR của ticket tổng vào hàng đợi; giao diện, đăng nhập GitLab/GitHub và báo cáo vẫn ở app Bug Finding.</p>
+        </div>
+        <div class="row">
+          <span class="btn">Hiện trong Finder</span>
+          <span class="btn primary">Mở Bug Finding</span>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>Trạng thái app</h3>
+          <table>
+            <tr><td>Phiên bản</td><td><b>0.2.0</b> <span class="muted small">(commit <span class="mono">59b8453c1a2e</span>, cập nhật cùng 2P Crew)</span></td></tr>
+            <tr><td>Đang chạy</td><td><span class="badge ok">Đang chạy</span> <span class="muted small">pid 48211</span></td></tr>
+            <tr><td>Hàng đợi</td><td>1 đang review, 1 đang chờ</td></tr>
+            <tr><td>Kết nối với Crew</td><td><span class="badge ok">Đã nhận tín hiệu 12 giây trước</span></td></tr>
+            <tr><td>Bản cài riêng cũ</td><td><span class="badge warn">Còn /Applications/Bug Finding.app</span> <span class="btn" style="padding:2px 8px">Chuyển vào Thùng rác</span></td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Đồng bộ project</h3>
+          <p class="small muted" style="margin:0 0 8px">Mọi project Crew có repo trên máy này được tạo sẵn bên Bug Finding. Thêm project trong Crew thì bên kia tự có. Gỡ khỏi Crew thì Bug Finding giữ lịch sử và gắn nhãn “Crew đã gỡ”.</p>
+          <div class="row"><span class="badge ok">Đã đồng bộ 4 project</span><span class="muted small">lần cuối 09:41</span><span style="flex:1"></span><span class="btn">Đồng bộ lại</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Project Crew ↔ Bug Finding</h3>
+        <table>
+          <thead><tr><th>Project Crew</th><th>Repo trên máy</th><th>Nguồn MR/PR</th><th>Bên Bug Finding</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>my-crew</b></td><td class="mono">/Volumes/CORSAIR/Projects/my-crew</td><td>GitHub · nquangphan/crew</td><td><span class="badge ok">Đã có</span></td><td><span class="btn">Mở</span></td></tr>
+            <tr><td><b>paperclip</b></td><td class="mono">/Volumes/CORSAIR/Projects/2p-crew/paperclip</td><td>GitHub · nquangphan/2p-crew</td><td><span class="badge ok">Đã có</span></td><td><span class="btn">Mở</span></td></tr>
+            <tr><td><b>kidy_school</b></td><td class="mono">/Volumes/CORSAIR/Projects/kidy_school</td><td>GitHub · 2p/kidy_school</td><td><span class="badge ok">Đã có</span> <span class="badge info">ghép với project có sẵn</span></td><td><span class="btn">Mở</span></td></tr>
+            <tr><td><b>aqua-farm</b></td><td class="mono">~/crew-agents/aqua-farm/repo</td><td>GitLab · gitlab.corp.vn/aqua/app</td><td><span class="badge warn">Cần đăng nhập GitLab (bật VPN)</span></td><td><span class="btn">Mở</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="row between"><h3 style="margin:0">MR do Crew xếp</h3><span class="muted small">Chi tiết tiến độ, lane và log xem trong app Bug Finding</span></div>
+        <table style="margin-top:8px">
+          <thead><tr><th>Ticket tổng</th><th>PR</th><th>Lần</th><th>Trạng thái</th><th>Kết quả</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>TPS-650</b> Thêm lọc theo ngày</td><td class="mono">#87</td><td>1</td><td><span class="badge info">Đang review</span><div class="progress" style="margin-top:6px;width:140px"><i style="width:55%"></i></div><span class="muted small">4/7 lane xong · 18 phút</span></td><td>–</td><td><span class="btn">Xem trong Bug Finding</span></td></tr>
+            <tr><td><b>TPS-648</b> Sửa đăng nhập Google</td><td class="mono">#86</td><td>2 (chạy lại)</td><td><span class="badge gray">Đang chờ mạng/tài nguyên</span></td><td>–</td><td><span class="btn">Xem trong Bug Finding</span></td></tr>
+            <tr><td><b>TPS-640</b> Báo cáo tuần</td><td class="mono">#84</td><td>2</td><td><span class="badge ok">Xong · đã gửi Crew</span></td><td><span class="badge ok">APPROVE</span></td><td><span class="btn">Báo cáo</span></td></tr>
+            <tr><td><b>TPS-640</b> Báo cáo tuần</td><td class="mono">#84</td><td>1</td><td><span class="badge ok">Xong · đã gửi Crew</span></td><td><span class="badge bad">BLOCK</span> <span class="small muted">5 finding</span></td><td><span class="btn">Báo cáo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">Màn này chỉ để xem nhanh và mở app. Mọi thao tác review (dừng, resume, hủy, phản hồi, đăng nhập GitLab, token GitHub) làm trong app Bug Finding như trước.</div>
+    </main>
+  </div>
+</div>
+<ul class="legend">
+  <li><b>Mục mới “Bug Finding”</b> trên thanh bên app 2P Crew (route <span class="mono">#/bug-finding</span>).</li>
+  <li><b>Mở Bug Finding</b> chạy bản app đi kèm trong <span class="mono">2P Crew.app/Contents/Resources/Bug Finding.app</span>; không cần cài riêng.</li>
+  <li><b>Đồng bộ project</b>: Crew ghi danh sách project sang Bug Finding; project mới trong Crew tự xuất hiện bên đó.</li>
+  <li><b>MR do Crew xếp</b>: mỗi lần server nhờ review một PR của ticket tổng; trạng thái đọc từ phản hồi của Bug Finding.</li>
+</ul>
+</body>
+</html>

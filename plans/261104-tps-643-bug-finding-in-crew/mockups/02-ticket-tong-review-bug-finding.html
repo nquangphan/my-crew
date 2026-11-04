@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Mockup 2 — Ticket tổng đang review Bug Finding (web Crew)</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .web { display: grid; grid-template-columns: 1fr 300px; gap: 16px; padding: 20px; background: var(--bg); }
+  .tl { border-left: 2px solid var(--line); margin-left: 6px; padding-left: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+  .tl .ev { position: relative; }
+  .tl .ev::before { content: ""; position: absolute; left: -21px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .tl .ev.ok::before { background: #2fa36b; } .tl .ev.now::before { background: var(--accent); } .tl .ev.bad::before { background: #d2493c; }
+  .kv td:first-child { color: var(--muted); width: 120px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="web-top"><span class="logo">2P Crew</span><span class="crumb">my-crew / Yêu cầu / <b style="color:var(--ink)">TPS-650</b></span><span style="flex:1"></span><span class="muted">Đại Ca</span></div>
+  <div class="web">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="row between"><h1>TPS-650 Thêm lọc theo ngày cho báo cáo</h1><span class="badge info">Đang review Bug Finding · lần 2</span></div>
+
+      <div class="stages">
+        <div class="stage done"><b>1. Gộp code + PR</b>Integrator · PR #87 cập nhật 09:20</div>
+        <div class="stage now"><b>2. Review Bug Finding</b>Lần 2 / tối đa 3 · đang chạy trên Mac mini</div>
+        <div class="stage wait"><b>3. Owner duyệt</b>Chờ</div>
+        <div class="stage wait"><b>4. Merge</b>Integrator merge PR sau khi duyệt</div>
+      </div>
+      <p class="small muted" style="margin:-8px 0 0">Luồng mới cho yêu cầu code/bug: không còn bước reviewer Claude trên ticket tổng. Nghiên cứu, viết tài liệu, lập kế hoạch giữ luồng cũ.</p>
+
+      <div class="card">
+        <div class="row between"><h2 style="margin:0">Bug Finding — lần 2 (chạy lại sau lô sửa bf-fix-1)</h2><span class="btn">Mở báo cáo lần 1</span></div>
+        <table class="kv" style="margin-top:8px">
+          <tr><td>Pull request</td><td><a href="#" class="mono">github.com/nquangphan/crew/pull/87</a> · <span class="mono">crew/req/TPS-650</span> → <span class="mono">main</span></td></tr>
+          <tr><td>Commit review</td><td class="mono">3f9c1e07a2b4 (sau khi gộp TPS-651, TPS-652, TPS-653)</td></tr>
+          <tr><td>Máy</td><td>Mac mini · app Bug Finding 0.2.0 · chế độ <span class="mono">recheck</span> từ báo cáo lần 1</td></tr>
+          <tr><td>Tiến độ</td><td><div class="progress" style="width:320px"><i style="width:57%"></i></div><span class="small muted">4/7 lane xong · 21 phút · cập nhật 1 phút trước</span></td></tr>
+        </table>
+        <div class="note" style="margin-top:10px">Bug Finding chỉ chạy lại <b>một lần</b> sau khi <b>toàn bộ</b> việc con sửa của lô xong, không chạy theo từng việc con. Muốn xem lane, log trực tiếp: mở app Bug Finding trên Mac.</div>
+      </div>
+
+      <div class="card">
+        <h2>Diễn biến</h2>
+        <div class="tl">
+          <div class="ev ok"><b>Mọi việc con xong</b> (TPS-645, TPS-646, TPS-647) — Trợ Lý gửi ticket tổng đi tiếp. <span class="muted small">08:02</span></div>
+          <div class="ev ok"><b>Integrator</b> gộp 3 commit vào <span class="mono">crew/req/TPS-650</span>, kiểm test + E2E + docs, mở PR #87. <span class="muted small">08:15</span></div>
+          <div class="ev bad"><b>Bug Finding lần 1</b>: <span class="badge bad">BLOCK</span> 5 finding (1 HIGH, 2 MEDIUM, 2 LOW) · 34 phút · $1.84. <span class="muted small">08:51</span></div>
+          <div class="ev ok"><b>Trợ Lý xử lý finding</b>: 3 tự sửa (lô bf-fix-1: TPS-651, TPS-652, TPS-653), 1 hỏi owner (F-04), 1 bỏ qua (F-05, LOW, ngoài phạm vi). <span class="muted small">08:55</span></div>
+          <div class="ev ok"><b>Owner trả lời</b> F-04: “không sửa, server đã chặn”. <span class="muted small">09:03</span></div>
+          <div class="ev ok"><b>Lô bf-fix-1 xong</b> (3/3 đã qua reviewer con) — Trợ Lý gửi lại; Integrator gộp thêm và cập nhật PR #87. <span class="muted small">09:20</span></div>
+          <div class="ev now"><b>Bug Finding lần 2</b> đang chạy (recheck, kèm phản hồi F-04/F-05). <span class="muted small">09:22</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <h3>Thuộc tính</h3>
+        <table class="kv small">
+          <tr><td>Loại</td><td>Code</td></tr>
+          <tr><td>Giai đoạn</td><td><span class="badge info">Bug Finding</span></td></tr>
+          <tr><td>Đang giữ</td><td>Reviewer (cầu nối Bug Finding)</td></tr>
+          <tr><td>Lô sửa tự động</td><td>1 / tối đa 2</td></tr>
+          <tr><td>Việc con</td><td>6/6 xong</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Finding lần 1</h3>
+        <table class="small">
+          <tr><td><span class="sev HIGH">HIGH</span></td><td>F-01 → TPS-651</td><td><span class="badge ok">đã sửa</span></td></tr>
+          <tr><td><span class="sev MEDIUM">MEDIUM</span></td><td>F-02 → TPS-652</td><td><span class="badge ok">đã sửa</span></td></tr>
+          <tr><td><span class="sev MEDIUM">MEDIUM</span></td><td>F-03 → TPS-653</td><td><span class="badge ok">đã sửa</span></td></tr>
+          <tr><td><span class="sev LOW">LOW</span></td><td>F-04 owner chốt</td><td><span class="badge gray">không sửa</span></td></tr>
+          <tr><td><span class="sev LOW">LOW</span></td><td>F-05 Trợ Lý bỏ qua</td><td><span class="badge gray">ngoài phạm vi</span></td></tr>
+        </table>
+        <p class="small" style="margin:8px 0 0"><a href="03-finding-tro-ly.html">Xem chi tiết xử lý →</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+<ul class="legend">
+  <li>Dải giai đoạn mới của ticket tổng code/bug: <b>Gộp code + PR → Review Bug Finding → Owner duyệt → Merge</b>.</li>
+  <li>Thẻ “Bug Finding” hiện PR, commit đang review, máy chạy và tiến độ lane do app Bug Finding báo về (cập nhật khoảng mỗi phút).</li>
+  <li>“Diễn biến” ghi vòng sửa finding và lần chạy lại duy nhất sau khi cả lô sửa xong.</li>
+</ul>
+</body>
+</html>
