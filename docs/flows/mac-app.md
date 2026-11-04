@@ -45,10 +45,13 @@ cắm vào các điểm đã chừa.
    `registerJobs(ctx)` ngay sau `registerSshd` (nhận việc từ hàng đợi máy, flow `mac-app-paperclip` mục "Nhận việc
    trên máy"; chạy utilityProcess riêng "2P Crew jobs", dừng ở `will-quit`).
    Đã bật: `registerSetup(ctx, sshd, health)` (wizard cài lần đầu, mục dưới, gồm gỡ app v2) và
-   `registerUpdate(ctx, sshd)` (updater và màn hình Cập nhật, flow `mac-app-update`), rồi `registerBugFinding(ctx)`
-   (mục Bug Finding: trạng thái, mở app đi kèm, gỡ bản cài riêng cũ, đồng bộ project sang Bug Finding; kênh
-   `bugFinding:*`, flow `mac-bug-finding`). `index.ts` giữ module nó trả (`requestSync`) để nối
-   `ctx.syncBugFindingSoon`; hàm này chỉ được gọi lúc IPC hay việc máy chạy, tức là sau khi `registerBugFinding` xong.
+   `registerUpdate(ctx, sshd, bugFindingGate)` (updater và màn hình Cập nhật, flow `mac-app-update`), rồi
+   `registerBugFinding(ctx, bugFindingGate)` (mục Bug Finding: trạng thái, mở app đi kèm, gỡ bản cài riêng cũ, đồng bộ
+   project sang Bug Finding; kênh `bugFinding:*`, flow `mac-bug-finding`). `bugFindingGate` (`createLaunchGate`, dựng
+   ngay trước hai dòng đó) là cổng mở Bug Finding chung: updater đóng nó trong lúc chờ cài, việc review và nút Mở đi
+   qua nó. `index.ts` giữ module `registerBugFinding` trả (`requestSync`, `runReview`, `available`) để nối
+   `ctx.syncBugFindingSoon`, `ctx.runBugFindingReview`, `ctx.bugFindingAvailable`; các hàm này chỉ được gọi lúc IPC
+   hay việc máy chạy, tức là sau khi `registerBugFinding` xong.
    Mỗi `registerX` nhận `AppContext` (`src/main/app-context.ts`) và cài handler bằng `ctx.ipc.handle(kênh, fn)`.
    `ctx.sendStatusSoon(reason)` (`src/main/status-nudge.ts` → `createStatusNudge`, dựng trong `start`) nhờ gửi bản tin
    máy sớm bằng đúng op `sendStatus` (cùng đường với `crew-mac status send` của launchd `com.2p.crew-mac-status`):
@@ -58,9 +61,10 @@ cắm vào các điểm đã chừa.
    kiểm tra "Sẵn sàng" của web thấy checkout mới ngay thay vì chờ lượt gửi định kỳ.
    `ctx.syncBugFindingSoon(reason)` nhờ ghi lại danh sách project Crew sang Bug Finding (`crew/projects.json`, flow
    `mac-bug-finding`): gộp, chạy nền, không ném; chưa đăng nhập hay chưa chọn company thì bỏ qua. Thêm/gỡ project và
-   việc máy tạo/gỡ checkout xong (flow `mac-app-paperclip`) gọi nó. `ctx.runBugFindingReview(job)` làm việc máy
-   `bug-finding-review` trong Main (`registerBugFinding().runReview`, flow `mac-bug-finding`); `registerJobs` gọi nó thay
-   cho utilityProcess.
+   việc máy tạo/gỡ checkout xong (flow `mac-app-paperclip`) gọi nó. `ctx.runBugFindingReview(job, {origin, signal})`
+   làm việc máy `bug-finding-review` trong Main (`registerBugFinding().runReview`, flow `mac-bug-finding`); `registerJobs`
+   gọi nó thay cho utilityProcess, kèm origin của đích và `AbortSignal` của hạn việc. `ctx.bugFindingAvailable()` cho
+   biết máy có app Bug Finding nhúng (capability `bug-finding-review` của bản tin máy).
 6. Renderer: `src/renderer/app.tsx` giữ danh sách `ROUTES` của thanh bên (hash `#/<id>`), mỗi ticket thay đúng một
    dòng của mình bằng route thật. `src/renderer/lib/ipc.ts` → `invoke(kênh, ...)` gọi `window.crew.invoke`, reject
    bằng thông báo tiếng Việt của Main; `useStateChanged` nghe sự kiện `state:changed` (không payload, renderer gọi
@@ -269,7 +273,7 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
 |-----------|---------|--------------|
 | `apps/mac-app/src/main/index.ts` | Khởi động, thứ tự đăng ký module | `start` |
 | `apps/mac-app/src/main/debug-switch.ts` | Nhận ra cờ Chromium mở DevTools cho process ngoài | `forbiddenDebugSwitch` |
-| `apps/mac-app/src/main/app-context.ts` | Những gì mỗi `registerX` nhận (kèm `sendStatusSoon`, `syncBugFindingSoon`, `runBugFindingReview`) | `AppContext` |
+| `apps/mac-app/src/main/app-context.ts` | Những gì mỗi `registerX` nhận (kèm `sendStatusSoon`, `syncBugFindingSoon`, `runBugFindingReview`, `bugFindingAvailable`) | `AppContext` |
 | `apps/mac-app/src/main/app-state.ts` | `app.json` (kiểu và kho ghi atomic, nối tiếp) | `AppStateStore`, `AppState` |
 | `apps/mac-app/src/main/app-log.ts` | `app.log`: ẩn secret, xoay 10 MB, giờ `Asia/Ho_Chi_Minh` | `AppLog`, `redactFields` |
 | `apps/mac-app/src/main/ipc.ts` | Đăng ký IPC theo danh sách kênh | `registerIpc`, `isTrustedSender` |
@@ -308,9 +312,10 @@ flow `mac-app-paperclip`); `lsof` mặc định `/usr/sbin/lsof`); hàng đợi 
   (Mac mini). Không có key hay secret nào trong `app.json`. `crew-mac` chỉ đọc `appVersion`, `sshdOwner`, `updateState` và `jobsAgent`
   (flow `mac-setup`). `jobsAgent: {version, lastPollAt, capabilities}` do vòng hỏi hàng đợi máy ghi (tối đa 30 giây một
   lần; flow `mac-app-paperclip`); thiếu nghĩa là app chưa nhận việc. `bugFindingRequests` (sổ lượt Bug Finding máy đã
-  nhận) và `bugFindingOutbox` (kết quả Bug Finding chưa gửi được về server) do flow `mac-bug-finding` ghi, mỗi thứ tối
-  đa 200 mục. `reopenBugFinding: true` do updater ghi khi thoát Bug Finding (đang mở) để cài bản mới; bản mới mở lại
-  Bug Finding chạy nền rồi xóa khóa này (flow `mac-app-update`).
+  nhận, kèm origin đã giao việc) và `bugFindingOutbox` (kết quả Bug Finding chưa gửi được về server, kèm origin, số lần
+  thử và giờ thử lại) do flow `mac-bug-finding` ghi, mỗi thứ tối đa 200 mục. `reopenBugFinding: true` do updater ghi
+  khi thoát Bug Finding (đang mở) để cài bản mới hay quay lui; bản mới mở lại Bug Finding chạy nền sau probation rồi xóa
+  khóa này (flow `mac-app-update`).
   `projects[key]` (`ProjectProgress`) là tiến độ thêm project của flow `mac-app-paperclip`: có `folder` (repo owner
   chọn) và `executors` (số executor đã chọn, 1–5; tiến độ trước đó không có); tiến độ bản cũ có `origin` thay cho
   `folder` vẫn đọc được. Kênh `projects:pickFolder` (hộp thoại chọn thư mục)
