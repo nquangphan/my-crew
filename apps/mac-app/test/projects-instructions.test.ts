@@ -18,14 +18,12 @@ const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
 /**
- * sha256 của `crew/agents/*.md` trong fork nhánh `feat/bug-finding-root-bf` @ 2aea68377 (commit cuối đổi crew/agents) lúc chép;
+ * sha256 của `crew/agents/*.md` trong fork nhánh `main` @ e75bbef2b (commit cuối đổi crew/agents) lúc chép;
  * `designer.md` chép từ nhánh `crew/uiux-wizard` @ 08f540666 (file đổi lần cuối ở e49c52625). Lệch nghĩa là fork đã đổi.
  */
 const FORK_SHA256: Record<string, string> = {
   assistant: 'ab36fb9470d4458819582f578ac1735b5fef9403e12bb65a458d7d5d97cd0e21',
   executor: '1c43acd549fd36a0ed2108d62eec48ec38bfa8416a014ed9e77f606ad136e6c2',
-  // Integrator đi trước fork: crew-pr.sh MODE=merge kiểm T..HEAD_OK chỉ là merge nhánh mặc định. Fork phải chép lại
-  // đúng bản này vào crew/agents/integrator.md rồi hash mới khớp lại với fork.
   integrator: '29bb9f18b32b82e45f573e5c5d757fcb54d88ad5799cef27a25ba9b7783e2dad',
   reviewer: '0d0040cf3b5921ce6aa601e88e3a0c75b097836555fe24834e493ba5df58a61d',
   designer: '2ebbff78108269cf950f031b1c720c5608b9f3a9af54ed147a2c3722556fde38',
