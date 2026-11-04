@@ -1,11 +1,16 @@
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { macPaths } from '@crew/mac';
+import { createRunner, macPaths } from '@crew/mac';
 import { app, dialog } from 'electron';
 import electronUpdater from 'electron-updater';
 import type { AppContext } from '../app-context.js';
+import { launchBugFinding, runningBugFindingApps } from '../bug-finding/launch.js';
+import { BUG_FINDING_BUNDLE_ID, bugFindingPaths, resolveAppPath } from '../bug-finding/paths.js';
+import { bugFindingRunningReviews } from '../bug-finding/state.js';
 import type { SshdRuntime } from '../sshd/register.js';
+import { BUG_FINDING_QUIT_MS, type BugFindingDrain, reopenBugFindingAfterUpdate } from './drain.js';
 import { installCrewMacWhenIdle, runProbation } from './probation.js';
 import {
   APP_BUNDLE_NAME,
@@ -40,6 +45,57 @@ function disabledReason(bundle: string | null): string | null {
 }
 
 /**
+ * App Bug Finding nhúng (`<resourcesPath>/Bug Finding.app`) cho bước chờ máy rảnh: lượt review theo `heartbeat.json`,
+ * đang chạy theo `pgrep`, thoát bằng AppleScript theo bundle id, cờ `reopenBugFinding` trong `app.json`.
+ */
+function bugFindingForUpdate(ctx: AppContext) {
+  const runner = createRunner();
+  const paths = bugFindingPaths(ctx.home);
+  const appPath = resolveAppPath({
+    isPackaged: app.isPackaged,
+    resourcesPath: ctx.resourcesPath,
+    env: process.env,
+  });
+  const runningAppPaths = () => runningBugFindingApps(runner);
+  const setReopen = (on: boolean) =>
+    ctx.store
+      .update((state) => {
+        const { reopenBugFinding: _old, ...rest } = state;
+        return on ? { ...rest, reopenBugFinding: true } : rest;
+      })
+      .then(() => undefined);
+  const drain: BugFindingDrain = {
+    runningReviews: async () => bugFindingRunningReviews(paths.heartbeatFile, Date.now()),
+    isRunning: async () => appPath !== null && (await runningAppPaths()).includes(appPath),
+    quit: async () => {
+      ctx.log('info', 'bug-finding-quit-for-update');
+      const out = await runner.run('/usr/bin/osascript', ['-e', `quit app id "${BUG_FINDING_BUNDLE_ID}"`], {
+        timeoutMs: BUG_FINDING_QUIT_MS,
+      });
+      if (out.code !== 0)
+        ctx.log('warn', 'bug-finding-quit-failed', { code: out.code, timedOut: out.timedOut });
+    },
+    setReopen,
+  };
+  const reopen = () =>
+    reopenBugFindingAfterUpdate({
+      pending: () => ctx.store.get().reopenBugFinding === true,
+      clear: () => setReopen(false),
+      launch: (opts) =>
+        launchBugFinding(
+          {
+            embedded: appPath,
+            exists: existsSync,
+            runningAppPaths,
+            run: (argv) => runner.run(argv[0] as string, argv.slice(1)),
+          },
+          opts,
+        ),
+    });
+  return { drain, reopen };
+}
+
+/**
  * Updater trong app (kênh `update:*`): probation của bản vừa cài chạy trước, rồi mới kiểm bản mới. Chỉ Main ghi
  * `app.json` (`updateState`, `update.*`); `crew-mac status` đọc `updateState` gửi lên thẻ máy.
  */
@@ -59,6 +115,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdRuntime): void {
   const doctor = () => ctx.ops.call('doctor', { ...DOCTOR_OPTS });
   const sendStatus = () => ctx.ops.call('sendStatus');
   const exit = (code: number) => app.exit(code);
+  const bugFinding = bugFindingForUpdate(ctx);
 
   const updater = createUpdater({
     autoUpdater: () => {
@@ -77,6 +134,7 @@ export function registerUpdate(ctx: AppContext, sshd: SshdRuntime): void {
     markers,
     doctor,
     sendStatus,
+    bugFinding: bugFinding.drain,
     askDrain: async (runs) => {
       const result = await dialog.showMessageBox({
         type: 'question',
@@ -132,6 +190,19 @@ export function registerUpdate(ctx: AppContext, sshd: SshdRuntime): void {
     return undefined;
   });
   app.on('will-quit', () => updater.stop());
+
+  // Bản trước đã thoát Bug Finding (đang mở) để cài bản này: mở lại chạy nền, xóa cờ.
+  void bugFinding
+    .reopen()
+    .then((result) => {
+      if (result !== 'none')
+        ctx.log(result === 'reopened' ? 'info' : 'warn', 'bug-finding-reopen', { result });
+    })
+    .catch((error) =>
+      ctx.log('error', 'bug-finding-reopen-failed', {
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
 
   void (async () => {
     const outcome = await runProbation({

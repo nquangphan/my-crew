@@ -268,6 +268,49 @@ describe('createUpdater', () => {
     expect(h.order.filter((x) => x === 'askDrain').length).toBe(asked);
   });
 
+  it('Bug Finding đang review: không cài, không hỏi, màn hình Cập nhật nêu lý do Bug Finding', async () => {
+    const h = harness({ drainAnswer: 'now' });
+    h.deps.bugFinding = {
+      runningReviews: async () => 1,
+      isRunning: async () => true,
+      quit: async () => {
+        h.order.push('bf-quit');
+      },
+      setReopen: async () => undefined,
+    };
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.fake.calls).toEqual([]);
+    expect(h.order).not.toContain('askDrain');
+    expect(h.order).not.toContain('bf-quit');
+    expect(h.state().updateState).toBe('waiting-idle');
+    expect(h.updater.view().reason).toBe(
+      'Bug Finding còn review sau 30 phút chờ, chưa cài. Bấm "Cài khi rảnh" để thử lại.',
+    );
+  });
+
+  it('Bug Finding rảnh mà đang mở: thoát nó trước snapshot rồi mới cài', async () => {
+    const h = harness({});
+    let running = true;
+    h.deps.bugFinding = {
+      runningReviews: async () => 0,
+      isRunning: async () => running,
+      quit: async () => {
+        h.order.push('bf-quit');
+        running = false;
+      },
+      setReopen: async (on) => {
+        h.order.push(`bf-reopen:${on}`);
+      },
+    };
+    h.fake.emit('update-downloaded', info('0.1.1'));
+    await h.updater.idle();
+    expect(h.fake.calls).toEqual(['quitAndInstall:false:true']);
+    const tail = h.order.slice(h.order.indexOf('pause'));
+    expect(tail.slice(0, 4)).toEqual(['pause', 'bf-reopen:true', 'bf-quit', 'snapshot']);
+    expect(h.updater.view().reason).toBeNull();
+  });
+
   it('"Cài khi rảnh" chạy drain lại cho bản đã tải', async () => {
     const h = harness({ runs: 2, drainAnswer: 'later' });
     h.fake.emit('update-downloaded', info('0.1.1'));

@@ -3,7 +3,13 @@ import type { UpdateView } from '../../shared/ipc-contract.js';
 import type { AppContext } from '../app-context.js';
 import type { AppStateStore, UpdateState } from '../app-state.js';
 import type { SshdRuntime } from '../sshd/register.js';
-import { type DrainAnswer, drainForUpdate } from './drain.js';
+import {
+  BUG_FINDING_QUIT_REASON,
+  BUG_FINDING_WAIT_REASON,
+  type BugFindingDrain,
+  type DrainAnswer,
+  drainForUpdate,
+} from './drain.js';
 import { SEND_STATUS_BASELINE_ID } from './probation.js';
 import type { ProbationMarkers, RollbackMode } from './rollback.js';
 import { judgeCandidate } from './versions.js';
@@ -48,6 +54,8 @@ export interface UpdaterDeps {
   doctor(): Promise<CheckResult[]>;
   sendStatus(): Promise<void>;
   askDrain(activeRuns: number | null): Promise<DrainAnswer>;
+  /** App Bug Finding nhúng: chờ hết lượt review và thoát nó trước khi cài. Không có thì bỏ qua. */
+  bugFinding?: BugFindingDrain;
   /** Có run đang chạy: hỏi owner trước khi quay về bản trước. */
   confirmRollback(activeRuns: number | null): Promise<boolean>;
   snapshotPrevious(): Promise<void>;
@@ -89,6 +97,10 @@ function isUnpublished(error: unknown): boolean {
     String(message ?? ''),
   );
 }
+
+/** Hết 30 phút chờ mà Bug Finding vẫn review (hay không thoát): không cài, owner bấm lại khi rảnh. */
+export const BUG_FINDING_DEFERRED_REASON =
+  'Bug Finding còn review sau 30 phút chờ, chưa cài. Bấm "Cài khi rảnh" để thử lại.';
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 /** Đang có việc của chính updater: không kiểm chồng. */
@@ -179,8 +191,20 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         ask: (n) => deps.askDrain(n),
         sleep: (ms) => deps.sleep(ms),
         now: () => deps.now().getTime(),
+        ...(deps.bugFinding ? { bugFinding: deps.bugFinding } : {}),
+        onWait: (wait) => {
+          if (wait) reason = wait;
+          else if (
+            reason === BUG_FINDING_WAIT_REASON ||
+            reason === BUG_FINDING_QUIT_REASON ||
+            reason === BUG_FINDING_DEFERRED_REASON
+          )
+            reason = null;
+        },
       });
       if (answer === 'later') {
+        if (reason === BUG_FINDING_WAIT_REASON || reason === BUG_FINDING_QUIT_REASON)
+          reason = BUG_FINDING_DEFERRED_REASON;
         deferred = version;
         deps.log('info', 'update-deferred', { version });
         return;

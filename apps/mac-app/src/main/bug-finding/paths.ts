@@ -29,6 +29,9 @@ export function bugFindingPaths(home: string): BugFindingPaths {
 
 export const BUG_FINDING_APP_NAME = 'Bug Finding.app';
 
+/** Bundle id của Bug Finding (cả bản nhúng lẫn bản cài riêng cũ). */
+export const BUG_FINDING_BUNDLE_ID = 'local.mrreviewqueue';
+
 /** Bản cài riêng cũ (cài tay trước khi Bug Finding đi kèm 2P Crew). Cùng bundle id với bản nhúng. */
 export const STANDALONE_APP_PATH = join('/Applications', BUG_FINDING_APP_NAME);
 

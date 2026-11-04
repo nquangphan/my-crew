@@ -164,11 +164,25 @@ tải bản mới, Chờ máy rảnh để cài, Đang cài, Đang thử bản m
 1. `baseline` = id các check `fail` của `doctor({ probe: false })` lúc này, cộng id giả `send-status` nếu bản tin máy
    đang không gửi được. Ghi `update.baseline`, trạng thái `waiting-idle`.
 2. `drainForUpdate`: `sshd.pause()` (TERM listener của app; phiên SSH của run đang chạy vẫn sống, run mới bị H1 giữ
-   `queued`), đếm `sshd.activeRuns()` mỗi 10 giây. Hết run → cài. Không bao giờ gửi tín hiệu cho phiên SSH hay
-   `claude`.
-3. Quá 30 phút còn run (hay không đọc được bảng process): `resume()` listener trước (hộp thoại có thể chờ owner rất
-   lâu, máy không được đứng im), rồi hỏi "Cài ngay, run vẫn chạy" / "Để sau" (mặc định "Để sau"). "Để sau" → giữ
-   `waiting-idle`; tải lại đúng bản đó không hỏi lại; owner bấm "Cài khi rảnh" để chạy lại bước chờ.
+   `queued`), đếm `sshd.activeRuns()` mỗi 10 giây. Không bao giờ gửi tín hiệu cho phiên SSH hay `claude`.
+   - Cùng lượt kiểm, đọc lượt review Bug Finding đang chạy: `running` của
+     `~/Library/Application Support/MRReviewQueue/crew/heartbeat.json` (`bugFindingRunningReviews`; heartbeat cũ hơn 60
+     giây hay không có thì 0; flow `mac-bug-finding`). App Bug Finding nhúng trong `2P Crew.app/Contents/Resources`,
+     nên cài là thay luôn binary của nó: `running ≥ 1` (hay không đọc được) → không cài, màn hình Cập nhật hiện lý do
+     "Chờ Bug Finding review xong" (`BUG_FINDING_WAIT_REASON`) và chờ tiếp.
+   - Hết run và `running == 0` → thoát Bug Finding rồi cài. Bản nhúng không chạy (theo `pgrep`, không theo heartbeat;
+     bản cài riêng `/Applications` không bị đụng) thì cài ngay. Đang chạy thì ghi `reopenBugFinding: true` vào
+     `app.json`, gửi `osascript -e 'quit app id "local.mrreviewqueue"'` (không chờ AppleScript trả lời; `osascript`
+     tự hết hạn sau 30 giây) và kiểm mỗi 1 giây, tối đa 30 giây (`BUG_FINDING_QUIT_MS`). Thoát kịp → cài. Không thoát
+     kịp → bỏ cờ, không cài lúc đó, lý do "Chờ Bug Finding thoát", lượt kiểm sau (10 giây) thử lại.
+3. Quá 30 phút: `resume()` listener trước (hộp thoại có thể chờ owner rất lâu, máy không được đứng im).
+   - Bug Finding vẫn đang review (hay không thoát): không hỏi, không cài (cài lúc đó là thay binary Bug Finding giữa
+     lượt review), lý do "Bug Finding còn review sau 30 phút chờ, chưa cài. Bấm "Cài khi rảnh" để thử lại."
+     (`BUG_FINDING_DEFERRED_REASON`), giữ `waiting-idle`.
+   - Còn run Crew (hay không đọc được bảng process) mà Bug Finding rảnh: hỏi "Cài ngay, run vẫn chạy" / "Để sau" (mặc
+     định "Để sau"). "Cài ngay" → kiểm lại Bug Finding, thoát nó như trên rồi mới cài (đang review lại hay không thoát
+     thì không cài). "Để sau" → giữ `waiting-idle`; tải lại đúng bản đó không hỏi lại; owner bấm "Cài khi rảnh" để
+     chạy lại bước chờ.
 4. Cài: `snapshotPrevious` (xóa `previous/` cũ và marker probation cũ, `ditto` app đang chạy vào
    `~/Library/Application Support/2P Crew/previous/2P Crew.app`, ghi `previous/version`); hỏng thì log
    `update-install-aborted`, `resume()`, không cài. Rồi ghi marker `probation/pending` (bản đích), sinh helper
@@ -183,6 +197,11 @@ tải bản mới, Chờ máy rảnh để cài, Đang cài, Đang thử bản m
    màn hình hiện "Cài bản mới lỗi: … Bấm "Cài khi rảnh" để thử lại.", log `update-install-failed`. Không đưa bản vào
    `badVersions` (bản đó chưa từng chạy). Lỗi đến muộn sau khi đã hủy không hủy lần hai. `check()` chạy lại được (không
    còn kẹt `installing`). Marker `pending` giữ lại (xem "Squirrel.Mac và helper quay lui").
+7. Bản mới khởi động (`registerUpdate`, trước probation): `app.json` có `reopenBugFinding: true` → mở lại Bug Finding
+   chạy nền (`launchBugFinding(..., { background: true })`, tức `open -g`; flow `mac-bug-finding`), log
+   `bug-finding-reopen`, rồi xóa cờ dù mở được hay không (bản cài riêng đang chạy, thiếu app nhúng, `open` lỗi), để không
+   thử lại ở mọi lần mở app. Cài hỏng ở bước 4 hay 6 sau khi đã thoát Bug Finding thì cờ còn, lần mở app kế tiếp mở lại
+   nó; trong lúc đó job review tự mở Bug Finding khi cần. Quay lui (helper thay cả bundle) không chờ Bug Finding.
 
 ### Tự kiểm sau cài (`probation.ts`)
 
@@ -289,10 +308,10 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 | `apps/mac-app/scripts/release.mjs` | Trình tự phát hành: kiểm, chạy lệnh, tự kiểm, đăng | `main`, `resolveIdentity`, `verify` |
 | `apps/mac-app/scripts/release-lib.mjs` | Hàm thuần: đối số, tag, cây sạch, chọn danh tính, dựng lệnh, đọc kết quả kiểm | `parseArgs`, `checkTag`, `pickIdentity`, `findDeveloperId`, `buildCommands`, `checkSignature`, `EXIT` |
 | `apps/mac-app/electron-builder.yml` | Mục `publish` (kênh phát hành), tên file phát hành, `extraResources` mang helper quay lui và bundle `crew-docs.cjs` | `publish`, `artifactName`, `extraResources` |
-| `apps/mac-app/src/main/update/register.ts` | Nối updater vào Electron: điều kiện bật, hộp thoại, kênh `update:*`, chạy probation rồi kiểm | `registerUpdate` |
-| `apps/mac-app/src/main/update/updater.ts` | Máy trạng thái kiểm/tải/chờ rảnh/cài, cài hỏng thì mở lại cổng, quay lui tay | `createUpdater`, `CHECK_INTERVAL_MS`, `INSTALL_QUIT_TIMEOUT_MS`, `DISABLED_UNSIGNED` |
+| `apps/mac-app/src/main/update/register.ts` | Nối updater vào Electron: điều kiện bật, hộp thoại, kênh `update:*`, Bug Finding nhúng cho bước chờ rảnh (heartbeat, `pgrep`, `osascript`, cờ `reopenBugFinding`) và mở lại sau cài, chạy probation rồi kiểm | `registerUpdate` |
+| `apps/mac-app/src/main/update/updater.ts` | Máy trạng thái kiểm/tải/chờ rảnh/cài, lý do chờ Bug Finding trên màn hình, cài hỏng thì mở lại cổng, quay lui tay | `createUpdater`, `CHECK_INTERVAL_MS`, `INSTALL_QUIT_TIMEOUT_MS`, `DISABLED_UNSIGNED`, `BUG_FINDING_DEFERRED_REASON` |
 | `apps/mac-app/src/main/update/versions.ts` | Lọc bản trên feed: tăng, `x.y.z`, không `badVersions`, có zip arm64 | `compareSemver`, `judgeCandidate`, `shouldOffer` |
-| `apps/mac-app/src/main/update/drain.ts` | Chờ máy rảnh trước khi cài | `drainForUpdate`, `DRAIN_POLL_MS`, `DRAIN_MAX_MS` |
+| `apps/mac-app/src/main/update/drain.ts` | Chờ máy rảnh trước khi cài (run Crew và lượt review Bug Finding), thoát Bug Finding, mở lại sau cài | `drainForUpdate`, `BugFindingDrain`, `reopenBugFindingAfterUpdate`, `DRAIN_POLL_MS`, `DRAIN_MAX_MS`, `BUG_FINDING_QUIT_MS`, `BUG_FINDING_WAIT_REASON` |
 | `apps/mac-app/src/main/update/probation.ts` | Tự kiểm sau cài (hạn riêng từng bước), đọc marker quay lui, cài `crew-mac` mang theo khi rảnh | `runProbation`, `installCrewMacWhenIdle`, `PROBATION_MAX_MS` |
 | `apps/mac-app/src/main/update/rollback.ts` | `previous/`, marker probation, sinh helper, nhận Developer ID | `snapshotPrevious`, `spawnRollbackHelper`, `fileMarkers`, `developerIdFromCodesign` |
 | `apps/mac-app/src/main/update/rollback-helper.sh` | Helper shell tách rời: quay lui ngay hoặc watchdog (chờ app cũ thoát, chờ bản mới mở, hạn thử) | — |
@@ -305,7 +324,8 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 - Ghi: `apps/mac-app/out/` (gitignored), `~/Library/Caches/2p-crew-release/` (bản build, ghi đè mỗi lần), thư mục tạm `crew-mac-release-*` trong `$TMPDIR`
   (xóa khi xong).
 - Ngoài máy: Apple notary service (bản phát hành), GitHub Releases (chỉ khi `--publish`).
-- Updater đọc/ghi: `app.json` (`updateState`, `update.from/to/installedAt/badVersions/baseline`, chỉ Main ghi),
+- Updater đọc/ghi: `app.json` (`updateState`, `update.from/to/installedAt/badVersions/baseline`, `reopenBugFinding`,
+  chỉ Main ghi), đọc `~/Library/Application Support/MRReviewQueue/crew/heartbeat.json` (lượt review Bug Finding),
   `~/Library/Application Support/2P Crew/previous/` (một bản app + `version`), `…/probation/` (`<bản>.ok`,
   `<bản>.failed`, `<bản>.started`, `<bản>.cancelled`, `pending`, `rolled-back`), `app.log`. Đọc GitHub Releases `nquangphan/crew-mac-releases` (chỉ khi bật).
   Thay `/Applications/2P Crew.app` (Squirrel khi cài, helper khi quay lui).
@@ -316,6 +336,8 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 - `mac-setup`: bản `crew-mac` được build và mang theo trong `Contents/Resources/crew-mac`; `installCrewMacFrom` cài
   nó sau khi bản mới qua probation; `readAppState` đọc `updateState` cho bản tin máy.
 - `mac-app-sshd`: `pause`/`resume`/`stopForQuit`/`activeRuns`/`status` của supervisor (drain, probation), quit guard.
+- `mac-bug-finding`: heartbeat (`bugFindingRunningReviews`), danh sách tiến trình (`runningBugFindingApps`), mở app
+  (`launchBugFinding`), bundle id `BUG_FINDING_BUNDLE_ID` cho bước chờ rảnh và mở lại sau cài.
 
 ## Tests
 
@@ -327,7 +349,13 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
   notarytool/`gh` ở bản thử, `gh` chỉ khi `--publish`).
 - `apps/mac-app/test/update-versions.test.ts`: so semver theo số; chỉ bản tăng; `badVersions`; zip arm64; prerelease.
 - `apps/mac-app/test/update-drain.test.ts` (đồng hồ giả): 0 run cài ngay; chờ tới 20 phút, kiểm mỗi 10 giây, không
-  hỏi; quá 30 phút mở lại listener rồi hỏi, "Để sau"/"Cài ngay"; bảng process lỗi không cài im lặng.
+  hỏi; quá 30 phút mở lại listener rồi hỏi, "Để sau"/"Cài ngay"; bảng process lỗi không cài im lặng. Bug Finding giả:
+  `running 1` thì không cài, báo "Chờ Bug Finding review xong", không thoát app, không hỏi; `running` 1 → 0 sau 5 phút
+  thì thoát Bug Finding rồi cài, đặt cờ mở lại; `running 0` gửi quit một lần, chờ app thoát không quá 30 giây; app
+  không chạy thì không quit, không cờ; không thoát trong 30 giây thì bỏ cờ, thử lại, hết hạn không cài; "Cài ngay" khi
+  còn run Crew vẫn thoát Bug Finding trước; đọc heartbeat lỗi coi như đang review. `reopenBugFindingAfterUpdate`: cờ
+  bật thì mở nền rồi xóa cờ; không cờ không mở; mở lỗi vẫn xóa cờ. `bugFindingRunningReviews` (file thật trong thư mục
+  tạm): heartbeat mới `running` 1/0; thiếu hay cũ quá 60 giây thì 0.
 - `apps/mac-app/test/update-rollback.test.ts`: bundle từ exe; Developer ID vs Apple Development; `snapshotPrevious`
   giữ 1 bản (ditto thật trong thư mục tạm), ditto hỏng không có bản trước; spawn tách rời; marker (gồm `.started`,
   `.cancelled`, `pending`); chạy thật `rollback-helper.sh` trong thư mục tạm (`now`; watchdog có `.ok`/`.failed`/hết
@@ -340,7 +368,8 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
   treo quá hạn thì quay lui; `pending` = bản đang chạy thì vẫn thử, bản khác thì xóa; cài `crew-mac` khi rảnh và thử lại khi bị từ chối vì run.
 - `apps/mac-app/test/update-updater.test.ts` (autoUpdater giả): cấu hình bốn cờ; tắt khi không ký Developer ID;
   kiểm lúc mở/mỗi giờ/khi bấm; bản hợp lệ tải; `badVersions`; không arm64; trình tự cài; baseline `send-status`;
-  "Để sau" và "Cài khi rảnh"; snapshot hỏng; "Cài ngay" khi còn run gọi `allowQuitForUpdate` trước `stopForQuit`;
+  "Để sau" và "Cài khi rảnh"; Bug Finding đang review thì không cài, không hỏi, lý do `BUG_FINDING_DEFERRED_REASON`;
+  Bug Finding rảnh mà đang mở thì đặt cờ và thoát nó trước snapshot; snapshot hỏng; "Cài ngay" khi còn run gọi `allowQuitForUpdate` trước `stopForQuit`;
   Squirrel `error`/`quitAndInstall` ném/quá 5 phút: `.cancelled`, `revoke()`, `waiting-idle`, không `badVersions`,
   kiểm và cài lại được; không kiểm khi đang cài; lỗi kiểm và repo chưa có release; quay lui tay
   (hỏi khi có run, hủy, chưa có bản trước); feed giả qua HTTP local (`latest-mac.yml` đọc bằng `parseUpdateInfo` của
