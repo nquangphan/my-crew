@@ -43,39 +43,55 @@ gõ `--publish`.
   profile crew-notary …") rồi dừng mã 4, trước khi build.
 - `--dev-sign`: Keychain có đúng một `Apple Development` mà chứng chỉ có `OU=J7Y2DL6HZV` (script đọc phần công khai
   của chứng chỉ bằng `security find-certificate -p`).
+- Mọi chế độ: `swift --version` chạy được và là Swift 6 trở lên (Command Line Tools). Không có thì dừng mã 9 với câu
+  "Cần Swift 6 (Command Line Tools) để build Bug Finding", trước khi build.
+- Mọi chế độ: `apps/mac-app/bug-finding.pin.json` hợp lệ (`repo` không rỗng, `commit` đủ 40 hex, có `version`), và
+  commit ghim lấy được từ `repo` (hay từ `CREW_BUG_FINDING_REPO` khi commit chưa có trên remote; flow
+  `mac-bug-finding`, mục "Bản nhúng và file ghim").
 
 ### Các bước
 
 1. Kiểm cây, tag (bản phát hành), danh tính (`security find-identity -v -p codesigning`, chỉ giữ tên) và notary
    profile (`xcrun notarytool history --keychain-profile crew-notary`, không in đầu ra).
-2. `pnpm --filter @crew/docs-kit build` (bundle `crew-docs.cjs` mang theo trong `Contents/Resources/crew-docs.cjs`,
+2. Build Bug Finding (`buildBugFinding` trong `release.mjs`): thư mục tạm `crew-bug-finding-*` trong `$TMPDIR`,
+   `git clone --no-checkout <repo> <tạm>/bf`, `git -C <tạm>/bf checkout --detach <commit>`, kiểm `rev-parse HEAD`
+   đúng commit ghim, rồi chạy lệnh của `bugFindingBuildCommands({checkout, outDir, identity})`:
+   `bash <tạm>/bf/apps/mr-review-queue/scripts/build-app.sh --out <tạm>/out --sign "<danh tính>" --hardened-runtime`
+   (env thêm `CSC_NAME`). Bản phát hành ký bằng chính Developer ID của 2P Crew, `--dev-sign` bằng Apple Development;
+   `--dry-run` không có danh tính nên truyền `--sign -` (ký ad-hoc, không hardened runtime), không để `build-app.sh` tự
+   tìm hay tạo chứng chỉ trong Keychain. `CFBundleShortVersionString` của app build ra phải bằng `version` của file
+   ghim (sai thì mã 7). `ditto` app vào `apps/mac-app/build/bug-finding/Bug Finding.app` (xóa bản cũ trước,
+   gitignored), xóa thư mục tạm dù lỗi hay không. Clone, checkout, build lỗi thì mã 5.
+3. `pnpm --filter @crew/docs-kit build` (bundle `crew-docs.cjs` mang theo trong `Contents/Resources/crew-docs.cjs`,
    app cài ra `~/.crew/bin/crew-docs.cjs` mỗi lần mở, xem flow `mac-app-paperclip`), `pnpm --filter @crew/mac build`
    (bản `crew-mac` mang theo), `pnpm --filter @crew/mac-app build`. Script `package` của `apps/mac-app` cũng build
    `@crew/docs-kit` trước `electron-builder`.
-3. `electron-builder --mac zip --arm64 --publish never` trong `apps/mac-app` với env `CSC_NAME=<tên bỏ tiền tố loại>`
+4. `electron-builder --mac zip --arm64 --publish never` trong `apps/mac-app` với env `CSC_NAME=<tên bỏ tiền tố loại>`
    và `CSC_IDENTITY_AUTO_DISCOVERY=false`; `--dev-sign` thêm `--config.mac.type=development`. Ra
    `~/Library/Caches/2p-crew-release/mac-arm64/2P Crew.app` có `Contents/Resources/app-update.yml` (từ mục
    `publish`; electron-builder chỉ ghi file này khi target có zip/dmg, nên bước này dùng target zip thay vì dir, zip
-   tạm của nó bị bước 5 ghi đè). Thư mục ra đặt bằng `--config.directories.output` và cố ý nằm ngoài
+   tạm của nó bị bước 6 ghi đè). Thư mục ra đặt bằng `--config.directories.output` và cố ý nằm ngoài
    `~/Documents`: repo trên Mac mini ở `~/Documents` do iCloud (File Provider) quản, nó gắn `com.apple.FinderInfo`
    vào mọi bundle mới tạo và codesign báo "resource fork, Finder information, or similar detritus not allowed".
-4. Bản phát hành: `ditto -c -k --keepParent` app → `xcrun notarytool submit … --keychain-profile crew-notary --wait
+5. Bản phát hành: `ditto -c -k --keepParent` app → `xcrun notarytool submit … --keychain-profile crew-notary --wait
    --output-format json` (status phải `Accepted`) → `xcrun stapler staple` app.
-5. `electron-builder --mac zip dmg --arm64 --prepackaged <app> --publish never`: đóng gói từ bản đã ký (đã staple),
+6. `electron-builder --mac zip dmg --arm64 --prepackaged <app> --publish never`: đóng gói từ bản đã ký (đã staple),
    không ký lại. Ra `2P-Crew-<version>-arm64-mac.zip`, `2P-Crew-<version>-arm64.dmg`, hai `.blockmap`,
    `latest-mac.yml` trong `~/Library/Caches/2p-crew-release/`.
-6. Bản phát hành: notarize + staple dmg như bước 4.
-7. Tự kiểm:
+7. Bản phát hành: notarize + staple dmg như bước 5.
+8. Tự kiểm:
    - `codesign --verify --deep --strict` app, và app giải nén từ zip (Squirrel.Mac cài từ zip).
    - `codesign -dv`: `Identifier` = bundle id, `Authority` đúng loại, `TeamIdentifier` = `J7Y2DL6HZV`, hardened runtime.
    - `Info.plist`: bundle id, `CFBundleName` 2P Crew, `CFBundleShortVersionString` = version, đủ 4 lời xin quyền.
    - `app-update.yml` trỏ `nquangphan/crew-mac-releases`; `latest-mac.yml` đúng version và tên zip; đủ file.
    - Có `Contents/Resources/crew-docs.cjs` (bundle crew-docs mang theo).
+   - Có `Contents/Resources/Bug Finding.app` (Bug Finding nhúng, in kèm version). Chữ ký của nó nằm trong
+     `codesign --verify --deep --strict` của app 2P Crew ở trên.
    - Bản phát hành thêm: `spctl -a -vv` (accepted, `Notarized Developer ID`), `stapler validate` app và dmg,
      designated requirement có `subject.OU = J7Y2DL6HZV`.
-8. Có `--publish`: `gh release create v<version> --repo nquangphan/crew-mac-releases` kèm zip, dmg, hai blockmap,
+9. Có `--publish`: `gh release create v<version> --repo nquangphan/crew-mac-releases` kèm zip, dmg, hai blockmap,
    `latest-mac.yml`.
-9. In đường dẫn, sha256 của zip/dmg/`latest-mac.yml`, tên danh tính và Team ID.
+10. In đường dẫn, sha256 của zip/dmg/`latest-mac.yml`, tên danh tính và Team ID.
 
 ### Mã thoát
 
@@ -90,6 +106,7 @@ gõ `--publish`.
 | 6 | notarize hoặc staple lỗi |
 | 7 | tự kiểm lỗi |
 | 8 | đăng GitHub lỗi |
+| 9 | thiếu Swift 6 (Command Line Tools) để build Bug Finding |
 
 ### Việc owner làm một lần
 
@@ -305,9 +322,9 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/mac-app/scripts/release.mjs` | Trình tự phát hành: kiểm, chạy lệnh, tự kiểm, đăng | `main`, `resolveIdentity`, `verify` |
-| `apps/mac-app/scripts/release-lib.mjs` | Hàm thuần: đối số, tag, cây sạch, chọn danh tính, dựng lệnh, đọc kết quả kiểm | `parseArgs`, `checkTag`, `pickIdentity`, `findDeveloperId`, `buildCommands`, `checkSignature`, `EXIT` |
-| `apps/mac-app/electron-builder.yml` | Mục `publish` (kênh phát hành), tên file phát hành, `extraResources` mang helper quay lui và bundle `crew-docs.cjs` | `publish`, `artifactName`, `extraResources` |
+| `apps/mac-app/scripts/release.mjs` | Trình tự phát hành: kiểm, build Bug Finding theo file ghim, chạy lệnh, tự kiểm, đăng | `main`, `resolveIdentity`, `buildBugFinding`, `verify` |
+| `apps/mac-app/scripts/release-lib.mjs` | Hàm thuần: đối số, tag, cây sạch, chọn danh tính, dựng lệnh, đọc kết quả kiểm, đọc file ghim Bug Finding | `parseArgs`, `checkTag`, `pickIdentity`, `findDeveloperId`, `buildCommands`, `checkSignature`, `readBugFindingPin`, `bugFindingBuildCommands`, `hasSwift6`, `EXIT` |
+| `apps/mac-app/electron-builder.yml` | Mục `publish` (kênh phát hành), tên file phát hành, `extraResources` mang helper quay lui, bundle `crew-docs.cjs` và `Bug Finding.app` | `publish`, `artifactName`, `extraResources` |
 | `apps/mac-app/src/main/update/register.ts` | Nối updater vào Electron: điều kiện bật, hộp thoại, kênh `update:*`, Bug Finding nhúng cho bước chờ rảnh (heartbeat, `pgrep`, `osascript`, cờ `reopenBugFinding`) và mở lại sau cài, chạy probation rồi kiểm | `registerUpdate` |
 | `apps/mac-app/src/main/update/updater.ts` | Máy trạng thái kiểm/tải/chờ rảnh/cài, lý do chờ Bug Finding trên màn hình, cài hỏng thì mở lại cổng, quay lui tay | `createUpdater`, `CHECK_INTERVAL_MS`, `INSTALL_QUIT_TIMEOUT_MS`, `DISABLED_UNSIGNED`, `BUG_FINDING_DEFERRED_REASON` |
 | `apps/mac-app/src/main/update/versions.ts` | Lọc bản trên feed: tăng, `x.y.z`, không `badVersions`, có zip arm64 | `compareSemver`, `judgeCandidate`, `shouldOffer` |
@@ -319,10 +336,12 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
 
 ## Dữ liệu
 
-- Đọc: `apps/mac-app/package.json` (`version`), Keychain (tên danh tính, phần công khai của chứng chỉ, notary
+- Đọc: `apps/mac-app/package.json` (`version`), `apps/mac-app/bug-finding.pin.json` (file ghim Bug Finding, flow
+  `mac-bug-finding`), repo `bug-finding` (clone đúng commit ghim), Keychain (tên danh tính, phần công khai của chứng chỉ, notary
   profile qua `notarytool`).
-- Ghi: `apps/mac-app/out/` (gitignored), `~/Library/Caches/2p-crew-release/` (bản build, ghi đè mỗi lần), thư mục tạm `crew-mac-release-*` trong `$TMPDIR`
-  (xóa khi xong).
+- Ghi: `apps/mac-app/out/` (gitignored), `apps/mac-app/build/bug-finding/` (gitignored, Bug Finding đã build, ghi
+  đè mỗi lần), `~/Library/Caches/2p-crew-release/` (bản build, ghi đè mỗi lần), thư mục tạm `crew-mac-release-*` và
+  `crew-bug-finding-*` trong `$TMPDIR` (xóa khi xong).
 - Ngoài máy: Apple notary service (bản phát hành), GitHub Releases (chỉ khi `--publish`).
 - Updater đọc/ghi: `app.json` (`updateState`, `update.from/to/installedAt/badVersions/baseline`, `reopenBugFinding`,
   chỉ Main ghi), đọc `~/Library/Application Support/MRReviewQueue/crew/heartbeat.json` (lượt review Bug Finding),
@@ -346,7 +365,9 @@ Releases và cài tay. Sửa lỗi lâu dài bằng bản mới số cao hơn.
   sạch; đọc danh tính không giữ hash; chọn Developer ID/Apple Development theo loại, team, `--identity`; `CSC_NAME`
   bỏ tiền tố; notary profile có/thiếu/lỗi và câu báo thiếu; JSON notarytool; spctl, designated requirement,
   `codesign -dv`; Info.plist, `app-update.yml`, `latest-mac.yml`; che hash; thư mục ra ngoài `~/Documents`; danh sách lệnh của ba chế độ (bắt đầu bằng `build-docs`, không
-  notarytool/`gh` ở bản thử, `gh` chỉ khi `--publish`).
+  notarytool/`gh` ở bản thử, `gh` chỉ khi `--publish`); `readBugFindingPin` đọc file ghim hợp lệ, từ chối commit không
+  đủ 40 hex hay repo rỗng; `bugFindingBuildCommands` gọi `build-app.sh --out --sign <danh tính> --hardened-runtime`,
+  không danh tính thì `--sign -`; `hasSwift6` và mã thoát 9.
 - `apps/mac-app/test/update-versions.test.ts`: so semver theo số; chỉ bản tăng; `badVersions`; zip arm64; prerelease.
 - `apps/mac-app/test/update-drain.test.ts` (đồng hồ giả): 0 run cài ngay; chờ tới 20 phút, kiểm mỗi 10 giây, không
   hỏi; quá 30 phút mở lại listener rồi hỏi, "Để sau"/"Cài ngay"; bảng process lỗi không cài im lặng. Bug Finding giả:

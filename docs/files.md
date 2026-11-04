@@ -168,6 +168,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/crew-mac/test/workflows-registry.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/wrapper-stub.test.ts` | [mac-workflows](flows/mac-workflows.md) (test) |
 | `apps/crew-mac/test/zshenv.test.ts` | [mac-setup](flows/mac-setup.md) (test) |
+| `apps/mac-app/bug-finding.pin.json` | [mac-bug-finding](flows/mac-bug-finding.md) (file) |
 | `apps/mac-app/electron-builder.yml` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/scripts/release-lib.mjs` | [mac-app-update](flows/mac-app-update.md) (file) |
 | `apps/mac-app/scripts/release-lib.test.mjs` | [mac-app-update](flows/mac-app-update.md) (test) |

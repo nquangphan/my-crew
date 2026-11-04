@@ -17,3 +17,5 @@ coverage/
 .codex/hooks/.logs/
 .codex/hooks/.agentkit-runtime.json
 .agents/memory/
+# Bug Finding build lúc phát hành 2P Crew (scripts/release.mjs), không commit.
+apps/mac-app/build/bug-finding/

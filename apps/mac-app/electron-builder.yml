@@ -21,6 +21,9 @@ extraResources:
   # Helper quay lui của updater (chạy bằng /bin/sh, tách rời khỏi app).
   - from: src/main/update/rollback-helper.sh
     to: rollback-helper.sh
+  # Bug Finding (Swift) build từ commit ghim trong bug-finding.pin.json; scripts/release.mjs build và đặt vào đây.
+  - from: build/bug-finding/Bug Finding.app
+    to: Bug Finding.app
 files:
   - out/**
   - package.json

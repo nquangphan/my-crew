@@ -12,6 +12,25 @@ Mọi thao tác review (dừng, resume, hủy, phản hồi, đăng nhập GitLa
 Thiết kế: `plans/261104-tps-643-bug-finding-in-crew/spec.md` mục 6, 7 và 8, mockup 1
 (`plans/261104-tps-643-bug-finding-in-crew/mockups/01-crew-app-bug-finding.html`).
 
+## Bản nhúng và file ghim
+
+`apps/mac-app/bug-finding.pin.json` ghim đúng bản Bug Finding đi kèm mỗi bản 2P Crew:
+
+```json
+{ "repo": "git@github.com:nquangphan/bug-finding.git", "commit": "<40 hex>", "version": "<CFBundleShortVersionString>" }
+```
+
+- `commit` là SHA đủ 40 hex (không ghim nhánh hay tag), `version` là `CFBundleShortVersionString` của bản build từ commit
+  đó. `readBugFindingPin` (`scripts/release-lib.mjs`) ném lỗi khi `repo` rỗng hay `commit` sai dạng.
+- Hiện ghim `853aa5cf47ac587dbbbb33f1a4860d61e297806c` (version `0.1.0`), đầu nhánh `feat/crew-bridge` của repo
+  `bug-finding` (commit ký hardened runtime cho bản nhúng), **chưa merge vào `main` và chưa có trên GitHub**. Sau khi
+  owner merge nhánh đó (plan 261104 Phase D, bước 1) thì đổi `commit` sang SHA trên `origin/main` chứa nó; trong lúc
+  chờ, chạy `release.mjs` với `CREW_BUG_FINDING_REPO=<đường dẫn repo bug-finding trên máy>`.
+- `scripts/release.mjs` build Bug Finding từ commit ghim rồi electron-builder chép `build/bug-finding/Bug Finding.app`
+  (gitignored) vào `Contents/Resources/Bug Finding.app` (mục `extraResources` của `electron-builder.yml`). Các bước,
+  ký và mã thoát ở flow `mac-app-update`, mục "Phát hành".
+- Đổi bản Bug Finding đi kèm: sửa `commit` và `version` trong file ghim rồi phát hành 2P Crew bản mới.
+
 ## Điểm vào
 
 - `apps/mac-app/src/main/index.ts` → `registerBugFinding(ctx)` (`src/main/bug-finding/register.ts`), dòng cuối sau
@@ -181,6 +200,7 @@ Bug Finding ghi `crew/responses/<requestId>.json` (`CrewReviewResponse`, schema 
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
+| `apps/mac-app/bug-finding.pin.json` | Ghim repo, commit (40 hex) và version của Bug Finding nhúng khi phát hành | `repo`, `commit`, `version` |
 | `apps/mac-app/src/main/bug-finding/paths.ts` | Đường dẫn cầu nối, app nhúng, bản cài riêng, chọn app theo bản đóng gói/dev | `bugFindingPaths`, `embeddedAppPath`, `resolveAppPath`, `STANDALONE_APP_PATH`, `BUG_FINDING_BUNDLE_ID` |
 | `apps/mac-app/src/main/bug-finding/state.ts` | Đọc heartbeat, bản cài riêng, yêu cầu/phản hồi thành trạng thái màn hình | `readBugFindingState`, `bugFindingRunningReviews`, `BugFindingView`, `BugFindingRequestRow`, `HEARTBEAT_STALE_SEC` |
 | `apps/mac-app/src/main/bug-finding/launch.ts` | Mở app (chặn khi bản khác đang chạy), dò tiến trình, gỡ bản cài riêng | `launchBugFinding`, `runningBugFindingApps`, `parseRunningAppPaths`, `trashStandalone` |
