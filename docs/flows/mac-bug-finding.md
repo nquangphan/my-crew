@@ -225,7 +225,9 @@ Bug Finding ghi `crew/responses/<requestId>.json` (`CrewReviewResponse`, schema 
 - `mac-app`: khung app, hợp đồng IPC, thanh bên.
 - `mac-app-update`: đóng gói app nhúng khi phát hành, updater (chờ Bug Finding hết lượt review, thoát rồi mới cài,
   mở lại sau khi bản mới khởi động).
-- `mac-app-paperclip`: project và việc máy (job review của Bug Finding).
+- `mac-app-paperclip`: project và việc máy (job review của Bug Finding); template `AGENTS.md` theo vai của project
+  app tạo (chép từ fork, gồm luồng ticket tổng `code-bf`: reviewer cầu nối nhận kết quả Bug Finding, Trợ Lý lập lô
+  sửa finding, integrator mở pull request trước Bug Finding).
 
 ## Tests
 
