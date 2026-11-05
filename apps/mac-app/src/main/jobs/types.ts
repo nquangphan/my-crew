@@ -118,7 +118,7 @@ export interface BugFindingReviewPayload {
   projectId: string;
   projectKey: string;
   repoPath: string;
-  provider: 'github';
+  provider: 'github' | 'gitlab';
   prNumber: number;
   prUrl: string;
   headSha: string;
