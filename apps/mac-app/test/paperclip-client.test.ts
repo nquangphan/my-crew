@@ -825,4 +825,26 @@ describe('máy khác của project', () => {
     ).toBeNull();
     for (const r of server.requests) expect(r.authorization).toBe(`Bearer ${KEY}`);
   });
+
+  it('machineRepoPath: lấy repoPath của đúng máy; không có dòng máy, repoPath rỗng hay 404 thì null', async () => {
+    let reply: { status: number; body: unknown } = {
+      status: 200,
+      body: {
+        repo: null,
+        machines: [
+          { machineId: 'm-other', repoPath: '/o/repo' },
+          { machineId: 'M-1', repoPath: '/Volumes/P/rest', status: 'ready' },
+        ],
+      },
+    };
+    const { server, client } = await setup(() => reply);
+    expect(await client.machineRepoPath(C, P, 'm-1')).toBe('/Volumes/P/rest');
+    expect(server.requests[0]).toMatchObject({ method: 'GET', path: base });
+    expect(server.requests[0]?.authorization).toBe(`Bearer ${KEY}`);
+    expect(await client.machineRepoPath(C, P, 'm-none')).toBeNull();
+    reply = { status: 200, body: { machines: [{ machineId: 'm-1', repoPath: null }] } };
+    expect(await client.machineRepoPath(C, P, 'm-1')).toBeNull();
+    reply = { status: 404, body: { error: 'không có' } };
+    expect(await client.machineRepoPath(C, P, 'm-1')).toBeNull();
+  });
 });

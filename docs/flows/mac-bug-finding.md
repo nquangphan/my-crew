@@ -123,11 +123,22 @@ Một chiều Crew → Bug Finding (spec mục 7). `src/main/bug-finding/sync-pr
 
 1. Nguồn: `projects:list` của mac-app (`createProjectsIpc(...).list()` với `projectDeps(ctx)`, flow
    `mac-app-paperclip`): project REST Paperclip của company đang chọn ghép trạng thái Mac.
-2. `createRepoResolver(git)` tìm repo trên máy của từng dòng: `docsRepo` → `progress.folder` (thư mục gốc owner chọn
-   lúc thêm project) → `git -C <checkout> rev-parse --path-format=absolute --git-common-dir` của từng checkout agent,
-   bỏ đuôi `.git`. Không có nguồn nào thì project không vào danh sách. Checkout mà git báo rõ "not a git repository"
-   (mã 128) thì bỏ qua; lỗi khác (quá hạn 10 giây, thư mục chưa mount, git không chạy được) mà không checkout nào dò
-   được thì ném `RepoUnknownError`.
+2. `createRepoResolver(git, lookup)` tìm repo trên máy của từng dòng: `docsRepo` → `progress.folder` (thư mục gốc
+   owner chọn lúc thêm project) → `git -C <checkout> rev-parse --path-format=absolute --git-common-dir` của từng
+   checkout agent, bỏ đuôi `.git` → (nguồn mới, chỉ khi ba nguồn trên không cho repo, tức project không có tiến độ
+   trong `app.json`: dựng bằng `crew-mac` trước khi có app, hay server dựng trên máy này qua việc máy `ensure-project`)
+   `lookup` = `createMachineRepoLookup`: `client.machineRepoPath(companyId, projectId, machineId)`, tức `repoPath` server
+   ghi cho CHÍNH máy này trong `project_machines` (`GET /api/crew/companies/:id/projects/:projectId/machines`,
+   `machines[]` lọc theo `machineId` của `jobTargets`; flow `mac-app-paperclip`). `repoPath` đó đi qua cùng phép dò git
+   như checkout (đường dẫn worktree thì về repo chính; không phải repo thì bỏ). Không có nguồn nào thì project không vào
+   danh sách. Checkout mà git báo rõ "not a git repository" (mã 128) thì bỏ qua; lỗi khác (quá hạn 10 giây, thư mục
+   chưa mount, git không chạy được), hay `lookup` ném (mất mạng, chưa đăng nhập, 5xx) mà không nguồn nào có repo thì
+   ném `RepoUnknownError`.
+   Lý do chọn `project_machines` thay vì hai hướng kia: `repoPath` là chính kết quả `ensure-project` của máy này mà
+   server đã lưu theo (project, máy), nên chắc đúng repo của chính project đó và sống qua khởi động lại app (app không
+   lưu kết quả việc máy); quét `~/crew-agents/<key>/<vai>` phải đoán `<key>` từ tên project (REST không có `key`, `urlKey`
+   không chắc trùng `projectKey`) và có thể gắn nhầm repo. Nguồn này không đụng `status-repos.json` (đăng ký snapshot
+   docs ở máy thứ hai làm docs nhảy).
 3. `buildCrewProjectList(rows, resolveRepo, companyId, now, previous)` →
    `{schema: 'crew-projects/1', writtenAt, companyId, projects: [{crewProjectId, key, name, repoPath}]}`. Bỏ dòng
    không có `projectId` (tiến độ thêm dở). `key` = `progress.key`, không thì `<key>` của checkout
@@ -252,7 +263,7 @@ mang `origin`.
 | `apps/mac-app/src/main/bug-finding/paths.ts` | Đường dẫn cầu nối, app nhúng, bản cài riêng, chọn app theo bản đóng gói/dev | `bugFindingPaths`, `embeddedAppPath`, `resolveAppPath`, `STANDALONE_APP_PATH`, `BUG_FINDING_BUNDLE_ID` |
 | `apps/mac-app/src/main/bug-finding/state.ts` | Đọc heartbeat (chặt cho updater), bản cài riêng, bản khác đang chạy, yêu cầu/phản hồi mới nhất (bất đồng bộ) thành trạng thái màn hình | `readBugFindingState`, `bugFindingRunningReviews`, `BugFindingView`, `BugFindingRequestRow`, `HEARTBEAT_STALE_SEC` |
 | `apps/mac-app/src/main/bug-finding/launch.ts` | Kiểm và mở app (chặn khi bản khác đang chạy), dò tiến trình bằng `ps`, hạn lệnh, cổng mở Bug Finding, gỡ bản cài riêng | `checkLaunch`, `launchBugFinding`, `createLaunchDeps`, `createLaunchGate`, `LaunchGate`, `runningBugFindingApps`, `parseRunningAppPaths`, `trashStandalone`, `PROBE_TIMEOUT_MS`, `OPEN_TIMEOUT_MS` |
-| `apps/mac-app/src/main/bug-finding/sync-projects.ts` | Dựng danh sách project Crew có repo trên máy (giữ repo cũ khi dò lỗi tạm thời), ghi atomic `projects.json` khi đổi, tra project của lượt, chạy đồng bộ lần lượt và gộp lần nhờ | `buildCrewProjectList`, `createRepoResolver`, `RepoUnknownError`, `syncProjects`, `syncedProjectKnown`, `savedProjects`, `createSyncRunner`, `jobChangesProjects` |
+| `apps/mac-app/src/main/bug-finding/sync-projects.ts` | Dựng danh sách project Crew có repo trên máy (nguồn repo gồm `repoPath` server ghi cho máy này; giữ repo cũ khi dò lỗi tạm thời), ghi atomic `projects.json` khi đổi, tra project của lượt, chạy đồng bộ lần lượt và gộp lần nhờ | `buildCrewProjectList`, `createRepoResolver`, `createMachineRepoLookup`, `RepoUnknownError`, `syncProjects`, `syncedProjectKnown`, `savedProjects`, `createSyncRunner`, `jobChangesProjects` |
 | `apps/mac-app/src/main/bug-finding/results.ts` | Đọc response của Bug Finding, rút gọn finding, cắt báo cáo, chỉ đọc file trong thư mục dữ liệu, hàng đợi gửi theo origin (lùi riêng từng mục, bỏ sau quá số lần), sổ lượt, chạy theo `fs.watch` + 30 giây, tóm tắt cho màn hình | `relayResponses`, `startResultsRelay`, `summarizeFinding`, `cutReport`, `rememberRequest`, `mergeDelivered`, `readResponsesDir`, `createBridgeFileReader`, `relayView`, `BugFindingResultBody`, `MAX_ATTEMPTS` |
 | `apps/mac-app/src/main/bug-finding/register.ts` | Nối bốn kênh `bugFinding:*` vào Electron, lịch đồng bộ project, việc máy review ở Main (trong cổng mở Bug Finding), relay kết quả về origin đã giao việc, có app nhúng hay không | `registerBugFinding`, `PROJECT_SYNC_INTERVAL_MS` |
 | `apps/mac-app/src/renderer/routes/bug-finding.tsx` | Màn hình Bug Finding | `BugFindingScreen` |
@@ -331,9 +342,18 @@ mang `origin`.
   không gọi `open` và job `bug-finding-review` trả `standalone_running` không để lại file; **Đồng bộ lại** ghi đúng
   `crew/projects.json`; job `bug-finding-review` ghi `requests/<id>.json`, mở app nền, relay `running` rồi `succeeded`
   (kèm finding và báo cáo) lên `POST …/bug-finding/results` với board key.
+<<<<<<< HEAD
   Ba ca theo provider đi hết luồng validate → ghi file → `accepted`: `gitlab` (URL MR tự host) và `github` đều ghi
   `requests/<id>.json` đúng `crew-review-request/1` (`prNumber` là iid MR, không có trường `provider`); provider lạ
   bị từ chối ở validate (`app_error`), thư mục `requests/` rỗng và không gọi `open`.
+=======
+- `apps/mac-app/test/bug-finding-sync-machine-e2e.test.ts` (không jsdom; `registerBugFinding`, `createProjectsIpc` và client
+  Paperclip thật, `app.json` thật, repo `git` thật trong HOME tạm, server Paperclip giả HTTP thật; chỉ giả Electron,
+  `ps`/`open` và Keychain): project REST không có tiến độ mà server ghi `repoPath` cho máy này (`project_machines`) vào
+  `projects.json` rồi `bug-finding-review` của project đó qua `projectKnown` (ghi request, mở nền); project không nguồn
+  nào bị bỏ, lượt review `project_missing`, không mở app; project có tiến độ giữ thứ tự `docsRepo` → `progress.folder` →
+  checkout, không hỏi server, repo mồi của server không chen vào, không tạo `status-repos.json`.
+>>>>>>> 1f70ff24a41baffefba7921605ac926db0761fa9
 - `apps/mac-app/test/bug-finding-swift-bridge.test.ts` + `test/fixtures/CrewBridgeLiveTests.swift` (chỉ chạy khi
   `CREW_BUG_FINDING_REPO` trỏ tới checkout dùng một lần của repo `bug-finding` ở commit có cầu nối, ví dụ
   `git worktree add --detach <thư mục tạm> <sha>`; spec chép fixture vào `Tests/MRQueueCoreTests/` rồi gỡ ra): code

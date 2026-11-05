@@ -2,6 +2,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 import type { ProjectRow } from '../../shared/ipc-contract.js';
 import type { JobOutcome, MachineJobKind } from '../jobs/types.js';
+import type { PaperclipClient } from '../paperclip/types.js';
 
 /**
  * Đồng bộ một chiều danh sách project Crew sang Bug Finding: 2P Crew ghi `crew/projects.json` trong thư mục dữ liệu
@@ -81,31 +82,72 @@ export async function buildCrewProjectList(
 
 export type GitCall = (args: string[]) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
+/** Repo chính của một thư mục (`git rev-parse --git-common-dir`, bỏ đuôi `.git`): `null` = chắc chắn không phải repo. */
+type RepoProbe = { repo: string | null; unknown: boolean };
+
+async function probeRepo(git: GitCall, dir: string): Promise<RepoProbe> {
+  const out = await git(['-C', dir, 'rev-parse', '--path-format=absolute', '--git-common-dir']).catch(
+    () => null,
+  );
+  const commonDir = out && out.code === 0 ? out.stdout.trim() : '';
+  if (commonDir)
+    return { repo: basename(commonDir) === '.git' ? dirname(commonDir) : commonDir, unknown: false };
+  return { repo: null, unknown: out?.code !== 128 || !/not a git repository/i.test(out?.stderr ?? '') };
+}
+
+/** Tra repo của project ở nguồn ngoài `app.json` (server). Ném khi chưa tra được (mất mạng, chưa đăng nhập, 5xx). */
+export type ProjectRepoLookup = (row: ProjectRow) => Promise<string | null>;
+
 /**
  * Repo của project trên máy: repo docs đã đăng ký (`docsRepo`), không thì thư mục gốc owner chọn lúc thêm project,
- * không thì repo chính của một checkout agent (`git rev-parse --git-common-dir`, bỏ đuôi `.git`). Checkout mà git báo
- * rõ "not a git repository" thì bỏ qua; lỗi khác (quá hạn, thư mục chưa mount, git không chạy được) mà không checkout
- * nào dò được thì ném `RepoUnknownError`.
+ * không thì repo chính của một checkout agent (`git rev-parse --git-common-dir`, bỏ đuôi `.git`), không thì (project
+ * không có tiến độ trong `app.json`: dựng bằng `crew-mac` hay do server dựng qua `ensure-project`) `lookup`: `repoPath`
+ * server ghi cho máy này (`createMachineRepoLookup`), kiểm lại bằng git trên máy. Checkout mà git báo rõ "not a git
+ * repository" thì bỏ qua; lỗi khác (quá hạn, thư mục chưa mount, git không chạy được) hay `lookup` ném mà không nguồn
+ * nào có repo thì ném `RepoUnknownError`.
  */
-export function createRepoResolver(git: GitCall): RepoResolver {
+export function createRepoResolver(git: GitCall, lookup?: ProjectRepoLookup): RepoResolver {
   return async (row) => {
     if (row.docsRepo) return row.docsRepo;
     if (row.progress?.folder) return row.progress.folder;
     let unknown = false;
     for (const checkout of row.checkouts) {
-      const out = await git([
-        '-C',
-        checkout.path,
-        'rev-parse',
-        '--path-format=absolute',
-        '--git-common-dir',
-      ]).catch(() => null);
-      const commonDir = out && out.code === 0 ? out.stdout.trim() : '';
-      if (commonDir) return basename(commonDir) === '.git' ? dirname(commonDir) : commonDir;
-      if (out?.code !== 128 || !/not a git repository/i.test(out?.stderr ?? '')) unknown = true;
+      const probe = await probeRepo(git, checkout.path);
+      if (probe.repo) return probe.repo;
+      unknown ||= probe.unknown;
+    }
+    if (lookup && row.projectId) {
+      let path: string | null;
+      try {
+        path = await lookup(row);
+      } catch {
+        throw new RepoUnknownError();
+      }
+      if (path) {
+        const probe = await probeRepo(git, path);
+        if (probe.repo) return probe.repo;
+        unknown ||= probe.unknown;
+      }
     }
     if (unknown) throw new RepoUnknownError();
     return null;
+  };
+}
+
+export interface MachineRepoLookupDeps {
+  client: Pick<PaperclipClient, 'machineRepoPath'>;
+  companyId(): string | null;
+  /** machineId của máy này (`jobTargets`); `null` khi máy chưa ghép. */
+  machineId(): Promise<string | null>;
+}
+
+/** `repoPath` server ghi cho chính máy này của project (`project_machines`); chưa chọn company hay máy chưa ghép thì `null`. */
+export function createMachineRepoLookup(deps: MachineRepoLookupDeps): ProjectRepoLookup {
+  return async (row) => {
+    const companyId = deps.companyId();
+    const machineId = await deps.machineId();
+    if (!companyId || !machineId) return null;
+    return deps.client.machineRepoPath(companyId, row.projectId, machineId);
   };
 }
 
