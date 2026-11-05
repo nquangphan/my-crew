@@ -31,7 +31,13 @@ import {
   startResultsRelay,
 } from './results.js';
 import { readBugFindingState } from './state.js';
-import { createRepoResolver, createSyncRunner, syncedProjectKnown, syncProjects } from './sync-projects.js';
+import {
+  createMachineRepoLookup,
+  createRepoResolver,
+  createSyncRunner,
+  syncedProjectKnown,
+  syncProjects,
+} from './sync-projects.js';
 
 /** Ghi lại danh sách project sang Bug Finding định kỳ (ngoài các lần nhờ khi project hay checkout đổi). */
 export const PROJECT_SYNC_INTERVAL_MS = 10 * 60_000;
@@ -74,7 +80,15 @@ export function registerBugFinding(ctx: AppContext, gate: LaunchGate): BugFindin
   };
 
   const projects = createProjectsIpc({ deps: () => projectDeps(ctx) });
-  const resolveRepo = createRepoResolver((args) => runGit(args, { env: process.env, timeoutMs: 10_000 }));
+  // Project không có tiến độ trong app.json (dựng bằng crew-mac, hay server dựng qua ensure-project): repoPath server ghi cho máy này.
+  const resolveRepo = createRepoResolver(
+    (args) => runGit(args, { env: process.env, timeoutMs: 10_000 }),
+    createMachineRepoLookup({
+      client: { machineRepoPath: (...args) => projectDeps(ctx).client.machineRepoPath(...args) },
+      companyId: () => ctx.store.get().setup.companyId,
+      machineId: async () => (await ctx.ops.call('jobTargets')).machineId,
+    }),
+  );
   let lastSyncAt: string | null = null;
   const sync = createSyncRunner({
     sync: async () => {
