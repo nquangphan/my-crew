@@ -15,6 +15,7 @@ import { createLaunchGate, type LaunchResult } from '../../src/main/bug-finding/
 import {
   BUG_FINDING_UPDATING_TEXT,
   type BugFindingReviewDeps,
+  crewReviewRequest,
   runJob,
   runBugFindingReview as runReviewWith,
 } from '../../src/main/jobs/executors.js';
@@ -43,7 +44,40 @@ const payload = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const GITLAB_MR = 'https://gitlab.qasoftsolution.com/team/sub/project/-/merge_requests/87';
+
 describe('validateJobPayload: bug-finding-review', () => {
+  it('nhận provider gitlab với MR GitLab tự host (nhóm lồng nhau, cổng) và giữ provider gitlab', () => {
+    for (const prUrl of [
+      GITLAB_MR,
+      'https://gitlab.qasoftsolution.com/group/project/-/merge_requests/87',
+      'https://gitlab.example.com:8443/a/b.c/d_e/-/merge_requests/87',
+    ]) {
+      const over = { provider: 'gitlab', prUrl };
+      expect(validateJobPayload('bug-finding-review', payload(over))).toEqual({
+        kind: 'bug-finding-review',
+        ...payload(over),
+      });
+    }
+  });
+
+  it.each([
+    [{ provider: 'gitlab' }, 'prUrl không hợp lệ'],
+    [{ provider: 'gitlab', prUrl: 'https://github.com/o/r/pull/87' }, 'prUrl không hợp lệ'],
+    [
+      { provider: 'gitlab', prUrl: 'http://gitlab.example.com/g/p/-/merge_requests/87' },
+      'prUrl không hợp lệ',
+    ],
+    [{ provider: 'gitlab', prUrl: 'https://gitlab.example.com/p/-/merge_requests/87' }, 'prUrl không hợp lệ'],
+    [
+      { provider: 'gitlab', prUrl: 'https://gitlab.example.com/g/p/-/merge_requests/0' },
+      'prUrl không hợp lệ',
+    ],
+    [{ provider: 'gitlab', prUrl: GITLAB_MR.replace('/87', '/88') }, 'prUrl không khớp prNumber'],
+  ])('provider gitlab từ chối %o', (over, message) => {
+    expect(validateJobPayload('bug-finding-review', payload(over))).toBe(message);
+  });
+
   it('nhận payload hợp lệ, chuẩn hóa uuid về chữ thường, giữ reviewerInputText', () => {
     const out = validateJobPayload(
       'bug-finding-review',
@@ -67,11 +101,14 @@ describe('validateJobPayload: bug-finding-review', () => {
     [{ projectKey: 'Bad_Key' }, 'projectKey không hợp lệ'],
     [{ repoPath: 'relative/repo' }, 'repoPath phải là đường tuyệt đối'],
     [{ repoPath: '/a/../b' }, 'repoPath không được chứa ..'],
-    [{ provider: 'gitlab' }, 'provider chỉ nhận github'],
+    [{ provider: 'bitbucket' }, 'provider chỉ nhận github hoặc gitlab'],
+    [{ provider: '' }, 'provider chỉ nhận github hoặc gitlab'],
+    [{ provider: undefined }, 'provider chỉ nhận github hoặc gitlab'],
     [{ prNumber: 0 }, 'prNumber phải là số nguyên dương'],
     [{ prNumber: -3 }, 'prNumber phải là số nguyên dương'],
     [{ prNumber: '87' }, 'prNumber phải là số nguyên dương'],
     [{ prUrl: 'https://gitlab.com/o/r/-/merge_requests/87' }, 'prUrl không hợp lệ'],
+    [{ prUrl: GITLAB_MR }, 'prUrl không hợp lệ'],
     [{ prUrl: 'https://github.com/o/r/pull/88' }, 'prUrl không khớp prNumber'],
     [{ headSha: 'abc' }, 'headSha phải là 40 ký tự hex'],
     [{ headSha: 'A'.repeat(40) }, 'headSha phải là 40 ký tự hex'],
@@ -180,6 +217,26 @@ describe('runBugFindingReview', () => {
       { requestId: REQUEST, companyId: COMPANY, machineId: MACHINE, origin: ORIGIN },
     ]);
   });
+
+  it.each(['github', 'gitlab'] as const)(
+    'crewReviewRequest với provider %s không có trường provider',
+    (provider) => {
+      const prUrl = provider === 'gitlab' ? GITLAB_MR : 'https://github.com/nquangphan/my-crew/pull/87';
+      const parsed = validateJobPayload('bug-finding-review', payload({ provider, prUrl }));
+      if (typeof parsed === 'string') throw new Error(parsed);
+      if (parsed.kind !== 'bug-finding-review') throw new Error('sai kind');
+      expect(crewReviewRequest(parsed)).toEqual({
+        schema: 'crew-review-request/1',
+        requestId: REQUEST,
+        crewProjectId: '44444444-4444-4444-8444-444444444444',
+        identifier: 'TPS-645',
+        run: 1,
+        prNumber: 87,
+        headSha: HEAD,
+        baseBranch: 'main',
+      });
+    },
+  );
 
   it('chạy lại cùng requestId không ghi lần hai (kể cả khi Bug Finding đã đổi tên thành .json.done)', async () => {
     await runBugFindingReview(job(), deps());
