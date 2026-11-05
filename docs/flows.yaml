@@ -451,6 +451,7 @@ flows:
       - apps/mac-app/test/bug-finding-results.test.ts
       - apps/mac-app/test/bug-finding-review-wiring.test.ts
       - apps/mac-app/test/bug-finding-e2e.test.tsx
+      - apps/mac-app/test/bug-finding-sync-machine-e2e.test.ts
       - apps/mac-app/test/bug-finding-swift-bridge.test.ts
       - apps/mac-app/test/fixtures/CrewBridgeLiveTests.swift
       - apps/mac-app/test/renderer/bug-finding.test.tsx

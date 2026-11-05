@@ -342,6 +342,12 @@ mang `origin`.
   không gọi `open` và job `bug-finding-review` trả `standalone_running` không để lại file; **Đồng bộ lại** ghi đúng
   `crew/projects.json`; job `bug-finding-review` ghi `requests/<id>.json`, mở app nền, relay `running` rồi `succeeded`
   (kèm finding và báo cáo) lên `POST …/bug-finding/results` với board key.
+- `apps/mac-app/test/bug-finding-sync-machine-e2e.test.ts` (không jsdom; `registerBugFinding`, `createProjectsIpc` và client
+  Paperclip thật, `app.json` thật, repo `git` thật trong HOME tạm, server Paperclip giả HTTP thật; chỉ giả Electron,
+  `ps`/`open` và Keychain): project REST không có tiến độ mà server ghi `repoPath` cho máy này (`project_machines`) vào
+  `projects.json` rồi `bug-finding-review` của project đó qua `projectKnown` (ghi request, mở nền); project không nguồn
+  nào bị bỏ, lượt review `project_missing`, không mở app; project có tiến độ giữ thứ tự `docsRepo` → `progress.folder` →
+  checkout, không hỏi server, repo mồi của server không chen vào, không tạo `status-repos.json`.
 - `apps/mac-app/test/bug-finding-swift-bridge.test.ts` + `test/fixtures/CrewBridgeLiveTests.swift` (chỉ chạy khi
   `CREW_BUG_FINDING_REPO` trỏ tới checkout dùng một lần của repo `bug-finding` ở commit có cầu nối, ví dụ
   `git worktree add --detach <thư mục tạm> <sha>`; spec chép fixture vào `Tests/MRQueueCoreTests/` rồi gỡ ra): code

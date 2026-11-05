@@ -275,6 +275,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/mac-app/test/bug-finding-review-wiring.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/bug-finding-state.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/bug-finding-swift-bridge.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
+| `apps/mac-app/test/bug-finding-sync-machine-e2e.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/bug-finding-sync-wiring.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/bug-finding-sync.test.ts` | [mac-bug-finding](flows/mac-bug-finding.md) (test) |
 | `apps/mac-app/test/debug-switch.test.ts` | [mac-app](flows/mac-app.md) (test) |
