@@ -62,6 +62,12 @@ const IDENTIFIER = /^[A-Z][A-Z0-9]{0,9}-[1-9][0-9]{0,8}$/;
 const HEAD_SHA = /^[0-9a-f]{40}$/;
 /** URL pull request GitHub, như `GITHUB_PR_URL` của plugin. */
 const GITHUB_PR_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/([1-9][0-9]*)$/;
+/**
+ * URL merge request GitLab (host tự đặt, có thể kèm cổng; nhóm lồng nhau, ít nhất nhóm/project). Luật chép từ
+ * `GITLAB_MR_URL` của plugin fork (`packages/crew-plugin/src/jobs/validate.ts`): regex và câu lỗi phải trùng.
+ */
+const GITLAB_MR_URL =
+  /^https:\/\/[A-Za-z0-9.-]+(?::[0-9]{1,5})?\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+\/-\/merge_requests\/([1-9][0-9]*)$/;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
@@ -182,7 +188,9 @@ function reviewerInputError(value: unknown): string | null {
 
 /** Payload `bug-finding-review`, cùng thứ tự kiểm và câu lỗi với plugin. */
 function bugFindingReviewPayload(p: Record<string, unknown>): JobPayload | string {
-  const pr = typeof p.prUrl === 'string' ? GITHUB_PR_URL.exec(p.prUrl) : null;
+  const provider = p.provider === 'github' || p.provider === 'gitlab' ? p.provider : null;
+  const urlRe = provider === 'gitlab' ? GITLAB_MR_URL : GITHUB_PR_URL;
+  const pr = typeof p.prUrl === 'string' ? urlRe.exec(p.prUrl) : null;
   const run = p.run as number;
   const error =
     uuidError(p.requestId, 'requestId') ??
@@ -192,7 +200,7 @@ function bugFindingReviewPayload(p: Record<string, unknown>): JobPayload | strin
     uuidError(p.projectId, 'projectId') ??
     projectKeyError(p.projectKey) ??
     (folderError(p.repoPath)?.replace('folder', 'repoPath') || null) ??
-    (p.provider === 'github' ? null : 'provider chỉ nhận github') ??
+    (provider ? null : 'provider chỉ nhận github hoặc gitlab') ??
     (Number.isInteger(p.prNumber) && (p.prNumber as number) > 0
       ? null
       : 'prNumber phải là số nguyên dương') ??
@@ -211,7 +219,7 @@ function bugFindingReviewPayload(p: Record<string, unknown>): JobPayload | strin
     projectId: (p.projectId as string).toLowerCase(),
     projectKey: p.projectKey as string,
     repoPath: p.repoPath as string,
-    provider: 'github',
+    provider: provider as 'github' | 'gitlab',
     prNumber: p.prNumber as number,
     prUrl: p.prUrl as string,
     headSha: p.headSha as string,

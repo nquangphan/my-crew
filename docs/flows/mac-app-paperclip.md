@@ -335,9 +335,9 @@ trong tiến trình phụ trả `app_error` nếu nhận kind này; `register.ts
 `executors.ts` → `runBugFindingReview(job, deps, {origin, signal})`:
 
 1. Kiểm như mọi việc (`guarded`): payload `BugFindingReviewPayload {requestId, issueId, identifier, run, projectId,
-   projectKey, repoPath, provider: 'github', prNumber, prUrl, headSha, baseBranch, reviewerInputText?}` đúng luật và câu
+   projectKey, repoPath, provider: 'github' | 'gitlab', prNumber, prUrl, headSha, baseBranch, reviewerInputText?}` đúng luật và câu
    lỗi của plugin (`requestId`, `issueId`, `projectId` uuid; `identifier` dạng `TPS-123`; `run` nguyên 1–3; `repoPath`
-   tuyệt đối, không `..`; `provider` chỉ `github`; `prNumber` nguyên dương và khớp số trong `prUrl` GitHub; `headSha`
+   tuyệt đối, không `..`; `provider` chỉ `github` hoặc `gitlab` (câu lỗi `provider chỉ nhận github hoặc gitlab`); `prUrl` phải khớp provider: `github` là `https://github.com/<owner>/<repo>/pull/<n>`, `gitlab` là MR GitLab `https://<host>[:cổng]/<nhóm>[/<nhóm con>…]/<project>/-/merge_requests/<n>` (host tự đặt, ít nhất nhóm/project; URL sai provider là `prUrl không hợp lệ`); `prNumber` nguyên dương và khớp số cuối trong `prUrl`; `headSha`
    40 hex thường; `baseBranch` như nhánh; `reviewerInputText` ≤ 20 000 ký tự, `BUG_FINDING_INPUT_MAX`); `repoPath` theo
    luật thêm project (`folderGuardReason`).
 2. `repoPath` không có trên máy → `project_missing`.

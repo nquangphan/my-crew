@@ -331,6 +331,9 @@ mang `origin`.
   không gọi `open` và job `bug-finding-review` trả `standalone_running` không để lại file; **Đồng bộ lại** ghi đúng
   `crew/projects.json`; job `bug-finding-review` ghi `requests/<id>.json`, mở app nền, relay `running` rồi `succeeded`
   (kèm finding và báo cáo) lên `POST …/bug-finding/results` với board key.
+  Ba ca theo provider đi hết luồng validate → ghi file → `accepted`: `gitlab` (URL MR tự host) và `github` đều ghi
+  `requests/<id>.json` đúng `crew-review-request/1` (`prNumber` là iid MR, không có trường `provider`); provider lạ
+  bị từ chối ở validate (`app_error`), thư mục `requests/` rỗng và không gọi `open`.
 - `apps/mac-app/test/bug-finding-swift-bridge.test.ts` + `test/fixtures/CrewBridgeLiveTests.swift` (chỉ chạy khi
   `CREW_BUG_FINDING_REPO` trỏ tới checkout dùng một lần của repo `bug-finding` ở commit có cầu nối, ví dụ
   `git worktree add --detach <thư mục tạm> <sha>`; spec chép fixture vào `Tests/MRQueueCoreTests/` rồi gỡ ra): code

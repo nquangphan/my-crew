@@ -5,7 +5,15 @@
  * (`BugFindingScreen`). Chỉ giả: electron, tiến trình hệ thống (ps/open/PlistBuddy), danh sách project Paperclip và
  * server Paperclip (HTTP thật trên cổng ngẫu nhiên).
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -111,7 +119,9 @@ const installPreload = () => {
   };
 };
 
-const reviewJob = (repoPath: string): MachineJob => ({
+const GITLAB_MR_URL = 'https://gitlab.qasoftsolution.com/team/sub/project/-/merge_requests/87';
+
+const reviewJob = (repoPath: string, payloadOver: Record<string, unknown> = {}): MachineJob => ({
   id: '66666666-6666-4666-8666-666666666666',
   companyId: COMPANY,
   machineId: MACHINE,
@@ -130,6 +140,7 @@ const reviewJob = (repoPath: string): MachineJob => ({
     prUrl: 'https://github.com/nquangphan/my-crew/pull/87',
     headSha: HEAD,
     baseBranch: 'main',
+    ...payloadOver,
   },
   status: 'claimed',
   result: null,
@@ -338,5 +349,62 @@ describe('E2E Bug Finding trong 2P Crew', () => {
     });
     expect(JSON.stringify(final)).toContain('F-01');
     await waitFor(() => expect(store.get().bugFindingRequests?.[REQUEST]?.delivered).toBe(true));
+  });
+  describe('job bug-finding-review theo provider (validate → file yêu cầu → accepted)', () => {
+    const requestsDir = () => join(bridge(), 'requests');
+    const setupRepo = () => {
+      const repo = join(home, 'repo');
+      mkdirSync(repo);
+      projectRows.rows = [
+        ...projectRows.rows,
+        row('44444444-4444-4444-8444-444444444444', 'my-crew-bf', repo),
+      ];
+      return { repo, module: registerBugFinding(ctx(), createLaunchGate()) };
+    };
+    const expectedRequest = {
+      schema: 'crew-review-request/1',
+      requestId: REQUEST,
+      crewProjectId: '44444444-4444-4444-8444-444444444444',
+      identifier: 'TPS-645',
+      run: 1,
+      prNumber: 87,
+      headSha: HEAD,
+      baseBranch: 'main',
+    };
+
+    it('provider gitlab (URL MR tự host): ghi request đúng schema, prNumber là iid MR, không có trường provider, trả accepted', async () => {
+      const { repo, module } = setupRepo();
+      const outcome = await module.runReview(reviewJob(repo, { provider: 'gitlab', prUrl: GITLAB_MR_URL }), {
+        origin: server.origin,
+      });
+      expect(outcome).toEqual({ status: 'done', result: { kind: 'bug-finding-review', accepted: true } });
+      const request = JSON.parse(readFileSync(join(requestsDir(), `${REQUEST}.json`), 'utf8'));
+      expect(request).toEqual(expectedRequest);
+      expect(request).not.toHaveProperty('provider');
+      expect(sys.commands).toContainEqual(['/usr/bin/open', '-g', appPath]);
+    });
+
+    it('provider github như cũ: ghi request cùng schema, không có trường provider, trả accepted', async () => {
+      const { repo, module } = setupRepo();
+      const outcome = await module.runReview(reviewJob(repo), { origin: server.origin });
+      expect(outcome).toEqual({ status: 'done', result: { kind: 'bug-finding-review', accepted: true } });
+      const request = JSON.parse(readFileSync(join(requestsDir(), `${REQUEST}.json`), 'utf8'));
+      expect(request).toEqual(expectedRequest);
+      expect(request).not.toHaveProperty('provider');
+    });
+
+    it('provider lạ bị từ chối ngay ở validate: failed app_error, không có file nào trong thư mục requests, không mở app', async () => {
+      const { repo, module } = setupRepo();
+      const outcome = await module.runReview(reviewJob(repo, { provider: 'bitbucket' }), {
+        origin: server.origin,
+      });
+      expect(outcome).toMatchObject({
+        status: 'failed',
+        errorCode: 'app_error',
+        errorText: expect.stringContaining('provider chỉ nhận github hoặc gitlab'),
+      });
+      expect(existsSync(requestsDir()) ? readdirSync(requestsDir()) : []).toEqual([]);
+      expect(sys.commands.some(([cmd]) => cmd === '/usr/bin/open')).toBe(false);
+    });
   });
 });
