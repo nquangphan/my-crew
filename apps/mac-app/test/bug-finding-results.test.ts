@@ -215,6 +215,37 @@ describe('relayResponses', () => {
     // Đã gửi xong kết quả cuối: lượt sau không gửi lại.
     expect(await relayResponses(deps)).toEqual({ sent: 0, pending: 0 });
     expect(sent).toHaveLength(2);
+    // Kết quả không có decision_items thì không gửi khóa decisionItems (server cũ không nhận khóa lạ).
+    expect(body).not.toHaveProperty('decisionItems');
+  });
+
+  it('gửi kèm decision_items thành decisionItems, bỏ mục thiếu câu hỏi hay không gom finding nào', async () => {
+    const sent: BugFindingResultBody[] = [];
+    const withDecisions = {
+      ...sampleResult,
+      decision_items: [
+        {
+          id: 'Q-01',
+          question: 'Rút gọn hay vẽ đủ cột?',
+          owner: 'owner',
+          kind: 'PRODUCT',
+          findings: ['F-01', 'F-02'],
+        },
+        { id: 'Q-02', question: 'Không gom finding nào', findings: [] },
+        { id: 'Q-03', findings: ['F-01'] },
+      ],
+    };
+    const deps = fakeResultsDeps({
+      responses: [succeededResponse(R1, '/res')],
+      files: { '/res/review-result.json': JSON.stringify(withDecisions), '/res/mr-87-r1.md': '# Báo cáo' },
+      post: async (b) => {
+        sent.push(b);
+      },
+    });
+    expect(await relayResponses(deps)).toEqual({ sent: 1, pending: 0 });
+    expect(sent[0]?.decisionItems).toEqual([
+      { id: 'Q-01', question: 'Rút gọn hay vẽ đủ cột?', findings: ['F-01', 'F-02'] },
+    ]);
   });
 
   it('hàng đợi gửi không giữ báo cáo trong app.json, đọc lại file lúc gửi lại', async () => {
