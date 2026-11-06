@@ -847,4 +847,16 @@ describe('máy khác của project', () => {
     reply = { status: 404, body: { error: 'không có' } };
     expect(await client.machineRepoPath(C, P, 'm-1')).toBeNull();
   });
+
+  it('machineRepoPath: 2xx mà body rỗng, không phải object hay thiếu machines thì ném (không coi là máy không có repo)', async () => {
+    let reply: { status: number; body?: unknown } = { status: 200 };
+    const { client } = await setup(() => reply);
+    await expect(client.machineRepoPath(C, P, 'm-1')).rejects.toThrow('sai dạng');
+    reply = { status: 200, body: {} };
+    await expect(client.machineRepoPath(C, P, 'm-1')).rejects.toThrow('sai dạng');
+    reply = { status: 200, body: '<html>Bad gateway</html>' };
+    await expect(client.machineRepoPath(C, P, 'm-1')).rejects.toThrow('sai dạng');
+    reply = { status: 200, body: { machines: 'm-1' } };
+    await expect(client.machineRepoPath(C, P, 'm-1')).rejects.toThrow('sai dạng');
+  });
 });

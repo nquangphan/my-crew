@@ -210,7 +210,7 @@ export interface PaperclipClient {
   /**
    * `repoPath` server ghi cho máy `machineId` của project (`GET …/projects/:projectId/machines`, `machines[].repoPath`,
    * lấy từ kết quả việc `ensure-project` của chính máy đó). `null`: server chưa có route (404), máy chưa có dòng
-   * hay chưa có `repoPath`.
+   * hay chưa có `repoPath`. Body 2xx không có `machines[]` thì ném (chưa biết, không phải "không có repo").
    */
   machineRepoPath(companyId: string, projectId: string, machineId: string): Promise<string | null>;
   /** `null`: server chưa có route (bản cũ). */

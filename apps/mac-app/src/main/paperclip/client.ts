@@ -573,7 +573,11 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
         undefined,
         true,
       );
-      if (!res || !Array.isArray(res.machines)) return null;
+      if (res === null) return null;
+      // 2xx mà không có `machines[]` (body rỗng, trang HTML của proxy): chưa biết, không phải "máy này không có repo".
+      if (!isRecord(res) || !Array.isArray(res.machines)) {
+        throw new Error('Paperclip trả danh sách máy của project sai dạng');
+      }
       const want = machineId.toLowerCase();
       for (const item of res.machines) {
         const m = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
