@@ -1,16 +1,28 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ProjectProgress } from '../src/main/app-state';
 import {
   buildCrewProjectList,
+  createMachineRepoLookup,
   createRepoResolver,
   createSyncRunner,
   jobChangesProjects,
+  RESOLVE_CONCURRENCY,
   syncedProjectKnown,
   syncProjects,
 } from '../src/main/bug-finding/sync-projects';
+import { runGit } from '../src/main/projects/folder';
 import type { ProjectRow } from '../src/shared/ipc-contract';
 
 const row = (id: string, name: string, docsRepo: string | null, onMac = true): ProjectRow => ({
@@ -124,6 +136,260 @@ describe('createRepoResolver', () => {
         'Chưa dò được repo',
       );
     }
+  });
+});
+
+describe('nguồn repo theo project_machines của máy này', () => {
+  const gitOk = (repo: string) => async () => ({ code: 0, stdout: `${repo}/.git\n` });
+  const noRepo = async () => ({
+    code: 128,
+    stdout: '',
+    stderr: 'fatal: not a git repository (or any of the parent directories): .git',
+  });
+
+  it('project REST không có tiến độ, docsRepo hay checkout nhưng server ghi repoPath cho máy này thì vào projects.json', async () => {
+    const asked: string[] = [];
+    const resolve = createRepoResolver(gitOk('/Volumes/P/rest'), async (r) => {
+      asked.push(r.projectId);
+      return '/Volumes/P/rest';
+    });
+    const list = await buildCrewProjectList([row('p-rest', 'rest-only', null)], resolve, 'c-1');
+    expect(asked).toEqual(['p-rest']);
+    expect(list.projects).toEqual([
+      { crewProjectId: 'p-rest', key: 'rest-only', name: 'rest-only', repoPath: '/Volumes/P/rest' },
+    ]);
+  });
+
+  it('chuẩn hóa repoPath của server về repo chính qua git common-dir; đường dẫn tương đối thì bỏ', async () => {
+    const asked: string[][] = [];
+    const worktree = createRepoResolver(
+      async (args) => {
+        asked.push(args);
+        return { code: 0, stdout: '/Volumes/P/main/.git\n\n' };
+      },
+      async () => '/h/crew-agents/k/repo',
+      () => true,
+    );
+    expect(await worktree(row('p', 'n', null))).toBe('/Volumes/P/main');
+    expect(asked[0]).toContain('--show-prefix');
+    const relative = createRepoResolver(
+      gitOk('/x'),
+      async () => 'crew-agents/k/repo',
+      () => true,
+    );
+    expect(await relative(row('p', 'n', null))).toBeNull();
+  });
+
+  it('không có nguồn nào (server không ghi repoPath cho máy này) thì project vẫn bị bỏ', async () => {
+    const resolve = createRepoResolver(noRepo, async () => null);
+    const list = await buildCrewProjectList([row('p-none', 'web-only', null, false)], resolve, 'c-1');
+    expect(list.projects).toEqual([]);
+  });
+
+  it('không hỏi server khi docsRepo, thư mục tiến độ hoặc checkout đã cho repo (giữ thứ tự cũ)', async () => {
+    let asked = 0;
+    const lookup = async () => {
+      asked += 1;
+      return '/server/repo';
+    };
+    const resolve = createRepoResolver(gitOk('/Volumes/P/co'), lookup);
+    const withProgress = (docs: string | null) => ({
+      ...row('p', 'n', docs),
+      progress: progress('n', '/r/folder'),
+    });
+    expect(await resolve(withProgress('/r/docs'))).toBe('/r/docs');
+    expect(await resolve(withProgress(null))).toBe('/r/folder');
+    const checkout = { role: 'executor', path: '/h/crew-agents/shop/executor', head: null };
+    expect(await resolve({ ...row('p', 'shop', null), checkouts: [checkout] })).toBe('/Volumes/P/co');
+    expect(asked).toBe(0);
+  });
+
+  it('server lỗi (mất mạng, 5xx, chưa đăng nhập) thì RepoUnknownError giữ lỗi gốc để giữ repo của lần ghi trước', async () => {
+    const cause = new Error('Không kết nối được Paperclip');
+    const resolve = createRepoResolver(gitOk('/x'), async () => {
+      throw cause;
+    });
+    await expect(resolve(row('p', 'n', null))).rejects.toMatchObject({
+      name: 'RepoUnknownError',
+      cause,
+    });
+  });
+
+  it('checkout lỗi tạm thời mà server cũng không có repo thì vẫn RepoUnknownError', async () => {
+    const resolve = createRepoResolver(
+      async () => ({ code: -1, stdout: '', stderr: '' }),
+      async () => null,
+    );
+    const checkout = { role: 'executor', path: '/h/crew-agents/shop/executor', head: null };
+    await expect(resolve({ ...row('p', 'shop', null), checkouts: [checkout] })).rejects.toThrow(
+      'Chưa dò được repo',
+    );
+  });
+
+  it('createMachineRepoLookup hỏi machineId một lần cho cả lượt; lỗi tra ghi log một lần, không kèm key', async () => {
+    let machineAsked = 0;
+    const logs: Array<[string, string, Record<string, unknown>]> = [];
+    const lookup = createMachineRepoLookup({
+      client: {
+        machineRepoPath: async () => {
+          throw Object.assign(new Error('Paperclip trả lỗi HTTP 403'), { status: 403, code: null });
+        },
+      },
+      companyId: () => 'c-1',
+      machineId: async () => {
+        machineAsked += 1;
+        return 'm-1';
+      },
+      log: (level, event, fields) => logs.push([level, event, fields]),
+    });
+    await expect(lookup(row('p-1', 'n', null))).rejects.toThrow('403');
+    await expect(lookup(row('p-2', 'n', null))).rejects.toThrow('403');
+    expect(machineAsked).toBe(1);
+    expect(logs).toEqual([
+      [
+        'warn',
+        'bug-finding-repo-lookup-failed',
+        { projectId: 'p-1', status: 403, error: 'Paperclip trả lỗi HTTP 403' },
+      ],
+    ]);
+  });
+
+  it('createMachineRepoLookup hỏi đúng company, project và machineId của máy; máy chưa có machineId thì null', async () => {
+    const calls: string[][] = [];
+    const client = {
+      machineRepoPath: async (c: string, p: string, m: string) => {
+        calls.push([c, p, m]);
+        return '/Volumes/P/rest';
+      },
+    };
+    const lookup = createMachineRepoLookup({
+      client,
+      companyId: () => 'c-1',
+      machineId: async () => 'm-1',
+    });
+    expect(await lookup(row('p-1', 'n', null))).toBe('/Volumes/P/rest');
+    expect(calls).toEqual([['c-1', 'p-1', 'm-1']]);
+    const unpaired = createMachineRepoLookup({ client, companyId: () => 'c-1', machineId: async () => null });
+    expect(await unpaired(row('p-1', 'n', null))).toBeNull();
+    expect(calls).toHaveLength(1);
+  });
+
+  it('dò song song có giới hạn: nhiều project chỉ có nguồn server không chờ lần lượt từng lời gọi', async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => row(`p-${i}`, `n-${i}`, null));
+    let inFlight = 0;
+    let peak = 0;
+    const resolve = createRepoResolver(gitOk('/Volumes/P/r'), async (r) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((done) => setTimeout(done, 20));
+      inFlight -= 1;
+      return `/Volumes/P/${r.projectId}`;
+    });
+    const list = await buildCrewProjectList(rows, resolve, 'c-1');
+    expect(peak).toBe(RESOLVE_CONCURRENCY);
+    expect(list.projects.map((p) => p.crewProjectId)).toEqual(rows.map((r) => r.projectId));
+  });
+
+  it('signal bật thì ngừng dò project mới và ném, không ghi projects.json', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bf-sync-abort-'));
+    const file = join(dir, 'projects.json');
+    try {
+      const controller = new AbortController();
+      let asked = 0;
+      const resolve = createRepoResolver(gitOk('/Volumes/P/r'), async () => {
+        asked += 1;
+        controller.abort(new Error('quá giờ'));
+        return '/Volumes/P/r';
+      });
+      const rows = Array.from({ length: 20 }, (_, i) => row(`p-${i}`, `n-${i}`, null));
+      await expect(
+        syncProjects({
+          file,
+          companyId: 'c-1',
+          listRows: async () => rows,
+          resolveRepo: resolve,
+          signal: controller.signal,
+        }),
+      ).rejects.toThrow('quá giờ');
+      expect(asked).toBeLessThanOrEqual(RESOLVE_CONCURRENCY);
+      expect(readdirSync(dir)).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('server trả danh sách máy sai dạng thì syncProjects giữ repoPath của lần ghi trước', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bf-sync-bad-body-'));
+    const file = join(dir, 'projects.json');
+    try {
+      let reply: () => Promise<string | null> = async () => '/Volumes/P/rest';
+      const deps = () => ({
+        file,
+        companyId: 'c-1',
+        listRows: async () => [row('p-rest', 'rest-only', null)],
+        resolveRepo: createRepoResolver(
+          gitOk('/Volumes/P/rest'),
+          createMachineRepoLookup({
+            client: { machineRepoPath: () => reply() },
+            companyId: () => 'c-1',
+            machineId: async () => 'm-1',
+          }),
+        ),
+      });
+      await syncProjects(deps());
+      reply = async () => {
+        throw new Error('Paperclip trả danh sách máy của project sai dạng');
+      };
+      expect(await syncProjects(deps())).toEqual({ written: false, count: 1 });
+      expect(JSON.parse(readFileSync(file, 'utf8')).projects).toEqual([
+        { crewProjectId: 'p-rest', key: 'rest-only', name: 'rest-only', repoPath: '/Volumes/P/rest' },
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('không đọc hay ghi status-repos.json: nguồn mới chỉ dùng client và git', () => {
+    const src = readFileSync(join(__dirname, '../src/main/bug-finding/sync-projects.ts'), 'utf8');
+    expect(src).not.toMatch(/status-repos|listStatusRepos|statusRepo/i);
+  });
+});
+
+describe('repoPath của server kiểm bằng git thật', () => {
+  const git = (args: string[]) => runGit(args, { env: process.env, timeoutMs: 10_000 });
+  let root = '';
+  const setupRepo = () => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'bf-server-path-')));
+    const repo = join(root, 'repo');
+    mkdirSync(join(repo, 'sub'), { recursive: true });
+    execFileSync('git', ['init', '-q', repo]);
+    mkdirSync(join(root, 'plain'));
+    return repo;
+  };
+  const resolveFor = (path: string) => createRepoResolver(git, async () => path)(row('p', 'n', null));
+
+  it('gốc repo thì nhận; thư mục con chưa phải repo trong repo khác thì không gắn repo cha', async () => {
+    try {
+      const repo = setupRepo();
+      expect(await resolveFor(repo)).toBe(repo);
+      expect(await resolveFor(join(repo, 'sub'))).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('thư mục có thật nhưng không phải repo thì null; thư mục đã xóa thì chắc chắn không có (null)', async () => {
+    try {
+      setupRepo();
+      expect(await resolveFor(join(root, 'plain'))).toBeNull();
+      expect(await resolveFor(join(root, 'gone'))).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('đường dẫn trên ổ /Volumes chưa mount thì chưa biết (RepoUnknownError, giữ repo cũ)', async () => {
+    await expect(resolveFor('/Volumes/crew-test-o-chua-mount/repo')).rejects.toThrow('Chưa dò được repo');
   });
 });
 
@@ -291,5 +557,27 @@ describe('createSyncRunner', () => {
     await runner.idle();
     expect(logs).toEqual(['bug-finding-sync-failed']);
     await expect(runner.runNow('ipc')).rejects.toThrow('Chưa đăng nhập Paperclip');
+  });
+
+  it('runNow có signal: truyền signal cho lần đồng bộ và ném ngay khi signal bật', async () => {
+    let seen: AbortSignal | undefined;
+    let started: () => void = () => {};
+    const syncing = new Promise<void>((r) => {
+      started = r;
+    });
+    const runner = createSyncRunner({
+      sync: (signal) => {
+        seen = signal;
+        started();
+        return new Promise(() => {});
+      },
+      log: () => {},
+    });
+    const controller = new AbortController();
+    const run = runner.runNow('bug-finding-review', controller.signal);
+    await syncing;
+    controller.abort(new Error('quá giờ'));
+    await expect(run).rejects.toThrow('quá giờ');
+    expect(seen).toBe(controller.signal);
   });
 });

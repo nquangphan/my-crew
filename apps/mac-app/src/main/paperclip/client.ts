@@ -566,6 +566,27 @@ export function createPaperclipClient(origin: string, deps: ClientDeps): Papercl
       return res ? (res.blockers ?? []) : null;
     },
 
+    async machineRepoPath(companyId, projectId, machineId) {
+      const res = await call<{ machines?: unknown } | null>(
+        'GET',
+        projectMachinesPath(companyId, projectId),
+        undefined,
+        true,
+      );
+      if (res === null) return null;
+      // 2xx mà không có `machines[]` (body rỗng, trang HTML của proxy): chưa biết, không phải "máy này không có repo".
+      if (!isRecord(res) || !Array.isArray(res.machines)) {
+        throw new Error('Paperclip trả danh sách máy của project sai dạng');
+      }
+      const want = machineId.toLowerCase();
+      for (const item of res.machines) {
+        const m = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+        if (typeof m.machineId !== 'string' || m.machineId.toLowerCase() !== want) continue;
+        return typeof m.repoPath === 'string' && m.repoPath !== '' ? m.repoPath : null;
+      }
+      return null;
+    },
+
     async releaseProjectMachines(companyId, projectId, body) {
       return call<MachineReleaseResult | null>(
         'POST',

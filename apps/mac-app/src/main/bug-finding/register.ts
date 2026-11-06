@@ -31,7 +31,14 @@ import {
   startResultsRelay,
 } from './results.js';
 import { readBugFindingState } from './state.js';
-import { createRepoResolver, createSyncRunner, syncedProjectKnown, syncProjects } from './sync-projects.js';
+import {
+  createMachineRepoLookup,
+  createRepoResolver,
+  createSyncRunner,
+  type GitCall,
+  syncedProjectKnown,
+  syncProjects,
+} from './sync-projects.js';
 
 /** Ghi lại danh sách project sang Bug Finding định kỳ (ngoài các lần nhờ khi project hay checkout đổi). */
 export const PROJECT_SYNC_INTERVAL_MS = 10 * 60_000;
@@ -74,17 +81,29 @@ export function registerBugFinding(ctx: AppContext, gate: LaunchGate): BugFindin
   };
 
   const projects = createProjectsIpc({ deps: () => projectDeps(ctx) });
-  const resolveRepo = createRepoResolver((args) => runGit(args, { env: process.env, timeoutMs: 10_000 }));
+  const git: GitCall = (args) => runGit(args, { env: process.env, timeoutMs: 10_000 });
   let lastSyncAt: string | null = null;
   const sync = createSyncRunner({
-    sync: async () => {
+    sync: async (signal) => {
       const companyId = ctx.store.get().setup.companyId;
       if (!companyId) throw new Error('Chưa chọn company Paperclip (mục Cài đặt)');
+      // Project không có repo ở ba nguồn của app.json (dựng bằng crew-mac, hay server dựng qua ensure-project):
+      // repoPath server ghi cho máy này. Lookup mới mỗi lượt: machineId hỏi một lần cho cả lượt.
+      const resolveRepo = createRepoResolver(
+        git,
+        createMachineRepoLookup({
+          client: { machineRepoPath: (...args) => projectDeps(ctx).client.machineRepoPath(...args) },
+          companyId: () => companyId,
+          machineId: async () => (await ctx.ops.call('jobTargets')).machineId,
+          log: (level, event, fields) => ctx.log(level, event, fields),
+        }),
+      );
       const result = await syncProjects({
         file: paths.projectsFile,
         companyId,
         listRows: () => projects.list(),
         resolveRepo,
+        signal,
       });
       lastSyncAt = new Date().toISOString();
       return result;
@@ -157,7 +176,7 @@ export function registerBugFinding(ctx: AppContext, gate: LaunchGate): BugFindin
         requestsDir: paths.requestsDir,
         repoExists: existsSync,
         syncProjects: async () => {
-          if (signedIn()) await sync.runNow('bug-finding-review');
+          if (signedIn()) await sync.runNow('bug-finding-review', opts.signal);
         },
         projectKnown: (company, projectId) => syncedProjectKnown(paths.projectsFile, company, projectId),
         checkLaunch: () => checkLaunch(launchDeps),

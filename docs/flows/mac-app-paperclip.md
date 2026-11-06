@@ -111,6 +111,7 @@ path không query, status.
 | `modelSettingsRoles` | `GET /api/crew/model-settings` | Lấy `settings.roles` của 4 vai app tạo (`assistant`, `executor`, `reviewer`, `integrator`, mỗi ô `{ model, effort }`); thiếu model hay effort sai kiểu thì ném; ô `designer` (agent UIUX) có thì lấy (sai dạng thì ném), server cũ chưa có ô này thì để trống; 404 (server cũ chưa có route) → `null` |
 | `companySkills` | `GET /api/companies/:id/skills` | Skill công ty, chỉ giữ `{id, key, slug}` (mục thiếu chuỗi nào bị bỏ); không phải mảng thì ném. Dùng để tìm skill `…/ui-ux-pro-max` khi thêm project |
 | `replaceAgentSkills` | `POST /api/agents/:id/skills/sync` | Body `{mode: "replace", desiredSkills: [<key>…]}`: ghi đè đúng tập skill của agent, chạy lại không đổi gì; key trống thì ném, không gọi mạng |
+| `machineRepoPath` | `GET /api/crew/companies/:id/projects/:projectId/machines` | Trả `machines[].repoPath` của dòng có `machineId` (không phân biệt hoa thường) trùng máy này; không có dòng, `repoPath` rỗng hay 404 (server cũ) → `null`; 2xx mà body rỗng, không phải object hay thiếu mảng `machines` (trang HTML của proxy) thì ném (chưa biết, không phải "máy không có repo"). Dùng cho nguồn repo của đồng bộ Bug Finding (flow `mac-bug-finding`) |
 | `machineBlockers` | `GET /api/crew/companies/:id/projects/:projectId/machines/blockers` (`?agentIds=` nối bằng dấu phẩy khi có) | Trả danh sách run chờ/đang chạy trên cây đã ghim máy (`blockers`); 404 (server cũ) → `null` |
 | `releaseProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/release` | Body `{agentIds, wholeProject, primaryMachineId}`; server archive environment `@máy` và xếp `remove-checkouts` trên máy khác; trả `{archivedEnvironmentIds, jobs}`; 404 → `null` |
 | `provisionProjectMachines` | `POST /api/crew/companies/:id/projects/:projectId/machines/provision` | Body `{exceptMachineId, includeReady, repo:{originUrl, branch}}`; server xếp `ensure-project` cho máy đã ghép khác; 404 → `null` |
@@ -495,7 +496,8 @@ không có `result`. Body luôn kèm `claimedAt` = đúng `claimedAt` server tr�
   chỉ khi được yêu cầu, log không có key máy, 409 giữ `code` (`machine_revoked`, `machine_uses_company_secret`), key
   máy sai dạng thì ném.
   `modelSettingsRoles`: lấy đúng 4 vai từ `settings.roles`, 404 thành `null`, ô thiếu model hay 5xx thì ném.
-  `machineBlockers`/`releaseProjectMachines`/`provisionProjectMachines`: đúng đường, body và Bearer; 404 (server cũ) thành `null`.
+  `machineBlockers`/`releaseProjectMachines`/`provisionProjectMachines`: đúng đường, body và Bearer; 404 (server cũ) thành `null`;
+  `machineRepoPath` lấy đúng `repoPath` của máy, body 2xx rỗng/`{}`/chuỗi/`machines` không phải mảng thì ném.
 - `apps/mac-app/test/paperclip-cli-auth.test.ts`: body thử thách, `approvalUrl`, `approvalPath` tuyệt đối hay `//host` (`file:`, `smb:`,
   URL handler) bị từ chối và không giữ thử thách, poll `pending/approved/expired/cancelled/404`,
   lưu key đúng một lần (kể cả hai poll song song), log không có token.
