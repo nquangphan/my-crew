@@ -18,15 +18,15 @@ const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
 /**
- * sha256 của `crew/agents/*.md` trong fork nhánh `main` @ e75bbef2b (commit cuối đổi crew/agents) lúc chép;
- * `designer.md` chép từ nhánh `crew/uiux-wizard` @ 08f540666 (file đổi lần cuối ở e49c52625). Lệch nghĩa là fork đã đổi.
+ * sha256 của `crew/agents/*.md` trong fork nhánh `tro-ly/bf-triage-autofix` @ 15279935e (main 4b0546628 + luật phân loại
+ * finding Bug Finding; commit cuối đổi crew/agents là 410e2b607) lúc chép. Lệch nghĩa là fork đã đổi.
  */
 const FORK_SHA256: Record<string, string> = {
-  assistant: 'ab36fb9470d4458819582f578ac1735b5fef9403e12bb65a458d7d5d97cd0e21',
-  executor: '1c43acd549fd36a0ed2108d62eec48ec38bfa8416a014ed9e77f606ad136e6c2',
-  integrator: '29bb9f18b32b82e45f573e5c5d757fcb54d88ad5799cef27a25ba9b7783e2dad',
-  reviewer: '0d0040cf3b5921ce6aa601e88e3a0c75b097836555fe24834e493ba5df58a61d',
-  designer: '2ebbff78108269cf950f031b1c720c5608b9f3a9af54ed147a2c3722556fde38',
+  assistant: '6a35932cc95aa03d923b8a96c085fdd2f955cf2d7b7395eed54ee0f04c643b65',
+  executor: 'c528bac9d194e217d9b2e207d92837087acc20b9e5b568ae38a03bfbd3a7e831',
+  integrator: '9da2d9000da57964c365591a437be5fa21c54bf3dae0ca6292a8a66976b36b9d',
+  reviewer: 'd0972ec67aea3ee59504f9fa16875589ca341a61c7cfc2ae729e5c58aa53525c',
+  designer: '61af43faa3cc3f1dc9e57f26efd058349fabc75b63a7c96e53b3d18e85e4a4b2',
 };
 
 describe('template vai trò', () => {
@@ -341,7 +341,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
   it('Trợ Lý + 2 executor Claude, không BMAD, không reviewer Codex: sha256 của đầu ra fork', () => {
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      '64b70e68c613856cd0c4c0bf6d918fcbab71572df7bff44d122ff06469141207',
+      '108bd4caccc1da18b361a342ab9a870917ce42cec69afb0fd40a6e060412b6ef',
     );
   });
 
@@ -349,7 +349,7 @@ describe('render khớp từng byte với render-instructions.mjs của fork', (
     const D = '66666666-6666-4666-8666-666666666666';
     const out = renderInstructions('assistant', ROLE_TEMPLATES.assistant, A, [X1, X2], [], '', [D]);
     expect(createHash('sha256').update(out).digest('hex')).toBe(
-      '99a427568a73c41c0b5568631d36a7ea677cae58263bfd471a1774c9bf74f927',
+      '8e4901876d4b8f0e2fcca658978f2ac1ffae8b58fc976592f4c82ddb2d9102f0',
     );
   });
 });

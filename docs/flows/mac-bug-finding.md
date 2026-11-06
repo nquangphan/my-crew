@@ -190,7 +190,10 @@ mang `origin`.
 4. `succeeded`: đọc `<resultDir>/review-result.json`, rút gọn mỗi finding về đúng 12 trường (`summarizeFinding`: `id,
    rule, title, severity, certainty, status, action, mr_relation, location, fix, accept, question`; `location`
    `{file, line, symbol}` thành `file:line (symbol)`; thiếu `title` thì lấy `rule` rồi `id`, thiếu `status` thì `OPEN`,
-   thiếu `severity` thì `INFO`; finding không có `id` bị bỏ; tối đa 500). Không có `verdict` hay `resultDir` thì gửi
+   thiếu `severity` thì `INFO`; finding không có `id` bị bỏ; tối đa 500). `decision_items` của file (câu hỏi cho owner
+   gom nhiều finding) đi kèm thành `decisionItems` (`summarizeDecisionItems`: mỗi mục `{id, question, findings}`, mục
+   thiếu `id`, `question` hay không có finding nào thì bỏ; tối đa 200; không còn mục nào thì không gửi trường này) để
+   server gắn câu hỏi vào finding. Không có `verdict` hay `resultDir` thì gửi
    `failed` kèm lý do ngay. Không đọc được `review-result.json` (Bug Finding đang ghi dở, lỗi IO) thì chưa xếp gì, log
    `bug-finding-relay-result-unreadable` và đọc lại lượt sau; quá 5 phút (`RESULT_READ_GRACE_MS`, tính từ lần lỗi đầu
    trong phiên) vẫn không đọc được mới gửi `failed` kèm lý do thay vì để lượt treo tới hết giờ.
@@ -253,7 +256,7 @@ mang `origin`.
 | `apps/mac-app/src/main/bug-finding/state.ts` | Đọc heartbeat (chặt cho updater), bản cài riêng, bản khác đang chạy, yêu cầu/phản hồi mới nhất (bất đồng bộ) thành trạng thái màn hình | `readBugFindingState`, `bugFindingRunningReviews`, `BugFindingView`, `BugFindingRequestRow`, `HEARTBEAT_STALE_SEC` |
 | `apps/mac-app/src/main/bug-finding/launch.ts` | Kiểm và mở app (chặn khi bản khác đang chạy), dò tiến trình bằng `ps`, hạn lệnh, cổng mở Bug Finding, gỡ bản cài riêng | `checkLaunch`, `launchBugFinding`, `createLaunchDeps`, `createLaunchGate`, `LaunchGate`, `runningBugFindingApps`, `parseRunningAppPaths`, `trashStandalone`, `PROBE_TIMEOUT_MS`, `OPEN_TIMEOUT_MS` |
 | `apps/mac-app/src/main/bug-finding/sync-projects.ts` | Dựng danh sách project Crew có repo trên máy (giữ repo cũ khi dò lỗi tạm thời), ghi atomic `projects.json` khi đổi, tra project của lượt, chạy đồng bộ lần lượt và gộp lần nhờ | `buildCrewProjectList`, `createRepoResolver`, `RepoUnknownError`, `syncProjects`, `syncedProjectKnown`, `savedProjects`, `createSyncRunner`, `jobChangesProjects` |
-| `apps/mac-app/src/main/bug-finding/results.ts` | Đọc response của Bug Finding, rút gọn finding, cắt báo cáo, chỉ đọc file trong thư mục dữ liệu, hàng đợi gửi theo origin (lùi riêng từng mục, bỏ sau quá số lần), sổ lượt, chạy theo `fs.watch` + 30 giây, tóm tắt cho màn hình | `relayResponses`, `startResultsRelay`, `summarizeFinding`, `cutReport`, `rememberRequest`, `mergeDelivered`, `readResponsesDir`, `createBridgeFileReader`, `relayView`, `BugFindingResultBody`, `MAX_ATTEMPTS` |
+| `apps/mac-app/src/main/bug-finding/results.ts` | Đọc response của Bug Finding, rút gọn finding, cắt báo cáo, chỉ đọc file trong thư mục dữ liệu, hàng đợi gửi theo origin (lùi riêng từng mục, bỏ sau quá số lần), sổ lượt, chạy theo `fs.watch` + 30 giây, tóm tắt cho màn hình | `relayResponses`, `startResultsRelay`, `summarizeFinding`, `cutReport`, `rememberRequest`, `mergeDelivered`, `readResponsesDir`, `createBridgeFileReader`, `relayView`, `BugFindingResultBody`, `summarizeDecisionItems`, `BugFindingDecisionItem`, `MAX_ATTEMPTS` |
 | `apps/mac-app/src/main/bug-finding/register.ts` | Nối bốn kênh `bugFinding:*` vào Electron, lịch đồng bộ project, việc máy review ở Main (trong cổng mở Bug Finding), relay kết quả về origin đã giao việc, có app nhúng hay không | `registerBugFinding`, `PROJECT_SYNC_INTERVAL_MS` |
 | `apps/mac-app/src/renderer/routes/bug-finding.tsx` | Màn hình Bug Finding | `BugFindingScreen` |
 
