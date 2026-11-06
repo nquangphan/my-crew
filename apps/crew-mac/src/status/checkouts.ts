@@ -11,8 +11,8 @@ export interface CheckoutInfo {
   clean: boolean | null;
 }
 
-/** Bản tin máy chỉ mang tối đa chừng này checkout. */
-export const MAX_CHECKOUTS = 64;
+/** Bản tin máy chỉ mang tối đa chừng này checkout (plugin `crew.core` nhận tới 256; bản plugin cũ chỉ nhận 64). */
+export const MAX_CHECKOUTS = 256;
 
 function subdirectories(dir: string): string[] {
   try {
@@ -39,7 +39,7 @@ async function inspect(path: string): Promise<CheckoutInfo> {
   }
 }
 
-/** Checkout của agent: thư mục git `~/crew-agents/<project>/<role>`, tối đa 64, sắp theo path. Không bao giờ ném. */
+/** Checkout của agent: thư mục git `~/crew-agents/<project>/<role>`, tối đa `MAX_CHECKOUTS`, sắp theo path. Không bao giờ ném. */
 export async function scanCheckouts(home: string): Promise<CheckoutInfo[]> {
   const candidates = subdirectories(join(home, 'crew-agents'))
     .flatMap(subdirectories)

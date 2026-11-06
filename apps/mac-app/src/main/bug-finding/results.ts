@@ -35,6 +35,8 @@ export const MAX_ATTEMPTS = 10;
 export const RESULT_READ_GRACE_MS = 5 * 60_000;
 /** Route nhận tối đa chừng này finding. */
 const MAX_FINDINGS = 500;
+/** Trần số mục `decision_items` server nhận. */
+const MAX_DECISION_ITEMS = 200;
 const ERROR_MAX = 1000;
 
 export type BugFindingResultState = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
@@ -74,7 +76,16 @@ export interface BugFindingResultBody {
   costUsd?: number;
   error?: string;
   findings?: BugFindingFinding[];
+  /** `decision_items` của Bug Finding: câu hỏi cho owner và các finding nó gom; server gắn thành `question` của finding. */
+  decisionItems?: BugFindingDecisionItem[];
   reportMarkdown?: string;
+}
+
+/** Một mục của `decision_items` trong `review-result.json`, chỉ giữ trường server cần. */
+export interface BugFindingDecisionItem {
+  id: string;
+  question: string;
+  findings: string[];
 }
 
 /** Phần của `app.json` mà relay đọc và ghi. */
@@ -197,6 +208,22 @@ export function summarizeFinding(value: unknown): BugFindingFinding | null {
   };
 }
 
+/** `decision_items` của `review-result.json` về `{id, question, findings}`; mục thiếu id, câu hỏi hay finding thì bỏ. */
+export function summarizeDecisionItems(value: unknown): BugFindingDecisionItem[] {
+  if (!Array.isArray(value)) return [];
+  const items: BugFindingDecisionItem[] = [];
+  for (const raw of value) {
+    if (!isObject(raw)) continue;
+    const id = str(raw.id);
+    const question = str(raw.question);
+    const findings = Array.isArray(raw.findings)
+      ? raw.findings.filter((f): f is string => typeof f === 'string' && f !== '')
+      : [];
+    if (id && question && findings.length) items.push({ id, question, findings });
+  }
+  return items.slice(0, MAX_DECISION_ITEMS);
+}
+
 /** Báo cáo quá 2 MB: cắt ở ranh giới ký tự UTF-8 rồi thêm dòng ghi chú, tổng không quá 2 MB. */
 export function cutReport(text: string, max = REPORT_MAX_BYTES): string {
   const bytes = Buffer.from(text, 'utf8');
@@ -244,6 +271,7 @@ async function buildItem(
   if (!r.resultDir)
     return failedItem('Bug Finding báo xong nhưng không có thư mục kết quả (review-result.json)');
   let findings: BugFindingFinding[];
+  let decisionItems: BugFindingDecisionItem[];
   try {
     const result = JSON.parse(await deps.readFile(join(r.resultDir, 'review-result.json'))) as unknown;
     if (!isObject(result) || !Array.isArray(result.findings)) throw new Error('thiếu mảng findings');
@@ -251,6 +279,7 @@ async function buildItem(
       .map(summarizeFinding)
       .filter((item): item is BugFindingFinding => item !== null)
       .slice(0, MAX_FINDINGS);
+    decisionItems = summarizeDecisionItems(result.decision_items);
   } catch (error) {
     const since = deps.memory.unreadableSince.get(r.requestId) ?? deps.now();
     deps.memory.unreadableSince.set(r.requestId, since);
@@ -267,7 +296,11 @@ async function buildItem(
     );
   }
   deps.memory.unreadableSince.delete(r.requestId);
-  return { ...base, body: { ...body, findings }, ...(r.reportPath ? { reportPath: r.reportPath } : {}) };
+  return {
+    ...base,
+    body: { ...body, findings, ...(decisionItems.length ? { decisionItems } : {}) },
+    ...(r.reportPath ? { reportPath: r.reportPath } : {}),
+  };
 }
 
 const isFinal = (state: BugFindingResultState) => FINAL_STATES.includes(state);
