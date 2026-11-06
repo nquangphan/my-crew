@@ -18,13 +18,13 @@ const X2 = '55555555-5555-4555-8555-555555555555';
 const HASH = 'b'.repeat(64);
 
 /**
- * sha256 của `crew/agents/*.md` trong fork nhánh `tro-ly/bf-triage-autofix` @ 15279935e (main 4b0546628 + luật phân loại
- * finding Bug Finding; commit cuối đổi crew/agents là 410e2b607) lúc chép. Lệch nghĩa là fork đã đổi.
+ * sha256 của `crew/agents/*.md` trong fork nhánh `main` @ 6f79974f2 (luật phân loại finding Bug Finding và integrator
+ * GitLab) lúc chép. Lệch nghĩa là fork đã đổi.
  */
 const FORK_SHA256: Record<string, string> = {
   assistant: '6a35932cc95aa03d923b8a96c085fdd2f955cf2d7b7395eed54ee0f04c643b65',
   executor: 'c528bac9d194e217d9b2e207d92837087acc20b9e5b568ae38a03bfbd3a7e831',
-  integrator: '9da2d9000da57964c365591a437be5fa21c54bf3dae0ca6292a8a66976b36b9d',
+  integrator: '8477973a0c2ef63d3d9380bc2cdfdfd53cf9a0a59821e7c8513906bc0732857e',
   reviewer: 'd0972ec67aea3ee59504f9fa16875589ca341a61c7cfc2ae729e5c58aa53525c',
   designer: '61af43faa3cc3f1dc9e57f26efd058349fabc75b63a7c96e53b3d18e85e4a4b2',
 };
