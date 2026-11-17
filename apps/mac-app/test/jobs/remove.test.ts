@@ -2,12 +2,15 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   realpathSync,
   renameSync,
+  rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { type ExecutorDeps, runJob } from '../../src/main/jobs/executors.js';
@@ -336,6 +339,18 @@ describe('remove-checkouts', () => {
       'crew/demo/reviewer',
       'main',
     ]);
+  });
+
+  it('~/crew-agents là symlink sang ổ khác (owner dời cả thư mục) → gỡ được như bình thường', async () => {
+    const ctx = setup();
+    const external = realpathSync(mkdtempSync(join(tmpdir(), 'crew-agents-ngoai-')));
+    cleanups.push(() => rmSync(external, { recursive: true, force: true }));
+    symlinkSync(external, join(ctx.s.home, 'crew-agents'));
+    await prepare(ctx);
+    expect(existsSync(join(external, 'demo', 'reviewer'))).toBe(true);
+    const outcome = await remove(ctx, FOUR);
+    expect(outcome).toMatchObject({ status: 'done', result: { kept: [], absent: [] } });
+    expect(existsSync(join(external, 'demo'))).toBe(false);
   });
 
   it('còn checkout giữ lại → thư mục project còn; removeStatusRepo:false không gọi removeStatusRepo', async () => {

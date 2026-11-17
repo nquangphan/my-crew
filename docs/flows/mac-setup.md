@@ -55,7 +55,7 @@ không cần token và không login lại.
 1. `apps/crew-mac/src/cli.ts` → `main`: đọc cờ, dựng `MacContext` bằng `createMacContext` (`superpowersPin` luôn là
    `SUPERPOWERS_PIN`, `cliPath` là đường dẫn thật của `cli.js`, `nodePath` thiếu thì `stableNodePath`), gọi lệnh.
 2. `apps/crew-mac/src/commands/setup.ts` → `setup`: kiểm macOS, phiên Aqua (`guiSessionAvailable`), LaunchAgent spike
-   còn chạy hay không, IP Tailscale (`tailscaleIpv4`), thư mục worktree (`forbiddenRootReason`: không phải HOME hay cha của HOME, không dưới `/Volumes`, `~/Desktop`, `~/Downloads`); tạo host key và key
+   còn chạy hay không, IP Tailscale (`tailscaleIpv4`), thư mục worktree (`forbiddenRootReason`: không phải HOME hay cha của HOME, không dưới `~/Desktop`, `~/Downloads` theo đường thật, không dưới `/Volumes` theo đường gõ vào; `~/crew-agents` owner tự symlink sang ổ ngoài như trên Mac mini thì được); tạo host key và key
    doctor (`ssh-keygen`); ghi `~/.crew-mac/sshd/sshd_config` (`renderSshdConfig`), `known_hosts`, dòng key trong
    `~/.ssh/authorized_keys` (`upsertKey`, comment `crew-mac-paperclip`, `crew-mac-doctor`; cả hai có `KEY_OPTIONS`:
    `from="100.64.0.0/10"` và tắt forwarding), khối PATH trong

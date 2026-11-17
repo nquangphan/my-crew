@@ -53,6 +53,14 @@ describe('forbiddenRootReason', () => {
     expect(forbiddenRootReason(realHome, join(realHome, 'crew-agents', 'chua-co'))).toContain('Desktop');
     expect(forbiddenRootReason(realHome, join(realHome, 'that-su-an-toan'))).toBeNull();
   });
+
+  it('cho phép ~/crew-agents là symlink owner tự trỏ sang ổ ngoài', () => {
+    const realHome = mkdtempSync(join(tmpdir(), 'crew-mac-home-'));
+    const external = mkdtempSync(join(tmpdir(), 'crew-mac-ext-'));
+    symlinkSync(external, join(realHome, 'crew-agents'));
+    expect(forbiddenRootReason(realHome, join(realHome, 'crew-agents'))).toBeNull();
+    expect(forbiddenRootReason(realHome, join(realHome, 'crew-agents', 'du-an', 'reviewer'))).toBeNull();
+  });
 });
 
 describe('renderSshdConfig', () => {

@@ -51,6 +51,18 @@ export interface RemoveDeps {
 
 const real = (path: string) => realpathSync.native(path);
 
+/**
+ * Đường thật của `~/crew-agents`. Máy có thể để `~/crew-agents` là symlink sang ổ ngoài (owner tự dời), nên checkout
+ * đúng chỗ là thư mục thật nằm dưới đích của symlink đó; chưa có thì lấy `<HOME thật>/crew-agents`.
+ */
+function realAgentsRoot(home: string): string {
+  try {
+    return real(join(home, 'crew-agents'));
+  } catch {
+    return join(real(home), 'crew-agents');
+  }
+}
+
 function lstatOrNull(path: string) {
   try {
     return lstatSync(path);
@@ -75,7 +87,7 @@ export async function removeCheckouts(
   payload: Extract<JobPayload, { kind: 'remove-checkouts' }>,
   deps: RemoveDeps,
 ): Promise<JobResult> {
-  const realHome = real(deps.home);
+  const agentsRoot = realAgentsRoot(deps.home);
   const result: Extract<JobResult, { kind: 'remove-checkouts' }> = {
     kind: 'remove-checkouts',
     removed: [],
@@ -83,12 +95,12 @@ export async function removeCheckouts(
     absent: [],
   };
   for (const role of payload.roles) {
-    const outcome = await removeOne(payload.projectKey, role, realHome, deps);
+    const outcome = await removeOne(payload.projectKey, role, agentsRoot, deps);
     if ('removed' in outcome) result.removed.push(outcome.removed);
     else if ('kept' in outcome) result.kept.push(outcome.kept);
     else result.absent.push(outcome.absent);
   }
-  removeEmptyProjectDir(deps.home, realHome, payload.projectKey);
+  removeEmptyProjectDir(deps.home, agentsRoot, payload.projectKey);
   if (payload.removeStatusRepo) await deps.removeStatusRepo(payload.projectId);
   return result;
 }
@@ -96,7 +108,7 @@ export async function removeCheckouts(
 async function removeOne(
   projectKey: string,
   role: string,
-  realHome: string,
+  agentsRoot: string,
   deps: RemoveDeps,
 ): Promise<RoleOutcome> {
   const path = checkoutPath(deps.home, projectKey, role);
@@ -106,7 +118,7 @@ async function removeOne(
   const stat = lstatOrNull(path);
   if (!stat) return { absent: role };
 
-  const expected = checkoutPath(realHome, projectKey, role);
+  const expected = join(agentsRoot, projectKey, role);
   let target: string;
   try {
     target = real(path);
@@ -185,10 +197,10 @@ async function removeOne(
 }
 
 /** `rmdir ~/crew-agents/<khóa>` khi đã rỗng (thư mục thật đúng chỗ, không phải symlink). Không rỗng thì để nguyên. */
-function removeEmptyProjectDir(home: string, realHome: string, projectKey: string): void {
+function removeEmptyProjectDir(home: string, agentsRoot: string, projectKey: string): void {
   const dir = join(home, 'crew-agents', projectKey);
   const stat = lstatOrNull(dir);
-  if (!stat?.isDirectory() || real(dir) !== join(realHome, 'crew-agents', projectKey)) return;
+  if (!stat?.isDirectory() || real(dir) !== join(agentsRoot, projectKey)) return;
   try {
     rmdirSync(dir);
   } catch {

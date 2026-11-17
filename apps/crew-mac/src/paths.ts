@@ -113,7 +113,12 @@ export function forbiddenRootReason(home: string, root: string): string | null {
     const b = comparablePath(base);
     return abs === b || abs.startsWith(`${b}/`);
   };
-  if (under('/Volumes')) return 'không đặt dưới /Volumes: macOS hỏi quyền ổ ngoài và agent treo im lặng';
+  // `/Volumes` xét theo đường gõ vào, không theo đường thật: owner chủ động symlink `~/crew-agents` sang ổ ngoài
+  // (máy đã cấp quyền ổ ngoài cho agent, như repo gốc nằm ở đó) thì được; gõ thẳng `/Volumes/...` vẫn bị chặn.
+  const typed = resolve(root).toLowerCase();
+  if (typed === '/volumes' || typed.startsWith('/volumes/')) {
+    return 'không đặt dưới /Volumes: macOS hỏi quyền ổ ngoài và agent treo im lặng';
+  }
   if (under(join(home, 'Desktop'))) return 'không đặt dưới ~/Desktop: thư mục được macOS bảo vệ (TCC)';
   if (under(join(home, 'Downloads'))) return 'không đặt dưới ~/Downloads: thư mục được macOS bảo vệ (TCC)';
   return null;
